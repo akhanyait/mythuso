@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { GilbertAvatar, useGilbertRig } from './GilbertAvatar';
+import { GilbertAvatar, growFrom, useGilbertRig } from './GilbertAvatar';
 import { AssistantGreeting } from '../components/AssistantGreeting';
 import { MotionPause } from '../components/MotionPause';
 import { G1Mark } from '../components/G1Mark';
 import { useDecor } from '../lib/motion';
-import { conversation, emergencyAnswer, identity, lines, screens, silenceIsNotSafety } from '../lib/assistant';
+import { affect, conversation, emergencyAnswer, identity, lines, screens, silenceIsNotSafety } from '../lib/assistant';
 import { crisisLines, showsCrisisLines } from '../lib/crisis-lines';
 import { publicAnswer, publicAssistant as copy, type PublicAnswer } from '../lib/public-assistant';
 import './public-assistant.css';
@@ -24,8 +24,24 @@ function EmergencyFooter() {
 }
 
 type Turn = { asked: string; answer: PublicAnswer };
+
+/* The face each public answer wears is the contract's, read from affect.answers and never chosen
+   here: the emergency holds the safety cue, a refusal wears the refusal's. A website answer has no
+   entry in affect.answers — the face section maps the panel's answer kinds, and nobody has decided
+   one for the guide's — so it plays no cue at all rather than a gesture picked by this component.
+   Until 28 September 2026 it played A09, the nod the contract's notWired list refuses for every
+   answer because a nod can read as agreement. */
+const cueFor = (answer: PublicAnswer) =>
+ answer.kind === 'emergency' ? affect.answers.emergency.cue
+  : answer.kind === 'refusal' ? affect.answers.refusal.cue
+  : null;
 /* Website-only surface: no role parameter, patient visit, microphone, network or persistence.
-   The native dialog supplies focus containment and Escape; closing preserves this page's chat. */
+   The native dialog supplies focus containment and Escape; closing preserves this page's chat.
+
+   The landing page holds its motion to a budget (tests/motion.spec.ts: the carousel's clock and the
+   two hero drifts, nothing else at rest), so the robot on the launcher is still while the sheet is
+   closed — no blink, no idle drift, no transition waiting to fire — and moves only once somebody has
+   opened him. The sheet grows out of him and shrinks back into him, as the patient's panel does. */
 export default function PublicAssistant() {
  const [open, setOpen] = useState(false);
  const [draft, setDraft] = useState('');
@@ -34,19 +50,26 @@ export default function PublicAssistant() {
  const launcher = useRef<HTMLButtonElement>(null);
  const latest = useRef<HTMLLIElement>(null);
  const { reduced, playing } = useDecor();
- const rig = useGilbertRig({ reduced, paused: !playing });
+ const rig = useGilbertRig({ reduced, paused: !playing || !open });
+ const entrance = useRef<Animation | null>(null);
+ /* The one answer that has just landed, and the only one that rises. */
+ const [arrived, setArrived] = useState<number | null>(null);
  useEffect(() => {
-  if (open) dialog.current?.showModal();
-  else if (dialog.current?.open) { dialog.current.close(); launcher.current?.focus(); }
+  const sheet = dialog.current;
+  if (!sheet) return;
+  if (open && !sheet.open) { sheet.showModal(); entrance.current = growFrom(launcher.current, sheet, reduced); }
+  else if (!open && sheet.open) { entrance.current?.cancel(); sheet.close(); launcher.current?.focus(); setArrived(null); }
  }, [open]);
  useEffect(() => { latest.current?.scrollIntoView({ block: 'nearest' }); }, [turns]);
  const ask = (asked: string) => {
   if (!asked.trim()) return;
   const answer = publicAnswer(asked);
   setTurns(previous => [...previous, { asked, answer }]);
+  setArrived(turns.length);
   setDraft('');
   // The rig holds its safety cue until the visitor explicitly starts again.
-  rig.play(answer.kind === 'emergency' ? 'A16' : answer.kind === 'refusal' ? 'A17' : 'A09');
+  const cue = cueFor(answer);
+  if (cue) rig.play(cue);
  };
  const submit = (event: FormEvent) => { event.preventDefault(); ask(draft); };
  return <>
@@ -57,7 +80,7 @@ export default function PublicAssistant() {
   <dialog ref={dialog} className="public-assistant" aria-labelledby="public-assistant-title" onCancel={() => setOpen(false)} onClose={() => setOpen(false)} onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}>
    <div className="public-assistant-frame">
     <header>
-     <GilbertAvatar pose={rig.pose} size={96} blend={rig.blend} friendly={turns.length === 0}/>
+     <GilbertAvatar pose={rig.pose} size={64} blend={rig.blend} friendly={turns.length === 0}/>
      <div className="public-assistant-titles"><G1Mark className="public-assistant-mark"/><h2 id="public-assistant-title">{identity.name}</h2><p>{copy.label}</p><p>{identity.descriptorLine}</p></div>
      <button type="button" aria-label="Close GilbertOne" onClick={() => setOpen(false)}>×</button>
      <MotionPause/>
@@ -65,7 +88,7 @@ export default function PublicAssistant() {
     <div className="public-assistant-scroll">
      <div className="public-assistant-greeting"><p>{copy.welcome}</p><p className="public-assistant-note">{copy.privacy}</p></div>
      <div role="log" aria-label="MyThuso website conversation" aria-live="polite"><ol>
-      {turns.map((turn, index) => <li key={index} ref={index === turns.length - 1 ? latest : undefined} data-outcome={turn.answer.kind}>
+      {turns.map((turn, index) => <li key={index} ref={index === turns.length - 1 ? latest : undefined} data-outcome={turn.answer.kind} data-arrived={index === arrived || undefined}>
        <p className="public-assistant-question"><strong>You:</strong> {turn.asked}</p>
        <div className="public-assistant-answer"><strong>{identity.name}</strong>
         {turn.answer.kind === 'faq' ? <><p>{turn.answer.question.answer}</p><a href={turn.answer.question.href} onClick={() => setOpen(false)}>{turn.answer.question.linkLabel}</a></>
@@ -76,7 +99,7 @@ export default function PublicAssistant() {
      </ol></div>
      <p className="public-assistant-quick">{screens.publicSheet.quickHeading}</p>
      <nav aria-label="MyThuso questions">{copy.questions.map(q => <button type="button" key={q.id} onClick={() => ask(q.question)}>{q.question}</button>)}</nav>
-     {turns.length > 0 && <button type="button" className="public-assistant-again" onClick={() => { setTurns([]); setDraft(''); rig.rest(); }}>{conversation.startAgainLabel}</button>}
+     {turns.length > 0 && <button type="button" className="public-assistant-again" onClick={() => { setTurns([]); setDraft(''); setArrived(null); rig.rest(); }}>{conversation.startAgainLabel}</button>}
     </div>
     <form onSubmit={submit}>
      <label htmlFor="public-assistant-input">{copy.inputLabel}</label>

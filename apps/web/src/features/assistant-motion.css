@@ -1,0 +1,241 @@
+/* GilbertOne's motion on the panel — the founder's brief of 28 September 2026, "crystallise it;
+   smooth animations". Imported last from Assistant.tsx, after assistant.css and gilbertone-theme.css,
+   so what moves is decided here and nowhere else in the panel's sheets.
+
+   Four rules, and each one is a refusal:
+
+   1. Only transform and opacity move, on the tokens' one curve and three durations. Nothing here
+      changes a box, so nothing a thumb is travelling towards moves under it, and nothing makes a
+      click wait for more than the length of one entrance.
+   2. Nothing sits in front of the emergency numbers. The emergency answer, and any answer that
+      prints the ambulance lines, arrives on the frame it is sent with no entrance at all — opacity
+      from zero is a delay in front of 10177, however short. The safety face (affect.answers.emergency,
+      read by Assistant.tsx into data-safety) stops every decorative movement on the panel for as long
+      as it holds: the float, the listening pulse, the reading rail.
+   3. Anything that runs for ever is gated on [data-decor='on'], so Pause motion, a hidden tab and
+      reduced motion each stop it, and it runs only while its reason is true — the pulse while the
+      microphone is open, the dot while an answer is being fetched — and never at rest.
+   4. Reduced motion removes rather than shortens. Every entrance here starts from a state that is
+      already complete, so removing the animation leaves the whole answer on the screen. */
+
+/* ---- The launcher becomes the panel, and the close reverses it ---------------------------------
+   The entrance is growFromLauncher in Assistant.tsx: it measures the robot that was pressed, scales
+   the sheet up out of his centre, and leaves that scale on the dialog as --as-from-scale. The close
+   is here, because close() has to happen at once — the dialog stops being modal immediately and focus
+   goes back to the launcher — while the sheet shrinks back into him. overlay and display are carried
+   discretely so it stays drawn for the length of the shrink; pointer-events are off from the first
+   frame of it, so a press on the launcher is never caught by a sheet on its way out. */
+.as-panel {
+  transition:
+    opacity var(--t-settle) var(--ease-soft),
+    transform var(--t-enter) var(--ease-soft),
+    overlay var(--t-enter) allow-discrete,
+    display var(--t-enter) allow-discrete;
+}
+.as-panel:not([open]) {
+  opacity: 0;
+  transform: scale(var(--as-from-scale, 0.9));
+  pointer-events: none;
+}
+.as-panel::backdrop {
+  transition:
+    opacity var(--t-enter) var(--ease-soft),
+    overlay var(--t-enter) allow-discrete,
+    display var(--t-enter) allow-discrete;
+}
+.as-panel:not([open])::backdrop {
+  opacity: 0;
+  pointer-events: none;
+}
+@starting-style {
+  .as-panel[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+/* The launcher's half, here rather than in components/assistant-greeting.css because it only
+   matters once a panel exists, and this sheet is loaded before any panel can open — so the patient's
+   first load does not carry it. He fades and swells slightly as the sheet grows out of him, and does
+   not float while he is hidden behind it: an endless animation nobody can see is still a frame. When
+   the sheet closes he returns over the same length it takes to shrink back into him. */
+.al-dock .as-launcher {
+  transition:
+    opacity var(--t-settle) var(--ease-soft),
+    transform var(--t-enter) var(--ease-soft);
+}
+.al-dock:has(#assistant-panel[open]) .as-launcher {
+  opacity: 0;
+  transform: scale(1.08);
+}
+.al-dock:has(#assistant-panel[open]) .al-orb {
+  animation: none;
+}
+
+/* ---- A reply arrives: rise and settle -----------------------------------------------------------
+   Only the turn that has just landed (data-arrived, set by Assistant.tsx for one turn at a time),
+   so a re-open never replays a conversation somebody has already read. Her own words settle in from
+   her side first, and the answer rises beneath them on the same frame the face takes its cue — the
+   cue is the contract's, played by the same commit that paints these words. */
+@keyframes as-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, var(--space-8), 0);
+  }
+}
+@keyframes as-said-in {
+  from {
+    opacity: 0;
+    transform: translate3d(var(--space-8), 0, 0);
+  }
+}
+.as-turn[data-arrived] .as-said {
+  animation: as-said-in var(--t-settle) var(--ease-soft) both;
+}
+.as-turn[data-arrived] .as-reply {
+  animation: as-rise var(--t-enter) var(--ease-soft) both;
+}
+/* The refusal of rule 2, written twice on purpose: by kind, and by what it contains. An answer
+   that carries the ambulance lines (the unmatched answer, a model's answer, the unread block, a sent
+   handover) is on the screen at once, as the emergency answer is. */
+.as-turn[data-arrived] .as-reply-emergency,
+.as-turn[data-arrived] .as-reply:has(.as-numbers),
+.as-panel[data-safety] .as-turn[data-arrived] :is(.as-said, .as-reply) {
+  animation: none;
+}
+
+/* ---- Where the voice has got to -----------------------------------------------------------------
+   A rail down the reply's leading edge, grown by the utterance's own word boundaries (--as-read,
+   0 to 1, written by the reading effect). Every word is already on the screen; the rail only says
+   which lines the voice has reached. scaleY rather than height, so no line ever moves. It fades when
+   the reading ends, is cancelled or fails, and it is never drawn while the safety face holds. */
+.as-turn .as-reply {
+  position: relative;
+}
+.as-turn .as-reply::before {
+  content: "";
+  position: absolute;
+  inset-block: var(--space-16);
+  inset-inline-start: -1px;
+  width: 3px;
+  border-radius: var(--r-pill);
+  background: var(--brand-green);
+  transform-origin: 50% 0;
+  transform: scaleY(var(--as-read, 0));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--t-settle) var(--ease-soft),
+    opacity var(--t-settle) var(--ease-soft);
+}
+:root[data-decor="on"] .as-panel:not([data-safety]) .as-turn[data-reading] .as-reply:not(.as-reply-emergency)::before {
+  opacity: 1;
+}
+
+/* ---- The suggestion row settles when its set changes -------------------------------------------
+   The landing's service settle: Assistant.tsx keys each row on the questions it offers, so a row
+   whose set has changed — a booked visit brings the preparation chip — is a new row, and settles in
+   once rather than having a chip appear in the middle of it. Four pixels and a fade. */
+@keyframes as-settle {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 4px, 0);
+  }
+}
+.as-chips {
+  animation: as-settle var(--t-settle) var(--ease-soft) both;
+}
+.as-panel[data-safety] .as-chips {
+  animation: none;
+}
+
+/* ---- The microphone is open: a calm ring --------------------------------------------------------
+   CLAUDE.md asks for a visible indicator whenever the microphone is hot, and the button already is
+   one — it turns ink and says Stop in words. The ring is the calm half of that: a hairline that
+   swells out of the microphone's disc and fades, on the tokens' curve, only while aria-pressed says
+   the microphone is capturing. It is a rhythm, never a level: nothing here reads the audio, and
+   §07's V04 refuses a meter. Under reduced motion or Pause motion the ring is drawn still, so the
+   indicator is never removed with the movement. */
+.as-mic-disc {
+  position: relative;
+}
+.as-voice[aria-pressed="true"] .as-mic-disc::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border: 2px solid var(--brand-mint);
+  border-radius: 50%;
+  pointer-events: none;
+}
+@keyframes as-listening {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.45);
+    opacity: 0;
+  }
+}
+:root[data-decor="on"] .as-panel:not([data-safety]) .as-voice[aria-pressed="true"] .as-mic-disc::after {
+  animation: as-listening calc(var(--t-enter) * 4) var(--ease-soft) infinite;
+}
+
+/* ---- Waiting --------------------------------------------------------------------------------------
+   "Getting your answer" is a sentence with one breathing dot before it: the words are the state, and
+   the dot only says it is still true. It breathes by opacity, only while the words are on the screen.
+   The launcher's "Opening GilbertOne" keeps its own card: it is on the patient's first load, and
+   giving it the same pill and dot measured 144 bytes there, which the patient entry does not pay for
+   a state most people never see (the panel is fetched on hover). */
+.as-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+.as-pending::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brand-green);
+}
+@keyframes as-breathe {
+  50% {
+    opacity: 0.25;
+  }
+}
+:root[data-decor="on"] .as-pending::before {
+  animation: as-breathe calc(var(--t-enter) * 3) var(--ease-soft) infinite;
+}
+
+/* ---- The character's float ---------------------------------------------------------------------
+   Moved here from gilbertone-theme.css, where it ran on a typed 4.5s curve and kept bobbing under
+   the held safety face. Two pixels either way, on the tokens' curve, only while the rig itself may
+   move and never while A16 holds the face. */
+@keyframes go-float {
+  to {
+    transform: translate3d(0, -4px, 0);
+  }
+}
+:root[data-decor="on"] .as-panel:not([data-safety]) .as-rig[data-motion="running"] svg {
+  animation: go-float calc(var(--t-enter) * 10) var(--ease-soft) infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .as-panel,
+  .as-panel::backdrop,
+  .as-turn .as-reply::before,
+  .al-dock .as-launcher {
+    transition: none !important;
+  }
+  .as-turn[data-arrived] :is(.as-said, .as-reply),
+  .as-chips,
+  .as-pending::before,
+  .as-rig svg,
+  .as-voice[aria-pressed="true"] .as-mic-disc::after {
+    animation: none !important;
+  }
+  .as-turn .as-reply::before {
+    display: none;
+  }
+}

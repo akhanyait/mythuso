@@ -148,6 +148,11 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
    note="A stage is held on this phone the moment it is finished, and not before."
    panel={<>
     <span className="c-panel-eyebrow">The visit, stage by stage</span>
+    {/* The same five stages as a segmented track that fills: one segment per stage, the ones behind
+        her solid, the one she is on outlined. It says nothing the list under it does not, so it is
+        hidden from a screen reader; as a .c-bars it is drawn once on arrival by ChartMotion, which
+        leaves it still for a reader who asked for less motion. */}
+    <span className="c-bars cr-track" aria-hidden="true">{stages.map((s, i) => <i key={s} className={i < stage ? 'done' : i === stage ? 'now' : ''}/>)}</span>
     <ol className="cr-rail" aria-label="Stages of this visit">{stages.map((s, i) => <li key={s} className={i < stage ? 'done' : i === stage ? 'now' : ''} aria-current={i === stage ? 'step' : undefined}>
      <span className="cr-rail-mark" aria-hidden="true">{i < stage ? <Check size={15}/> : i + 1}</span>
      <span className="cr-rail-label">{s}{i < stage && <span className="cr-vh">, done</span>}</span>
@@ -407,15 +412,21 @@ export function DoctorReview({ reference = 'TH-2048', open, onClose }: { referen
  return <div className="form-stack">
   <h3>{reference} · Lerato Molefe</h3>
   <NotConnected of="screening"/>
-  <p className="muted">Submitted by Sister Naledi Mokoena, 4 September 11:24. Two readings were flagged by the nurse.</p>
   <label>Signing doctor<select value={signing} onChange={e => { setSigning(e.target.value); setDone(false); }}>
    {doctors.map(d => <option key={d.id} value={d.id}>{d.name} · {d.reference}</option>)}
   </select></label>
   {!maySign.allowed && <div className="privacy-note alert" role="status"><ShieldX size={19}/>{maySign.reason}</div>}
-  <ClinicalChart title="Blood pressure — systolic" unit="mmHg" normal={[90, 140]} readings={[{ label: '12 Aug', value: 128 }, { label: '19 Aug', value: 134 }, { label: '28 Aug', value: 141, note: 'Missed medication' }, { label: '4 Sep', value: 146, note: 'Nurse flagged' }]}/>
-  <div className="review-line"><span>Pulse</span><strong>88 bpm</strong></div>
-  <div className="review-line"><span>Reported symptoms</span><strong>Headache, fatigue</strong></div>
-  <div className="review-line"><span>Nurse’s next step</span><strong>Refer for doctor review within 24 hours</strong></div>
+  {/* What the nurse handed over, as one object: a paper panel on the mint the deck gives its quiet
+      summary, so the pack reads as the thing that arrived and the decision under it as the thing the
+      doctor adds. Who signs is decided above it, before a word of the pack is read. The words, the
+      chart and the order inside the pack are exactly what they were. */}
+  <div className="dr-pack"><div className="dr-pack-paper">
+   <p className="muted">Submitted by Sister Naledi Mokoena, 4 September 11:24. Two readings were flagged by the nurse.</p>
+   <ClinicalChart title="Blood pressure — systolic" unit="mmHg" normal={[90, 140]} readings={[{ label: '12 Aug', value: 128 }, { label: '19 Aug', value: 134 }, { label: '28 Aug', value: 141, note: 'Missed medication' }, { label: '4 Sep', value: 146, note: 'Nurse flagged' }]}/>
+   <div className="review-line"><span>Pulse</span><strong>88 bpm</strong></div>
+   <div className="review-line"><span>Reported symptoms</span><strong>Headache, fatigue</strong></div>
+   <div className="review-line"><span>Nurse’s next step</span><strong>Refer for doctor review within 24 hours</strong></div>
+  </div></div>
   <label>Your decision<select value={decision} onChange={e => setDecision(e.target.value)} disabled={!maySign.allowed}><option value="">Choose an outcome…</option><option>Continue current management, review in one month</option>
    <option disabled={!mayPrescribe.allowed}>Adjust medication and issue a prescription{mayPrescribe.allowed ? '' : ' — prescribing not verified'}</option>
    <option disabled={!mayPrescribe.allowed}>Repeat the chronic authorisation{mayPrescribe.allowed ? '' : ' — prescribing not verified'}</option>

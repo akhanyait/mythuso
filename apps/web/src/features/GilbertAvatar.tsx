@@ -45,6 +45,41 @@ import assistantUI from "../../../../packages/catalog/assistant-ui.json";
  * doing is said in words, in HTML, by whatever renders the rig. A screen reader that meets a robot
  * head gets nothing from it, which is the point — it gets the sentence instead. */
 
+/* A sheet that grows out of the control that opened it — GilbertOne's one motion, 28 September 2026.
+
+   Shared by the patient's panel (features/Assistant.tsx) and the landing page's signed-out sheet
+   (features/PublicAssistant.tsx). It lives in this file because this is the one chunk the two already
+   share: the landing page must not download the panel to borrow a function, and a module of its own
+   became a chunk of its own, whose name the patient's first load then carried in its preload map.
+
+   The origin is measured rather than assumed: the robot is docked in a different place by every shell,
+   and a guessed origin is a sheet flying in from somewhere nobody pressed. The sheet scales up about
+   the door's centre, and the scale is left on it as --as-from-scale so the CSS close can shrink it back
+   into the same place. It is the Web Animations API because the measurement only exists once
+   showModal() has laid the dialog out, and it has to start in the same task, before a frame is painted.
+   Duration and curve are read from the tokens (--t-enter, --ease-soft) and never typed here: with no
+   token there is no motion, rather than a second motion system. Transform and opacity only. */
+export function growFrom(door: Element | null, sheet: HTMLElement, still: boolean): Animation | null {
+ /* Whatever is still moving on the sheet — an entrance a re-open interrupted, or React's development
+    double mount opening it twice — is ended first, so the sheet is measured at its own size rather
+    than part-way through a scale, which once made the second measurement a scale of 1. */
+ for (const running of sheet.getAnimations()) running.cancel();
+ const from = door?.getBoundingClientRect();
+ const to = sheet.getBoundingClientRect();
+ if (!from?.width || !to.width) return null;
+ const scale = Math.min(1, Math.max(from.width / to.width, 0.12));
+ sheet.style.transformOrigin = `${from.left + from.width / 2 - to.left}px ${from.top + from.height / 2 - to.top}px`;
+ sheet.style.setProperty('--as-from-scale', String(scale));
+ const root = getComputedStyle(document.documentElement);
+ const duration = parseFloat(root.getPropertyValue('--t-enter'));
+ const easing = root.getPropertyValue('--ease-soft').trim();
+ if (still || !duration || !easing) return null;
+ return sheet.animate(
+  [{ transform: `scale(${scale})`, opacity: 0 }, { opacity: 1, offset: 0.35 }, { transform: 'none', opacity: 1 }],
+  { duration, easing }
+ );
+}
+
 export type Rig = ReturnType<typeof useGilbertRig>;
 
 /* Blink spacing, in the range §03 A03 gives, and a double blink now and then rather than on a

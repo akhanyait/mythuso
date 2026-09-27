@@ -1,6 +1,6 @@
-import { Component, createContext, lazy, Suspense, useContext, useState, type ReactNode } from 'react';
+import { Component, createContext, lazy, Suspense, useContext, useState, type CSSProperties, type ReactNode } from 'react';
 import { Activity, Ambulance, ArrowRight, ArrowUpRight, Ban, Bell, Bluetooth, BookOpen, CalendarClock, Check, ChevronRight, CircleHelp, Clock3, CreditCard, Download, Droplets, Eye, FileCheck, FileText, Globe, HandCoins, Heart, HeartHandshake, History, Languages, LayoutGrid, LockKeyhole, LogOut, MapPin, Navigation, NotebookPen, PenLine, Plus, RefreshCw, Search, Settings2, Share2, ShieldCheck, Sparkles, Stethoscope, Trash2, TriangleAlert, UserPlus, Users, Wallet, Zap } from 'lucide-react';
-import { Pill, SectionTitle, ServiceIcon } from '../components/UI';
+import { Pill, SectionTitle, ServiceIcon, tintOf } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { ClinicalChart } from '../components/Chart';
 import { EmptyState, Skeleton, StateBlock, useOffline, type LoadState } from '../components/States';
@@ -39,14 +39,17 @@ const ComplaintEntry = lazy(() => import('./VerifyInService').then(m => ({ defau
  * The footer is a row of two columns rather than whatever fitted: what it costs, and how long it
  * takes. Both are the same two facts on every card, in the same two places, so a person comparing
  * four services reads down a column instead of hunting each card. */
+/* Since 28 September a live card wears its category's tint (UI.tsx#tintOf) — the same tint the home's tile
+   for that service wears — and its price is the card's figure. A planned card stays on the page's own
+   paper, untinted and dashed, so what can be booked today is seen before it is read. */
 function ServiceCard({service,onOpen}:{service:Service;onOpen:()=>void}) {
  const live=service.phase===1;
- return <button className={`service-card${live?'':' later'}`} onClick={onOpen}>
+ return <button className={`service-card${live?'':' later'}`} data-tint={live?tintOf(service.category):undefined} onClick={onOpen}>
   <span className="service-icon"><ServiceIcon name={service.icon} size={21}/></span>
   <h3>{service.name}</h3>
   <p>{service.description}</p>
   <div>{live
-   ?<><strong>From {money(service.price)}</strong><span>{service.duration} min<ChevronRight size={16}/></span></>
+   ?<><strong><small>From</small> {money(service.price)}</strong><span>{service.duration} min<ChevronRight size={16}/></span></>
    :<><strong className="later-price">{money(service.price)} planned</strong><span>Phase {service.phase}<ChevronRight size={16}/></span></>}</div>
  </button>;
 }
@@ -64,7 +67,7 @@ export function Services({book,open,navigate,query='',forPerson,clearPerson}:{bo
       arrives at the review step with somebody else's name on it is the one mistake this journey can
       make that nobody would notice until a nurse knocked. */}
   {forPerson&&<p className="booking-for" role="status"><Users size={16}/>Booking for <strong>{forPerson}</strong>{clearPerson&&<button className="text-button" onClick={clearPerson}>Book for myself instead</button>}</p>}
-  <div className="catalog-tools"><label className="search-box"><Search size={18}/><input aria-label="Search services" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Find a service…"/></label><span className="helper">{filtered.filter(s=>s.phase===1).length} bookable now · {filtered.length} in the catalogue</span></div>
+  <div className="catalog-tools"><label className="search-box"><Search size={18}/><input aria-label="Search services" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Find a service…"/></label><span className="helper catalog-count">{/* The share the sentence beside it states, as a ring (surface/motion.css); aria-hidden, because the words say it. */}<i className="m-ring" aria-hidden="true" style={{ '--m-share': filtered.length ? bookable.length / filtered.length : 0 } as CSSProperties}/>{bookable.length} bookable now · {filtered.length} in the catalogue</span></div>
   <div className="tabs" role="group" aria-label="Service categories">{['All services','Everyday care','Family health','Recovery','Tests & screening'].map(c=><button key={c} className={category===c?'selected':''} aria-pressed={category===c} onClick={()=>setCategory(c)}>{c}</button>)}</div>
   {(search || category!=='All services')&&<div className="catalog-filter-summary"><span role="status">{filtered.length} {filtered.length===1?'service':'services'} found{search.trim()?` for “${search.trim()}”`:''}</span><button className="text-button" onClick={clearFilters}>Clear filters</button></div>}
   {/* Bookable and planned are two groups, not one grid with a quieter twelfth card. The only

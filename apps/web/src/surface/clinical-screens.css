@@ -697,7 +697,7 @@
    On a board that heads itself the page-intro carries nothing but the eyebrow, and it kept the
    24-pixel skirt it has when it carries a heading and a sentence too. That put the role further
    from the title it qualifies than the title is from its own subtitle. */
-.clinical main > .page-intro:has(> div > .eyebrow:only-child) { margin-bottom: var(--space-12); }
+.clinical main > .cl-chapter > .page-intro:has(> div > .eyebrow:only-child) { margin-bottom: var(--space-12); }
 
 /* ---- A partner's name is not an abbreviation ------------------------------------------------------
    "Rosebank Community Pharmacy" ellipsised to "Rosebank Community Phar…" in a 296-pixel sidebar. A
@@ -1064,3 +1064,100 @@
 .clinical .gr-clear { justify-self: start; min-height: 44px; }
 .clinical .gr-recorder { display: flex; align-items: flex-start; gap: var(--space-8); margin: 0; }
 .clinical .gr-recorder svg { flex: none; margin-top: 2px; }
+
+/* ---- The flat strip and the partner's rows, in the pastel system (28 September 2026) ----------------
+   The partner's three figures are the strip the shell draws directly under its heading. They become the
+   deck's cards without becoming the deck: one figure per tinted card, the lead the one dark card, and the
+   tints following the same places the deck's do — the lead dark, a flagged figure peach (its chip says so
+   in words and is filled), the last of the strip mint, anything between lavender. The markup is the
+   shared Metric's, which tests/workspace-counts.spec.ts reads; only its grounds change, and every ground
+   sets its ink in the same rule (ratios at the top of features/clinical-deck.css). */
+.clinical main > .cl-chapter > .s-metrics {
+ display: grid;
+ grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+ gap: var(--space-16);
+ padding: 0 0 var(--space-24);
+ max-width: 1080px;
+}
+.clinical main > .cl-chapter > .s-metrics > .s-metric {
+ --m-ground: var(--cl-tint-lavender);
+ margin: 0;
+ padding: var(--space-20) var(--space-24) var(--space-24);
+ border: 0;
+ border-radius: var(--r-panel);
+ background: var(--m-ground);
+ color: var(--brand-ink);
+ gap: var(--space-8);
+ max-width: none;
+}
+.clinical main > .cl-chapter > .s-metrics > .s-metric:not(.lead):last-child { --m-ground: var(--cl-tint-mint); }
+.clinical main > .cl-chapter > .s-metrics > .s-metric:not(.lead):has(.s-metric-chip.flagged) { --m-ground: var(--cl-tint-peach); }
+.clinical main > .cl-chapter > .s-metrics > .s-metric + .s-metric { margin-left: 0; padding-left: var(--space-24); border-left: 0; }
+.clinical main > .cl-chapter > .s-metrics > .s-metric .s-metric-value { font-size: 42px; font-weight: 300; letter-spacing: -1.5px; color: inherit; }
+.clinical main > .cl-chapter > .s-metrics > .s-metric .s-metric-label { font-size: 15px; font-weight: 600; color: inherit; margin-top: auto; }
+.clinical main > .cl-chapter > .s-metrics > .s-metric .s-metric-chip-line { order: 0; min-height: 28px; }
+.clinical main > .cl-chapter > .s-metrics > .s-metric .s-metric-chip {
+ padding: 3px 12px;
+ border: 1px solid var(--surface);
+ border-radius: var(--r-pill);
+ background: var(--surface);
+ color: var(--brand-ink);
+ font-size: 13px;
+ font-weight: 500;
+}
+.clinical main > .cl-chapter > .s-metrics > .s-metric .s-metric-chip.flagged { background: var(--brand-ink); border-color: var(--brand-ink); color: var(--surface); font-weight: 600; }
+.clinical main > .cl-chapter > .s-metrics > .s-metric.lead {
+ --m-ground: var(--brand-ink);
+ background: radial-gradient(120% 120% at 0% 0%, color-mix(in srgb, var(--brand-green) 22%, var(--brand-ink)) 0%, transparent 60%), var(--brand-ink);
+ color: var(--surface);
+}
+.clinical main > .cl-chapter > .s-metrics > .s-metric.lead .s-metric-chip { background: transparent; border-color: color-mix(in srgb, var(--surface) 40%, var(--brand-ink)); color: color-mix(in srgb, var(--surface) 72%, var(--brand-ink)); }
+.clinical main > .cl-chapter > .s-metrics > .s-metric.lead .s-metric-chip.flagged { background: var(--brand-mint); border-color: var(--brand-mint); color: var(--brand-ink); }
+.clinical main > .cl-chapter > .s-metrics > .s-metric.lead .s-metric-value small { color: color-mix(in srgb, var(--surface) 72%, var(--brand-ink)); }
+html[data-motion='on'] .clinical main > .cl-chapter > .s-metrics > .s-metric { animation: c-card-in var(--t-enter) var(--ease-soft) both; }
+html[data-motion='on'] .clinical main > .cl-chapter > .s-metrics > .s-metric:nth-child(2) { animation-delay: 70ms; }
+html[data-motion='on'] .clinical main > .cl-chapter > .s-metrics > .s-metric:nth-child(n+3) { animation-delay: 140ms; }
+@media (max-width: 560px) {
+ .clinical main > .cl-chapter > .s-metrics { grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: var(--space-12); }
+ .clinical main > .cl-chapter > .s-metrics > .s-metric { padding: var(--space-16); border-radius: var(--r-card); }
+ .clinical main > .cl-chapter > .s-metrics > .s-metric + .s-metric { padding-left: var(--space-16); }
+ .clinical main > .cl-chapter > .s-metrics > .s-metric .s-metric-value { font-size: 36px; }
+ /* Two across, and a third on its own line takes the line rather than half of it. */
+ .clinical main > .cl-chapter > .s-metrics > .s-metric:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+@media (prefers-reduced-motion: reduce) {
+ html[data-motion='on'] .clinical main > .cl-chapter > .s-metrics > .s-metric { animation: none !important; }
+}
+
+/* The partner's orders: each row its own soft card rather than a line in one box, and the order whose
+   next move is hers — the one saying "Yours" — on mint, with the shell's ink on it (8.09). A row that is
+   past its window keeps its red edge and no tint at all: that is a consequence, not a highlight. */
+.clinical .fulfil-list { background: none; backdrop-filter: none; -webkit-backdrop-filter: none; border: 0; box-shadow: none; padding: 0; display: grid; gap: var(--space-8); }
+.clinical .fulfil-list > li + li > .fulfil-row,
+.clinical .fulfil-list > li > .fulfil-row { box-shadow: none; }
+.clinical .fulfil-row {
+ border-radius: var(--r-card);
+ padding: var(--space-16) var(--space-20);
+ background: var(--surface);
+ border: 1px solid var(--studio-line);
+ transition: background-color var(--t-quick) var(--ease-soft), border-color var(--t-quick) var(--ease-soft);
+}
+.clinical .fulfil-row:hover { background: color-mix(in srgb, var(--cl-tint-lavender) 55%, var(--surface)); }
+.clinical .fulfil-row.is-here { background: var(--cl-tint-mint); border-color: var(--cl-tint-mint); color: var(--brand-ink); }
+.clinical .fulfil-row.is-here .fulfil-ref,
+.clinical .fulfil-row.is-here .fulfil-what small,
+.clinical .fulfil-row.is-here > svg:last-child { color: color-mix(in srgb, var(--brand-ink) 78%, var(--cl-tint-mint)); }
+.clinical .fulfil-row.is-here .fulfil-when { display: inline-flex; justify-self: start; align-items: center; min-height: 28px; padding: 2px 12px; border-radius: var(--r-pill); background: var(--brand-ink); color: var(--surface); }
+.clinical .fulfil-row.is-late { padding-left: var(--space-16); border-left: 4px solid var(--danger); }
+@media (prefers-reduced-motion: reduce) { .clinical .fulfil-row { transition: none !important; } }
+
+/* The handover pack on a doctor's review: a paper panel set on mint. The mint is the ground and carries
+   no word; everything read is on the paper, in the ink it always was. */
+.clinical .dr-pack { padding: var(--space-20); border-radius: var(--r-panel); background: var(--cl-tint-mint); }
+/* The chart is already a card; inside the paper it is the paper, with a hairline under it rather than a
+   second box inside the first. */
+.clinical .dr-pack-paper .chart-card { padding: 0 0 var(--space-12); border: 0; border-bottom: 1px solid var(--studio-line); border-radius: 0; background: none; box-shadow: none; }
+.clinical .dr-pack-paper { display: grid; gap: var(--space-12); padding: var(--space-20); border-radius: var(--r-card); background: var(--surface); color: var(--brand-ink); }
+.clinical .dr-pack-paper > .muted { margin: 0; }
+.clinical .dr-pack-paper .review-line:last-child { border-bottom: 0; padding-bottom: 0; }
+@media (max-width: 560px) { .clinical .dr-pack { padding: var(--space-8); border-radius: var(--r-card); } .clinical .dr-pack-paper { padding: var(--space-16); } }

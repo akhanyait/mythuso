@@ -7,6 +7,15 @@ import './clinical-deck.css';
 
 /* The instrument deck a nurse and a doctor open the workspace on.
  *
+ * SINCE 28 SEPTEMBER 2026 IT IS A ROW OF TINTED CARDS, NOT A DARK BAND. The founder's brief that day
+ * asked for the clinical day in the language the Control Tower already speaks — soft tinted cards, one
+ * large light numeral each, one dark card for emphasis. The history below explains the composition
+ * the deck grew out of and is kept because every rule it arrived at still holds: what a shape may be,
+ * what moves, and which figure leads. Only the grounds changed — the canvas and the glass are gone, the
+ * lead is the one dark card, and the rest stand on the tokens' mint, lavender and peach, each with its
+ * ink set in the same rule (clinical-deck.css lists every measured pair). Where a paragraph below says
+ * "dark glass" or "pale panel", read "the dark card" and "the mint card".
+ *
  * WHAT WAS WRONG WITH THE STRIP IT REPLACES. Three figures in a row, one of them on a lime tile,
  * with nothing between them and the list underneath. Every figure the same size, the same weight and
  * the same distance from the next, so the screen said "here are three numbers" rather than "here is
@@ -237,7 +246,7 @@ function useCountUp(target: number, allowed: boolean) {
 const digitsOf = (amount: number) => { const text = money(amount); return text.slice(text.search(/\d/)); };
 
 /* ---- The deck ---------------------------------------------------------------------------------- */
-export function ClinicalDeck({ role, figures, eyebrow, headline, note, title, lead: leadNode, panel: panelNode, children }: {
+export function ClinicalDeck({ role, figures, eyebrow, headline, note, title, lead: leadNode, panel: panelNode, leadNote, children }: {
  role: string; figures: readonly DeckFigure[]; eyebrow?: string; headline: DeckHeadline; note: string;
  /** The page's own name, set as its heading. See DeckTitleLevel. */
  title?: string;
@@ -247,6 +256,9 @@ export function ClinicalDeck({ role, figures, eyebrow, headline, note, title, le
  panel?: ReactNode;
  /** Under the sentence: the not-connected notice, and a control that changes what the deck counts. */
  children?: ReactNode;
+ /** A sentence at the foot of the dark card, about the figure on it — the nurse's share, as the
+     settings engine words it. Handed in, never typed here, so the deck cannot state a rule itself. */
+ leadNote?: string;
 }) {
  const Title = useContext(DeckTitleLevel);
  const { playing } = useDecor();
@@ -288,11 +300,28 @@ export function ClinicalDeck({ role, figures, eyebrow, headline, note, title, le
    <Metric label={figure.label} value={figureValue(figure)} unit={figure.unit} prefix={figure.prefix}
            chip={figure.chip} flagged={figure.flagged} visual={draw(figure)}/>
   </div>;
+ /* THE STRIP, AND WHICH TINT EACH CARD WEARS (28 September 2026, the founder's pastel brief).
+    The deck was one dark band with the lead on dark glass inside it and a pale panel beside it —
+    three grounds nested in each other. It is now the Control Tower's language: the sentence on the
+    page's own ground, and under it one row of cards, each a single figure on a tint. The place a
+    figure stands is still the strip's order and nothing else, and the tint follows the place rather
+    than the position in a rotation, so a card cannot change colour because a sibling was added:
+      lead   — the one dark card, and the only one. The figure the screen was opened for.
+      float  — lavender; peach when its own chip is the flagged one, which already says so in words
+               and fills the chip ink, so the warmth is never the only difference.
+      panel  — mint, the quiet summary: the weeks behind a total, the queue's waits, a visit's stages.
+    Every card sets its own ink in the same rule as its ground, in clinical-deck.css.
+    The cards are siblings in reading order — lead, floats, panel — so the order a screen reader
+    walks is the order the row is drawn in, left to right, and then top to bottom when it wraps.
+    `--c-i` is the card's place in that order, which is all the staggered entrance reads. */
  const hasPanel = !!(panel || panelNode);
+ let order = 0;
+ const card = (tint: string, className: string, body: ReactNode, key: string) =>
+  <div className={`c-card ${className}`} data-tint={tint} key={key} style={{ ['--c-i' as string]: order++ }}>{body}</div>;
  return <section className={`c-deck${hasPanel ? '' : ' is-say-only'}`} aria-label={`${role} — the shape of the work below`}>
   {/* The grid is one element in, because the deck is the container its own columns are decided
       against: a query cannot ask about the box it is written on. It is the width of the deck and not
-      of the window that decides two columns or one, which is what lets the same deck stand in a
+      of the window that decides how the row wraps, which is what lets the same deck stand in a
       1080px work column and in a 560px dialog without either of them being the wrong layout. */}
   <div className="c-deck-grid">
   <div className="c-deck-say">
@@ -307,9 +336,8 @@ export function ClinicalDeck({ role, figures, eyebrow, headline, note, title, le
        in front of the level one and leave a screen reader's outline opening on the wrong rung. It
        is a sentence set large, so it is a paragraph set large.
        The badges are aria-hidden, and the sentence is written so that it reads correctly with every
-       one of them removed. The second line is the note that used to sit on the far right of the head
-       rule: not a disclosure and not a boast, but the one line that tells a reader what to do if a
-       figure looks wrong, which is to count the rows it was counted from. */}
+       one of them removed. The second line is the one that tells a reader what to do if a figure
+       looks wrong, which is to count the rows it was counted from. */}
    <p className="c-deck-headline">
     {headline.map((part, i) => <Fragment key={i}>
      {typeof part === 'string' ? part : <Glyph of={part.glyph}/>}{' '}
@@ -317,16 +345,13 @@ export function ClinicalDeck({ role, figures, eyebrow, headline, note, title, le
     <span className="c-deck-tail">{note}</span>
    </p>
    {children && <div className="c-deck-extra">{children}</div>}
-   {lead && <div className="c-deck-lead">{instrument(lead, true)}</div>}
-   {leadNode && <div className="c-deck-lead is-custom">{leadNode}</div>}
   </div>
-  {hasPanel && <div className="c-deck-panel">
-   {panel && <div className="c-deck-panel-figure">{instrument(panel, false)}</div>}
-   {panelNode && <div className="c-deck-panel-body">{panelNode}</div>}
-   {/* The cards that cross the panel's leading edge. They are in the panel's own flow and moved by a
-       margin rather than lifted out of it, so a narrow column, a long word and a reader at 200%
-       still get a card with room in it instead of one card printed over another. */}
-   {floats.length > 0 && <div className="c-deck-float">{floats.map(figure => instrument(figure, false))}</div>}
+  {(lead || leadNode || floats.length > 0 || hasPanel) && <div className="c-deck-cards">
+   {lead && card('night', 'c-deck-lead', <>{instrument(lead, true)}{leadNote && <p className="c-card-note">{leadNote}</p>}</>, 'lead')}
+   {leadNode && card('night', 'c-deck-lead is-custom', leadNode, 'lead')}
+   {floats.map(figure => card(figure.flagged ? 'peach' : 'lavender', 'c-deck-float', instrument(figure, false), `float-${figure.label}`))}
+   {panel && card('mint', 'c-deck-panel', <div className="c-deck-panel-figure">{instrument(panel, false)}</div>, 'panel')}
+   {panelNode && card('mint', 'c-deck-panel', <div className="c-deck-panel-body">{panelNode}</div>, 'panel-body')}
   </div>}
   </div>
  </section>;

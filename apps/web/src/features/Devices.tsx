@@ -67,16 +67,19 @@ function DeviceCard({ device }: { device: Device }) {
   {health.recalled && device.recall && <div className="privacy-note alert" role="status"><ShieldX size={19}/><span>
    <strong>{fill(nurse.recalledFrom, { when: when(device.recall.effectiveFrom), reason: labelIn(recallReasons, device.recall.reasonCode) })}</strong> {nurse.doNotUse}
   </span></div>}
+  {/* Three stat tiles: the sync, the calibration and the power, each headed by the contract's own word
+      for its state. The tile carries its state as data so the sheet can tint it — and the word in the
+      tile's heading is always the state itself, so the tint is never the only thing that says it. */}
   <dl className="dv-facts">
-   <div><dt><Clock size={13}/>{labelIn(healthStates, health.stateCode)}</dt><dd>
+   <div data-state={health.stateCode}><dt><Clock size={13}/>{labelIn(healthStates, health.stateCode)}</dt><dd>
     {health.lastSyncAt === null ? nurse.neverSynced : fill(nurse.lastSync, { when: when(health.lastSyncAt) })}
     {health.stale && <span className="dv-stale"> {fill(nurse.staleSince, { interval: staleIntervalText() })}</span>}
    </dd></div>
-   <div><dt><Wrench size={13}/>{labelIn(calibrationStates, calibration.stateCode)}</dt><dd>
+   <div data-state={calibration.stateCode}><dt><Wrench size={13}/>{labelIn(calibrationStates, calibration.stateCode)}</dt><dd>
     {calibration.stateCode === 'not-tracked' ? nurse.calibrationNotTracked
      : fill(calibration.stateCode === 'overdue' ? nurse.calibrationOverdue : calibration.stateCode === 'due' ? nurse.calibrationDue : nurse.calibrationInDate, { on: day(calibration.dueOn!) })}
    </dd></div>
-   <div><dt><BatteryMedium size={13}/>{health.batteryPercent === null ? nurse.batteryUnknown : fill(nurse.battery, { percent: health.batteryPercent })}</dt>
+   <div data-state="power"><dt><BatteryMedium size={13}/>{health.batteryPercent === null ? nurse.batteryUnknown : fill(nurse.battery, { percent: health.batteryPercent })}</dt>
     <dd>{fill(nurse.firmware, { version: health.firmware })}</dd></div>
   </dl>
   <Pill tone={calibrationTone[calibration.stateCode]}>{labelIn(calibrationStates, calibration.stateCode)}</Pill>

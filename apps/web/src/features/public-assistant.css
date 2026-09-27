@@ -26,7 +26,7 @@
   overflow: hidden;
 }
 .public-assistant::backdrop {
-  background: #103e4a55;
+  background: color-mix(in srgb, var(--brand-ink) 33%, transparent);
 }
 .public-assistant-frame {
   height: 100%;
@@ -53,7 +53,7 @@
 }
 .public-assistant header p {
   margin: 2px 0;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--brand-mint);
 }
 .public-assistant button {
@@ -135,7 +135,7 @@
   background: var(--surface);
 }
 .public-assistant form p {
-  font-size: 12px;
+  font-size: 13px;
   margin-bottom: 0;
   color: var(--brand-mint);
 }
@@ -210,30 +210,33 @@
    cannot see the panel's custom properties, so the brand board's colours are declared here on the
    sheet's own root. Appended last so it re-skins the light theme above from one place. */
 .public-assistant {
-  --go-teal: #0e3f3f;
-  --go-green: #1ca588;
-  --go-orange: #f4633a;
-  --go-mint: #eaf7f3;
-  --go-mint-2: #f2faf8;
-  --go-icon-bg: #dcf2ec;
-  --go-icon: #17877b;
-  --go-emergency-bg: #fbe9ea;
-  --go-emergency: #d6455b;
-  --go-slate: #3e4c5e;
-  --go-card: #ffffff;
+  /* Re-pointed at the design tokens on 28 September 2026, as the panel's are: the emergency footer
+     was #d6455b on #fbe9ea, 3.69:1, at 12px — the sentence that gives the ambulance number, below
+     both the AA floor and the type floor. danger on dangerSoft is a declared pair at 6.05:1. */
+  --go-teal: var(--brand-ink);
+  --go-green: var(--brand-green);
+  --go-orange: var(--brand-orange);
+  --go-mint: color-mix(in srgb, var(--brand-mint) 18%, var(--surface));
+  --go-mint-2: color-mix(in srgb, var(--brand-mint) 10%, var(--surface));
+  --go-icon-bg: color-mix(in srgb, var(--brand-mint) 35%, var(--surface));
+  --go-icon: var(--teal-ink);
+  --go-emergency-bg: var(--danger-soft);
+  --go-emergency: var(--danger);
+  --go-slate: var(--body);
+  --go-card: var(--surface);
   --go-line: color-mix(in srgb, var(--go-teal) 12%, transparent);
-  --go-radius: 18px;
-  --go-shadow: 0 6px 20px color-mix(in srgb, var(--go-teal) 10%, transparent);
+  --go-radius: var(--r-card);
+  --go-shadow: var(--shadow-raised);
   background: var(--go-mint);
   color: var(--go-slate);
   border-color: var(--go-line);
 }
 .public-assistant header {
   background: var(--go-teal);
-  color: #fff;
+  color: var(--surface);
 }
 .public-assistant header p {
-  color: color-mix(in srgb, #fff 78%, var(--go-teal));
+  color: var(--brand-mint);
 }
 .public-assistant-titles {
   display: grid;
@@ -269,7 +272,7 @@
 }
 .public-assistant-question {
   background: var(--go-teal) !important;
-  color: #fff !important;
+  color: var(--surface) !important;
   border-radius: 14px;
 }
 .public-assistant-answer {
@@ -308,8 +311,8 @@
   color: var(--go-teal);
 }
 .public-assistant-send {
-  background: var(--go-green);
-  color: #fff;
+  background: var(--go-teal);
+  color: var(--surface);
   border: 0;
   border-radius: 14px;
   font-weight: 600;
@@ -320,7 +323,7 @@
   border-radius: 12px;
   background: var(--go-emergency-bg);
   color: var(--go-emergency) !important;
-  font-size: 12px;
+  font-size: 13px;
 }
 .public-assistant-emergency a {
   color: var(--go-emergency) !important;
@@ -338,3 +341,79 @@
 .public-assistant .public-assistant-send { background: var(--go-teal); }
 .public-assistant-answer { box-shadow: none; border: 1px solid var(--go-line); }
 .public-assistant-answer strong { color: var(--go-teal); }
+
+/* ---- One motion, 28 September 2026 -------------------------------------------------------------
+   The sheet grows out of the robot that opened it (growFrom, in GilbertAvatar.tsx) and shrinks back into him when
+   it closes — the patient panel's motion, on the landing page's own budget: all of it is finite, and
+   none of it runs while the sheet is closed. close() happens at once, so focus returns to the robot
+   while the sheet shrinks; pointer-events are off from the first frame of it.
+
+   An answer rises in once as it lands — only the one that has just landed — and the emergency answer
+   does not: the ambulance numbers are on the screen on the frame they are sent, with no fade in
+   front of them. Reduced motion removes all of it. */
+.public-assistant {
+  transition:
+    opacity var(--t-settle) var(--ease-soft),
+    transform var(--t-enter) var(--ease-soft),
+    overlay var(--t-enter) allow-discrete,
+    display var(--t-enter) allow-discrete;
+}
+.public-assistant:not([open]) {
+  opacity: 0;
+  transform: scale(var(--as-from-scale, 0.9));
+  pointer-events: none;
+}
+.public-assistant::backdrop {
+  transition:
+    opacity var(--t-enter) var(--ease-soft),
+    overlay var(--t-enter) allow-discrete,
+    display var(--t-enter) allow-discrete;
+}
+.public-assistant:not([open])::backdrop {
+  opacity: 0;
+  pointer-events: none;
+}
+@starting-style {
+  .public-assistant[open]::backdrop {
+    opacity: 0;
+  }
+}
+@keyframes public-assistant-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, var(--space-8), 0);
+  }
+}
+.public-assistant li[data-arrived]:not([data-outcome="emergency"]) {
+  animation: public-assistant-rise var(--t-enter) var(--ease-soft) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .public-assistant,
+  .public-assistant::backdrop {
+    transition: none !important;
+  }
+  .public-assistant li[data-arrived] {
+    animation: none !important;
+  }
+}
+/* The field's one calm ring, as the panel's composer wears it. */
+.public-assistant input:focus-visible {
+  outline: 2px solid var(--brand-green);
+  outline-offset: 2px;
+  box-shadow: none;
+  border-radius: var(--r-pill);
+}
+/* The G1 mark beside the name rather than on a row of its own above it, where it read as a stray
+   glyph floating over the title. */
+.public-assistant-titles {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-8);
+}
+.public-assistant-titles > p {
+  grid-column: 1 / -1;
+}
+.public-assistant-titles .public-assistant-mark {
+  width: 24px;
+  height: 22px;
+}

@@ -1,6 +1,6 @@
 import '../surface/approved-care.css';
 import { Activity, Ambulance, ArrowRight, ArrowUpRight, CalendarPlus, ChevronDown, ChevronRight, Clock3, Heart, MapPin, Plus, Search, ShieldCheck, Zap } from 'lucide-react';
-import { SectionTitle, Pill, ServiceIcon } from '../components/UI';
+import { SectionTitle, Pill, ServiceIcon, tintOf } from '../components/UI';
 import { Metric, Metrics } from '../surface/Surface';
 import { liveServices, money, type Service } from '../lib/catalog';
 import { labels as scheduling, shortWhenText, visitEnds } from '../lib/scheduling';
@@ -38,8 +38,17 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
  const t = useT();
  const next = visits[0];
  const nurse = next ? nurseOfVisit(next) : null;
+ /* The composition, 28 September 2026. What a person opens the home for is the next thing to do, so that
+    is the hero — the brand's mint, the largest words on the screen, and the visit's own start time as
+    its numeral when a visit holds one. Beside it the visit itself; under it the four services that can
+    be booked, as tiles tinted by their category; then the readings on their lavender, the wellbeing
+    invitation as the one dark card, and everything else below the first screen. The photograph is
+    still here, lower, because it is a picture of the promise rather than something to act on.
+
+    No ring stands on the next visit. A ring states a share, and "how soon" has no whole the data holds:
+    the booking offer's window is when a visit may be booked, not a clock a booked visit counts down. */
  return <div className="home approved-home">
-  <header className="home-head rise">
+  <header className="home-head">
    <div>
     <p className="home-eyebrow">YOUR EVERYDAY CARE</p>
     <h1>{t('shell.greeting')}</h1>
@@ -57,45 +66,18 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
    </div>
   </header>
 
+  <div className="care-desk m-stagger">
   <section className="care-next-action" aria-label="Your next care action">
    <span className="care-next-symbol"><CalendarPlus size={24}/></span>
    <div><p className="home-eyebrow">YOUR NEXT STEP</p><h2>{next ? next.status === 'Confirmed' ? 'Get ready for your visit' : 'Review your visit request' : 'Find the care you need'}</h2>
     <p>{next ? `${next.service.name} · ${shortWhenText(next)} · ${next.person}` : 'Compare care options, then choose a time that suits you.'}</p></div>
-   <button className="primary" onClick={next ? viewVisit : () => navigate('Book a nurse')}>{next ? next.status === 'Confirmed' ? 'Prepare for my visit' : 'View visit details' : 'Explore care'}<ArrowRight size={17}/></button>
+   {/* The visit's own hour, set large. It repeats the sentence above, so it is hidden from a screen
+       reader rather than read twice; an as-soon-as-possible visit has no hour and shows none. */}
+   {next?.start && <strong className="next-numeral" aria-hidden="true">{next.start}</strong>}
+   <button className="primary m-press" onClick={next ? viewVisit : () => navigate('Book a nurse')}>{next ? next.status === 'Confirmed' ? 'Prepare for my visit' : 'View visit details' : 'Explore care'}<ArrowRight size={17}/></button>
   </section>
-  <div className="care-desk">
-   <section className="care-cover">
-    <img src="/banners/family-panorama.webp" alt=""/>
-    <div className="care-cover-copy">
-     <span className="home-eyebrow">HELP. HEALTH. HOME.</span>
-     <h2>Good care.<br/>Closer to you.</h2>
-     <p>Support for you.<br/>And the people you love.</p>
-     <button className="primary" onClick={() => navigate('Book a nurse')}>{t('nav.Book a nurse')}<ArrowUpRight size={19}/></button>
-    </div>
-    <span className="care-photo-note">AI-generated illustrative image</span>
-   </section>
-   <section className="wellbeing-invite">
-    <div className="lunar-art" aria-hidden="true"><i/><span>＋</span></div>
-    <span className="home-eyebrow">YOUR EVERYDAY WELLBEING</span>
-    <h2>Make room<br/>for you.</h2>
-    <p>How have you been feeling?<br/>A quiet space for your own words.</p>
-    <button className="secondary" onClick={() => navigate('Live well')}>Open your journal<ArrowUpRight size={17}/></button>
-   </section>
-   <div className="desk-readings">
-  <section className="health-overview" aria-label="Your care at a glance">
-   <div className="health-overview-title"><h2>Your care at a glance</h2><span>Sample readings · {labelOf(latestSet.dayOffset)}</span></div>
-   <Metrics>
-    {leadReadings.map(r => <button className="overview-reading" key={r.label} onClick={() => navigate('Health Passport')}>
-     <span className="overview-reading-head"><r.icon size={19}/><ArrowUpRight size={17}/></span>
-     <span className="reading-plot" aria-hidden="true">{seriesFor(r.label === 'Blood pressure' ? 'systolic' : 'glucose').map((reading, i) => <i key={i} style={{ height: `${Math.max(12, reading.value / (r.label === 'Blood pressure' ? 160 : 8) * 100)}%` }}/>)}</span>
-     <Metric value={r.value} unit={r.unit} label={r.label} chip={r.chip} flagged={r.chip !== 'In range'}/>
-    </button>)}
-   </Metrics>
-  </section>
-
-   </div>
    <div className="desk-visit">
-   <section className={`home-appointment rise${next ? '' : ' is-empty'}`}>
+   <section className={`home-appointment${next ? '' : ' is-empty'}`}>
     <SectionTitle title={t('shell.nextVisit')} action={t('cta.allVisits')} onClick={() => navigate('My visits')}/>
     {next ? <button className="visit-card glass lead" onClick={viewVisit}>
      <div className="visit-top">
@@ -131,12 +113,6 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
      <span><strong>Your next check-in</strong><small>Chronic Routine</small></span><ArrowUpRight size={19}/>
     </button>
    </div>
-   <section className="approved-journey" aria-label="How care works">
-    <SectionTitle title="Care, made simple."/>
-    <ol><li><span>01</span><div><strong>Find your care</strong><p>Understand the options.</p></div></li><li><span>02</span><div><strong>A nurse comes to you</strong><p>Support in a familiar place.</p></div></li><li><span>03</span><div><strong>A doctor reviews</strong><p>The clinician makes the decision.</p></div></li></ol>
-    <p className="helper">The intended care journey. This preview does not deliver care.</p>
-    <button className="secondary full" onClick={() => navigate('Book a nurse')}>Explore care options<ArrowRight size={16}/></button>
-   </section>
    <section className="desk-services">
     <form className="search-field" role="search" onSubmit={e => { e.preventDefault(); navigate('Book a nurse'); }}>
      <Search size={19}/>
@@ -144,10 +120,10 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
      <button className="primary search-go" type="submit" aria-label="Search"><Search size={17}/><span aria-hidden="true">Search</span></button>
     </form>
     <SectionTitle title="Care you can book today"/>
-    {/* One row per service: one icon, the name, what it is, the price and how long it takes.
-        A grid of two made the names wrap to three lines on a narrow phone. */}
+    {/* Four tiles, one per service: the name, the price as the figure, how long it takes. The tint is
+        the service's category (tintOf), the same tint it wears in the catalogue. */}
     <div className="shortcut-list">
-     {liveServices.slice(0, 4).map(service => <button key={service.id} className="shortcut-row" onClick={() => book(service)}>
+     {liveServices.slice(0, 4).map(service => <button key={service.id} className="shortcut-row" data-tint={tintOf(service.category)} onClick={() => book(service)}>
       <span className="service-icon"><ServiceIcon name={service.icon} size={21}/></span>
       <span className="shortcut-text">
        <strong>{service.name}</strong>
@@ -160,7 +136,41 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
       <ChevronRight size={17}/>
      </button>)}
     </div>
-
+   </section>
+   <div className="desk-readings">
+  <section className="health-overview" aria-label="Your care at a glance">
+   <div className="health-overview-title"><h2>Your care at a glance</h2><span>Sample readings · {labelOf(latestSet.dayOffset)}</span></div>
+   <Metrics>
+    {leadReadings.map(r => <button className="overview-reading" key={r.label} onClick={() => navigate('Health Passport')}>
+     <span className="overview-reading-head"><r.icon size={19}/><ArrowUpRight size={17}/></span>
+     <span className="reading-plot" aria-hidden="true">{seriesFor(r.label === 'Blood pressure' ? 'systolic' : 'glucose').map((reading, i) => <i key={i} style={{ height: `${Math.max(12, reading.value / (r.label === 'Blood pressure' ? 160 : 8) * 100)}%` }}/>)}</span>
+     <Metric value={r.value} unit={r.unit} label={r.label} chip={r.chip} flagged={r.chip !== 'In range'}/>
+    </button>)}
+   </Metrics>
+  </section>
+   </div>
+   <section className="wellbeing-invite">
+    <div className="lunar-art" aria-hidden="true"><i/></div>
+    <span className="home-eyebrow">YOUR EVERYDAY WELLBEING</span>
+    <h2>Make room<br/>for you.</h2>
+    <p>How have you been feeling?<br/>A quiet space for your own words.</p>
+    <button className="secondary m-press" onClick={() => navigate('Live well')}>Open your journal<ArrowUpRight size={17}/></button>
+   </section>
+   <section className="care-cover">
+    <img src="/banners/family-panorama.webp" alt="" loading="lazy"/>
+    <div className="care-cover-copy">
+     <span className="home-eyebrow">HELP. HEALTH. HOME.</span>
+     <h2>Good care.<br/>Closer to you.</h2>
+     <p>Support for you.<br/>And the people you love.</p>
+     <button className="primary" onClick={() => navigate('Book a nurse')}>{t('nav.Book a nurse')}<ArrowUpRight size={19}/></button>
+    </div>
+    <span className="care-photo-note">AI-generated illustrative image</span>
+   </section>
+   <section className="approved-journey" aria-label="How care works">
+    <SectionTitle title="Care, made simple."/>
+    <ol><li><span>01</span><div><strong>Find your care</strong><p>Understand the options.</p></div></li><li><span>02</span><div><strong>A nurse comes to you</strong><p>Support in a familiar place.</p></div></li><li><span>03</span><div><strong>A doctor reviews</strong><p>The clinician makes the decision.</p></div></li></ol>
+    <p className="helper">The intended care journey. This preview does not deliver care.</p>
+    <button className="secondary full" onClick={() => navigate('Book a nurse')}>Explore care options<ArrowRight size={16}/></button>
    </section>
    <section className="desk-trend">
     <SectionTitle title="Your health over time" action={t('cta.passport')} onClick={() => navigate('Health Passport')}/>

@@ -5,98 +5,21 @@
  --glass-floor: var(--surface); --cloud: var(--studio-line); --stone: var(--studio-line); --line: var(--studio-line);
 }
 .patient-surface > .patient-ground { background: var(--studio-paper); }
-.patient-surface > .patient-ground::after { display: none; }
 .patient-surface .sidebar.glass { background: var(--surface); backdrop-filter: none; }
 .patient-surface .topbar.glass { background: var(--studio-paper); backdrop-filter: none; border: 0; }
-.patient-surface .sidebar nav button { border-radius: 14px; background: transparent; min-height: 46px; gap: 9px; padding-inline: 12px 8px; }
+.patient-surface .sidebar nav button { border-radius: var(--r-pill); background: transparent; min-height: 46px; gap: 9px; padding-inline: 12px 8px; }
 .patient-surface .sidebar nav button > i { width: 26px; height: 26px; flex-shrink: 0; }
-.patient-surface .sidebar nav button.active { background: var(--studio-ink); color: var(--surface); }
 .patient-surface .sidebar nav button:hover:not(.active) { background: var(--studio-paper); }
-.patient-surface .sidebar .help-card { background: var(--studio-lime); border-radius: 24px; }
 .patient-surface .primary { background: var(--studio-ink); color: var(--surface); border-color: var(--studio-ink); border-radius: 999px; }
 .patient-surface .primary:hover:not(:disabled) { background: var(--studio-ink-deep); color: var(--surface); }
 .patient-surface .primary svg { color: inherit; }
-.patient-surface .panel, .patient-surface .s-panel, .patient-surface .service-card, .patient-surface .module-card { border-color: var(--studio-line); }
 .patient-surface .section-title h2 { font-weight: 600; letter-spacing: -.4px; }
 .patient-surface .demo-bar { border-bottom: 1px solid var(--studio-line); padding-bottom: 10px; }
-.patient-surface .home { max-width: 1440px; margin-inline: auto; }
-.patient-surface .home-head { padding: 4px 0 6px; margin-bottom: 22px; align-items: center; }
-.patient-surface .home-head h1 { font-size: clamp(32px,3vw,46px); font-weight: 500; letter-spacing: -2px; line-height: 1.15; }
-.home-eyebrow, .patient-surface .home-head .home-eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 1.8px; color: var(--studio-ink-muted); margin: 0 0 10px; }
-.care-desk { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(260px,.9fr); gap: 20px; align-items: start; }
-.care-desk > * { min-width: 0; }
-.care-cover { grid-column: 1 / 3; position: relative; isolation: isolate; overflow: hidden; border-radius: 30px; min-height: 310px; background: var(--studio-night); color: white; }
-.care-cover > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 40%; z-index: -2; }
-.care-cover::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg,#19291ff5 0%,#19291fc9 30%,#19291f00 70%); z-index: -1; }
-.care-cover-copy { padding: 32px; width: 60%; }
-.care-cover .home-eyebrow { color: var(--studio-lime); }
-.care-cover h2 { font-size: clamp(34px,3.5vw,52px); line-height: 1.04; letter-spacing: -2px; font-weight: 500; color: white; }
-.care-cover p { color: white; font-size: 14px; line-height: 1.6; margin: 16px 0 22px; }
-.patient-surface .care-cover .primary { background: var(--studio-lime); color: var(--studio-ink-deep); border: 0; padding-inline: 18px; }
-.patient-surface .care-cover .primary:hover { background: white; color: var(--studio-ink-deep); }
-.care-photo-note { position: absolute; right: 14px; bottom: 12px; font-size: 13px; padding: 4px 8px; border-radius: 999px; background: var(--studio-night); color: white; }
-/* A sculpted moon is decorative; no invented sleep score or recovery percentage. */
-.wellbeing-invite { grid-column: 3; grid-row: 1; align-self: stretch; position: relative; isolation: isolate; overflow: hidden; padding: 25px; background: var(--studio-lilac); border-radius: 30px; }
-.lunar-art { position: absolute; right: -10px; top: 8px; width: 155px; height: 155px; z-index: -1; transform: rotate(-28deg); }
-.lunar-art i { position: absolute; inset: 16px; border-radius: 50%; background: radial-gradient(circle at 24% 32%,#faf8ff,#d0c2de 44%,#7f7291 78%,#4b4359); box-shadow: 14px 16px 28px #514d6130; }
-.lunar-art::after { content: ''; position: absolute; inset: 0; border: 1px solid #75678138; border-radius: 50%; transform: scaleY(.46) rotate(35deg); }
-.lunar-art span { position: absolute; left: -12px; bottom: 4px; font-size: 28px; color: var(--studio-ink); }
-.wellbeing-invite .home-eyebrow { display: block; max-width: 125px; line-height: 1.6; margin-bottom: 39px; }
-.wellbeing-invite h2 { font-size: 37px; font-weight: 500; line-height: 1.04; letter-spacing: -1.6px; color: var(--studio-ink-deep); }
-.wellbeing-invite p { font-size: 13px; color: var(--studio-ink-muted); margin: 14px 0 20px; line-height: 1.6; }
-.patient-surface .wellbeing-invite .secondary { width: 100%; justify-content: space-between; background: var(--surface); border: 0; border-radius: 999px; }
-.desk-readings { grid-column: 1 / 3; grid-row: 2; }
-.health-overview-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px 16px; flex-wrap: wrap; margin: 0 0 14px; }
-.health-overview-title h2 { font-size: 18px; font-weight: 600; letter-spacing: -.4px; }
-.health-overview-title > span { font-size: 13px; color: var(--studio-ink-muted); }
-.patient-surface .home .health-overview .s-metrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; padding: 0; }
-.overview-reading { position: relative; overflow: hidden; background: var(--surface); border: 1px solid var(--studio-line); border-radius: 26px; padding: 23px; text-align: left; min-width: 0; }
-.overview-reading:hover { border-color: var(--studio-ink-muted); }
-.overview-reading:nth-child(2) { background: var(--studio-lime); border-color: transparent; }
-.overview-reading-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; color: var(--studio-ink); }
-.overview-reading-head > svg:first-child { width: 23px; height: 23px; }
-.patient-surface .overview-reading .s-metric { position: relative; gap: 7px; }
-.patient-surface .overview-reading .s-metric-value { flex-wrap: wrap; font-weight: 500; font-size: clamp(30px,3.25vw,48px); letter-spacing: -2px; }
-.patient-surface .overview-reading .s-metric-value small { font-size: 13px; letter-spacing: 0; color: var(--studio-ink-muted); }
-.patient-surface .overview-reading .s-metric-label { font-size: 14px; color: var(--studio-ink); }
-.patient-surface .overview-reading .s-metric-chip { background: transparent; border: 0; padding: 0; color: var(--studio-ink-muted); }
-.patient-surface .overview-reading .s-metric-chip.flagged { color: var(--danger); }
-.reading-plot { position: absolute; right: 24px; bottom: 22px; width: 68px; height: 38px; display: flex; align-items: end; gap: 5px; opacity: .38; }
-.reading-plot i { width: 11px; border-radius: 5px; background: var(--studio-olive); }
-.desk-visit { grid-column: 3; grid-row: 2 / 4; border-radius: 26px; background: white; border: 1px solid var(--studio-line); padding: 20px; }
-.patient-surface .home-appointment > .section-title { margin-top: 0; }
-.patient-surface .home-appointment .empty-visit, .patient-surface .home-appointment .visit-card { background: transparent; padding: 12px 0; border: 0; box-shadow: none; }
-.patient-surface .home-appointment .empty-visit { align-items: flex-start; text-align: left; }
-.patient-surface .home-appointment .empty-visit .glow { display: none; }
-.plan-note { display: flex; gap: 13px; align-items: center; width: 100%; text-align: left; background: var(--studio-paper); padding: 16px; border-radius: 20px; margin-top: 12px; }
-.plan-note > span:nth-child(2) { flex: 1; }
-.plan-note strong, .plan-note small { display: block; }
-.plan-note strong { font-size: 13px; font-weight: 600; }
-.plan-note small { font-size: 13px; color: var(--studio-ink-muted); margin-top: 4px; }
-.plan-number { font-size: 40px; letter-spacing: -2px; line-height: 1; }
-.plan-number small { letter-spacing: 0; font-size: 13px; }
-.desk-services { grid-column: 1 / 3; grid-row: 3; }
-.patient-surface .home .search-field { border-radius: 999px; border-color: var(--studio-line); background: white; margin-bottom: 18px; }
-.patient-surface .home .shortcut-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
-.patient-surface .home .shortcut-row { display: grid; grid-template-columns: 42px minmax(0,1fr) auto; column-gap: 12px; row-gap: 12px; padding: 18px; border: 1px solid var(--studio-line); border-radius: 24px; background: transparent; align-items: center; }
-.patient-surface .home .shortcut-row:hover { background: white; }
-.patient-surface .home .shortcut-row .service-icon { width: 42px; height: 42px; border-radius: 50%; background: var(--studio-peach); }
-.patient-surface .home .shortcut-row .shortcut-text { min-width: 0; }
-.patient-surface .home .shortcut-row .shortcut-text small { display: none; }
-.patient-surface .home .shortcut-row .shortcut-meta { grid-column: 2; grid-row: 2; display: flex; align-items: center; gap: 8px; text-align: left; }
-.patient-surface .home .shortcut-row > svg { grid-column: 3; grid-row: 1 / 3; }
-.patient-surface .home .shortcut-row strong { font-weight: 600; }
-.desk-trend { grid-column: 1 / 3; }
-.home-trend .chart-card { background: white; border-radius: 26px; padding: 24px; border: 1px solid var(--studio-line); }
-.home-trend .chart-plot { height: auto; aspect-ratio: 260 / 78; }
-.desk-trend > .result-row { width: 100%; padding: 18px 4px; }
-.desk-family { grid-column: 3; }
-.desk-family .section-title:first-child { margin-top: 0; }
 /* Journal as a quiet editorial workspace. All entries remain ordinary editable text. */
-.wb-atmosphere { position: relative; isolation: isolate; display: flex; align-items: center; gap: 24px; padding: 38px; border-radius: 30px; background: var(--studio-lilac); margin: 18px 0 28px; overflow: hidden; }
-.wb-atmosphere > span { display: grid; place-items: center; width: 95px; height: 95px; flex-shrink: 0; border-radius: 50%; background: radial-gradient(circle at 30% 28%,#fff,#d0c2de 65%,#8e809f); color: var(--studio-ink); box-shadow: 10px 14px 25px #65587120; }
-.wb-atmosphere h2 { font-size: clamp(29px,3vw,45px); font-weight: 500; letter-spacing: -1.7px; }
-.wb-atmosphere p { margin-top: 10px; color: var(--studio-ink-muted); }
+.wb-atmosphere { position: relative; isolation: isolate; display: flex; align-items: center; gap: 24px; padding: 38px; border-radius: var(--r-panel); background: var(--studio-night); color: var(--studio-paper); margin: 18px 0 28px; overflow: hidden; }
+.wb-atmosphere > span { display: grid; place-items: center; width: 95px; height: 95px; flex-shrink: 0; border-radius: 50%; background: radial-gradient(circle at 30% 28%, var(--surface), var(--studio-lilac) 60%, var(--sage-slate)); color: var(--studio-ink); }
+.wb-atmosphere h2 { font-size: 42px; font-weight: 400; letter-spacing: -1.6px; color: inherit; }
+.wb-atmosphere p { margin-top: 10px; color: inherit; }
 .patient-surface .wb-write { border-radius: 28px; background: white; padding: 28px; }
 .patient-surface .wb-habit { border-radius: 999px; }
 .patient-surface .wb-habit.selected { background: var(--studio-lime); }
@@ -109,82 +32,22 @@
  .patient-surface .sidebar .brand { margin: 0 8px 12px; }
  .patient-surface .sidebar .brand img { width: 155px; }
 }
-@media (max-width: 1190px) and (min-width: 1000px) {
- .care-desk { grid-template-columns: minmax(0,1fr) minmax(240px,.8fr); }
- .care-cover { grid-column: 1 / -1; }
- .wellbeing-invite { grid-column: 2; grid-row: 2; }
- .desk-readings { grid-column: 1; }
- .patient-surface .home .health-overview .s-metrics { grid-template-columns: 1fr; }
- .desk-visit { grid-column: 2; grid-row: 3 / 5; }
- .desk-services, .desk-trend { grid-column: 1; }
- .patient-surface .home .shortcut-list { grid-template-columns: 1fr; }
- .desk-family { grid-column: 2; }
-}
 @media (max-width: 999px) {
  .patient-surface .tabbar.glass { inset-inline: auto; bottom: 0; width: calc(100% - 24px); margin-inline: 12px; margin-bottom: 10px; border-radius: 24px; background: white; box-shadow: 0 8px 30px #19291f1a; border: 1px solid var(--studio-line); padding-bottom: max(8px,env(safe-area-inset-bottom)); }
  .patient-surface .tabbar button { border-radius: 18px; }
  .patient-surface .home-context .context-chip:first-child { display: flex; }
- .care-desk { grid-template-columns: repeat(2,minmax(0,1fr)); }
- .care-cover { grid-column: 1 / -1; }
- .desk-readings { grid-column: 1 / -1; grid-row: 2; }
- .desk-visit { grid-column: 1; grid-row: 3; }
- .wellbeing-invite { grid-column: 2; grid-row: 3; }
- .desk-services { grid-column: 1 / -1; grid-row: 4; }
- .desk-trend { grid-column: 1 / -1; }
- .desk-family { grid-column: 1 / -1; }
 }
 @media (max-width: 600px) {
- .patient-surface .home-head h1 { font-size: 34px; }
  .patient-surface .home-context .context-chip { border-radius: 16px; padding: 10px 12px; }
  .patient-surface .home-context .context-chip > span:not(.avatar) { white-space: normal; overflow: visible; text-overflow: clip; text-align: left; }
- .care-desk { display: flex; flex-direction: column; gap: 24px; }
- .care-desk > * { width: 100%; }
- .care-cover { order: 0; min-height: 305px; }
- .care-cover-copy { width: 75%; padding: 24px; }
- .care-cover h2 { font-size: 38px; }
- .care-cover > img { object-position: 64% center; }
- .care-cover::after { background: linear-gradient(90deg,#19291ff2,#19291fa0 48%,#19291f00 95%); }
- .desk-readings { order: 1; }
- .desk-visit { order: 2; }
- .wellbeing-invite { order: 3; padding: 26px; }
- .wellbeing-invite .home-eyebrow { max-width: none; margin-bottom: 28px; }
- .wellbeing-invite p { max-width: 210px; }
- .lunar-art { width: 175px; height: 175px; top: 40px; right: 4px; }
- .wellbeing-invite .secondary { position: relative; }
- .desk-services { order: 4; }
- .desk-trend { order: 5; }
- .desk-family { order: 6; }
- .health-overview-title > span { font-size: 13px; }
- .patient-surface .home .health-overview .s-metrics { gap: 10px; }
- .overview-reading { padding: 17px; border-radius: 24px; }
- .patient-surface .overview-reading .s-metric-value { font-size: 29px; letter-spacing: -1.4px; gap: 4px; }
- .reading-plot { right: 15px; bottom: 20px; width: 40px; height: 27px; gap: 3px; opacity: .25; }
- .reading-plot i { width: 7px; }
- .patient-surface .home .shortcut-list { grid-template-columns: 1fr; }
- .patient-surface .home .shortcut-row { grid-template-columns: 42px minmax(0,1fr) auto auto; }
- .patient-surface .home .shortcut-row .shortcut-meta { grid-column: 3; grid-row: 1; flex-direction: column; gap: 0; }
- .patient-surface .home .shortcut-row > svg { grid-column: 4; grid-row: 1; }
  .wb-atmosphere { padding: 24px; gap: 16px; align-items: start; }
  .wb-atmosphere > span { width: 54px; height: 54px; }
- .wb-atmosphere h2 { font-size: 29px; }
+ .wb-atmosphere h2 { font-size: 28px; }
  .patient-surface .wb-write { padding: 20px; }
 }
-@media (prefers-reduced-motion: reduce) { .overview-reading { transition: none; } }
 .patient-surface .wb-habit.selected, .patient-surface .wb-habit.selected span, .patient-surface .wb-habit.selected svg { color: var(--studio-ink-deep); }
-@media (max-width: 600px) {
- .reading-plot { top: 58px; bottom: auto; }
-}
-@media (min-width: 900px) {
-}
-@media (min-width: 1024px) {
-}
-
-@media (prefers-reduced-motion: no-preference) {
-}
 
 /* Approved care chrome retains every navigation and emergency destination. */
-.patient-surface .sidebar nav button{border-radius:var(--r-pill)}
 .patient-surface .sidebar nav button.active{background:var(--brand-ink);color:var(--surface)}
-.patient-surface .sidebar .help-card{background:var(--teal-soft)}
+.patient-surface .sidebar .help-card{background:var(--teal-soft);border-radius:24px}
 .patient-surface .sidebar .help-card h3,.patient-surface .sidebar .help-card p{color:var(--brand-ink)}
-.patient-surface .tabbar button.active .tab-icon{background:var(--studio-lime);color:var(--brand-ink)}

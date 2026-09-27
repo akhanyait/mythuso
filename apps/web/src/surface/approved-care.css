@@ -1,359 +1,230 @@
-/* Approved care surfaces. Decorative colour never overrides a clinical status or its label. */
-.approved-home .care-desk {
-  grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr);
+/* The patient's home and catalogue in the pastel system, 28 September 2026 — the Control Tower's
+ * language brought to the patient: soft tinted cards, one large light numeral with a small label, pill
+ * controls, a single dark card for emphasis, and space. Written once here rather than layered: the home's
+ * grid used to be set in revamp.css and re-set here, so each card had two positions and the later sheet
+ * decided. It is set here alone now.
+ *
+ * WHY THE SELECTORS ARE LONG. This sheet is reached through Dashboard.tsx, so the bundler places it
+ * FIRST in the patient's stylesheet, ahead of patient.css's greedy card sweep. Every rule below wins on
+ * specificity rather than on order — `.patient-surface .home.approved-home` is three classes — because
+ * a rule that wins only on order wins in the dev server and loses in the build, where the order differs.
+ *
+ * THE TINTS ARE GROUNDS, NEVER WORDS. Each rule that paints one sets its own ink in the same rule, and
+ * every pair is a row in tokens.json#contrast: brand ink on brand mint (8.09, declared as mint on ink),
+ * studio ink on studio lime (11.46), lilac (9.04) and peach (8.92), studio paper on studio night. On a
+ * tint, everything inherits that ink; nothing lighter is read on one. Decorative colour never overrides
+ * a clinical status or its label: a status chip keeps its own. */
+
+/* ---- The four tints, by category (UI.tsx#tintOf) --------------------------------------------- */
+.patient-surface :is(.shortcut-row, .service-card)[data-tint='mint']:not(.glass) { background: var(--brand-mint); color: var(--brand-ink); border-color: transparent; }
+.patient-surface :is(.shortcut-row, .service-card)[data-tint='peach']:not(.glass) { background: var(--studio-peach); color: var(--studio-ink); border-color: transparent; }
+.patient-surface :is(.shortcut-row, .service-card)[data-tint='lime']:not(.glass) { background: var(--studio-lime); color: var(--studio-ink); border-color: transparent; }
+.patient-surface :is(.shortcut-row, .service-card)[data-tint='lavender']:not(.glass) { background: var(--studio-lilac); color: var(--studio-ink); border-color: transparent; }
+.patient-surface :is(.shortcut-row, .service-card)[data-tint] * { color: inherit; }
+.patient-surface :is(.shortcut-row, .service-card)[data-tint] .service-icon { background: var(--surface); color: inherit; }
+
+/* ---- The home: the grid ------------------------------------------------------------------------
+   Three columns at a desk: the hero and the services across two, the visit beside them; the readings
+   beside the one dark card; the photograph, the journey, the trend and the family below the fold. On a
+   phone it is one column in the order a person needs it: the next step, the visit, what to book, the
+   readings, the invitation. */
+.patient-surface .home.approved-home { max-width: 1440px; margin-inline: auto; }
+.home.approved-home .care-desk { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(280px, .86fr); gap: var(--space-20); align-items: start; }
+.home.approved-home .care-desk > * { min-width: 0; }
+.home.approved-home .care-next-action { grid-column: 1 / 3; grid-row: 1; }
+.home.approved-home .desk-visit { grid-column: 3; grid-row: 1 / 3; }
+.home.approved-home .desk-services { grid-column: 1 / 3; grid-row: 2; }
+.home.approved-home .desk-readings { grid-column: 1 / 3; grid-row: 3; }
+.home.approved-home .wellbeing-invite { grid-column: 3; grid-row: 3; align-self: stretch; }
+.home.approved-home .care-cover { grid-column: 1 / 3; grid-row: 4; }
+.home.approved-home .desk-trend { grid-column: 1 / 3; grid-row: 5; }
+.home.approved-home .approved-journey { grid-column: 3; grid-row: 4; }
+.home.approved-home .desk-family { grid-column: 3; grid-row: 5; }
+
+/* ---- The greeting ----------------------------------------------------------------------------- */
+.patient-surface .home.approved-home .home-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-16) var(--space-24); padding: var(--space-8) 0 0; margin-bottom: var(--space-24); }
+.patient-surface .home.approved-home .home-head h1 { font-size: 42px; font-weight: 400; letter-spacing: -1.6px; line-height: 1.1; color: var(--studio-ink-deep); }
+.patient-surface .home.approved-home .home-head p:last-child { color: var(--studio-ink-muted); font-size: 15px; margin-top: var(--space-8); }
+.home-eyebrow { display: block; font-size: 13px; font-weight: 600; letter-spacing: 1.8px; color: var(--studio-ink-muted); margin: 0 0 var(--space-8); }
+
+/* ---- The hero: the next step, on the brand's mint --------------------------------------------- */
+.patient-surface .home.approved-home .care-next-action {
+ position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: var(--space-8) var(--space-20);
+ min-height: 232px; margin: 0; padding: var(--space-32); border: 0; border-radius: var(--r-panel); background: var(--brand-mint); color: var(--brand-ink); overflow: hidden;
 }
-.approved-home .care-cover {
-  grid-column: 1/-1;
-  min-height: 350px;
-  background: var(--teal-soft);
+.patient-surface .home.approved-home .care-next-action :is(h2, p, .home-eyebrow) { color: inherit; }
+.patient-surface .home.approved-home .care-next-action h2 { font-size: 36px; font-weight: 400; letter-spacing: -1.2px; line-height: 1.1; margin: 0 0 var(--space-12); }
+.patient-surface .home.approved-home .care-next-action p:last-child { font-size: 15px; line-height: 1.55; max-width: 34em; }
+.patient-surface .home.approved-home .care-next-symbol { width: 56px; height: 56px; display: grid; place-items: center; border-radius: 50%; background: var(--surface); color: var(--brand-ink); }
+.patient-surface .home.approved-home .next-numeral { grid-column: 3; grid-row: 1; font-size: 64px; font-weight: 300; letter-spacing: -2.5px; line-height: 1; font-variant-numeric: tabular-nums; }
+.patient-surface .home.approved-home .care-next-action > .primary { grid-column: 2 / 4; justify-self: start; align-self: end; margin-top: var(--space-16); background: var(--brand-ink); border-color: var(--brand-ink); color: var(--surface); }
+
+/* ---- The visit, on paper ----------------------------------------------------------------------- */
+.patient-surface .home.approved-home .desk-visit { display: flex; flex-direction: column; gap: var(--space-16); padding: var(--space-24); border-radius: var(--r-panel); background: var(--surface); color: var(--studio-ink); border: 0; }
+.patient-surface .home.approved-home .home-appointment { grid-area: auto; order: 0; }
+.patient-surface .home.approved-home .home-appointment > .section-title { margin: 0 0 var(--space-8); }
+.patient-surface .home.approved-home .home-appointment :is(.empty-visit, .visit-card) { background: transparent; border: 0; padding: var(--space-8) 0 0; box-shadow: none; transform: none; }
+.patient-surface .home.approved-home .empty-visit .glow { display: grid; margin: 0 0 var(--space-16); box-shadow: none; }
+.patient-surface .home.approved-home .empty-visit .glow::after { display: none; }
+.patient-surface .home.approved-home .empty-visit .tile-icon { width: 52px; height: 52px; border-radius: 50%; background: var(--studio-lime); color: var(--studio-ink); }
+.patient-surface .home.approved-home .fresh-start-title { display: block; font-size: 28px; font-weight: 400; letter-spacing: -1px; color: var(--studio-ink-deep); }
+.patient-surface .home.approved-home .empty-visit > strong { color: var(--studio-ink); }
+.patient-surface .home.approved-home .empty-visit > p { color: var(--studio-ink-muted); }
+/* The next check-in: one numeral and its word, on the lime. */
+.patient-surface .home.approved-home .plan-note { display: flex; align-items: center; gap: var(--space-16); width: 100%; min-height: 88px; text-align: left; padding: var(--space-16) var(--space-20); border: 0; border-radius: var(--r-card); background: var(--studio-lime); color: var(--studio-ink); }
+.patient-surface .home.approved-home .plan-note > span:nth-child(2) { flex: 1; }
+.patient-surface .home.approved-home .plan-note :is(strong, small) { display: block; color: inherit; }
+.patient-surface .home.approved-home .plan-note strong { font-size: 15px; font-weight: 600; }
+.patient-surface .home.approved-home .plan-note small { font-size: 13px; margin-top: var(--space-4); }
+.patient-surface .home.approved-home .plan-number { display: flex; align-items: baseline; gap: var(--space-4); font-size: 42px; font-weight: 300; letter-spacing: -1.6px; line-height: 1; font-variant-numeric: tabular-nums; }
+.patient-surface .home.approved-home .plan-number small { font-size: 13px; letter-spacing: 0; margin: 0; }
+
+/* ---- What can be booked: a pill search and four tiles ------------------------------------------ */
+.patient-surface .home.approved-home .search-field { margin: 0; padding-left: var(--space-20); }
+.patient-surface .home.approved-home .desk-services > .section-title { margin: var(--space-24) 0 var(--space-12); }
+.patient-surface .home.approved-home .shortcut-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-12); }
+.patient-surface .home.approved-home .shortcut-row:not(.glass) {
+ position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-8);
+ min-height: 196px; padding: var(--space-20); border-radius: var(--r-card); text-align: left;
 }
-.approved-home .care-cover > img {
-  object-position: center;
-  animation: approved-picture calc(var(--t-enter) * 2) var(--ease-soft) both;
+.patient-surface .home.approved-home .shortcut-row .shortcut-text strong { font-size: 15px; font-weight: 600; line-height: 1.3; }
+.patient-surface .home.approved-home .shortcut-row .shortcut-text small { display: none; }
+.patient-surface .home.approved-home .shortcut-row .shortcut-meta { margin-top: auto; display: flex; align-items: baseline; gap: var(--space-8); text-align: left; }
+.patient-surface .home.approved-home .shortcut-row .shortcut-meta strong { font-size: 28px; font-weight: 300; letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums; }
+.patient-surface .home.approved-home .shortcut-row .shortcut-meta small { font-size: 13px; }
+.patient-surface .home.approved-home .shortcut-row > svg:last-child { position: absolute; top: var(--space-20); right: var(--space-16); }
+.patient-surface .home.approved-home .shortcut-row .service-icon { width: 44px; height: 44px; border-radius: 50%; }
+
+/* ---- The readings, on lavender — the ground tokens.json names for health readings -------------- */
+.health-overview-title { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-8) var(--space-16); flex-wrap: wrap; margin: 0 0 var(--space-12); }
+.health-overview-title h2 { font-size: 18px; font-weight: 600; letter-spacing: -.4px; }
+.health-overview-title > span { font-size: 13px; color: var(--studio-ink-muted); }
+.patient-surface .home.approved-home .health-overview .s-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-12); padding: 0; }
+.patient-surface .home.approved-home .overview-reading { position: relative; overflow: hidden; text-align: left; display: flex; flex-direction: column; min-height: 236px; padding: var(--space-24); border: 0; border-radius: var(--r-card); background: var(--studio-lilac); color: var(--studio-ink-deep); }
+.patient-surface .home.approved-home .overview-reading :not(.s-metric-chip) { color: inherit; }
+.overview-reading-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-12); }
+.patient-surface .home.approved-home .overview-reading .s-metric { gap: var(--space-8); }
+.patient-surface .home.approved-home .overview-reading .s-metric-value { flex-wrap: wrap; font-weight: 300; font-size: 42px; letter-spacing: -1.6px; }
+.patient-surface .home.approved-home .overview-reading .s-metric-value small { font-size: 13px; letter-spacing: 0; }
+.patient-surface .home.approved-home .overview-reading .s-metric-label { font-size: 15px; font-weight: 600; }
+/* The classification is the reading's own word, on a paper chip; a reading outside its range keeps the
+   flagged chip's charcoal, so the difference is never the tint. */
+.patient-surface .home.approved-home .overview-reading .s-metric-chip { background: var(--surface); border-color: var(--surface); color: var(--studio-ink); }
+.patient-surface .home.approved-home .overview-reading .s-metric-chip.flagged { background: var(--charcoal); border-color: var(--charcoal); color: var(--surface); }
+.reading-plot { position: absolute; right: var(--space-24); bottom: var(--space-24); width: 68px; height: 40px; display: flex; align-items: end; gap: var(--space-4); }
+.reading-plot i { flex: 1; border-radius: var(--r-pill); background: color-mix(in srgb, var(--studio-ink) 24%, transparent); }
+
+/* ---- The one dark card: the wellbeing invitation --------------------------------------------- */
+.patient-surface .home.approved-home .wellbeing-invite { position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; padding: var(--space-32) var(--space-24) var(--space-24); border-radius: var(--r-panel); background: var(--studio-night); color: var(--studio-paper); }
+.patient-surface .home.approved-home .wellbeing-invite :is(h2, p) { color: inherit; }
+.patient-surface .home.approved-home .wellbeing-invite .home-eyebrow { max-width: 150px; line-height: 1.6; color: var(--studio-lime); margin-bottom: var(--space-24); }
+.patient-surface .home.approved-home .wellbeing-invite h2 { font-size: 36px; font-weight: 400; line-height: 1.05; letter-spacing: -1.4px; }
+.patient-surface .home.approved-home .wellbeing-invite p { font-size: 14px; line-height: 1.6; margin: var(--space-16) 0 var(--space-24); }
+.patient-surface .home.approved-home .wellbeing-invite .secondary { margin-top: auto; width: 100%; justify-content: space-between; border: 0; border-radius: var(--r-pill); background: var(--studio-lime); color: var(--studio-ink); }
+.lunar-art { position: absolute; right: -16px; top: var(--space-16); width: 150px; height: 150px; z-index: -1; transform: rotate(-28deg); opacity: .9; }
+.lunar-art i { position: absolute; inset: 16px; border-radius: 50%; background: radial-gradient(circle at 24% 32%, var(--surface), var(--studio-lilac) 44%, var(--sage-slate) 82%); }
+
+/* ---- The photograph, lower, as the promise rather than the task -------------------------------- */
+.care-cover { position: relative; isolation: isolate; overflow: hidden; min-height: 320px; border-radius: var(--r-panel); background: var(--teal-soft); }
+.care-cover > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; z-index: -2; }
+.care-cover::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, var(--studio-paper) 22%, transparent 72%); opacity: .94; }
+.care-cover-copy { width: 56%; padding: var(--space-40); }
+.care-cover :is(h2, p, .home-eyebrow) { color: var(--brand-ink); }
+.care-cover h2 { font-size: 42px; line-height: 1.04; letter-spacing: -1.6px; font-weight: 400; }
+.care-cover p { font-size: 15px; line-height: 1.6; margin: var(--space-16) 0 var(--space-20); }
+.patient-surface .home.approved-home .care-cover .primary { background: var(--brand-ink); border-color: var(--brand-ink); color: var(--surface); }
+.care-photo-note { position: absolute; right: var(--space-12); bottom: var(--space-12); font-size: 13px; padding: var(--space-4) var(--space-8); border-radius: var(--r-pill); background: var(--studio-night); color: var(--studio-paper); }
+
+/* ---- Below the fold: the journey, the trend, the family ---------------------------------------- */
+.patient-surface .home.approved-home :is(.approved-journey, .desk-family > .panel, .home-trend .chart-card) { padding: var(--space-24); border: 0; border-radius: var(--r-panel); background: var(--surface); color: var(--studio-ink); }
+.patient-surface .home.approved-home .desk-family > .panel { padding: var(--space-8) var(--space-20) var(--space-20); }
+.patient-surface .home.approved-home .approved-journey > .section-title { margin: 0 0 var(--space-16); }
+.approved-home .approved-journey ol { list-style: none; padding: 0; margin: 0; display: grid; }
+.approved-home .approved-journey li { display: flex; gap: var(--space-12); align-items: center; padding: var(--space-12) 0; }
+.approved-home .approved-journey li + li { border-top: 1px solid var(--studio-line); }
+.approved-home .approved-journey li > span { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; background: var(--brand-mint); color: var(--brand-ink); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.approved-home .approved-journey p { font-size: 13px; margin: var(--space-4) 0 0; color: var(--studio-ink-muted); }
+.approved-home .approved-journey > .helper { margin: var(--space-12) 0; }
+.home-trend .chart-plot { height: auto; aspect-ratio: 260 / 78; }
+.patient-surface .home.approved-home .desk-trend > .section-title:first-child,
+.patient-surface .home.approved-home .desk-family > .section-title:first-child { margin-top: 0; }
+.patient-surface .home.approved-home .desk-trend > .result-row { margin-top: var(--space-12); padding: var(--space-16) var(--space-20); border-radius: var(--r-card); background: var(--surface); }
+
+/* ---- The catalogue ---------------------------------------------------------------------------- */
+.approved-catalog { border-radius: var(--r-panel); overflow: hidden; background: var(--surface); }
+.approved-catalog-hero { position: relative; isolation: isolate; min-height: 300px; background: var(--brand-ink); }
+.approved-catalog-hero > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; z-index: -2; }
+.approved-catalog-hero::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, var(--brand-ink) 40%, transparent 86%); opacity: .94; }
+.approved-catalog-copy { width: 62%; padding: var(--space-32) var(--space-32) 72px; color: var(--surface); }
+.approved-catalog-copy .eyebrow { color: var(--brand-mint); }
+.approved-catalog-copy .approved-support-title { font-size: 42px; font-weight: 400; line-height: 1.1; letter-spacing: -1.4px; margin: var(--space-16) 0; color: var(--surface); }
+.approved-catalog-copy h1 { font-size: 18px; color: var(--surface); line-height: 1.4; margin: 0 0 var(--space-8); letter-spacing: 0; }
+.approved-catalog-copy > p { color: var(--surface); }
+.approved-preview-note { display: inline-block; background: var(--surface); color: var(--brand-ink); padding: var(--space-8) var(--space-12); border-radius: var(--r-pill); font-size: 13px; margin-top: var(--space-12); }
+.approved-catalog-hero .care-photo-note { bottom: 48px; }
+.approved-catalog-sheet { position: relative; margin: -32px var(--space-16) var(--space-16); background: var(--surface); padding: var(--space-24); border-radius: var(--r-panel); }
+.approved-catalog .catalog-tools { display: flex; align-items: center; gap: var(--space-16); flex-wrap: wrap; }
+.approved-catalog .catalog-tools .search-box { flex: 1; min-width: 0; }
+.catalog-count { display: inline-flex; align-items: center; gap: var(--space-12); color: var(--brand-ink); }
+/* The categories as one segmented pill track; the chosen one is ink on paper. */
+.patient-surface .approved-catalog .tabs { display: flex; flex-wrap: wrap; gap: var(--space-4); padding: var(--space-4); margin: var(--space-16) 0 var(--space-8); border-radius: var(--r-pill); background: var(--studio-paper); width: fit-content; max-width: 100%; }
+.patient-surface .approved-catalog .tabs button { min-height: 44px; padding: 0 var(--space-16); border: 0; border-radius: var(--r-pill); background: transparent; color: var(--studio-ink); }
+.patient-surface .approved-catalog .tabs .selected { background: var(--brand-ink); color: var(--surface); }
+.approved-catalog .catalog-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); gap: var(--space-12); }
+.patient-surface .approved-catalog .service-card:not(.glass) { min-height: 232px; padding: var(--space-20); border-radius: var(--r-card); gap: var(--space-8); }
+.patient-surface .approved-catalog .service-card h3 { font-size: 16px; font-weight: 600; margin-top: var(--space-8); }
+.patient-surface .approved-catalog .service-card p { font-size: 13px; line-height: 1.5; }
+/* The price is the card's figure: the word small, the amount large and light. */
+.patient-surface .approved-catalog .service-card > div { margin-top: auto; width: 100%; display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-8); padding-top: var(--space-12); border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent); }
+.patient-surface .approved-catalog .service-card > div > strong:not(.later-price) { font-size: 28px; font-weight: 300; letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums; }
+.patient-surface .approved-catalog .service-card > div > strong small { font-size: 13px; letter-spacing: 0; font-weight: 500; margin-right: var(--space-4); }
+.patient-surface .approved-catalog .service-card.later:not(.glass) { background: var(--studio-paper); color: var(--studio-ink); border: 1px dashed var(--studio-line); }
+
+@media (max-width: 1190px) and (min-width: 1000px) {
+ .patient-surface .home.approved-home .shortcut-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+ .patient-surface .home.approved-home .shortcut-row:not(.glass) { min-height: 150px; }
 }
-.approved-home .care-cover::after {
-  background: linear-gradient(
-    90deg,
-    #f6fbf8f5,
-    #f6fbf8e8 28%,
-    #f6fbf866 52%,
-    transparent 70%
-  );
-}
-.approved-home .care-cover-copy {
-  width: 56%;
-  padding: 40px;
-}
-.approved-home .care-cover h2,
-.approved-home .care-cover p,
-.approved-home .care-cover .home-eyebrow {
-  color: var(--brand-ink);
-}
-.patient-surface .approved-home .care-cover .primary {
-  background: var(--mango);
-  color: var(--brand-ink);
-}
-.approved-home .desk-readings {
-  grid-column: 1;
-  grid-row: 2;
-}
-.approved-home .desk-visit {
-  grid-column: 2;
-  grid-row: 2/4;
-}
-.approved-home .desk-services {
-  grid-column: 1;
-  grid-row: 3;
-}
-.approved-home .desk-trend {
-  grid-column: 1;
-  grid-row: 4;
-}
-.approved-home .approved-journey {
-  grid-column: 2;
-  grid-row: 4;
-}
-.approved-home .wellbeing-invite {
-  grid-column: 1;
-  grid-row: 5;
-}
-.approved-home .desk-family {
-  grid-column: 2;
-  grid-row: 5;
-}
-.approved-home .care-next-action {
-  background: var(--mango-soft);
-  border-color: var(--mango);
-}
-.approved-home .desk-visit:has(.is-empty) {
-  background: linear-gradient(135deg, var(--teal-ink), var(--brand-ink));
-  border: 0;
-}
-.approved-home .desk-visit:has(.is-empty) .section-title h2,
-.approved-home .desk-visit:has(.is-empty) .section-title button,
-.approved-home .desk-visit .empty-visit > strong,
-.approved-home .desk-visit .empty-visit > p,
-.approved-home .fresh-start-title {
-  color: var(--surface);
-}
-.approved-home .fresh-start-title {
-  font-size: 28px;
-  letter-spacing: -1px;
-  font-weight: 550;
-}
-.patient-surface .approved-home .home-appointment .empty-visit .glow {
-  display: grid;
-  margin: 8px 0 16px;
-  box-shadow: none;
-}
-.approved-home .empty-visit .glow::after {
-  display: none;
-}
-.approved-home .empty-visit .tile-icon {
-  width: 56px;
-  height: 56px;
-  background: var(--mango);
-  color: var(--brand-ink);
-  border-radius: 18px;
-  transform: rotate(-6deg);
-}
-.approved-home .desk-visit .empty-visit .secondary {
-  background: var(--mango);
-  color: var(--brand-ink);
-  border: 0;
-}
-.approved-home .approved-journey ol {
-  list-style: none;
-  padding: 0;
-  display: grid;
-  gap: 12px;
-}
-.approved-home .approved-journey li {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  padding: 18px;
-  border-radius: 20px;
-  background: var(--studio-peach);
-}
-.approved-home .approved-journey li:nth-child(2) {
-  background: var(--studio-lilac);
-}
-.approved-home .approved-journey li:nth-child(3) {
-  background: var(--teal-soft);
-}
-.approved-home .approved-journey li > span {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: var(--surface);
-  color: var(--teal-ink);
-  font-size: 13px;
-  font-weight: 600;
-}
-.approved-home .approved-journey p {
-  font-size: 13px;
-  margin: 4px 0;
-  color: var(--body);
-}
-.approved-home .approved-journey > .helper {
-  margin: 14px 0;
-}
-.approved-home .approved-journey .section-title h2 {
-  color: var(--teal-ink);
-}
-.approved-home .overview-reading:nth-child(2) {
-  background: var(--teal-soft);
-}
-.approved-catalog {
-  border-radius: 28px;
-  overflow: hidden;
-  background: var(--surface);
-  border: 1px solid var(--studio-line);
-}
-.approved-catalog-hero {
-  position: relative;
-  isolation: isolate;
-  min-height: 340px;
-  background: var(--teal-soft);
-}
-.approved-catalog-hero > img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  z-index: -2;
-  animation: approved-picture calc(var(--t-enter) * 2) var(--ease-soft) both;
-}
-.approved-catalog-hero::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: linear-gradient(
-    90deg,
-    #07384bf5,
-    #07384be8 28%,
-    #07384b66 56%,
-    transparent 78%
-  );
-}
-.approved-catalog-copy {
-  width: 62%;
-  padding: 32px 32px 72px;
-  color: var(--surface);
-}
-.approved-catalog-copy .eyebrow {
-  color: var(--brand-mint);
-}
-.approved-catalog-copy .approved-support-title {
-  font-size: clamp(28px, 3.2vw, 44px);
-  font-weight: 500;
-  line-height: 1.1;
-  letter-spacing: -1.3px;
-  margin: 20px 0;
-  color: var(--surface);
-}
-.approved-catalog-copy h1 {
-  font-size: 18px;
-  color: var(--surface);
-  line-height: 1.4;
-  margin: 0 0 8px;
-  letter-spacing: 0;
-}
-.approved-catalog-copy > p {
-  color: var(--surface);
-}
-.approved-preview-note {
-  display: inline-block;
-  background: var(--surface);
-  color: var(--brand-ink);
-  padding: 8px 12px;
-  border-radius: 20px;
-  font-size: 13px;
-  margin-top: 14px;
-}
-.approved-catalog-hero .care-photo-note {
-  bottom: 48px;
-}
-.approved-catalog-sheet {
-  position: relative;
-  margin: -32px 16px 16px;
-  background: var(--surface);
-  padding: 24px;
-  border-radius: 24px;
-}
-.approved-catalog .catalog-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-.approved-catalog .service-card {
-  border-radius: 20px;
-  background: var(--glass-floor);
-  text-align: left;
-}
-.approved-catalog .service-card.later {
-  background: var(--studio-paper);
-}
-.approved-catalog .service-icon {
-  background: var(--teal-soft);
-  color: var(--teal-ink);
-}
-.approved-catalog .catalog-tools {
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.approved-catalog .catalog-tools .search-box {
-  flex: 1;
-  min-width: 0;
-}
-.approved-catalog .tabs {
-  flex-wrap: wrap;
-}
-.approved-catalog .tabs button {
-  min-height: 44px;
-}
-.approved-catalog .tabs .selected {
-  background: var(--brand-ink);
-  color: var(--surface);
-}
-@keyframes approved-picture {
-  from {
-    opacity: 0;
-    transform: scale(1.015);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@media (max-width: 1000px) {
-  .approved-home .care-desk {
-    grid-template-columns: minmax(0, 1fr) minmax(240px, 0.8fr);
-  }
-  .approved-home .care-cover-copy {
-    width: 65%;
-  }
-  .approved-home .care-cover > img {
-    object-position: 60% center;
-  }
-  .approved-catalog-copy {
-    width: 75%;
-  }
+@media (max-width: 999px) {
+ .home.approved-home .care-desk { display: flex; flex-direction: column; gap: var(--space-20); }
+ .home.approved-home .care-desk > * { width: 100%; }
+ .home.approved-home .desk-visit { order: 1; } .home.approved-home .desk-services { order: 2; } .home.approved-home .desk-readings { order: 3; }
+ .home.approved-home .wellbeing-invite { order: 4; } .home.approved-home .care-cover { order: 5; } .home.approved-home .approved-journey { order: 6; }
+ .home.approved-home .desk-trend { order: 7; } .home.approved-home .desk-family { order: 8; }
+ /* Nothing arranged: the way to arrange something comes first, and the empty card follows it. */
+ .home.approved-home .desk-visit:has(.is-empty) { order: 3; }
+ .patient-surface .home.approved-home .care-next-action > .primary { grid-column: 1 / -1; }
 }
 @media (max-width: 700px) {
-  .approved-home .care-desk {
-    display: flex;
-  }
-  .approved-home .care-cover {
-    min-height: 320px;
-    order: 0;
-  }
-  .approved-home .care-cover-copy {
-    width: 85%;
-    padding: 24px;
-  }
-  .approved-home .care-cover h2 {
-    font-size: 34px;
-  }
-  .approved-home .care-cover > img {
-    object-position: 65% center;
-  }
-  .approved-home .care-cover::after {
-    background: linear-gradient(90deg, #f6fbf8f5, #f6fbf8dd 35%, #f6fbf833 90%);
-  }
-  .approved-home .approved-journey {
-    order: 3;
-  }
-  .approved-home .wellbeing-invite {
-    order: 4;
-  }
-  .approved-catalog-copy {
-    width: 100%;
-    padding: 24px 20px 80px;
-  }
-  .approved-catalog-hero {
-    min-height: 370px;
-  }
-  .approved-catalog-hero > img {
-    object-position: 67% center;
-  }
-  .approved-catalog-hero::after {
-    background: linear-gradient(90deg, #07384bf2, #07384ba6 70%, #07384b55);
-  }
-  .approved-catalog-sheet {
-    margin: -32px 8px 8px;
-    padding: 16px;
-  }
-  .approved-catalog .catalog-grid {
-    grid-template-columns: 1fr;
-  }
-  .approved-catalog .catalog-tools {
-    display: grid;
-  }
-  .approved-catalog .care-photo-note {
-    font-size: 13px;
-  }
-  .approved-catalog-copy .approved-support-title {
-    max-width: 240px;
-  }
-  .approved-preview-note {
-    border-radius: 12px;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .approved-home .care-cover > img,
-  .approved-catalog-hero > img {
-    animation: none;
-  }
-}
-
-html:not([data-decor="on"]) .approved-home .care-cover > img,
-html:not([data-decor="on"]) .approved-catalog-hero > img {
-  animation: none;
+ .patient-surface .home.approved-home .home-head { margin-bottom: var(--space-16); }
+ .patient-surface .home.approved-home .home-head h1 { font-size: 36px; }
+ .patient-surface .home.approved-home .care-next-action { grid-template-columns: minmax(0, 1fr) auto; min-height: 0; padding: var(--space-24); }
+ .patient-surface .home.approved-home .care-next-action > div { grid-column: 1 / -1; grid-row: 2; }
+ .patient-surface .home.approved-home .next-numeral { grid-column: 2; font-size: 42px; letter-spacing: -1.6px; }
+ .patient-surface .home.approved-home .care-next-action h2 { font-size: 28px; letter-spacing: -.8px; }
+ .patient-surface .home.approved-home .care-next-action > .primary { width: 100%; justify-content: center; margin-top: var(--space-8); }
+ .patient-surface .home.approved-home .shortcut-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8); }
+ .patient-surface .home.approved-home .shortcut-row:not(.glass) { min-height: 164px; padding: var(--space-16); }
+ .patient-surface .home.approved-home .shortcut-row > svg:last-child { top: var(--space-16); right: var(--space-12); }
+ .patient-surface .home.approved-home .shortcut-row .shortcut-meta { flex-wrap: wrap; gap: var(--space-4) var(--space-8); }
+ .patient-surface .home.approved-home .shortcut-row .shortcut-meta strong { font-size: 24px; }
+ .patient-surface .home.approved-home .health-overview .s-metrics { gap: var(--space-8); }
+ .patient-surface .home.approved-home .overview-reading { min-height: 0; padding: var(--space-16); }
+ .patient-surface .home.approved-home .overview-reading .s-metric-value { font-size: 28px; letter-spacing: -1px; gap: var(--space-4); }
+ .reading-plot { top: var(--space-16); bottom: auto; right: 48px; width: 36px; height: 20px; gap: 2px; }
+ .patient-surface .home.approved-home .wellbeing-invite { min-height: 0; padding: var(--space-24); }
+ .patient-surface .home.approved-home .wellbeing-invite .home-eyebrow { max-width: none; margin-bottom: var(--space-16); }
+ .patient-surface .home.approved-home .wellbeing-invite p { max-width: 210px; }
+ .lunar-art { width: 128px; height: 128px; top: var(--space-24); }
+ .care-cover { min-height: 300px; }
+ .care-cover-copy { width: 88%; padding: var(--space-24); }
+ .care-cover h2 { font-size: 32px; }
+ .care-cover > img { object-position: 65% center; }
+ .approved-catalog-copy { width: 100%; padding: var(--space-24) var(--space-20) 80px; }
+ .approved-catalog-copy .approved-support-title { font-size: 32px; max-width: 260px; }
+ .approved-catalog-hero { min-height: 340px; }
+ .approved-catalog-hero > img { object-position: 67% center; }
+ .approved-catalog-sheet { margin: -32px var(--space-8) var(--space-8); padding: var(--space-16); }
+ .approved-catalog .catalog-tools { display: grid; }
+ .patient-surface .approved-catalog .tabs { border-radius: var(--r-card); width: auto; }
+ .patient-surface .approved-catalog .service-card:not(.glass) { min-height: 0; }
 }

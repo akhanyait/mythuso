@@ -311,7 +311,10 @@ export function Earnings() {
       the weeks, a tax note, a bank account — and records belong on the sheet. */}
   <ClinicalDeck role="Earnings & payouts" title="Earnings & payouts" eyebrow="This week" figures={figures}
    headline={['What you have earned,', { glyph: 'wallet' }, 'and what has reached you.']}
-   note={ruleById('accrued-is-not-paid').sentence}>
+   note={ruleById('accrued-is-not-paid').sentence}
+   /* The week is the dark card, and under its figure the share it was earned at, in the sentence Money's
+      nurse-share-sentence setting holds today — asked of the settings engine, as the split below asks. */
+   leadNote={nurseShareSentenceNow()}>
    <NotConnected of="payouts"/>
    <p className="c-deck-aside">{cycle.note}</p>
   </ClinicalDeck>

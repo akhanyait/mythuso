@@ -334,7 +334,13 @@ export function ReviewQueue({ open }: { open: (s: string) => void }) {
      <span className="review-found">{review.found}</span>
     </span>
     <span className="review-meta">
-     <span className="review-flag">{review.flag ? <Pill tone="amber">{review.flag}</Pill> : <span className="review-routine">Routine</span>}</span>
+     {/* The priority as a pill, the word first and the colour second: both states are the same pill
+         shape with a word in it, so "Routine" is as findable down the column as "Out of range" and
+         neither is told by colour alone. The flagged word keeps the warning ink it always had — the
+         tint behind it is warmth, and it does not make the word any quieter. */}
+     <span className="review-flag"><span className={`review-priority${review.flag ? ' is-flagged' : ''}`}>
+      <i aria-hidden="true"/>{review.flag || <span className="review-routine">Routine</span>}
+     </span></span>
      <span className="review-wait">
       <strong className="review-waited">{review.waited}</strong>
       <small>waiting</small>

@@ -1,6 +1,24 @@
-.assistant-greeting { position: fixed; right: 132px; bottom: 42px; z-index: 44; display: flex; align-items: center; width: 190px; max-width: calc(100vw - 144px); padding: 5px; border: 1px solid #d8eceb; border-radius: 20px 20px 5px 20px; background: var(--surface); color: var(--brand-ink); box-shadow: 0 6px 24px #07344920; }
+.assistant-greeting { position: fixed; right: 132px; bottom: 42px; z-index: 44; display: flex; align-items: center; width: 190px; max-width: calc(100vw - 144px); padding: 5px; border: 1px solid var(--line); border-radius: 20px 20px 5px 20px; background: var(--surface); color: var(--brand-ink); box-shadow: var(--shadow-raised); }
 .assistant-greeting button { border: 0; background: transparent; color: inherit; font: inherit; font-size: 14px; text-align: left; min-height: 44px; padding: 7px; cursor: pointer; }
 .assistant-greeting span, .assistant-greeting strong { display: block; }
 .assistant-greeting button:last-child { min-width: 44px; font-size: 22px; }
 .al-dock .assistant-greeting { position: absolute; bottom: 34px; }
-.as-launcher::before { content: ''; position: absolute; inset: 0; border: 3px solid #64d7c4; border-radius: 50%; background: #effdfa; box-shadow: 0 0 0 5px #ffffffb3, 0 5px 22px #007e7c30; }
+.as-launcher::before { content: ''; position: absolute; inset: 0; border: 3px solid var(--brand-mint); border-radius: 50%; background: var(--surface); box-shadow: var(--shadow-raised); }
+
+/* The launcher's half of one motion (28 September 2026). Only what is seen before the panel's chunk
+   has arrived lives here, because this sheet is on every patient's first load, and it is paid for:
+   the raw colours above became tokens, and the launcher's dead smile element went. He stays visible
+   while the panel is fetched, so the thumb never loses what it pressed, and his opaque WebP is held
+   to his disc, where its white square used to stand out over whatever was behind him. His fade as the
+   panel grows out of him, and the float stopped behind it, are in features/assistant-motion.css,
+   which is loaded before any panel can open. */
+.al-dock .as-launcher[aria-expanded=true] { opacity: 1; }
+.al-dock .al-orb { border-radius: 50%; background-size: 116%; }
+/* On a phone the bubble sits beside the launcher at the launcher's own foot, not at its middle. At
+   the middle it reached 190px into the page at the exact height the home's hero button sits, and
+   covered "Prepare for my visit" on the first screen a funder sees (28 September 2026). At the foot it
+   shares only the strip the launcher already occupies. The launcher is 104px tall and 16px from the
+   right edge, 12px up; the bubble's right edge clears it by 8px. */
+@media (max-width: 600px) {
+  .al-dock .assistant-greeting { right: 128px; left: auto; bottom: 12px; width: min(200px, calc(100vw - 160px)); max-width: none; }
+}

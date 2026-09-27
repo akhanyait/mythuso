@@ -64,7 +64,7 @@ export function AssistantLauncher({ openModal, visit, audience }: { openModal?: 
        the artwork this launcher exists to show. The name is said where it can be read: in the
        button's accessible name, in the greeting bubble beside him, and on the chest of the larger
        avatar inside the panel, which is an SVG and scales. */}
-   <span className="al-orb" aria-hidden="true"><span className="al-smile"/></span>
+   <span className="al-orb" aria-hidden="true"/>
   </button>
   {opened && <Suspense fallback={open ? <p className="al-note" role="status">Opening GilbertOne.</p> : null}>
    <Panel open={open} dismiss={() => setOpen(false)} openModal={openModal ? modal => { setOpen(false); openModal(modal); } : undefined} visit={visit} audience={audience}/>

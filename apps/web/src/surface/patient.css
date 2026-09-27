@@ -66,20 +66,10 @@
  z-index: 0;
  pointer-events: none;
 }
-/* A second pass of the same three stops, larger and offset, so the light has somewhere to travel
-   rather than sitting in three corners. Only the aurora colours and white appear here: the build
-   proves none of the three is darker than --glass-floor-ground, which is what keeps every contrast
-   figure measured against the frosted floor true wherever a panel happens to land. Nothing darker
-   may ever be added to this layer, however good it would look. */
-.patient-surface > .patient-ground::after {
- content: '';
- position: absolute;
- inset: 0;
- background-image:
-  radial-gradient(42% 38% at 78% 62%, var(--aurora-sage) 0%, transparent 70%),
-  radial-gradient(38% 34% at 22% 78%, var(--aurora-warm) 0%, transparent 72%),
-  radial-gradient(50% 30% at 50% 4%, var(--surface) 0%, transparent 74%);
-}
+/* The ground is the studio paper, flat (revamp.css). The aurora that was painted on its ::after was
+   hidden there with display:none from the editorial pass on, so it was bytes every patient downloaded to
+   draw nothing; it was taken out on 28 September. The pointer light (motion.css) still lives on this
+   pane, and it may still only lift it. */
 .patient-surface .workspace,
 .patient-surface .workspace.is-home,
 .patient-surface .workspace.is-home .topbar,
@@ -182,7 +172,6 @@
 /* The one plan a screen leads with keeps its sage ground. The card recipe above is deliberately
    greedy — it has to reach thirty call sites — so the two cards that are meant to be tinted say so
    after it. */
-.patient-surface .plan-card.featured,
 .patient-surface .module-card.highlight { background: var(--pale-sage); border-color: transparent; color: var(--charcoal); }
 
 /* ---- The one panel a screen is about ----
@@ -290,7 +279,6 @@
 /* ---- The tab bar ---- */
 .patient-surface .tabbar button { color: var(--faint); }
 .patient-surface .tabbar button.active { color: var(--charcoal); }
-.patient-surface .tabbar button.active .tab-icon { background: var(--charcoal); color: var(--surface); }
 
 /* ---- What the sweep is not allowed to repaint ----
  *
@@ -354,7 +342,6 @@
    at two weights. */
 .patient-surface .primary,
 .patient-surface .secondary,
-.patient-surface .ghost,
 .patient-surface a.primary { border-radius: var(--r-pill); }
 .patient-surface .primary { background: var(--studio-lime); color: var(--studio-ink-deep); }
 .patient-surface .primary:hover:not(:disabled) { background: color-mix(in srgb, var(--studio-lime) 84%, var(--studio-ink)); color: var(--studio-ink-deep); }
@@ -373,8 +360,12 @@
 .patient-surface .secondary:hover:not(:disabled) { background: var(--surface); border-color: var(--sage-slate); }
 .patient-surface .text-button { color: var(--charcoal); }
 .patient-surface .eyebrow { color: var(--faint); }
-.patient-surface .underline-tabs > button.selected { color: var(--charcoal); }
-.patient-surface .underline-tabs > button.selected:after { background: var(--charcoal); }
+/* A screen's own sections as one segmented pill track, the catalogue's and the Control Tower's shape:
+   the chosen one is paper-white ink on the brand ink. The track scrolls inside itself on a phone. */
+.patient-surface .underline-tabs { gap: var(--space-4); padding: var(--space-4); border: 0; border-radius: var(--r-pill); background: var(--surface); width: fit-content; max-width: 100%; }
+.patient-surface .underline-tabs > button { padding: 0 var(--space-16); border-radius: var(--r-pill); color: var(--studio-ink); }
+.patient-surface .underline-tabs > button.selected { background: var(--brand-ink); color: var(--surface); }
+.patient-surface .underline-tabs > button.selected:after { display: none; }
 .patient-surface .sign-out { color: var(--danger); border-color: var(--danger); }
 
 /* ---- The dark panels ----
@@ -392,7 +383,6 @@
 .patient-surface .wallet-hero > span { color: var(--surface); }
 .patient-surface .promo-dark button { background: var(--surface); color: var(--charcoal); }
 .patient-surface .wallet-hero .secondary { background: color-mix(in srgb, var(--surface) 16%, transparent); border-color: color-mix(in srgb, var(--surface) 34%, transparent); color: var(--surface); }
-.patient-surface .promo-card { background: var(--pale-sage); border-color: transparent; border-radius: var(--r-panel, 18px); color: var(--charcoal);}
 
 /* ---- The four steps of joining something you cannot join yet ----
    A numbered list whose numbers are drawn rather than counted, because the marker has to be a filled
@@ -468,6 +458,21 @@
 .patient-surface .chart-area { fill: var(--soft-sage); opacity: .55; }
 .patient-surface .chart-line { stroke: var(--charcoal); }
 .patient-surface .chart-band { fill: var(--pale-sage); opacity: .5; }
+/* The passport's readings are stat tiles on lavender, the ground tokens.json#contrast names for health
+   readings (studio ink deep on studio lilac). Everything in the tile inherits that ink, the reference band
+   is paper so the range reads as a lighter lane, and the chip keeps its own paper and its own word — the
+   classification is the reading's, never a grade composed here. */
+.patient-surface .passport-hero .pill.light { background: var(--studio-lime); color: var(--studio-ink); }
+.patient-surface .chart-grid .chart-card:not(.glass) { padding: var(--space-24); border: 0; border-radius: var(--r-card); background: var(--studio-lilac); color: var(--studio-ink-deep); }
+.patient-surface .chart-grid .chart-card :not(.chart-flag) { color: inherit; }
+.patient-surface .chart-grid .chart-value strong { font-size: 42px; letter-spacing: -1.6px; }
+.patient-surface .chart-grid .chart-band { fill: var(--surface); opacity: .7; }
+.patient-surface .chart-grid .chart-area { fill: var(--studio-ink); opacity: .1; }
+/* Record rows as soft paper rows on the page's ground: a radius, no hairline, the icon in a lime disc. */
+.patient-surface main > .shortcut-list > .shortcut-row:not(.glass),
+.patient-surface main > .panel:has(> .record-row):not(.glass) { border: 0; border-radius: var(--r-card); background: var(--surface); }
+.patient-surface main > .shortcut-list > .shortcut-row .service-icon { background: var(--studio-lime); color: var(--studio-ink); }
+@media (min-width: 1000px) { .patient-surface main > .shortcut-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-12); } }
 .patient-surface .chart-dot { fill: var(--charcoal); }
 .patient-surface .chart-flag { background: var(--glass-floor); border: 1px solid var(--stone); color: var(--charcoal); }
 
@@ -476,22 +481,8 @@
    actually waiting for — the greeting, the appointment, the care column — and on nothing else. A
    screen where everything animates is a screen nobody can read, and every one of them is inert under
    prefers-reduced-motion. */
-.patient-surface .home-columns > * { min-width: 0; }
-/* Every screen opens the same way: the heading arrives, then the thing the screen is about, a
-   sixteenth of a second behind it. Two elements, not twenty — a screen where everything animates is
-   a screen nobody can read, and the second one is late only so the eye has an order to follow. The
-   keyframes and the curve are glass.css's, so this is the same movement as the home's, and both are
-   finite: nothing on this surface runs forever. */
-.patient-surface main > .page-intro,
-.patient-surface main > * > .page-intro { animation: rise var(--t-enter) var(--ease-soft) both; }
-.patient-surface main > .passport-hero,
-.patient-surface main > .underline-tabs { animation: rise var(--t-enter) var(--ease-soft) 60ms both; }
-@media (prefers-reduced-motion: reduce) {
- .patient-surface main > .page-intro,
- .patient-surface main > * > .page-intro,
- .patient-surface main > .passport-hero,
- .patient-surface main > .underline-tabs { animation: none; }
-}
+/* Every screen opens the same way now — its whole panel rises in over a settle when the section is
+   opened — and that entrance lives with the rest of the motion, in surface/motion.css. */
 
 /* ---- Five screens that had no door ----
    A completed visit, a cancelled one, the trends behind the passport's charts, a device permission
@@ -556,8 +547,7 @@
 .patient-surface .stated { display: grid; gap: var(--space-16); }
 .patient-surface .stated > div { display: grid; gap: var(--space-4); }
 .patient-surface .stated > div + div { border-top: 1px solid var(--stone); padding-top: var(--space-16); }
-.patient-surface .stated dt,
-.patient-surface .stated .stated-label { font-size: 13px; color: var(--faint); letter-spacing: .4px; text-transform: uppercase; }
+.patient-surface .stated dt { font-size: 13px; color: var(--faint); letter-spacing: .4px; text-transform: uppercase; }
 .patient-surface .stated p,
 .patient-surface .stated dd { font-size: 15px; line-height: 1.55; color: var(--charcoal); margin: 0; }
 .patient-surface .stated small { font-size: 13px; line-height: 1.55; color: var(--faint); }
@@ -636,7 +626,6 @@
 .patient-surface .pill.plain { font-weight: 600; letter-spacing: .8px; }
 .patient-surface .primary,
 .patient-surface .secondary,
-.patient-surface .ghost,
 .patient-surface a.primary { font-weight: 500; }
 
 /* ---- Figures a screen draws itself ------------------------------------------------------------
@@ -682,8 +671,6 @@
 .patient-surface .glow > .service-icon,
 .patient-surface .glow > .tile-icon,
 .patient-surface .glass.lead .visit-top .service-icon,
-.patient-surface .plan-card.featured .service-icon,
-.patient-surface .plan-card.featured .tile-icon,
 .patient-surface .module-card.highlight .service-icon,
 .patient-surface .module-card.highlight .tile-icon { background: var(--pale-sage); color: var(--charcoal); }
 /* The semantic tiles keep their colour and are restated here for the same reason the block further
@@ -777,23 +764,6 @@
   grid-area: 1 / 2 / 3 / 3;
   align-self: center;
   gap: var(--space-4) var(--space-32);
- }
-}
-
-/* ---- The home's figures stand in the home's columns -------------------------------------------
-   From 1000px the home is a 1.55 / 1 pair of columns, and the strip of three figures above it was
-   an `auto-fit` grid of equal thirds — so "Until your next check-in" began sixty-eight pixels to
-   the right of "Your next visit", which is the heading directly beneath it. Near-alignment is worse
-   than none: the eye reads it as a mistake rather than as a second arrangement.
-
-   Two readings share the wide tract and the plan's countdown stands over the care column. The
-   ratios are what make the third figure's leading edge land on the column boundary: with one 24px
-   gutter in the layout below and two here, .75 / .75 / 1 puts it within about three pixels of the
-   boundary anywhere between 1000px and a very wide monitor, which is inside a hairline. */
-@media (min-width: 1000px) {
- .patient-surface .home .s-metrics {
-  grid-template-columns: minmax(0, .75fr) minmax(0, .75fr) minmax(0, 1fr);
-  column-gap: var(--space-24);
  }
 }
 

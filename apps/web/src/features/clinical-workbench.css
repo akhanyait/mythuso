@@ -404,3 +404,19 @@
  .iq-pane-mark{width:32px;height:32px;font-size:14px}
  .iq-provenance{padding:2px 14px}
 }
+
+/* ---- The pastel system (28 September 2026) -----------------------------------------------------------
+   The deck at the top of the screen is a row of tinted cards now, with one dark card and one only. This
+   band was the second dark rectangle on the same screen, so it takes the lavender the deck gives a card
+   that is context rather than subject, and sets its ink in the same rule: brandInk on studioLilac 9.41,
+   the quiet line at 78% 5.27, the status outline at 62% 3.53 — all computed, on the token values resolved
+   on :root by clinical-deck.css (--cl-tint-lavender), since the shell remaps --studio-lilac to a grey. The
+   badge is the logo's lime with the ink in it, 10.47, as it is in the deck's headline. */
+.iq-workbench .iq-heading{background:var(--cl-tint-lavender);color:var(--brand-ink)}
+.iq-workbench .iq-heading-top{border-bottom-color:color-mix(in srgb, var(--brand-ink) 14%, var(--cl-tint-lavender))}
+.iq-workbench .iq-heading p{color:color-mix(in srgb, var(--brand-ink) 78%, var(--cl-tint-lavender))}
+.iq-workbench .iq-heading .iq-eyebrow{color:var(--brand-ink)}
+.iq-workbench .iq-heading .iq-status{border-color:color-mix(in srgb, var(--brand-ink) 62%, var(--cl-tint-lavender));background:var(--surface)}
+.iq-workbench .iq-heading .iq-status>span{background:var(--brand-green)}
+.iq-workbench .iq-heading .iq-glyph{background:var(--brand-lime);color:var(--brand-ink)}
+.iq-workbench .iq-heading h2{font-weight:400}

@@ -76,6 +76,7 @@ import { t } from '../lib/i18n';
 import { endSession } from '../lib/auth';
 import { subjectsByRole } from '../lib/vetting-fixtures';
 import { scrollToTop } from '../lib/scroll';
+import { useReveal } from '../lib/motion';
 
 /* MyThuso for clinicians — its own application, not the patient app with different navigation.
  *
@@ -195,6 +196,15 @@ export default function StaffWorkspace({ role, audience, legacy = false }: { rol
     lapsed overnight needs to be told before she reads a schedule she is no longer dispatchable
     against — the arithmetic is in lib/vetting, and this is where it becomes a sentence. */
  const stopped = who.stopped;
+ /* data-motion="on" for as long as a workspace is open, and never for a reader who asked for less
+    motion: the one flag the deck's cards and the section's arrival are gated on, so a page whose
+    script never ran draws everything where it rests. A new section is new content rather than the
+    same content redrawn, so it is keyed by its name and arrives — a cross-fade and a small rise on
+    --t-settle, clinical.css. Keyed by the section alone and not by useChapter: that key changes when
+    the reader's motion preference does, and a remount then threw away whatever the section held — the
+    earnings screen dropped the service a nurse had chosen the moment she asked for less motion. A
+    section change remounts its screen anyway; a preference change must not. */
+ useReveal();
  return <div className="app-shell clinical aurora">
   <a href="#main" className="skip-link">{t('shell.skip', 'en-ZA')}</a>
   <aside className="sidebar">
@@ -239,10 +249,12 @@ export default function StaffWorkspace({ role, audience, legacy = false }: { rol
        of this one asks which. */}
    <DemoBar note={t('shell.previewBadge', 'en-ZA')}/>
    <main id="main" tabIndex={-1}>
+    <div className="cl-chapter" key={section}>
     {legacy
      ? <><Suspense fallback={null}><LegacyNotice surface="control-tower" section={section}/></Suspense>
         <ReadOnly>{renderSection(role, section, setModal, home)}</ReadOnly></>
      : renderSection(role, section, setModal, home)}
+    </div>
    </main>
    <footer className="app-footer"><span>© 2026 MyThuso · {role} workspace</span><span>{t('shell.tagline', 'en-ZA')}</span></footer>
    {/* The assistant, in this workspace for the audience the door chose: the same orb and the same

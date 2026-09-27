@@ -128,9 +128,14 @@
    The fragments flatten, so every one of these is a direct child of <main> and can simply be
    ordered. Children are flex-fixed so a scroll container cannot compress them. */
 .clinical main { display: flex; flex-direction: column; }
-.clinical main > * { flex: 0 0 auto; }
-.clinical main > .page-intro { order: -2; }
-.clinical main > .shift-head { order: -1; }
+/* The section is wrapped in one keyed element so that a new section arrives as new content (see the
+   shell). It is display: contents, so its children are still main's flex items and are ordered here
+   exactly as they were — the selectors name the wrapper because a selector reads the document tree,
+   not the box tree. */
+.clinical main > .cl-chapter { display: contents; }
+.clinical main > .cl-chapter > * { flex: 0 0 auto; }
+.clinical main > .cl-chapter > .page-intro { order: -2; }
+.clinical main > .cl-chapter > .shift-head { order: -1; }
 
 /* ---- Air --------------------------------------------------------------------------------------
    The reference is not dense, and the airiness is what makes a small amount of information feel
@@ -1082,17 +1087,25 @@
  * Only the first four children are staggered. A dispatch board has twenty; animating all of them
  * is a screen that takes two seconds to settle, and Playwright waits for a box to hold still before
  * it will click one. Everything here is finite, and touches transform and opacity only. */
-.clinical main > * { animation: rise var(--t-enter) var(--ease-soft) both; }
-.clinical main > *:nth-child(2) { animation-delay: 40ms; }
-.clinical main > *:nth-child(3) { animation-delay: 80ms; }
-.clinical main > *:nth-child(n+4) { animation-delay: 120ms; }
 .clinical .sidebar .s-nav-row { animation: rise var(--t-enter) var(--ease-soft) both; }
+/* A section arriving (28 September 2026): a cross-fade and a small rise on --t-settle, the head first,
+   then the figures, then the work, and nothing after the fourth child waits longer than the fourth.
+   It replays only because the shell keys the section by its name, so it marks "this is a different
+   screen" and never "this screen changed". Gated on data-motion, which the clinical shell sets through
+   useReveal and never sets under reduced motion; a page whose script did not run has nothing hidden. */
+@keyframes cl-arrive {
+ from { opacity: 0; transform: translate3d(0, 8px, 0); }
+ to { opacity: 1; transform: none; }
+}
+html[data-motion='on'] .clinical main > .cl-chapter > * { animation: cl-arrive var(--t-settle) var(--ease-soft) both; }
+html[data-motion='on'] .clinical main > .cl-chapter > *:nth-child(2) { animation-delay: 40ms; }
+html[data-motion='on'] .clinical main > .cl-chapter > *:nth-child(3) { animation-delay: 80ms; }
+html[data-motion='on'] .clinical main > .cl-chapter > *:nth-child(n+4) { animation-delay: 120ms; }
 
-/* And none of it happens to somebody who asked for stillness. styles.css already collapses every
-   duration globally; this says it in the file that starts the animations, so removing that global
-   rule cannot quietly turn these back on. */
+/* And none of it happens to somebody who asked for stillness — !important, because the sheets that
+   load after this one may set an animation on the same elements. */
 @media (prefers-reduced-motion: reduce) {
- .clinical main > *, .clinical .sidebar .s-nav-row { animation: none; }
+ .clinical main > .cl-chapter > *, .clinical .sidebar .s-nav-row { animation: none !important; }
 }
 
 /* ---- What in styles.css this supersedes --------------------------------------------------------
@@ -1661,3 +1674,73 @@
 }
 .clinical .legacy-notice span { flex: 1 1 16rem; }
 .clinical .legacy-notice a { display: inline-flex; align-items: center; gap: var(--space-4); min-height: 44px; color: var(--ink); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---- The pastel tints (28 September 2026) -------------------------------------------------------------
+   The Control Tower's four card grounds, for the clinical workspaces. Resolved on :root rather than on
+   the shell, because the shell re-points --studio-lilac at a six per cent ink wash and --studio-lime at
+   mint (shells/shells.css): read here, above it, each is still the token's own value, and it is inherited
+   as that value. Every tinted rule that uses one sets brandInk on it in the same rule; the measured
+   pairs are listed at the top of features/clinical-deck.css. */
+:root {
+ --cl-tint-mint: var(--brand-mint);
+ --cl-tint-lavender: var(--studio-lilac);
+ --cl-tint-peach: var(--studio-peach);
+ --cl-tint-lime: var(--studio-lime);
+}
+
+/* ---- The doctor's queue in the pastel system (28 September 2026) ------------------------------------
+   Each case is already its own soft card. What changes is the priority: it was an amber badge on the
+   flagged rows and a grey word on the others, two different objects in one column. Both are the same
+   pill now — a dot and a word — so the column reads as one scale. The flagged pill is peach with the
+   warning ink it always carried (mangoInk on studioPeach 5.41) and a brand-orange dot; a routine one is
+   an outlined pill in the quiet ink. The word is the state; the tint is warmth beside it. */
+.clinical .review-priority {
+ display: inline-flex;
+ align-items: center;
+ gap: var(--space-8);
+ min-height: 30px;
+ padding: 4px 12px;
+ border-radius: var(--r-pill);
+ border: 1px solid color-mix(in srgb, var(--brand-ink) 30%, var(--surface));
+ background: var(--surface);
+ color: var(--brand-ink);
+ font-size: 13px;
+ font-weight: 500;
+ line-height: 1.4;
+ white-space: nowrap;
+}
+.clinical .review-priority > i { width: 8px; height: 8px; border-radius: 50%; background: color-mix(in srgb, var(--brand-ink) 45%, var(--surface)); }
+.clinical .review-priority .review-routine { color: inherit; font-size: inherit; }
+.clinical .review-priority.is-flagged { background: var(--cl-tint-peach); border-color: var(--cl-tint-peach); color: var(--mango-ink); font-weight: 600; }
+.clinical .review-priority.is-flagged > i { background: var(--brand-orange); }
+/* The case at the head of a longest-first queue is the one to open, and it is the one row on a tint:
+   mint, the colour the deck gives its quiet summary, with the shell's ink on it (8.09). */
+.clinical .review-list > li:first-child > .review-row { background: var(--cl-tint-mint); border-color: var(--cl-tint-mint); color: var(--brand-ink); }
+.clinical .review-list > li:first-child > .review-row .review-ref,
+.clinical .review-list > li:first-child > .review-row .review-what > small,
+.clinical .review-list > li:first-child > .review-row .review-wait > small { color: color-mix(in srgb, var(--brand-ink) 78%, var(--cl-tint-mint)); }
+.clinical .review-list > li:first-child > .review-row .review-found,
+.clinical .review-list > li:first-child > .review-row .review-face { background: var(--surface); }
+.clinical .review-list > li:first-child > .review-row .review-pressure { background: color-mix(in srgb, var(--surface) 62%, var(--cl-tint-mint)); }
+.clinical .review-list > li:first-child > .review-row .review-pressure i { background: var(--brand-ink); }
+.clinical .review-list > li:first-child > .review-row:hover { background: var(--cl-tint-mint); }
+
+/* ---- More tools, as pills ------------------------------------------------------------------------
+   The links at the foot of every clinical board are a row of pills on the ground, outlined in the ink
+   and filled with mint under a pointer; the press is --t-quick, a scale and nothing else. */
+.clinical .tool-link {
+ min-height: 44px;
+ padding: var(--space-8) var(--space-16);
+ border-radius: var(--r-pill);
+ /* The edge is a control's boundary, so it is held to 3: ink at 62% over white is 3.91. */
+ border: 1px solid color-mix(in srgb, var(--brand-ink) 62%, var(--surface));
+ background: var(--surface);
+ color: var(--brand-ink);
+ transition: background-color var(--t-quick) var(--ease-soft), border-color var(--t-quick) var(--ease-soft), transform var(--t-quick) var(--ease-soft);
+}
+.clinical .tool-link:hover { background: var(--cl-tint-mint); border-color: var(--cl-tint-mint); color: var(--brand-ink); }
+.clinical .tool-link:active { transform: scale(.98); }
+@media (prefers-reduced-motion: reduce) {
+ .clinical .tool-link { transition: none !important; }
+ .clinical .tool-link:active { transform: none !important; }
+}

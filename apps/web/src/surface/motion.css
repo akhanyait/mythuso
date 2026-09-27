@@ -140,6 +140,50 @@
    smallest size on the scale, so at 320px it costs a wrap in a caption row and nothing else. A
    44px target is a floor for the box, never an argument for removing the words in it. */
 
+/* ---- The patient's section entrance and the home's stagger ------------------------------------
+   Written 28 September 2026 for the patient app's pastel pass. Gated on [data-motion='on'], which
+   PatientShell sets before the first paint and never under reduced motion — so a page that has not run
+   its script, or a reader who asked for stillness, gets everything at rest and nothing at opacity 0.
+
+   A section arrives by remounting: App.tsx draws a different screen per section, so every direct child
+   of `main` is new when the section changes and plays this once — a rise and a fade over a settle, short
+   enough that moving between sections feels like the press itself. Nothing waits for it; the old panel
+   is gone on the same frame, so there is no layout jump and nothing to cross in the way of a thumb.
+
+   The home is a composition rather than a page, so it does not rise as one block: its cards come in
+   three steps, eight pixels and an entrance each, a third of a quick apart — the three steps and no more
+   that the entrance above keeps, so the last card is never waiting. */
+@keyframes m-arrive { from { opacity: 0; transform: translate3d(0, 8px, 0); } }
+[data-motion='on'] .patient-surface main > :not(.home) { animation: m-arrive var(--t-settle) var(--ease-soft) both; }
+[data-motion='on'] .m-stagger > * { animation: m-arrive var(--t-enter) var(--ease-soft) both; }
+[data-motion='on'] .m-stagger > :nth-child(2) { animation-delay: calc(var(--t-quick) / 3); }
+[data-motion='on'] .m-stagger > :nth-child(n+3) { animation-delay: calc(var(--t-quick) * 2 / 3); }
+
+/* ---- A ring -------------------------------------------------------------------------------------
+   A share both of whose halves the words beside it already state, so it is aria-hidden: --m-share, 0 to
+   1, written by the screen, drawn as a conic sweep masked to a ring. It rises once from empty; the end
+   state is the inline value, so the share has no second copy here. */
+@property --m-share { syntax: '<number>'; inherits: false; initial-value: 0; }
+.m-ring { flex: none; width: 36px; height: 36px; border-radius: 50%; background: conic-gradient(currentColor calc(var(--m-share) * 100%), var(--studio-line) 0); mask: radial-gradient(farthest-side, transparent 70%, currentColor 72%); }
+@keyframes m-ring-in { from { --m-share: 0; } }
+[data-motion='on'] .m-ring { animation: m-ring-in var(--t-enter) var(--ease-soft) both; }
+
+/* ---- The tab bar's pill -----------------------------------------------------------------------
+   One pill behind the five tabs, moved to the chosen one by transform, so where-you-are slides rather
+   than blinks. It is a pseudo-element of the bar with nothing in it and no pointer events; each tab keeps
+   its own name, its aria-current and its colour change, so the pill is never the only thing that says
+   which one is chosen. Its step is its own width plus the bar's gap, both from the bar's own rules; which
+   step is --m-tab, the chosen tab's index, written by PatientShell (-1 when no tab is chosen). */
+.patient-surface .tabbar::after {
+ content: ''; position: absolute; top: 15px; left: 8px; width: calc((100% - 32px) / 5); height: 26px; pointer-events: none;
+ background: var(--studio-lime); clip-path: inset(0 calc(50% - 22px) round var(--r-pill));
+ transform: translate3d(calc((100% + 4px) * var(--m-tab, 0)), 0, 0);
+ transition: transform var(--t-settle) var(--ease-soft);
+}
+.patient-surface .tabbar[style*='-1']::after { opacity: 0; }
+.patient-surface .tabbar button { position: relative; z-index: 1; }
+.patient-surface .tabbar button.active .tab-icon { background: none; color: var(--brand-ink); }
+
 /* ---- Removal ---------------------------------------------------------------------------------
    Not shortening. A 420ms entrance run at 80ms is still a thing that moved, and a reader who has
    asked for stillness asked for stillness. Everything above is switched off; nothing above is the
@@ -155,4 +199,6 @@
  .m-press { transition: none !important; }
  .m-press:active:not(:disabled) { transform: none !important; }
  .m-light::before { display: none !important; }
+ [data-motion='on'] .patient-surface main > :not(.home), [data-motion='on'] .m-stagger > *, [data-motion='on'] .m-ring { animation: none !important; }
+ .patient-surface .tabbar::after { transition: none !important; }
 }

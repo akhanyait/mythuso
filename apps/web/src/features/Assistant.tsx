@@ -4,6 +4,7 @@ import {
   choosePatientHelp,
 } from "../lib/assistant-help";
 import ui from "../../../../packages/catalog/assistant-chat-ui.json";
+import records from "../../../../packages/catalog/records.json";
 import {
   Component,
   lazy,
@@ -42,7 +43,12 @@ import { NotConnected } from "../components/NotConnected";
 import { MotionPause } from "../components/MotionPause";
 import { AssistantAttachments } from "../components/AssistantAttachments";
 import { AssistantVoiceButton } from "../components/AssistantVoiceButton";
-import { GilbertAvatar, GilbertStill, useGilbertRig } from "./GilbertAvatar";
+import {
+  GilbertAvatar,
+  GilbertStill,
+  growFrom,
+  useGilbertRig,
+} from "./GilbertAvatar";
 import { GilbertOneWordmark } from "../components/GilbertOneWordmark";
 import { crisisLines, showsCrisisLines } from "../lib/crisis-lines";
 import {
@@ -99,6 +105,7 @@ import type { Visit } from "../lib/scheduling";
 import { useVoiceAdapter } from "../lib/voice";
 import "./assistant.css";
 import "./gilbertone-theme.css";
+import "./assistant-motion.css";
 
 /* The connected-capability region arrives on its own dynamic import, so the status, retrieval,
    triage and handover routes it consumes — and the code that renders them — are a separate chunk of
@@ -152,6 +159,22 @@ function EmergencyLinks() {
     </>
   );
 }
+
+/* The launcher becomes the panel — the founder's brief of 28 September 2026: the sheet grows out of
+   the robot that was pressed (growFrom, in GilbertAvatar.tsx) and the CSS close in assistant-motion.css shrinks it
+   back into him. */
+const growFromLauncher = (sheet: HTMLElement, still: boolean) =>
+  growFrom(
+    document.querySelector('[aria-controls="assistant-panel"]'),
+    sheet,
+    still,
+  );
+
+/* A measure's unit, from records.json's observations — the reading card sets it small beside her own
+   number. The measure names the entries it explains; the first one's unit is the measure's (blood
+   pressure's two are both mmHg). */
+const unitOf = (entryId: string | undefined) =>
+  records.observations.measures.find((m) => m.id === entryId)?.unit ?? null;
 
 /* GilbertOne's panel on the web.
 
@@ -255,6 +278,9 @@ export default function Assistant({
     () => new Set(),
   );
   const [gatheredAt, setGatheredAt] = useState<number | null>(null);
+  /* The one turn that has just landed, and the only one that rises — so a re-render, a re-open or
+     an earlier turn never replays an arrival somebody has already read. */
+  const [arrived, setArrived] = useState<number | null>(null);
   const [raised, setRaised] = useState(false);
   const [queue, setQueue] = useState<Queue>(emptyQueue);
   const [sent, setSent] = useState<Record<number, Sent>>({});
@@ -303,10 +329,19 @@ export default function Assistant({
   const pulse = asked ? pulseOf(reply) : "idle";
   const stage = useMemo(() => stageOf(reply, asked), [reply, asked]);
   const everRaised = raised || emergencyIn(turns);
+  /* Read by the reading effect without being one of its dependencies: a change to it alone must
+     never read a reply aloud a second time. */
+  const heldRef = useRef(everRaised);
+  heldRef.current = everRaised;
   useEffect(() => {
     if (emergencyIn(turns)) setRaised(true);
   }, [turns]);
 
+  /* The entrance in flight, so a close that lands before it finishes cancels it rather than letting
+     it fight the CSS close for the same transform. */
+  const entrance = useRef<Animation | null>(null);
+  const reducedRef = useRef(reduced);
+  reducedRef.current = reduced;
   useEffect(() => {
     const element = dialog.current;
     if (!element) return;
@@ -314,8 +349,16 @@ export default function Assistant({
       element.showModal();
       close.current?.focus();
       setGatheredAt(performance.now());
+      entrance.current = growFromLauncher(element, reducedRef.current);
     }
-    if (!open && element.open) element.close();
+    if (!open && element.open) {
+      entrance.current?.cancel();
+      entrance.current = null;
+      element.close();
+      /* A re-open is a new arrival: the last reply does not rise a second time under the panel's
+         own entrance. */
+      setArrived(null);
+    }
   }, [open]);
   useEffect(() => {
     const element = dialog.current;
@@ -394,6 +437,24 @@ export default function Assistant({
          face for its step and hold it over whatever the reply — a handover, a greeting on the way
          back in — was owed instead. */
       let opened = false;
+      /* Where the voice has got to, drawn as a rail down the reply it is reading. Every word is
+         already written — the caption is the reply itself, and the contract's own session sentence
+         promises the words stay on the screen — so nothing is hidden to be revealed: the rail only
+         grows alongside the lines as they are read, from the utterance's own word boundaries and
+         never from a timer, so a browser that reports no boundaries draws no rail rather than a
+         guessed one. It is written straight onto the turn's element because it changes on every
+         word, and a word is not a reason to re-render the conversation. It is refused while the
+         safety face holds, exactly as the mouth is: nothing moves beside the ambulance numbers. */
+      const track = heldRef.current ? null : latest.current;
+      let read = 0;
+      const mark = (progress: number | null) => {
+        if (!track) return;
+        if (progress === null) delete track.dataset.reading;
+        else {
+          track.dataset.reading = "";
+          track.style.setProperty("--as-read", progress.toFixed(3));
+        }
+      };
       voiceAdapter.speak(
         spokenOf(last, audienceId),
         {
@@ -408,11 +469,16 @@ export default function Assistant({
           voiceClass: voiceClassOf(last.reply, last.unread),
           onStart: () => {
             opened = true;
+            mark(0);
             play(affect.voiceMoments.speaking.cue, { caption });
           },
-          onWord: (word) =>
-            play(affect.voiceMoments.speaking.cue, { caption: [word] }),
+          onWord: (word) => {
+            read += 1;
+            mark(Math.min(1, read / Math.max(1, caption.length)));
+            play(affect.voiceMoments.speaking.cue, { caption: [word] });
+          },
           onEnd: () => {
+            mark(null);
             if (opened) play(affect.voiceMoments.speaking.cue, { caption: [] });
           },
         },
@@ -477,6 +543,7 @@ export default function Assistant({
   const moved = (next: Turn[]) => {
     setTurns(next);
     setGatheredAt(performance.now());
+    setArrived(next.length > 1 ? next[next.length - 1].id : null);
   };
   const put = (question: Question) =>
     moved(choose(turns, question, visit, everRaised));
@@ -533,6 +600,9 @@ export default function Assistant({
         next.delete(candidate.id);
         return next;
       });
+      /* The answer that replaces the waiting line arrives like any other: it rises into the place
+         the waiting line held. */
+      setArrived(candidate.id);
     });
   };
   /* Start again is the one action that rests the face: it is the patient saying the conversation is
@@ -626,6 +696,13 @@ export default function Assistant({
       className="as-panel patient-surface"
       aria-labelledby="as-title"
       data-audience={audienceId}
+      data-gate={!consented || undefined}
+      /* The safety face holds (affect.answers.emergency's cue, until Start again), and the panel's
+         own decorative motion — the float, the listening pulse, the reading rail — stands still
+         for as long as it does. The contract says which cue that is; this only reads it. */
+      data-safety={
+        rig.running?.id === affect.answers.emergency.cue ? "held" : undefined
+      }
       onCancel={(event) => {
         event.preventDefault();
         dismiss();
@@ -646,9 +723,15 @@ export default function Assistant({
         >
           <div className="as-bar">
             <div className="as-titles">
+              {/* The reversed lockup over the gate, whose sheet is the brand ink; the full-colour
+                  one over the conversation's light head. Same viewBox, so nothing moves. */}
               <img
                 className="as-logo as-brand"
-                src="/brand/mythuso-logo.svg"
+                src={
+                  consented
+                    ? "/brand/mythuso-logo.svg"
+                    : "/brand/mythuso-logo-reversed.svg"
+                }
                 alt="MyThuso"
               />
               <h2 id="as-title" className="as-sr">
@@ -732,6 +815,7 @@ export default function Assistant({
                   <li
                     key={turn.id}
                     className="as-turn"
+                    data-arrived={turn.id === arrived || undefined}
                     ref={index === turns.length - 1 ? latest : undefined}
                   >
                     {turn.asked && (
@@ -740,7 +824,10 @@ export default function Assistant({
                         {turn.asked}
                       </p>
                     )}
+                    {/* Keyed on whether it is still waiting, so the answer that replaces "Getting your
+                        answer" is a new arrival with its own rise rather than words swapped in place. */}
                     <div
+                      key={pendingReplies.has(turn.id) ? "waiting" : "answered"}
                       className={`as-reply as-reply-${pendingReplies.has(turn.id) ? "pending" : turn.reply.kind}`}
                       aria-busy={pendingReplies.has(turn.id)}
                       data-outcome={
@@ -803,6 +890,27 @@ export default function Assistant({
                   const help = patientQuestions.filter(
                     (q) => q.group === group.id,
                   );
+                  /* The contract's own patient questions of 27 September 2026, offered beside the
+                     help chips in the situations group: the reading and the medicine list always,
+                     and what to have ready only while a visit is booked — a chip for preparing a
+                     visit that does not exist would answer with the nothing-booked sentence, which is
+                     a chip nobody should have to press to learn. They go through choose(), like every
+                     contract question. */
+                  const offered =
+                    group.id === "situations"
+                      ? questionsFor(audienceId)
+                          .filter(
+                            (q) =>
+                              (q.answer === "preparation" && visit !== null) ||
+                              q.answer === "reading" ||
+                              q.answer === "medicines",
+                          )
+                          .sort(
+                            (a, b) =>
+                              ui.questionOrder.indexOf(a.id) -
+                              ui.questionOrder.indexOf(b.id),
+                          )
+                      : [];
                   return (
                     <section key={group.id} aria-labelledby={`as-${group.id}`}>
                       <h3 id={`as-${group.id}`}>
@@ -811,27 +919,14 @@ export default function Assistant({
                           : ui.moreHeading}
                       </h3>
                       {group.id === "situations" && <p>{ui.topicsLead}</p>}
-                      <div className="as-chips">
-                        {/* The contract's own patient questions of 27 September 2026, offered
-                            beside the help chips in the situations group: the reading and the
-                            medicine list always, and what to have ready only while a visit is
-                            booked — a chip for preparing a visit that does not exist would answer
-                            with the nothing-booked sentence, which is a chip nobody should have to
-                            press to learn. They go through choose(), like every contract question. */}
-                        {group.id === "situations" &&
-                          questionsFor(audienceId)
-                            .filter(
-                              (q) =>
-                                (q.answer === "preparation" && visit !== null) ||
-                                q.answer === "reading" ||
-                                q.answer === "medicines",
-                            )
-                            .sort(
-                              (a, b) =>
-                                ui.questionOrder.indexOf(a.id) -
-                                ui.questionOrder.indexOf(b.id),
-                            )
-                            .map(chip)}
+                      {/* Keyed on the set it offers, the landing's service settle: when a visit is
+                          booked and the preparation chip joins, the row is a new row and settles
+                          in once, rather than a chip appearing in the middle of one. */}
+                      <div
+                        className="as-chips"
+                        key={[...offered, ...help].map((q) => q.id).join(" ")}
+                      >
+                        {offered.map(chip)}
                         {help.map((q) => {
                           const Icon = QUESTION_ICONS[q.id];
                           return (
@@ -876,7 +971,12 @@ export default function Assistant({
                         {group.id === "situations" ? ui.topicsLead : group.lead}
                       </p>
                     )}
-                    <div className="as-chips">{offered.map(chip)}</div>
+                    <div
+                      className="as-chips"
+                      key={offered.map((q) => q.id).join(" ")}
+                    >
+                      {offered.map(chip)}
+                    </div>
                   </section>
                 );
               })}
@@ -987,6 +1087,11 @@ export default function Assistant({
           </div>
         ) : (
           <div className="as-scroll as-gate">
+            {/* One paper card on the ink sheet — the founder's brief of 28 September 2026. What the
+                patient is agreeing to is the only light thing on the screen, so it is what is read
+                first; the disclosures inside it are sections of one document rather than cards
+                stacked inside a card, and nothing in it has an entrance of its own. */}
+            <div className="as-gate-paper">
             <div className="as-gate-intro">
               <h3>{consent.heading}</h3>
               <p>{ui.disclaimerIntro}</p>
@@ -1050,6 +1155,7 @@ export default function Assistant({
                 <p>{entry.body}</p>
               </section>
             ))}
+            </div>
           </div>
         )}
 
@@ -1359,39 +1465,74 @@ function ReplyBody({
           )}
         </>
       );
-    case "reading":
+    case "reading": {
       /* The spoken reading explanation: the measure's name as the heading, records.json's own
          paragraphs in the order the voice reads them, and the provenance as small print — the
          written-by-a-person and read-by-no-clinician sentences, which a screen that explains a
          blood pressure is not allowed to leave off. Nothing here is typed: heading, paragraphs and
-         small print all arrive from packages/gilbertone/src/readings.ts as the contracts' words. */
-      return reply.answer ? (
+         small print all arrive from packages/gilbertone/src/readings.ts as the contracts' words.
+
+         Since 28 September 2026 the heading stands on a lilac stat tile with her own number set
+         large and light beside records.json's unit — what she opened the panel to ask about, so it
+         is the largest thing in the answer. The number is hers, as she typed it; the tile carries no
+         chip, no colour for a side of a range and no word that grades, because the answer's own first
+         sentence says it does not grade. The last paragraph is the limit — a doctor decides what the
+         number means — and it is set apart by a rule rather than left as one more line. */
+      if (!reply.answer) return <p>{reply.ask}</p>;
+      const said = reply.match?.values ? reply.match.said : null;
+      const unit = said ? unitOf(reply.match?.measure.explains[0]) : null;
+      const paragraphs = reply.answer.paragraphs;
+      return (
         <>
-          <p className="as-headline">{reply.answer.heading}</p>
-          {reply.answer.paragraphs.map((paragraph, index) => (
-            <p key={index}>{paragraph}</p>
-          ))}
+          <div className="as-tile as-stat" data-tone="lilac">
+            <p className="as-headline">{reply.answer.heading}</p>
+            {said && (
+              <p className="as-stat-figure">
+                {said}
+                {unit && <span>{unit}</span>}
+              </p>
+            )}
+          </div>
+          <div className="as-read-body">
+            {paragraphs.map((paragraph, index) => (
+              <p
+                key={index}
+                className={
+                  index === paragraphs.length - 1 ? "as-limit" : undefined
+                }
+              >
+                {paragraph}
+              </p>
+            ))}
+          </div>
           {reply.answer.smallPrint.map((line, index) => (
             <p key={`small-${index}`} className="as-quiet as-provenance">
               {line}
             </p>
           ))}
         </>
-      ) : (
-        <p>{reply.ask}</p>
       );
+    }
+    /* The preparation list and the medicine list, as the pastel system's list cards: the heading, the
+       lead and the lines on one tinted tile, in the order the voice reads them, and every sentence
+       that limits the list — unreviewed, never instructs, protected entries never read, nothing
+       changed — beneath it in the quiet register, where the contract puts them. Lime for the list a
+       nurse's visit asks for, which is the warm answer; peach for the medicine list, which is read
+       back beside a refusal and so is not given the accent colour. */
     case "preparation": {
       const p = reply.answer;
       if (p.kind === "none") return <p>{p.sentence}</p>;
       return (
         <>
-          <p className="as-headline">{p.serviceName}</p>
-          <p>{p.lead}</p>
-          <ul className="as-list">
-            {p.items.map((item, index) => (
-              <li key={index}>{item}</li>
-            ))}
-          </ul>
+          <div className="as-tile as-listcard" data-tone="lime">
+            <p className="as-headline">{p.serviceName}</p>
+            <p>{p.lead}</p>
+            <ul className="as-list">
+              {p.items.map((item, index) => (
+                <li key={index}>{item}</li>
+              ))}
+            </ul>
+          </div>
           <p className="as-quiet as-provenance">{p.review}</p>
           <p className="as-quiet">{p.neverInstructs}</p>
         </>
@@ -1401,17 +1542,22 @@ function ReplyBody({
       const m = reply.answer;
       return (
         <>
-          <p className="as-headline">{m.heading}</p>
-          <p>{m.lead}</p>
-          {m.noMedicines ? (
-            <p>{m.noMedicines}</p>
-          ) : (
-            <ul className="as-list">
-              {m.lines.map((line, index) => (
-                <li key={index}>{line}</li>
-              ))}
-            </ul>
-          )}
+          <div className="as-tile as-listcard" data-tone="peach">
+            <p className="as-headline">{m.heading}</p>
+            <p>{m.lead}</p>
+            {m.noMedicines ? (
+              <p>{m.noMedicines}</p>
+            ) : (
+              <ul className="as-list">
+                {m.lines.map((line, index) => (
+                  <li key={index}>
+                    <Pill size={16} aria-hidden="true" />
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           <p className="as-quiet">{m.protectedNotRead}</p>
           <p className="as-quiet">{m.neverChanges}</p>
           <p className="as-quiet as-provenance">{m.preview}</p>

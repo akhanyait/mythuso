@@ -1,0 +1,31 @@
+/* Booking in the pastel system, 28 September 2026. On the booking's own dynamic import, so none of it
+ * reaches a patient who never opens a booking.
+ *
+ * The service being booked rides at the top on the brand's mint with its price as the figure; the six
+ * steps are a segmented track whose current segment fills once when the step arrives; the review is a
+ * paper panel on a peach ground. Every tint sets its ink in the same rule (tokens.json#contrast: brand
+ * ink on brand mint, studio ink on studio peach). Nothing here moves a word or a control: the fill is a
+ * transform on a segment with nothing in it, gated on [data-motion='on'] and removed under reduced
+ * motion. The "nothing is booked" sentences are untouched and where they were. */
+.patient-surface .journey-summary { border: 0; border-radius: var(--r-card); background: var(--brand-mint); color: var(--brand-ink); padding: var(--space-16) var(--space-20); }
+.patient-surface .journey-summary :is(strong, small) { color: inherit; }
+.patient-surface .journey-summary > strong { font-size: 24px; font-weight: 300; letter-spacing: -.8px; }
+.patient-surface .journey-summary .service-icon { background: var(--surface); color: var(--brand-ink); }
+
+.patient-surface .journey-step-focus .step-head { flex-wrap: wrap; row-gap: var(--space-8); margin: var(--space-16) 0 var(--space-20); }
+.patient-surface .journey-step-focus .step-head span:first-child { color: var(--studio-ink); }
+.patient-surface .journey-step-focus .step-head em { color: var(--studio-ink-muted); }
+.patient-surface .journey-step-focus .step-dots { order: 3; flex: 1 0 100%; margin: 0; gap: var(--space-4); }
+.patient-surface .journey-step-focus .step-dots i { flex: 1; height: 6px; width: auto; border-radius: var(--r-pill); background: var(--studio-line); overflow: hidden; }
+.patient-surface .journey-step-focus .step-dots :is(i.on, i.now) { width: auto; background: var(--brand-ink); }
+.patient-surface .journey-step-focus .step-dots i.now { transform-origin: left center; }
+@keyframes booking-fill { from { transform: scaleX(0); } }
+[data-motion='on'] .patient-surface .journey-step-focus .step-dots i.now { animation: booking-fill var(--t-settle) var(--ease-soft) both; }
+
+.patient-surface .booking-ground { padding: var(--space-12); border-radius: var(--r-panel); background: var(--studio-peach); color: var(--studio-ink); }
+.patient-surface .booking-paper { padding: var(--space-4) var(--space-20); border-radius: var(--r-card); background: var(--surface); color: var(--studio-ink); }
+.patient-surface .booking-paper .review-line:last-child { border-bottom: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+ [data-motion='on'] .patient-surface .journey-step-focus .step-dots i.now { animation: none !important; }
+}

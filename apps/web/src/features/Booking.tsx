@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, Ban, Banknote, CalendarDays, CalendarClock, Chec
 import { type Service, money } from '../lib/catalog';
 import { SectionTitle, ServiceIcon } from '../components/UI';
 import { StepHead } from '../components/Steps';
+import './booking-look.css';
 import { NotConnected } from '../components/NotConnected';
 import { endTime, kinds, labels, longDateOf, offeredDays, ruleById, slots, type Visit } from '../lib/scheduling';
 import {
@@ -402,6 +403,9 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
    <div className="privacy-note"><ShieldCheck size={19}/>No card is stored, here or anywhere else in MyThuso. Production payments run through a regulated provider, never through MyThuso directly.</div>
    <div className="button-row"><button className="secondary" onClick={() => setStep(3)}><ArrowLeft size={16}/>Back</button><button className="primary" onClick={() => setStep(5)}>Continue<ArrowRight size={16}/></button></div>
   </div> : <div className="form-stack">
+   {/* The review is the booking on paper: every line of it on one white panel, on a tinted ground, so
+       the facts a person is agreeing to read as one document before the gate and the button. */}
+   <div className="booking-ground"><div className="booking-paper">
    <div className="review-line"><span><CalendarDays size={15}/> Date</span><strong>{scheduled ? longDateOf(date) : kinds.find(k => k.id === 'asap')!.name}</strong></div>
    {scheduled ? <div className="review-line"><span><Clock3 size={15}/> Time</span><strong>{slot} – {ends}</strong></div> : null}
    <div className="review-line"><span><MapPin size={15}/> Location</span><strong>{address}</strong></div>
@@ -423,6 +427,7 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
     <div className="review-line"><span>Status when booked</span><strong>{visit.status}</strong></div>
     {isHeld(outcome) && <p className="helper">{hold.whyNotDispatched}</p>}
    </>}
+   </div></div>
    <div className="journey-edit-links"><button className="text-button" onClick={() => setStep(0)}>Change person</button><button className="text-button" onClick={() => setStep(1)}>Change location</button><button className="text-button" onClick={() => setStep(2)}>Change nurse</button><button className="text-button" onClick={() => setStep(3)}>{labels.changeDate}</button></div>
    {chosenNurse && <ClinicianProfile subject={chosenNurse.roster.subject} name={chosenNurse.name} role={chosenNurse.role} reference={chosenNurse.roster.reference} detail={fill(personStep.worksIn, { zone: chosenNurse.area })}/>}
    {/* The method by the contract's name. No card fragment: the payment-result door refuses one by name. */}

@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react';
+import { useLayoutEffect, type CSSProperties, type ReactNode } from 'react';
 import { Activity, Ambulance, ArrowRight, Bell, CalendarDays, ChevronDown, CircleHelp, CreditCard, Globe, HeartHandshake, House, Languages, LayoutGrid, MapPin, MessageCircle, NotebookPen, Settings2, Stethoscope, Users } from 'lucide-react';
 import { DemoBar } from '../features/DemoLogin';
 import { locales, useT, type LocaleCode } from '../lib/i18n';
+import { reducedMotion } from '../lib/motion';
 
 /* The patient application's chrome, and only the patient's.
  *
@@ -61,6 +62,16 @@ type Props = {
 
 export function PatientShell({ page, navigate, open, locale, location, visitCount, children, assistant }: Props) {
  const t = useT();
+ /* The flag every entrance on this surface is gated on (surface/motion.css). Set in a layout effect, so
+    it is on the document before the first frame is painted and nothing visibly jumps from shown to
+    hidden; never set for a reader who asked for less motion, so for them nothing starts at opacity 0.
+    Taken down when the shell goes, so a workspace opened after it starts from its own rules. */
+ useLayoutEffect(() => {
+  if (reducedMotion()) return;
+  const root = document.documentElement;
+  root.dataset.motion = 'on';
+  return () => { delete root.dataset.motion; };
+ }, []);
  return <div className="app-shell patient-surface">
   {/* The luminous ground, behind everything and going nowhere. See surface/patient.css for why it is
       a pane of its own rather than a background on the shell.
@@ -141,7 +152,7 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
     <button onClick={() => navigate('Help & support')}><CircleHelp size={14}/>{t('shell.help')}</button>
    </footer>
    {assistant}
-   <nav className="tabbar glass" aria-label="Primary">{tabs.map(([target, label, Icon]) =>
+   <nav className="tabbar glass" aria-label="Primary" style={{ '--m-tab': tabs.findIndex(([target]) => target === page) } as CSSProperties}>{tabs.map(([target, label, Icon]) =>
     <button key={target} aria-current={page === target ? 'page' : undefined} className={page === target ? 'active' : ''} onClick={() => navigate(target)}>
      <span className="tab-icon"><Icon size={21} strokeWidth={1.9}/>{target === 'My visits' && <span className="nav-count">{visitCount}</span>}</span>
      {t(`tab.${label}`)}

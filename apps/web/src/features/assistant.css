@@ -74,25 +74,9 @@
 .as-panel::backdrop {
   background: color-mix(in srgb, var(--brand-ink) 40%, transparent);
 }
-.as-panel[open] {
-  animation: as-sheet-in var(--t-enter) var(--ease-soft);
-}
-@keyframes as-sheet-in {
-  from {
-    transform: translateY(100%);
-  }
-}
-@keyframes as-panel-in {
-  from {
-    opacity: 0;
-    transform: scale(0.15);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .as-panel[open] {
-    animation: none;
-  }
-}
+/* The entrance and the close are one motion out of and back into the launcher, since 28 September
+   2026: Assistant.tsx's growFromLauncher and assistant-motion.css. The sheet no longer slides up
+   from the edge on a phone or scales from a fixed corner on a wide screen. */
 
 .as-frame {
   display: flex;
@@ -863,13 +847,9 @@
      notice its 192px back, and a 768px laptop is the case the calc beside it is for. */
     height: min(800px, calc(100dvh - 2 * var(--space-24)));
     border-radius: var(--r-card);
-    transform-origin: 100% 100%;
   }
   .as-panel::backdrop {
     background: color-mix(in srgb, var(--brand-ink) 14%, transparent);
-  }
-  .as-panel[open] {
-    animation-name: as-panel-in;
   }
   /* The card on a laptop had the same sickness as the sheet on a phone, and the same fix, for the same
     reason: the head and the composer are both fixed, and at 400x760 they were 334 and 259 — so the

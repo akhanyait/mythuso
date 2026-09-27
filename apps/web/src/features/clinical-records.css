@@ -759,3 +759,28 @@
  .cr-rail > li { font-size: 14px; }
  .cr-rail > li.now { font-size: 16px; }
 }
+
+/* ---- The visit's stages on the deck's mint card (28 September 2026) ----------------------------------
+   The deck is a row of tinted cards now, and the stages stand on the mint one, so the rail speaks the
+   card's palette: the shell's ink for every word and every filled mark (8.09 on mint), white for the
+   stage she is on, and the ink at 62% (3.26) for the outline of a stage still to come — three shapes
+   before three tones, as before. Above the list, the same stages as a segmented track that fills: solid
+   for done, an outlined segment for now, the card's own groove for what is left. */
+.c-deck .cr-track { gap: 6px; margin: var(--space-4) 0 var(--space-8); }
+.c-deck .cr-track > i {
+ flex: 1 1 0;
+ height: 12px;
+ border-radius: var(--r-pill);
+ background: var(--c-track);
+ transform-origin: left center;
+}
+.c-deck .cr-track > i.done { background: var(--c-ink); }
+.c-deck .cr-track > i.now { background: var(--surface); box-shadow: inset 0 0 0 2px var(--c-ink); }
+.c-deck .cr-rail > li { color: var(--c-quiet); }
+.c-deck .cr-rail > li::before { background: var(--c-mark); }
+.c-deck .cr-rail > li.done::before { background: var(--c-ink); }
+.c-deck .cr-rail-mark { background: var(--c-ground, var(--surface)); border-color: var(--c-mark); color: var(--c-ink); }
+.c-deck .cr-rail > li.done,
+.c-deck .cr-rail > li.now { color: var(--c-ink); }
+.c-deck .cr-rail > li.done .cr-rail-mark { background: var(--c-ink); border-color: var(--c-ink); color: var(--surface); }
+.c-deck .cr-rail > li.now .cr-rail-mark { background: var(--surface); border-color: var(--c-ink); color: var(--c-ink); }
