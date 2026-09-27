@@ -2,7 +2,9 @@ import type { CSSProperties, ReactNode } from 'react';
 import './fields.css';
 
 /* The portal's form controls, drawn once so every category and the Configuration editors wear the same
- * ones: a range slider, a switch, choice chips and a styled checkbox.
+ * ones: a range slider, a switch, choice chips, a select — and, since 28 September 2026, the two shapes
+ * every settings page is built from: a field row (label, help, the control, the value in force under it)
+ * and the save bar (the reason, the Save, and the sentence that says when saving is not open).
  *
  * Every one of them is the native element underneath — an <input type="range">, an <input
  * type="checkbox" role="switch">, radios and checkboxes inside their labels — restyled from the tokens
@@ -12,7 +14,11 @@ import './fields.css';
  *
  * The stylesheet beside this file travels with it, so the legacy back office that still draws
  * Configuration.tsx for the cutover's parallel run gets the same controls as the portal, and neither
- * reaches the patient's first load: this module is imported by screens that are dynamic imports. */
+ * reaches the patient's first load: this module is imported by screens that are dynamic imports.
+ *
+ * What this file will not draw is a field that takes text. A reason or a number is typed into a textarea or
+ * an input the screen draws itself, inside a FieldRow or a SaveBar, where scripts/check-boundaries.mjs reads
+ * it — a shared text field would be a field a key could arrive in on a screen whose sweep cannot see it. */
 
 /* A slider with its track filled to the value and the value in a chip that follows the thumb. The
    chip is aria-hidden because the input already announces the same words as its aria-valuetext; a
@@ -27,7 +33,7 @@ import './fields.css';
 export type Mark = { readonly value: number; readonly label: string };
 export function RangeSlider({ id, label, min, max, step = 1, value, valueText, onChange, disabled = false, describedBy, tone = 'paper', marks = [] }: {
  id?: string; label: string; min: number; max: number; step?: number; value: number; valueText: string;
- onChange: (value: number) => void; disabled?: boolean; describedBy?: string; tone?: 'paper' | 'night'; marks?: readonly Mark[];
+ onChange: (value: number) => void; disabled?: boolean; describedBy?: string; tone?: 'paper' | 'night' | 'bare'; marks?: readonly Mark[];
 }) {
  const span = max - min;
  const ratioOf = (v: number) => span > 0 ? (Math.min(max, Math.max(min, v)) - min) / span : 0;
@@ -36,7 +42,7 @@ export function RangeSlider({ id, label, min, max, step = 1, value, valueText, o
  const ends = marks.filter(m => m.value <= min || m.value >= max);
  const inner = marks.filter(m => m.value > min && m.value < max);
  return <div className={`fc-range is-${tone}`} style={{ '--fc-ratio': ratio } as CSSProperties}>
-  <span className="fc-range-chip" aria-hidden="true">{valueText}</span>
+  {tone !== 'bare' && <span className="fc-range-chip" aria-hidden="true">{valueText}</span>}
   <input type="range" id={id} min={min} max={max} step={step} value={at} disabled={disabled}
    aria-label={label} aria-valuetext={valueText} aria-describedby={describedBy}
    onChange={event => onChange(Number(event.target.value))}/>
@@ -81,4 +87,34 @@ export function ChoiceChips({ legend, name, kind = 'radio', chips, disabled = fa
    </label>)}
   </div>
  </fieldset>;
+}
+
+/* A native select in the fields' pill, for a choice among more options than chips hold in a row — an engine,
+   a rota's post. The caller keeps the <label>; this is the control and nothing else. */
+export function Select({ id, value, onChange, children, disabled = false, describedBy }: {
+ id: string; value: string; onChange: (value: string) => void; children: ReactNode; disabled?: boolean; describedBy?: string;
+}) {
+ return <select id={id} className="fc-select" value={value} disabled={disabled} aria-describedby={describedBy}
+  onChange={event => onChange(event.target.value)}>{children}</select>;
+}
+
+/* One setting as a row: its label and what it decides, the control, and the value in force beneath it in the
+   settings contract's own words. The label is drawn here only for a control that does not carry its own —
+   a slider or a text field; a switch and a set of chips name themselves, so the caller passes them whole. */
+export function FieldRow({ label, help, htmlFor, inForce, children, className = '' }: {
+ label?: ReactNode; help?: ReactNode; htmlFor?: string; inForce?: ReactNode; children: ReactNode; className?: string;
+}) {
+ return <div className={`fc-row ${className}`}>
+  {label && <label className="fc-row-label" htmlFor={htmlFor}><strong>{label}</strong>{help && <span>{help}</span>}</label>}
+  {children}
+  {inForce && <p className="fc-in-force">{inForce}</p>}
+ </div>;
+}
+
+/* The save bar: the reason, the Save and the sentence that says why saving is shut, together at the foot of
+   whatever is being changed and held in view while it scrolls, identical on every settings page. It is a
+   group named by the portal contract's sentence, so a screen reader meets the reason and the Save as one thing. The
+   fields and the buttons are the caller's, drawn where the caller's own checks read them. */
+export function SaveBar({ label, children, className = '' }: { label?: string; children: ReactNode; className?: string }) {
+ return <div className={`fc-savebar ${className}`} role={label ? 'group' : undefined} aria-label={label}>{children}</div>;
 }

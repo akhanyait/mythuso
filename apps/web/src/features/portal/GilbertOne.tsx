@@ -39,11 +39,12 @@ export function GilbertOneCategory() {
  const g1 = portalContract.gilbertone;
  const Screen = subScreens[place.tab];
  if (!Screen) throw new Error(`GilbertOne API Administration has no sub-screen "${place.tab}".`);
- return <Frame>
-  <div className="pt-g1-state">
+ /* The category's state is the head's status line (Frame, PageHead) rather than a card of its own above
+    every sub-screen, so the seven screens start with their own work the way every other settings page does. */
+ return <Frame status={<div className="pt-g1-state">
    <G1Mark className="pt-g1-large" title="GilbertOne"/>
    <div><BuildWord id={g1.status}/><p>{g1.sentence}</p><p className="helper">{portalRefusal('no-gilbertone-action-while-its-gate-is-open')}</p></div>
-  </div>
+  </div>}>
   <Suspense key={place.tab} fallback={<Loading/>}><Screen/></Suspense>
  </Frame>;
 }

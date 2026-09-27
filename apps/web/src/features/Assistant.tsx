@@ -26,6 +26,7 @@ import {
   FileText,
   MessageCircle,
   Mic,
+  NotebookPen,
   Users,
   ShieldCheck,
   Minus,
@@ -57,8 +58,12 @@ import {
   audienceOf,
   choose,
   consent,
+  continueIntake,
   conversation,
   cueOf,
+  intakeReview,
+  intakeWords,
+  notesText,
   emergencyAnswer,
   emergencyIn,
   handOver,
@@ -214,6 +219,7 @@ const QUESTION_ICONS: Record<string, typeof Ambulance> = {
   reading: Activity,
   preparation: ClipboardList,
   medicines: Pill,
+  intake: NotebookPen,
 };
 
 const SESSION_SUBJECT = "subject-this-session";
@@ -284,6 +290,9 @@ export default function Assistant({
   const [raised, setRaised] = useState(false);
   const [queue, setQueue] = useState<Queue>(emptyQueue);
   const [sent, setSent] = useState<Record<number, Sent>>({});
+  /* The one notes card whose lines were just copied, so its button can say so; the clipboard is the
+     person's own and nothing here keeps the notes anywhere else. */
+  const [copied, setCopied] = useState<number | null>(null);
   /* The consent gate, since 20 September 2026. The patient meets it before her first interaction;
      a staff preview opens straight onto its own conversation, because its scope is the contract's
      audiences section rather than a welcome. The answer lives in this component's own state and
@@ -397,8 +406,13 @@ export default function Assistant({
      is the guard that actually has something to cancel, and it is written here rather than at the
      close button because the one that gets missed is never the one somebody wired. */
   useEffect(() => {
-    if (!open) voiceAdapter.cancel();
-  }, [open, voiceAdapter.cancel]);
+    if (!open) {
+      voiceAdapter.cancel();
+      /* And a hands-free conversation ends with the panel: a microphone left open by a panel that
+         has gone is a microphone nobody on the screen can turn off. */
+      voiceAdapter.conversation.stop();
+    }
+  }, [open, voiceAdapter.cancel, voiceAdapter.conversation.stop]);
   /* The microphone half's pose, from the adapter's own state rather than from the button or the
      recogniser callbacks, so the face attends to a microphone that is genuinely open and to no
      other moment: A07's trigger is capture actually beginning. Nothing is dispatched on the way
@@ -551,17 +565,50 @@ export default function Assistant({
     setDraft((current) => (current ? `${current} ${text}`.trim() : text));
     field.current?.focus();
   };
+  /* The composer's Send and the hands-free turn, above the path they share so the order reads top
+     down: both hand their words to sendText, which asks the intake first and the bridge last. */
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!draft.trim()) {
       field.current?.focus();
       return;
     }
+    sendText(draft);
+    setDraft("");
+  };
+  /* A hands-free turn: the recogniser's words when the pause came, sent the way Send sends them and
+     never through the draft — the words were already spoken, and there is nothing to correct before
+     a send that has already happened. Whatever the draft held stays hers. */
+  const onUtterance = (text: string) => {
+    if (text.trim()) sendText(text);
+  };
+  /* One send path for every way words arrive — Send, Enter, and since 28 September 2026 a hands-free
+     turn the recogniser ended on a pause. The composer's submit hands its draft here and clears it;
+     the conversation hands each utterance here and never touches the draft. Everything below is the
+     same for both: the intake first, the patient's own questions, then the engine, and only an
+     unmatched fallback waits for the service. */
+  const sendText = (message: string) => {
+    /* An intake under way reads the message first, since 28 September 2026: the answer to the
+       question on the screen, or yes or no to the offer. continueIntake asks the emergency words
+       before anything else and hands back null for a message that is neither an answer nor a
+       decision, which then goes the ordinary way below. Nothing here is ever the unmatched reply,
+       so no intake turn waits on the service. */
+    const viaIntake = continueIntake(
+      turns,
+      message,
+      visit,
+      everRaised,
+      audienceId,
+      "typed",
+    );
+    if (viaIntake) {
+      moved(viaIntake);
+      return;
+    }
     const help =
-      audienceId === "patient" ? patientQuestionFor(draft) : undefined;
+      audienceId === "patient" ? patientQuestionFor(message) : undefined;
     if (help) {
-      moved(choosePatientHelp(turns, help, draft));
-      setDraft("");
+      moved(choosePatientHelp(turns, help, message));
       return;
     }
     /* Only an unmatched fallback waits for the service. Emergencies, refusals attached to
@@ -569,15 +616,14 @@ export default function Assistant({
        own turn, so a slow answer cannot overwrite a newer question or a reset conversation. */
     const local = sendWithGilbertEngine(
       turns,
-      draft,
+      message,
       visit,
       everRaised,
       audienceId,
     );
     const candidate = local[local.length - 1];
-    const text = draft;
+    const text = message;
     moved(local);
-    setDraft("");
     if (candidate.reply.kind !== "unmatched") return;
     voiceAdapter.cancel();
     setPendingReplies((current) => new Set(current).add(candidate.id));
@@ -613,13 +659,29 @@ export default function Assistant({
     moved(opening(audienceId));
     setRaised(false);
     setSent({});
+    setCopied(null);
     conversationRef.current = crypto.randomUUID();
     /* The face rests and the voice stops: Start again is the patient saying the conversation is
        over, and neither half of it may keep going after she has said so. */
     rig.rest();
     voiceAdapter.cancel();
+    voiceAdapter.conversation.stop();
   };
   const nurse = () => moved(handOver(turns, everRaised));
+  /* A pressed intake chip — yes, no, or one of a question's options — is the same turn a typed
+     word would be, through the same continueIntake, marked chosen. */
+  const pick = (text: string) => {
+    const next = continueIntake(turns, text, visit, everRaised, audienceId, "chosen");
+    if (next) moved(next);
+  };
+  const copyNotes = (turn: Turn) => {
+    if (turn.reply.kind !== "intake") return;
+    const text = notesText(turn.reply);
+    void navigator.clipboard?.writeText(text).then(
+      () => setCopied(turn.id),
+      () => undefined,
+    );
+  };
   const handTo = (turn: Turn) => {
     if (turn.reply.kind !== "handover") return;
     const result = handToQueue(queue, {
@@ -830,6 +892,7 @@ export default function Assistant({
                       key={pendingReplies.has(turn.id) ? "waiting" : "answered"}
                       className={`as-reply as-reply-${pendingReplies.has(turn.id) ? "pending" : turn.reply.kind}`}
                       aria-busy={pendingReplies.has(turn.id)}
+                      data-waiting={pendingReplies.has(turn.id) || undefined}
                       data-outcome={
                         pendingReplies.has(turn.id)
                           ? undefined
@@ -841,9 +904,18 @@ export default function Assistant({
                       }
                     >
                       <span className="as-who">{identity.name}</span>
+                      {/* Three dots while the service is working, and only then: pendingReplies holds a turn
+                          only after the deterministic first tier has answered "unmatched" (submit, above),
+                          so an emergency, a refusal or an offline answer is never behind a bubble. The dots
+                          are drawing; what a screen reader hears is the contract's sentence. */}
                       {pendingReplies.has(turn.id) ? (
                         <p className="as-pending" role="status">
-                          {ui.replyPending}
+                          <span className="as-dots" aria-hidden="true">
+                            <i />
+                            <i />
+                            <i />
+                          </span>
+                          <span className="as-sr">{conversation.thinkingLabel}</span>
                         </p>
                       ) : !asked && audienceId === "patient" ? (
                         <p>{ui.welcome}</p>
@@ -856,6 +928,13 @@ export default function Assistant({
                           sent={sent[turn.id]}
                           onSend={() => handTo(turn)}
                           disclosure={turn.disclosure}
+                          /* Only the latest turn's intake chips can be pressed: an earlier offer or
+                             question has been answered, and its answer is the next turn's own words. */
+                          onIntake={
+                            index === turns.length - 1 ? pick : undefined
+                          }
+                          copied={copied === turn.id}
+                          onCopy={() => copyNotes(turn)}
                         />
                       )}
                       {turn.unread && (
@@ -903,7 +982,8 @@ export default function Assistant({
                             (q) =>
                               (q.answer === "preparation" && visit !== null) ||
                               q.answer === "reading" ||
-                              q.answer === "medicines",
+                              q.answer === "medicines" ||
+                              q.answer === "intake",
                           )
                           .sort(
                             (a, b) =>
@@ -1186,6 +1266,7 @@ export default function Assistant({
                 <AssistantVoiceButton
                   voice={voiceAdapter}
                   onTranscript={onVoiceTranscript}
+                  onUtterance={onUtterance}
                   typingNote={conversation.webKeyboardNote}
                   pending={waitingForReply}
                   onTypeInstead={() => field.current?.focus()}
@@ -1362,6 +1443,11 @@ type ReplyProps = {
      session's first model answer and false for every one after it, so the notice is read once rather
      than repeated into blindness. The disclosure's own text stays the catalogue's. */
   disclosure?: boolean;
+  /* The intake's chips press into this — yes, no, or an option — and it is set only on the latest
+     turn, so an answered offer or question draws no buttons. copied and onCopy are the notes card's. */
+  onIntake?: (text: string) => void;
+  copied?: boolean;
+  onCopy?: () => void;
 };
 
 function ReplyBody({
@@ -1372,6 +1458,9 @@ function ReplyBody({
   sent,
   onSend,
   disclosure,
+  onIntake,
+  copied,
+  onCopy,
 }: ReplyProps) {
   const { sos: allowSos, handover: allowHandover } =
     audienceOf(audience).actions;
@@ -1600,6 +1689,105 @@ function ReplyBody({
           )}
         </>
       );
+    /* The symptom intake, in the contract's own words and no others. The offer: what was recognised,
+       the opening, what this is not, the stop rule, and the two chips. A question: the ask as the
+       headline and, for chips, its options as 44-pixel buttons; a text question points at the
+       composer. The notes: the card a nurse reads — question beside answer — then the closing or the
+       stopped sentence, the review disclosure, and the two doors: copy, and the existing way to a
+       nurse. Chips are drawn only while the turn is the latest one (onIntake); on an earlier turn the
+       answer already stands in the next turn's own words. */
+    case "intake": {
+      const w = intakeWords;
+      if (reply.phase === "declined") return <p>{w.answer.consent.declined}</p>;
+      if (reply.phase === "offer")
+        return (
+          <>
+            <p className="as-headline">{reply.group.name}</p>
+            <p>{w.answer.opening}</p>
+            <ul className="as-quiet as-intake-not">
+              {w.whatItIsNot.map((sentence) => (
+                <li key={sentence}>{sentence}</li>
+              ))}
+            </ul>
+            <p className="as-quiet">{w.answer.stop.sentence}</p>
+            {onIntake && (
+              <div className="as-intake-chips">
+                <button
+                  type="button"
+                  className="as-option"
+                  onClick={() => onIntake(w.answer.consent.yesLabel)}
+                >
+                  {w.answer.consent.yesLabel}
+                </button>
+                <button
+                  type="button"
+                  className="as-option"
+                  onClick={() => onIntake(w.answer.consent.noLabel)}
+                >
+                  {w.answer.consent.noLabel}
+                </button>
+              </div>
+            )}
+          </>
+        );
+      if (reply.phase === "question" && reply.question) {
+        const q = reply.question;
+        return (
+          <>
+            <p className="as-headline">{q.ask}</p>
+            {q.kind === "chips" && q.options && onIntake ? (
+              <div className="as-intake-chips" role="group" aria-label={q.ask}>
+                {q.options.map((option) => (
+                  <button
+                    type="button"
+                    className="as-option"
+                    key={option}
+                    onClick={() => onIntake(option)}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              onIntake && <p className="as-quiet">{w.answer.typeHint}</p>
+            )}
+          </>
+        );
+      }
+      return (
+        <>
+          <div className="as-tile as-listcard as-notes" data-tone="lime">
+            <p className="as-headline">{w.summary.title}</p>
+            <p className="as-quiet">{reply.group.name}</p>
+            <dl className="as-summary">
+              {reply.rows.map((row) => (
+                <div key={row.label}>
+                  <dt>{row.label}</dt>
+                  <dd>{row.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+          <p>{reply.state?.stopped ? w.answer.stop.stopped : w.answer.closing}</p>
+          <p className="as-quiet as-provenance">{intakeReview()}</p>
+          <p>{w.answer.arrangeCare}</p>
+          <div className="as-actions">
+            {typeof navigator !== "undefined" && navigator.clipboard && (
+              <button type="button" className="as-go" onClick={onCopy}>
+                <ClipboardList size={17} aria-hidden="true" />
+                {copied ? w.summary.copiedLabel : w.summary.copyLabel}
+              </button>
+            )}
+            {allowHandover && (
+              <button type="button" className="as-go" onClick={handOver}>
+                <UserRound size={17} aria-hidden="true" />
+                {answers.unmatched.handoverLabel}
+              </button>
+            )}
+          </div>
+        </>
+      );
+    }
     case "handover": {
       const h = answers.handover;
       const desk = reply.desk;

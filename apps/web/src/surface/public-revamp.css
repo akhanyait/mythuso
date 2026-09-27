@@ -624,15 +624,12 @@
   font-size: 16px;
   font-weight: 600;
   box-shadow: var(--shadow);
-  transition:
-    translate 0.25s var(--ease-soft),
-    background 0.25s var(--ease-soft),
-    box-shadow 0.25s var(--ease-soft);
 }
+/* The lift and the transitions are landing.css's, shared by every primary on the page; the raised
+   shadow is restated only because the resting one above outranks the shared hover rule. */
 .landing .editorial-hero .primary:hover {
   background: color-mix(in srgb, var(--brand-lime) 86%, var(--brand-ink));
   color: var(--brand-ink);
-  translate: 0 -3px;
   box-shadow: var(--shadow-raised);
 }
 .landing .editorial-hero .landing-hero-price {

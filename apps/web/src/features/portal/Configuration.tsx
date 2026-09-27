@@ -6,7 +6,7 @@ import { fill, portalContract } from '../../lib/portal';
 import { roles } from '../../lib/roles';
 import { usePortal } from './context';
 import { Frame } from './Frame';
-import { Empty, Region, RovingList, Status, Tree } from './Parts';
+import { Empty, Figures, Region, RovingList, Status, Tree } from './Parts';
 
 /* Configuration as the tenant-admin home (§6.2): a tree of sites, wards, beds, staff, roles, branding
  * and integrations, each with its own screen and its own written empty state, and the settings screen
@@ -31,7 +31,7 @@ export function ConfigurationCategory() {
    <Tree label="Configuration" nodes={nodes} selected={node.id} onSelect={setSelected} panelId="pt-config-node"/>
    <section className="pt-config-node" id="pt-config-node" aria-labelledby="pt-config-heading">
     <h2 id="pt-config-heading">{node.label}</h2>
-    {node.body === 'settings' ? <Settings engine={settingsEngine} onEngine={setSettingsEngine}/> : <NodeBody node={node}/>}
+    {node.body === 'settings' ? <Settings engine={settingsEngine} onEngine={setSettingsEngine} saveBarLabel={portalContract.settingsPage.saveBarLabel}/> : <NodeBody node={node}/>}
    </section>
   </div>
  </Frame>;
@@ -54,7 +54,13 @@ function NodeBody({ node }: { node: Node }) {
  if (node.id === 'integrations') {
   const all = capabilities.capabilities;
   const connected = all.filter(c => c.connected).length;
+  /* The two counts the sentence below is written from, as figures: every capability the contract
+     declares, and the share of them connected, as a ring. Both are read from capabilities.json. */
   return <>
+   <Figures label="Integrations in two figures" items={[
+    { name: 'Capabilities the contract declares', value: String(all.length), lead: true },
+    { name: 'Connected today', value: String(connected), chip: `Of ${all.length}`, share: all.length ? connected / all.length : 0 }
+   ]}/>
    <Empty>{fill(empty, { connected, total: all.length })}</Empty>
    <Region title="Capabilities" count={all.length}>
     <RovingList label={`${all.length} capabilities`} rows={all.map(c => ({

@@ -81,6 +81,7 @@ export function DispatchCategory() {
     vetting.subjects.filter(
       (s) => (!roleId || s.roleId === roleId) && !summarise(s).cleared,
     ).length;
+  const nurses = vetting.subjects.filter((s) => s.roleId === "nurse").length;
 
   if (place.tab === "incidents")
     return (
@@ -125,11 +126,14 @@ export function DispatchCategory() {
             flagged: false,
             share: blocking() / vetting.subjects.length,
           },
+          /* A share of the nurses on the register, so it carries the ring the figure beside it does,
+            and its chip says the same arithmetic in words. */
           {
             label: "Nurses blocked",
             value: String(blocking("nurse")),
-            chip: "Refused on the board, with the reason",
+            chip: `Of ${nurses} nurses on the register`,
             flagged: false,
+            share: nurses ? blocking("nurse") / nurses : 0,
           },
         ]}
       />

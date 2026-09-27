@@ -239,6 +239,13 @@
   "why": "docs/control-tower-cutover.md, Rollback."
  },
 
+ "settingsPage": {
+  "decidedBy": "Founder",
+  "decidedOn": "2026-09-28",
+  "what": "Every settings page in the Control Tower looks the same: one head, tinted section cards, a row per setting with the value in force under it, one save bar, and the same arrival.",
+  "saveBarLabel": "Give the reason, then save",
+  "why": "The founder found the settings pages looking different from one another. The words here are the only sentence the shared pattern adds; everything else on a settings page is its own contract's."
+ },
  "loading": {
   "sentence": "Getting this screen ready. It was not downloaded until you opened it.",
   "why": "Every category is a dynamic import, so a patient never pays for it. A panel that fills is announced; a panel that is filling says so rather than showing a blank region (§5.2)."

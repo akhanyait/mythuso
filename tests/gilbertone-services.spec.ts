@@ -126,12 +126,14 @@ const refusalBody = (id: string, status: number) => ({
 });
 
 /* Open the panel on the region, the way a patient reaches it: consent, then a health concern the
-   classifier could not place, which is what makes the region render and the assessment offer appear. */
+   classifier could not place, which is what makes the region render and the assessment offer appear.
+   Since the symptom intake of 28 September 2026 a headache is placed — it opens the notes for the
+   nurse — so the concern here is one no intake group claims. */
 const openRegion = async (page: Page) => {
   await stubTurnRefused(page);
   await page.goto("/app/?open=assistant");
   await consent(page);
-  await ask(page, "I have a headache");
+  await ask(page, "I have a toothache");
   await expect(region(page)).toBeVisible();
 };
 

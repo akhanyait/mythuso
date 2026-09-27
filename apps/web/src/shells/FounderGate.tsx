@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, type ReactNode } from 'react';
 import { useRole } from '../features/DemoLogin';
 import { founderDoor as door, founderWords as words, probe, useFounderState, type FounderState } from '../lib/founder-access';
 import { portalContract } from '../lib/portal';
+import { PageHead } from '../features/portal/Parts';
 import './founder-gate.css';
 
 /* The founder's door (packages/catalog/founder-access.json#door), on the founder's instruction of
@@ -57,14 +58,16 @@ function Door({ state }: { state: Exclude<FounderState, { phase: 'signed-in' }> 
  return <div className="founder-gate">
   <main className="founder-gate-card rise" aria-labelledby="founder-gate-heading">
    <img className="founder-gate-mark" src="/brand/mythuso-logo.svg" alt="MyThuso"/>
-   <p className="founder-gate-eyebrow">{portalContract.name}</p>
-   <h1 id="founder-gate-heading">{door.words.heading}</h1>
-   <p className="founder-gate-sentence">{door.words.sentence}</p>
-   {state.phase === 'checking' && <p className="founder-gate-status" role="status" aria-busy="true">{words.checking}</p>}
-   {state.phase === 'refused' && <>
-    <p className="founder-gate-refusal" role="status">{state.message}</p>
-    <p className="founder-gate-status">{door.words.holding}</p>
-   </>}
+   {/* The same head every Control Tower screen wears (Parts.tsx#PageHead): the portal's name as the eyebrow,
+       the contract's heading and sentence, and what the service said as the status line. */}
+   <PageHead className="founder-gate-head" eyebrow={portalContract.name} title={door.words.heading} titleId="founder-gate-heading" lead={door.words.sentence}
+    status={state.phase === 'checking' || state.phase === 'refused' ? <>
+     {state.phase === 'checking' && <p className="founder-gate-status" role="status" aria-busy="true">{words.checking}</p>}
+     {state.phase === 'refused' && <>
+      <p className="founder-gate-refusal" role="status">{state.message}</p>
+      <p className="founder-gate-status">{door.words.holding}</p>
+     </>}
+    </> : undefined}/>
    {state.phase === 'signed-out' && <Suspense fallback={<p className="founder-gate-status" role="status" aria-busy="true">{portalContract.loading.sentence}</p>}>
     <SignIn message={state.message}/>
    </Suspense>}

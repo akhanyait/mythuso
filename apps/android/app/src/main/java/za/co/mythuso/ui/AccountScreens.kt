@@ -330,6 +330,7 @@ import za.co.mythuso.model.mokoenaHousehold
            what does this number mean. Written text with its own provenance on it — never a model. */
         title == "What your readings mean" -> ExplainReadingsScreen(open)
         title == "Visit summary" -> PastVisitScreen(store, Passport.latestSet.dayOffset, open)
+        title == za.co.mythuso.model.CareTipsData.Door.opens -> CareTipsScreen(open)
         /* Health Passport P1: the emergency card and who opened the record, routed by the names the generated
            contract gives them, so a renamed screen cannot strand its door. */
         title == PassportSharingData.Card.TITLE_ROUTE -> EmergencyCardScreen(open)

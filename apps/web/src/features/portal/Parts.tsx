@@ -137,13 +137,37 @@ export function Loading({ label }: { label?: string }) {
 }
 
 /* A section of a category screen: a region with a heading, which is the landmark shape the
-   accessibility floor asks for. */
-export function Region({ title, children, count }: { title: string; children: ReactNode; count?: number }) {
+   accessibility floor asks for, drawn as one of the settings page's tinted section cards (portal.css,
+   "One settings page"). The card's title is the region's name; `why`, where a screen has one, is the one
+   line under it that says what the section is for, in the caller's contract's words. */
+export function Region({ title, children, count, why }: { title: string; children: ReactNode; count?: number; why?: ReactNode }) {
  const id = `pt-r-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
- return <section className="pt-region" aria-labelledby={id}>
+ return <section className="pt-region pt-section" aria-labelledby={id}>
   <h2 id={id}>{title}{count !== undefined && <span className="pt-count"> · {count}</span>}</h2>
+  {why && <p className="pt-section-why">{why}</p>}
   {children}
  </section>;
+}
+
+/* The one head every Control Tower screen wears, the settings screens and the founder's door included: an
+   eyebrow saying whose screen and which area, the one <h1>, one lead sentence, and — where the screen has
+   one — the status line of the gate or the build that holds it. A screen that heads itself (the dispatch
+   board, the vetting queue) passes no title and keeps the eyebrow, because two <h1> elements on one page is
+   a reader having to guess which one is the page. Every word is the caller's contract's; this draws them. */
+export function PageHead({ eyebrow, title, titleId, lead, nav, status, className = '' }: {
+ eyebrow: ReactNode; title?: string; titleId?: string; lead?: string; nav?: ReactNode; status?: ReactNode; className?: string;
+}) {
+ return <header className={`pt-head ${className}`}>
+  <div>
+   <div className="eyebrow pt-head-eyebrow">{eyebrow}</div>
+   {title && <h1 id={titleId}>{title}</h1>}
+   {title && lead && <p className="pt-head-lead">{lead}</p>}
+  </div>
+  {/* A category's own tabs sit above its status line, so on a phone the way to the next screen is never
+      under a paragraph about the category. */}
+  {nav}
+  {status && <div className="pt-head-status">{status}</div>}
+ </header>;
 }
 
 /* ---- Figures -------------------------------------------------------------------------------------

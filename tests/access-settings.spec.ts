@@ -151,7 +151,7 @@ test("with the handover desk’s hours moved so nobody is there now, GilbertOne 
   const handOver = async () => {
     await panel
       .getByLabel(gilbert.conversation.inputLabel)
-      .fill("My knee has been sore since Tuesday");
+      .fill("I have a toothache");
     await panel.getByLabel(gilbert.conversation.inputLabel).press("Enter");
     await panel
       .getByRole("log", { name: gilbert.conversation.logLabel })

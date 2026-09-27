@@ -42,6 +42,20 @@ import {
   medicinesAnswer,
   type MedicinesAnswer,
 } from "../../../../packages/gilbertone/src/medicines.ts";
+import {
+  answerIntake,
+  beginIntake,
+  currentQuestion,
+  intakeConsent,
+  intakeContract,
+  intakeGroupFor,
+  intakeReviewSentence,
+  summaryRows,
+  type IntakeGroup,
+  type IntakeQuestion,
+  type IntakeState,
+  type IntakeSummaryRow,
+} from "../../../../packages/gilbertone/src/intake.ts";
 import { evaluateRefusals } from "../../../../packages/gilbertone/src/refusals.ts";
 import { accountHolderMedicines } from "./records";
 
@@ -336,6 +350,45 @@ export function leavesUnread(text: string, question: Question): boolean {
 
 export type SummaryRow = { label: string; value: string };
 export type Channel = "typed" | "chosen";
+
+/* The symptom intake — the founder's ask of 28 September 2026, read from
+   packages/catalog/symptom-intake.json through packages/gilbertone/src/intake.ts. A patient who says
+   what is wrong is offered the set questions for it (offer), answers them one per turn (question),
+   and is shown the card of her answers to show the nurse (notes); or she declines (declined). Not
+   triage: the reply carries no priority, no cause and no advice, and the words on it are the
+   contract's. The phase says which of the four turns this is; the state is the package's own,
+   immutable, and the panel holds it nowhere but in the turn. */
+export type IntakePhase = "offer" | "declined" | "question" | "notes";
+export type IntakeReply = {
+  kind: "intake";
+  phase: IntakePhase;
+  group: IntakeGroup;
+  state: IntakeState | null;
+  question: IntakeQuestion | null;
+  rows: IntakeSummaryRow[];
+};
+export const intakeWords = intakeContract;
+export const intakeReview = intakeReviewSentence;
+const intakeChipGroup = (): IntakeGroup => {
+  const group = intakeContract.groups.find((g) => g.id === intakeContract.chip.group);
+  if (!group)
+    throw new Error(
+      `packages/catalog/symptom-intake.json's chip names the group "${intakeContract.chip.group}", which it does not declare.`,
+    );
+  return group;
+};
+const intakeOffer = (group: IntakeGroup): IntakeReply => ({
+  kind: "intake",
+  phase: "offer",
+  group,
+  state: null,
+  question: null,
+  rows: [],
+});
+const intakeStep = (group: IntakeGroup, state: IntakeState): IntakeReply =>
+  state.done
+    ? { kind: "intake", phase: "notes", group, state, question: null, rows: summaryRows(state) }
+    : { kind: "intake", phase: "question", group, state, question: currentQuestion(state), rows: [] };
 export type Reply =
   | { kind: "situation"; situation: Situation }
   | { kind: "identity" }
@@ -375,6 +428,7 @@ export type Reply =
   | { kind: "reading"; match: ReadingMatch | null; answer: ReadingAnswer | null; ask: string | null }
   | { kind: "preparation"; answer: PreparationAnswer }
   | { kind: "medicines"; answer: MedicinesAnswer }
+  | IntakeReply
   | {
       kind: "handover";
       rows: SummaryRow[];
@@ -416,6 +470,9 @@ export function replyTo(question: Question, visit: Visit | null = null): Reply {
       return { kind: "medicines", answer: medicinesAnswer(accountHolderMedicines()) };
     case "reading":
       return { kind: "reading", match: null, answer: null, ask: askWhichReading() };
+    /* The chip names no complaint, so the offer opens the contract's general group. */
+    case "intake":
+      return intakeOffer(intakeChipGroup());
     default:
       return { kind: "unmatched" };
   }
@@ -457,6 +514,8 @@ export function pulseOf(reply: Reply): PulseId {
       return answers.preparation.state as PulseId;
     case "medicines":
       return answers.medicines.state as PulseId;
+    case "intake":
+      return answers.intake.state as PulseId;
   }
 }
 
@@ -664,6 +723,14 @@ export function send(
        refused turn. Consent is true here because the panel's gate is the confirmation refusals.ts
        asks for. An escalation the result may carry is the service's to act on and is not read. */
     const refused = evaluateRefusals(words, audience, true);
+    /* The intake, since 28 September 2026, and only now: after the emergency words and after the
+       refusals, before anything is unmatched. "I have a headache" used to be the one message this
+       matcher answered with "I can't assess that" and then handed to the service; it is a
+       complaint the intake's groups know by name, and the answer is the offer to take notes for the
+       nurse. A refused message is never offered notes — a question about a dose is answered by the
+       refusal alone — and a message no group knows stays unmatched, which is the only reply the
+       panel waits on the service for. */
+    const group = refused.refused ? null : intakeGroupFor(words);
     return append(turns, (id) => ({
       id,
       asked: words,
@@ -676,12 +743,27 @@ export function send(
               sentence: refused.sentence,
               severity: refused.severity ?? "hard",
             }
-          : { kind: "unmatched" },
+          : group
+            ? intakeOffer(group)
+            : { kind: "unmatched" },
       matched: null,
       groups: [],
       unread: false,
     }));
   }
+  /* The intake question consumes its whole message, the way the greeting does: "I don't feel well,
+     my head hurts" is the offer for the headache group, not an offer with words left unread beside
+     the ambulance numbers. The group is the complaint the words name, or the chip's general one. */
+  if (question.answer === "intake")
+    return append(turns, (id) => ({
+      id,
+      asked: words,
+      channel: "typed",
+      reply: intakeOffer(intakeGroupFor(words) ?? intakeChipGroup()),
+      matched: question,
+      groups: [],
+      unread: false,
+    }));
   const unread =
     question.answer !== "emergency" && leavesUnread(words, question);
   /* A claim about everything is not made to a message GilbertOne did not read all of. */
@@ -777,17 +859,85 @@ export function greet(turns: Turn[], text: string): Turn[] {
   }));
 }
 
-/** How a turn came out, in the words the shared fixtures use. */
+/** How a turn came out, in the words the shared fixtures use. An intake offer on a message no
+ *  question matched is the matcher's "unmatched" — nothing in the contract's questions matched it,
+ *  which is what the phones, which have no intake yet, say for the same fixture — and the offer is
+ *  what the web does with such a message instead of asking the service. The panel waits on the
+ *  service by the reply's kind, never by this word, so the two cannot be confused there. */
 export const outcomeOf = (turn: Turn): string =>
   turn.reply.kind === "emergency"
     ? "emergency"
     : turn.reply.kind === "refusal"
       ? "refusal"
-    : turn.reply.kind === "unmatched" && !turn.matched
+    : (turn.reply.kind === "unmatched" ||
+          (turn.reply.kind === "intake" && turn.reply.phase === "offer")) &&
+        !turn.matched
       ? "unmatched"
       : turn.unread
         ? "answer-and-unread"
         : "answer";
+
+/* ---- The intake under way ------------------------------------------------------------------------
+ * The last turn says whether an intake is open: an offer waiting for yes or no, or a question
+ * waiting for its answer. Nothing else holds it — no store, no ref — so Start again, which empties the
+ * turns, ends it, and a conversation that has moved on has no intake to answer into. */
+export function activeIntake(turns: Turn[]): IntakeReply | null {
+  const last = turns[turns.length - 1]?.reply;
+  return last?.kind === "intake" &&
+    (last.phase === "offer" || last.phase === "question")
+    ? last
+    : null;
+}
+
+/* A message while an intake is open, in the order the contract's `order` rule gives: the emergency
+ * words first, on the person's own words, and a match is the emergency answer with the intake over;
+ * then, for an offer, the contract's yes and no words — anything else falls through (null) to the
+ * ordinary matcher, because a question asked in the middle of an offer is a question; then, for a
+ * question, the package's answerIntake, which reads the stop word, asks the engine's emergency
+ * classifier and the escalation ruleset itself, and records the answer. Every sentence the reply
+ * carries is the contract's. */
+export function continueIntake(
+  turns: Turn[],
+  text: string,
+  visit: Visit | null = null,
+  raised = false,
+  audience: AudienceId = "patient",
+  channel: Channel = "typed",
+): Turn[] | null {
+  const active = activeIntake(turns);
+  const words = text.trim();
+  if (!active || !words) return null;
+  const groups = emergencyGroupsIn(words);
+  if (groups.length) return send(turns, words, visit, raised, audience);
+  const turn = (reply: Reply): Turn[] =>
+    append(turns, (id) => ({
+      id,
+      asked: words,
+      channel,
+      reply,
+      matched: null,
+      groups: [],
+      unread: false,
+    }));
+  if (active.phase === "offer") {
+    const decision = intakeConsent(words);
+    if (decision === null) return null;
+    return turn(
+      decision === "yes"
+        ? intakeStep(active.group, beginIntake(active.group.id))
+        : { ...active, phase: "declined" },
+    );
+  }
+  if (!active.state) return null;
+  const next = answerIntake(active.state, words);
+  if (next.kind === "emergency") return turn({ kind: "emergency", groups: [] });
+  return turn(intakeStep(active.group, next));
+}
+
+/* The notes as text for the clipboard: the card's title and its lines, each the contract's format
+ * filled with her own answer. The clipboard is the person's own; the app stores nothing. */
+export const notesText = (reply: IntakeReply): string =>
+  [intakeContract.summary.title, ...reply.rows.map((row) => row.line)].join("\n");
 
 export const emergencyAnswer = {
   ...answers.emergency,
@@ -903,6 +1053,23 @@ export function spokenOf(turn: Turn, audience: AudienceId): string {
       if (m.noMedicines) add(m.noMedicines);
       else add(...m.lines);
       add(m.protectedNotRead, m.neverChanges, m.preview);
+      break;
+    }
+    case "intake": {
+      /* In the order the screen shows them: the offer and the stop rule; a question and, for chips,
+         its options; the card's title, its lines, the closing or the stopped sentence, the review
+         disclosure and the way to a nurse. */
+      const w = intakeContract.answer;
+      const r = turn.reply;
+      if (r.phase === "offer") add(r.group.name, w.opening, w.stop.sentence);
+      else if (r.phase === "declined") add(w.consent.declined);
+      else if (r.phase === "question" && r.question) {
+        add(r.question.ask);
+        if (r.question.options) add(`${r.question.options.join(", ")}.`);
+      } else if (r.phase === "notes") {
+        add(intakeContract.summary.title, ...r.rows.map((row) => `${row.line}.`));
+        add(r.state?.stopped ? w.stop.stopped : w.closing, intakeReviewSentence(), w.arrangeCare);
+      }
       break;
     }
     case "handover": {

@@ -1148,7 +1148,7 @@ test("anything GilbertOne cannot match is told so, with the ambulance, Thuso SOS
 }) => {
   await page.goto("/app/?open=assistant");
   await consent(page);
-  const words = "My knee has been sore since Tuesday";
+  const words = "Tell me something about gardening";
   await ask(page, words);
   const answer = log(page).locator(".as-reply").last();
   await expect(answer.locator(".as-headline")).toHaveText(
@@ -1346,7 +1346,7 @@ for (const source of ["orchestrator", "model"])
     await servedBy(page, source, words);
     await page.goto("/app/?open=assistant");
     await consent(page);
-    await ask(page, "I have a headache");
+    await ask(page, "Tell me something about gardening");
     const turn = log(page).locator(".as-turn").last();
     /* A waiting message precedes the final service answer; the fallback must never flash. */
     await expect(turn.locator(".as-service")).toHaveText(words);
@@ -1368,7 +1368,7 @@ test("the classifier's own tier never replaces the contract's answer", async ({
   await servedBy(page, "classifier", "Something the classifier already said.");
   await page.goto("/app/?open=assistant");
   await consent(page);
-  await ask(page, "I have a headache");
+  await ask(page, "Tell me something about gardening");
   const turn = log(page).locator(".as-turn").last();
   await expect(turn.locator(".as-headline")).toHaveText(
     gilbert.answers.unmatched.sentence,
@@ -1406,7 +1406,7 @@ test("a deployment older than the versioned surface is asked once more on the le
   });
   await page.goto("/app/?open=assistant");
   await consent(page);
-  await ask(page, "I have a headache");
+  await ask(page, "Tell me something about gardening");
   const turn = log(page).locator(".as-turn").last();
   await expect(turn.locator(".as-service")).toHaveText(
     "An answer the old path carried.",
@@ -1432,7 +1432,7 @@ test("a service's own refusal never falls back to the legacy address", async ({
   });
   await page.goto("/app/?open=assistant");
   await consent(page);
-  await ask(page, "I have a headache");
+  await ask(page, "Tell me something about gardening");
   await expect(log(page).locator(".as-headline").last()).toHaveText(
     gilbert.answers.unmatched.sentence,
   );
@@ -1878,7 +1878,7 @@ test("the session names each of its five moments, and the microphone interrupts 
   await expect(session).toHaveCount(0);
   /* The answer being worked out: the turn is in flight, nothing has been decided, and the panel
      says so rather than showing a reply it does not have. */
-  await ask(page, "I have a headache");
+  await ask(page, "Tell me something about gardening");
   await expect(panel(page).locator(".as-pending")).toBeVisible();
   await expect(session).toHaveAttribute("data-session", "understanding");
   await expect(session).toHaveText(sessionSentence("understanding"));
@@ -2804,9 +2804,11 @@ test("a delayed service answer shows a waiting message without displaying or spe
   });
   await page.goto("/app/?open=assistant");
   await consent(page);
-  await ask(page, "I have a headache");
+  await ask(page, "Tell me something about gardening");
+  /* Since 28 September 2026 the waiting line is three dots, and its words are the contract's sentence
+     for a screen reader rather than "Getting your answer…" on the screen. */
   await expect(panel(page).locator(".as-pending")).toHaveText(
-    "Getting your answer…",
+    gilbert.conversation.thinkingLabel,
   );
   await expect(log(page)).not.toContainText(gilbert.answers.unmatched.sentence);
   expect(await spoken(page)).toEqual([]);
@@ -2835,7 +2837,7 @@ test("a failed service request settles on the fallback instead of waiting foreve
   });
   await page.goto("/app/?open=assistant");
   await consent(page);
-  await ask(page, "I have a headache");
+  await ask(page, "Tell me something about gardening");
   await expect(panel(page).locator(".as-pending")).toBeVisible();
   release();
   await expect(log(page).locator(".as-headline").last()).toHaveText(
@@ -2859,7 +2861,7 @@ test("a pending answer cannot delay an emergency or reappear after Start again",
   });
   await page.goto("/app/?open=assistant");
   await consent(page);
-  await ask(page, "I have a headache");
+  await ask(page, "Tell me something about gardening");
   await expect(panel(page).locator(".as-pending")).toBeVisible();
   await ask(page, "I have chest pain");
   await expect(log(page).locator(".as-reply").last()).toHaveClass(
@@ -2890,7 +2892,7 @@ test("out-of-order service replies replace their own turns without speaking the 
     release = resolve;
   });
   await page.route("**/assistant/v1/turn", async (route) => {
-    const first = route.request().postDataJSON().text === "I have a headache";
+    const first = route.request().postDataJSON().text === "Tell me something about gardening";
     if (first) await gate;
     await route.fulfill({
       json: {
@@ -2901,9 +2903,9 @@ test("out-of-order service replies replace their own turns without speaking the 
   });
   await page.goto("/app/?open=assistant");
   await consent(page);
-  await ask(page, "I have a headache");
+  await ask(page, "Tell me something about gardening");
   await expect(panel(page).locator(".as-pending")).toBeVisible();
-  await ask(page, "I have an itchy elbow");
+  await ask(page, "What colour is the sky");
   await expect(log(page).locator(".as-service").last()).toHaveText(
     "Second answer.",
   );
@@ -2931,7 +2933,7 @@ test("a service timeout releases the waiting message to the fallback", async ({
   });
   await page.goto("/app/?open=assistant");
   await consent(page);
-  await ask(page, "I have a headache");
+  await ask(page, "Tell me something about gardening");
   await expect(panel(page).locator(".as-pending")).toBeVisible();
   await page.clock.fastForward(60_000);
   await expect(panel(page).locator(".as-pending")).toHaveCount(0);

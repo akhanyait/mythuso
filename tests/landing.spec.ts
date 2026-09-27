@@ -430,3 +430,117 @@ test.describe('when the reader has asked for less motion, the hero', () => {
     expect(await page.evaluate(() => document.getAnimations().filter(a => a.playState === 'running').length)).toBe(0);
   });
 });
+
+/* ---- The motion shortlist, 28 September 2026 ----
+
+   Five things from the motion reference the founder approved, and each is checked for what it is
+   allowed to do rather than for how it looks: the plans toggle shows the catalogue's plans and the
+   catalogue's Mom prices and nothing typed; the section links draw a line for a pointer and for a
+   keyboard alike; the trace on the safety card draws once and then holds; a block's children arrive
+   half a quick apart; and all of it is gone for a reader who asked for less motion. */
+const mom: { tiers: { id: string; price: number; phase: number; cadence: string }[];
+  payer: { statement: string }; refusals: { id: string; sentence: string }[] } = contract('mom-plans');
+const listedPlans = (contract('business-model') as { subscriptions: { price: number | null; tiersIn?: string; phase: number }[] })
+  .subscriptions.filter(s => (s.price !== null || s.tiersIn) && s.phase <= 3);
+const QUICK_MS: number = tokens.motion.quickMs;
+
+test('the plans toggle shows the plans for me and the plans for Mom, every figure the catalogue’s', async ({ page }) => {
+  const toggle = page.getByRole('group', { name: 'Whose care plans' });
+  const forMe = toggle.getByRole('button', { name: 'For me', exact: true });
+  const forMom = toggle.getByRole('button', { name: 'For Mom', exact: true });
+  const cards = page.locator('.landing-plans li');
+  await forMe.scrollIntoViewIfNeeded();
+  await expect(forMe).toHaveAttribute('aria-pressed', 'true');
+  await expect(cards).toHaveCount(listedPlans.length);
+
+  await forMom.click();
+  await expect(forMom).toHaveAttribute('aria-pressed', 'true');
+  await expect(forMe).toHaveAttribute('aria-pressed', 'false');
+  await expect(cards).toHaveCount(mom.tiers.length);
+  for (const [i, tier] of mom.tiers.entries()) {
+    await expect(cards.nth(i)).toContainText(tier.cadence);
+    await expect(cards.nth(i)).toContainText(money(tier.price));
+    await expect(cards.nth(i)).toContainText(`Phase ${tier.phase}`);
+  }
+  /* Who pays, and what a plan is not, in the contract's own words. */
+  await expect(page.locator('#plans')).toContainText(mom.payer.statement);
+  await expect(page.locator('#plans')).toContainText(mom.refusals.find(r => r.id === 'a-plan-is-not-medical-aid')!.sentence);
+  /* The knob moved: one transform, and the words and aria-pressed say the same thing. */
+  await expect.poll(() => page.locator('.plan-switch > i').evaluate(el => getComputedStyle(el).transform)).not.toBe('none');
+
+  await forMe.click();
+  await expect(cards).toHaveCount(listedPlans.length);
+  await expect(cards.first()).toContainText(money(model.subscriptions[0].price!));
+  /* The door from the plan a child buys for a parent opens the Mom side and hands focus to its button,
+     because the card that held the door has gone. */
+  await page.getByRole('button', { name: 'See the plans for Mom' }).click();
+  await expect(forMom).toHaveAttribute('aria-pressed', 'true');
+  await expect(forMom).toBeFocused();
+  await expect(cards).toHaveCount(mom.tiers.length);
+});
+
+test('a section link draws its line on hover and on keyboard focus alike', async ({ page }, testInfo) => {
+  /* On a phone the links are in the menu, opened from the keyboard: a tap is a pointer, and a focus
+     that follows a tap is not a keyboard focus, which is the one this line is drawn for. */
+  if (testInfo.project.name === 'mobile') {
+    await page.getByRole('button', { name: 'Open menu' }).focus();
+    await page.keyboard.press('Enter');
+  }
+  const link = page.locator('.landing-nav nav a').filter({ hasText: 'Safety' });
+  const line = () => link.evaluate(el => getComputedStyle(el, '::after').transform);
+  expect(await link.evaluate(el => getComputedStyle(el, '::after').content)).toBe('""');
+  expect(await line()).toBe('matrix(0, 0, 0, 1, 0, 0)');
+  await link.focus();
+  await expect.poll(line).toBe('none');
+  if (testInfo.project.name === 'mobile') return;
+  await page.locator('.landing-brand').focus();
+  await expect.poll(line).toBe('matrix(0, 0, 0, 1, 0, 0)');
+  await link.hover();
+  await expect.poll(line).toBe('none');
+});
+
+test('the trace on the safety card draws once, then holds', async ({ page }) => {
+  const trace = page.locator('.safety-standard .landing-ecg');
+  await expect(trace).toHaveAttribute('aria-hidden', 'true');
+  const path = trace.locator('path');
+  await trace.scrollIntoViewIfNeeded();
+  /* One iteration of ecg-draw, not a loop: the budget in tests/motion.spec.ts is the other half. */
+  await expect.poll(() => path.evaluate(el => getComputedStyle(el).animationName)).toBe('ecg-draw');
+  expect(await path.evaluate(el => getComputedStyle(el).animationIterationCount)).toBe('1');
+  const drawing = () => page.evaluate(() => document.getAnimations()
+    .filter(a => (a as CSSAnimation).animationName === 'ecg-draw' && a.playState === 'running').length);
+  await expect.poll(drawing, { timeout: 5_000 }).toBe(0);
+  /* Held: drawn in full, and still drawn in full a moment later. */
+  expect(parseFloat(await path.evaluate(el => getComputedStyle(el).strokeDashoffset))).toBe(0);
+  await page.waitForTimeout(QUICK_MS * 4);
+  expect(parseFloat(await path.evaluate(el => getComputedStyle(el).strokeDashoffset))).toBe(0);
+  expect(await drawing()).toBe(0);
+});
+
+test('a revealed block’s children rise in turn, half a quick apart', async ({ page }) => {
+  const head = page.locator('#plans .landing-head');
+  await head.scrollIntoViewIfNeeded();
+  await expect(head).toHaveAttribute('data-reveal', 'shown');
+  const delays = await head.evaluate(el => [...el.children].map(c => {
+    const style = getComputedStyle(c);
+    return [style.animationName, parseFloat(style.animationDelay)];
+  }));
+  expect(delays.map(([name]) => name)).toEqual(delays.map(() => 'reveal-rise'));
+  delays.forEach(([, delay], i) => expect(delay * 1000).toBeCloseTo(i * QUICK_MS / 2, 0));
+});
+
+test.describe('when the reader has asked for less motion, the shortlist', () => {
+  test.use({ reducedMotion: 'reduce' });
+  test('draws the trace at rest, lands the toggle without a slide, and leaves every child in place', async ({ page }) => {
+    const path = page.locator('.landing-ecg path');
+    await path.scrollIntoViewIfNeeded();
+    expect(await path.evaluate(el => getComputedStyle(el).animationName)).toBe('none');
+    expect(await path.evaluate(el => getComputedStyle(el).strokeDasharray)).toBe('none');
+    const faded = await page.evaluate(() => [...document.querySelectorAll('.reveal-stagger > *')]
+      .filter(el => Number(getComputedStyle(el).opacity) < 1).length);
+    expect(faded).toBe(0);
+    await page.getByRole('button', { name: 'For Mom', exact: true }).click();
+    expect(await page.locator('.plan-switch > i').evaluate(el => getComputedStyle(el).transitionDuration)).toBe('0s');
+    expect(await page.evaluate(() => document.getAnimations().filter(a => a.playState === 'running').length)).toBe(0);
+  });
+});

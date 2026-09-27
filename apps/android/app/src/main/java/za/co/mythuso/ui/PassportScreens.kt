@@ -271,6 +271,23 @@ import za.co.mythuso.model.*
             }
         }
 
+        /* The care tips follow the doctor's plan because they are the general half of the same
+           question — what to do until the next visit — and their own screen says the plan above comes
+           first. Every word here is CareTipsData's, generated from packages/catalog/care-tips.json. */
+        CareCard(padding = ThusoSpacing.space20) {
+            Text(CareTipsData.Door.heading, style = MaterialTheme.typography.titleLarge, color = Charcoal,
+                 modifier = Modifier.semantics { heading() })
+            Text(CareTipsData.Door.detail, style = MaterialTheme.typography.bodyMedium, color = StudioInk)
+            OutlinedButton(
+                onClick = { open(CareTipsData.Door.opens) },
+                Modifier.fillMaxWidth().heightIn(min = TouchTarget), shape = ThusoButtonShape
+            ) {
+                Icon(Icons.Outlined.Lightbulb, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(ThusoSpacing.space8))
+                Text(CareTipsData.Door.action)
+            }
+        }
+
         PrimaryAction("Book ${service.name} again") { open("Book care") }
         OutlinedButton(
             onClick = { open("Health trends") },

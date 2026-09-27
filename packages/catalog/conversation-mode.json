@@ -1,0 +1,233 @@
+{
+  "_note": "Hands-free conversation mode, decided by the founder on 28 September 2026 and written here as data so that packages/gilbertone/src/speech-state.ts, apps/web/src/lib/voice.ts and the two generated ConversationModeData files read one record rather than each typing a number. The founder's brief, in his words, is under why. What this file decides: the pause that means it is GilbertOne's turn, how long one utterance may run, how many quiet windows the microphone waits through before it closes on its own, what a barge-in is, every way a conversation ends, what the microphone indicator and the retention rules are, what this mode is not, and the sentences the panel shows. The two tunable numbers are proposals in the shape packages/catalog/settings.json gives a setting, under proposedSettings rather than settings, because a settings block is only reached through packages/catalog/settings.json#sources and the assistant engine's block lives in packages/catalog/voice.json; moving these two items into that block is the wiring step, not this one. Nothing here is a real service: no audio is kept, no transcript survives the conversation, and the reply is whatever GilbertOne already says in text.",
+  "version": 1,
+  "decidedBy": "Founder",
+  "on": "2026-09-28",
+  "why": "\"When you have spoken to it and you pause, it must respond automatically, just like Siri — not answering on top of you. I don't have to press a button to respond. Siri and Bixby are the references on behaviour.\"",
+  "references": ["Siri", "Bixby"],
+  "amendment": {
+    "on": "2026-09-21",
+    "note": "The speech conversation amendment of 21 September 2026 set the per-utterance cap at forty-five seconds, kept all audio processing on the device, kept no recording, kept the transcript in memory only, and made the microphone indicator mandatory whenever the microphone is hot. This file is where those numbers and rules now live as data; the amendment's text stays in CLAUDE.md."
+  },
+  "starts": {
+    "gesture": "one-tap",
+    "rule": "A conversation starts with one tap of the microphone and is hands-free from there: the person speaks, pauses, GilbertOne answers, and the microphone reopens on its own for the next turn. Nothing opens before the tap, and the tap still meets the session's own consent first.",
+    "sentence": "Talking with GilbertOne. Speak, pause, and it answers. You do not need to press anything else."
+  },
+  "utteranceCapSeconds": 45,
+  "_utteranceCapWhy": "The amendment's cap: one utterance may run forty-five seconds before GilbertOne prompts the person to continue, so a stuck voice-activity detector cannot run transcription for ever. packages/catalog/assistant.json#voice.perUtteranceCapSeconds records the same decision and scripts/check-boundaries.mjs holds the two equal. On the web the founder's thirty-second listening cap (voice.maxListeningSeconds) stands in front of this one, and the same check holds that it is never the longer of the two.",
+  "maxUtterancesPerExchange": 5,
+  "_maxUtterancesWhy": "After five utterances in one exchange a continue is refused and the exchange closes. A conversation that can extend itself without limit is a microphone that never has to close.",
+  "endpoint": {
+    "settingKey": "endpoint-silence",
+    "rule": "The pause that means it is GilbertOne's turn. When the recogniser has heard at least one word and then delivers nothing for this long, or delivers a final result, the utterance is complete and is handed over without a button being pressed. A pause shorter than this is a breath, not a turn.",
+    "webRule": "The web recogniser runs with interim results on. The endpoint clock restarts on every interim result and fires only after the first word, so silence before anybody has spoken is a listening window, never a turn."
+  },
+  "sleep": {
+    "settingKey": "idle-rounds-before-sleep",
+    "rule": "A listening window in which nothing is said is one idle round. After this many idle rounds in a row the microphone closes on its own and the panel says so. A reply resets the count: the microphone waits again for as many rounds after every answer."
+  },
+  "bargeIn": {
+    "rule": "GilbertOne stops speaking the moment the person starts talking, and listens. It never talks over them.",
+    "detector": "recogniser",
+    "detectorWhy": "While GilbertOne reads, the same recogniser stays open and its interim results are the detector: words arriving while the voice is reading are the person talking. An energy detector on a microphone stream would need getUserMedia and an AudioContext, and scripts/check-boundaries.mjs refuses both in every file under apps/web/src because nothing on the web may capture a sample of audio — voice.audioStored is false. The recogniser route keeps that promise: the browser hears, the page never holds audio.",
+    "minWords": 2,
+    "minSpeechMs": 300,
+    "_thresholdsWhy": "A cough, a chair, a door: the recogniser sometimes returns a single stray word for a noise. Two words heard over at least three tenths of a second is somebody talking. Below either the reading continues.",
+    "ownVoiceFilter": {
+      "rule": "Words the recogniser hears while GilbertOne reads are compared with the words being read. If every word heard is a word in the sentence being spoken, in order, it is GilbertOne's own voice leaking into the microphone and it is not a barge-in.",
+      "why": "The browser's own voice does not always pass through the browser's echo cancellation — a desktop synthesiser speaks through the operating system — so the machine's echo-cancellation rule is kept by arithmetic on the words rather than by trusting the audio path."
+    },
+    "keepsTranscript": false,
+    "_keepsTranscriptWhy": "In conversation mode an interruption is a new turn: the question being answered was already handed over, so the buffer starts clean rather than appending the new words onto a question GilbertOne has already read. Single mode keeps its buffer, as it always has."
+  },
+  "endsOn": [
+    {
+      "id": "stop-pressed",
+      "sentence": "The person presses Stop talking with GilbertOne. The microphone closes at once and whatever it was hearing is dropped, not sent.",
+      "event": "cancel",
+      "effect": "return_to_idle"
+    },
+    {
+      "id": "panel-closed",
+      "sentence": "The panel is closed. A microphone left open by a panel that has gone is a microphone nobody on the screen can turn off, so the close is the same cancel as Stop.",
+      "event": "cancel",
+      "effect": "return_to_idle"
+    },
+    {
+      "id": "idle-rounds-exhausted",
+      "sentence": "Nothing was said for as many listening windows in a row as the setting allows. The microphone closes on its own and the panel shows the sleeping sentence.",
+      "event": "listening_timeout",
+      "effect": "sleep"
+    },
+    {
+      "id": "emergency-answer",
+      "sentence": "GilbertOne has just spoken an emergency answer. The microphone closes and the ambulance numbers stay on the screen.",
+      "event": "tts_finished",
+      "effect": "sleep",
+      "why": "After an emergency answer the next thing that should happen is a phone call, not another turn with GilbertOne. A microphone reopening on its own at that moment invites the person to keep talking to a page instead of ringing for help, and a page hearing an ambulance call in progress is a microphone open for no reason the person chose. The numbers stay on the screen because the answer is what matters, and the reading aloud was only a second way to receive it."
+    }
+  ],
+  "indicator": {
+    "rule": "The microphone indicator is visible whenever the microphone is hot: while listening, while waiting through an idle round, and while GilbertOne reads with the recogniser open for a barge-in. It is never hidden while anything can hear.",
+    "why": "The amendment's rule, unchanged. Hands-free means the microphone reopens without a tap, which is exactly when a person most needs to be able to see that it has."
+  },
+  "retention": {
+    "audioKept": false,
+    "transcript": "memory",
+    "rule": "No audio is kept: the browser's recogniser hears and the page never holds a sample. The transcript exists in memory for the conversation and is destroyed when the conversation ends. Nothing is written to browser storage of any kind.",
+    "why": "The amendment's retention rules, unchanged by hands-free operation. A microphone that reopens on its own makes these more important, not less."
+  },
+  "whatItIsNot": [
+    "There is no wake word on the web. The on-device wake-word engine the amendment names is a native dependency the web build forbids, so nothing listens for a name: the conversation starts with one tap and is hands-free from there.",
+    "It is not always listening. The microphone closes on Stop, when the panel closes, after the idle rounds run out and after an emergency answer, and it never opens without a tap having started the conversation.",
+    "It is not a recording. No audio is captured, buffered or kept, and no cloud speech service hears the person for the on-device conversation.",
+    "It does not decide anything. A reply is whatever GilbertOne already says in text; hearing it and answering hands-free changes how the words arrive and nothing about what they are."
+  ],
+  "sentences": {
+    "startLabel": "Talk hands-free with GilbertOne",
+    "micHot": "Microphone on",
+    "listening": "Listening… speak when you are ready.",
+    "heardYou": "Heard you. One moment.",
+    "yourTurn": "Your turn — I'm listening.",
+    "stopLabel": "Stop talking with GilbertOne",
+    "sleeping": "The microphone closed because nothing was said. Tap to talk again.",
+    "bargeInNote": "Start speaking at any time. GilbertOne stops reading the moment you do, and listens.",
+    "emergencyClosed": "The microphone closed after the emergency answer. The numbers stay on the screen.",
+    "_note": "startLabel is the control before a conversation and stopLabel the same control during one. micHot is the words beside the microphone's ring whenever the recogniser is open — listening, waiting through a quiet window, or watching for a barge-in while the voice reads — so a reader who asked for stillness, and gets no pulsing ring, still reads that the microphone is on."
+  },
+  "web": {
+    "interimResults": true,
+    "continuous": true,
+    "listeningCapFrom": "packages/catalog/assistant.json#voice.maxListeningSeconds",
+    "rule": "The web driver lives in apps/web/src/lib/voice.ts, the one file allowed to name a recogniser or a synthesiser, and drives packages/gilbertone/src/speech-state.ts in conversation mode. The founder's listening cap still closes each window; in a window with words caught it is a forced endpoint and the words are handed over, in a window with none it is an idle round.",
+    "getUserMedia": false,
+    "_getUserMediaWhy": "Not opened, by the boundary check that refuses it in every web file. If a future founder record allows an energy detector on the adapter's own stream, it opens with echoCancellation true and holds nothing beyond the analyser's frame; until then the recogniser is the detector."
+  },
+  "proposedSettings": {
+    "_note": "In the shape packages/catalog/settings.json gives a setting, so the Control Tower's Configuration screen can pick them up unchanged. Kept under proposedSettings rather than settings: a settings block is reached only through packages/catalog/settings.json#sources, the assistant engine's block is packages/catalog/voice.json, and both are files this change leaves alone. Moving the two items into that block, and the defaults changelog with them, is the wiring step.",
+    "heading": "Hands-free conversation",
+    "intro": "How long a pause means it is GilbertOne's turn, and how many quiet windows the microphone waits through before it closes on its own.",
+    "items": [
+      {
+        "key": "endpoint-silence",
+        "label": "Pause before GilbertOne answers",
+        "help": "How long the person must be silent, after saying something, before GilbertOne takes it as their turn and answers.",
+        "owner": "assistant",
+        "type": "count",
+        "unit": "milliseconds",
+        "positive": true,
+        "default": {
+          "value": 900,
+          "decidedBy": null,
+          "proposedBy": "Conversation lead (28 September 2026)",
+          "proposedBecause": "Just under a second is the pause Siri and Bixby take before answering, long enough that a breath mid-sentence does not cut somebody off and short enough that the wait after a question does not feel like being ignored. The founder asked for the behaviour and named the references; the number is the lead's proposal for him to tune."
+        },
+        "bounds": {
+          "lowest": {
+            "value": 600,
+            "decidedBy": null,
+            "proposedBy": "Conversation lead (28 September 2026)",
+            "proposedBecause": "Below six tenths of a second a pause between two clauses is taken as the end of a turn, and GilbertOne answers half a question — the talking over the founder asked it never to do."
+          },
+          "highest": {
+            "value": 2000,
+            "decidedBy": null,
+            "proposedBy": "Conversation lead (28 September 2026)",
+            "proposedBecause": "Past two seconds the wait reads as the microphone having missed what was said, and people repeat themselves into it."
+          }
+        },
+        "changedBy": "admin",
+        "appliesTo": "A change reaches the next listening window. A window already open keeps the pause it opened with.",
+        "guardrail": {
+          "statement": "GilbertOne always waits for a real pause and never for so long that a person gives up. No value lets it answer inside a breath or leave a question hanging.",
+          "forbids": [0, 300, 5000]
+        }
+      },
+      {
+        "key": "idle-rounds-before-sleep",
+        "label": "Quiet windows before the microphone closes",
+        "help": "How many listening windows in a row may pass with nothing said before the microphone closes on its own.",
+        "owner": "assistant",
+        "type": "count",
+        "unit": "windows",
+        "positive": true,
+        "default": {
+          "value": 2,
+          "decidedBy": null,
+          "proposedBy": "Conversation lead (28 September 2026)",
+          "proposedBecause": "One quiet window is a person thinking; two in a row is a person who has walked away. Two lets the microphone wait through a thought and still close before it has been open for a minute with nobody there."
+        },
+        "bounds": {
+          "lowest": {
+            "value": 1,
+            "decidedBy": null,
+            "proposedBy": "Conversation lead (28 September 2026)",
+            "proposedBecause": "At least one quiet window, or the microphone would close the moment a person paused to think after an answer."
+          },
+          "highest": {
+            "value": 4,
+            "decidedBy": null,
+            "proposedBy": "Conversation lead (28 September 2026)",
+            "proposedBecause": "Four windows is already two minutes of an open microphone with nobody speaking. Past that it is an always-listening device, which this mode is not."
+          }
+        },
+        "changedBy": "admin",
+        "appliesTo": "A change reaches the next conversation. A conversation already under way keeps the count it started with.",
+        "guardrail": {
+          "statement": "The microphone always closes on its own when nobody is speaking, and never waits more than four quiet windows. No value makes it listen indefinitely.",
+          "forbids": [0, 10]
+        }
+      }
+    ],
+    "defaults": {
+      "version": 1,
+      "changelog": [
+        {
+          "version": 1,
+          "on": "2026-09-28",
+          "by": "Conversation lead (28 September 2026)",
+          "changed": [
+            { "setting": "endpoint-silence", "from": null, "to": 900 },
+            { "setting": "idle-rounds-before-sleep", "from": null, "to": 2 }
+          ],
+          "why": "The founder asked for hands-free turns like Siri's on 28 September 2026. The pause and the number of quiet windows are the lead's proposals under the standing rule that an open question becomes an admin setting with a proposed default."
+        }
+      ]
+    }
+  },
+  "fixtures": {
+    "_note": "Replayed by packages/gilbertone/src/speech-state.test.ts against the machine, step by step: each step's event is applied and the phase and effect types that come back must be exactly these. A silenceMs of \"endpoint-silence\" is resolved by the test to that setting's default, so the pause lives in one place even inside the fixture. The idle rounds fixture is written for idle-rounds-before-sleep at its default of two.",
+    "siriRoundTrip": [
+      { "event": { "type": "session_start", "mode": "conversation" }, "phase": "listening", "effects": ["start_listening"] },
+      { "event": { "type": "vad_endpoint", "silenceMs": "endpoint-silence" }, "phase": "transcribing", "effects": ["stop_listening", "start_transcription"] },
+      { "event": { "type": "transcript_ready", "text": "what happens on a nurse visit" }, "phase": "thinking", "effects": ["cancel_transcription", "start_thinking"] },
+      { "event": { "type": "response_ready", "text": "A nurse comes to your home and a doctor reviews what she found." }, "phase": "speaking", "effects": ["start_speaking"] },
+      { "event": { "type": "tts_finished" }, "phase": "listening", "effects": ["start_listening", "your_turn"] },
+      { "event": { "type": "vad_endpoint", "silenceMs": "endpoint-silence" }, "phase": "transcribing", "effects": ["stop_listening", "start_transcription"] },
+      { "event": { "type": "transcript_ready", "text": "thank you" }, "phase": "thinking", "effects": ["cancel_transcription", "start_thinking"] },
+      { "event": { "type": "response_ready", "text": "You are welcome." }, "phase": "speaking", "effects": ["start_speaking"] },
+      { "event": { "type": "tts_finished" }, "phase": "listening", "effects": ["start_listening", "your_turn"] },
+      { "event": { "type": "listening_timeout" }, "phase": "listening", "effects": ["start_listening"] },
+      { "event": { "type": "listening_timeout" }, "phase": "idle", "effects": ["stop_listening", "sleep", "return_to_idle"] }
+    ],
+    "bargeIn": [
+      { "event": { "type": "session_start", "mode": "conversation" }, "phase": "listening", "effects": ["start_listening"] },
+      { "event": { "type": "vad_endpoint", "silenceMs": "endpoint-silence" }, "phase": "transcribing", "effects": ["stop_listening", "start_transcription"] },
+      { "event": { "type": "transcript_ready", "text": "tell me about the visit" }, "phase": "thinking", "effects": ["cancel_transcription", "start_thinking"] },
+      { "event": { "type": "response_ready", "text": "A nurse comes to your home." }, "phase": "speaking", "effects": ["start_speaking"] },
+      { "event": { "type": "barge_in" }, "phase": "listening", "effects": ["cancel_speech", "start_listening"] }
+    ],
+    "emergencyCloses": [
+      { "event": { "type": "session_start", "mode": "conversation" }, "phase": "listening", "effects": ["start_listening"] },
+      { "event": { "type": "vad_endpoint", "silenceMs": "endpoint-silence" }, "phase": "transcribing", "effects": ["stop_listening", "start_transcription"] },
+      { "event": { "type": "transcript_ready", "text": "my chest hurts and I cannot breathe" }, "phase": "thinking", "effects": ["cancel_transcription", "start_thinking"] },
+      { "event": { "type": "response_ready", "text": "This needs an ambulance now.", "kind": "emergency" }, "phase": "speaking", "effects": ["start_speaking"] },
+      { "event": { "type": "tts_finished" }, "phase": "idle", "effects": ["sleep", "return_to_idle"] }
+    ],
+    "stopPressed": [
+      { "event": { "type": "session_start", "mode": "conversation" }, "phase": "listening", "effects": ["start_listening"] },
+      { "event": { "type": "cancel" }, "phase": "idle", "effects": ["stop_listening", "return_to_idle"] }
+    ]
+  }
+}

@@ -1,0 +1,379 @@
+{
+  "_note": "Symptom intake: the set questions GilbertOne asks when a patient says what is wrong, as data, so the answers reach the nurse who comes. Not triage. It sets no priority, names no cause, gives no advice; it is a structured set of notes the patient answers for the nurse, one question per turn, every sentence read from here. packages/gilbertone/src/intake.ts reads it and scripts/check-boundaries.mjs holds it; no phone renders it yet — see platforms.",
+  "version": 1,
+  "decidedBy": "Founder",
+  "on": "2026-09-28",
+  "why": "The founder's ask of 28 September 2026: a patient told GilbertOne she had a headache and it could not answer her. GilbertOne does not do diagnosis, but it needs to ask the pertinent questions, so that those questions can be taken to the nurse assigned to the patient — so that when the nurse sees the patient, all of those key questions have already been asked by the bot. Deterministic, predefined questions.",
+  "whatItIsNot": [
+    "GilbertOne will not say what is causing this. A nurse or a doctor decides that.",
+    "These questions do not decide how urgent it is or where you should be seen.",
+    "Nothing here is advice about what to do for it.",
+    "Your answers are notes for your nurse, in your own words."
+  ],
+  "order": {
+    "rule": "The emergency terms in packages/catalog/gilbert-emergency-terms.json are checked on the opening message and on every answer before the intake reads it; the refusal policies in packages/catalog/assistant.json next; the intake last. A red-flag rule is the ratified triage protocol's job and this file carries none — but every answer passes through the existing emergency matcher, so a sentence that names an emergency, typed as an answer to any question, gets the emergency answer and the intake ends there.",
+    "why": "The intake sits at the end of the chain on purpose. Putting a red-flag list here would make it triage without a protocol, which clinical.json refuses; leaving the emergency matcher in front of every answer means the intake can never lower an emergency by being the thing that was listening."
+  },
+  "common": {
+    "why": "Asked first for every group, before the group's own questions, so a nurse reads the same shape of note whatever the complaint. The medicine question asks what was used, never whether anything should be.",
+    "questions": [
+      {
+        "id": "since",
+        "ask": "Since when?",
+        "kind": "chips",
+        "options": ["Today", "A few days", "About a week", "Longer than a week"]
+      },
+      {
+        "id": "how-bad",
+        "ask": "How bad is it right now?",
+        "kind": "chips",
+        "options": ["Mild", "Uncomfortable", "Severe"]
+      },
+      {
+        "id": "better-worse",
+        "ask": "Does anything make it better or worse?",
+        "kind": "text"
+      },
+      {
+        "id": "used",
+        "ask": "What, if anything, have you already used for it? Give the name on the box, or say nothing.",
+        "kind": "text"
+      },
+      {
+        "id": "conditions",
+        "ask": "Are there any long-term conditions, allergies or pregnancy the nurse should know about?",
+        "kind": "text"
+      }
+    ]
+  },
+  "groups": [
+    {
+      "id": "headache",
+      "name": "Headache",
+      "triggers": ["headache", "headaches", "head is sore", "head hurts", "sore head", "head pain", "migraine", "pain in my head"],
+      "questions": [
+        {
+          "id": "where",
+          "ask": "Where in your head is it?",
+          "kind": "chips",
+          "options": ["Front", "Back", "One side", "All over", "Behind my eyes"]
+        },
+        {
+          "id": "light-noise-sight",
+          "ask": "Is light or noise bothering you, or has anything changed with your sight?",
+          "kind": "chips",
+          "options": ["Light bothers me", "Noise bothers me", "My sight has changed", "More than one of these", "None of these"]
+        },
+        {
+          "id": "knock",
+          "ask": "Have you had a knock or a fall onto your head recently?",
+          "kind": "chips",
+          "options": ["Yes", "No"]
+        }
+      ]
+    },
+    {
+      "id": "stomach",
+      "name": "Stomach or belly pain",
+      "triggers": ["stomach pain", "stomach ache", "stomach is sore", "sore stomach", "stomach hurts", "tummy", "belly", "abdominal pain", "cramps", "stomach cramps"],
+      "questions": [
+        {
+          "id": "where",
+          "ask": "Where in your belly is it?",
+          "kind": "chips",
+          "options": ["Upper", "Lower", "One side", "All over"]
+        },
+        {
+          "id": "bowels",
+          "ask": "How are your bowels and your appetite — anything different from usual?",
+          "kind": "text"
+        },
+        {
+          "id": "other",
+          "ask": "Anything else you have noticed with it?",
+          "kind": "text"
+        }
+      ]
+    },
+    {
+      "id": "fever",
+      "name": "Fever",
+      "triggers": ["fever", "temperature", "high temperature", "hot and cold", "shivering", "chills", "sweating at night", "feel hot"],
+      "questions": [
+        {
+          "id": "measured",
+          "ask": "Have you measured it with a thermometer? If so, what did it read?",
+          "kind": "text"
+        },
+        {
+          "id": "with-it",
+          "ask": "What else is there with the fever?",
+          "kind": "chips",
+          "options": ["A cough", "A sore throat", "A rash", "Pain somewhere", "Nothing else"]
+        },
+        {
+          "id": "other",
+          "ask": "Anything else you have noticed with it?",
+          "kind": "text"
+        }
+      ]
+    },
+    {
+      "id": "cough-cold",
+      "name": "Cough or cold",
+      "triggers": ["cough", "coughing", "cold", "flu", "runny nose", "blocked nose", "sore throat", "sneezing", "phlegm"],
+      "questions": [
+        {
+          "id": "kind-of-cough",
+          "ask": "Is the cough dry, or is something coming up?",
+          "kind": "chips",
+          "options": ["Dry", "Something comes up", "No cough"]
+        },
+        {
+          "id": "with-it",
+          "ask": "What else is there with it?",
+          "kind": "chips",
+          "options": ["Fever", "Sore throat", "Body aches", "Nothing else"]
+        },
+        {
+          "id": "around-you",
+          "ask": "Is anybody at home or at work sick with the same thing?",
+          "kind": "text"
+        }
+      ]
+    },
+    {
+      "id": "dizziness",
+      "name": "Dizziness",
+      "triggers": ["dizzy", "dizziness", "light headed", "lightheaded", "head spinning", "room is spinning", "spinning", "off balance", "giddy"],
+      "questions": [
+        {
+          "id": "when",
+          "ask": "When does it happen?",
+          "kind": "chips",
+          "options": ["When I stand up", "When I turn my head", "Lying down", "All the time", "It comes and goes"]
+        },
+        {
+          "id": "feels-like",
+          "ask": "Does the room spin, or do you feel faint and light in the head?",
+          "kind": "chips",
+          "options": ["The room spins", "Faint and light", "Both", "Hard to say"]
+        },
+        {
+          "id": "other",
+          "ask": "Anything else you have noticed with it?",
+          "kind": "text"
+        }
+      ]
+    },
+    {
+      "id": "nausea",
+      "name": "Nausea or vomiting",
+      "triggers": ["nausea", "nauseous", "vomiting", "vomit", "throwing up", "threw up", "feel like vomiting", "want to vomit", "diarrhoea", "diarrhea", "runny stomach"],
+      "questions": [
+        {
+          "id": "keeping-down",
+          "ask": "Are you managing to keep water down?",
+          "kind": "chips",
+          "options": ["Yes", "Some of it", "No"]
+        },
+        {
+          "id": "with-it",
+          "ask": "Is there a runny stomach, a fever or belly pain with it?",
+          "kind": "chips",
+          "options": ["Runny stomach", "Fever", "Belly pain", "More than one of these", "None of these"]
+        },
+        {
+          "id": "ate",
+          "ask": "What did you eat or drink in the day before it started?",
+          "kind": "text"
+        }
+      ]
+    },
+    {
+      "id": "back-joint",
+      "name": "Back or joint pain",
+      "triggers": ["back pain", "back is sore", "sore back", "backache", "joint pain", "joints", "knee", "knees", "hip", "shoulder is sore", "sore shoulder", "stiff neck", "neck is sore"],
+      "questions": [
+        {
+          "id": "where",
+          "ask": "Where exactly is it, and is it one place or more than one?",
+          "kind": "text"
+        },
+        {
+          "id": "started",
+          "ask": "Did it start after a fall, a lift or an injury, or on its own?",
+          "kind": "chips",
+          "options": ["After a fall or injury", "After lifting something", "On its own", "Not sure"]
+        },
+        {
+          "id": "moving",
+          "ask": "Can you walk and move it as usual?",
+          "kind": "chips",
+          "options": ["Yes", "With difficulty", "No"]
+        }
+      ]
+    },
+    {
+      "id": "skin",
+      "name": "Skin or rash",
+      "triggers": ["rash", "itchy", "itching", "skin", "spots", "bumps on my skin", "hives", "sore on my skin", "blisters", "swelling on my skin"],
+      "questions": [
+        {
+          "id": "where",
+          "ask": "Where on your body is it, and is it spreading?",
+          "kind": "text"
+        },
+        {
+          "id": "looks-like",
+          "ask": "What does it look like?",
+          "kind": "chips",
+          "options": ["Flat red patches", "Raised bumps", "Blisters", "Dry and flaky", "Something else"]
+        },
+        {
+          "id": "new-things",
+          "ask": "Anything new recently — a soap, a cream, a food, a plant, an insect or a medicine?",
+          "kind": "text"
+        }
+      ]
+    },
+    {
+      "id": "tiredness",
+      "name": "Tiredness or weakness",
+      "triggers": ["tired", "tiredness", "exhausted", "no energy", "weak", "weakness", "fatigue", "worn out", "always sleepy"],
+      "questions": [
+        {
+          "id": "sleep",
+          "ask": "How are you sleeping and eating?",
+          "kind": "text"
+        },
+        {
+          "id": "daily-life",
+          "ask": "Is it stopping you from doing your usual day?",
+          "kind": "chips",
+          "options": ["Not really", "Some things", "Most things"]
+        },
+        {
+          "id": "other",
+          "ask": "Anything else you have noticed with it?",
+          "kind": "text"
+        }
+      ]
+    },
+    {
+      "id": "urinary",
+      "name": "Passing water",
+      "triggers": ["passing water", "passing urine", "urine", "peeing", "wee", "burning when i pee", "burning when i wee", "bladder", "going to the toilet a lot", "toilet a lot"],
+      "questions": [
+        {
+          "id": "what",
+          "ask": "What is different about passing water?",
+          "kind": "chips",
+          "options": ["It burns", "Going more often", "Hard to go", "The colour or smell has changed", "Something else"]
+        },
+        {
+          "id": "with-it",
+          "ask": "Is there fever or pain in your back or lower belly with it?",
+          "kind": "chips",
+          "options": ["Fever", "Back pain", "Lower belly pain", "More than one of these", "None of these"]
+        },
+        {
+          "id": "other",
+          "ask": "Anything else you have noticed with it?",
+          "kind": "text"
+        }
+      ]
+    },
+    {
+      "id": "unwell",
+      "name": "Not feeling well",
+      "triggers": ["not feeling well", "not well", "feel sick", "feeling sick", "unwell", "feel ill", "feeling ill", "under the weather", "something is wrong with me"],
+      "questions": [
+        {
+          "id": "main-thing",
+          "ask": "What is the main thing you are feeling, in your own words?",
+          "kind": "text"
+        },
+        {
+          "id": "where",
+          "ask": "Is it somewhere in particular, or all over?",
+          "kind": "text"
+        },
+        {
+          "id": "other",
+          "ask": "Anything else you have noticed with it?",
+          "kind": "text"
+        }
+      ]
+    }
+  ],
+  "answer": {
+    "why": "The framing around the questions, in the order the conversation reads it. The opening offers and says what GilbertOne will not do; the closing says where the notes are and where they are not. {reviewedBy} is the registration on file. No digit is typed here.",
+    "opening": "I can take notes for your nurse about this. I will ask a few set questions, one at a time, and write your answers down for the nurse to read at the visit. I will not say what is causing it — that is for your nurse or doctor to work out with you. Shall we start?",
+    "consent": {
+      "yesLabel": "Yes, take notes",
+      "noLabel": "No, not now",
+      "yesWords": ["yes", "yes take notes", "ok", "okay", "start", "go ahead", "sure", "yebo", "ja", "ewe"],
+      "noWords": ["no", "no not now", "not now", "later", "no thanks"],
+      "labelsWhy": "The two chips the offer shows. Each label's words are in the list beside it, so a pressed chip and a typed word are read by the same rule.",
+      "declined": "All right. Nothing has been written down. Ask me again whenever you like, or book a nurse and tell them at the visit.",
+      "unclear": "Just say yes to start the notes, or no to leave it."
+    },
+    "typeHint": "Type your answer below, in your own words.",
+    "stop": {
+      "word": "stop",
+      "sentence": "Say stop at any point and the questions end there. Whatever you have answered so far stays below for you to show your nurse.",
+      "stopped": "Stopped. The notes so far are below, and nothing has been sent anywhere."
+    },
+    "closing": "That is everything I have to ask. Your notes are below. Nothing has been sent anywhere: they stay on this screen until you close it, and showing or reading them to your nurse at the visit is how they travel today.",
+    "arrangeCare": "If you have not booked a nurse yet, Book a nurse is where you arrange one.",
+    "unmatchedInside": "I did not catch an answer. Type a few words, choose one of the options, or say stop to end here."
+  },
+  "review": {
+    "reviewedBy": null,
+    "why": "No clinician has read these questions. Until one signs — with a registration in the vetting register's own format — the build refuses any question or option that carries a clinical instruction or a digit, and the unreviewed sentence is read on every intake.",
+    "unreviewed": "No clinician has reviewed these questions yet. They are a written list held inside the app, and your nurse will ask her own.",
+    "reviewed": "These questions were reviewed by {reviewedBy}. Your nurse will still ask her own."
+  },
+  "summary": {
+    "title": "Notes for your nurse",
+    "line": "{question}: {answer}",
+    "copyLabel": "Copy the notes",
+    "copiedLabel": "Copied",
+    "why": "The card the answers are shown on and read from, so the nurse sees the question beside the answer and never an answer alone. Copying puts the card's lines on the clipboard, which is the person's own; nothing is stored by the app."
+  },
+  "chip": {
+    "group": "unwell",
+    "why": "The group the offer opens with when the intake is chosen from a chip, or a message names no complaint the groups know — the general questions, which ask her to say what is wrong in her own words."
+  },
+  "platforms": ["web"],
+  "platformsWhy": "No phone renders the intake yet. iOS and Android join here when their screens exist, and the boundary check refuses a native file that names the intake before this list says so.",
+  "fixtures": {
+    "why": "One list every reader of this file runs against its own matcher. Each message says which group it opens, or null when no group does, or emergency when the emergency terms answer it before the intake is asked. The flow runs one whole group and counts the notes.",
+    "messages": [
+      { "says": "I have a headache", "expect": "headache" },
+      { "says": "my head hurts since yesterday", "expect": "headache" },
+      { "says": "I get migraines", "expect": "headache" },
+      { "says": "when is my nurse coming", "expect": null },
+      { "says": "hello", "expect": null },
+      { "says": "what does 136/85 mean", "expect": null },
+      { "says": "I feel dizzy and weak", "expect": "dizziness" },
+      { "says": "worst headache of my life and my neck is stiff", "expect": "emergency" },
+      { "says": "my chest hurts and I have a cough", "expect": "emergency" },
+      { "says": "my tummy is sore", "expect": "stomach" },
+      { "says": "I have had a fever and chills since last night", "expect": "fever" },
+      { "says": "I've been coughing for days", "expect": "cough-cold" },
+      { "says": "I keep throwing up", "expect": "nausea" },
+      { "says": "my back is sore", "expect": "back-joint" },
+      { "says": "there is a rash on my arm", "expect": "skin" },
+      { "says": "I am so tired all the time", "expect": "tiredness" },
+      { "says": "it burns when I pee", "expect": "urinary" },
+      { "says": "I am not feeling well", "expect": "unwell" }
+    ],
+    "flow": {
+      "group": "headache",
+      "answers": ["A few days", "Uncomfortable", "Worse in the afternoon", "Nothing", "None that I know of", "Front", "Light bothers me", "No"],
+      "rows": 8
+    }
+  }
+}

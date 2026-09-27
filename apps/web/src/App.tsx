@@ -76,6 +76,12 @@ const GiftInboxPage = lazy(() => import('./features/Gift').then(m => ({ default:
    ledger, which the shop's own separate entry (shop.html) deliberately does not, so this stays in the app
    rather than the shop for anybody who wants to place one for real rather than only quote one. */
 const MarketOrderPage = lazy(() => import('./features/MarketOrder').then(m => ({ default: m.MarketOrderPreview })));
+/* Care tips, opened from a completed visit or by `?open=care-tips`: a screen nobody needs on the first view, so
+   it and its contract arrive on their own dynamic import. Only two strings are here, generated from the contract
+   on their own — the route's name is the contract's, so the door, the address and the screen cannot name three
+   different pages, and not one tip is on the patient's first load. */
+const CareTipsPage = lazy(() => import('./features/CareTips').then(m => ({ default: m.CareTips })));
+import { careTipsRoute } from './lib/care-tips-route.generated';
 function EmergencyWhileSosLoads() {
  return <div className="sos"><div className="sos-emergency">
   <div className="sos-emergency-head"><div><strong>{sosEmergency.headline}</strong><p>{sosEmergency.lead}</p></div></div>
@@ -129,7 +135,7 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
     hero offers four destinations and two of them are sections rather than the application, so
     `/app/?open=live-well` opens Live well. Read once and never written — see lib/roles.ts for why
     the address stops following a reader the moment they start navigating for themselves. */
- const [page, setPage] = useState(() => sectionFromSearch(window.location.search, patientSections, 'Overview'));
+ const [page, setPage] = useState(() => sectionFromSearch(window.location.search, [...patientSections, careTipsRoute.opens], 'Overview'));
  const [modal, setModal] = useState<string | null>(null);
  const [booking, setBooking] = useState<Service | null>(null);
  /* Every visit the app knows about, in one list, because a visit you can look at and never change is
@@ -244,6 +250,7 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
          : page === 'Gift a visit' ? <Suspense fallback={<p className="helper" role="status">Opening gift a visit.</p>}><GiftAVisitPage/></Suspense>
          : page === 'Gifts sent to you' ? <Suspense fallback={<p className="helper" role="status">Opening your gifts.</p>}><GiftInboxPage/></Suspense>
          : page === 'Place a real market order' ? <Suspense fallback={<p className="helper" role="status">Opening the order.</p>}><MarketOrderPage/></Suspense>
+         : page === careTipsRoute.opens ? <Suspense fallback={<p className="helper" role="status">{careTipsRoute.opening}</p>}><CareTipsPage open={setModal}/></Suspense>
          : page === 'Split a visit between you' ? <Suspense fallback={<p className="helper" role="status">Opening the split.</p>}><BillSplitPage/></Suspense>
          : page === 'Thuso Wallet' ? <WalletPage open={setModal} navigate={navigate}/>
           : page === 'Privacy & settings' ? <Privacy open={setModal}/>

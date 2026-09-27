@@ -46,7 +46,10 @@
 
 /* The wordmark at the size the sidebar draws it, so the door and the portal behind it wear one mark. */
 .founder-gate-mark { display: block; width: 168px; height: 46px; object-fit: contain; object-position: left center; }
-.founder-gate-eyebrow {
+/* The door wears the portal's one head (Parts.tsx#PageHead); these give its parts the door's sizes. */
+.founder-gate-head > div { display: flex; flex-direction: column; gap: var(--space-12); }
+.founder-gate-head .pt-head-status { display: flex; flex-direction: column; gap: var(--space-12); }
+.founder-gate .pt-head-eyebrow {
  margin: var(--space-4) 0 0;
  font-size: 13px;
  font-weight: 700;
@@ -62,7 +65,7 @@
  line-height: 1.15;
  color: var(--charcoal);
 }
-.founder-gate-sentence { margin: 0; font-size: 15px; line-height: 1.55; color: var(--charcoal-muted-on-surface); }
+.founder-gate .pt-head-lead { margin: 0; font-size: 15px; line-height: 1.55; color: var(--charcoal-muted-on-surface); }
 .founder-gate-status { margin: 0; font-size: 14px; line-height: 1.5; color: var(--charcoal-muted-on-surface); }
 .founder-gate-refusal,
 .founder-gate .g1-founder-refusal {

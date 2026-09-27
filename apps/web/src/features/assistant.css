@@ -2687,3 +2687,105 @@
   border-top: 0;
   padding-top: 0;
 }
+
+/* ---- Symptom intake (28 September 2026) -------------------------------------------------------
+   The offer's two chips and a question's options are one row of pill buttons inside the reply, so they
+   arrive with the reply's own rise and nothing new moves. Each is a 44-pixel target on a phone; the
+   words on them are packages/catalog/symptom-intake.json's. The notes card is the list card the
+   preparation list uses, with the handover's question-beside-answer list inside it. */
+.as-intake-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  margin-top: var(--space-8);
+}
+.as-intake-chips .as-option {
+  min-height: 44px;
+  padding: var(--space-8) var(--space-16);
+  border: 1px solid color-mix(in srgb, var(--brand-mint) 45%, #fff);
+  border-radius: var(--r-pill);
+  background: #fff;
+  color: var(--brand-ink);
+  font-size: 15px;
+  line-height: 1.3;
+  text-align: left;
+}
+.as-intake-chips .as-option:hover,
+.as-intake-chips .as-option:focus-visible {
+  border-color: var(--brand-mint);
+  background: color-mix(in srgb, var(--brand-mint) 10%, #fff);
+}
+.as-intake-not {
+  margin: 0;
+  padding-left: var(--space-20);
+}
+.as-intake-not li + li {
+  margin-top: var(--space-4);
+}
+.as-notes .as-summary {
+  margin-top: var(--space-8);
+}
+/* The handover's question labels are mint on an ink tile; on the lime tile they would be mint on
+   lime, which nobody can read. Ink here, and the rule beneath each row in the same ink, faded. */
+.as-notes .as-summary dt {
+  color: var(--brand-ink);
+}
+.as-notes .as-summary div {
+  border-bottom-color: color-mix(in srgb, var(--brand-ink) 28%, transparent);
+}
+
+/* ---- Hands-free conversation, 28 September 2026 -------------------------------------------------
+   The founder's "speak, pause, and it answers, like Siri". One control beside the microphone starts
+   a conversation and the same control ends it, so the composer gains a pill and no second microphone:
+   the recogniser is the same one, and its ring and its words say when it is open. The words beside
+   the ring are the amendment's indicator for a reader who asked for stillness and gets no pulse. */
+.as-convo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 4px 12px;
+  border: 1px solid var(--brand-green);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--brand-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.as-convo:hover {
+  background: color-mix(in srgb, var(--brand-mint) 30%, var(--surface));
+}
+.as-convo[aria-pressed="true"] {
+  background: var(--brand-green);
+  border-color: var(--brand-green);
+  color: var(--surface);
+}
+.as-convo-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--brand-green);
+}
+.as-convo[aria-pressed="true"] .as-convo-dot {
+  background: var(--brand-orange);
+}
+.as-mic-hot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--brand-ink);
+}
+.as-mic-hot-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brand-orange);
+}

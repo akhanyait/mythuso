@@ -28,7 +28,13 @@ import {
 } from "lucide-react";
 import { ServiceIcon } from "../components/UI";
 import { businessModel, liveServices, money, services } from "../lib/catalog";
-import { isTiered, monthlyPrices, tiers as momTiers } from "../lib/mom-plans";
+import {
+  isTiered,
+  momPlan,
+  monthlyPrices,
+  refusal as momRefusal,
+  tiers as momTiers,
+} from "../lib/mom-plans";
 import { capabilities, connectedCount } from "../lib/capabilities";
 import { capabilityById, roleById } from "../lib/vetting";
 import { MotionPause } from "../components/MotionPause";
@@ -102,6 +108,33 @@ const plans = businessModel.subscriptions.filter(
 );
 const fromPlan = Math.min(...plans.flatMap(monthlyPrices));
 const momPhases = [...new Set(momTiers.map((t) => t.phase))].join("–");
+/* The two sides of the plans toggle, as one card shape. "For me" is every plan on the page, the one a
+   child buys for a parent standing in as the door to the other side; "For Mom" is that plan's tiers,
+   each named by how often a nurse would come rather than by its tier name, because the names are an
+   admin's setting and a public page is a document no back-office change reaches. Every price, phase
+   and sentence is the catalogue's. */
+type PlanCard = {
+  id: string;
+  phase: string | number;
+  name: string;
+  prices: number[];
+  body?: string;
+  door?: boolean;
+};
+const forMe: PlanCard[] = plans.map((s) => ({
+  id: s.id,
+  phase: isTiered(s) ? momPhases : s.phase,
+  name: s.name,
+  prices: monthlyPrices(s),
+  body: s.includes,
+  door: isTiered(s),
+}));
+const forMom: PlanCard[] = momTiers.map((t) => ({
+  id: t.id,
+  phase: t.phase,
+  name: t.cadence,
+  prices: [t.price],
+}));
 const nurseRole = roleById("nurse")!;
 /* The checks a nurse passes before a first visit, taken from the vetting contract rather than
    described in adjectives. If a check is added to the contract it appears here; if one is removed,
@@ -436,7 +469,7 @@ function Head({
   body?: React.ReactNode;
 }) {
   return (
-    <div className="landing-head" data-reveal>
+    <div className="landing-head reveal-stagger" data-reveal>
       <p className="landing-eyebrow">
         <i>{index}</i>
         {eyebrow}
@@ -458,6 +491,16 @@ export function Landing() {
   const [serviceQuery, setServiceQuery] = useState("");
   const [serviceCategory, setServiceCategory] = useState("All care");
   const serviceSearch = useRef<HTMLInputElement>(null);
+  /* Which side of the plans toggle is showing, and whether the reader has used it. A list drawn after
+    the page's reveal observer has run is never observed, so once the toggle has been pressed its
+    cards are drawn already shown and arrive by their own short settle instead. */
+  const [mom, setMom] = useState(false);
+  const [switched, setSwitched] = useState(false);
+  const momSide = useRef<HTMLButtonElement>(null);
+  const showPlans = (forParent: boolean) => {
+    setMom(forParent);
+    setSwitched(true);
+  };
   const { opening, onClick: opened } = useOpening();
   const query = serviceQuery.trim().toLocaleLowerCase();
   const matchingServices = liveServices.filter(
@@ -718,41 +761,89 @@ export function Landing() {
         />
         {/* No plan is flagged as the popular one. Nobody has subscribed to any of these, so the phase
        each arrives in is the only thing there is to say about it that is true. */}
-        {/* MyThuso for Mom has three prices, and the card shows the lowest and the highest rather than
+        {/* The knob is one transform along the track; the words and aria-pressed say which side is
+       showing, so the knob is never the only thing that does. */}
+        <div
+          className="plan-switch"
+          role="group"
+          aria-label="Whose care plans"
+          data-on={mom ? "mom" : "me"}
+        >
+          <i aria-hidden="true" />
+          <button
+            type="button"
+            aria-pressed={!mom}
+            onClick={() => showPlans(false)}
+          >
+            For me
+          </button>
+          <button
+            ref={momSide}
+            type="button"
+            aria-pressed={mom}
+            onClick={() => showPlans(true)}
+          >
+            For Mom
+          </button>
+        </div>
+        {mom && <p className="landing-lede">{momPlan.payer.statement}</p>}
+        {/* MyThuso for Mom has three prices, and its card shows the lowest and the highest rather than
        only the lowest: "R 399 a month" beside a plan whose Premium is R 1 299 is a figure somebody
        would reasonably expect to pay for everything the plan is known for. */}
-        <ul className="landing-plans">
-          {plans.map((s, i) => {
-            const prices = monthlyPrices(s);
-            return (
-              <li key={s.id} data-reveal style={{ ["--i" as string]: i }}>
-                <span className="landing-phase">
-                  Phase {isTiered(s) ? momPhases : s.phase}
+        <ul
+          className="landing-plans"
+          key={String(mom)}
+          data-switched={switched || undefined}
+          style={{ ["--cards" as string]: (mom ? forMom : forMe).length }}
+        >
+          {(mom ? forMom : forMe).map((card, i) => (
+            <li
+              key={card.id}
+              data-reveal={switched ? "shown" : true}
+              style={{ ["--i" as string]: i }}
+            >
+              <span className="landing-phase">Phase {card.phase}</span>
+              <span className="tile-icon">
+                <Heart size={19} />
+              </span>
+              <h3>{card.name}</h3>
+              <p className="landing-price">
+                <strong>{money(Math.min(...card.prices))}</strong>
+                <span>
+                  {card.prices.length > 1
+                    ? `to ${money(Math.max(...card.prices))} a month`
+                    : "a month"}
                 </span>
-                <span className="tile-icon">
-                  <Heart size={19} />
-                </span>
-                <h3>{s.name}</h3>
-                <p className="landing-price">
-                  <strong>{money(Math.min(...prices))}</strong>
-                  <span>
-                    {prices.length > 1
-                      ? `to ${money(Math.max(...prices))} a month`
-                      : "a month"}
-                  </span>
-                </p>
-                <p>{s.includes}</p>
-              </li>
-            );
-          })}
+              </p>
+              {card.body && <p>{card.body}</p>}
+              {card.door && (
+                <button
+                  type="button"
+                  className="secondary landing-secondary"
+                  onClick={() => {
+                    showPlans(true);
+                    momSide.current?.focus();
+                  }}
+                >
+                  See the plans for Mom
+                  <ArrowRight size={16} />
+                </button>
+              )}
+            </li>
+          ))}
         </ul>
+        {mom && (
+          <p className="landing-note">
+            {momRefusal("a-plan-is-not-medical-aid")}
+          </p>
+        )}
       </section>
 
       {/* One strip rather than a split with a photograph: the share, the range and the door. The
       three bullets that used to follow described a kit, a rota and an escalation route that the
       nurse's own workspace shows properly, behind the link. */}
       <section id="nurses" className="landing-section landing-nurses">
-        <div data-reveal>
+        <div className="reveal-stagger" data-reveal>
           <p className="landing-eyebrow">
             <i>04</i>For nurses
           </p>
@@ -795,7 +886,7 @@ export function Landing() {
         aria-labelledby="safety-title"
       >
         <div className="safety-heading">
-          <header>
+          <header className="reveal-stagger" data-reveal>
             <p className="landing-eyebrow">
               <i>05</i>Patient safety
             </p>
@@ -807,13 +898,27 @@ export function Landing() {
               for each check.
             </p>
           </header>
-          <aside className="safety-standard">
+          <aside className="safety-standard" data-reveal>
             <ShieldCheck size={32} strokeWidth={1.5} aria-hidden="true" />
             <h3>Verification is mandatory</h3>
             <p>
               All {nurseChecks.length} nurse checks must pass before a first
               visit can be accepted.
             </p>
+            {/* A trace, not a reading: decoration under a sentence that already says everything, drawn
+            once as the card arrives and then held. It measures nothing and says nothing to a screen
+            reader. */}
+            <svg
+              className="landing-ecg"
+              viewBox="0 0 280 40"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                pathLength={1}
+                d="M0 24h70l8-10 8 10h18l6-20 8 34 7-26 5 12h30l8-10 8 10h18l6-20 8 34 7-26 5 12h60"
+              />
+            </svg>
           </aside>
         </div>
         <div className="safety-register-title">
@@ -891,7 +996,7 @@ export function Landing() {
       </section>
 
       <section className="landing-final">
-        <div data-reveal>
+        <div className="reveal-stagger" data-reveal>
           <h2>Help. Health. Home.</h2>
           <p>
             A nurse at your door, a doctor on the screen, your record in your

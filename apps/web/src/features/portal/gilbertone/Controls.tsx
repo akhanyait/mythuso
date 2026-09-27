@@ -4,7 +4,7 @@ import { actionOf, cardStatusOf, gateIsOpen, gateOf, liveOf, refusalFor, type Ac
 
 /* The only way a GilbertOne administration screen draws something that would change anything.
  *
- * Every button, checkbox and key field on these seven screens comes from here, named by an action in
+ * Every button and key field on these seven screens comes from here, named by an action in
  * packages/catalog/control-tower-portal.json#gilbertone.actions. A gated action is disabled with the
  * gate's sentence beside it and tied to it by aria-describedby, with no `disabled={false}` path and no
  * handler: while the vault, the key registry, the health-check runner, the tenant and the kill switch
@@ -76,18 +76,6 @@ export function GatedActions({ ids, label }: { ids: readonly string[]; label: st
  </div>;
 }
 
-/* The plan's Show metadata checkbox (§7.4), drawn and disabled: no key registry exists, so there is
-   no last four and no fingerprint for it to switch between. */
-export function GatedCheckbox({ id }: { id: string }) {
- const why = useId();
- const action = actionOf(id);
- assertOpen(action);
- return <div className="g1-action">
-  <label className="g1-check"><input type="checkbox" disabled aria-describedby={why}/><span>{action.label}</span></label>
-  <p id={why} className="g1-refusal"><strong>{gateOf(action.gate).label}.</strong> {refusalFor(action)}</p>
- </div>;
-}
-
 /* The plan's level selector (§7.5), drawn as a slider and held by its gate. It is not an <input>:
    a range with no value would rest at its midpoint and read as a level nobody set, and a field on
    these screens is never given a value while no vault exists. So the thumb is placed by a ratio of
@@ -133,7 +121,7 @@ export function ShapeField({ label, hint, kind = 'text' }: { label: string; hint
  const hintId = useId();
  return <label className="g1-field">
   <span>{label}</span>
-  <input type={kind} disabled autoComplete="off" aria-describedby={hint ? hintId : undefined}/>
+  <input type={kind} disabled autoComplete="off" className="fc-text" aria-describedby={hint ? hintId : undefined}/>
   {hint && <small id={hintId}>{hint}</small>}
  </label>;
 }

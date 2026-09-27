@@ -1,0 +1,93 @@
+{
+ "_note": "Care tips: a short stack of general guidance a patient reads after a visit, one card at a time. Read by the web (apps/web/src/lib/care-tips.ts), generated into Swift and Kotlin by scripts/emit-care-tips.mjs. Written 28 September 2026 from the founder's approved motion reference. The funding proposal names poor chronic-disease adherence as a problem the service answers and 'adherence nudges' as part of Chronic Routine; these tips are the plainest half of that, and they are health advice, so they carry what every piece of health advice in this tree carries: who has checked it, and what it will not do.",
+ "_rules": "A tip is general guidance for anybody, never advice about one person. It names no dose, no reading, no range, no diagnosis and no telephone number: a dose is the prescriber's, a range lives in the assessment contract, and an emergency number lives in packages/catalog/sos.json and nowhere else. scripts/check-boundaries.mjs fails the build if a tip carries a digit or the reviewer is named without the sign-off that goes with it.",
+ "version": 1,
+ "review": {
+  "reviewedBy": null,
+  "reviewedOn": null,
+  "status": "awaiting-clinical-review",
+  "notice": "These tips are waiting for a clinical reviewer. Your nurse’s advice comes first.",
+  "why": "Written by the product team as general guidance. No registered clinician has read or signed them yet, and one must before a real patient is shown them. Until then every screen that shows a tip shows this notice beside it."
+ },
+ "door": {
+  "opens": "Care tips",
+  "heading": "Care tips for the weeks ahead",
+  "detail": "Short, general tips on medicines, readings and being ready, to read one at a time.",
+  "action": "Read the care tips",
+  "opening": "Opening the care tips."
+ },
+ "screen": {
+  "eyebrow": "AFTER YOUR VISIT",
+  "heading": "A few things that help between visits",
+  "lead": "Read them one at a time, at your own pace. None of them replaces what your nurse told you at the visit.",
+  "counter": "Tip {n} of {total}",
+  "progressLabel": "Choose a tip",
+  "jumpLabel": "Tip {n}: {title}",
+  "back": "Back",
+  "next": "Next tip",
+  "startAgain": "Start again",
+  "refusalsHeading": "What these tips will not do",
+  "emergencyLabel": "Emergency numbers"
+ },
+ "refusals": [
+  {
+   "id": "no-dose",
+   "sentence": "A tip never tells you how much of a medicine to take, or when to start or stop one. That is for whoever prescribed it."
+  },
+  {
+   "id": "no-diagnosis",
+   "sentence": "A tip never says what is wrong with you. Only a nurse or a doctor who has seen you can."
+  },
+  {
+   "id": "not-personal",
+   "sentence": "A tip is the same for everybody. It does not know your readings, and it does not replace the plan your nurse gave you."
+  }
+ ],
+ "categories": [
+  { "id": "medicines", "label": "Medicines", "tint": "mint" },
+  { "id": "blood-pressure", "label": "Blood pressure", "tint": "lilac" },
+  { "id": "be-ready", "label": "Be ready", "tint": "peach" },
+  { "id": "water", "label": "Water", "tint": "lime" },
+  { "id": "when-to-call", "label": "When to call", "tint": "night" }
+ ],
+ "tints": {
+  "_why": "Each tint is a fill from packages/design-tokens/tokens.json with the ink that tokens.json#contrast measures on it, so a card's words are never on a pair the build has not computed. Colour is never the only difference between two tips: each card carries its category's name.",
+  "mint": { "fill": "brandMint", "ink": "brandInk" },
+  "lilac": { "fill": "studioLilac", "ink": "studioInk" },
+  "peach": { "fill": "studioPeach", "ink": "studioInk" },
+  "lime": { "fill": "studioLime", "ink": "studioInk" },
+  "night": { "fill": "studioNight", "ink": "studioPaper" }
+ },
+ "tips": [
+  {
+   "id": "medicine-list",
+   "category": "medicines",
+   "title": "One list for every medicine",
+   "body": "Write down every medicine you take, named as it is on the box, and keep the list with the boxes. Show both to the nurse at each visit, so nothing is missed or taken twice."
+  },
+  {
+   "id": "blood-pressure-routine",
+   "category": "blood-pressure",
+   "title": "Same chair, same time of day",
+   "body": "If you have been asked to check your blood pressure at home, sit quietly for a few minutes first and take it at the same time each day. Readings taken the same way can be compared fairly."
+  },
+  {
+   "id": "bag-by-the-door",
+   "category": "be-ready",
+   "title": "A bag by the door",
+   "body": "Keep your identity document, your clinic card and your current medicines together in one place, so they are ready to go if you need help in a hurry."
+  },
+  {
+   "id": "water",
+   "category": "water",
+   "title": "Sip through the day",
+   "body": "Keep water within reach and sip it through the day, especially in summer heat. If a nurse or a doctor has told you to limit what you drink, follow their advice instead."
+  },
+  {
+   "id": "when-to-call",
+   "category": "when-to-call",
+   "title": "Know when not to wait",
+   "body": "If you feel worse than you did at the visit, contact your clinic or your doctor the same day rather than waiting for the next visit. If someone collapses, cannot breathe or has chest pain, call an ambulance first."
+  }
+ ]
+}

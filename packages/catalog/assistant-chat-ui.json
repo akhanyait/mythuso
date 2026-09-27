@@ -20,7 +20,8 @@
     "emergency",
     "reading",
     "preparation",
-    "medicines"
+    "medicines",
+    "intake"
   ],
   "microphoneDetails": "Microphone & browser privacy",
   "attachments": {

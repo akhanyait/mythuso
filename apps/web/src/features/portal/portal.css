@@ -3676,3 +3676,288 @@
 .portal .g1-founder-logs .pt-label {
   margin: 0 0 var(--space-8);
 }
+
+/* ---- Every screen arrives, and says what is empty (28 September 2026) ----------------------------
+   The founder: the portal's screens "feel empty". Three answers, and none of them is decoration.
+
+   A screen arrives. Whatever the Frame's panel draws — a strip of figures, a region, a note — comes in
+   three short steps when the screen opens, and a strip of figures or a list of rows inside it does the
+   same card by card: the GilbertOne screens' rhythm, now every category's. Eight pixels and a fade over
+   an entrance, a third of a quick apart and three steps at most, so the last card is never waiting. A
+   backwards fill, so nothing is held once it lands and a card's own hover is never overruled. Gated on
+   [data-decor='on'] as every other portal motion is, and inside #pt-subpanel, so the removal above takes
+   all of it under reduced motion. A strip is not moved as a slab and then again card by card: the strip
+   itself stays put and only its cards arrive. */
+[data-decor="on"] .portal .pt-stagger > :not(.pt-figures, .s-metrics, .c-figures),
+[data-decor="on"] .portal .pt-stagger :is(.pt-figures, .s-metrics, .pt-list) > * {
+  animation: cf-arrive var(--t-enter) var(--ease-soft) backwards;
+}
+[data-decor="on"] .portal .pt-stagger > :nth-child(2),
+[data-decor="on"] .portal .pt-stagger :is(.pt-figures, .s-metrics, .pt-list) > :nth-child(2) {
+  animation-delay: calc(var(--t-quick) / 3);
+}
+[data-decor="on"] .portal .pt-stagger > :nth-child(n + 3),
+[data-decor="on"] .portal .pt-stagger :is(.pt-figures, .s-metrics, .pt-list) > :nth-child(n + 3) {
+  animation-delay: calc(var(--t-quick) * 2 / 3);
+}
+
+/* On a phone the figures sit two to a row under the full-width dark card, and a strip whose count left
+   one card alone at the foot left half a row empty beside it — the most literal kind of "empty". That
+   card takes the row. Counted from the card the screen is about, when there is one. */
+@media (max-width: 599px) {
+  .portal .pt-figure[data-tint="night"]:first-child ~ .pt-figure:last-child:nth-child(even),
+  .portal .pt-figure:not([data-tint="night"]):first-child ~ .pt-figure:last-child:nth-child(odd),
+  .portal .c-figures .s-metrics > .c-figure:last-child:nth-child(odd):not(:first-child) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* The console's own figures, carried into the portal from the back office. clinical.css takes the card
+   off them on purpose — in the console a figure sits on the ground beside the others — and inside the
+   portal that left three bare numerals floating above a white table, which is most of what "empty"
+   meant. Here they are cards like every other figure in the portal: white, because a tint is chosen
+   from a figure's name (Parts.tsx#tintsFor) and these are drawn by a screen this sheet cannot name; the
+   one the console is about keeps its lime tile. */
+.portal .c-figures .c-figure:not(.lead) {
+  padding: var(--space-24);
+  border-radius: var(--r-panel);
+  background: var(--surface);
+}
+.portal .c-figures .c-figure.lead {
+  padding: var(--space-24);
+}
+
+/* A written empty state is a card, not a dashed outline around a line of grey. A wash of the portal's
+   lavender when it says there is nothing yet, and of its peach when it leads with a refusal — the heading
+   is what makes it one, so the tint is never the only difference. Each wash is the tint mixed toward
+   white, so the ink on it measures above the tint's own row: studio ink computes 10.26 on the lavender
+   wash and 10.06 on the peach, against 9.04 and 8.92 on the full tints.
+   The mark at its head is the figure cards' dot, drawn as a ring: a status with no status to report. */
+.portal .pt-empty {
+  position: relative;
+  display: grid;
+  gap: var(--space-8);
+  padding: var(--space-20) var(--space-24) var(--space-20) calc(var(--space-24) + var(--space-24));
+  border: 0;
+  border-radius: var(--r-card);
+  background: color-mix(in srgb, var(--pt-tint-lavender) 55%, var(--surface));
+  color: var(--pt-tint-ink);
+}
+.portal .pt-empty:has(> strong) {
+  background: color-mix(in srgb, var(--pt-tint-peach) 55%, var(--surface));
+}
+.portal .pt-empty::before {
+  content: "";
+  position: absolute;
+  top: calc(var(--space-20) + 5px);
+  left: var(--space-24);
+  width: 10px;
+  height: 10px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+.portal .pt-empty strong {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: inherit;
+}
+.portal .pt-empty p {
+  max-width: 72ch;
+  font-size: 15px;
+  line-height: 1.55;
+  color: inherit;
+}
+
+
+/* ==== One settings page (28 September 2026) =========================================================
+   The founder, before sleeping: "do another check on all the setting pages — not all of them are looking
+   the same. Do a global change on all to look the same. Don't forget animations." So every Control Tower
+   screen is built from the same four parts, and this section is where they look the same:
+
+   - THE HEAD. Parts.tsx#PageHead, worn by Frame (every category) and by the founder's door: the eyebrow,
+     the one <h1>, one lead sentence and, where a screen has one, its status line — GilbertOne's build word
+     sits there now rather than in a card of its own above every sub-screen.
+   - THE SECTION CARD. Parts.tsx#Region is a tinted card with its title in it. The tints rotate mint,
+     lavender, peach, pale green in the order the sections are drawn, so no two neighbours share one. That
+     is a position choosing a colour, which the figure cards refuse (Parts.tsx#tintsFor) because a figure's
+     tint stands for the figure. A section's tint stands for nothing — its title says what it is — and the
+     founder's reference is a page of differently tinted cards, so here the rotation is the honest rule.
+     A section is a wash of its tint — the tint mixed toward white, as the empty-state cards are — so the
+     full tints stay the figure cards' and a figure still reads above the section it sits in. Everything
+     written directly on a wash is the tint's own ink, which measures higher on the wash than on the full
+     tint's row in tokens.json#contrast: studio ink on lavender (9.04), peach (8.92) and pale green
+     (11.46), brand ink on mint (8.09), each a floor the lighter wash only raises. Every block
+     inside — a row, a card, a table row, a form, an empty state — sits on white, the ground its words and
+     the portal's green focus ring were measured on (the ring clears 3:1 on white and paper, on no tint).
+   - THE FIELD ROW AND THE SAVE BAR, in fields.css, beside the controls they hold.
+   - THE MOTION: the arrival every screen already has (pt-stagger above), and the feedback in fields.css.
+     Nothing here moves, so nothing here needs a removal; the removal above takes #pt-subpanel whole. */
+
+/* ---- The head ---- */
+.portal .pt-head {
+  margin-bottom: var(--space-16);
+}
+/* The eyebrow's parts wrap whole — "Control Tower", the mark, the category — rather than each breaking
+   inside itself into a column of half-words on a phone. */
+.portal .pt-head-eyebrow {
+  flex-wrap: wrap;
+  row-gap: var(--space-4);
+}
+.portal .pt-head > .pt-subtabs {
+  margin-top: var(--space-16);
+  margin-bottom: 0;
+}
+.portal .pt-head-status {
+  margin-top: var(--space-16);
+}
+.portal .pt-head-status .pt-g1-state {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-16);
+  align-items: start;
+  max-width: 72rem;
+  margin: 0;
+  padding: var(--space-16) var(--space-20);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  color: var(--charcoal);
+}
+.portal .pt-head-status .pt-g1-large {
+  width: 40px;
+  height: 36px;
+}
+.portal .pt-head-status .pt-g1-state p {
+  max-width: none;
+  margin: var(--space-8) 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--charcoal);
+}
+
+/* ---- The section card ---- */
+.portal .pt-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-16);
+  margin: var(--space-24) 0 0;
+  padding: var(--space-24);
+  border-radius: var(--r-panel);
+  background: color-mix(in srgb, var(--pt-tint-mint) 55%, var(--surface));
+  color: var(--brand-ink);
+}
+.portal section.pt-section:nth-of-type(4n + 2) {
+  background: color-mix(in srgb, var(--pt-tint-lavender) 55%, var(--surface));
+  color: var(--pt-tint-ink);
+}
+.portal section.pt-section:nth-of-type(4n + 3) {
+  background: color-mix(in srgb, var(--pt-tint-peach) 55%, var(--surface));
+  color: var(--pt-tint-ink);
+}
+.portal section.pt-section:nth-of-type(4n + 4) {
+  background: color-mix(in srgb, var(--pt-tint-lime) 55%, var(--surface));
+  color: var(--pt-tint-ink);
+}
+.portal .pt-section > * {
+  margin: 0;
+}
+.portal .pt-section > h2 {
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.4px;
+  color: inherit;
+}
+.portal .pt-section > h2 .pt-count,
+.portal .pt-section-why {
+  color: inherit;
+}
+.portal .pt-section-why {
+  max-width: 72ch;
+  font-size: 15px;
+  line-height: 1.55;
+}
+/* Words the portal elsewhere sets in grey, when they sit on the tint itself: the tint's ink instead. Inside
+   a white block the same words take the block's ink, which is darker than their grey, never lighter. */
+.portal .pt-section :is(.helper, .pt-table caption, .pt-table thead th, .admin-table thead th, .pt-refusals span, .pt-label, .g1-refusal, .g1-live-why) {
+  color: inherit;
+}
+.portal .pt-section > p {
+  max-width: 80ch;
+  line-height: 1.55;
+}
+/* Every block that holds a field, a list or a fact sits on white. */
+.portal .pt-section > :is(.g1-founder, .g1-form, .pt-refusals, .pt-bullets, .pt-facts, .pt-fields, .g1-action, .g1-actions, .g1-subregion, .g1-founder-details, .g1-details) {
+  padding: var(--space-16) var(--space-20);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  color: var(--charcoal);
+}
+.portal .pt-section > .pt-refusals {
+  padding-left: calc(var(--space-20) + var(--space-16));
+}
+.portal .pt-section > .g1-form {
+  max-width: none;
+}
+.portal .pt-section > .pt-list {
+  background: transparent;
+}
+/* An empty state inside a section is white with its ring mark: the section's tint is already the wash. What
+   tells "nothing yet" from a refusal there is the refusal's heading, which is words, as it always was. */
+.portal .pt-section .pt-empty,
+.portal .pt-section .pt-empty:has(> strong) {
+  background: var(--surface);
+  color: var(--charcoal);
+}
+/* The Speech settings change panel is already the card the founder chose — paper, holding its own tinted
+   register cards — so its section takes no tint of its own, and the panel is the card. The same for the
+   preview panel, which carries its own ground. */
+.portal .pt-section:has(> .g1-change),
+.portal .pt-section:has(> .g1-preview) {
+  padding: 0;
+  background: transparent;
+  color: var(--charcoal);
+}
+.portal .pt-section:has(> .g1-change) > h2,
+.portal .pt-section:has(> .g1-preview) > h2 {
+  padding-inline: var(--space-4);
+}
+/* A section inside the fold or a Configuration node keeps the rotation, a step tighter. */
+.portal :is(.g1-fold-body, .pt-config-node) .pt-section {
+  margin-top: 0;
+  padding: var(--space-20);
+}
+@media (max-width: 599px) {
+  .portal .pt-section {
+    margin-top: var(--space-16);
+    padding: var(--space-16);
+    border-radius: var(--r-card);
+  }
+  .portal .pt-section > :is(.g1-founder, .g1-form, .pt-refusals, .pt-bullets, .pt-facts, .pt-fields, .g1-action, .g1-actions, .g1-subregion, .g1-founder-details, .g1-details) {
+    padding: var(--space-12) var(--space-16);
+  }
+  .portal .pt-section > .pt-refusals {
+    padding-left: calc(var(--space-16) + var(--space-16));
+  }
+  .portal .pt-head-status .pt-g1-state {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--space-16);
+  }
+}
+
+/* ---- The Speech settings save bar sits inside the paper panel, so it takes the paper's edge ---- */
+.portal .g1-change > .g1-savebar {
+  margin-top: var(--space-8);
+}
+.portal .g1-savebar .g1-reason {
+  max-width: none;
+}
+/* A row's tag inside a section card may wrap: the card's padding takes 32px from a phone's row, and "Needs a
+   clinician signed in and a purpose recorded" held on one line pushed the row 3px past main's edge. Wrapped,
+   it takes a control's radius rather than a pill's, as the figure chips do. */
+.portal .pt-section .pt-row > .g1-tag {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  border-radius: var(--r-control);
+}

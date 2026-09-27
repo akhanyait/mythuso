@@ -652,3 +652,187 @@
     transform: none !important;
   }
 }
+
+/* ==== One settings page (28 September 2026) =========================================================
+   The two shapes every settings page is built from (Fields.tsx#FieldRow, #SaveBar), the one look for a
+   typed field and a select, and the feedback that says a control heard you: a chip lifts under a pointer
+   or a keyboard, a thumb grows while it is held (above), and a card that took a saved change settles with
+   one brief flash of lime. All of it on transform, translate and opacity alone, in the tokens' three
+   durations and one curve, only while [data-decor='on'] (which the portal's pause control and the
+   reduced-motion query both clear), and removed outright at the foot of this section. */
+
+/* ---- A field row: label and what it decides, the control, the value in force ---- */
+.fc-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-8);
+  min-width: 0;
+}
+.fc-row-label {
+  display: grid;
+  gap: 2px;
+  color: var(--charcoal);
+  font-size: 14px;
+}
+.fc-row-label strong {
+  font-weight: 600;
+}
+.fc-row-label span {
+  font-weight: 400;
+  line-height: 1.5;
+}
+.fc-in-force {
+  margin: 0;
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--stone);
+  color: var(--charcoal-muted-on-surface);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* A chip's words break between words, and inside one only when a single word is wider than the chip: broken
+   anywhere, a phone's two-choice toggle read "The language' / s female voice". */
+.fc-chip > span {
+  overflow-wrap: break-word;
+}
+
+/* ---- A typed field and a select: the portal's shape, wherever the settings editor is drawn ---- */
+.fc-text {
+  min-height: 44px;
+  max-width: 100%;
+  padding: var(--space-8) var(--space-16);
+  border: 1px solid var(--stone);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  color: var(--charcoal);
+  font-size: 15px;
+}
+textarea.fc-text {
+  resize: vertical;
+}
+.fc-select {
+  max-width: 100%;
+}
+
+/* ---- The save bar: at the foot of what it saves, and held in view while that scrolls ---- */
+.fc-savebar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-8);
+  margin-top: var(--space-16);
+  padding: var(--space-16);
+  border: 1px solid var(--stone);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  color: var(--charcoal);
+  box-shadow: var(--shadow-raised);
+}
+.fc-savebar > label,
+.fc-savebar > .helper,
+.fc-savebar > p {
+  margin: 0;
+}
+.fc-savebar textarea {
+  width: 100%;
+  min-height: 64px;
+}
+.fc-savebar .button-row {
+  margin: 0;
+}
+/* On a phone the bar stays at the foot of what it saves and does not float: held in view, a reason field, its
+   help and two stacked buttons were half the screen, covering the very control the reason was about. */
+@media (max-width: 599px) {
+  .fc-savebar {
+    position: static;
+    padding: var(--space-12);
+    box-shadow: none;
+  }
+}
+
+/* ---- Feedback ---- */
+[data-decor="on"] .fc-chip {
+  transition:
+    background-color var(--t-quick) var(--ease-soft),
+    border-color var(--t-quick) var(--ease-soft),
+    color var(--t-quick) var(--ease-soft),
+    translate var(--t-quick) var(--ease-soft);
+}
+[data-decor="on"] .fc-chip:is(:hover, :has(input:focus-visible)):not(:has(input:disabled)) {
+  translate: 0 -2px;
+}
+/* A two-choice toggle's pills sit in a recessed track; lifting one out of it would read as a third state. */
+[data-decor="on"] .fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"]) > .fc-chip {
+  translate: none;
+}
+
+/* A saved card: one flash of lime over it, and the card settling a few pixels into place. The two names are
+   one keyframe written twice, so the card's data-saved parity, flipped by each confirmed change, restarts it
+   without remounting the card and taking the reader's focus with it. */
+@keyframes fc-saved-odd {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.55;
+  }
+}
+@keyframes fc-saved-even {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.55;
+  }
+}
+@keyframes fc-settle-odd {
+  from {
+    transform: translate3d(0, -4px, 0);
+  }
+}
+@keyframes fc-settle-even {
+  from {
+    transform: translate3d(0, -4px, 0);
+  }
+}
+[data-decor="on"] [data-saved] {
+  position: relative;
+}
+[data-decor="on"] [data-saved]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--brand-lime);
+  opacity: 0;
+  pointer-events: none;
+}
+[data-decor="on"] [data-saved="odd"] {
+  animation: fc-settle-odd var(--t-settle) var(--ease-soft);
+}
+[data-decor="on"] [data-saved="even"] {
+  animation: fc-settle-even var(--t-settle) var(--ease-soft);
+}
+[data-decor="on"] [data-saved="odd"]::after {
+  animation: fc-saved-odd var(--t-enter) var(--ease-soft) both;
+}
+[data-decor="on"] [data-saved="even"]::after {
+  animation: fc-saved-even var(--t-enter) var(--ease-soft) both;
+}
+
+/* Removal: not shortened, removed, and with !important because this sheet loads after motion.css. */
+@media (prefers-reduced-motion: reduce) {
+  .fc-chip,
+  [data-saved],
+  [data-saved]::after {
+    transition: none !important;
+    animation: none !important;
+  }
+  .fc-chip {
+    translate: none !important;
+  }
+}

@@ -261,6 +261,15 @@ export function emitClinicalReviewPack(root = '') {
  /* ---- F. Clinical content with no clinical sign-off recorded ------------------------------------- */
  const observationNote = records.consultation.sections.find(s => s.id === 'observations')?.note;
  const unreviewedLocales = locales.locales.filter(l => !['source', 'complete'].includes(l.clinicalReview?.state));
+ /* The symptom intake's question set (28 September 2026): predefined questions GilbertOne asks after a
+    symptom, for the nurse to read — not triage, no priority, no cause — and unreviewed until a clinician
+    signs review.reviewedBy. */
+ const intake = json('symptom-intake.json');
+ const intakeUnreviewed = intake.review.reviewedBy === null;
+ /* The care tips (28 September 2026): general guidance a patient reads after a visit, in a card stack —
+    written by nobody clinical and shown with the contract's notice until a clinician signs. */
+ const careTips = json('care-tips.json');
+ const careTipsUnreviewed = careTips.review.reviewedBy === null;
 
  /* ---- Counts ------------------------------------------------------------------------------------- */
  const counts = {
@@ -274,7 +283,7 @@ export function emitClinicalReviewPack(root = '') {
    return n + 1 + proposalChecks + notYetChecks;
   }, 0),
   E: clinicalSettings.length + clinicalProposals.length,
-  F: 1 + 1 + (unreviewedLocales.length ? 1 : 0),
+  F: 1 + 1 + (unreviewedLocales.length ? 1 : 0) + (intakeUnreviewed ? 1 : 0) + (careTipsUnreviewed ? 1 : 0),
   G: 6
  };
  const clinicalFrames = json('clinical.json');
@@ -590,6 +599,48 @@ export function emitClinicalReviewPack(root = '') {
   for (const l of unreviewedLocales) line(`| ${cell(l.label)} (${tick(l.code)}) | ${cell(l.clinicalReview?.state ?? 'none')} |`);
   line();
   line('**Question for the reviewer:** which languages should be clinically reviewed first, and who — by name, registration and language — is qualified to review each?');
+  line();
+  line(signOff());
+  line();
+ }
+
+ if (intakeUnreviewed) {
+  line('#### F4. The symptom intake question set');
+  line();
+  line(`From \`packages/catalog/symptom-intake.json\`. ${intake.whatItIsNot.join(' ')} "${intake.order.rule}"`);
+  line();
+  line(`Asked of every symptom group first:`);
+  line();
+  line('| Question | Kind | Options |');
+  line('|---|---|---|');
+  for (const q of intake.common.questions) line(`| ${cell(q.ask)} (${tick(q.id)}) | ${cell(q.kind)} | ${cell((q.options ?? []).join('; '))} |`);
+  line();
+  for (const g of intake.groups) {
+   line(`**${cell(g.name)}** (${tick(g.id)}) — opened by: ${g.triggers.map(t => tick(t)).join(', ')}`);
+   line();
+   line('| Question | Kind | Options |');
+   line('|---|---|---|');
+   for (const q of g.questions) line(`| ${cell(q.ask)} (${tick(q.id)}) | ${cell(q.kind)} | ${cell((q.options ?? []).join('; '))} |`);
+   line();
+  }
+  line(`The patient reads: "${intake.review.unreviewed}"`);
+  line();
+  line('**Question for the reviewer:** are these the questions a nurse wants answered before a home visit for each group, is any question one a patient should not be asked without a clinician present, are the groups the right groups, and which words in isiZulu, isiXhosa, Sesotho and Afrikaans should open each? The reviewer signs with a registration in the vetting register\'s format in `review.reviewedBy`; until then the build refuses any question that carries a clinical instruction or a number.');
+  line();
+  line(signOff());
+  line();
+ }
+
+ if (careTipsUnreviewed) {
+  line('#### F5. The care tips a patient reads after a visit');
+  line();
+  line(`From \`packages/catalog/care-tips.json\`. ${careTips.review.why} The patient reads beside every tip: "${careTips.review.notice}"`);
+  line();
+  line('| Tip | Category | What the patient reads |');
+  line('|---|---|---|');
+  for (const t of careTips.tips) line(`| ${cell(t.title)} (${tick(t.id)}) | ${cell(t.category)} | ${cell(t.body)} |`);
+  line();
+  line('**Question for the reviewer:** is each tip safe general guidance for every adult patient this service visits, is any tip wrong for a patient group (pregnancy, kidney or heart failure, children, the very old), and is the "when not to wait" tip complete? The reviewer signs `review.reviewedBy` and `review.reviewedOn`; until then no tip may carry a number, a dose or a diagnosis.');
   line();
   line(signOff());
   line();

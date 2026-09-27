@@ -42,6 +42,7 @@ struct PastVisitView: View {
                 nurseRow
                 if let readingSet { measuredPanel(readingSet); rangePanel(readingSet) } else { nothingFiled }
                 doctorPanel
+                careTipsDoor
                 actions
                 Text("A completed visit is not edited from here. If something on it is wrong, ask for a correction under Privacy & settings and the change is recorded beside the original rather than instead of it.")
                     .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.75))
@@ -166,6 +167,21 @@ struct PastVisitView: View {
             StatedFact(term: "The assessment", statement: Passport.lastReview.assessment)
             StatedFact(term: "What to do until the next visit", statement: Passport.lastReview.plan)
             StatedFact(term: "What happens next", statement: Passport.lastReview.next)
+        }
+    }
+
+    /* The care tips follow the doctor's plan because they are the general half of the same question —
+       what to do until the next visit — and their own screen says the plan above comes first. Every
+       word here is CareTipsData's, generated from packages/catalog/care-tips.json. */
+    private var careTipsDoor: some View {
+        SurfacePanel(tone: .quiet, spacing: ThusoSpacing.space12) {
+            Text(CareTipsData.Door.heading).font(.headline).foregroundStyle(ThusoTheme.charcoal)
+                .fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.isHeader)
+            Text(CareTipsData.Door.detail).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                .fixedSize(horizontal: false, vertical: true)
+            NavigationLink { CareTipsView() } label: {
+                Label(CareTipsData.Door.action, systemImage: "lightbulb").frame(maxWidth: .infinity)
+            }.buttonStyle(QuietButton())
         }
     }
 

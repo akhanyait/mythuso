@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Activity, ArrowRight, Clock3, MapPin, RotateCcw, ShieldCheck, Stethoscope } from 'lucide-react';
 import { Pill, SectionTitle, ServiceIcon } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
@@ -8,6 +9,10 @@ import { doesNotUndo, refusalById, stateById, wordsFor, type CancelState } from 
 import {
  dateOf, flagFor, formatValue, lastReview, measureSpec, measuredIn, rangeText, reviewedBy, setOnDay
 } from '../lib/passport';
+
+/* From the same module as the tips screen, so the door and the page it opens share one download and one
+   dependency list in the entry bundle rather than two. */
+const CareTipsDoor = lazy(() => import('./CareTips').then(m => ({ default: m.CareTipsDoor })));
 
 /* A visit that has already happened, and a visit that never will.
  *
@@ -121,6 +126,11 @@ export function PastVisit({ row, dayOffset, rebook, navigate }: {
     <div><dt>What happens next</dt><dd>{lastReview.next}</dd></div>
    </dl>
   </div>
+
+  {/* The care tips follow the doctor's plan because they are the general half of the same question —
+      what to do until the next visit. A door rather than the stack, on a dynamic import like the visit's
+      thread below: this dialog is on the patient's first load and the door's words are not. */}
+  <Suspense fallback={null}><CareTipsDoor navigate={navigate}/></Suspense>
 
   <button className="primary full" onClick={rebook}><RotateCcw size={17}/>Book {row.service.name} again</button>
   <button className="secondary full" onClick={() => navigate('Health trends')}>See how this has changed over time<ArrowRight size={17}/></button>

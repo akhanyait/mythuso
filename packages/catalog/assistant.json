@@ -302,6 +302,16 @@
       "audiences": ["patient"],
       "platforms": ["web"],
       "triggers": ["read my medicine list", "my medicine list", "my medicines", "my medication", "medication list", "what medicines am i taking", "what am i taking", "read my medicines", "read back my medicines"]
+    },
+    {
+      "id": "intake",
+      "asks": "I'm not feeling well — take notes for my nurse",
+      "group": "situations",
+      "answer": "intake",
+      "audiences": ["patient"],
+      "platforms": ["web"],
+      "triggers": ["take notes for my nurse", "notes for my nurse", "notes for the nurse", "i have a symptom", "i dont feel well", "i feel unwell", "im not feeling well", "something is wrong"],
+      "why": "The founder's ask of 28 September 2026: a patient who says what is wrong is offered packages/catalog/symptom-intake.json's set questions for it, one per turn, and a card of her answers to show the nurse. These triggers are the offer's own words — the chip's and the general ways of saying something is wrong. A complaint the intake's groups know by name (a headache, a sore stomach) reaches the same offer without a trigger here: lib/assistant.ts asks the intake's own matcher after the emergency words and the refusal policies, before anything is unmatched. Not triage: no priority, no cause, no advice, and every answer she gives passes through the emergency words first."
     }
   ],
   "questionGroups": [
@@ -603,6 +613,10 @@
       "neverChanges": "I cannot add, stop or change anything on this list. That belongs to whoever prescribed it: say so at your next visit, or ask a nurse.",
       "preview": "In this preview the record is a sample, not your own.",
       "why": "Read back, never interpreted. The line is a template over the record's own fields — name, dose, frequency — so no dose is typed here. The protected sentence is said every time, whether or not a protected entry exists, because saying it only when one exists would say that one exists; a reply is read aloud in a room."
+    },
+    "intake": {
+      "state": "guiding",
+      "why": "The symptom intake of 28 September 2026. Every sentence it reads — the offer, each question and its options, the notes card, the closing — is packages/catalog/symptom-intake.json's; this entry carries only the state, so the panel and the voice treat it like every other kind. It is guiding, never escalate: the intake sets no urgency, and an emergency word in any answer is answered by the emergency kind, not by this one."
     }
   },
   "silenceIsNotSafety": "GilbertOne not recognising an emergency does not mean there is not one. If you think it is an emergency, call {ambulance}, or {mobile} from a mobile.",
@@ -614,6 +628,7 @@
     "youAsked": "You asked",
     "youSaid": "You said",
     "logLabel": "Conversation with GilbertOne",
+    "thinkingLabel": "GilbertOne is thinking",
     "refusalsHeading": "What GilbertOne will not do",
     "turnLimit": 24,
     "keyboardNote": "The microphone on your keyboard belongs to the keyboard, not to GilbertOne: whoever made the keyboard — Apple, Google or another company — may send what you say through it to their servers. GilbertOne's own Tap to talk button is the one that keeps your voice on this phone.",
@@ -685,7 +700,8 @@
       "service": "routine",
       "reading": "routine",
       "preparation": "routine",
-      "medicines": "routine"
+      "medicines": "routine",
+      "intake": "routine"
     },
     "surfaces": {
       "demonstrator": "patient-general",
@@ -770,6 +786,11 @@
         "cue": "A17",
         "posture": "flat",
         "why": "The medicine list is read back with a refusal in the same breath — GilbertOne cannot add, stop or change anything on it, and never reads a protected entry — and a refusal is not decorated with a smile. A17's brief flat face is the face every other refusal in this contract wears."
+      },
+      "intake": {
+        "cue": "A13",
+        "posture": "warm",
+        "why": "Taking notes for the nurse is a routine kindness, the same warm face the situations and the preparation list wear: nothing is refused, nothing is interpreted, and the questions are the ones a nurse would ask on arrival. The sentence saying no clinician has reviewed the questions is a disclosure, not a refusal, and does not change the face. An emergency word in any answer leaves this kind altogether for the emergency answer and the safety face, so nothing here can soften one."
       }
     },
     "conversation": {

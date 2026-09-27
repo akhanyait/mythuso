@@ -46,8 +46,8 @@ html:has(.landing) {
   scroll-behavior: smooth;
   background: var(--mist);
 }
+/* The page's ground is surface/public-revamp.css's paper; the html behind it stays mist. */
 .landing {
-  background: var(--mist);
   min-height: 100dvh;
   overflow-x: clip;
   --wrap: 1200px;
@@ -99,19 +99,7 @@ html:has(.landing) {
   color: var(--charcoal);
   text-wrap: balance;
 }
-.landing h1 {
-  font-size: clamp(36px, 5.6vw, 64px);
-  line-height: 1;
-}
-/* The headline's second tone, and it is the brand's own green rather than the olive the page used
-   to mix for itself: the four banners this hero is drawn from set the second half of every headline
-   in it, and a mark is not repainted to match a screen it happens to sit on. brandGreen measures
-   3.19:1 on this ground, which SC 1.4.3 allows for large text and nothing else — so it appears on
-   the <h1> and on nothing smaller anywhere in this product. The pair is declared in
-   packages/design-tokens/tokens.json and computed on every build. */
-.landing h1 .landing-h1-accent {
-  color: var(--brand-green);
-}
+/* The headline's size and its second tone are the editorial hero's, in surface/public-revamp.css. */
 .landing h2 {
   font-size: clamp(28px, 3.6vw, 42px);
   line-height: 1.08;
@@ -132,17 +120,20 @@ html:has(.landing) {
 /* Sections arrive as you reach them. The rule that hides anything is scoped to the data-motion flag
    that apps/web/src/lib/motion.ts sets, so a page whose script never runs is a page that is simply
    already visible — never a blank one waiting for an observer that will not fire. */
+/* On the tokens since 28 September 2026: the arrival is an entrance and a half, the lift a settle, and
+   a list's cards follow one another half a quick apart — 80ms, inside the 80–100 the founder approved. */
 [data-motion="on"] .landing [data-reveal] {
   opacity: 0;
   transform: translate3d(0, 20px, 0);
   transition:
-    opacity 0.6s var(--ease),
-    transform 0.6s var(--ease),
-    translate 0.25s var(--ease),
-    box-shadow 0.25s var(--ease),
-    border-color 0.25s var(--ease);
+    opacity calc(var(--t-enter) * 1.5) var(--ease),
+    transform calc(var(--t-enter) * 1.5) var(--ease),
+    translate var(--t-settle) var(--ease),
+    box-shadow var(--t-settle) var(--ease),
+    border-color var(--t-settle) var(--ease);
   transition-delay:
-    calc(var(--i, 0) * 70ms), calc(var(--i, 0) * 70ms), 0s, 0s, 0s;
+    calc(var(--i, 0) * var(--t-quick) / 2),
+    calc(var(--i, 0) * var(--t-quick) / 2), 0s, 0s, 0s;
 }
 [data-motion="on"] .landing [data-reveal="shown"] {
   opacity: 1;
@@ -239,7 +230,6 @@ html:has(.landing) {
   align-items: center;
   gap: 16px;
   padding: 14px var(--pad);
-  background: color-mix(in srgb, var(--mist) 88%, transparent);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--stone);
   transition: padding 0.3s var(--ease);
@@ -298,28 +288,40 @@ html:has(.landing) {
   color: var(--body);
   padding: 10px 15px;
   border-radius: var(--r-pill);
-  transition:
-    color 0.18s,
-    background 0.18s;
+  position: relative;
+  transition: color var(--t-quick) var(--ease);
 }
 .landing-nav nav a:hover {
   color: var(--charcoal);
-  background: var(--cloud);
 }
+/* The line under a section link draws from its left edge on hover and on keyboard focus alike, one
+   transform and nothing that moves the link's box. It replaced a grey pill behind the word, which
+   was a second shape inside the bar's own pill. */
+.landing-nav nav a::after {
+  content: "";
+  position: absolute;
+  left: 15px;
+  right: 15px;
+  bottom: 8px;
+  height: 2px;
+  border-radius: var(--r-pill);
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--t-settle) var(--ease);
+}
+.landing-nav nav a:is(:hover, :focus-visible)::after {
+  transform: none;
+}
+
 .landing-cta {
   display: inline-flex;
   margin-left: auto;
   flex-shrink: 0;
   min-height: 44px;
   padding: 11px 20px;
-  font-size: 14px;
-  border-radius: var(--r-pill);
-  background: var(--charcoal);
-  color: var(--surface);
 }
-.landing-cta:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--charcoal) 82%, var(--surface));
-}
+/* Its fill, ink and corner are surface/public-revamp.css's (.landing .landing-nav .primary). */
 /* Circular, hairline, no fill — the reference's icon button. --shadow is removed rather than
    inherited, because a shadow on a 44px circle over a grey ground reads as a smudge. */
 .landing-menu {
@@ -381,109 +383,29 @@ html:has(.landing) {
 .landing-hero {
   position: relative;
   overflow: clip;
-  padding: clamp(40px, 5.2vw, 76px) var(--pad) clamp(40px, 4.5vw, 64px);
-  display: grid;
-  gap: clamp(30px, 4.2vw, 54px);
   align-items: start;
 }
 .landing-hero > * {
   position: relative;
   z-index: 1;
 }
-/* The words before the figure in the grid's order as in the document's; surface/public-revamp.css
-   reorders them for a phone, where the figure stands above the words. */
-.landing-hero-copy {
-  order: 1;
-}
-.landing-hero .landing-portrait {
-  order: 2;
-}
-
-/* The four slides, stacked in one grid cell and cross-faded.
-   Nothing here moves a box: every slide is in the same cell, so the column is the height of its
-   tallest slide in every frame of the change and between changes — which is the whole of what made
-   the carousel before last four flaky specs. See the note above Hero in features/Landing.tsx.
-
-   The three that are not showing are visibility:hidden as well as transparent. That takes them out
-   of the tab order, out of the accessibility tree, and out of the text walkers in
-   tests/landing.spec.ts — and it is what keeps exactly one <h1> and exactly one call to action on
-   the page at a time. The delay on visibility is what lets the fade finish first. */
-.landing-hero-copy {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  min-width: 0;
-}
+/* The banner's words. The hero has stood on one banner since 28 September 2026, so the cross-fade
+   that stacked four slides in one cell and hid three of them went with the rotation; the one slide
+   is simply there. The grid and the column the copy stands in are surface/public-revamp.css's, and
+   a rotation that comes back brings its stacking back with its pause control. */
 .landing-hero-slide {
   grid-area: 1 / 1;
   min-width: 0;
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity 0.55s var(--ease),
-    visibility 0s 0.55s;
-}
-.landing-hero-slide.is-on {
-  opacity: 1;
-  visibility: visible;
-  transition: opacity 0.55s var(--ease);
 }
 
-/* The eyebrow. A peach pill with the word in ink.
-   It is orange in the supplied art and it cannot be: brandOrange measures 2.67:1 on this ground and
-   the brand's own rule is that it is the chevron and never a word. The tint it sat on is kept, so
-   the pill still reads warm — peach at 42% over paper, with studioInk on it at 11.04. */
+/* The eyebrow, the headline, the lede and the call to action are the editorial hero's, in
+   surface/public-revamp.css, which overruled the first hero's rules for them line by line; the two
+   lines below are what that sheet still leaves to this one. */
 .landing-hero-eyebrow {
-  display: inline-block;
-  margin: 0 0 clamp(16px, 2vw, 24px);
-  padding: 9px 18px;
-  border-radius: var(--r-pill);
-  background: color-mix(in srgb, var(--studio-peach) 42%, var(--studio-paper));
-  color: var(--studio-ink);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
   line-height: 1.25;
 }
-
-/* The headline, two lines in two tones, exactly as the art sets it. Each half is its own block
-   because the contract splits the sentence there — a headline coloured by where the text happens to
-   wrap means something different on every screen. The space between the two spans stays in the
-   markup, so the accessible name is still one sentence. */
-.landing-hero h1 {
-  margin: 0;
-}
-.landing-hero h1 span {
-  display: block;
-}
-.landing-hero-lede {
-  margin: clamp(18px, 2.2vw, 26px) 0 0;
-  max-width: 44ch;
-  font-size: 18px;
-  line-height: 1.6;
-  color: var(--body);
-}
-
-/* The action. The brand lime rather than the interface's studioLime, and the two are separate on
-   purpose: this is the founder's mark on his own banner, and packages/design-tokens/tokens.json
-   says plainly that a mark is not repainted to match a screen it happens to sit on. brandInk on
-   brandLime measures 10.47 and is a declared pair. It is the only filled control in the hero. */
 .landing-hero .primary {
-  display: inline-flex;
-  align-items: center;
   gap: 10px;
-  margin: clamp(24px, 2.8vw, 34px) 0 0;
-  border-radius: var(--r-pill);
-  background: var(--brand-lime);
-  color: var(--brand-ink);
-  min-height: 56px;
-  padding: 16px 28px;
-  font-size: 16px;
-  font-weight: 600;
-}
-.landing-hero .primary:hover {
-  background: color-mix(in srgb, var(--brand-lime) 86%, var(--brand-ink));
-  color: var(--brand-ink);
 }
 
 /* The disc on the floating cards. Mixed into --surface rather than into the
@@ -521,117 +443,42 @@ html:has(.landing) {
    picture, which is where the founder put them. They are outside the four slides on purpose: a
    sentence saying nobody in these photographs is a MyThuso nurse is not something a rotation may
    carry off the screen. */
-.landing-portrait {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  margin: 0;
-  min-width: 0;
-}
 .landing-portrait-frame {
-  grid-area: 1 / 1;
   position: relative;
-  overflow: hidden;
-  border-radius: var(--r-panel);
-  background: var(--pale-sage);
-  border: 1px solid var(--stone);
-  aspect-ratio: 4 / 5;
   color: var(--charcoal);
 }
 .landing-portrait figcaption {
-  grid-area: 1 / 1;
   align-self: end;
   z-index: 3;
-  margin: 14px;
-  background: var(--surface);
-  border: 1px solid var(--stone);
   border-radius: var(--r-card);
   padding: 12px 14px;
-  box-shadow: var(--shadow);
   color: var(--body);
 }
+/* The frame's shape and wash, the picture's fit and the two standing lines' type are the editorial
+   hero's (surface/public-revamp.css); what stays here is what that sheet leaves to this one. */
 .landing-portrait-frame img {
   position: relative;
   z-index: 1;
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: bottom center;
-}
-.landing-portrait-frame.soft {
-  background: var(--cloud);
-}
-
-/* The hero's own figure is three rows rather than one overlaid cell: the note, the picture, the
-   disclosure. The two splits further down this page keep the overlaid treatment above. */
-.landing-hero .landing-portrait {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto auto auto;
-  gap: 10px;
 }
 .landing-hero .landing-portrait-place,
 .landing-hero .landing-portrait figcaption {
-  grid-area: auto;
-  justify-self: end;
-  text-align: right;
-  margin: 0;
-  background: none;
-  border: 0;
-  box-shadow: none;
-  padding: 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--body);
   max-width: 100%;
 }
-.landing-hero .landing-portrait-place {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-weight: 500;
-}
-.landing-hero .landing-portrait-place svg {
-  flex-shrink: 0;
-  color: var(--studio-ink);
-}
-/* The blob. The art's photograph is a rounded shape with one small corner, and the crops in
-   packages/banners keep a sliver of the mint ground the founder set it on — so the frame is washed
-   the same mint rather than bordered, and the crop's own edge disappears into it instead of being
-   cut off. brandMint at 20% over paper; no text is ever inside this box, which is also what makes
-   the drift on it safe to animate. */
 .landing-hero .landing-portrait-frame {
   grid-area: auto;
-  aspect-ratio: 4 / 5;
-  border: 0;
-  background: color-mix(in srgb, var(--brand-mint) 29%, var(--surface));
-  border-radius: clamp(30px, 6vw, 88px) var(--r-panel) clamp(30px, 6vw, 88px)
-    clamp(30px, 6vw, 88px);
 }
 /* Anchored right. These crops carry the composition's mint ground down their left edge — the part
    of each frame the floating cards never covered — so the frame is narrower than the crop and the
    difference is taken off that side. */
 .landing-hero .landing-portrait-frame img {
-  object-fit: cover;
   object-position: 100% 50%;
 }
 
-/* The four photographs, stacked and cross-faded in the same way the copy is. */
+/* The figure's slide, laid over its frame. */
 .landing-slide {
   position: absolute;
   inset: 0;
   z-index: 1;
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity 0.55s var(--ease),
-    visibility 0s 0.55s;
-}
-.landing-slide.is-on {
-  opacity: 1;
-  visibility: visible;
-  transition: opacity 0.55s var(--ease);
 }
 
 /* The two floating cards. White, opaque, one shadow, a tinted disc and two or three short lines —
@@ -639,30 +486,8 @@ html:has(.landing) {
    right-hand third of each original.
    They stay inside the frame rather than hanging off its edge as they do in the art. A card that
    overhangs is a box outside a clipped container, and at 320px that is a horizontal scrollbar on
-   the one page a stranger reads first. studioInk on white measures 12.76 and studioInkMuted 6.92. */
-.landing-hero-card {
-  position: absolute;
-  z-index: 2;
-  right: clamp(10px, 2.4%, 16px);
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  width: max-content;
-  max-width: min(300px, 74%);
-  background: var(--surface);
-  border-radius: var(--r-panel);
-  padding: 14px 18px 14px 14px;
-  box-shadow: var(--shadow);
-  font-size: 14px;
-  line-height: 1.45;
-  color: var(--studio-ink-muted);
-}
-.landing-hero-card.at-top {
-  top: clamp(10px, 3%, 26px);
-}
-.landing-hero-card.at-foot {
-  bottom: clamp(10px, 3%, 26px);
-}
+   the one page a stranger reads first. studioInk on white measures 12.76 and studioInkMuted 6.92.
+   The card's box and its place are surface/public-revamp.css's; its column of lines is set here. */
 .landing-hero-card > span:last-child {
   display: flex;
   flex-direction: column;
@@ -675,11 +500,6 @@ html:has(.landing) {
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--studio-ink);
-}
-.landing-hero-card .landing-hero-disc.tint-mint,
-.landing-hero-card .landing-hero-disc.tint-peach {
-  width: 40px;
-  height: 40px;
 }
 
 /* ---- Sections and headings ----
@@ -744,19 +564,17 @@ html:has(.landing) {
 }
 .landing-steps li {
   position: relative;
-  background: var(--surface);
-  border: 1px solid var(--stone);
-  border-radius: var(--r-panel);
   padding: clamp(24px, 2.6vw, 32px);
-  transition:
-    translate 0.25s var(--ease),
-    box-shadow 0.25s var(--ease),
-    border-color 0.25s var(--ease);
 }
-.landing-steps li:hover {
-  translate: 0 -3px;
+/* One lift for every card on the page, and the same one for a pointer and for a keyboard: a card
+   rises six pixels and takes the raised shadow on hover, or when a control inside it has keyboard
+   focus. `translate`, not `transform` — the reveal sets transform:none on a shown card with more
+   specificity than any hover rule, and the independent property composes with it instead. The
+   transition list lives on [data-reveal] above, which every one of these cards carries. */
+:is(.landing-steps, .landing-services, .landing-plans) li:is(:hover, :has(:focus-visible)) {
+  translate: 0 -6px;
   border-color: var(--charcoal);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-raised);
 }
 .landing-step-index {
   display: block;
@@ -768,9 +586,6 @@ html:has(.landing) {
   color: var(--body);
   font-variant-numeric: tabular-nums;
   margin-bottom: 24px;
-}
-.landing-steps .tile-icon {
-  margin-bottom: 20px;
 }
 .landing-steps h3 {
   margin-bottom: 10px;
@@ -795,24 +610,6 @@ html:has(.landing) {
 .landing-services li {
   display: flex;
   flex-direction: column;
-  background: var(--surface);
-  border: 1px solid var(--stone);
-  border-radius: var(--r-panel);
-  padding: clamp(20px, 2.2vw, 26px);
-  transition:
-    border-color 0.25s,
-    translate 0.25s var(--ease);
-}
-/* `translate`, not `transform`. The reveal rule above sets transform:none on a shown element with
-   three selectors of specificity, which quietly beats a two-class hover rule and leaves the lift
-   dead everywhere motion is on. The independent property composes with it instead of fighting it. */
-.landing-services li:hover {
-  border-color: var(--charcoal);
-  translate: 0 -3px;
-  box-shadow: var(--shadow);
-}
-.landing-services .service-icon {
-  margin-bottom: 20px;
 }
 .landing-services h3 {
   font-size: 16px;
@@ -836,9 +633,6 @@ html:has(.landing) {
   border-top: 1px solid var(--stone);
 }
 .landing-price strong {
-  font-size: 20px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
   color: var(--charcoal);
 }
 .landing-price span {
@@ -863,14 +657,9 @@ html:has(.landing) {
 }
 
 .landing-secondary {
-  margin-top: 32px;
   min-height: 48px;
   padding: 13px 24px;
-  font-size: 14px;
-  border-radius: var(--r-pill);
   background: transparent;
-  border: 1px solid var(--stone);
-  color: var(--charcoal);
 }
 .landing-secondary:hover:not(:disabled) {
   background: var(--surface);
@@ -892,19 +681,9 @@ html:has(.landing) {
   position: relative;
   display: flex;
   flex-direction: column;
-  background: var(--surface);
   border: 1px solid var(--stone);
   border-radius: var(--r-panel);
   padding: clamp(20px, 2.2vw, 26px);
-  transition:
-    translate 0.25s var(--ease),
-    box-shadow 0.25s var(--ease),
-    border-color 0.25s var(--ease);
-}
-.landing-plans li:hover {
-  translate: 0 -3px;
-  border-color: var(--charcoal);
-  box-shadow: var(--shadow);
 }
 /* Two lines of room whether the name needs them or not, so the four prices sit on one line across
    the row. Four large numerals at four different heights is the thing that makes a price table look
@@ -929,7 +708,7 @@ html:has(.landing) {
   letter-spacing: -0.04em;
   color: var(--charcoal);
 }
-.landing-plans p:last-child {
+.landing-plans .landing-price + p {
   font-size: 14px;
   line-height: 1.65;
   color: var(--body);
@@ -941,8 +720,6 @@ html:has(.landing) {
   font-size: 13px;
   font-weight: 500;
   line-height: 1;
-  color: var(--charcoal);
-  background: var(--cloud);
   border-radius: var(--r-pill);
   padding: 6px 12px;
 }
@@ -961,42 +738,16 @@ html:has(.landing) {
   margin: 0;
   border-top: 1px solid var(--stone);
 }
-.landing-checks li {
-  padding: 22px 0;
-  border-bottom: 1px solid var(--stone);
-}
-.landing-checks h3 {
-  font-size: 16px;
-  margin-bottom: 8px;
-}
-.landing-checks p {
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--body);
-}
 /* The renewal cadence is the one thing on a check that is a status rather than a description, so it
    is the one thing set as a chip. Charcoal on --pale-sage, 11.11:1. */
 .landing-checks .landing-cadence {
-  display: inline-block;
-  margin-top: 12px;
   font-size: 13px;
-  line-height: 1;
   font-weight: 500;
-  color: var(--charcoal);
-  background: var(--pale-sage);
-  border-radius: var(--r-pill);
-  padding: 6px 12px;
 }
 .landing-refusals {
-  margin-top: clamp(40px, 4.5vw, 56px);
-  background: var(--charcoal);
-  border-radius: var(--r-panel);
   padding: clamp(28px, 3.4vw, 48px);
 }
 .landing-refusals h3 {
-  color: var(--surface);
-  font-size: 22px;
-  font-weight: 500;
   margin-bottom: 8px;
 }
 .landing-refusals ul {
@@ -1047,11 +798,8 @@ html:has(.landing) {
   min-height: 44px;
   text-align: left;
   padding: 22px 0;
-  font-size: 16px;
-  font-weight: 500;
   letter-spacing: -0.015em;
-  color: var(--charcoal);
-  transition: opacity 0.18s;
+  transition: opacity var(--t-quick);
 }
 .landing-faq button:hover {
   opacity: 0.62;
@@ -1094,34 +842,22 @@ html:has(.landing) {
   max-width: 56ch;
   margin: 0 auto;
 }
-.landing-final h2 {
-  color: var(--surface);
-  font-size: clamp(32px, 4.8vw, 64px);
-}
 .landing-final p {
   margin: 24px 0 0;
   font-size: 16px;
   line-height: 1.7;
   color: var(--studio-paper);
 }
-/* Lime on the dark panel, which is the one ground in the palette where lime is also allowed to be
-   a word. The label stays ink at 11.46 either way; what changes is that the closing action is the
-   same pill as the opening one rather than a white rectangle that reads as a third kind of button. */
+/* The closing action's fill is surface/public-revamp.css's studio ink on the lime panel. It used to
+   turn a paler lime on hover, written when the panel was dark — on today's lime panel that made the
+   one button on it all but vanish under the pointer. It deepens to the darker ink instead, with paper
+   on it; its lift and its one raised shadow are every primary's (see the lift below). */
 .landing-final .primary {
   margin-top: 36px;
-  background: var(--studio-lime);
-  color: var(--studio-ink-deep);
-  transition:
-    translate 0.25s var(--ease),
-    background 0.25s var(--ease),
-    box-shadow 0.25s var(--ease);
 }
 .landing-final .primary:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--studio-lime) 84%, var(--studio-paper));
-  color: var(--studio-ink-deep);
-  translate: 0 -3px;
-  box-shadow: 0 16px 26px -14px
-    color-mix(in srgb, var(--studio-ink-deep) 40%, transparent);
+  background: var(--studio-ink-deep);
+  color: var(--studio-paper);
 }
 /* Two classes, so it outranks `.landing-final p` above it rather than losing to it. */
 .landing-final .landing-final-note {
@@ -1154,9 +890,7 @@ html:has(.landing) {
   width: auto;
 }
 .landing-footer p {
-  font-size: 14px;
   line-height: 1.7;
-  color: var(--body);
   margin-top: 18px;
   max-width: 52ch;
 }
@@ -1229,8 +963,9 @@ html:has(.landing) {
   .landing-services {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+  /* One row of however many cards the chosen side of the toggle has: four plans, or three tiers. */
   .landing-plans {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--cards), minmax(0, 1fr));
   }
   .landing-checks {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1273,14 +1008,12 @@ html:has(.landing) {
     opacity: 1 !important;
     transform: none !important;
   }
-  .landing-services li:hover,
-  .landing-steps li:hover,
-  .landing-plans li:hover {
+  :is(.landing-steps, .landing-services, .landing-plans) li:is(:hover, :has(:focus-visible)),
+  .landing .primary:is(:hover, :focus-visible) {
     translate: none;
   }
   .landing .editorial-hero .primary:hover,
   .landing-final .primary:hover {
-    translate: none;
     box-shadow: none;
   }
   .landing-progress {
@@ -1452,14 +1185,27 @@ html:has(.landing) {
     transform: none;
   }
 }
-[data-motion="on"] .landing-services {
+/* A side of the plans toggle lands the same way, since the reveal observer has long since stopped
+   looking by the time anybody presses it. */
+[data-motion="on"] :is(.landing-services, .landing-plans[data-switched]) {
   animation: service-settle var(--t-settle) var(--ease-soft) both;
 }
 
-/* The two primary calls to action press. surface/motion.css's .m-press gives every control the
-   0.98 scale over --t-quick; these two carry their own transition lists for the hover lift, which
+/* The primary calls to action press. surface/motion.css's .m-press gives every control the
+   0.98 scale over --t-quick; these carry their own transition lists for the hover lift, which
    would otherwise leave the press to snap. The lift and the press are both transforms of a kind,
-   and they are listed together so neither cancels the other's easing. */
+   and they are listed together so neither cancels the other's easing.
+
+   The lift is four pixels, on hover and on keyboard focus alike. The raised shadow is the pointer's
+   alone: on focus the element's box-shadow is the outer of core.css's two focus rings, and a shadow
+   laid under it would be two shadows and one ring. */
+.landing .primary:is(:hover, :focus-visible) {
+  translate: 0 -4px;
+}
+.landing .primary:hover {
+  box-shadow: var(--shadow-raised);
+}
+.landing .primary,
 .landing .editorial-hero .primary.m-press,
 .landing-final .primary.m-press {
   transition:
@@ -1486,4 +1232,118 @@ html:has(.landing) {
 @media (max-width: 720px) {
   .landing-nav .landing-nav-pause { margin-right: 6px; padding: 0 10px; }
   .landing-nav .landing-nav-pause span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+
+/* ---- Motion, 28 September 2026 ----
+   The founder's shortlist from the motion reference, and nothing else from it: a block's children
+   arriving in sequence, the section links' drawn line, one card lift (above, with the cards), the
+   plans toggle and one trace drawn once. Every duration is a token, every one of them is finite, and
+   the reduced-motion block above removes all of them with everything else.
+
+   A block marked reveal-stagger does not arrive as one slab. The block itself stays put and its
+   children rise in turn, half a quick apart, once the reveal observer releases it. `translate` in the
+   keyframes and a backwards fill, so nothing is held once it lands: the lift and the press on a call
+   to action inside one of these blocks are transforms of their own and are never overruled. */
+@keyframes reveal-rise {
+  from {
+    opacity: 0;
+    translate: 0 16px;
+  }
+}
+[data-motion="on"] .landing .reveal-stagger[data-reveal] {
+  opacity: 1;
+  transform: none;
+}
+[data-motion="on"] .landing .reveal-stagger[data-reveal]:not([data-reveal="shown"]) > * {
+  opacity: 0;
+}
+[data-motion="on"] .landing .reveal-stagger[data-reveal="shown"] > * {
+  animation: reveal-rise calc(var(--t-enter) * 1.5) var(--ease) backwards;
+}
+[data-motion="on"] .landing .reveal-stagger > :nth-child(2) {
+  animation-delay: calc(var(--t-quick) / 2);
+}
+[data-motion="on"] .landing .reveal-stagger > :nth-child(3) {
+  animation-delay: var(--t-quick);
+}
+[data-motion="on"] .landing .reveal-stagger > :nth-child(n + 4) {
+  animation-delay: calc(var(--t-quick) * 1.5);
+}
+
+/* The plans toggle. A pill track with a knob that slides under the chosen word: one transform over a
+   settle. The chosen word is white on studioInk (11.66, computed) and the other charcoal on white, and
+   aria-pressed says it too, so the knob is never the only thing saying which side is showing. */
+.plan-switch {
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 0 0 24px;
+  padding: 4px;
+  border: 1px solid var(--studio-line);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+}
+.plan-switch > i {
+  position: absolute;
+  inset: 4px auto 4px 4px;
+  width: calc(50% - 4px);
+  border-radius: var(--r-pill);
+  background: var(--studio-ink);
+  transition: transform var(--t-settle) var(--ease);
+}
+.plan-switch[data-on="mom"] > i {
+  transform: translateX(100%);
+}
+.plan-switch button {
+  position: relative;
+  min-height: 44px;
+  padding: 0 24px;
+  border-radius: var(--r-pill);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--charcoal);
+  transition: color var(--t-settle) var(--ease);
+}
+.plan-switch button[aria-pressed="true"] {
+  color: var(--surface);
+}
+.plan-switch + .landing-lede {
+  max-width: 62ch;
+  margin: 0 0 24px;
+}
+/* The door from the plan a child buys for a parent to its prices: the page's secondary pill. */
+.landing-plans .landing-secondary {
+  align-self: flex-start;
+  margin-top: 16px;
+}
+
+/* The trace on the safety card. Drawn once, left to right, when the card is released, and then held:
+   the resting state is the drawn line, and the dash only hides it for the length of one finite
+   animation. aria-hidden in the markup; brandMint on studioNight, a shape with no words on it. */
+.landing-ecg {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: var(--space-20);
+  color: var(--brand-mint);
+}
+.landing-ecg path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+@keyframes ecg-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+[data-motion="on"] .landing-ecg path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+[data-motion="on"] [data-reveal="shown"] > .landing-ecg path {
+  stroke-dashoffset: 0;
+  animation: ecg-draw calc(var(--t-enter) * 3) var(--ease) var(--t-settle) 1 backwards;
 }

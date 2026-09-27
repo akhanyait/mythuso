@@ -41,9 +41,9 @@ Until a decision is recorded, the app shows "Not clinically reviewed" beside eve
 | C | GilbertOne's emergency terms | 1 |
 | D | Clinical scopes and proposed clinical roles on the vetting register | 8 |
 | E | Other clinical proposals and safety numbers nobody clinical has decided | 31 |
-| F | Clinical content with no clinical sign-off recorded | 3 |
+| F | Clinical content with no clinical sign-off recorded | 5 |
 | G | Clinical Intelligence's frames and empty registries, waiting on the board | 6 |
-| | **Total** | **71** |
+| | **Total** | **73** |
 
 Each item gives the value in force by default, what an admin may set it to, why it was proposed and by whom,
 the question for the reviewer, and blank sign-off fields.
@@ -1463,6 +1463,142 @@ From `packages/catalog/locales.json`. "Clinical wording stays in English until a
 | isiNdebele (`nr-ZA`) | none |
 
 **Question for the reviewer:** which languages should be clinically reviewed first, and who — by name, registration and language — is qualified to review each?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### F4. The symptom intake question set
+
+From `packages/catalog/symptom-intake.json`. GilbertOne will not say what is causing this. A nurse or a doctor decides that. These questions do not decide how urgent it is or where you should be seen. Nothing here is advice about what to do for it. Your answers are notes for your nurse, in your own words. "The emergency terms in packages/catalog/gilbert-emergency-terms.json are checked on the opening message and on every answer before the intake reads it; the refusal policies in packages/catalog/assistant.json next; the intake last. A red-flag rule is the ratified triage protocol's job and this file carries none — but every answer passes through the existing emergency matcher, so a sentence that names an emergency, typed as an answer to any question, gets the emergency answer and the intake ends there."
+
+Asked of every symptom group first:
+
+| Question | Kind | Options |
+|---|---|---|
+| Since when? (`since`) | chips | Today; A few days; About a week; Longer than a week |
+| How bad is it right now? (`how-bad`) | chips | Mild; Uncomfortable; Severe |
+| Does anything make it better or worse? (`better-worse`) | text |  |
+| What, if anything, have you already used for it? Give the name on the box, or say nothing. (`used`) | text |  |
+| Are there any long-term conditions, allergies or pregnancy the nurse should know about? (`conditions`) | text |  |
+
+**Headache** (`headache`) — opened by: `headache`, `headaches`, `head is sore`, `head hurts`, `sore head`, `head pain`, `migraine`, `pain in my head`
+
+| Question | Kind | Options |
+|---|---|---|
+| Where in your head is it? (`where`) | chips | Front; Back; One side; All over; Behind my eyes |
+| Is light or noise bothering you, or has anything changed with your sight? (`light-noise-sight`) | chips | Light bothers me; Noise bothers me; My sight has changed; More than one of these; None of these |
+| Have you had a knock or a fall onto your head recently? (`knock`) | chips | Yes; No |
+
+**Stomach or belly pain** (`stomach`) — opened by: `stomach pain`, `stomach ache`, `stomach is sore`, `sore stomach`, `stomach hurts`, `tummy`, `belly`, `abdominal pain`, `cramps`, `stomach cramps`
+
+| Question | Kind | Options |
+|---|---|---|
+| Where in your belly is it? (`where`) | chips | Upper; Lower; One side; All over |
+| How are your bowels and your appetite — anything different from usual? (`bowels`) | text |  |
+| Anything else you have noticed with it? (`other`) | text |  |
+
+**Fever** (`fever`) — opened by: `fever`, `temperature`, `high temperature`, `hot and cold`, `shivering`, `chills`, `sweating at night`, `feel hot`
+
+| Question | Kind | Options |
+|---|---|---|
+| Have you measured it with a thermometer? If so, what did it read? (`measured`) | text |  |
+| What else is there with the fever? (`with-it`) | chips | A cough; A sore throat; A rash; Pain somewhere; Nothing else |
+| Anything else you have noticed with it? (`other`) | text |  |
+
+**Cough or cold** (`cough-cold`) — opened by: `cough`, `coughing`, `cold`, `flu`, `runny nose`, `blocked nose`, `sore throat`, `sneezing`, `phlegm`
+
+| Question | Kind | Options |
+|---|---|---|
+| Is the cough dry, or is something coming up? (`kind-of-cough`) | chips | Dry; Something comes up; No cough |
+| What else is there with it? (`with-it`) | chips | Fever; Sore throat; Body aches; Nothing else |
+| Is anybody at home or at work sick with the same thing? (`around-you`) | text |  |
+
+**Dizziness** (`dizziness`) — opened by: `dizzy`, `dizziness`, `light headed`, `lightheaded`, `head spinning`, `room is spinning`, `spinning`, `off balance`, `giddy`
+
+| Question | Kind | Options |
+|---|---|---|
+| When does it happen? (`when`) | chips | When I stand up; When I turn my head; Lying down; All the time; It comes and goes |
+| Does the room spin, or do you feel faint and light in the head? (`feels-like`) | chips | The room spins; Faint and light; Both; Hard to say |
+| Anything else you have noticed with it? (`other`) | text |  |
+
+**Nausea or vomiting** (`nausea`) — opened by: `nausea`, `nauseous`, `vomiting`, `vomit`, `throwing up`, `threw up`, `feel like vomiting`, `want to vomit`, `diarrhoea`, `diarrhea`, `runny stomach`
+
+| Question | Kind | Options |
+|---|---|---|
+| Are you managing to keep water down? (`keeping-down`) | chips | Yes; Some of it; No |
+| Is there a runny stomach, a fever or belly pain with it? (`with-it`) | chips | Runny stomach; Fever; Belly pain; More than one of these; None of these |
+| What did you eat or drink in the day before it started? (`ate`) | text |  |
+
+**Back or joint pain** (`back-joint`) — opened by: `back pain`, `back is sore`, `sore back`, `backache`, `joint pain`, `joints`, `knee`, `knees`, `hip`, `shoulder is sore`, `sore shoulder`, `stiff neck`, `neck is sore`
+
+| Question | Kind | Options |
+|---|---|---|
+| Where exactly is it, and is it one place or more than one? (`where`) | text |  |
+| Did it start after a fall, a lift or an injury, or on its own? (`started`) | chips | After a fall or injury; After lifting something; On its own; Not sure |
+| Can you walk and move it as usual? (`moving`) | chips | Yes; With difficulty; No |
+
+**Skin or rash** (`skin`) — opened by: `rash`, `itchy`, `itching`, `skin`, `spots`, `bumps on my skin`, `hives`, `sore on my skin`, `blisters`, `swelling on my skin`
+
+| Question | Kind | Options |
+|---|---|---|
+| Where on your body is it, and is it spreading? (`where`) | text |  |
+| What does it look like? (`looks-like`) | chips | Flat red patches; Raised bumps; Blisters; Dry and flaky; Something else |
+| Anything new recently — a soap, a cream, a food, a plant, an insect or a medicine? (`new-things`) | text |  |
+
+**Tiredness or weakness** (`tiredness`) — opened by: `tired`, `tiredness`, `exhausted`, `no energy`, `weak`, `weakness`, `fatigue`, `worn out`, `always sleepy`
+
+| Question | Kind | Options |
+|---|---|---|
+| How are you sleeping and eating? (`sleep`) | text |  |
+| Is it stopping you from doing your usual day? (`daily-life`) | chips | Not really; Some things; Most things |
+| Anything else you have noticed with it? (`other`) | text |  |
+
+**Passing water** (`urinary`) — opened by: `passing water`, `passing urine`, `urine`, `peeing`, `wee`, `burning when i pee`, `burning when i wee`, `bladder`, `going to the toilet a lot`, `toilet a lot`
+
+| Question | Kind | Options |
+|---|---|---|
+| What is different about passing water? (`what`) | chips | It burns; Going more often; Hard to go; The colour or smell has changed; Something else |
+| Is there fever or pain in your back or lower belly with it? (`with-it`) | chips | Fever; Back pain; Lower belly pain; More than one of these; None of these |
+| Anything else you have noticed with it? (`other`) | text |  |
+
+**Not feeling well** (`unwell`) — opened by: `not feeling well`, `not well`, `feel sick`, `feeling sick`, `unwell`, `feel ill`, `feeling ill`, `under the weather`, `something is wrong with me`
+
+| Question | Kind | Options |
+|---|---|---|
+| What is the main thing you are feeling, in your own words? (`main-thing`) | text |  |
+| Is it somewhere in particular, or all over? (`where`) | text |  |
+| Anything else you have noticed with it? (`other`) | text |  |
+
+The patient reads: "No clinician has reviewed these questions yet. They are a written list held inside the app, and your nurse will ask her own."
+
+**Question for the reviewer:** are these the questions a nurse wants answered before a home visit for each group, is any question one a patient should not be asked without a clinician present, are the groups the right groups, and which words in isiZulu, isiXhosa, Sesotho and Afrikaans should open each? The reviewer signs with a registration in the vetting register's format in `review.reviewedBy`; until then the build refuses any question that carries a clinical instruction or a number.
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### F5. The care tips a patient reads after a visit
+
+From `packages/catalog/care-tips.json`. Written by the product team as general guidance. No registered clinician has read or signed them yet, and one must before a real patient is shown them. Until then every screen that shows a tip shows this notice beside it. The patient reads beside every tip: "These tips are waiting for a clinical reviewer. Your nurse’s advice comes first."
+
+| Tip | Category | What the patient reads |
+|---|---|---|
+| One list for every medicine (`medicine-list`) | medicines | Write down every medicine you take, named as it is on the box, and keep the list with the boxes. Show both to the nurse at each visit, so nothing is missed or taken twice. |
+| Same chair, same time of day (`blood-pressure-routine`) | blood-pressure | If you have been asked to check your blood pressure at home, sit quietly for a few minutes first and take it at the same time each day. Readings taken the same way can be compared fairly. |
+| A bag by the door (`bag-by-the-door`) | be-ready | Keep your identity document, your clinic card and your current medicines together in one place, so they are ready to go if you need help in a hurry. |
+| Sip through the day (`water`) | water | Keep water within reach and sip it through the day, especially in summer heat. If a nurse or a doctor has told you to limit what you drink, follow their advice instead. |
+| Know when not to wait (`when-to-call`) | when-to-call | If you feel worse than you did at the visit, contact your clinic or your doctor the same day rather than waiting for the next visit. If someone collapses, cannot breathe or has chest pain, call an ambulance first. |
+
+**Question for the reviewer:** is each tip safe general guidance for every adult patient this service visits, is any tip wrong for a patient group (pregnancy, kidney or heart failure, children, the very old), and is the "when not to wait" tip complete? The reviewer signs `review.reviewedBy` and `review.reviewedOn`; until then no tip may carry a number, a dose or a diagnosis.
 
 | Sign-off | |
 |---|---|

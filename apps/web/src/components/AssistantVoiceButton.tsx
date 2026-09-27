@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Mic, MicOff } from "lucide-react";
 import { voice as voicePolicy } from "../../../../packages/catalog/assistant.json";
 import { disclosureFor, type VoiceAdapter } from "../lib/voice";
+import conversationMode from "../../../../packages/catalog/conversation-mode.json";
 
 type Props = {
   /** The panel's own adapter, passed in rather than created here. Since the speech decision of
@@ -11,6 +12,11 @@ type Props = {
    *  for both halves of the conversation rather than two controls each holding half of it. */
   voice: VoiceAdapter;
   onTranscript: (text: string) => void;
+  /** Where a hands-free turn goes, since 28 September 2026: the panel's own send path — the same one
+   *  Send, a chip and a typed answer to an intake question use — so a spoken "I have a headache"
+   *  opens the intake offer and a spoken "yes" answers it. It is the only place the conversation's
+   *  words go; `onTranscript` above is push-to-talk's, and is never called while a conversation runs. */
+  onUtterance: (text: string) => void;
   /** The composer's own note that typing always works. This component's footnote slot carries it once
    *  the patient has met the microphone's consent; before that the slot carries the disclosure, which
    *  says the same thing about typing and more about the microphone. */
@@ -33,13 +39,25 @@ type Props = {
    asks again. Nothing starts before an explicit tap; recognised words remain an editable draft until
    Send, and the session's Cancel drops them without a trace. Browser permission is controlled by
    the browser and may already have been granted on a previous visit. */
+/* Hands-free conversation, since 28 September 2026 — the founder's "speak, pause, and it answers,
+   like Siri". The control beside the microphone starts one; while it runs, this component shows the
+   contract's own sentence for where the conversation is (packages/catalog/conversation-mode.json), the
+   microphone's ring and the words "Microphone on" whenever the recogniser is open — including while
+   GilbertOne reads and the recogniser is only watching for the person to start talking — and every
+   tap of the microphone is Stop. What it refuses: it never hands the recogniser's transcript to the
+   composer while a conversation runs (the words went to the panel's send path already), it never
+   shows push-to-talk's "nothing is sent until you press Send" while things are being sent, and it
+   opens nothing before the same consent push-to-talk asks for. */
 export function AssistantVoiceButton({
   voice,
   onTranscript,
+  onUtterance,
   typingNote,
   pending,
   onTypeInstead,
 }: Props) {
+  const convo = voice.conversation;
+  const chat = conversationMode.sentences;
   /* The microphone consent, asked once and remembered for as long as this panel is open. The two
      agreements are two different agreements — the microphone opening, and where the hearing and the
      reading happen — and one button implies neither, so both are said before either is true. */
@@ -53,9 +71,28 @@ export function AssistantVoiceButton({
      sentence the Cancel button keeps has to stay true: nothing is handed to the composer. Every
      other way into a capture clears it. */
   const dropped = useRef(false);
+  /* Which of the two the consent was asked for: the microphone for one capture, or a hands-free
+     conversation. Agreeing does the thing that was tapped, and nothing else. */
+  const intent = useRef<"capture" | "conversation">("capture");
+  /* Whether the recogniser now open, or just closed, was the conversation's. Its words went to the
+     panel's send path as each turn ended, so the hand-over below must not also give the composer
+     whatever the last window caught — set while a conversation runs, cleared once it has ended and
+     the recogniser has closed. */
+  const inConversation = useRef(false);
+  /* The panel's send path as it is on this render, not as it was when the conversation started: the
+     path closes over the conversation's turns, and a turn sent through a stale one would not see the
+     intake the turn before opened — a spoken "yes" would miss the question it answers. */
+  const latestUtterance = useRef(onUtterance);
+  latestUtterance.current = onUtterance;
 
   useEffect(() => {
     const capturing = voice.state === "starting" || voice.state === "open";
+    if (convo.active) inConversation.current = true;
+    if (inConversation.current) {
+      wasCapturing.current = false;
+      if (!convo.active && !capturing) inConversation.current = false;
+      return;
+    }
     if (capturing) {
       wasCapturing.current = true;
       return;
@@ -68,7 +105,7 @@ export function AssistantVoiceButton({
     if (!dropped.current && wasCapturing.current && voice.transcript.trim())
       onTranscript(voice.transcript.trim());
     wasCapturing.current = false;
-  }, [voice.state, voice.transcript, onTranscript]);
+  }, [voice.state, voice.transcript, onTranscript, convo.active]);
 
   /* A browser with no speech recognition gets no control. Drawing one that cannot hear is the
      decorative affordance the capability's own rule refuses, and the sentence says what is true
@@ -111,13 +148,34 @@ export function AssistantVoiceButton({
   const session = voicePolicy.session.states.find(
     (entry) => entry.id === sessionId,
   );
-  const label = capturing
-    ? voicePolicy.sentences.stopLabel
-    : voicePolicy.sentences.talkLabel;
+  const label = convo.active
+    ? chat.stopLabel
+    : capturing
+      ? voicePolicy.sentences.stopLabel
+      : voicePolicy.sentences.talkLabel;
+  /* Where the conversation is, in the contract's sentence: the pause is over and the turn is being
+     answered, the microphone is open again for the next turn, the voice is reading and will stop the
+     moment she speaks, or the microphone closed on its own and why. Null when no conversation runs
+     and none has just closed, so push-to-talk's own lines stand. */
+  const conversationWords = convo.active
+    ? convo.phase === "transcribing" || convo.phase === "thinking"
+      ? chat.heardYou
+      : convo.phase === "speaking"
+        ? chat.bargeInNote
+        : convo.note === "your-turn"
+          ? chat.yourTurn
+          : chat.listening
+    : convo.note === "idle-rounds-exhausted"
+      ? chat.sleeping
+      : convo.note === "emergency-answer"
+        ? chat.emergencyClosed
+        : null;
   /* A failure has already earned its own sentence, and it outranks the state: a control that says
      "the microphone is open" beside a refusal is two answers to one question. */
   const words = (
-    voice.failureSentence ?? voicePolicy.webSentences.states[voice.state]
+    voice.failureSentence ??
+    conversationWords ??
+    voicePolicy.webSentences.states[voice.state]
   ).replace("{seconds}", String(voice.maxListeningSeconds));
   /* What the browser is catching, while it catches it. A patient who can see a word mis-heard as it
      appears can tap Stop and try again, rather than reading it afterwards and having to start the
@@ -127,17 +185,31 @@ export function AssistantVoiceButton({
      The footnote hands the disclosure's slot back to the typing note at the same moment the state
      line appears, so the two words for the microphone are never both on the screen. */
   const met = asking || agreed;
+  /* The conversation's own start, once consent is met: the words go to the panel's send path. */
+  const startConversation = () => {
+    dropped.current = false;
+    convo.start((text) => latestUtterance.current(text));
+  };
 
   return (
     <>
-      {/* The written action accompanies the icon; the full accessible label still names GilbertOne. */}
+      {/* The written action accompanies the icon; the full accessible label still names GilbertOne.
+          data-hot is the amendment's indicator: on whenever the recogniser is open, whichever of the
+          two controls opened it and whether it is hearing a turn or watching for a barge-in. */}
       <button
         type="button"
         className="as-voice"
         aria-label={label}
         aria-pressed={capturing}
         aria-describedby="as-keyboard"
+        data-hot={capturing || undefined}
         onClick={() => {
+          /* While a conversation runs every tap of the microphone is its Stop: what the microphone
+             was hearing is dropped, not sent, and the voice goes quiet. */
+          if (convo.active) {
+            convo.stop();
+            return;
+          }
           if (capturing) {
             voice.stop();
             return;
@@ -145,6 +217,7 @@ export function AssistantVoiceButton({
           /* The microphone opens only after the patient has met the session's own consent; the first
              tap asks for it rather than opening anything. */
           if (!agreed) {
+            intent.current = "capture";
             setAsking(true);
             return;
           }
@@ -165,11 +238,44 @@ export function AssistantVoiceButton({
             as the first line of the control's own footnote zone — inside this button it wrapped to
             four cramped lines at 320px, which the composer could not pay for, and here it reads on
             one line at every width. */}
-        <span className="as-voice-words">
-          {capturing ? label : ui.talkLabel}
+        <span
+          className="as-voice-words"
+          data-mic-hot={(convo.active && capturing) || undefined}
+        >
+          {convo.active
+            ? capturing
+              ? chat.micHot
+              : chat.stopLabel
+            : capturing
+              ? label
+              : ui.talkLabel}
         </span>
       </button>
       <div className="as-voice-lines">
+        {/* Hands-free: one tap starts a conversation and the same control ends it. It meets the same
+            consent as the microphone, so nothing opens on the first tap of either. It sits at the head
+            of the footnote lines rather than on a row of the composer's grid, so neither of the
+            composer's two layouts has to make room for it. */}
+        <button
+          type="button"
+          className="as-convo"
+          aria-pressed={convo.active}
+          onClick={() => {
+            if (convo.active) {
+              convo.stop();
+              return;
+            }
+            if (!agreed) {
+              intent.current = "conversation";
+              setAsking(true);
+              return;
+            }
+            startConversation();
+          }}
+        >
+          <span className="as-convo-dot" aria-hidden="true" />
+          {convo.active ? chat.stopLabel : chat.startLabel}
+        </button>
         {/* The sequence is explicit: capture never sends the draft on the person's behalf. */}
 
         {/* Before the first tap the disclosure below already says the microphone stays shut until she
@@ -179,10 +285,21 @@ export function AssistantVoiceButton({
             {words}
           </p>
         ) : null}
+        {/* The amendment's rule in words: whenever the recogniser is open the microphone says so,
+            beside the ring on the disc — and for a reader who asked for stillness, instead of it.
+            During a conversation the microphone's own words carry it (above); here it is push-to-
+            talk's, whose button says Stop instead. */}
+        {capturing && !convo.active ? (
+          <p className="as-mic-hot" data-mic-hot>
+            <span className="as-mic-hot-dot" aria-hidden="true" />
+            {chat.micHot}
+          </p>
+        ) : null}
         {/* The session's own moment, in the contract's words: what the voice is doing right now.
             The idle sentence is in the contract's list but never on the screen — a resting voice
-            is the state no sentence needs to narrate. */}
-        {session && sessionId !== "idle" ? (
+            is the state no sentence needs to narrate. Not while a conversation runs: its sentences
+            promise that nothing is sent until Send is pressed, and the conversation sends. */}
+        {session && sessionId !== "idle" && !convo.active ? (
           <p className="as-voice-session" data-session={sessionId}>
             {session.sentence}
           </p>
@@ -218,7 +335,8 @@ export function AssistantVoiceButton({
                   dropped.current = false;
                   setAgreed(true);
                   setAsking(false);
-                  voice.start();
+                  if (intent.current === "conversation") startConversation();
+                  else voice.start();
                 }}
               >
                 {consent.confirmLabel}
@@ -233,7 +351,7 @@ export function AssistantVoiceButton({
             what a capture caught without keeping it, Stop the voice closes the reading and leaves
             the reply's words on the screen, and Type instead is the step between the voice and
             plain typing. */}
-        {capturing || reading ? (
+        {(capturing || reading) && !convo.active ? (
           <div className="as-voice-actions">
             {capturing ? (
               <button
@@ -255,6 +373,21 @@ export function AssistantVoiceButton({
               onClick={() => {
                 if (capturing) voice.stop();
                 voice.cancel();
+                onTypeInstead();
+              }}
+            >
+              {labels.typeInstead}
+            </button>
+          </div>
+        ) : null}
+        {/* While a conversation runs its only controls are Stop — the control above and every tap of
+            the microphone — and the step down to typing, which is the same Stop and then the field. */}
+        {convo.active ? (
+          <div className="as-voice-actions">
+            <button
+              type="button"
+              onClick={() => {
+                convo.stop();
                 onTypeInstead();
               }}
             >

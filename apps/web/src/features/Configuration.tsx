@@ -13,7 +13,7 @@ import { useWideLayout } from '../lib/layout';
 /* The founder's sign-in, drawn where the editor would be while the gate is shut, on a dynamic import so
    nobody who does not open a settings screen downloads it. */
 const FounderGatePanel = lazy(() => import('./portal/gilbertone/founder/FounderAccess').then(m => ({ default: m.FounderGatePanel })));
-import { ChoiceChips, RangeSlider, Switch } from './portal/Fields';
+import { ChoiceChips, RangeSlider, SaveBar, Select, Switch } from './portal/Fields';
 
 /* Configuration, on the back office: every setting every engine works to, in one place.
  *
@@ -67,6 +67,13 @@ function amount(limits: Limits, value: string): string {
    the one screen file the build lets read a default off a contract, so the merged screen asks here rather than
    reading the contract itself. What is in force is never read this way. */
 export const defaultValueOf = (setting: Setting): unknown => setting.default.value;
+
+/* Who last changed a setting and when, or that nobody has, in the settings contract's words: the line under
+   every setting's value in force, here and on the Speech settings screen, so the two say it identically. */
+export const lastChangedText = (history: readonly Change[]): string => {
+ const last = history.at(-1);
+ return last ? fill(say.lastChanged, { who: personOf(last.byRef || last.byRole), when: whenOf(last.at) }) : say.neverChanged;
+};
 
 export function valueText(limits: Limits, value: unknown): string {
  if (value === undefined || value === null) return say.values.empty;
@@ -224,12 +231,12 @@ function Editor({ limits, raw, onRaw, id, label, disabled, context }: { limits: 
   case 'list':
    return <>
     <label htmlFor={id}>{label}</label>
-    <input id={id} inputMode="text" value={String(raw)} disabled={disabled} onChange={event => onRaw(event.target.value)}/>
+    <input id={id} className="fc-text" inputMode="text" value={String(raw)} disabled={disabled} onChange={event => onRaw(event.target.value)}/>
    </>;
   case 'text':
    return <>
     <label htmlFor={id}>{label}</label>
-    <textarea id={id} rows={4} value={String(raw)} disabled={disabled} aria-describedby={id + '-limit'} onChange={event => onRaw(event.target.value)}/>
+    <textarea id={id} className="fc-text" rows={4} value={String(raw)} disabled={disabled} aria-describedby={id + '-limit'} onChange={event => onRaw(event.target.value)}/>
     <p className="helper" id={id + '-limit'}>{limitsText(limits)}</p>
    </>;
   /* A boolean with no words of its own is a switch. Every boolean the contracts hold today names its two
@@ -258,15 +265,15 @@ function Editor({ limits, raw, onRaw, id, label, disabled, context }: { limits: 
     <legend>{label}</legend>
     {windows.map((w, i) => <div className="cf-window" key={i}>
      <label htmlFor={`${id}-${i}-post`}>{say.editors.post}</label>
-     <select id={`${id}-${i}-post`} className="fc-select" value={w.post} onChange={event => put(i, { post: event.target.value })}>
+     <Select id={`${id}-${i}-post`} value={w.post} onChange={post => put(i, { post })}>
       {held.map(post => <option key={post.id} value={post.id}>{post.label}</option>)}
-     </select>
+     </Select>
      <ChoiceChips legend={say.editors.days} kind="checkbox" className="cf-choices cf-days"
       chips={settingsContract.days.map(day => ({ key: day, label: dayName(day), checked: w.days.includes(day),
        onChange: checked => put(i, { days: checked ? settingsContract.days.filter(d => d === day || w.days.includes(d)) : w.days.filter(d => d !== day) }) }))}/>
      <div className="cf-hours">
-      <label>{say.editors.from}<input inputMode="numeric" value={w.from} onChange={event => put(i, { from: event.target.value })}/></label>
-      <label>{say.editors.to}<input inputMode="numeric" value={w.to} onChange={event => put(i, { to: event.target.value })}/></label>
+      <label>{say.editors.from}<input className="fc-text" inputMode="numeric" value={w.from} onChange={event => put(i, { from: event.target.value })}/></label>
+      <label>{say.editors.to}<input className="fc-text" inputMode="numeric" value={w.to} onChange={event => put(i, { to: event.target.value })}/></label>
      </div>
      <button type="button" className="secondary" onClick={() => onRaw(windows.filter((_, j) => j !== i))}>{say.editors.removeWindow}</button>
     </div>)}
@@ -308,7 +315,11 @@ function Figure({ limits, value }: { limits: Limits; value: unknown }) {
    through exactly the editor, the rules and the history the Configuration tab has, rather than a copy of any of
    them. Everything else — the search, the review-then-confirm form, the refusals in the contract's words — is the
    same component. */
-export function Configuration({ engine, onEngine, fixed = false }: { engine: string; onEngine: (engine: string) => void; fixed?: boolean }) {
+/* `saveBarLabel` names every change form's save bar, and is handed in by the portal rather than read here: the
+   clinical workspace reaches this file (SettingReviews reads valueText), and importing the portal's contract
+   here put all of it on the nurse's and the doctor's download. Without it — the legacy back office — the bar is
+   drawn the same and is simply not a named group. */
+export function Configuration({ engine, onEngine, fixed = false, saveBarLabel }: { engine: string; onEngine: (engine: string) => void; fixed?: boolean; saveBarLabel?: string }) {
  const histories = useSettingsHistories();
  /* The founder's gate, 28 September 2026: the editor opens only when the service says the founder is signed
     in, or as a preview where founder access is dark or nothing answers. lib/founder-gate.ts decides. */
@@ -349,10 +360,10 @@ export function Configuration({ engine, onEngine, fixed = false }: { engine: str
     </div>
     {!fixed && <div className="cf-bar-field cf-bar-engine">
      <label htmlFor={id + '-engine'}>{say.engine}</label>
-     <select id={id + '-engine'} value={engine} onChange={event => onEngine(event.target.value)}>
+     <Select id={id + '-engine'} value={engine} onChange={onEngine}>
       <option value="">{say.everyEngine}</option>
       {blocks.map(block => <option key={block.engine} value={block.engine}>{block.heading}</option>)}
-     </select>
+     </Select>
     </div>}
    </div>
    <p className="helper" id={id + '-query-help'}>{say.searchHelp}</p>
@@ -366,12 +377,12 @@ export function Configuration({ engine, onEngine, fixed = false }: { engine: str
       narrows the list is seen narrowing it. The words say the same, so the bar is decoration beside them. */}
   <p className="ss-version" role="status" style={{ '--cf-share': total ? shown / total : 0 } as CSSProperties}>{fill(say.shown, { shown: String(shown), total: String(total) })}</p>
   {groups.length
-   ? groups.map(group => <EngineGroup key={group.block.engine} block={group.block} items={group.items} history={histories[group.block.engine] ?? []} locked={gate.locked} wide={wide}/>)
+   ? groups.map(group => <EngineGroup key={group.block.engine} block={group.block} items={group.items} history={histories[group.block.engine] ?? []} locked={gate.locked} wide={wide} saveBarLabel={saveBarLabel}/>)
    : <p className="helper">{say.noMatch}</p>}
  </div>;
 }
 
-function EngineGroup({ block, items, history, locked, wide }: { block: SettingsBlock; items: readonly Setting[]; history: readonly Change[]; locked: boolean; wide: boolean }) {
+function EngineGroup({ block, items, history, locked, wide, saveBarLabel }: { block: SettingsBlock; items: readonly Setting[]; history: readonly Change[]; locked: boolean; wide: boolean; saveBarLabel?: string }) {
  const id = useId();
  const [open, setOpen] = useState<string | null>(null);
  const [applied, setApplied] = useState<Change | null>(null);
@@ -381,6 +392,7 @@ function EngineGroup({ block, items, history, locked, wide }: { block: SettingsB
   <p className="helper">{block.intro}</p>
   <p className="ss-version" role="status">{fill(say.version, { version: String(snapshot.settingsVersion) })}{applied ? ` · ${fill(say.applied, { version: String(applied.settingsVersion), at: clockOf(applied.at) })}` : ''}</p>
   <ol className="panel ss-timings">{items.map(setting => <SettingItem key={setting.key} engine={block.engine} setting={setting} snapshot={snapshot} locked={locked} wide={wide}
+   saved={applied?.setting === setting.key ? applied.settingsVersion : null} saveBarLabel={saveBarLabel}
    history={history.filter(change => change.setting === setting.key)} open={open === setting.key && !locked}
    onOpen={() => { setOpen(setting.key); setApplied(null); }} onClose={() => setOpen(null)} onApplied={change => { setApplied(change); setOpen(null); }}/>)}</ol>
  </section>;
@@ -403,8 +415,11 @@ const standingOf = (waitsOnReview: boolean, changed: boolean) => waitsOnReview ?
    closed, so a phone shows forty settings as forty short cards rather than forty long ones. Nothing is
    left out of either: a closed disclosure is one press from every word it holds, and the standing words
    never fold, because a tint with its words folded away would be colour saying something alone. */
-function SettingItem({ engine, setting, snapshot, history, open, locked, wide, onOpen, onClose, onApplied }: {
- engine: string; setting: Setting; snapshot: Snapshot; history: readonly Change[]; open: boolean; locked: boolean; wide: boolean; onOpen: () => void; onClose: () => void; onApplied: (change: Change) => void;
+/* `saved` is the settings version a change to this setting was just confirmed at, or null. The card settles with
+   a brief flash of its tint when it changes (fields.css, "One settings page"); its parity names the flash, so a
+   second change in a row replays it without remounting the card and losing the reader's focus. */
+function SettingItem({ engine, setting, snapshot, history, open, locked, wide, saved = null, saveBarLabel, onOpen, onClose, onApplied }: {
+ engine: string; setting: Setting; snapshot: Snapshot; history: readonly Change[]; open: boolean; locked: boolean; wide: boolean; saved?: number | null; saveBarLabel?: string; onOpen: () => void; onClose: () => void; onApplied: (change: Change) => void;
 }) {
  const inForce = snapshot.values[setting.key];
  const last = history.at(-1);
@@ -412,7 +427,8 @@ function SettingItem({ engine, setting, snapshot, history, open, locked, wide, o
  const limits = limitsText(setting);
  const bounds = limitProvenance(setting);
  const numeral = typeof inForce === 'number' && NUMBERS.has(setting.type);
- return <li className="ss-timing" data-standing={standingOf(!!review.required && !review.reviewed, !!last)} data-figure={numeral ? 'number' : 'words'}>
+ return <li className="ss-timing" data-standing={standingOf(!!review.required && !review.reviewed, !!last)} data-figure={numeral ? 'number' : 'words'}
+  data-saved={saved === null ? undefined : saved % 2 ? 'odd' : 'even'}>
   <div className="ss-timing-main">
    <div className="ss-timing-head">
     <div className="ss-timing-name">
@@ -427,12 +443,12 @@ function SettingItem({ engine, setting, snapshot, history, open, locked, wide, o
     {review.required && (review.reviewed
      ? <span className="pill cf-review"><ShieldCheck size={15}/>{fill(say.reviewed, { who: review.reviewed.byRef, on: review.reviewed.on ? dayOf(review.reviewed.on) : review.reviewed.at === null ? '' : whenOf(review.reviewed.at) })}</span>
      : <span className="pill cf-review is-unreviewed"><ShieldAlert size={15}/>{say.notReviewed}</span>)}
-    <p className="ss-meta">{last ? fill(say.lastChanged, { who: personOf(last.byRef), when: whenOf(last.at) }) : say.neverChanged}</p>
+    <p className="ss-meta">{lastChangedText(history)}</p>
    </div>
    {/* While the founder's gate is shut there is no Change button at all: the gate's own panel at the top of
        the screen says why and carries the sign-in, so nothing here explains an absence twice. */}
    {locked ? null : open
-    ? <ChangeForm engine={engine} setting={setting} expectedVersion={snapshot.settingsVersion} from={inForce} onClose={onClose} onApplied={onApplied}/>
+    ? <ChangeForm engine={engine} setting={setting} expectedVersion={snapshot.settingsVersion} from={inForce} saveBarLabel={saveBarLabel} onClose={onClose} onApplied={onApplied}/>
     : <button className="secondary m-press cf-open" onClick={onOpen}>{say.change}<span className="visually-hidden"> {setting.label}</span></button>}
   </div>
   <div className="ss-timing-side">
@@ -467,8 +483,8 @@ function SettingItem({ engine, setting, snapshot, history, open, locked, wide, o
  </li>;
 }
 
-function ChangeForm({ engine, setting, expectedVersion, from, onClose, onApplied }: {
- engine: string; setting: Setting; expectedVersion: number; from: unknown; onClose: () => void; onApplied: (change: Change) => void;
+function ChangeForm({ engine, setting, expectedVersion, from, saveBarLabel, onClose, onApplied }: {
+ engine: string; setting: Setting; expectedVersion: number; from: unknown; saveBarLabel?: string; onClose: () => void; onApplied: (change: Change) => void;
 }) {
  const id = useId();
  const [raw, setRaw] = useState<Raw>(() => rawOf(setting, from));
@@ -494,8 +510,10 @@ function ChangeForm({ engine, setting, expectedVersion, from, onClose, onApplied
   <div className="cf-steps" aria-hidden="true" data-step={review ? 'confirm' : 'change'}><i/><i/></div>
   <Editor limits={setting} raw={raw} id={id + '-value'} label={editorLabel(setting)} disabled={!!review} onRaw={next => { setRaw(next); setRefused(null); }}
    context={{ label: setting.label, from, defaultValue: setting.default.value, guardrail: setting.guardrail?.statement }}/>
+  {/* The reason, the refusal and the two steps' buttons are the save bar every settings page ends in. */}
+  <SaveBar label={saveBarLabel}>
   <label htmlFor={id + '-reason'}>{say.reason}</label>
-  <textarea id={id + '-reason'} value={reason} rows={3} disabled={!!review} aria-describedby={id + '-help'}
+  <textarea id={id + '-reason'} className="fc-text" value={reason} rows={3} disabled={!!review} aria-describedby={id + '-help'}
    onChange={event => { setReason(event.target.value); setRefused(null); }}/>
   <p className="helper" id={id + '-help'}>{say.reasonHelp}</p>
   {refused && <p className="fs-refused" role="alert">{refused.statement}</p>}
@@ -513,6 +531,7 @@ function ChangeForm({ engine, setting, expectedVersion, from, onClose, onApplied
      <button type="button" className="secondary m-press" onClick={onClose}>{say.cancel}</button>
      <button type="submit" className="primary m-press">{say.review}<Go/></button>
     </div>}
+  </SaveBar>
  </form>;
 }
 

@@ -1,0 +1,113 @@
+/* Care tips — the stack of cards a patient reads after a visit (features/CareTips.tsx).
+ *
+ * Loaded with the screen, behind its dynamic import, so none of this is on the patient's first view.
+ *
+ * COLOUR. Each card is a fill from the design tokens with the one ink tokens.json#contrast measures on
+ * it: brand ink on mint, studio ink on lilac, peach and lime, studio paper on night. The pairs are
+ * named once, on [data-tint], and every word on a card takes --ct-ink — so no text on this screen
+ * sits on a pair the build has not computed. The tag chip is white with the same ink (both inks are
+ * measured on --surface), and on the night card it is lime with studio ink, which is measured too.
+ * The last tip, when to call, is the only dark card: it is the one that is about not waiting.
+ *
+ * MOTION. One entrance per tip, finite, transform and opacity only, on the tokens' curve — the card
+ * rises and settles from slightly small, then its words follow a third of a quick apart. No blur: a
+ * blurred frame is a frame nobody can read, and on the mid-range phones this is for it is also the
+ * most expensive thing a browser can be asked to paint. Gated on [data-motion='on'], which the
+ * patient shell sets and never sets under reduced motion, so the card is never waiting at opacity 0
+ * for a script. */
+
+.ct-screen [data-tint='mint'] { --ct-fill: var(--brand-mint); --ct-ink: var(--brand-ink); }
+.ct-screen [data-tint='lilac'] { --ct-fill: var(--studio-lilac); --ct-ink: var(--studio-ink); }
+.ct-screen [data-tint='peach'] { --ct-fill: var(--studio-peach); --ct-ink: var(--studio-ink); }
+.ct-screen [data-tint='lime'] { --ct-fill: var(--studio-lime); --ct-ink: var(--studio-ink); }
+.ct-screen [data-tint='night'] { --ct-fill: var(--studio-night); --ct-ink: var(--studio-paper); }
+
+.ct-layout { display: grid; gap: var(--space-24); align-items: start; }
+@media (min-width: 1000px) {
+ .ct-layout { grid-template-columns: minmax(0, 560px) minmax(0, 380px); gap: var(--space-40); }
+}
+
+/* ---- Where you are ------------------------------------------------------------------------------
+   A bar of segments, one per tip, and each segment is a button a whole 44px tall: the bar is drawn on
+   its ::before, so the target is the row and the mark is four pixels of it. Read and unread differ in
+   colour and the current one is also thicker, and the counter on the card says the same in words. */
+.ct-progress { display: flex; gap: var(--space-8); margin: 0 0 var(--space-8); padding: 0; list-style: none; }
+.ct-progress li { flex: 1 1 0; min-width: 0; }
+.ct-progress button {
+ display: flex; align-items: center; width: 100%; min-height: 44px; padding: 0;
+ border: 0; border-radius: var(--r-control); background: none; cursor: pointer;
+}
+.ct-progress button::before {
+ content: ''; display: block; width: 100%; height: 4px; border-radius: var(--r-pill);
+ background: var(--sage-slate);
+ transition: background-color var(--t-settle) var(--ease-soft);
+}
+.ct-progress button[data-read]::before { background: var(--studio-ink); }
+.ct-progress button[aria-current]::before { height: 8px; }
+
+/* ---- The stack ----------------------------------------------------------------------------------
+   The front card is in flow, so it is as tall as its words at any text size or zoom; the two behind
+   are drawn from its edges, inset and dropped, so they peek out underneath. The stack keeps its
+   bottom padding when it thins, so the buttons below never jump when the last cards run out. */
+.ct-stack { position: relative; padding-bottom: var(--space-24); }
+.ct-peek {
+ position: absolute; border-radius: var(--r-card); background: var(--ct-fill);
+ transition: background-color var(--t-enter) var(--ease-soft);
+}
+.ct-peek-1 { inset: var(--space-12) var(--space-12) var(--space-12); }
+.ct-peek-2 { inset: var(--space-24) var(--space-24) 0; }
+
+.ct-card {
+ position: relative; z-index: 1;
+ display: flex; flex-direction: column; gap: var(--space-16);
+ min-height: 360px; padding: var(--space-24);
+ border-radius: var(--r-card); background: var(--ct-fill); color: var(--ct-ink);
+ box-shadow: var(--shadow-raised);
+}
+.ct-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-8); }
+.ct-tag {
+ display: inline-flex; align-items: center; min-height: 28px; padding: 0 var(--space-12);
+ border-radius: var(--r-pill); background: var(--surface); color: var(--ct-ink);
+ font-size: 13px; font-weight: 600;
+}
+.ct-count { font-size: 13px; font-weight: 500; color: var(--ct-ink); font-variant-numeric: tabular-nums; }
+.ct-icon {
+ display: grid; place-items: center; width: 72px; height: 72px;
+ border-radius: var(--r-tile); background: var(--surface); color: var(--ct-ink);
+}
+.ct-card[data-tint='night'] :is(.ct-tag, .ct-icon) { background: var(--studio-lime); color: var(--studio-ink); }
+.ct-title { margin: auto 0 0; font-size: 24px; font-weight: 600; line-height: 1.2; letter-spacing: -0.4px; color: var(--ct-ink); }
+.ct-body { margin: 0; font-size: 16px; line-height: 1.55; color: var(--ct-ink); }
+
+.ct-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: var(--space-12); margin-top: var(--space-16); }
+.ct-review {
+ display: flex; align-items: flex-start; gap: var(--space-8); margin: var(--space-16) 0 0;
+ font-size: 14px; line-height: 1.5; color: var(--studio-ink);
+}
+.ct-review svg { flex: none; margin-top: 2px; }
+
+/* ---- Beside the stack ---------------------------------------------------------------------------- */
+.ct-about h2 { margin: 0 0 var(--space-12); font-size: 18px; }
+.ct-refusals { display: grid; gap: var(--space-12); margin: 0 0 var(--space-20); padding: 0; list-style: none; }
+.ct-refusals li { display: flex; align-items: flex-start; gap: var(--space-12); font-size: 14px; line-height: 1.55; color: var(--studio-ink); }
+.ct-refusals svg { flex: none; margin-top: 3px; color: var(--studio-ink-muted); }
+
+/* ---- A tip arrives -------------------------------------------------------------------------------- */
+@keyframes ct-card-in {
+ from { opacity: 0; transform: translate3d(0, var(--space-24), 0) scale(0.96); }
+}
+@keyframes ct-words-in {
+ from { opacity: 0; transform: translate3d(0, var(--space-12), 0); }
+}
+[data-motion='on'] .ct-card { animation: ct-card-in var(--t-enter) var(--ease-soft) both; }
+[data-motion='on'] .ct-card :is(.ct-card-head, .ct-title, .ct-body) { animation: ct-words-in var(--t-enter) var(--ease-soft) both; }
+[data-motion='on'] .ct-card .ct-card-head { animation-delay: calc(var(--t-quick) / 4); }
+[data-motion='on'] .ct-card .ct-title { animation-delay: calc(var(--t-quick) / 2); }
+[data-motion='on'] .ct-card .ct-body { animation-delay: calc(var(--t-quick) * 3 / 4); }
+
+/* Removal, not shortening, and !important for the reason surface/motion.css gives: a later sheet
+   must not be able to put the movement back. */
+@media (prefers-reduced-motion: reduce) {
+ .ct-card, .ct-card :is(.ct-card-head, .ct-title, .ct-body) { animation: none !important; }
+ .ct-peek, .ct-progress button::before { transition: none !important; }
+}

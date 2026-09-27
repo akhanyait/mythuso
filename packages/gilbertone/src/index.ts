@@ -47,3 +47,7 @@ export type { PreparationAnswer } from "./preparation.ts";
 export { medicinesAnswer } from "./medicines.ts";
 export type { MedicineLine, MedicinesAnswer } from "./medicines.ts";
 export { fillerStems, hasSequence, stem, stems, tokens } from "./stems.ts";
+/* Symptom intake (28 September 2026): the set questions a patient answers for the nurse, from
+   packages/catalog/symptom-intake.json — not triage, and asked only after the emergency words. */
+export { answerIntake, beginIntake, currentQuestion, intakeConsent, intakeContract, intakeEmergency, intakeGroupFor, intakeReviewSentence, questionsFor, summaryRows } from "./intake.ts";
+export type { IntakeAnswer, IntakeEmergency, IntakeGroup, IntakeQuestion, IntakeState, IntakeSummaryRow } from "./intake.ts";

@@ -3039,8 +3039,9 @@ const generated = [
     command: "npm run review-pack",
     files: emitClinicalReviewPack(),
   })),
-  /* Wave 5: the pack's section G reads Clinical Intelligence's frames and registries. */
-  ...["clinical.json", "apis/clinical.json"].map((file) => ({
+  /* Wave 5: the pack's section G reads Clinical Intelligence's frames and registries; 28 September
+     2026: its F4 reads the symptom intake's question set. */
+  ...["clinical.json", "apis/clinical.json", "symptom-intake.json", "care-tips.json"].map((file) => ({
     source: `packages/catalog/${file}`,
     command: "npm run review-pack",
     files: emitClinicalReviewPack(),
@@ -3073,6 +3074,17 @@ const generated = [
     source: "packages/catalog/crisis-lines.json",
     command: "npm run crisis-lines",
     files: emitCrisisLines(),
+  },
+  {
+    source: "packages/catalog/care-tips.json",
+    command: "npm run care-tips",
+    files: (await import("./emit-care-tips.mjs")).emitCareTips(),
+  },
+  /* Hands-free conversation mode (28 September 2026): the pause, the caps and the sentences, so neither phone types them. */
+  {
+    source: "packages/catalog/conversation-mode.json",
+    command: "npm run conversation-mode",
+    files: (await import("./emit-conversation-mode.mjs")).emitConversationMode(),
   },
 ];
 for (const { source, command, files } of generated) {
@@ -15164,7 +15176,7 @@ const answerKinds = new Set([
    both phones' AssistantData, because their reply builders answer a kind they have never met with
    "I can't assess that". The day a phone renders one, its kind moves up into answerKinds in the
    same change that removes the platforms field. */
-const WEB_ONLY_ANSWER_KINDS = new Set(["reading", "preparation", "medicines"]);
+const WEB_ONLY_ANSWER_KINDS = new Set(["reading", "preparation", "medicines", "intake"]);
 for (const question of gilbertContract.questions) {
   if (WEB_ONLY_ANSWER_KINDS.has(question.answer)) {
     if (JSON.stringify(question.platforms) !== JSON.stringify(["web"]))
@@ -35223,5 +35235,1069 @@ console.log(
 
   console.log(
     `Founder control · ${control.length} routes on the founder's session; a state directory the unit declares (${fa.state.systemdStateDirectory}, ${fa.state.fileMode}) and the service never invents, refused when absent before any rule; a vault of ${fa.vault.cards.length} cards under ${fa.vault.cipher}, locked without ${fa.vault.keyVariable}, its file and key named nowhere a deploy or the browser reads; no founder answer with a field named like key material; the speak route reading the founder's history and a clinical register reading none of it; a fresh code on ${withCode.length} writes and on no read; the script writing the vault key once and printing it never; the reveal allowlist unmoved; the governance record and the runbook dated.`,
+  );
+}
+
+/* Symptom intake — 28 September 2026 */
+/* ---- Symptom intake: the set questions a patient answers for the nurse -------------------------
+ * The founder's ask of 28 September 2026: "I have a headache" was answered with the navigation
+ * sentence, and GilbertOne should instead ask the pertinent questions so the nurse arrives with them
+ * answered. packages/catalog/symptom-intake.json is that question set as data, and these checks hold
+ * it to what it is allowed to be — notes, never triage. Every group has enough questions to be worth
+ * a nurse's reading and few enough to be answered on a phone; no question or option carries a
+ * clinical instruction or a digit while no clinician has reviewed it; no trigger is or contains an
+ * emergency word, so the intake can never swallow an emergency; nothing in the file is keyed as a
+ * priority, a disposition, an urgency, a care setting or a diagnosis; and the module reads the
+ * contract's sentences rather than typing them. Each check was proven to fire by breaking its
+ * source. */
+{
+  const intake = JSON.parse(read("packages/catalog/symptom-intake.json"));
+  const intakeFile = "packages/catalog/symptom-intake.json";
+  const { stems: stemsOf, hasSequence: sequenceIn } = await import(
+    "../packages/gilbertone/src/stems.ts"
+  );
+  if (
+    !/founder/i.test(String(intake.decidedBy)) ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(String(intake.on)) ||
+    !intake.why ||
+    typeof intake.version !== "number"
+  )
+    throw new Error(
+      `${intakeFile} has lost the record of who decided it, when, or why. A question GilbertOne asks a patient about her own body is a decision on file or it is a question somebody typed.`,
+    );
+  if (!Array.isArray(intake.whatItIsNot) || intake.whatItIsNot.length < 3)
+    throw new Error(
+      `${intakeFile} no longer says what the intake is not. The screen shows those sentences beside every question; without them a set of questions about a symptom reads as triage.`,
+    );
+  if (!/emergency terms[\s\S]*every answer/i.test(String(intake.order?.rule)) || !/red-flag/i.test(String(intake.order?.rule)))
+    throw new Error(
+      `${intakeFile}'s order rule no longer says that the emergency terms are checked on every answer before the intake reads it, and that a red-flag rule is the ratified protocol's job. The order is the reason this file may exist without being triage.`,
+    );
+
+  /* 1. Nothing in the file is keyed as the thing triage decides. Values may say the words — the
+        whatItIsNot sentences do — but a key named priority is a priority, whatever its value. */
+  const TRIAGE_KEYS = ["priority", "disposition", "urgency", "careSetting", "diagnosis"];
+  const walkKeys = (node, path) => {
+    if (Array.isArray(node)) node.forEach((v, i) => walkKeys(v, `${path}[${i}]`));
+    else if (node && typeof node === "object")
+      for (const [key, value] of Object.entries(node)) {
+        if (TRIAGE_KEYS.includes(key))
+          throw new Error(
+            `${intakeFile} carries a key named "${key}" at ${path}. The intake is notes for a nurse, not triage: it sets no priority, no disposition, no urgency, no care setting and no diagnosis. Those are a ratified triage protocol's to set (clinical.json's triage stages), and none exists.`,
+          );
+        walkKeys(value, `${path}.${key}`);
+      }
+  };
+  walkKeys(intake, "symptom-intake");
+
+  /* 2. The review: null until a clinician signs, and then a registration in the vetting register's
+        own format — the authorities' patterns in vetting.json, never a name. */
+  const intakeReview = intake.review ?? {};
+  if (!("reviewedBy" in intakeReview))
+    throw new Error(`${intakeFile}'s review does not say whether a clinician has reviewed it. Null is an answer; silence is not.`);
+  const unreviewedIntake = intakeReview.reviewedBy === null;
+  if (unreviewedIntake) {
+    if (!/^No clinician has reviewed these questions/.test(String(intakeReview.unreviewed)))
+      throw new Error(
+        `${intakeFile}'s unreviewed sentence no longer opens "No clinician has reviewed these questions". It is read on every intake today, and it is what keeps a written list from sounding like a clinical one.`,
+      );
+  } else {
+    const vettingAuthorities = JSON.parse(read("packages/catalog/vetting.json")).authorities.filter((a) => ["sanc", "hpcsa"].includes(a.id));
+    const registrationForms = vettingAuthorities.map(
+      (a) => new RegExp(`\\b${a.short} ${a.pattern.replace(/^\^|\$$/g, "")}\\b`),
+    );
+    if (!registrationForms.some((form) => form.test(String(intakeReview.reviewedBy))))
+      throw new Error(
+        `${intakeFile}'s review names "${intakeReview.reviewedBy}", which is not a registration in the vetting register's own format (${vettingAuthorities.map((a) => `${a.short} ${a.format}`).join(", or ")}). A review is a registered clinician's signature or it is a name.`,
+      );
+  }
+  if (!String(intakeReview.reviewed).includes("{reviewedBy}"))
+    throw new Error(`${intakeFile}'s reviewed sentence has lost its {reviewedBy} token, so a signed review would name nobody.`);
+
+  /* 3. The groups and their questions: enough, few enough, well-formed, and — the check the file
+        was written for — no question or option carrying a clinical instruction or a digit while
+        nobody clinical has read it. The instruction shapes are the visit-preparation ones: a count of
+        hours or doses, a unit of a medicine, telling somebody to take, stop or skip a medicine, or not
+        to eat. */
+  const INTAKE_INSTRUCTION = [
+    [/\b\d+\s*(hours?|hrs?|minutes?|days?|doses?|tablets?|pills?|units?|mg|ml|mmol|millilitres?|milligrams?)\b/i, "a count of hours, doses or a medicine's unit"],
+    [/\b(take|stop|skip|miss|double|halve|swallow|use)\b[^.;?]*\b(medicine|medicines|medication|tablet|tablets|dose|doses|pill|pills|insulin|inhaler|injection)\b/i, "an instruction about a medicine"],
+    [/\b(do not eat|don't eat|dont eat|nothing to eat|eat nothing|no food|fast for|fasting for|stop eating|do not drink|don't drink|dont drink)\b/i, "an instruction about food or drink"],
+    [/\b(should|must) (you|i) (take|stop|skip|use)\b/i, "a question about whether to take or stop something"],
+  ];
+  const intakeInstructionIn = (sentence) =>
+    INTAKE_INSTRUCTION.find(([pattern]) => pattern.test(sentence))?.[1] ?? null;
+  const holdSentence = (label, sentence) => {
+    if (typeof sentence !== "string" || !sentence.trim())
+      throw new Error(`${intakeFile}'s ${label} is empty or is not a sentence.`);
+    const instruction = intakeInstructionIn(sentence);
+    if (unreviewedIntake && instruction)
+      throw new Error(
+        `${intakeFile}'s ${label} says "${sentence}" — ${instruction} — and no clinician has reviewed it (review.reviewedBy is null). The intake asks what a patient noticed and what she used, never what she should do; such a sentence may appear only once reviewedBy names the clinician who signed it.`,
+      );
+    if (unreviewedIntake && /\d/.test(sentence))
+      throw new Error(
+        `${intakeFile}'s ${label} says "${sentence}", which carries a digit, and no clinician has reviewed it. An unreviewed question carries no number at all: hours, doses and counts are the instructions it must not give.`,
+      );
+  };
+  const holdQuestion = (label, question, seenIds) => {
+    if (!question?.id || seenIds.has(question.id))
+      throw new Error(`${intakeFile}'s ${label} has no id, or repeats one.`);
+    seenIds.add(question.id);
+    if (TRIAGE_KEYS.some((k) => question.id.toLowerCase().includes(k.toLowerCase())))
+      throw new Error(`${intakeFile}'s ${label} is named "${question.id}", which names the thing triage decides.`);
+    holdSentence(`${label} ask`, question.ask);
+    if (question.kind !== "chips" && question.kind !== "text")
+      throw new Error(`${intakeFile}'s ${label} has the kind "${question.kind}"; a question is chips or text.`);
+    if (question.kind === "chips") {
+      if (!Array.isArray(question.options) || question.options.length < 2)
+        throw new Error(`${intakeFile}'s ${label} is chips with fewer than two options, which is a statement, not a question.`);
+      for (const option of question.options) holdSentence(`${label} option`, option);
+    } else if (question.options !== undefined)
+      throw new Error(`${intakeFile}'s ${label} is text and carries options; a text question offers none.`);
+  };
+  const commonIntake = intake.common?.questions;
+  if (!Array.isArray(commonIntake) || !commonIntake.length)
+    throw new Error(`${intakeFile} has no common questions. Since when, how bad and what was used are asked of every complaint, or a nurse reads a different shape of note for each.`);
+  const commonIds = new Set();
+  for (const q of commonIntake) holdQuestion(`common question "${q?.id}"`, q, commonIds);
+  const commonAsks = ["since", "how bad", "better or worse", "used", "conditions"];
+  for (const needle of commonAsks)
+    if (!commonIntake.some((q) => (q.ask + " " + q.id).toLowerCase().includes(needle)))
+      throw new Error(`${intakeFile}'s common questions no longer ask "${needle}". The founder's brief names those as the questions asked of every complaint.`);
+
+  const emergencyTermStems = gilbertWords.groups.flatMap((g) => g.words.map((w) => stemsOf(w)));
+  const fillerIntake = new Set(gilbertContract.matcher.readEverything.filler);
+  const assistantTriggers = new Set(
+    (gilbertContract.questions ?? []).flatMap((q) => (q.triggers ?? []).map((t) => stemsOf(t).join(" "))),
+  );
+  const seenGroups = new Set();
+  const seenTriggers = new Map();
+  if (!Array.isArray(intake.groups) || intake.groups.length < 10)
+    throw new Error(`${intakeFile} declares ${intake.groups?.length ?? 0} groups; the brief covers at least ten complaints and a general one.`);
+  for (const group of intake.groups) {
+    if (!group.id || seenGroups.has(group.id) || !group.name)
+      throw new Error(`${intakeFile} has a group with no id or name, or two groups named "${group.id}".`);
+    seenGroups.add(group.id);
+    if (!Array.isArray(group.triggers) || !group.triggers.length)
+      throw new Error(`${intakeFile}'s group "${group.id}" has no triggers, so no patient's words could ever open it.`);
+    for (const trigger of group.triggers) {
+      if (!PHRASE.test(trigger))
+        throw new Error(`${intakeFile}'s trigger "${trigger}" in "${group.id}" is not in normal form (lower-case letters and digits, single spaces).`);
+      if (seenTriggers.has(trigger))
+        throw new Error(`${intakeFile}'s trigger "${trigger}" is under both "${seenTriggers.get(trigger)}" and "${group.id}".`);
+      seenTriggers.set(trigger, group.id);
+      const triggerStems = stemsOf(trigger);
+      for (const term of emergencyTermStems)
+        if (sequenceIn(triggerStems, term, 0))
+          throw new Error(
+            `${intakeFile}'s trigger "${trigger}" in "${group.id}" is or contains the emergency term "${term.join(" ")}" from packages/catalog/gilbert-emergency-terms.json. The emergency words are matched first and end the matching; a trigger that overlaps one is either unreachable or, on a platform that asks the intake first, a symptom swallowing an emergency.`,
+          );
+      if (triggerStems.every((word) => fillerIntake.has(word)))
+        throw new Error(`${intakeFile}'s trigger "${trigger}" is made of filler words, so every message would open "${group.id}".`);
+      if (assistantTriggers.has(triggerStems.join(" ")))
+        throw new Error(
+          `${intakeFile}'s trigger "${trigger}" in "${group.id}" is already a trigger of a question in packages/catalog/assistant.json. One phrase opens one answer, or the platforms disagree about which.`,
+        );
+    }
+    if (!Array.isArray(group.questions))
+      throw new Error(`${intakeFile}'s group "${group.id}" has no questions array.`);
+    const ids = new Set(commonIds);
+    for (const q of group.questions) holdQuestion(`group "${group.id}" question "${q?.id}"`, q, ids);
+    if (group.questions.length < 2)
+      throw new Error(
+        `${intakeFile}'s group "${group.id}" asks ${group.questions.length} question of its own. A group is a label for the questions pertinent to that complaint; with only the common ones it is a label for nothing the nurse did not already ask.`,
+      );
+    const total = commonIntake.length + group.questions.length;
+    if (total < 5 || total > 8)
+      throw new Error(
+        `${intakeFile}'s group "${group.id}" asks ${total} questions with the common ones. Five to eight: fewer is not worth a nurse's reading, more is not answered on a phone.`,
+      );
+  }
+
+  /* 4. The framing sentences and the summary: read from the contract, no digit, and the closing says
+        the notes went nowhere. */
+  const intakeAnswer = intake.answer ?? {};
+  for (const [key, value] of Object.entries(intakeAnswer)) {
+    if (key === "why") continue;
+    if (typeof value === "string") holdSentence(`answer.${key}`, value);
+    else if (value && typeof value === "object")
+      for (const [sub, inner] of Object.entries(value))
+        if (typeof inner === "string") holdSentence(`answer.${key}.${sub}`, inner);
+  }
+  for (const [i, sentence] of intake.whatItIsNot.entries()) holdSentence(`whatItIsNot[${i}]`, sentence);
+  holdSentence("summary.title", intake.summary?.title);
+  if (!String(intake.summary?.line).includes("{question}") || !String(intake.summary?.line).includes("{answer}"))
+    throw new Error(`${intakeFile}'s summary line has lost {question} or {answer}, so the nurse would read an answer without its question.`);
+  if (!/not say what is causing/i.test(intakeAnswer.opening ?? ""))
+    throw new Error(`${intakeFile}'s opening no longer says GilbertOne will not say what is causing it. It is the first sentence of every intake, and the one that keeps the questions from sounding like a consultation.`);
+  if (!/Nothing has been sent anywhere/.test(intakeAnswer.closing ?? "") || !/nurse at the visit/.test(intakeAnswer.closing ?? ""))
+    throw new Error(`${intakeFile}'s closing no longer says that nothing has been sent anywhere and that showing the nurse at the visit is how the notes travel. No route carries them today, and the sentence must not imply one.`);
+  const stopWordIntake = intakeAnswer.stop?.word;
+  if (!stopWordIntake || !PHRASE.test(stopWordIntake) || stopWordIntake.includes(" "))
+    throw new Error(`${intakeFile}'s stop word is missing or is not one word in normal form.`);
+  if (emergencyTermStems.some((term) => term.join(" ") === stemsOf(stopWordIntake).join(" ")))
+    throw new Error(`${intakeFile}'s stop word is an emergency term; the emergency answer must win over ending the intake.`);
+  if (!Array.isArray(intakeAnswer.consent?.yesWords) || !Array.isArray(intakeAnswer.consent?.noWords) || !intakeAnswer.consent.yesWords.length || !intakeAnswer.consent.noWords.length)
+    throw new Error(`${intakeFile}'s consent has no yes words or no no words. The intake starts on the patient's word, and a screen needs both to read.`);
+  for (const word of [...intakeAnswer.consent.yesWords, ...intakeAnswer.consent.noWords])
+    if (!PHRASE.test(word))
+      throw new Error(`${intakeFile}'s consent word "${word}" is not in normal form.`);
+
+  /* 5. Platforms: web only until a phone renders it, and no native file names the intake before the
+        list says so. */
+  if (!Array.isArray(intake.platforms) || !intake.platforms.includes("web") || !intake.platformsWhy)
+    throw new Error(`${intakeFile} no longer lists its platforms, or has lost the reason no phone renders it.`);
+  for (const [platform, dir] of [["ios", "apps/ios/MyThuso"], ["android", "apps/android/app/src/main"]])
+    if (!intake.platforms.includes(platform))
+      for (const f of files(dir).filter((f) => /\.(swift|kt)$/.test(f)))
+        if (/SymptomIntake|symptom-intake/.test(read(f)))
+          throw new Error(`${f} names the symptom intake, and ${intakeFile}'s platforms does not list ${platform}. Add the platform in the same change as the screen, or the contract says one thing and the phone another.`);
+
+  /* 6. Fixtures: honest expectations, every group exercised, an emergency and a nothing among
+        them, and a flow that answers every question of a real group. */
+  const intakeFixtures = intake.fixtures?.messages;
+  if (!Array.isArray(intakeFixtures) || intakeFixtures.length < 10)
+    throw new Error(`${intakeFile} has too few fixtures to hold the matcher to the list.`);
+  const expected = new Set();
+  for (const fixture of intakeFixtures) {
+    if (typeof fixture.says !== "string" || !fixture.says.trim())
+      throw new Error(`${intakeFile} has a fixture with nothing said.`);
+    if (fixture.expect !== null && fixture.expect !== "emergency" && !seenGroups.has(fixture.expect))
+      throw new Error(`${intakeFile}'s fixture "${fixture.says}" expects "${fixture.expect}", which is no group, not null and not emergency.`);
+    expected.add(fixture.expect);
+  }
+  for (const id of seenGroups)
+    if (!expected.has(id))
+      throw new Error(`${intakeFile}'s group "${id}" is opened by no fixture, so its triggers are held to nothing.`);
+  if (!expected.has(null) || !expected.has("emergency"))
+    throw new Error(`${intakeFile}'s fixtures no longer include a message that opens nothing and one the emergency words answer first. Both are what the recogniser must not do.`);
+  if (!intakeFixtures.some((f) => /headache/i.test(f.says) && f.expect === "headache"))
+    throw new Error(`${intakeFile}'s fixtures no longer include the founder's own sentence — a headache opening the headache group.`);
+  const flow = intake.fixtures.flow;
+  const flowGroup = intake.groups.find((g) => g.id === flow?.group);
+  if (!flowGroup)
+    throw new Error(`${intakeFile}'s flow fixture names the group "${flow?.group}", which does not exist.`);
+  const flowQuestions = commonIntake.length + flowGroup.questions.length;
+  if (!Array.isArray(flow.answers) || flow.answers.length !== flowQuestions || flow.rows !== flowQuestions)
+    throw new Error(`${intakeFile}'s flow fixture answers ${flow.answers?.length} of "${flow.group}"'s ${flowQuestions} questions and expects ${flow.rows} rows. A flow fixture answers every question once and the card has one row per answer.`);
+
+  /* 7. The module: it exists, it reads the contract's sentences rather than typing them, it asks the
+        emergency matcher before it records an answer, the package exports it, and its tests replay the
+        contract's fixtures. */
+  const intakeModule = "packages/gilbertone/src/intake.ts";
+  const intakeTests = "packages/gilbertone/src/intake.test.ts";
+  for (const f of [intakeModule, intakeTests])
+    if (!existsSync(f)) throw new Error(`${f} is missing. The contract has no reader, or no reader anybody runs against it.`);
+  const intakeSource = read(intakeModule);
+  const intakeProse = [
+    ...intake.whatItIsNot,
+    ...Object.values(intakeAnswer).flatMap((v) => (typeof v === "string" ? [v] : typeof v === "object" && v ? Object.values(v).filter((s) => typeof s === "string") : [])),
+    intakeReview.unreviewed,
+    intakeReview.reviewed,
+    intake.summary.title,
+    ...commonIntake.map((q) => q.ask),
+    ...intake.groups.flatMap((g) => g.questions.map((q) => q.ask)),
+  ].filter((s) => typeof s === "string" && s.length > 12);
+  for (const sentence of intakeProse)
+    if (intakeSource.includes(sentence))
+      throw new Error(`${intakeModule} types "${sentence.slice(0, 60)}…", which is a sentence of the contract it should be reading. A typed copy is a sentence the contract no longer controls.`);
+  for (const [needs, why] of [
+    [/classifyMessage\(/, "asks the engine's emergency classifier"],
+    [/checkEscalation\(/, "asks the escalation ruleset"],
+    [/kind:\s*"emergency"/, "ends the intake with the emergency answer"],
+    [/symptom-intake\.json/, "reads packages/catalog/symptom-intake.json"],
+  ])
+    if (!needs.test(intakeSource))
+      throw new Error(`${intakeModule} no longer ${why}. Every answer passes through the emergency matcher before the intake reads it, or the intake is the thing that was listening when an emergency was said.`);
+  if (!/export .*\bintakeGroupFor\b.*from "\.\/intake\.ts"/.test(read("packages/gilbertone/src/index.ts")))
+    throw new Error("packages/gilbertone/src/index.ts no longer exports the intake module, so no platform can read the question set through the package.");
+  const intakeTestSource = read(intakeTests);
+  if (!/intakeContract\.fixtures\.messages/.test(intakeTestSource) || !/intakeContract\.fixtures\.flow/.test(intakeTestSource))
+    throw new Error(`${intakeTests} no longer replays the contract's message fixtures and flow fixture. A recogniser nobody runs against the list is a recogniser that disagrees with it.`);
+
+  console.log(
+    `Symptom intake · ${intake.groups.length} groups, ${commonIntake.length} common questions, ${intake.groups.reduce((n, g) => n + g.questions.length, 0)} group questions, ${seenTriggers.size} triggers none of which is or contains an emergency term; no key named ${TRIAGE_KEYS.join(", ")}; no question or option carrying a clinical instruction or a digit while review.reviewedBy is null; ${intakeFixtures.length} fixtures and a flow of ${flowQuestions}; the module asking the emergency matcher before every answer.`,
+  );
+}
+
+/* Symptom intake — Phase 2, the web (28 September 2026) */
+/* The panel's side of the intake. What is held: the contract question that offers it is web-only,
+ * patient-only and in the situations group, with a state, a routine register and a warm face; the
+ * matcher decides the intake after the emergency words and the refusals and BEFORE anything is
+ * unmatched, so a complaint the groups know never reaches the one reply the panel waits on the
+ * service for — the waiting dots cannot be drawn for it; the composer hands an open intake its
+ * answer before the bridge is asked; the chips are 44-pixel targets; and neither the matcher nor the
+ * panel types a sentence of the contract. Each proven to fire by breaking its source. */
+{
+  const intake = JSON.parse(read("packages/catalog/symptom-intake.json"));
+  const { stems: stemsOf } = await import("../packages/gilbertone/src/stems.ts");
+  const libFile = "apps/web/src/lib/assistant.ts";
+  const panelFile = "apps/web/src/features/Assistant.tsx";
+  const cssFile = "apps/web/src/features/assistant.css";
+  const lib = read(libFile);
+  const panel = read(panelFile);
+  const css = read(cssFile);
+
+  /* 1. The contract question and the kind's three companions. */
+  const offerQuestion = gilbertContract.questions.find((q) => q.answer === "intake");
+  if (
+    !offerQuestion ||
+    offerQuestion.id !== "intake" ||
+    offerQuestion.group !== "situations" ||
+    JSON.stringify(offerQuestion.audiences) !== JSON.stringify(["patient"]) ||
+    JSON.stringify(offerQuestion.platforms) !== JSON.stringify(["web"])
+  )
+    throw new Error(
+      'packages/catalog/assistant.json no longer carries the "intake" question as a patient-only, web-only question in the situations group. The offer is a patient\'s, and no phone renders the notes yet.',
+    );
+  if (!gilbertContract.answers.intake?.state)
+    throw new Error("packages/catalog/assistant.json's answers.intake carries no state; the panel draws the Pulse from it.");
+  if (gilbertContract.spokenRegister?.answers?.intake !== "routine")
+    throw new Error("packages/catalog/assistant.json reads the intake in a register other than routine. Taking notes is a presentation answer, read in the register an administrator may set a voice for; moving it is a founder decision.");
+  if (gilbertContract.affect?.answers?.intake?.posture !== "warm")
+    throw new Error("packages/catalog/assistant.json's affect gives the intake a face that is not warm. Taking notes for the nurse refuses nothing and interprets nothing; an emergency in an answer leaves the kind altogether.");
+  const intakeTriggerStems = new Set(intake.groups.flatMap((g) => g.triggers.map((t) => stemsOf(t).join(" "))));
+  const emergencyStemsForOffer = gilbertWords.groups.flatMap((g) => g.words.map((w) => stemsOf(w).join(" ")));
+  for (const trigger of offerQuestion.triggers) {
+    if (intakeTriggerStems.has(stemsOf(trigger).join(" ")))
+      throw new Error(`assistant.json's intake question trigger "${trigger}" is also a group trigger in symptom-intake.json. One phrase, one owner: the question's triggers are the offer's own words, the groups' are the complaints.`);
+    if (emergencyStemsForOffer.includes(stemsOf(trigger).join(" ")))
+      throw new Error(`assistant.json's intake question trigger "${trigger}" is an emergency term.`);
+  }
+
+  /* 2. The order in send(): in the branch no question matched, the refusals are asked, then the
+        intake's matcher, and only then is anything unmatched — and a refused message is never offered
+        notes. Read as text because this module imports JSON without attributes and cannot be run here;
+        the shared fixtures and tests/symptom-intake.spec.ts run it in the browser. */
+  const refusedAt = lib.indexOf("const refused = evaluateRefusals(");
+  const unmatchedAt = lib.indexOf('{ kind: "unmatched" }', refusedAt);
+  const branch = refusedAt < 0 || unmatchedAt < 0 ? "" : lib.slice(refusedAt, unmatchedAt);
+  if (!/refused\.refused \? null : intakeGroupFor\(words\)/.test(branch) || !/group\s*\?\s*intakeOffer\(group\)\s*:\s*$/.test(branch.trimEnd()))
+    throw new Error(
+      `${libFile}'s send() no longer decides the intake between the refusals and the unmatched reply — refused ? null : intakeGroupFor(words), then group ? intakeOffer(group) : unmatched. The intake comes after the emergency words and the refusals and before anything is unmatched, or a headache is handed to the service with three dots in front of it, or a dosing question is offered notes.`,
+    );
+  if (!/question\.answer === "intake"\)\s*return append\(/.test(lib) || !/intakeOffer\(intakeGroupFor\(words\) \?\? intakeChipGroup\(\)\)/.test(lib))
+    throw new Error(`${libFile} no longer answers the intake question with the offer for the complaint the words name, whole message read, or the chip's general group.`);
+  for (const [needs, why] of [
+    [/export function activeIntake\(/, "says which turn holds an open intake"],
+    [/export function continueIntake\(/, "answers into an open intake"],
+    [/const groups = emergencyGroupsIn\(words\);\s*if \(groups\.length\) return send\(/, "asks the emergency words of every intake answer before reading it"],
+    [/next\.kind === "emergency"\) return turn\(\{ kind: "emergency"/, "ends the intake on the package's emergency answer"],
+    [/turn\.reply\.kind === "intake" && turn\.reply\.phase === "offer"\)\) &&\s*!turn\.matched\s*\? "unmatched"/, "reports an unprompted offer as the matcher's unmatched outcome, the phones' word for the same fixture"],
+  ])
+    if (!needs.test(lib)) throw new Error(`${libFile} no longer ${why}.`);
+
+  /* 3. The panel: it waits on the service by the reply's kind alone, and the composer hands an open
+        intake its answer before the bridge is asked. */
+  if (!/candidate\.reply\.kind !== "unmatched"\) return;/.test(panel))
+    throw new Error(`${panelFile} no longer gates the waiting dots on the reply being unmatched. The dots exist only while the service is asked, and it is asked only for the unmatched reply.`);
+  const submitAt = panel.indexOf("const submit = ");
+  const intakeAt = panel.indexOf("continueIntake(", submitAt);
+  const bridgeAt = panel.indexOf("sendWithGilbertEngine(", submitAt);
+  if (submitAt < 0 || intakeAt < 0 || bridgeAt < 0 || intakeAt > bridgeAt)
+    throw new Error(`${panelFile}'s submit no longer asks continueIntake before the bridge. An answer to a question on the screen is an answer, not a new message for the matcher.`);
+  if (!/q\.answer === "intake"/.test(panel))
+    throw new Error(`${panelFile} no longer offers the intake chip beside the reading and medicines chips.`);
+  if (!/case "intake": \{/.test(panel) || !/onIntake\(option\)/.test(panel) || !/reply\.state\?\.stopped \? w\.answer\.stop\.stopped : w\.answer\.closing/.test(panel))
+    throw new Error(`${panelFile} no longer draws the intake's four phases from the contract: chips that answer through onIntake, and a closing that says stopped when she stopped.`);
+  if (/localStorage|sessionStorage|indexedDB/.test(panel))
+    throw new Error(`${panelFile} reaches for browser storage; the notes live in the turn and on the person's own clipboard, nowhere else.`);
+
+  /* 4. Nothing typed: no sentence of the contract in the matcher, the panel or the stylesheet. */
+  const intakeSentences = [
+    ...intake.whatItIsNot,
+    ...Object.values(intake.answer).flatMap((v) => (typeof v === "string" ? [v] : typeof v === "object" && v ? Object.values(v).filter((s) => typeof s === "string") : [])),
+    intake.review.unreviewed,
+    intake.review.reviewed,
+    intake.summary.title,
+    intake.summary.copyLabel,
+    ...intake.common.questions.map((q) => q.ask),
+    ...intake.groups.flatMap((g) => [g.name, ...g.questions.map((q) => q.ask)]),
+  ].filter((s) => typeof s === "string" && s.length > 8);
+  for (const [file, source] of [[libFile, lib], [panelFile, panel], [cssFile, css]])
+    for (const sentence of intakeSentences)
+      if (source.includes(sentence))
+        throw new Error(`${file} types "${sentence.slice(0, 60)}…", which is a sentence of packages/catalog/symptom-intake.json it should be reading.`);
+
+  /* 5. The chips are 44-pixel targets. */
+  if (!/\.as-intake-chips \.as-option \{[^}]*min-height: 44px/.test(css))
+    throw new Error(`${cssFile} no longer gives .as-intake-chips .as-option a 44px minimum height. A question answered by a thumb on a phone is answered on a 44-pixel target or it is mis-answered.`);
+
+  /* 6. The journey and the map. */
+  const intakeSpec = "tests/symptom-intake.spec.ts";
+  if (!existsSync(intakeSpec) || !/symptom-intake\.json/.test(read(intakeSpec)) || !/speechSynthesis/.test(read(intakeSpec)))
+    throw new Error(`${intakeSpec} is missing, does not read packages/catalog/symptom-intake.json, or does not stand the browser's voice down (a live utterance stalls clicks in headless Chromium).`);
+  if (!/symptom-intake\.json/.test(read("docs/FEATURE-MAP.md")))
+    throw new Error("docs/FEATURE-MAP.md has no row for the symptom intake.");
+
+  console.log(
+    `Symptom intake · web: the offer question web-only and patient-only with ${offerQuestion.triggers.length} triggers of its own; the intake decided after the refusals and before unmatched, so the waiting dots cannot be drawn for a complaint the ${intake.groups.length} groups know; the composer answering an open intake before the bridge; 44px chips; no contract sentence typed in the matcher, the panel or the stylesheet.`,
+  );
+}
+
+/* Care tips and the assistant's waiting dots — 28 September 2026 */
+/* Two pieces from the founder's approved motion reference, and what each of them must never become.
+
+   CARE TIPS are health advice shown after a visit. They are general guidance nobody has clinically
+   reviewed yet, so the contract says so in a review block, every platform prints that sentence beside
+   the stack, and nothing on the screen is a sentence the contract did not write. A tip carries no digit
+   — no dose, no reading, no range and no telephone number, each of which lives in exactly one other
+   place — and every card's words sit on a colour pair tokens.json#contrast measures.
+
+   THE WAITING DOTS stand in front of a service answer while apps/assistant-api is working on it. They
+   must never stand in front of a deterministic one: the emergency answer, a refusal and the offline
+   fallback are answered before any request is made, and a bubble in front of 10177, for however few
+   frames, is a delay in front of an ambulance. So the one place a reply is marked as waiting is held
+   to the one line that makes it wait only for an unmatched message, and the dots themselves are held
+   to the motion rules: transform and opacity, the tokens' durations, and an endless loop only under
+   [data-decor='on'] with a removal for reduced motion. */
+{
+  const ctFile = "packages/catalog/care-tips.json";
+  const ct = JSON.parse(read(ctFile));
+  const ctFail = (why) => {
+    throw new Error(`Care tips: ${why}`);
+  };
+  const stripJs = (source) =>
+    source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const stripCss = (source) => source.replace(/\/\*[\s\S]*?\*\//g, "");
+
+  /* 1. The review block: nobody has signed these, and the contract may not pretend otherwise. A
+     reviewer is named only together with the day they signed, and while nobody has, the status and
+     the notice say so. Signing them is a clinical-governance change, and this check is edited with it. */
+  if (!ct.review || typeof ct.review.notice !== "string" || ct.review.notice.trim() === "")
+    ctFail(`${ctFile} has no review block with a notice. General health advice nobody has checked says so on the screen, in the contract's words.`);
+  if (ct.review.reviewedBy !== null || ct.review.reviewedOn !== null)
+    ctFail(`${ctFile} names a reviewer (${JSON.stringify(ct.review.reviewedBy)}) or a review day. No registered clinician has signed these tips; a name here is a claim of clinical review the product cannot make. When one does, the sign-off is recorded in docs/governance and this check changes in the same commit.`);
+  if (ct.review.status !== "awaiting-clinical-review")
+    ctFail(`${ctFile}'s review status is "${ct.review.status}" while nobody has reviewed the tips. It is "awaiting-clinical-review" until a reviewer is named.`);
+
+  /* 2. What a tip may say. No digit — a dose, a reading, a range and a number to call each live in one
+     other contract — and no word that turns guidance into a prescription or a diagnosis. */
+  const colours = JSON.parse(read("packages/design-tokens/tokens.json"));
+  const pairs = new Set(
+    (colours.contrast.pairs ?? []).flatMap((p) => [
+      `${p.foreground}|${p.background}`,
+      `${p.background}|${p.foreground}`,
+    ]),
+  );
+  const categoryIds = new Set(ct.categories.map((c) => c.id));
+  if (ct.tips.length < 4 || ct.tips.length > 6)
+    ctFail(`${ctFile} carries ${ct.tips.length} tips. The stack is four to six cards: fewer is not worth a screen, more is a leaflet nobody finishes.`);
+  for (const tip of ct.tips) {
+    if (!categoryIds.has(tip.category))
+      ctFail(`the tip "${tip.id}" names the category "${tip.category}", which ${ctFile} does not declare.`);
+    for (const field of ["title", "body"]) {
+      if (/\d/.test(tip[field]))
+        ctFail(`the tip "${tip.id}" carries a digit in its ${field}: "${tip[field]}". A tip names no dose, reading, range or telephone number — each of those lives in exactly one other contract.`);
+      if (/\b(mg|ml|milligram|dosage|dose of|diagnos\w*|you have (a|an) )\b/i.test(tip[field]))
+        ctFail(`the tip "${tip.id}" reads like a prescription or a diagnosis: "${tip[field]}". A tip is general guidance for anybody, never advice about one person.`);
+    }
+  }
+  for (const category of ct.categories) {
+    const tint = ct.tints[category.tint];
+    if (!tint)
+      ctFail(`the category "${category.id}" names the tint "${category.tint}", which ${ctFile} does not declare.`);
+    if (!pairs.has(`${tint.ink}|${tint.fill}`))
+      ctFail(`the tint "${category.tint}" puts ${tint.ink} on ${tint.fill}, a pair packages/design-tokens/tokens.json#contrast does not measure. Every word on a card sits on a computed pair or it does not ship.`);
+  }
+  const webCss = stripCss(read("apps/web/src/features/care-tips.css"));
+  for (const [id, tint] of Object.entries(ct.tints).filter(([k]) => !k.startsWith("_"))) {
+    const kebab = (name) => name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+    const rule = new RegExp(`\\[data-tint='${id}'\\]\\s*\\{\\s*--ct-fill:\\s*var\\(--${kebab(tint.fill)}\\);\\s*--ct-ink:\\s*var\\(--${kebab(tint.ink)}\\);`);
+    if (!rule.test(webCss))
+      ctFail(`apps/web/src/features/care-tips.css does not paint the tint "${id}" as ${tint.fill} with ${tint.ink}, which is the pair the contract names and the build measures.`);
+  }
+
+  /* 3. The screens render only the contract's sentences, and the reviewer notice on every platform. */
+  const screen = stripJs(read("apps/web/src/features/CareTips.tsx"));
+  const jsxText = [...screen.matchAll(/>([^<>{}]*[A-Za-z][^<>{}]*)</g)]
+    .map((m) => m[1].trim())
+    .filter((t) => t && !/^[\w.]+\s*(=>|&&|\?)/.test(t));
+  const typedAttributes = [
+    ...screen.matchAll(/\b(aria-label|title|alt|placeholder)="([^"]*[A-Za-z][^"]*)"/g),
+  ].map((m) => `${m[1]}="${m[2]}"`);
+  if (jsxText.length || typedAttributes.length)
+    ctFail(`apps/web/src/features/CareTips.tsx types words onto the screen: ${[...jsxText, ...typedAttributes].map((t) => JSON.stringify(t)).join(", ")}. Every sentence on the tips screen is packages/catalog/care-tips.json's, so a caution cannot be worded one way here and another on a phone.`);
+  if (!/careTipReview\.notice/.test(screen))
+    ctFail("apps/web/src/features/CareTips.tsx no longer renders the review notice. The tips are unreviewed, and the screen says so beside the stack.");
+  const lib = stripJs(read("apps/web/src/lib/care-tips.ts"));
+  if (/["'`][A-Z][a-z]+ [a-z]+[^"'`]*["'`]/.test(lib.replace(/import[^;]+;/g, "")))
+    ctFail("apps/web/src/lib/care-tips.ts carries a sentence of its own. It joins the contract's tips to their categories and fills two templates, and says nothing itself.");
+  const nativeScreens = {
+    "apps/ios/MyThuso/Features/CareTipsView.swift": [/\b(Text|Label|accessibilityLabel)\(\s*"[^"]*[A-Za-z]/g, "CareTipsData.Review.notice"],
+    "apps/android/app/src/main/java/za/co/mythuso/ui/CareTipsScreens.kt": [/\bText\(\s*"[^"]*[A-Za-z]|contentDescription\s*=\s*"[^"]*[A-Za-z]/g, "CareTipsData.Review.notice"],
+  };
+  for (const [file, [typed, notice]] of Object.entries(nativeScreens)) {
+    const source = stripJs(read(file));
+    const found = source.match(typed);
+    if (found)
+      ctFail(`${file} types words onto the tips screen (${found.map((f) => JSON.stringify(f)).join(", ")}). Every sentence there is CareTipsData's, generated from ${ctFile}.`);
+    if (!source.includes(notice))
+      ctFail(`${file} no longer shows ${notice}. The tips are unreviewed on every platform, not only on the web.`);
+  }
+  /* The door from a completed visit, and the route, on all three platforms — and on the web behind a
+     dynamic import, because the stack and its contract are not on the patient's first view. */
+  const app = read("apps/web/src/App.tsx");
+  if (!/const CareTipsPage = lazy\(\(\) => import\('\.\/features\/CareTips'\)/.test(app) || /^import [^;]*from '\.\/features\/CareTips'/m.test(app))
+    ctFail("apps/web/src/App.tsx no longer loads the care tips on a dynamic import. A patient on metered data does not download a screen she has not opened.");
+  for (const entry of ["apps/web/src/App.tsx", "apps/web/src/features/VisitSummary.tsx"])
+    if (/^import [^;]*from '[^']*(packages\/catalog\/care-tips\.json|lib\/care-tips'|features\/CareTips(Door)?')/m.test(read(entry)))
+      ctFail(`${entry} imports the care tips, their door or their contract statically. Each is on the patient's first load, and a JSON module imported there is kept whole in the entry bundle, every tip with it; the router reads care-tips-route.generated.ts and the rest arrives on dynamic imports.`);
+  if (!/import \{ careTipsRoute \} from '\.\/lib\/care-tips-route\.generated'/.test(app))
+    ctFail("apps/web/src/App.tsx no longer reads the route's name from care-tips-route.generated.ts, which is generated from the contract.");
+  if (!/const CareTipsDoor = lazy\(\(\) => import\('\.\/CareTips'\)\.then\(m => \(\{ default: m\.CareTipsDoor \}\)\)\)/.test(read("apps/web/src/features/VisitSummary.tsx")))
+    ctFail("A completed visit no longer loads the care tips' door on a dynamic import (apps/web/src/features/VisitSummary.tsx), or no longer has one.");
+  if (!/page === careTipsRoute\.opens \?/.test(app) || !/\[\.\.\.patientSections, careTipsRoute\.opens\]/.test(app))
+    ctFail("apps/web/src/App.tsx no longer routes the care tips by the contract's own name, or ?open=care-tips no longer opens them.");
+  if (!/export function CareTipsDoor[\s\S]*navigate\(careTipsRoute\.opens\)/.test(read("apps/web/src/features/CareTips.tsx")))
+    ctFail("The door on a completed visit no longer opens the care tips by the contract's route (CareTipsDoor in apps/web/src/features/CareTips.tsx).");
+  if (!/CareTipsView\(\)/.test(read("apps/ios/MyThuso/Features/VisitSummaryView.swift")))
+    ctFail("The iOS completed visit no longer has a door to the care tips.");
+  if (!/title == za\.co\.mythuso\.model\.CareTipsData\.Door\.opens -> CareTipsScreen\(open\)/.test(read("apps/android/app/src/main/java/za/co/mythuso/ui/AccountScreens.kt")) ||
+      !/open\(CareTipsData\.Door\.opens\)/.test(read("apps/android/app/src/main/java/za/co/mythuso/ui/PassportScreens.kt")))
+    ctFail("The Android app no longer routes the care tips from AccountScreens.kt, or its completed visit no longer has a door to them.");
+  const pbx = read("apps/ios/MyThuso.xcodeproj/project.pbxproj");
+  for (const f of ["Models/CareTipsData.swift", "Models/CareTips.swift", "Features/CareTipsView.swift"]) {
+    const ref = pbx.match(new RegExp(`(\\w+) = \\{ isa = PBXFileReference;[^}]*path = "MyThuso/${f.replace(/[./]/g, (c) => `\\${c}`)}"`));
+    const build = ref && pbx.match(new RegExp(`(\\w+) = \\{ isa = PBXBuildFile; fileRef = ${ref[1]}; \\}`));
+    if (!ref || !build || pbx.split(ref[1]).length < 4 || pbx.split(build[1]).length < 3)
+      ctFail(`MyThuso/${f} is not registered in project.pbxproj as a file reference, a build file, a group child and a source.`);
+  }
+
+  /* 4. The stack's motion: one finite entrance per tip on the tokens, no blur, and a removal. */
+  const motionRules = (file, css) => {
+    const code = stripCss(css);
+    if (/\d(ms|s)\b(?![a-z-])/.test(code.replace(/var\([^)]*\)/g, "")))
+      ctFail(`${file} types a duration. Durations are var(--t-quick), var(--t-settle) and var(--t-enter), and multiples of them.`);
+    if (/cubic-bezier|\bease-(in|out)\b|\blinear\b/.test(code))
+      ctFail(`${file} types a curve. There is one, var(--ease-soft).`);
+    if (/filter\s*:\s*[^;]*blur|backdrop-filter/.test(code))
+      ctFail(`${file} blurs something. A blurred frame is a frame nobody can read, and the most expensive thing a mid-range phone can be asked to paint.`);
+    const frames = [...code.matchAll(/@keyframes\s+([\w-]+)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g)];
+    for (const [, name, body] of frames) {
+      if (/box-shadow|filter/.test(body))
+        ctFail(`${file}: @keyframes ${name} animates a shadow or a filter. Only transform and opacity move here.`);
+      for (const property of [...body.matchAll(/([a-z-]+)\s*:/g)].map((m) => m[1]))
+        if (!/^(transform|opacity)$/.test(property))
+          ctFail(`${file}: @keyframes ${name} moves ${property}. Only transform and opacity move here — they are composited, and move no box a thumb is travelling towards.`);
+      if (!new RegExp(`animation[^;}]*\\b${name}\\b`).test(code))
+        ctFail(`${file} defines @keyframes ${name} and nothing plays it.`);
+    }
+    for (const [, name] of code.matchAll(/animation:\s*([\w-]+)/g))
+      if (name !== "none" && !frames.some((f) => f[1] === name))
+        ctFail(`${file} plays ${name}, whose keyframes are not in this file.`);
+    const reduced = code.slice(code.indexOf("prefers-reduced-motion"));
+    if (!/@media\s*\(prefers-reduced-motion:\s*reduce\)/.test(code) || !/animation:\s*none\s*!important/.test(reduced))
+      ctFail(`${file} does not remove its motion under prefers-reduced-motion, with !important so a later sheet cannot put it back.`);
+    return code;
+  };
+  const tipsCss = motionRules("apps/web/src/features/care-tips.css", read("apps/web/src/features/care-tips.css"));
+  if (/infinite/.test(tipsCss))
+    ctFail("apps/web/src/features/care-tips.css runs something for ever. A tip's entrance plays once, when the tip arrives.");
+  if (!/\[data-motion='on'\] \.ct-card \{ animation:/.test(tipsCss))
+    ctFail("The card's entrance is no longer gated on [data-motion='on']. Ungated, a card waits at opacity 0 for a script, and a reader who asked for stillness gets it too.");
+
+  /* 5. The waiting bubble, and only for a service answer. */
+  const panelFile = "apps/web/src/features/Assistant.tsx";
+  const panel = stripJs(read(panelFile));
+  const waits = [...panel.matchAll(/setPendingReplies\(\(current\) => new Set\(current\)\.add\(/g)];
+  if (waits.length !== 1)
+    ctFail(`${panelFile} marks a reply as waiting in ${waits.length} places. There is one: the submit that has already been answered "unmatched" by the deterministic tier.`);
+  const guard = panel.indexOf('if (candidate.reply.kind !== "unmatched") return;');
+  const local = panel.indexOf("const local = sendWithGilbertEngine(");
+  if (local < 0 || guard < local || guard > waits[0].index || panel.slice(guard, waits[0].index).includes("candidate ="))
+    ctFail(`${panelFile} can mark a reply as waiting without the deterministic tier having answered it "unmatched" first. An emergency, a refusal or an offline answer must land on the frame it is sent, with no bubble in front of it.`);
+  if (!/\{pendingReplies\.has\(turn\.id\) \? \(\s*<p className="as-pending" role="status">\s*<span className="as-dots" aria-hidden="true">/.test(panel) || (panel.match(/as-dots/g) ?? []).length !== 1)
+    ctFail(`${panelFile} draws the waiting dots somewhere other than the one branch for a reply still waiting.`);
+  if (!/data-waiting=\{pendingReplies\.has\(turn\.id\) \|\| undefined\}/.test(panel))
+    ctFail(`${panelFile} no longer gates the dots' loop on data-waiting, set only while that reply waits.`);
+  if (!/<span className="as-sr">\{conversation\.thinkingLabel\}<\/span>/.test(panel) || typeof JSON.parse(read("packages/catalog/assistant.json")).conversation.thinkingLabel !== "string")
+    ctFail(`${panelFile}'s waiting bubble no longer says, for a screen reader, the contract's conversation.thinkingLabel.`);
+  const bridge = stripJs(read("apps/web/src/lib/gilbertone-bridge.ts"));
+  if (!/if \(result\.route === 'emergency'\) \{/.test(bridge) || bridge.indexOf("if (result.route === 'emergency') {") > bridge.indexOf("if (result.route === 'handover') {"))
+    ctFail("apps/web/src/lib/gilbertone-bridge.ts no longer answers the emergency route first. It is what keeps an emergency from ever reaching the unmatched branch that waits for the service.");
+  const { evaluateMessage } = await import("../packages/gilbertone/src/engine.ts");
+  const terms = JSON.parse(read("packages/catalog/gilbert-emergency-terms.json")).groups.flatMap((g) => g.words ?? []);
+  const missed = terms.filter((t) => evaluateMessage(t, "patient").route !== "emergency");
+  if (missed.length)
+    ctFail(`the deterministic tier does not route ${missed.map((t) => JSON.stringify(t)).join(", ")} as an emergency, so those words would wait behind the dots for the service.`);
+  const dotsCss = stripCss(read("apps/web/src/features/assistant-motion.css"));
+  motionRules("apps/web/src/features/assistant-motion.css (the waiting dots)",
+    read("apps/web/src/features/assistant-motion.css").replace(/@keyframes\s+(?!as-dot\b)[\w-]+\s*\{(?:[^{}]|\{[^{}]*\})*\}/g, "").replace(/animation:(?!\s*(as-dot|none)\b)[^;]*;/g, ""));
+  for (const rule of dotsCss.matchAll(/([^{}]*)\{[^{}]*animation:\s*as-dot[^;}]*infinite/g))
+    if (!rule[1].includes(":root[data-decor=\"on\"]") || !rule[1].includes("[data-waiting]") || !rule[1].includes(":not([data-safety])"))
+      ctFail(`the waiting dots loop on "${rule[1].trim()}" without all three gates: [data-decor='on'], the bubble's data-waiting, and outside the held safety face.`);
+  if (!/prefers-reduced-motion[\s\S]*\.as-dots i,[\s\S]*animation:\s*none\s*!important/.test(dotsCss))
+    ctFail("assistant-motion.css's reduced-motion block no longer stills the waiting dots.");
+
+  console.log(
+    `Care tips and waiting dots · ${ct.tips.length} tips in ${ct.categories.length} categories, unreviewed and saying so on three platforms, no digit or prescription among them, every card on a measured pair, no typed sentence on any tips screen, the stack behind a dynamic import with one finite entrance; one place a reply waits, after the deterministic tier said unmatched, ${terms.length} emergency words that never reach it, and dots that loop only while waiting, only under decor, and never under reduced motion.`,
+  );
+}
+
+/* Landing and Control Tower motion — 28 September 2026 */
+/* The founder approved a shortlist from a motion reference for the public page — children rising in
+   turn, a drawn line under the section links, one card lift, a "For me / For Mom" toggle and one trace
+   drawn once — and asked for the Control Tower's screens to stop feeling empty. Four things about that
+   work are easy to undo in a later edit and would be invisible in a diff, so they are held here.
+
+   1. The trace draws once. An ECG line that loops is a heartbeat the page is faking, and an endless
+      animation the motion budget in tests/motion.spec.ts would then have to argue with. So the rule
+      that plays ecg-draw names one iteration and never infinite, the resting stroke is the drawn line
+      (the dash that hides it exists only under the motion flag), and the picture is aria-hidden: it
+      measures nothing and says nothing.
+   2. The toggle types no price and no tier name. Every figure on either side is the catalogue's —
+      business-model.json through monthlyPrices, mom-plans.json's tiers — and each tier is named by its
+      cadence, because the tier names are Money's settings and a public page is a document no admin's
+      change reaches. Its sentences are the contract's: the payer's statement and a refusal by id.
+   3. Nothing added on 28 September spends a duration that is not a token or runs forever: the landing
+      sheet's motion section and the portal's arrival section are read for a literal time and for
+      `infinite`.
+   4. The portal's arrival stays removable. The Frame's panel carries pt-stagger, every arrival rule is
+      gated on [data-decor='on'], and the portal's reduced-motion removal still reaches #pt-subpanel —
+      the one line that takes every one of them away. */
+{
+  const landingSheet = read("apps/web/src/landing.css");
+  const landingCode = landingSheet.replace(/\/\*[\s\S]*?\*\//g, "");
+  const landingPage = read("apps/web/src/features/Landing.tsx");
+
+  const drawRule = landingCode.match(/([^{}]*)\{[^{}]*animation:\s*ecg-draw\b([^;}]*)[;}]/);
+  if (!drawRule)
+    throw new Error("apps/web/src/landing.css no longer plays ecg-draw. The trace on the safety card is drawn once as the card arrives; a trace with no draw rule is either always drawn — fine, but say so here — or hidden for good.");
+  if (/\binfinite\b/.test(drawRule[2]) || !/(^|\s)1(\s|$)/.test(drawRule[2]))
+    throw new Error(`apps/web/src/landing.css plays ecg-draw as "${drawRule[2].trim()}". It is drawn once and then held: one iteration, named, and never infinite — a looping ECG is a heartbeat the page is faking.`);
+  if (!/\[data-motion="on"\]/.test(drawRule[1]))
+    throw new Error("The rule that plays ecg-draw is not gated on [data-motion=\"on\"]. A page whose script never runs, or a reader who asked for less motion, gets the drawn line and no animation.");
+  for (const rule of landingCode.matchAll(/([^{}]*)\{([^{}]*stroke-dasharray[^{}]*)\}/g))
+    if (/landing-ecg/.test(rule[1]) && !/\[data-motion="on"\]/.test(rule[1]))
+      throw new Error(`apps/web/src/landing.css dashes the trace outside the motion flag (${rule[1].trim()}). The resting state is the drawn line; the dash only hides it for the length of one finite draw.`);
+  if (!/<svg\s+className="landing-ecg"[^>]*aria-hidden="true"/.test(landingPage))
+    throw new Error("apps/web/src/features/Landing.tsx draws the ECG trace without aria-hidden=\"true\". It is decoration under a sentence that already says everything, and it measures nothing.");
+
+  const plansFrom = landingPage.indexOf('<section id="plans"');
+  const plansTo = landingPage.indexOf('<section id="nurses"', plansFrom);
+  if (plansFrom < 0 || plansTo < 0)
+    throw new Error("apps/web/src/features/Landing.tsx no longer has its plans between <section id=\"plans\" and <section id=\"nurses\", so the toggle cannot be found to be checked.");
+  const plansMarkup = landingPage.slice(plansFrom, plansTo).replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+  const typedRand = plansMarkup.match(/R\s?\d|>\s*\d{2,}\s*</);
+  if (typedRand)
+    throw new Error(`apps/web/src/features/Landing.tsx types "${typedRand[0]}" in the plans section. Every figure on either side of the toggle is money() of a catalogue number.`);
+  if (!/aria-label="Whose care plans"/.test(plansMarkup) || (plansMarkup.match(/aria-pressed=\{/g) ?? []).length !== 2)
+    throw new Error("The plans toggle is no longer a named group of two buttons that say which side is showing with aria-pressed. The knob is never the only thing that says it.");
+  if (!/momPlan\.payer\.statement/.test(plansMarkup) || !/momRefusal\("a-plan-is-not-medical-aid"\)/.test(plansMarkup))
+    throw new Error("The Mom side of the plans toggle no longer says who pays and what a plan is not in packages/catalog/mom-plans.json's words. A price for a parent's care without \"is not medical aid\" beside it is the reading that refusal exists to stop.");
+  if (!/const forMom: PlanCard\[\] = momTiers\.map\(\(t\) => \(\{[^}]*prices: \[t\.price\][^}]*\}\)\)/.test(landingPage) || !/name: t\.cadence/.test(landingPage))
+    throw new Error("The Mom side of the plans toggle no longer reads each tier's price and cadence from packages/catalog/mom-plans.json. The page is a document an admin's change never reaches, so a tier is named by how often a nurse would come, never by a typed price or name.");
+  const momWords = JSON.parse(read("packages/catalog/money.json")).settings.items
+    .filter((s) => /^tier-name-/.test(s.key)).map((s) => s.default.value);
+  const typedTier = momWords.find((name) => new RegExp(`["'>\`]\\s*${name}\\b`).test(landingPage.replace(/\/\*[\s\S]*?\*\//g, "")));
+  if (typedTier)
+    throw new Error(`apps/web/src/features/Landing.tsx types the tier name "${typedTier}". Tier names are Money's settings, which the public page does not read; a typed one is a name that goes on saying what the admin has changed.`);
+
+  const portalSheet = read("apps/web/src/features/portal/portal.css");
+  const sections = [
+    ["apps/web/src/landing.css", landingSheet, "/* ---- Motion, 28 September 2026 ----"],
+    ["apps/web/src/features/portal/portal.css", portalSheet, "/* ---- Every screen arrives, and says what is empty (28 September 2026)"],
+  ];
+  for (const [file, sheet, marker] of sections) {
+    const at = sheet.indexOf(marker);
+    if (at < 0)
+      throw new Error(`${file} has lost its section "${marker.replace(/^\/\* -+ /, "")}", so what it added on 28 September 2026 can no longer be found to be checked.`);
+    const code = sheet.slice(at).replace(/\/\*[\s\S]*?\*\//g, "");
+    for (const m of code.matchAll(/(?:animation|transition)(?:-delay|-duration)?\s*:([^;}]*)/g)) {
+      if (/(^|[\s,(])\d*\.?\d+m?s\b/.test(m[1]))
+        throw new Error(`${file}'s 28 September section spends a literal time: "${m[0].trim()}". Durations are --t-quick, --t-settle and --t-enter, or calc() of them — a typed one is a second motion system starting.`);
+      if (/\binfinite\b/.test(m[1]))
+        throw new Error(`${file}'s 28 September section runs "${m[0].trim()}" forever. Nothing it adds is endless: the motion budget is two drifts on the hero and it is not growing.`);
+    }
+  }
+  const portalAt = portalSheet.indexOf(sections[1][2]);
+  const portalAdded = portalSheet.slice(portalAt).replace(/\/\*[\s\S]*?\*\//g, "");
+  /* Selector by selector, split at the commas that are not inside :is() or :not(): one ungated
+     selector in a list of gated ones is still an arrival nothing can stop. */
+  const selectorsOf = (list) => {
+    const out = [];
+    let depth = 0, from = 0;
+    for (let i = 0; i < list.length; i++) {
+      if (list[i] === "(") depth++;
+      else if (list[i] === ")") depth--;
+      else if (list[i] === "," && depth === 0) { out.push(list.slice(from, i)); from = i + 1; }
+    }
+    return [...out, list.slice(from)].map((sel) => sel.trim()).filter(Boolean);
+  };
+  for (const rule of portalAdded.matchAll(/([^{}]*)\{[^{}]*animation(?:-name)?\s*:[^{}]*\}/g))
+    for (const selector of selectorsOf(rule[1]))
+      if (!selector.startsWith('[data-decor="on"]'))
+        throw new Error(`apps/web/src/features/portal/portal.css animates "${selector}" without [data-decor="on"]. The portal's pause control and the reduced-motion query both clear that flag; an arrival outside it is one neither can stop.`);
+  if (!/className="pt-panel pt-stagger" id="pt-subpanel"/.test(read("apps/web/src/features/portal/Frame.tsx")))
+    throw new Error("apps/web/src/features/portal/Frame.tsx's panel no longer carries pt-stagger beside #pt-subpanel, so no category's screen arrives — or, worse, the arrival moved somewhere the reduced-motion removal does not reach.");
+  if (!/@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.portal :is\(\.cf-area, \.g1-speech, #pt-subpanel\),/.test(portalSheet))
+    throw new Error("apps/web/src/features/portal/portal.css no longer removes every animation under #pt-subpanel for a reader who asked for less motion. It is the one line that takes the portal's arrivals away.");
+
+  console.log(
+    `Landing and Control Tower motion · the safety trace drawn once (${drawRule[2].trim()}) and resting drawn, aria-hidden; the plans toggle a named group of two, its Mom side ${JSON.parse(read("packages/catalog/mom-plans.json")).tiers.length} tiers by cadence at the contract's prices with the payer's statement and "not medical aid" beside them, no price and none of ${momWords.length} tier names typed; no literal time and nothing endless in either 28 September section; the portal's arrivals gated on the pause flag, carried by pt-stagger and inside the reduced-motion removal.`,
+  );
+}
+
+/* Hands-free conversation mode — 28 September 2026 */
+/* The founder's brief of 28 September 2026 — "when you have spoken to it and you pause, it must respond
+   automatically, just like Siri — not answering on top of you" — is packages/catalog/conversation-mode.json,
+   read by packages/gilbertone/src/speech-state.ts (the pure machine, in conversation mode), by
+   apps/web/src/lib/voice.ts (its host on the web) and by the two generated ConversationModeData files. What
+   is held here: the record has its provenance and the founder's words; the amendment's numbers live in that
+   one file and the machine types none of them; the two records of the utterance cap agree and the founder's
+   thirty-second listening cap stands in front of it; the contract's fixtures replay against the machine
+   exactly; every way a conversation ends names a transition the machine has, and every close the machine
+   raises on its own is a way the contract lists; the adapter reads the sentences, the pause and the barge-in
+   thresholds from the contract and types none of them; the barge-in detector is the recogniser, because no
+   web file may open a microphone stream, and nothing under apps/web/src records; and the proposed settings
+   are in the shared shape, inside their own bounds, replayed from their changelog, and not yet a `settings`
+   block — because that block is reached only through packages/catalog/settings.json#sources, and wiring it
+   is a change to that file and to the assistant engine's block in voice.json, not to this one. */
+{
+  const cmFile = "packages/catalog/conversation-mode.json";
+  const cm = JSON.parse(read(cmFile));
+  const cmMachineFile = "packages/gilbertone/src/speech-state.ts";
+  const cmAdapterFile = "apps/web/src/lib/voice.ts";
+  const cmMachine = uncommented(read(cmMachineFile));
+  const cmAdapter = uncommented(read(cmAdapterFile)).replace(/^\s*import\s[^;]*;\s*$/gm, "");
+  const cmAssistant = JSON.parse(read("packages/catalog/assistant.json")).voice;
+
+  /* 1. Provenance: the founder, the day, his words, and the two references he named — and the two tunable
+        numbers still a proposal block rather than a settings block, held before the machine that reads
+        them by that name is imported below. */
+  if (cm.settings !== undefined || !Array.isArray(cm.proposedSettings?.items))
+    throw new Error(`${cmFile} has a top-level settings block, or has lost proposedSettings. That block is reached only through packages/catalog/settings.json#sources and the assistant engine's block is packages/catalog/voice.json; the two items move there in the wiring change, with their changelog, and this file keeps them under proposedSettings until then.`);
+  if (!/founder/i.test(String(cm.decidedBy)) || !/^\d{4}-\d{2}-\d{2}$/.test(String(cm.on)))
+    throw new Error(`${cmFile} has lost who decided hands-free conversation or the day. A microphone that reopens on its own is the founder's decision with a date on it, not a default.`);
+  if (!/pause/i.test(String(cm.why)) || !/not answering on top of you/i.test(String(cm.why)) || !/Siri/.test(String(cm.why)))
+    throw new Error(`${cmFile}'s why no longer carries the founder's words — the pause, "not answering on top of you", and Siri as the reference. The brief is the reason every number below exists; a record that loses it is a tuning nobody asked for.`);
+  for (const ref of ["Siri", "Bixby"])
+    if (!Array.isArray(cm.references) || !cm.references.includes(ref))
+      throw new Error(`${cmFile} no longer names ${ref} among its references. The founder named two behaviours to match; dropping one changes what "like Siri" is measured against.`);
+
+  /* 2. The amendment's numbers have one home, and the machine reads them from it. */
+  if (cm.utteranceCapSeconds !== cmAssistant.perUtteranceCapSeconds)
+    throw new Error(`${cmFile} caps an utterance at ${cm.utteranceCapSeconds} seconds and packages/catalog/assistant.json#voice.perUtteranceCapSeconds says ${cmAssistant.perUtteranceCapSeconds}. The amendment set one cap; two records of it may not disagree.`);
+  if (!(cmAssistant.maxListeningSeconds <= cm.utteranceCapSeconds))
+    throw new Error(`packages/catalog/assistant.json lets the web listen for ${cmAssistant.maxListeningSeconds} seconds, longer than the amendment's ${cm.utteranceCapSeconds}-second utterance cap in ${cmFile}. The founder's listening cap stands in front of the utterance cap, never behind it.`);
+  if (!/from "\.\.\/\.\.\/catalog\/conversation-mode\.json" with \{ type: "json" \}/.test(read(cmMachineFile)))
+    throw new Error(`${cmMachineFile} no longer imports ${cmFile}. Its pause, its caps and its idle rounds are read from that record; a machine that stops reading it has typed them.`);
+  for (const [name, from] of [
+    ["PER_UTTERANCE_CAP_MS", /export const PER_UTTERANCE_CAP_MS = conversationMode\.utteranceCapSeconds \* 1000;/],
+    ["VAD_SILENCE_THRESHOLD_MS", /export const VAD_SILENCE_THRESHOLD_MS = settingDefault\(conversationMode\.endpoint\.settingKey\);/],
+    ["MAX_UTTERANCES_PER_EXCHANGE", /export const MAX_UTTERANCES_PER_EXCHANGE = conversationMode\.maxUtterancesPerExchange;/],
+    ["IDLE_ROUNDS_BEFORE_SLEEP", /export const IDLE_ROUNDS_BEFORE_SLEEP = settingDefault\(conversationMode\.sleep\.settingKey\);/],
+  ]) {
+    if (!from.test(cmMachine))
+      throw new Error(`${cmMachineFile} no longer derives ${name} from ${cmFile}. Every number the speech machine runs on is the contract's; a constant typed beside it is the second copy that disagrees.`);
+    if (new RegExp(`${name}\\s*=\\s*\\d`).test(cmMachine))
+      throw new Error(`${cmMachineFile} types a number into ${name}. It is read from ${cmFile}.`);
+  }
+  for (const typed of [/\b45_?000\b/, /\b800\b/, /\b45\b/])
+    if (typed.test(cmMachine))
+      throw new Error(`${cmMachineFile} carries the number ${typed.source}: an utterance cap or an endpoint pause typed into the machine while ${cmFile} is where they live.`);
+
+  /* 3. The contract's own fixtures replay against the machine, step for step. */
+  const { initialSpeechState: cmInitial, transition: cmTransition } = await import("../packages/gilbertone/src/speech-state.ts");
+  const cmSetting = (key) => {
+    const item = cm.proposedSettings.items.find((s) => s.key === key);
+    if (!item) throw new Error(`${cmFile} has no proposed setting "${key}", which its endpoint or sleep block names.`);
+    return item.default.value;
+  };
+  let cmSteps = 0;
+  for (const [name, steps] of Object.entries(cm.fixtures)) {
+    if (name.startsWith("_")) continue;
+    let state = cmInitial(0);
+    steps.forEach((step, index) => {
+      const event = { ...step.event };
+      if (event.silenceMs === "endpoint-silence") event.silenceMs = cmSetting("endpoint-silence");
+      const result = cmTransition(state, event, index + 1);
+      const effects = result.effects.map((e) => e.type);
+      if (result.state.phase !== step.phase || effects.join() !== step.effects.join())
+        throw new Error(`${cmFile}'s fixture ${name}, step ${index + 1} (${step.event.type}): the machine went to ${result.state.phase} with [${effects.join(", ")}]; the contract says ${step.phase} with [${step.effects.join(", ")}]. The fixture is the founder's behaviour written down, and the machine is held to it.`);
+      state = result.state;
+      cmSteps += 1;
+    });
+  }
+  const cmRoundTrip = cm.fixtures.siriRoundTrip.map((s) => s.event.type);
+  if (!/tts_finished$/.test(cmRoundTrip.slice(0, 5).join(" ")) || cm.fixtures.siriRoundTrip[4].phase !== "listening" || !cm.fixtures.siriRoundTrip[4].effects.includes("your_turn"))
+    throw new Error(`${cmFile}'s siriRoundTrip no longer shows a finished answer reopening the microphone with your_turn. That transition is the whole of the founder's brief; a fixture without it holds the machine to nothing.`);
+
+  /* 4. Every way a conversation ends is a transition the machine has, and every close the machine raises
+        on its own is a way the contract lists. */
+  for (const end of cm.endsOn) {
+    for (const key of ["id", "sentence", "event", "effect"])
+      if (!end[key]) throw new Error(`${cmFile} endsOn "${end.id ?? "?"}" has no ${key}. A way a conversation ends names its sentence, the event that carries it and the effect the host sees.`);
+    if (!new RegExp(`case "${end.event}"`).test(cmMachine))
+      throw new Error(`${cmFile} says a conversation ends on the event "${end.event}" (${end.id}), and ${cmMachineFile} has no transition on it. An ending the machine cannot reach is a sentence, not a rule.`);
+    if (!new RegExp(`type: "${end.effect}"`).test(cmMachine))
+      throw new Error(`${cmFile} says the ending "${end.id}" is seen as the effect "${end.effect}", which ${cmMachineFile} never emits.`);
+  }
+  const cmEndIds = new Set(cm.endsOn.map((e) => e.id));
+  for (const [, reason] of cmMachine.matchAll(/type: "sleep", reason: "([a-z-]+)"/g))
+    if (!cmEndIds.has(reason))
+      throw new Error(`${cmMachineFile} closes the microphone on its own for "${reason}", which ${cmFile}'s endsOn does not list. Every close the machine raises is a way the contract says a conversation ends.`);
+  if (!cm.endsOn.some((e) => e.id === "emergency-answer" && /why/.test(Object.keys(e).join()) && /phone call|ambulance/i.test(String(e.why))))
+    throw new Error(`${cmFile} no longer says why the microphone closes after an emergency answer. The reason — the next thing is a phone call, and the numbers stay on the screen — is the decision; without it the close reads as a bug to fix.`);
+  const cmSleep = cmMachine.match(/function afterReading[\s\S]*?\n}/)?.[0] ?? "";
+  if (!/speakingKind === "answer"/.test(cmSleep) || !/reason: "emergency-answer"/.test(cmSleep))
+    throw new Error(`${cmMachineFile}'s afterReading no longer closes the microphone after anything but an answer in conversation mode. An emergency or an escalation that is spoken and then reopens the microphone invites another turn with a page instead of a phone call.`);
+
+  /* 5. The adapter is the machine's host and types nothing of its own. */
+  for (const [shape, what] of [
+    [/const ENDPOINT_MS = VAD_SILENCE_THRESHOLD_MS;/, "the endpoint pause as the machine's own threshold, so the host never hands the machine a pause it will refuse"],
+    [/silenceMs: ENDPOINT_MS/, "the endpoint dispatched at that pause"],
+    [/const BARGE_IN_MIN_WORDS = conversationMode\.bargeIn\.minWords;/, "the barge-in word threshold from the contract"],
+    [/const BARGE_IN_MIN_SPEECH_MS = conversationMode\.bargeIn\.minSpeechMs;/, "the barge-in duration threshold from the contract"],
+    [/const CONVERSATION_SENTENCES = conversationMode\.sentences;/, "the conversation's sentences from the contract"],
+    [/sentences: CONVERSATION_SENTENCES,/, "the sentences handed to the panel from the contract"],
+    [/listener\.continuous = conversationMode\.web\.continuous;/, "the recogniser's continuous flag from the contract"],
+    [/listener\.interimResults = conversationMode\.web\.interimResults;/, "interim results switched on from the contract"],
+    [/openListener\("watch"\)/, "the recogniser opened as the barge-in watcher while the voice reads"],
+    [/dispatch\(\{ type: "barge_in" \}\)/, "a barge-in dispatched to the machine"],
+    [/dispatch\(\{ type: "listening_timeout" \}\)/, "a quiet window dispatched to the machine"],
+    [/dispatch\(\{ type: "tts_finished" \}\)/, "a finished reading dispatched to the machine"],
+    [/dispatch\(\{ type: "session_start", mode: "conversation" \}\)/, "the tap that starts a conversation"],
+    [/voiceClass === spokenRegister\.answers\.emergency\) return "emergency"/, "the emergency register read from spokenRegister rather than typed"],
+    [/voiceClass === spokenRegister\.answers\.handover\) return "escalation"/, "the escalation register read from spokenRegister rather than typed"],
+    [/function isEchoOf\(/, "the own-voice filter"],
+    [/if \(isEchoOf\(segment, readingText\.current\)\) continue;/, "the own-voice filter applied to every heard segment"],
+  ])
+    if (!shape.test(cmAdapter))
+      throw new Error(`${cmAdapterFile} no longer has ${what}. The adapter executes the machine's effects against the browser and reads every number and sentence from ${cmFile}; a host that types one has taken a founder decision into code.`);
+  if (!/if \(conversationOn\.current\) \{\s*conversationSpeak\(text, options, language\);\s*return;\s*\}/.test(cmAdapter))
+    throw new Error(`${cmAdapterFile}'s speak no longer routes a reply through the conversation while one runs. The machine has to be told a reply was spoken, or the microphone never reopens.`);
+  const cmSpeak = cmAdapter.match(/const speak = useCallback\([\s\S]*?\n  \);/)?.[0] ?? "";
+  if (cmSpeak.indexOf("if (!SPEAKS[surface])") < 0 || cmSpeak.indexOf("if (!SPEAKS[surface])") > cmSpeak.indexOf("conversationOn.current"))
+    throw new Error(`${cmAdapterFile}'s speak reaches the conversation before it reads voice.webSpeech. The flag is the wall in front of every reading, and a conversation stands behind the same wall.`);
+  for (const [key, sentence] of Object.entries(cm.sentences))
+    for (const f of [cmAdapterFile, cmMachineFile, ...files("apps/web/src").filter((f) => /\.(ts|tsx)$/.test(f))])
+      if (uncommented(read(f)).includes(sentence))
+        throw new Error(`${f} types the conversation sentence "${key}" ("${sentence.slice(0, 40)}…"). It lives in ${cmFile}#sentences and is read from there through the adapter's conversation.sentences.`);
+
+  /* 6. The barge-in detector is the recogniser, nothing on the web records, and no stream is opened. If a
+        later founder record allows an energy detector on the adapter's own stream, it opens with echo
+        cancellation on, and this is where that is held. */
+  if (cm.bargeIn.detector !== "recogniser" || !/getUserMedia/.test(String(cm.bargeIn.detectorWhy)))
+    throw new Error(`${cmFile}'s barge-in detector is "${cm.bargeIn.detector}", or has lost the reason it is the recogniser. Nothing under apps/web/src may open a microphone stream, and the record says so in its own words.`);
+  if (cm.web.getUserMedia !== false)
+    throw new Error(`${cmFile} says the web opens a microphone stream. It does not: voice.audioStored is false and the recording sweep refuses getUserMedia in every web file. Changing this is a founder record, not an edit.`);
+  for (const f of files("apps/web/src").filter((f) => /\.(ts|tsx)$/.test(f))) {
+    const code = uncommented(read(f));
+    if (/\bMediaRecorder\b/.test(code))
+      throw new Error(`${f} reaches for MediaRecorder. Nothing on the web records: ${cm.retention.rule}`);
+    const stream = code.match(/getUserMedia\s*\(([\s\S]*?)\)/);
+    if (stream && !/echoCancellation:\s*true/.test(stream[1]))
+      throw new Error(`${f} opens a microphone stream without echoCancellation: true. A barge-in detector that hears GilbertOne's own voice as the person talking would cut every answer short.`);
+    if (stream && cm.web.getUserMedia !== true)
+      throw new Error(`${f} opens a microphone stream while ${cmFile}#web.getUserMedia records that the web does not. The record moves first.`);
+  }
+  if (cm.retention.audioKept !== false || cm.retention.transcript !== "memory")
+    throw new Error(`${cmFile}'s retention block no longer says no audio is kept and the transcript lives in memory. The amendment's rules do not change because the microphone reopens on its own.`);
+  if (!/visible whenever the microphone is hot/i.test(String(cm.indicator.rule)))
+    throw new Error(`${cmFile}'s indicator rule no longer says the microphone indicator is visible whenever the microphone is hot. Hands-free is exactly when a person most needs to see that it reopened.`);
+  if (!cm.whatItIsNot.some((s) => /no wake word on the web/i.test(s)) || !cm.whatItIsNot.some((s) => /one tap/i.test(s)))
+    throw new Error(`${cmFile}'s whatItIsNot no longer says there is no wake word on the web and that a conversation starts with one tap. What this mode is not is the half of it a regulator reads first.`);
+
+  /* 7. The proposed settings: the shared shape, inside their bounds, replayed from their changelog. (That they
+        are not yet a settings block is held first, in 1, before the machine that reads them is imported.) */
+  const cmItems = cm.proposedSettings.items;
+  const cmKeys = cmItems.map((s) => s.key).sort().join();
+  if (cmKeys !== [cm.endpoint.settingKey, cm.sleep.settingKey].sort().join())
+    throw new Error(`${cmFile}'s proposed settings are [${cmKeys}]; its endpoint and sleep blocks name ${cm.endpoint.settingKey} and ${cm.sleep.settingKey}. The two tunable numbers are exactly the two the machine reads.`);
+  const cmReplayed = new Map();
+  for (const entry of cm.proposedSettings.defaults.changelog)
+    for (const c of entry.changed) cmReplayed.set(c.setting, c.to);
+  for (const s of cmItems) {
+    const at = `${cmFile} proposed setting "${s.key}"`;
+    for (const key of ["key", "label", "help", "owner", "type", "unit", "default", "changedBy", "appliesTo", "bounds", "guardrail"])
+      if (s[key] === undefined) throw new Error(`${at} has no ${key}, which packages/catalog/settings.json's shape requires. The Configuration screen picks these up unchanged the day they move, or not at all.`);
+    if (s.owner !== "assistant" || s.type !== "count" || s.positive !== true)
+      throw new Error(`${at} is not the assistant's, not a positive count. A pause and a number of windows are whole positive numbers the assistant engine owns.`);
+    if (typeof s.default.value !== "number" || s.default.value < s.bounds.lowest.value || s.default.value > s.bounds.highest.value)
+      throw new Error(`${at} defaults to ${s.default.value}, outside its own bounds ${s.bounds.lowest.value}–${s.bounds.highest.value}.`);
+    if (s.default.decidedBy !== null || !s.default.proposedBy || !s.default.proposedBecause)
+      throw new Error(`${at} is not recorded as a proposal — decidedBy null, with who proposed it and why. The founder decided the behaviour; the numbers are the lead's proposals for him to tune, and a proposal that claims a decision is a number becoming policy by paperwork.`);
+    for (const side of ["lowest", "highest"])
+      if (s.bounds[side].decidedBy !== null || !s.bounds[side].proposedBy || !s.bounds[side].proposedBecause)
+        throw new Error(`${at}'s ${side} bound has lost who proposed it and why.`);
+    for (const v of s.guardrail.forbids)
+      if (v >= s.bounds.lowest.value && v <= s.bounds.highest.value)
+        throw new Error(`${at} forbids ${v}, which is inside its own bounds. A guardrail's forbidden values sit outside what an admin may set, or the guardrail contradicts the bounds.`);
+    if (cmReplayed.get(s.key) !== s.default.value)
+      throw new Error(`${at} defaults to ${s.default.value}, and replaying proposedSettings.defaults.changelog gives ${cmReplayed.get(s.key)}. A default changes with a changelog entry, never on its own.`);
+  }
+  const cmEndpoint = cmItems.find((s) => s.key === cm.endpoint.settingKey);
+  if (!(cmEndpoint.bounds.lowest.value >= 600 && cmEndpoint.bounds.highest.value <= 2000))
+    throw new Error(`${cmFile}'s endpoint pause may be set between ${cmEndpoint.bounds.lowest.value} and ${cmEndpoint.bounds.highest.value} ms. The proposal is 600–2000: below it GilbertOne answers inside a breath, above it a question hangs. Widening either bound is a founder decision recorded with a reason.`);
+
+  /* 8. The panel, since phase 2 of the same day. The voice button — the one component allowed to import
+        the adapter for the live assistant — reads every conversation sentence from the contract and types
+        none; it draws the amendment's indicator (data-hot on the microphone, the ring's hook, and the
+        "Microphone on" words) whenever the recogniser's state is starting or open, whichever control
+        opened it; every tap of the microphone while a conversation runs is Stop; the conversation's words
+        go to the panel's one send path and never to the composer's draft; and the panel ends the
+        conversation when it closes and on Start again. */
+  const cmButtonFile = "apps/web/src/components/AssistantVoiceButton.tsx";
+  const cmPanelFile = "apps/web/src/features/Assistant.tsx";
+  const cmButton = uncommented(read(cmButtonFile)).replace(/^\s*import\s[^;]*;\s*$/gm, "");
+  const cmPanel = uncommented(read(cmPanelFile));
+  if (!/from "\.\.\/\.\.\/\.\.\/\.\.\/packages\/catalog\/conversation-mode\.json"/.test(read(cmButtonFile)) || !/const chat = conversationMode\.sentences;/.test(cmButton))
+    throw new Error(`${cmButtonFile} no longer reads the conversation's sentences from ${cmFile}. Every word the panel says about a hands-free turn is the contract's.`);
+  for (const key of ["startLabel", "stopLabel", "listening", "heardYou", "yourTurn", "bargeInNote", "sleeping", "emergencyClosed", "micHot"])
+    if (!new RegExp(`chat\\.${key}\\b`).test(cmButton))
+      throw new Error(`${cmButtonFile} no longer shows the contract's "${key}" sentence. The panel says where the conversation is in the contract's words, or it says nothing.`);
+  const cmHot = 'const capturing = voice.state === "starting" || voice.state === "open";';
+  if (!cmButton.includes(cmHot) || !/data-hot=\{capturing \|\| undefined\}/.test(cmButton) || !/data-mic-hot=\{\(convo\.active && capturing\) \|\| undefined\}/.test(cmButton) || !/\{capturing && !convo\.active \? \(\s*<p className="as-mic-hot" data-mic-hot>/.test(cmButton) || !/convo\.active\s*\? capturing\s*\? chat\.micHot/.test(cmButton))
+    throw new Error(`${cmButtonFile} no longer draws the microphone indicator — data-hot on the control and the "Microphone on" line — whenever the recogniser's state is starting or open. The amendment's rule: visible whenever the microphone is hot, including while the voice reads and the recogniser only watches for a barge-in.`);
+  if (!/\[data-mic-hot\]|\.as-mic-hot\b/.test(read("apps/web/src/features/assistant.css")))
+    throw new Error("apps/web/src/features/assistant.css no longer styles the microphone-on line, so the indicator's words would draw as a bare footnote.");
+  const cmMotion = read("apps/web/src/features/assistant-motion.css");
+  if (!/:root\[data-decor="on"\] \.as-panel:not\(\[data-safety\]\) \.as-voice\[aria-pressed="true"\] \.as-mic-disc::after \{\s*animation: as-listening/.test(cmMotion) || !/aria-pressed=\{capturing\}/.test(cmButton))
+    throw new Error("The microphone's ring (assistant-motion.css, as-listening on aria-pressed) is no longer keyed to the recogniser being open under [data-decor='on'], outside the held safety face. The ring is the indicator's moving half; the words are its still half, and both follow the recogniser, not the control that opened it.");
+  if (!/if \(convo\.active\) \{\s*convo\.stop\(\);\s*return;\s*\}\s*if \(capturing\) \{\s*voice\.stop\(\);/.test(cmButton))
+    throw new Error(`${cmButtonFile}: a tap of the microphone while a conversation runs is no longer its Stop, before anything else the tap could mean.`);
+  if (!/convo\.start\(\(text\) => latestUtterance\.current\(text\)\)/.test(cmButton) || !/latestUtterance\.current = onUtterance;/.test(cmButton) || /onTranscript\([^)]*\)/.test(cmButton.match(/if \(inConversation\.current\) \{[\s\S]*?\n    \}/)?.[0] ?? "onTranscript("))
+    throw new Error(`${cmButtonFile} no longer sends a hands-free turn to the panel's send path alone. The conversation's words go to onUtterance; the composer's draft is never handed the recogniser's transcript while one runs.`);
+  if (!/onUtterance=\{onUtterance\}/.test(cmPanel) || !/const onUtterance = \(text: string\) => \{\s*if \(text\.trim\(\)\) sendText\(text\);/.test(cmPanel) || !/sendText\(draft\);\s*setDraft\(""\);/.test(cmPanel))
+    throw new Error(`${cmPanelFile} no longer sends a spoken turn through the same sendText the composer's Send uses. One send path, or a spoken "I have a headache" and a typed one part ways.`);
+  if (!/if \(!open\) \{\s*voiceAdapter\.cancel\(\);\s*voiceAdapter\.conversation\.stop\(\);/.test(cmPanel))
+    throw new Error(`${cmPanelFile} no longer ends a hands-free conversation when the panel closes. ${cm.endsOn.find((e) => e.id === "panel-closed").sentence}`);
+  if (!/rig\.rest\(\);\s*voiceAdapter\.cancel\(\);\s*voiceAdapter\.conversation\.stop\(\);/.test(cmPanel))
+    throw new Error(`${cmPanelFile}'s Start again no longer ends a hands-free conversation. Start again is the patient saying the conversation is over.`);
+  if (!existsSync("tests/conversation-mode.spec.ts") || !/speechSynthesis/.test(read("tests/conversation-mode.spec.ts")))
+    throw new Error("tests/conversation-mode.spec.ts is missing, or does not stand the browser's own voice down. The hands-free journeys are what hold the founder's brief on a real page.");
+  if (!/Hands-free conversation/.test(read("docs/FEATURE-MAP.md")))
+    throw new Error("docs/FEATURE-MAP.md has no row for the hands-free conversation. A feature the map does not list is one the next lead rebuilds.");
+
+  console.log(
+    `Hands-free conversation · ${cmFile} decided by the ${cm.decidedBy} on ${cm.on}, quoting him; the ${cm.utteranceCapSeconds}-second utterance cap, the ${cmSetting(cm.endpoint.settingKey)} ms pause, ${cm.maxUtterancesPerExchange} utterances and ${cmSetting(cm.sleep.settingKey)} idle rounds in one home with the machine typing none of them; ${cmSteps} fixture steps across ${Object.keys(cm.fixtures).filter((k) => !k.startsWith("_")).length} fixtures replayed against the machine; ${cm.endsOn.length} ways a conversation ends, each a transition; the adapter hosting the machine on the recogniser alone, with the contract's sentences and thresholds and no stream, no recorder and no typed sentence anywhere under apps/web/src; and ${cmItems.length} proposed settings in the shared shape, inside their bounds and replayed from their changelog.`,
+  );
+}
+
+/* One settings page — 28 September 2026 */
+/* The founder, the night of 28 September 2026: "do another check on all the setting pages — not all of them
+   are looking the same. Do a global change on all to look the same. Don't forget animations." Every Control
+   Tower screen is now one head (Parts.tsx#PageHead), tinted section cards (Parts.tsx#Region), a row per
+   setting and one save bar (Fields.tsx#FieldRow, #SaveBar), and the same arrival and feedback motion. What
+   is held here is what would let a screen drift away from that again without anybody deciding it should:
+
+   1. Every screen that renders a setting draws it with the shared controls, so it imports Fields.tsx. The
+      list is named, so a new settings screen joins it in the change that adds it.
+   2. Nothing under features/portal, nor the engine-settings screen it renders, hand-rolls a slider, a
+      checkbox or a select: those are Fields.tsx's. The one exception is the voice preview's two selects,
+      because the GilbertOne sweep above forbids that file the shared controls; they wear fc-select instead.
+   3. The motion the pattern adds is the tokens' three durations and one curve, never a typed number, never
+      endless, only under [data-decor="on"], removed under reduced motion, and every keyframe it names is
+      defined in the same sheet.
+   4. Every screen heads itself with PageHead: Frame and the founder's door draw it, every category drawn
+      by the portal is framed, and no other file under features/portal draws an <h1>.
+   5. Both screens that change a setting end in the save bar under the contract's one added sentence, and the
+      engine-settings screen gets it from the portal rather than importing the portal's contract.
+   Each was proved by breaking its source and restoring it (docs/FEATURE-MAP.md, the one-settings-page row). */
+{
+  const osp = {
+    portal: JSON.parse(read("packages/catalog/control-tower-portal.json")),
+    dir: "apps/web/src/features/portal",
+    fields: "apps/web/src/features/portal/Fields.tsx",
+    parts: "apps/web/src/features/portal/Parts.tsx",
+    frame: "apps/web/src/features/portal/Frame.tsx",
+    door: "apps/web/src/shells/FounderGate.tsx",
+    engineSettings: "apps/web/src/features/Configuration.tsx",
+    speech: "apps/web/src/features/portal/gilbertone/SpeechSettings.tsx",
+    preview: "apps/web/src/features/portal/gilbertone/VoicePreview.tsx",
+  };
+  const ospMarker = "/* ==== One settings page (28 September 2026)";
+  const words = osp.portal.settingsPage;
+  if (words?.decidedBy !== "Founder" || words.decidedOn !== "2026-09-28" || !words.saveBarLabel?.trim() || !words.why?.trim())
+    throw new Error("packages/catalog/control-tower-portal.json#settingsPage has lost the founder's dated decision, the save bar's sentence or the reason. The one sentence the shared pattern adds is read from there.");
+
+  /* 1. */
+  const settingScreens = [osp.engineSettings, osp.speech, `${osp.dir}/ProvinceDemo.tsx`, `${osp.dir}/FounderDemo.tsx`];
+  for (const f of settingScreens)
+    if (!/^import \{[^}]*\b(RangeSlider|Switch|ChoiceChips|Select|SaveBar|FieldRow)\b[^}]*\} from ["'](\.\/portal\/|\.\.\/|\.\/)Fields["'];$/m.test(read(f)))
+      throw new Error(`${f} renders a setting and no longer draws it with the portal's shared controls (features/portal/Fields.tsx). Every settings page is drawn with one set of controls, or the founder is looking at two designs again.`);
+
+  /* 2. */
+  const portalScreens = [...files(osp.dir).filter((f) => /\.tsx$/.test(f) && f !== osp.fields), osp.engineSettings];
+  for (const f of portalScreens) {
+    const code = uncommented(read(f));
+    const ranged = code.match(/<input\b[^>]*\btype=["'{]?\s*["']?(range|checkbox)\b[^>]*>/);
+    if (ranged)
+      throw new Error(`${f} draws ${ranged[0]} itself. A slider is Fields.tsx's RangeSlider and a checkbox is its Switch or ChoiceChips, so every settings page has one slider and one switch.`);
+    const selects = [...code.matchAll(/<select\b[^>]*>/g)].map((m) => m[0]);
+    if (f === osp.preview) {
+      if (selects.length !== 2 || selects.some((tag) => !/className="fc-select"/.test(tag)))
+        throw new Error(`${f} draws ${selects.length} selects, or one without the shared fc-select look. The voice preview may not import Fields.tsx (the GilbertOne sweep holds it to its own fields), so its two selects wear the shared class instead, and no third arrives.`);
+    } else if (selects.length)
+      throw new Error(`${f} draws a <select> itself (${selects[0]}). A choice among many is Fields.tsx's Select.`);
+  }
+
+  /* 3. */
+  for (const sheet of [`${osp.dir}/portal.css`, `${osp.dir}/fields.css`]) {
+    const text = read(sheet);
+    const at = text.indexOf(ospMarker);
+    if (at < 0) throw new Error(`${sheet} has lost its "One settings page" section.`);
+    const section = uncommented(text.slice(at));
+    for (const m of section.matchAll(/(animation|transition)\s*:\s*([^;]+);/g)) {
+      const value = m[2].trim();
+      if (/^none\b/.test(value)) continue;
+      if (/\b\d+(\.\d+)?m?s\b/.test(value) || !/var\(--t-(quick|settle|enter)\)/.test(value) || !/var\(--ease-soft\)/.test(value) || /infinite/.test(value))
+        throw new Error(`${sheet}'s settings-page motion has "${m[1]}: ${value}". It runs in the tokens' durations and curve, once, and never on a number typed here.`);
+    }
+    for (const rule of section.matchAll(/([^{}]+)\{[^{}]*\banimation\s*:(?!\s*none)[^;]+;/g))
+      if (!/\[data-decor="on"\]/.test(rule[1]))
+        throw new Error(`${sheet} animates "${rule[1].trim()}" without [data-decor="on"]. The portal's pause control and the reduced-motion query both clear that flag; motion outside it is motion neither can stop.`);
+    const defined = new Set([...text.matchAll(/@keyframes\s+([\w-]+)/g)].map((m) => m[1]));
+    for (const m of section.matchAll(/animation\s*:\s*([\w-]+)/g))
+      if (m[1] !== "none" && !defined.has(m[1]))
+        throw new Error(`${sheet} names the keyframes "${m[1]}" in its settings-page section and does not define them. A keyframe used is a keyframe defined in the same sheet.`);
+    if (/\banimation\s*:(?!\s*none)/.test(section) && !/@media \(prefers-reduced-motion: reduce\)[\s\S]*animation: none !important/.test(section) && sheet.endsWith("fields.css"))
+      throw new Error(`${sheet}'s settings-page motion is not removed under reduced motion.`);
+  }
+
+  /* 4. */
+  const parts = uncommented(read(osp.parts));
+  if (!/export function PageHead\(/.test(parts) || !/className=\{`pt-head \$\{className\}`\}/.test(parts))
+    throw new Error(`${osp.parts} no longer exports the one head every Control Tower screen wears.`);
+  if (!/<section className="pt-region pt-section"/.test(parts))
+    throw new Error(`${osp.parts}'s Region is no longer the settings page's section card.`);
+  for (const f of [osp.frame, osp.door])
+    if (!/<PageHead\b/.test(uncommented(read(f))))
+      throw new Error(`${f} no longer heads its screen with Parts.tsx's PageHead. One head, or the screens drift apart again.`);
+  for (const f of files(osp.dir).filter((f) => /\.tsx$/.test(f) && f !== osp.parts))
+    if (/<h1\b/.test(uncommented(read(f))))
+      throw new Error(`${f} draws an <h1> of its own. A Control Tower screen's one <h1> is PageHead's, drawn by Frame.`);
+  const shell = uncommented(read("apps/web/src/shells/PortalShell.tsx"));
+  const categoryFiles = [...new Set([...shell.matchAll(/lazyCategory\(\(\) => import\('\.\.\/features\/portal\/(\w+)'\)/g)].map((m) => `${osp.dir}/${m[1]}.tsx`))];
+  if (categoryFiles.length < 6)
+    throw new Error("apps/web/src/shells/PortalShell.tsx no longer names the portal's category files where this check can read them.");
+  for (const f of categoryFiles) {
+    const code = uncommented(read(f));
+    const bodies = code.split(/(?=export function \w+Category\()/).filter((b) => /^export function \w+Category\(/.test(b));
+    if (!bodies.length) throw new Error(`${f} is a portal category file with no *Category screen.`);
+    for (const body of bodies)
+      if (!/<Frame\b/.test(body))
+        throw new Error(`${f}'s ${body.match(/export function (\w+)/)[1]} is not drawn inside Frame, so it does not wear the shared head.`);
+  }
+
+  /* 5. The engine-settings screen is reached by the clinical workspace too (SettingReviews reads valueText), so it
+     takes the sentence as a prop from the portal and never imports the portal's contract, which would put all of
+     it on the nurse's and the doctor's download. */
+  const engineCode = uncommented(read(osp.engineSettings));
+  if (!/<SaveBar label=\{saveBarLabel\}>/.test(engineCode) || /lib\/portal'|control-tower-portal\.json/.test(engineCode))
+    throw new Error(`${osp.engineSettings} no longer ends its change form in the save bar named by the label the portal hands it, or it imports the portal's contract itself — which the clinical workspace would then download whole.`);
+  if (!/saveBarLabel=\{portalContract\.settingsPage\.saveBarLabel\}/.test(uncommented(read(`${osp.dir}/Configuration.tsx`))))
+    throw new Error(`${osp.dir}/Configuration.tsx no longer hands the engine-settings screen the contract's save-bar sentence.`);
+  if (!/<SaveBar label=\{portalContract\.settingsPage\.saveBarLabel\}/.test(uncommented(read(osp.speech))))
+    throw new Error(`${osp.speech} changes a setting and no longer ends in the shared save bar under packages/catalog/control-tower-portal.json#settingsPage.saveBarLabel.`);
+  const fieldsCode = uncommented(read(osp.fields));
+  if (!/role=\{label \? 'group' : undefined\} aria-label=\{label\}/.test(fieldsCode.slice(fieldsCode.indexOf("export function SaveBar("))))
+    throw new Error(`${osp.fields}'s SaveBar is no longer a group named by its sentence.`);
+
+  console.log(
+    `One settings page · ${settingScreens.length} screens that render a setting draw it with Fields.tsx; ${portalScreens.length} portal screen files hand-roll no slider, checkbox or select (the voice preview's two selects wear the shared class); the settings-page motion in two sheets runs on the tokens alone, gated and removed; PageHead heads Frame and the founder's door, ${categoryFiles.length} category files frame every screen, and no other file draws an <h1>; both changing screens end in the save bar under the contract's sentence.`,
   );
 }

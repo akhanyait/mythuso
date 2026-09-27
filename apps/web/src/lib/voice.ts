@@ -4,6 +4,19 @@ import {
   voice as voicePolicy,
 } from "../../../../packages/catalog/assistant.json";
 import voiceMap from "../../../../packages/catalog/voice.json";
+import conversationMode from "../../../../packages/catalog/conversation-mode.json";
+import {
+  initialSpeechState,
+  isConversationActive,
+  transition,
+  VAD_SILENCE_THRESHOLD_MS,
+  type SleepReason,
+  type SpeakingKind,
+  type SpeechEffect,
+  type SpeechEvent,
+  type SpeechPhase,
+  type SpeechState,
+} from "../../../../packages/gilbertone/src/speech-state.ts";
 import { isSpeechConfigured, speakText } from "./gilbertone-service";
 import { presentationVoiceNow, type PresentationVoiceInForce } from "./settings";
 
@@ -58,7 +71,22 @@ import { presentationVoiceNow, type PresentationVoiceInForce } from "./settings"
  * ending of a reading — the utterance finishing, a browser failing it, a barge-in, a replacement,
  * the panel shutting — runs through one close that happens exactly once, so the mouth and the
  * caller are told the voice went quiet once. And nothing new is kept: a cancelled capture drops
- * what it caught on both sides of the microphone. */
+ * what it caught on both sides of the microphone.
+ *
+ * HANDS-FREE CONVERSATION, SINCE 28 SEPTEMBER 2026. The founder's brief — "when you have spoken to
+ * it and you pause, it must respond automatically, just like Siri — not answering on top of you" —
+ * is packages/catalog/conversation-mode.json, and this file is its host on the web. The reasoning is
+ * not here: packages/gilbertone/src/speech-state.ts is the pure machine, driven in conversation mode,
+ * and this file only executes the effects it returns against the browser's recogniser and voice. One
+ * tap starts it (`conversation.start`), and from there: the recogniser runs with interim results, the
+ * contract's pause after the last word is the endpoint, the words go to the caller's `onUtterance`
+ * with no button pressed, the reply is spoken, and when the voice finishes the microphone reopens by
+ * itself with the contract's "your turn". While the voice reads, the same recogniser stays open as
+ * the barge-in detector: words arriving that are not an echo of the sentence being read cut the
+ * reading and become the start of the next turn. An energy detector on a microphone stream is not
+ * built, because nothing under apps/web/src may open one — the contract records why. Nothing here
+ * changes push-to-talk: `start`, `stop`, `speak` and `cancel` behave exactly as they did, and a
+ * conversation that is not running leaves every one of them alone. */
 
 export type VoiceStateId = "off" | "starting" | "open" | "error";
 
@@ -75,6 +103,57 @@ export type VoiceFailureId =
 export type VoiceSurface = "demonstrator" | "assistant";
 
 export const MAX_LISTENING_SECONDS = voicePolicy.webPoc.maxListeningSeconds;
+
+/* The conversation's own numbers and words, every one read from the contract that decided them. The
+   endpoint pause is the machine's threshold — the same constant, so the host can never hand the
+   machine a pause it will refuse — and the barge-in thresholds are the contract's proposal for what
+   separates somebody talking from a cough. */
+const ENDPOINT_MS = VAD_SILENCE_THRESHOLD_MS;
+const BARGE_IN_MIN_WORDS = conversationMode.bargeIn.minWords;
+const BARGE_IN_MIN_SPEECH_MS = conversationMode.bargeIn.minSpeechMs;
+const CONVERSATION_SENTENCES = conversationMode.sentences;
+
+/** The role the conversation's recogniser is playing: hearing the person's turn, or watching for a
+ *  barge-in while the voice reads. The same recogniser plays both, and a barge-in flips it. */
+type ListenerRole = "listen" | "watch";
+
+/** What the panel shows about a conversation beyond its phase: the turn handed back, or the reason
+ *  the microphone closed on its own — each a sentence in the contract. */
+export type ConversationNote = "your-turn" | SleepReason | null;
+
+/** Words lower-cased with punctuation gone, for comparing what was heard with what was read. */
+const plainWords = (text: string): string[] =>
+  text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s']/gu, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+
+/** The contract's own-voice filter: every word heard is a word of the sentence being read, in
+ *  order. The browser's own voice does not always pass through the browser's echo cancellation, so
+ *  the machine's echo rule is kept by arithmetic on the words rather than by trusting the audio path. */
+function isEchoOf(heard: string, reading: string | null): boolean {
+  if (!reading) return false;
+  const spoken = plainWords(reading);
+  const words = plainWords(heard);
+  if (words.length === 0) return false;
+  let at = 0;
+  for (const word of words) {
+    const index = spoken.indexOf(word, at);
+    if (index < 0) return false;
+    at = index + 1;
+  }
+  return true;
+}
+
+/** Which kind of answer a reading is, for the machine: the emergency register and the handover's
+ *  escalation register close the microphone when they finish; everything else hands the turn back.
+ *  Both ids are the contract's spokenRegister map, never typed here. */
+const speakingKindOf = (voiceClass: string | undefined): SpeakingKind => {
+  if (voiceClass === spokenRegister.answers.emergency) return "emergency";
+  if (voiceClass === spokenRegister.answers.handover) return "escalation";
+  return "answer";
+};
 
 /** Whether the contract lets a surface speak out loud. The demonstrator's §07 decision
  *  (`voice.webPoc`, 17 September 2026) says yes; the live assistant's speech decision
@@ -828,20 +907,11 @@ export function useVoiceAdapter(
     });
   }, []);
 
-  const speak = useCallback(
-    (text: string, options: SpeakOptions = {}, language = "en") => {
-      /* The contract's flag, before anything is reached for. While voice.webSpeech is false this
-       surface does not speak at all: no cloud request is sent, no utterance is constructed, nothing is
-       cancelled, nothing is asked of the browser's voice — and the order is the wall, because a check
-       that reached for either voice first would be a reach the flag exists to refuse. */
-      if (!SPEAKS[surface]) {
-        options.onEnd?.();
-        return;
-      }
-      if (typeof window === "undefined") {
-        options.onEnd?.();
-        return;
-      }
+  /* The reading itself, once the flag has let it through: one voice at a time, the cloud voice when
+     it is known to be there and the browser's own otherwise. `speak` below is the only caller, and it
+     is the one that reads the flag; the conversation's own path calls this through `speak` too. */
+  const read = useCallback(
+    (text: string, options: SpeakOptions, language: string) => {
       everSpoke.current = true;
       /* A new reading clears the last one's "no voice in this language" note: the flag describes the
          reply about to be spoken, not a fact about the whole session. */
@@ -880,6 +950,389 @@ export function useVoiceAdapter(
     [speakViaBrowser, speakViaCloud, warmCloud],
   );
 
+  /* ---- Hands-free conversation: the machine's host --------------------------------------------- */
+
+  /* The machine, and what the panel reads of it. The machine is a ref because the recogniser's
+     callbacks drive it from outside React's rendering; the phase and the two flags are state so
+     the panel redraws when a turn changes hands. Everything below is plain memory that dies with
+     the page: no storage of any kind, the same promise the rest of this file keeps. */
+  const machine = useRef<SpeechState>(initialSpeechState(0));
+  const [conversationPhase, setConversationPhase] = useState<SpeechPhase>("idle");
+  const [conversationActive, setConversationActive] = useState(false);
+  const [conversationNote, setConversationNote] = useState<ConversationNote>(null);
+  /* Whether a conversation is running, as the callbacks see it. */
+  const conversationOn = useRef(false);
+  /* Where a finished utterance goes: the panel's own submit, handed in at start. */
+  const onUtterance = useRef<((text: string) => void) | null>(null);
+  /* The recogniser's role, the words of the window in hand, when the window first heard a word,
+     whether this window's words have been handed over, and whether the listener ever opened —
+     the last so a browser that refuses the microphone is not asked again in a tight loop. */
+  const role = useRef<ListenerRole>("listen");
+  const windowWords = useRef("");
+  const heardAt = useRef(0);
+  const handed = useRef(false);
+  const opened = useRef(false);
+  /* The endpoint clock: restarted on every interim result, it fires the contract's pause after the
+     last word and hands the window over. */
+  const endpointTimer = useRef(0);
+  /* The sentence being read, while it is read, for the own-voice filter. */
+  const readingText = useRef<string | null>(null);
+
+  const clearEndpoint = () => {
+    window.clearTimeout(endpointTimer.current);
+    endpointTimer.current = 0;
+  };
+
+  /* The effects the machine hands back, executed against the browser. Transcription, thinking and
+     the wake word have nothing for this host to do: the recogniser transcribes as it hears, the
+     panel thinks, and there is no wake word on the web. Speaking is started by `speak`, which is
+     where the words and their register arrive. */
+  const runEffects = (effects: readonly SpeechEffect[]) => {
+    for (const effect of effects) {
+      switch (effect.type) {
+        case "start_listening":
+          openListener("listen");
+          break;
+        case "stop_listening":
+          closeListener();
+          break;
+        case "cancel_speech":
+          cancel();
+          break;
+        case "start_thinking":
+          onUtterance.current?.(effect.text);
+          break;
+        case "your_turn":
+          /* Only while the conversation still runs: a listener that failed to open on the effect
+             before this one has already closed it. */
+          if (alive.current && conversationOn.current) setConversationNote("your-turn");
+          break;
+        case "sleep":
+          closeListener();
+          if (alive.current) setConversationNote(effect.reason);
+          break;
+        case "signal_error":
+          if (alive.current && effect.source === "recogniser")
+            setFailure(FAILURE_FOR_ERROR[effect.reason] ?? "failed");
+          break;
+        default:
+          break;
+      }
+    }
+  };
+
+  /* One door into the machine. A held event changes nothing and runs nothing; a transition stamps
+     the host's clock, publishes the phase, and — when the machine has come to rest — closes the
+     conversation, so a sleep, an emergency close and a stop all end it the same way. */
+  const dispatch = (event: SpeechEvent) => {
+    const result = transition(machine.current, event, Date.now());
+    if (result.state === machine.current) return;
+    machine.current = result.state;
+    const active = isConversationActive(result.state);
+    if (!active) {
+      conversationOn.current = false;
+      onUtterance.current = null;
+      windowWords.current = "";
+      readingText.current = null;
+    }
+    if (alive.current) {
+      setConversationPhase(result.state.phase);
+      setConversationActive(active);
+    }
+    runEffects(result.effects);
+  };
+
+  /* Hand this window's words over: the contract's pause has passed since the last word, or the
+     recogniser delivered a final result, or the founder's cap closed a window with words in it.
+     Exactly once per window. The machine moves through transcribing — which closes the listener —
+     to thinking, and the thinking effect is what carries the words to the panel. */
+  const handOver = () => {
+    if (handed.current) return;
+    handed.current = true;
+    clearEndpoint();
+    clearCap();
+    const text = windowWords.current.trim();
+    windowWords.current = "";
+    if (alive.current) setTranscript("");
+    dispatch({ type: "vad_endpoint", silenceMs: ENDPOINT_MS });
+    dispatch({ type: "transcript_ready", text });
+  };
+
+  /* A fresh listening window on a recogniser that is already open — the watcher becoming the
+     listener on a barge-in. What it has heard so far is the person's, and stays. */
+  const armWindow = () => {
+    role.current = "listen";
+    handed.current = false;
+    clearEndpoint();
+    if (windowWords.current)
+      endpointTimer.current = window.setTimeout(handOver, ENDPOINT_MS);
+  };
+
+  /* The words of a result list with GilbertOne's own voice taken out, segment by segment: while
+     the voice reads, a segment that is only its own words in order is an echo and is dropped, so
+     the person's words arriving over the reading are all that count. */
+  const heardWords = (event: RecognitionEvent): { words: string; final: boolean } => {
+    let words = "";
+    let final = false;
+    for (let index = 0; index < event.results.length; index += 1) {
+      const result = event.results[index];
+      if (result.length === 0) continue;
+      const segment = result[0].transcript;
+      if (isEchoOf(segment, readingText.current)) continue;
+      words += segment;
+      if (result.isFinal) final = true;
+    }
+    return { words: words.trim(), final };
+  };
+
+  const closeListener = () => {
+    const listener = recogniser.current;
+    clearEndpoint();
+    if (!listener) return;
+    asked.current = true;
+    clearCap();
+    listener.stop();
+  };
+
+  /* Open the conversation's recogniser in a role, or flip the one already open. It is the same
+     recogniser push-to-talk uses — held in the same ref, so the shutdown on unmount, the "second
+     tap is Stop" rule and the session's cancel all still reach it — with the conversation's own
+     handlers: interim results feed the endpoint clock or the barge-in test, a window that hears
+     nothing is a listening_timeout for the machine to count, and a refusal is an error the machine
+     closes on. */
+  const openListener = (as: ListenerRole) => {
+    if (!conversationOn.current) return;
+    if (recogniser.current) {
+      if (as === "listen") armWindow();
+      else role.current = "watch";
+      return;
+    }
+    const Constructor = recogniserConstructor();
+    if (!Constructor) {
+      if (alive.current) setFailure("unavailable");
+      dispatch({ type: "error", source: "recogniser", reason: "unavailable" });
+      return;
+    }
+    if (alive.current) setFailure(null);
+    role.current = as;
+    windowWords.current = "";
+    heardAt.current = 0;
+    handed.current = false;
+    opened.current = false;
+    asked.current = false;
+    stateRef.current = "starting";
+    if (alive.current) setState("starting");
+
+    const listener = new Constructor();
+    listener.lang = voicePolicy.languages[0].recognitionLocales[0];
+    listener.continuous = conversationMode.web.continuous;
+    listener.interimResults = conversationMode.web.interimResults;
+    listener.maxAlternatives = 1;
+
+    listener.onstart = () => {
+      if (!alive.current) return;
+      opened.current = true;
+      stateRef.current = "open";
+      setState("open");
+      clearCap();
+      /* The founder's listening cap still closes every window. With words in it the cap is a forced
+         endpoint and the words are handed over; with none it is a quiet window, closed for the
+         machine to count. The watcher is simply closed and reopens if the voice is still reading. */
+      cap.current = window.setTimeout(() => {
+        if (role.current === "listen" && windowWords.current) handOver();
+        else closeListener();
+      }, MAX_LISTENING_SECONDS * 1000);
+    };
+
+    listener.onresult = (event) => {
+      if (!alive.current || recogniser.current !== listener) return;
+      const { words, final } = heardWords(event);
+      if (!words) return;
+      if (heardAt.current === 0) heardAt.current = Date.now();
+      windowWords.current = words;
+      setTranscript(words);
+      if (role.current === "watch") {
+        /* The barge-in test: enough words over enough time to be somebody talking rather than a
+           cough. The machine cuts the voice and reopens the microphone, and the effect flips this
+           recogniser into the listener with these words as the start of the turn. */
+        if (
+          plainWords(words).length >= BARGE_IN_MIN_WORDS &&
+          Date.now() - heardAt.current >= BARGE_IN_MIN_SPEECH_MS
+        )
+          dispatch({ type: "barge_in" });
+        return;
+      }
+      clearEndpoint();
+      if (final) {
+        handOver();
+        return;
+      }
+      endpointTimer.current = window.setTimeout(handOver, ENDPOINT_MS);
+    };
+
+    listener.onerror = (event) => {
+      if (!alive.current || recogniser.current !== listener) return;
+      if (event.error === "aborted" && asked.current) return;
+      /* Nothing said is not a failure in a conversation: the end that follows counts the window. */
+      if (event.error === "no-speech") return;
+      recogniser.current = null;
+      clearCap();
+      clearEndpoint();
+      stateRef.current = "error";
+      setState("error");
+      dispatch({ type: "error", source: "recogniser", reason: event.error });
+    };
+
+    listener.onend = () => {
+      if (!alive.current || recogniser.current !== listener) return;
+      recogniser.current = null;
+      clearCap();
+      clearEndpoint();
+      stateRef.current = "off";
+      setState("off");
+      if (!conversationOn.current) return;
+      const phase = machine.current.phase;
+      if (role.current === "watch") {
+        /* The browser closed the watcher while the voice still reads: reopen it, but only if it
+           genuinely opened — a browser refusing the microphone is not asked again and again. */
+        if (phase === "speaking" && opened.current) openListener("watch");
+        return;
+      }
+      if (phase !== "listening") return;
+      if (windowWords.current && !handed.current) handOver();
+      else dispatch({ type: "listening_timeout" });
+    };
+
+    recogniser.current = listener;
+    try {
+      listener.start();
+    } catch {
+      recogniser.current = null;
+      clearCap();
+      stateRef.current = "error";
+      setState("error");
+      setFailure("failed");
+      dispatch({ type: "error", source: "recogniser", reason: "failed" });
+    }
+  };
+
+  /* A reply arriving while a conversation is running. The machine is told what kind of answer it
+     is — an emergency or an escalation closes the microphone when it ends, anything else hands the
+     turn back — and the reading is wrapped so that its close is the machine's tts_finished. The
+     watcher opens before the reading, so a reading that ends at once still hands the turn back to a
+     recogniser in the right role. A reading the machine did not ask for — the panel speaking while
+     the microphone is open — is read as it always was, and the own-voice filter keeps its words out
+     of the person's turn. */
+  const conversationSpeak = (
+    text: string,
+    options: SpeakOptions,
+    language: string,
+  ) => {
+    if (machine.current.phase !== "thinking") {
+      readingText.current = text;
+      read(
+        text,
+        {
+          ...options,
+          onEnd: () => {
+            if (readingText.current === text) readingText.current = null;
+            options.onEnd?.();
+          },
+        },
+        language,
+      );
+      return;
+    }
+    dispatch({
+      type: "response_ready",
+      text,
+      kind: speakingKindOf(options.voiceClass),
+    });
+    /* Read afresh: the dispatch above moved the machine, which a narrowing on the ref cannot see. */
+    const after: SpeechState = machine.current;
+    if (after.phase !== "speaking") return;
+    readingText.current = text;
+    openListener("watch");
+    read(
+      text,
+      {
+        ...options,
+        onEnd: () => {
+          if (readingText.current === text) readingText.current = null;
+          options.onEnd?.();
+          dispatch({ type: "tts_finished" });
+        },
+      },
+      language,
+    );
+  };
+
+  /* The tap that starts a conversation. It meets the same walls as everything else here: the
+     recogniser is reached for only now, a reading in flight is cut rather than talked over, and the
+     panel's own submit is the only place the words go. */
+  const startConversation = useCallback((submit: (text: string) => void) => {
+    if (conversationOn.current) return;
+    conversationOn.current = true;
+    onUtterance.current = submit;
+    windowWords.current = "";
+    readingText.current = null;
+    if (alive.current) {
+      setConversationNote(null);
+      setFailure(null);
+      setTranscript("");
+    }
+    machine.current = initialSpeechState(Date.now(), "conversation");
+    cancel();
+    /* A push-to-talk capture already open is replaced, not inherited: its handlers are the session's,
+       not the conversation's, and what it caught is dropped the way the session's own cancel drops it. */
+    const capture = recogniser.current;
+    if (capture) {
+      recogniser.current = null;
+      clearCap();
+      capture.onend = null;
+      capture.onerror = null;
+      capture.onresult = null;
+      capture.abort();
+    }
+    dispatch({ type: "session_start", mode: "conversation" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* Stop, pressed — or the panel closing, which is the same cancel. Whatever the microphone was
+     hearing is dropped, not sent; a reading in flight is cut; the machine rests. */
+  const stopConversation = useCallback(() => {
+    if (!conversationOn.current) return;
+    windowWords.current = "";
+    if (alive.current) setTranscript("");
+    dispatch({ type: "cancel" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const speak = useCallback(
+    (text: string, options: SpeakOptions = {}, language = "en") => {
+      /* The contract's flag, before anything is reached for. While voice.webSpeech is false this
+       surface does not speak at all: no cloud request is sent, no utterance is constructed, nothing is
+       cancelled, nothing is asked of the browser's voice — and the order is the wall, because a check
+       that reached for either voice first would be a reach the flag exists to refuse. The conversation
+       stands behind the same flag: a surface that may not speak may not converse either. */
+      if (!SPEAKS[surface]) {
+        options.onEnd?.();
+        return;
+      }
+      if (typeof window === "undefined") {
+        options.onEnd?.();
+        return;
+      }
+      if (conversationOn.current) {
+        conversationSpeak(text, options, language);
+        return;
+      }
+      read(text, options, language);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [read, surface],
+  );
+
   /* Warm the cloud-voice check as soon as a surface that may speak is on the screen, so the first
      reply can prefer the cloud voice rather than spending itself discovering whether one is there. It
      is a status read and nothing else — no microphone opens, no synthesiser is reached for, no speech
@@ -894,6 +1347,11 @@ export function useVoiceAdapter(
   useEffect(
     () => () => {
       clearCap();
+      /* A conversation dies with the panel: its clock is stopped and its flag dropped before the
+         recogniser below is let go, so no callback that fires on the way out reopens anything. */
+      window.clearTimeout(endpointTimer.current);
+      conversationOn.current = false;
+      onUtterance.current = null;
       /* A reading in flight dies with the panel, and its close — which would tell a component that
          is going away about a mouth — is released without being called: the panel's own close
          effect has already cancelled the voice it wanted stopped. */
@@ -979,6 +1437,18 @@ export function useVoiceAdapter(
     cancel,
     cancelCapture,
     clearFailure,
+    /* Hands-free conversation, since 28 September 2026: whether one is running, the machine's phase,
+       the note beside it (the turn handed back, or why the microphone closed on its own), the
+       contract's sentences for the panel to show, and the tap that starts it and the Stop that ends
+       it. The words a turn catches go to the submit handed to `start`, and nowhere else. */
+    conversation: {
+      active: conversationActive,
+      phase: conversationPhase,
+      note: conversationNote,
+      sentences: CONVERSATION_SENTENCES,
+      start: startConversation,
+      stop: stopConversation,
+    },
   } as const;
 }
 

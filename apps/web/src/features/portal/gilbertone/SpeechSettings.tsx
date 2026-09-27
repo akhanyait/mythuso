@@ -1,11 +1,15 @@
-import { Suspense, lazy, useId, useState, type ReactNode } from 'react';
+import { Suspense, lazy, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import voice from '../../../../../../packages/catalog/voice.json' with { type: 'json' };
 import prefs from '../../../../../../packages/catalog/user-preferences.json' with { type: 'json' };
 import { defaultValueOf, valueText } from '../../Configuration';
 import { cardOf, g1, providersInForce, settingOfClass, voiceChoicesOf } from '../../../lib/gilbertone-admin';
-import { fill } from '../../../lib/portal';
-import { settingsEngineOf, settingsScreen, speechKeys, type Setting, type SettingValue } from '../../../lib/settings';
+import { fill, portalContract } from '../../../lib/portal';
+import { historyOf, settingsEngineOf, settingsScreen, speechKeys, type Change, type Setting, type SettingValue } from '../../../lib/settings';
 import { ChoiceChips, RangeSlider, Switch } from '../Fields';
+/* The settings page's two shapes, on a line of their own: the line above is the one the build holds this
+   screen's controls to, word for word. */
+import { FieldRow, SaveBar } from '../Fields';
+import { lastChangedText } from '../../Configuration';
 import { BuildWord, Empty, Loading, Region, RovingList, tintsFor } from '../Parts';
 import { CardStatusWord, LiveButton, LiveSentence, Locked } from './Controls';
 import { VoicePreview } from './VoicePreview';
@@ -17,10 +21,11 @@ import { useVoiceSaving, type SettingChange } from './useVoiceSaving';
  * the bottom. Voice and Speech settings are duplicated; collapse them into one place, Speech settings."
  *
  * THE ORDER IS THE FOUNDER'S. First the founder's gate, then one sentence saying where what is shown came
- * from, then the change fields: a paper panel with the reason once at its top, a tinted card per presentation
+ * from, then the change fields: a paper panel with a tinted card per presentation
  * register — its provider and its voice as chips, what is in force, and its own Save as default — and under
  * them the knobs in three groups — Azure Speech's, ElevenLabs', and the ceilings, timeouts, fallback and own
- * voice every provider shares — as sliders, chips and switches, each group with its own Save. Then the
+ * voice every provider shares — as sliders, chips and switches, each group with its own Save — and the reason
+ * once, in the save bar held at the panel's foot (28 September 2026: one settings page across the portal). Then the
  * preview panel. Then, folded under one disclosure that starts closed, everything read-only that the two old
  * screens drew: the zones, the query-to-voice table with the locked clinical rows, what is not a setting, the
  * providers, the languages and their voices, the parameters, the own-voice record and the refusals. Nothing
@@ -51,7 +56,7 @@ const NUMBERS = new Set(['count', 'percentage']);
 /* One knob, drawn by its type with the shared control: a slider between the contract's bounds with the
    default marked, chips over the allowed choices, or a switch for a bare boolean. Every word on it is the
    setting's own, through the Configuration screen's valueText, so the value reads here as it does there. */
-function Knob({ setting, value, disabled, onChange }: { setting: Setting; value: SettingValue; disabled: boolean; onChange: (next: SettingValue) => void }) {
+function Knob({ setting, value, disabled, inForce, onChange }: { setting: Setting; value: SettingValue; disabled: boolean; inForce: string; onChange: (next: SettingValue) => void }) {
  const id = useId();
  if (NUMBERS.has(setting.type) && setting.bounds && typeof value === 'number') {
   const { lowest, highest } = setting.bounds;
@@ -62,20 +67,19 @@ function Knob({ setting, value, disabled, onChange }: { setting: Setting; value:
    ...(byDefault !== null && byDefault > lowest.value && byDefault < highest.value ? [{ value: byDefault, label: fill(settingsScreen.defaultIs, { value: valueText(setting, byDefault) }) }] : []),
    { value: highest.value, label: valueText(setting, highest.value) }
   ];
-  return <div className="g1-knob">
-   <label htmlFor={id}><strong>{setting.label}</strong><span>{setting.help}</span></label>
+  return <FieldRow className="g1-knob" label={setting.label} help={setting.help} htmlFor={id} inForce={inForce}>
    <RangeSlider id={id} label={setting.label} min={lowest.value} max={highest.value} value={value} valueText={valueText(setting, value)} marks={marks} disabled={disabled} onChange={onChange}/>
-  </div>;
+  </FieldRow>;
  }
  if (setting.type === 'boolean' && !setting.allowed) {
-  return <div className="g1-knob">
+  return <FieldRow className="g1-knob" inForce={inForce}>
    <Switch label={<><strong>{setting.label}</strong><span>{setting.help}</span></>} checked={value === true} disabled={disabled} stateText={value === true ? settingsScreen.values.on : settingsScreen.values.off} onChange={onChange}/>
-  </div>;
+  </FieldRow>;
  }
- return <div className="g1-knob">
+ return <FieldRow className="g1-knob" inForce={inForce}>
   <ChoiceChips legend={<><strong>{setting.label}</strong><span>{setting.help}</span></>} name={id} disabled={disabled} className="g1-knob-chips"
    chips={(setting.allowed ?? []).map(choice => ({ key: String(choice.value), label: choice.label, checked: value === choice.value, onChange: () => onChange(choice.value) }))}/>
- </div>;
+ </FieldRow>;
 }
 
 /* A block of the folded half: a region under its own heading, so a closed fold is still a set of landmarks a
@@ -109,6 +113,22 @@ export function SpeechSettingsScreen() {
  const setDraft = (key: string, value: SettingValue) => { setDrafts({ version: snapshot.settingsVersion, byKey: { ...draft, [key]: value } }); saving.clear(); };
  const changesOf = (keys: readonly string[]): SettingChange[] => keys.filter(key => key in draft && draft[key] !== inForceOf(key)).map(key => ({ setting: key, value: draft[key]! }));
  const disabled = !source.canSave || saving.busy;
+ /* The history the value in force came from — the service's inside the founder's session, this tab's in the
+    preview — so every row's in-force line says who changed it and when, as the Configuration cards do. */
+ const history: readonly Change[] = source.phase === 'service' ? source.history : source.phase === 'tab' ? historyOf('assistant') : [];
+ const inForceLine = (key: string) => `${settingsScreen.inForce} · ${shownText(key)} · ${lastChangedText(history.filter(c => c.setting === key))}`;
+ /* Which card was saved last, and whether an odd or an even time, so the card that took the change settles with a flash of its
+    tint once the version in force moves — and only then, never on a refused save. The parity names the
+    flash (fields.css, "One settings page"), so a second save of the same card replays it without a remount. */
+ const [pressed, setPressed] = useState<string | null>(null);
+ const [flash, setFlash] = useState<{ id: string; odd: boolean } | null>(null);
+ const seenVersion = useRef(snapshot.settingsVersion);
+ useEffect(() => {
+  if (snapshot.settingsVersion === seenVersion.current) return;
+  seenVersion.current = snapshot.settingsVersion;
+  if (pressed) setFlash(was => ({ id: pressed, odd: !was?.odd }));
+ }, [snapshot.settingsVersion, pressed]);
+ const savedOf = (id: string) => flash?.id === id ? (flash.odd ? 'odd' : 'even') : undefined;
 
  /* The registers with a chooser are exactly the classes whose own previewMaySaveAsDefault allows one. */
  const registers = voice.queryClasses.filter(c => c.previewMaySaveAsDefault);
@@ -144,14 +164,8 @@ export function SpeechSettingsScreen() {
   <Region title={words.changeHeading} count={registers.length + groups.length}>
    <div className="g1-change">
     <p className="g1-change-intro">{words.changeIntro}</p>
-    <label className="g1-field g1-reason" htmlFor={reasonField}>
-     <span>{settingsScreen.reason}</span>
-     <textarea id={reasonField} value={saving.reason} disabled={disabled} onChange={event => { saving.setReason(event.target.value); saving.clear(); }} aria-describedby={`${reasonField}-help`} autoComplete="off" spellCheck={false}/>
-     <small id={`${reasonField}-help`}>{settingsScreen.reasonHelp}</small>
-    </label>
     <LiveSentence id="voice-save-as-default" sentenceId={saveWhy}/>
     <p id={`${saveWhy}-same`} className="helper">{words.nothingChanged}</p>
-    <p id={`${saveWhy}-gate`} className={source.canSave ? 'helper' : 'g1-refusal'}>{saving.gate.sentence}</p>
 
     <h3 className="g1-change-heading">{words.registersHeading}</h3>
     <div className="g1-registers">
@@ -160,7 +174,7 @@ export function SpeechSettingsScreen() {
       const providerKey = providerKeyOf(c.id);
       const providerSetting = settingOf(providerKey);
       const changes = changesOf([providerKey, voiceKey]);
-      return <article key={c.id} className="g1-register" data-tint={tints.get(c.label)} aria-label={c.label}>
+      return <article key={c.id} className="g1-register" data-tint={tints.get(c.label)} data-saved={savedOf(c.id)} aria-label={c.label}>
        <h4>{c.label}</h4>
        <p className="g1-register-why">{c.why}</p>
        <ChoiceChips legend={fill(words.providerLabel, { register: c.label })} name={`${saveWhy}-${c.id}-provider`} disabled={disabled} className="g1-register-chips"
@@ -168,7 +182,7 @@ export function SpeechSettingsScreen() {
        <ChoiceChips legend={fill(words.voiceLabel, { register: c.label })} name={`${saveWhy}-${c.id}-voice`} disabled={disabled} className="g1-register-chips"
         chips={voiceChoicesOf(c.id).map(o => ({ key: o.value, label: o.label, checked: shownOf(voiceKey) === o.value, onChange: () => setDraft(voiceKey, o.value) }))}/>
        <small className="g1-register-inforce">{fill(voiceWords.inForceSentence, { label: inForceWords(c.id) })}</small>
-       <LiveButton id="voice-save-as-default" name={fill(words.saveRegister, { register: c.label })} describedBy={!source.canSave ? `${saveWhy}-gate` : changes.length ? saveWhy : `${saveWhy}-same`} disabled={disabled || !changes.length} onClick={() => { void saving.save(changes); }}/>
+       <LiveButton id="voice-save-as-default" name={fill(words.saveRegister, { register: c.label })} describedBy={!source.canSave ? `${saveWhy}-gate` : changes.length ? saveWhy : `${saveWhy}-same`} disabled={disabled || !changes.length} onClick={() => { setPressed(c.id); void saving.save(changes); }}/>
       </article>;
      })}
     </div>
@@ -178,15 +192,26 @@ export function SpeechSettingsScreen() {
     <div className="g1-knob-groups">
      {groups.map(group => {
       const changes = changesOf(group.keys);
-      return <section key={group.id} className="g1-knob-group" aria-label={group.label}>
+      return <section key={group.id} className="g1-knob-group" data-saved={savedOf(group.id)} aria-label={group.label}>
        <h4>{fill(words.groupWord, { group: group.label, count: group.keys.length })}</h4>
-       {group.keys.map(key => <Knob key={key} setting={settingOf(key)} value={shownOf(key)} disabled={disabled} onChange={next => setDraft(key, next)}/>)}
-       <LiveButton id="speech-save-settings" name={fill(words.saveGroup, { group: group.label })} describedBy={!source.canSave ? `${saveWhy}-gate` : changes.length ? knobsWhy : `${saveWhy}-same`} disabled={disabled || !changes.length} onClick={() => { void saving.save(changes); }}/>
+       {group.keys.map(key => <Knob key={key} setting={settingOf(key)} value={shownOf(key)} disabled={disabled} inForce={inForceLine(key)} onChange={next => setDraft(key, next)}/>)}
+       <LiveButton id="speech-save-settings" name={fill(words.saveGroup, { group: group.label })} describedBy={!source.canSave ? `${saveWhy}-gate` : changes.length ? knobsWhy : `${saveWhy}-same`} disabled={disabled || !changes.length} onClick={() => { setPressed(group.id); void saving.save(changes); }}/>
       </section>;
      })}
     </div>
-    {saving.sentence && <p className={saving.ok ? 'g1-verdict' : 'g1-rejected'} role={saving.ok ? 'status' : 'alert'}>{saving.sentence}</p>}
     <p className="helper">{voiceWords.sessionSentence}</p>
+    {/* The save bar every settings page ends in: the one reason every Save above writes beside its change, the
+        gate's sentence that says when saving is shut, and the verdict of the last Save — held in view at the
+        foot of the panel while the cards scroll, so the reason is never a scroll away from the Save it serves. */}
+    <SaveBar label={portalContract.settingsPage.saveBarLabel} className="g1-savebar">
+     <label className="g1-field g1-reason" htmlFor={reasonField}>
+      <span>{settingsScreen.reason}</span>
+      <textarea id={reasonField} className="fc-text" value={saving.reason} disabled={disabled} onChange={event => { saving.setReason(event.target.value); saving.clear(); }} aria-describedby={`${reasonField}-help`} autoComplete="off" spellCheck={false}/>
+      <small id={`${reasonField}-help`}>{settingsScreen.reasonHelp}</small>
+     </label>
+     <p id={`${saveWhy}-gate`} className={source.canSave ? 'helper' : 'g1-refusal'}>{saving.gate.sentence}</p>
+     {saving.sentence && <p className={saving.ok ? 'g1-verdict' : 'g1-rejected'} role={saving.ok ? 'status' : 'alert'}>{saving.sentence}</p>}
+    </SaveBar>
    </div>
   </Region>
 

@@ -162,8 +162,6 @@
 .context-chip{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-control);font-size:13px;font-weight:550;color:var(--slate);box-shadow:var(--shadow)}
 .context-chip:hover{border-color:var(--accent-soft);background:var(--indigo-soft)}
 .context-chip .avatar.small{width:28px;height:28px;font-size:13px}
-.home-columns{display:grid;gap:20px;align-items:start}
-.home-main,.home-side{display:block;min-width:0}
 /* Icon only where the label would eat the field it belongs to: at 390px the word "Search"
    truncated the placeholder it was meant to help with. */
 .search-field{padding-right:6px}
@@ -174,23 +172,13 @@
 }
 .context-chip{max-width:100%}
 .context-chip>span:not(.avatar){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.book-cta{min-height:54px;font-size:15px;gap:11px;margin-bottom:8px}
 .shortcut-meta{text-align:right;flex-shrink:0}
-.result-list{padding:6px 4px}
 .result-row{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;padding:12px;border-radius:var(--r-tile);min-height:56px}
 .result-row:hover{background:var(--canvas)}
 .visit-meta-row{display:flex;flex-wrap:wrap;gap:6px 16px;margin:11px 0 2px;font-size:13px;color:var(--body)}
 .visit-meta-row span{display:inline-flex;align-items:center;gap:7px}
 .empty-visit{text-align:left}
 .reminder-row{display:flex;align-items:center;gap:13px;width:100%;text-align:left;min-height:64px}
-/* The one promotional card, below the fold, quiet enough to be declined. */
-.promo-card{margin-top:20px;border-radius:var(--r-card);background:var(--indigo-soft);border:1px solid var(--accent-soft);padding:22px 20px}
-.promo-card .secondary{min-height:46px;border-radius:999px;padding:12px 20px;font-size:13px}
-@media(min-width:1000px){
- /* A care column and a narrower column for what is already arranged. Not the phone layout
-     stretched across the screen. */
- .home-columns{grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:26px}
-}
 /* Interpreters. Three states and only three, and the one worth styling is the third: nobody is free
    and nobody can say when one will be. It is not a quieter version of a wait — it gets the danger
    tone the refusals use, because a person reading it is being told to make another plan, and a
@@ -208,25 +196,12 @@
    was designed around — greeting, what is already arranged, how to arrange the next thing, the
    rest — which the two-column markup only ever delivered on a wide screen. */
 .home-appointment{min-width:0}
-.home-columns{gap:var(--space-32) var(--space-24)}
 @media(max-width:999px){
  /* Nothing arranged is a different screen from something arranged. With a visit booked, the visit is
     what a returning patient opened the app for and it leads; with none, the thing they need is the
     way to book one, so the empty card drops below the booking column rather than standing at the
     top of the screen asking to be scrolled past. */
  .home-appointment.is-empty{order:2}
- .home-main{order:1}
- .home-side{order:3}
-}
-@media(min-width:1000px){
- /* The second row is flexible on purpose. The care column spans both rows, and grid only skips a
-     spanning item when sizing intrinsic tracks if one of the tracks it spans is flexible — without
-     that, seven hundred pixels of care column gets shared with the row holding the appointment and
-     opens a hole under it. */
- .home-columns{grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"main appointment" "main side";align-content:start}
- .home-main{grid-area:main}
- .home-appointment{grid-area:appointment;align-self:start}
- .home-side{grid-area:side;align-self:start}
 }
 @media(min-width:700px){
  /* The top bar carries the care area from 700px up, and the home carried it again directly beneath —

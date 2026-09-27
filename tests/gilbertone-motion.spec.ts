@@ -132,3 +132,76 @@ test('the robot on the landing page is still at rest, and the public emergency a
  expect(await movingIn(page, '.public-assistant ol > li:last-child')).toEqual([]);
  await expect(last.locator('li strong').first()).toHaveText('10177');
 });
+
+/* The waiting dots, since 28 September 2026. A service answer is waited for behind a bubble of three
+   dots that rise in turn; a deterministic answer — the emergency, a matched answer, a refusal — never
+   is. "Never" is recorded rather than sampled: an observer notes every bubble the conversation ever
+   drew, so a bubble that flashed for one frame in front of 10177 would be caught, not missed. */
+/* A question no deterministic answer, refusal or symptom intake claims, so it is the one that goes to
+   the service: nothing about health, so no later intake group can start answering it locally. */
+const unmatched = 'Tell me something about gardening';
+
+test('a service answer waits behind three rising dots; the emergency and a matched answer never do', async ({ page }) => {
+ let release!: () => void;
+ const gate = new Promise<void>(resolve => { release = resolve; });
+ await page.route('**/assistant/v1/turn', async route => {
+  await gate;
+  await route.fulfill({ json: { source: 'orchestrator', reply: 'Here is the supported service answer.' } });
+ });
+ await page.goto('/app/?open=assistant');
+ await consent(page);
+ await page.evaluate(() => {
+  const w = window as unknown as { waited: string[] };
+  w.waited = [];
+  const note = () => document.querySelectorAll('.as-reply[data-waiting]').forEach(el => {
+   const asked = el.closest('.as-turn')?.querySelector('.as-said')?.textContent ?? '';
+   if (!w.waited.includes(asked)) w.waited.push(asked);
+  });
+  new MutationObserver(note).observe(document.body, { subtree: true, childList: true, attributes: true });
+ });
+ const waited = () => page.evaluate(() => (window as unknown as { waited: string[] }).waited);
+
+ await ask(page, unmatched);
+ const bubble = panel(page).locator('.as-reply[data-waiting]');
+ await expect(bubble.locator('.as-dots i')).toHaveCount(3);
+ await expect(bubble.locator('.as-pending')).toHaveText(gilbert.conversation.thinkingLabel);
+ /* Three dots, each on the same keyframes, each later than the one before, moving nothing but the
+    compositor's two properties. */
+ const dots = await page.evaluate(() => document.getAnimations()
+  .filter(a => (a as Animation & { animationName?: string }).animationName === 'as-dot' && a.playState === 'running')
+  .map(a => ({ delay: Number((a.effect as KeyframeEffect).getTiming().delay),
+   properties: [...new Set((a.effect as KeyframeEffect).getKeyframes().flatMap(k => Object.keys(k)))]
+    .filter(k => !['offset', 'computedOffset', 'easing', 'composite'].includes(k)).sort() })));
+ expect(dots).toHaveLength(3);
+ expect(dots.map(d => d.delay)).toEqual([...dots.map(d => d.delay)].sort((a, b) => a - b));
+ expect(new Set(dots.map(d => d.delay)).size).toBe(3);
+ for (const d of dots) expect(d.properties).toEqual(['opacity', 'transform']);
+
+ release();
+ await expect(panel(page).locator('.as-service').last()).toHaveText('Here is the supported service answer.');
+ await expect(panel(page).locator('.as-reply[data-waiting]')).toHaveCount(0);
+ expect(await movingIn(page, '.as-dots')).toEqual(['absent']);
+
+ await ask(page, 'Are my results back?');
+ await expect(panel(page).locator('.as-turn').last().locator('.as-reply')).toHaveAttribute('data-outcome', 'answer');
+ await ask(page, 'someone has collapsed and is not breathing');
+ const emergency = panel(page).locator('.as-turn').last().locator('.as-reply');
+ await expect(emergency).toHaveClass(/as-reply-emergency/);
+ await expect(emergency.locator('.as-numbers li').first()).toContainText('10177');
+ /* One bubble in the whole conversation, and it was the unmatched question's. */
+ expect(await waited()).toHaveLength(1);
+ expect((await waited())[0]).toContain(unmatched);
+});
+
+test('under reduced motion the dots are drawn still, and still say what they mean', async ({ page }) => {
+ await page.route('**/assistant/v1/turn', () => new Promise(() => {}));
+ await page.emulateMedia({ reducedMotion: 'reduce' });
+ await page.goto('/app/?open=assistant');
+ await consent(page);
+ await ask(page, unmatched);
+ const bubble = panel(page).locator('.as-reply[data-waiting]');
+ await expect(bubble.locator('.as-dots i')).toHaveCount(3);
+ await expect(bubble.locator('.as-pending')).toHaveText(gilbert.conversation.thinkingLabel);
+ expect(await movingIn(page, '.as-reply[data-waiting]')).toEqual([]);
+ expect(await bubble.locator('.as-dots i').first().evaluate(el => Number(getComputedStyle(el).opacity))).toBeGreaterThan(0);
+});
