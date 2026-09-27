@@ -13,9 +13,13 @@
  * knob, a chip's input fills its pill, and a switch's label is 44px tall. The focus ring is core.css's
  * two rings, given the control's own radius here so a pill is ringed as a pill. No outline is removed.
  *
- * Motion is the shared system's: a switch's knob and a chip's ground settle over --t-quick with
- * --ease-soft, nothing else moves, and reduced motion removes both — with !important, because this
- * sheet loads after motion.css and a removal a later sheet can overrule is not a removal. */
+ * Motion is the shared system's, and it is all in one section at the foot of this sheet ("The controls
+ * that move", 28 September 2026): a switch's knob slides and stretches under a press, a two-choice set of
+ * chips is a segmented toggle whose dark thumb slides to the chosen side, a chosen chip's disc pops and its
+ * tick draws, and a slider's thumb and chip lift while held. Every one of them is finite, on transform,
+ * opacity or a colour, started only under [data-decor='on'] — the page's motion flag, which the pause
+ * control and the reduced-motion query both clear — and removed under reduced motion with !important,
+ * because this sheet loads after motion.css and a removal a later sheet can overrule is not a removal. */
 
 /* ---- The range slider ---------------------------------------------------------------------------- */
 .fc-range {
@@ -164,9 +168,6 @@
   cursor: pointer;
   -webkit-appearance: none;
   appearance: none;
-  transition:
-    background-color var(--t-quick) var(--ease-soft),
-    border-color var(--t-quick) var(--ease-soft);
 }
 .fc-switch input[type]::before {
   content: "";
@@ -178,7 +179,7 @@
   border-radius: 50%;
   background: var(--surface);
   box-shadow: var(--shadow-raised);
-  transition: transform var(--t-quick) var(--ease-soft);
+  transform-origin: left center;
 }
 .fc-switch input[type]:checked {
   background: var(--brand-green);
@@ -253,10 +254,6 @@
   font-weight: 500;
   line-height: 1.35;
   cursor: pointer;
-  transition:
-    background-color var(--t-quick) var(--ease-soft),
-    border-color var(--t-quick) var(--ease-soft),
-    color var(--t-quick) var(--ease-soft);
 }
 .fc-chip:hover {
   border-color: var(--charcoal);
@@ -328,14 +325,6 @@
 .fc-chips:disabled .fc-chip,
 .fc-chips:disabled .fc-chip input[type] {
   cursor: not-allowed;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fc-switch input[type],
-  .fc-switch input[type]::before,
-  .fc-chip {
-    transition: none !important;
-  }
 }
 
 /* A slider whose value is said by an <output> beside it rather than by a chip above it. */
@@ -451,4 +440,215 @@
 .fc-select {
   min-height: 44px;
   border-radius: var(--r-pill);
+}
+
+/* ---- The controls that move (28 September 2026) --------------------------------------------------
+   The founder asked for the settings' controls to have the life of the Jitter UI-element templates: a
+   toggle that slides, a chosen thing that pops, a thumb that answers being held. Each is written here
+   against the native element it already was, so the keyboard, the announced state and the form are
+   untouched, and each state still says itself without the motion — the switch's word, the chip's tick,
+   the slider's chip. See the note at the top of this sheet for the rules every one of them keeps. */
+
+/* The switch: a tick drawn in the knob when on — brand green on white, a graphic at 3.39:1 (tokens.json
+   #contrast, brand green on surface) — and a soft green halo round the track, never while it holds focus,
+   because a field's focus ring in the portal is the outline and in the legacy shell core.css's box-shadow. */
+.fc-switch input[type]::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--brand-green);
+  border-width: 0 2px 2px 0;
+  opacity: 0;
+  transform: translateX(20px) rotate(45deg) scale(0.2);
+}
+.fc-switch input[type]:checked::after {
+  opacity: 1;
+  transform: translateX(20px) rotate(45deg);
+}
+.fc-switch input[type]:checked::before {
+  transform-origin: right center;
+}
+.fc-switch input[type]:checked:not(:focus-visible) {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-green) 18%, transparent);
+}
+/* Under a press the knob stretches towards where it is going, the way a thumb squashes a real one. */
+[data-decor="on"] .fc-switch input[type]:active:not(:disabled)::before {
+  transform: scaleX(1.2);
+}
+[data-decor="on"] .fc-switch input[type]:checked:active:not(:disabled)::before {
+  transform: translateX(20px) scaleX(1.2);
+}
+[data-decor="on"] .fc-switch input[type] {
+  transition:
+    background-color var(--t-quick) var(--ease-soft),
+    border-color var(--t-quick) var(--ease-soft),
+    box-shadow var(--t-settle) var(--ease-soft);
+}
+[data-decor="on"] .fc-switch input[type]::before {
+  transition: transform var(--t-settle) var(--ease-soft);
+}
+[data-decor="on"] .fc-switch input[type]::after {
+  transition:
+    transform var(--t-settle) var(--ease-soft),
+    opacity var(--t-quick) var(--ease-soft);
+}
+
+/* Two choices, one of which must be chosen, are a toggle: a recessed track with the two choices in equal
+   halves and one dark thumb that slides to the chosen half. Found by shape rather than by a class, so the
+   Configuration editor's named booleans and the voice preview's two labels — which GilbertOne draws itself,
+   without Fields.tsx — are the same toggle. The words are charcoal on cloud unchosen and surface on
+   charcoal chosen (both rows in tokens.json#contrast), and the chosen half keeps its lime disc and drawn
+   tick, so the thumb is never the only thing that says which. Rounded as a card, not a pill: a label that
+   wraps to two lines on a phone reads as a lozenge in a pill. */
+.fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"]) {
+  position: relative;
+  display: inline-grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 0;
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--space-4);
+  border-radius: var(--r-card);
+  background: var(--cloud);
+  isolation: isolate;
+}
+.fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"])::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: var(--space-4);
+  bottom: var(--space-4);
+  left: var(--space-4);
+  width: calc(50% - var(--space-4));
+  border-radius: var(--r-control);
+  background: var(--charcoal);
+  opacity: 0;
+  pointer-events: none;
+}
+.fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"]):has(input:checked)::before {
+  opacity: 1;
+}
+.fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"]):has(> .fc-chip:last-child > input:checked)::before {
+  transform: translateX(100%);
+}
+.fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"]) > .fc-chip {
+  justify-content: center;
+  border-color: transparent;
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--charcoal);
+}
+.fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"]) > .fc-chip:has(input:checked) {
+  border-color: transparent;
+  background: transparent;
+  color: var(--surface);
+}
+@media (hover: hover) {
+  .fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"]) > .fc-chip:not(:has(input:checked)):hover {
+    background: var(--surface);
+  }
+}
+.fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"]) > .fc-chip input[type]:focus-visible {
+  border-radius: var(--r-control);
+}
+/* Held: a disabled toggle's thumb is white on the recessed track, so its word stays charcoal on surface. */
+.fc-chips:disabled .fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"])::before {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--stone);
+}
+.fc-chips:disabled .fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"]) > .fc-chip,
+.fc-chips:disabled .fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"]) > .fc-chip:has(input:checked) {
+  background: transparent;
+  color: var(--charcoal);
+}
+[data-decor="on"] .fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"])::before {
+  transition:
+    transform var(--t-settle) var(--ease-soft),
+    opacity var(--t-quick) var(--ease-soft);
+}
+
+/* A chosen chip: its ground settles, its disc pops once and its tick draws in just after. */
+@keyframes fc-pop {
+  from {
+    transform: scale(0.4);
+  }
+}
+@keyframes fc-tick {
+  from {
+    opacity: 0;
+    transform: translate(0, -62%) rotate(45deg) scale(0.2);
+  }
+}
+[data-decor="on"] .fc-chip {
+  transition:
+    background-color var(--t-quick) var(--ease-soft),
+    border-color var(--t-quick) var(--ease-soft),
+    color var(--t-quick) var(--ease-soft);
+}
+[data-decor="on"] .fc-chip:has(input:checked) > span::before {
+  animation: fc-pop var(--t-settle) var(--ease-soft) both;
+}
+[data-decor="on"] .fc-chip:has(input:checked) > span::after {
+  animation: fc-tick var(--t-settle) var(--ease-soft) calc(var(--t-quick) / 3) both;
+}
+
+/* The slider, held: the thumb grows a little under the finger and the chip rises off the track, so what
+   is being moved is plain. The chip lifts by the individual translate and scale properties, never by its
+   transform — the transform is what keeps it riding the thumb, and a transition on it would make the chip
+   trail the thumb across the track. */
+[data-decor="on"] .fc-range input[type="range"]::-webkit-slider-thumb {
+  transition: transform var(--t-quick) var(--ease-soft);
+}
+[data-decor="on"] .fc-range input[type="range"]:active:not(:disabled)::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+[data-decor="on"] .fc-range input[type="range"]::-moz-range-thumb {
+  transition: transform var(--t-quick) var(--ease-soft);
+}
+[data-decor="on"] .fc-range input[type="range"]:active:not(:disabled)::-moz-range-thumb {
+  transform: scale(1.12);
+}
+[data-decor="on"] .fc-range-chip {
+  transition:
+    scale var(--t-quick) var(--ease-soft),
+    translate var(--t-quick) var(--ease-soft);
+}
+[data-decor="on"] .fc-range:has(input[type="range"]:active:not(:disabled)) .fc-range-chip {
+  scale: 1.06;
+  translate: 0 -3px;
+}
+
+/* Removal: not shortened, removed, and with !important because this sheet loads after motion.css. Each
+   vendor's thumb is its own rule — a selector list naming the other browser's pseudo-element is dropped
+   whole by the browser that does not know it. */
+@media (prefers-reduced-motion: reduce) {
+  .fc-switch input[type],
+  .fc-switch input[type]::before,
+  .fc-switch input[type]::after,
+  .fc-chip,
+  .fc-chip > span::before,
+  .fc-chip > span::after,
+  .fc-chip-row::before,
+  .fc-range-chip {
+    transition: none !important;
+    animation: none !important;
+  }
+  .fc-range input[type="range"]::-webkit-slider-thumb {
+    transition: none !important;
+    transform: none !important;
+  }
+  .fc-range-chip {
+    scale: none !important;
+    translate: none !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fc-range input[type="range"]::-moz-range-thumb {
+    transition: none !important;
+    transform: none !important;
+  }
 }
