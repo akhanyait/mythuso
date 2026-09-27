@@ -516,6 +516,18 @@ reaches the web preview and not this box until the service holds the history too
 
 ## Founder access
 
+> **Since 28 September 2026 the Control Tower itself is behind this door.** In production
+> (`/app/?role=control-tower` and `?role=back-office`) nothing of the portal is drawn until the
+> founder has signed in with the password and an authenticator code, and the door fails closed: a
+> box where founder access is dark, or where the assistant service does not answer, shows a door
+> nobody can open. So before a deploy that carries this build is useful, founder access must be
+> switched on (below) and the service running; a restart shows the door to everyone again. Check:
+> `curl -s -o /dev/null -w '%{http_code}\n' -H 'X-MyThuso-Founder: 1' https://mythuso.co.za/assistant/v1/founder/keys`
+> answers `401` (on, no session), never `503` (dark). To reset the password or re-pair the
+> authenticator: `sudo /opt/mythuso/ops/configure-founder-access.sh`, then
+> `sudo systemctl restart assistant-api.service`.
+
+
 Not part of any deploy, and off on every box until the founder switches it on here, by hand.
 Founder access lets the founder — and nobody else — sign in to the assistant service from the
 Control Tower (GilbertOne → Model Providers, or the Azure OpenAI and Azure Speech cards on API

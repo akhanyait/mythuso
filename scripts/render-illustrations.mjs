@@ -106,8 +106,43 @@ const encodeHeic = (from, to) => {
  const result = spawnSync('sips', ['-s', 'format', 'heic', from, '--out', to], { encoding: 'utf8' });
  return result.status === 0;
 };
+/* The landing hero's figures, since 28 September 2026: `hero-<slide>.png` in packages/banners, at
+   the resolution the founder supplied. Each becomes three files and nothing on a phone.
+
+   Two WebP widths for one srcset. 640 is what a phone asks for — the figure stands about 200 CSS
+   pixels wide there, and 640 still covers a three-times screen — and the native width is what a
+   desktop asks for, where the figure is 500-odd CSS pixels wide on a two-times screen. Colour at
+   quality 85; the alpha plane at 80, which on the cut-outs' hair measured indistinguishable from
+   lossless and took 17 kB off the phone's figure (124 kB to 107). Quality 82 was this script's
+   figure for everything else and is kept there.
+
+   And a fallback at 640 for a browser that cannot decode WebP: a PNG for a cut-out, because a JPEG
+   has no transparency and the figure would arrive in a white box, quantised to 256 colours so the
+   fallback is not six times the file it stands in for; a JPEG for the one slide that is a
+   photograph. The phones do not take these — the cut-outs they draw are the ones below. */
+const encodeHero = (from, stem) => {
+ const result = spawnSync('python3', ['-c', `
+import sys
+from PIL import Image
+source, out, stem = sys.argv[1], sys.argv[2], sys.argv[3]
+image = Image.open(source)
+cutout = image.mode == 'RGBA'
+def at(width):
+    return image if width == image.width else image.resize((width, round(image.height * width / image.width)), Image.LANCZOS)
+for width in sorted({640, image.width}):
+    at(width).save(f'{out}/hero-{stem}-{width}.webp', 'WEBP', quality=85, alpha_quality=80, method=6)
+if cutout:
+    at(640).quantize(256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.FLOYDSTEINBERG).save(f'{out}/hero-{stem}.png', optimize=True)
+else:
+    at(640).convert('RGB').save(f'{out}/hero-{stem}.jpg', quality=84, optimize=True, progressive=True)
+print(f'{stem}: {image.width}x{image.height} {"cut-out" if cutout else "photograph"}')
+`, from, 'apps/web/public/banners', stem], { encoding: 'utf8' });
+ if (result.status !== 0) throw new Error(`Could not encode the hero figure ${stem}: ${result.stderr || result.error}`);
+ process.stdout.write(`encoded hero figure ${result.stdout}`);
+};
 if (existsSync('packages/banners')) {
  for (const file of readdirSync('packages/banners').filter(f => /\.(jpg|png)$/.test(f))) {
+  if (/^hero-.+\.png$/.test(file)) { encodeHero(`packages/banners/${file}`, file.replace(/^hero-|\.png$/g, '')); continue; }
   /* The flat crops go to the web as WebP with the .jpg behind them. The landing hero is four
      photographs now rather than three, and it is read on mid-range Android handsets on metered
      data: about 290 kB of JPEG against about 140 kB of WebP, for pictures a stranger sees before

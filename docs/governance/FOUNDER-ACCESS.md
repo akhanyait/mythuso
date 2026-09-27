@@ -120,6 +120,64 @@ gate on a preview: the day the service keeps a settings history, the settings ro
 cookie and enforce it themselves, and the browser's gate stops being the only one. A reveal of a key
 still needs a fresh code each time; the longer session does not change that.
 
+## The Control Tower's door, 28 September 2026
+
+The founder's instruction: "When you click on Control Tower it must bring logins with 2FA." So in
+production, opening the Control Tower or the back office — `/app/?role=control-tower`,
+`/app/?role=back-office`, or either role's button on the demo login — draws the founder's two-factor
+sign-in first, and the portal is drawn only while the assistant service says the founder's session is
+live. It is the same sign-in as the panel above: the same password and authenticator code, the same
+four routes, the same `__Host-mythuso_founder` cookie for two hours, the same lock and burned codes,
+and the same form — `apps/web/src/shells/FounderGate.tsx` draws the reveal panel's `SignIn` through a
+dynamic import, so the product has one sign-in form and one file that draws a password field. The
+contract is `packages/catalog/founder-access.json#door`; the door holds on exactly
+`import.meta.env.PROD || gate=founder` in the address, and `scripts/check-boundaries.mjs` holds that
+line to that condition.
+
+What it refuses, in the order that matters:
+
+- **It fails closed.** Where the service says founder access is dark on the box, or does not answer at
+  all, the door stays a door and says so in the contract's own sentence, with no form drawn. It never
+  falls through to the portal: one line draws the portal, under one condition — the service said the
+  founder is signed in — and the build holds it there. Sign-out puts the door back, and so does the
+  session's own end: the door asks the service again a second after `expiresAt` and whenever the tab
+  comes back into view, and a service restart shows the door to everyone at once.
+- **It is not an admin login system.** It admits one person, the founder, and says on its face that no
+  other account exists yet. The fifteen administration layers behind gate G16 still do not exist, and
+  the demo login still says so on every workspace. The patient, nurse, doctor and partner previews are
+  not behind it: they are demonstrations on synthetic data, with nothing to protect and nothing to grant.
+- **It grants nothing.** Every factor is checked by the service; the door asks and draws the answer.
+  Nothing is stored anywhere in the browser, nothing typed reaches an address, the forms are
+  `method="post"` with their own handler, and the door's file may not name a password, a code, a
+  reveal or a request of its own.
+- **It costs the patient nothing.** The door lives behind the portal's dynamic import: every asset
+  `apps/web/dist/index.html` references, gzipped at level 9, measured 274.57 kB across 15 files before
+  and 274.55 kB across 15 files after, the same way.
+
+Outside production the door is drawn only when the address carries `gate=founder` — which is how
+`tests/founder-gate.spec.ts` covers it against the dev server with the founder routes mocked as
+`tests/founder-access.spec.ts` mocks them, and how every other Control Tower journey stays untouched.
+The demo login's buttons open the same door the address does, and that is proved against the built app
+rather than by carrying the parameter through the role switcher, which is on the patient's first load.
+
+**What is honest but undone.**
+
+- **A door in the browser protects what is drawn, not what is served.** The portal's own reads — the
+  contracts, the assistant's health and status routes — are the same reads anybody could make, as the
+  paragraph under _What it amends_ says; the door keeps the Control Tower off the screen of anybody who
+  is not the founder, and the founder routes keep the keys. Nothing else behind the door is enforced by
+  a server yet, and the settings gate section above says when that changes.
+- **Switching founder access on is now on the production checklist.** A deploy of this build to a box
+  where founder access is dark puts a door in front of the Control Tower that nobody can open — the
+  right failure, and one that has to be planned for: `deploy/RUNBOOK.md`, _Founder access_, before the
+  Control Tower is opened on `mythuso.co.za`. The runbook does not yet say so in its checklist.
+- **One session, one process.** The session lives in the assistant service's memory; a restart, a lock
+  or a second sign-in ends it, and the door is what the founder sees next. There is still no second
+  founder and no break-glass, on purpose.
+- **In development only**, a navigation inside the portal rewrites the address without the parameter,
+  so a reload after it opens the portal directly; the door is read once when it mounts and holds until
+  the role changes. Production reads `import.meta.env.PROD` and needs no parameter.
+
 ## When this file is updated
 
 When founder access is switched on or off on a box (the date and who), when the credential is

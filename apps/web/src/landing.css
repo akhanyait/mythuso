@@ -390,37 +390,13 @@ html:has(.landing) {
   position: relative;
   z-index: 1;
 }
-/* The dark bar runs the whole width of the hero under both columns, and its own gap to them is
-   smaller than the gap between the columns — it belongs to the hero rather than following it. */
-.landing-hero > .studio-bar-wrap {
-  grid-column: 1 / -1;
-  margin-top: calc(clamp(30px, 4.2vw, 54px) * -0.3);
-}
-
-/* One column until the picture has somewhere to stand beside the words.
-   `display:contents` is doing real work here rather than saving a wrapper: the copy and the
-   controls belong together in one column on a wide screen — the controls sit at the foot of the
-   copy, which is where the supplied art puts the counter — and the picture belongs BETWEEN them on
-   a phone, because a reader on 390px should see the banner before they see a control for changing
-   it. Dissolving the column below that width is the only way to have both without rendering either
-   half twice. */
-.landing-hero-column {
-  display: contents;
-}
-/* Everything in the hero carries an explicit order, including the bar, because `order` decides
-   where a grid item is auto-placed as well as where a flex item sits — a bar left at the default
-   was placed before the three things written above it and appeared at the top of the banner. */
+/* The words before the figure in the grid's order as in the document's; surface/public-revamp.css
+   reorders them for a phone, where the figure stands above the words. */
 .landing-hero-copy {
   order: 1;
 }
 .landing-hero .landing-portrait {
   order: 2;
-}
-.landing-hero-foot {
-  order: 3;
-}
-.landing-hero > .studio-bar-wrap {
-  order: 4;
 }
 
 /* The four slides, stacked in one grid cell and cross-faded.
@@ -510,37 +486,7 @@ html:has(.landing) {
   color: var(--brand-ink);
 }
 
-/* The three trust marks. A tinted disc, then two short lines beside it.
-   The tint alternates mint, peach, mint by position. That is rhythm and not meaning: each mark
-   already carries its own glyph and its own two words, so the colour is never the only difference
-   between two of them, and the contract gives a mark no tint of its own to be faithful to. */
-.landing-hero-marks {
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px clamp(16px, 2.2vw, 30px);
-  margin: clamp(30px, 3.8vw, 50px) 0 0;
-  padding: 0;
-}
-.landing-hero-marks li {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-.landing-hero-marks li > span:last-child {
-  display: flex;
-  flex-direction: column;
-  font-size: 15px;
-  line-height: 1.3;
-  font-weight: 500;
-  color: var(--studio-ink);
-  min-width: 0;
-}
-.landing-hero-marks i {
-  font-style: normal;
-}
-/* The disc, on both the marks and the floating cards. Mixed into --surface rather than into the
+/* The disc on the floating cards. Mixed into --surface rather than into the
    ground each one sits on, so a disc is the same colour on the page as it is on a white card.
    The glyph is the brand colour the art uses — green at 3.01 on the mint disc, orange at 2.44 on
    the peach one. Neither owes SC 1.4.11's 3:1 because neither is the only thing saying what the
@@ -734,117 +680,6 @@ html:has(.landing) {
 .landing-hero-card .landing-hero-disc.tint-peach {
   width: 40px;
   height: 40px;
-}
-
-/* ---- The controls ----
-   One row at the foot of the copy: which of four, how long this one has left, the page's pause
-   control, and the two arrows.
-   Two rows by default and one from 1080px, which is the width at which the column is finally wider
-   than the four controls laid end to end. Wrapping was tried first and it put the forward arrow
-   alone on a line under a 390px phone; a grid says where each piece goes instead of leaving it to
-   whatever happens to fit. */
-.landing-hero-foot {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 14px 12px;
-  margin-top: clamp(22px, 2.6vw, 34px);
-}
-.landing-slide-index {
-  grid-area: 1 / 1;
-}
-.landing-slide-rule {
-  grid-area: 1 / 2;
-}
-.landing-hero-foot .m-pause {
-  grid-area: 2 / 1;
-}
-.landing-slide-steps {
-  grid-area: 2 / 2;
-  justify-self: end;
-  display: flex;
-  gap: 10px;
-}
-.landing-slide-index {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  color: var(--charcoal);
-  font-variant-numeric: tabular-nums;
-}
-.landing-slide-index i {
-  font-style: normal;
-  color: var(--body);
-  margin: 0 5px;
-}
-/* Progress as a row of rounded segments, which is how this page draws it under the navigation and
-   how docs/DESIGN-LANGUAGE.md draws it everywhere. The current segment fills across the seven
-   seconds, so the next banner is something a reader can see coming rather than something that
-   happens to them — and the duration is not typed here: Hero writes SLIDE_MS onto the row as
-   --slide-ms, so the clock and the timer cannot drift apart.
-
-   It is finite, it is on an empty <b> with nothing to click, and it only exists while the page's
-   decorative-motion flag is up — so the pause control stops it, and a reader who has asked for
-   less motion never has it applied at all and sees the current segment simply full.
-
-   The filled segment is the brand lime over ink, which is what the art marks the current banner
-   with. A 3px rule is not text and carries no ratio; what it must clear is SC 1.4.11's 3:1 against
-   the track beside it, and lime on the --stone track measures well past that. */
-.landing-slide-rule {
-  flex: 1 1 56px;
-  min-width: 44px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.landing-slide-rule i {
-  flex: 1;
-  height: 4px;
-  border-radius: var(--r-pill);
-  background: var(--stone);
-  overflow: hidden;
-}
-.landing-slide-rule b {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--brand-lime);
-  transform: scaleX(0);
-  transform-origin: left;
-}
-.landing-slide-rule i.is-on b {
-  transform: scaleX(1);
-}
-[data-decor="on"] .landing-slide-rule i.is-on b {
-  animation: slide-clock var(--slide-ms) linear both;
-}
-.landing-slide-rule.is-still i.is-on b {
-  animation-play-state: paused;
-}
-/* 44 square, and an outline that can be seen. These two are the only icon-only controls in the
-   hero, so the boundary is the whole of what says they are controls — SC 1.4.11 asks 3:1 of it,
-   and the page's --stone hairline measures 1.58 on white, which is a line for separating cards and
-   not for drawing a button. Ink at half strength over the line colour measures 3.23 on the page
-   ground and 3.43 on a card. */
-.landing-slide-step {
-  width: 44px;
-  height: 44px;
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  border-radius: var(--r-pill);
-  background: var(--surface);
-  border: 1px solid
-    color-mix(in srgb, var(--studio-ink) 50%, var(--studio-line));
-  color: var(--charcoal);
-  transition:
-    background-color 0.18s var(--ease),
-    border-color 0.18s var(--ease);
-}
-.landing-slide-step:hover {
-  background: var(--cloud);
-  border-color: var(--charcoal);
 }
 
 /* ---- Sections and headings ----
@@ -1389,36 +1224,8 @@ html:has(.landing) {
   .landing-hero .landing-portrait {
     align-content: start;
   }
-  /* The column becomes real, and the controls sit at its foot rather than after the picture. */
-  .landing-hero-column {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    min-width: 0;
-  }
-  .landing-hero-copy {
-    flex: 1;
-  }
-  /* The crops are portraits where the supplied art's photograph is a landscape, so the picture is
-    always a little taller than the words beside it. The counter goes to the foot of the column, so
-    the bottom of the words and the bottom of the picture land on one line and the difference reads
-    as air above a control rather than as a hole in the middle of a sentence. Pushing the trust
-    marks down there too was tried and it was worse: it opened the same gap between the call to
-    action and the marks, where the eye is actually travelling. */
-  .landing-hero-foot {
-    margin-top: clamp(30px, 3.4vw, 46px);
-  }
 }
 @media (min-width: 1080px) {
-  .landing-hero-foot {
-    grid-template-columns: auto minmax(44px, 1fr) auto auto;
-  }
-  .landing-hero-foot .m-pause {
-    grid-area: 1 / 3;
-  }
-  .landing-slide-steps {
-    grid-area: 1 / 4;
-  }
   .landing-services {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -1502,18 +1309,6 @@ html:has(.landing) {
  * "this reader has not asked the motion to stop". Anything endless answers to the second, which is
  * what WCAG 2.2.2 wants a control for — and that control is beside the portrait. See
  * surface/motion.css. */
-
-/* The carousel's clock. Finite by construction — it runs once per picture and stops — and it moves
-   a transform on an empty element inside an aria-hidden row, so no box anything is measured
-   against, or clicked, ever changes size. */
-@keyframes slide-clock {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
-  }
-}
 
 @media (max-width: 480px) {
   .landing-nav {

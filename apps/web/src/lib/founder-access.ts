@@ -28,6 +28,10 @@ export const founderKeys = founder.keys;
 export const codeDigits = founder.totp.codeDigits;
 export const wipeAfterMs = founder.reveal.wipeAfterSeconds * 1000;
 export const sessionMinutes = founder.session.lifetimeSeconds / 60;
+/* The Control Tower's door (founder-access.json#door), read by shells/FounderGate.tsx: the parameter that
+   draws it outside production, the two roles it stands in front of, and its words. Nothing here decides
+   anything about it — the door asks the same session state the reveal panel does, through useFounderState. */
+export const founderDoor = founder.door;
 
 declare const __ASSISTANT_API_URL__: string;
 const base = () => (typeof __ASSISTANT_API_URL__ === 'string' ? __ASSISTANT_API_URL__ : '');

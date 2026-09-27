@@ -40,8 +40,7 @@ import {
 } from "../lib/motion";
 import { searchForSection } from "../lib/roles";
 import {
-  photographJpeg,
-  photographWebp,
+  figureFor,
   priceLine,
   roleFor,
   sectionFor,
@@ -270,16 +269,27 @@ function useOpening() {
   return { opening, onClick };
 }
 
-/* Editorial cover: one full-bleed photograph with the banner's words composed on it, and a ledge
-   of secondary matter beneath. Since 28 September 2026 it stands still on the first banner of
-   packages/catalog/hero.json: the founder asked for the strip beneath it — the trust marks, the
-   counter, the pause pill and the arrows — to go, and a picture that rotates by itself with no
-   control to stop it is what WCAG 2.2.2 refuses, so the rotation went with the controls rather than
-   outliving them. The other three banners stay in the contract, unshown, for the day a rotation
-   with a control comes back. The page's one pause control now sits in the top bar, where it still
-   stops the two ambient drifts. */
+/* Editorial cover, since 28 September 2026: the banner's words on the left, and its people as a
+   cut-out standing on the brand's pale ground on the right — above them on a phone — with the two
+   contract cards drawn by the page beside them and nothing baked into a pixel. The founder called the
+   photographs it replaced "cut and low quality", and they were: narrow crops of compositions whose
+   right third is under baked cards, cropped again by object-fit and upscaled on a desk. The cut-out
+   is never cropped by the page; it is sized whole, at its own aspect, from width and height the build
+   holds to the file.
+
+   It stands on the first banner of packages/catalog/hero.json. On 27 September the founder asked for
+   the strip beneath it — the trust marks, the counter, the pause pill and the arrows — to go, and a
+   picture that rotates by itself with no control to stop it is what WCAG 2.2.2 refuses, so the
+   rotation went with the controls. The other three banners stay in the contract, unshown, and their
+   figures are published, for the day a rotation with a control comes back. The page's one pause
+   control sits in the top bar and stops the two ambient drifts.
+
+   The lime price panel that stood in the ledge went on the founder's word the next day: the price
+   stands under the headline, in the contract's sentence, and on every service card. What is left in
+   the ledge is the dark strip of sections, pulled up over the foot of the hero. */
 function Hero() {
   const slide = slides[0];
+  const figure = figureFor(slide);
   const { opening, onClick: opened } = useOpening();
   return (
     <section
@@ -287,72 +297,10 @@ function Hero() {
       aria-label="MyThuso"
       data-ambient="paused"
     >
-      {/* The stage. Edge to edge, and two things in one cell: the photograph as the figure, and the
-      banner's own words as a layer over it. Both are the same four slides, cross-faded together.
-
-      The words do not stand on the photograph. They stand on a panel of ink beside it on a wide
-      screen and under it on a phone, and the picture keeps its own brightness — which is the whole
-      point, because the first attempt at this put the headline straight onto the image and had to
-      deepen a scrim until a sunlit portrait arrived as a near-black plate. What each run of type
-      measured, and what the photograph's mean luminance did, are written down above .hero-stage in
-      surface/revamp.css. A headline has already shipped on this project at 1.28:1; composing type
-      over an image is exactly where that happens again if it is left to the eye. */}
       <div className="hero-stage">
-        <figure className="landing-portrait">
-          <div className="landing-portrait-frame">
-            {[slide].map((slide) => (
-              <div key={slide.id} className="landing-slide is-on">
-                <div className="editorial-photo-visual">
-                  <picture>
-                    <source
-                      srcSet={photographWebp(slide)}
-                      type="image/webp"
-                    />
-                    <img
-                      src={photographJpeg(slide)}
-                      alt=""
-                      aria-hidden="true"
-                      width="1774"
-                      height="887"
-                      loading="eager"
-                      fetchPriority="high"
-                      decoding="async"
-                    />
-                  </picture>
-                </div>
-                <div className="editorial-photo-footer">
-                  <div className="editorial-photo-caption">
-                    <span>MYTHUSO / EVERYDAY CARE</span>
-                    <strong>More life. Less waiting.</strong>
-                  </div>
-                  <div className="editorial-photo-cards">
-                    {slide.cards.map((card) => (
-                      <div
-                        key={card.title}
-                        className={`landing-hero-card at-${card.at}`}
-                      >
-                        <span className={`landing-hero-disc tint-${card.tint}`}>
-                          <HeroGlyph name={card.icon} size={20} />
-                        </span>
-                        <span>
-                          <i>{card.title}</i>
-                          {card.lines.map((line) => (
-                            <span key={line}>{line}</span>
-                          ))}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="landing-portrait-place">
-            <MapPin size={15} aria-hidden="true" />
-            {standing.place}
-          </p>
-          <figcaption>{standing.photographNote}</figcaption>
-        </figure>
+        {/* The words come first in the document, so a screen reader meets the headline before a
+        picture it is told nothing about; on a phone the figure is drawn above them by the grid,
+        and it holds nothing focusable, so the tab order and the visual order still agree. */}
         <div className="landing-hero-copy">
           {[slide].map((slide) => (
             <article key={slide.id} className="landing-hero-slide is-on">
@@ -391,53 +339,87 @@ function Hero() {
           are the contract's; the number is the catalogue's. */}
           <p className="landing-hero-price">{priceLine(money(fromPrice))}</p>
         </div>
-      </div>
 
-      {/* The ledge. What a reader consults rather than reads first: the price and what the visit
-      includes. It is on paper so the stage above it stays one image,
-      and the price panel is lifted into the picture's bottom edge from the width where there is
-      room for it to overlap without covering anything. */}
-      <div className="hero-ledge">
-        <aside className="editorial-care-note">
-          <span className="editorial-note-top">
-            CARE, ON YOUR TERMS
-            <House size={22} />
-          </span>
-          <div>
-            <span>Home visits from</span>
-            <strong>
-              {money(fromPrice)}
-              <i> / visit</i>
-            </strong>
-            <p>
-              One clear price.
-              <br />
-              Care in your own space.
-            </p>
+        {/* The figure. A tinted panel behind the lower part of it, the cut-out standing in front
+        with its head above the panel's top edge, and its three cut edges — the sides and the foot,
+        where the supplied cut-outs meet the edge of their own frame — laid exactly on the panel's,
+        which is why the picture is always its own width and never cropped: a cut-out narrower than
+        its panel shows a shoulder ending in a straight line in mid-air. */}
+        <figure
+          className="landing-portrait"
+          data-figure={figure.cutout ? "cutout" : "photograph"}
+        >
+          <div className="landing-portrait-frame">
+            {[slide].map((slide) => (
+              <div key={slide.id} className="landing-slide is-on">
+                <div className="editorial-photo-visual">
+                  <picture>
+                    <source
+                      srcSet={figure.srcSet}
+                      sizes="(min-width: 900px) 528px, min(54vw, 260px)"
+                      type="image/webp"
+                    />
+                    <img
+                      src={figure.fallback}
+                      alt=""
+                      aria-hidden="true"
+                      width={figure.width}
+                      height={figure.height}
+                      loading="eager"
+                      fetchPriority="high"
+                      decoding="async"
+                    />
+                  </picture>
+                </div>
+                {slide.cards.map((card) => (
+                  <div
+                    key={card.title}
+                    className={`landing-hero-card at-${card.at}`}
+                  >
+                    <span className={`landing-hero-disc tint-${card.tint}`}>
+                      <HeroGlyph name={card.icon} size={20} />
+                    </span>
+                    <span>
+                      <i>{card.title}</i>
+                      {card.lines.map((line) => (
+                        <span key={line}>{line}</span>
+                      ))}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
-          <a href="#services">
-            Find your care
-            <ArrowRight size={20} />
-          </a>
-          <small>Planned launch pricing</small>
-        </aside>
+          {/* The figure's two standing lines, together at its foot: where the service is being
+          built, and that the people shown are illustrative. Neither belongs to a slide, and the
+          second is a refusal a rotation may never carry off the screen. */}
+          <p className="landing-portrait-place">
+            <MapPin size={15} aria-hidden="true" />
+            {standing.place}
+          </p>
+          <figcaption>{standing.photographNote}</figcaption>
+        </figure>
       </div>
 
-      <nav className="studio-bar-wrap" aria-label="Jump to a section">
-        <ul className="studio-bar">
-          {barSections.map(([id, label]) => (
-            <li key={id}>
-              <a href={`#${id}`}>
-                {barIcons[id]}
-                <span>{label}</span>
-                <i aria-hidden="true">
-                  <ArrowRight size={17} />
-                </i>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      {/* The ledge: the dark strip of sections, lifted over the foot of the hero so the two read as
+      one piece, and the soft glow behind it that is one of the page's two ambient drifts. */}
+      <div className="hero-ledge">
+        <nav className="studio-bar-wrap" aria-label="Jump to a section">
+          <ul className="studio-bar">
+            {barSections.map(([id, label]) => (
+              <li key={id}>
+                <a href={`#${id}`}>
+                  {barIcons[id]}
+                  <span>{label}</span>
+                  <i aria-hidden="true">
+                    <ArrowRight size={17} />
+                  </i>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
     </section>
   );
 }

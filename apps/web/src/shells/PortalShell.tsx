@@ -4,6 +4,7 @@ import { AssistantLauncher } from '../components/AssistantLauncher';
 import { G1Mark } from '../components/G1Mark';
 import { MotionPause } from '../components/MotionPause';
 import { DemoBar, useRole } from '../features/DemoLogin';
+import { FounderGate, founderGateHolds } from './FounderGate';
 import { useVettingState } from '../features/Vetting';
 import { PortalContext, type PortalContextValue } from '../features/portal/context';
 import { Loading, Tablist } from '../features/portal/Parts';
@@ -89,7 +90,21 @@ const iconFor = (category: Category) => category.id === 'gilbertone'
    chunk, fetched only then. */
 const LegacyBackOffice = lazy(() => import('./AdminShell'));
 
+/* The founder's door (packages/catalog/founder-access.json#door, the founder's instruction of 28 September
+   2026): in production, and outside it only when the address says gate=founder, the Control Tower and the
+   back office stand behind the founder's two-factor sign-in — the same session the reveal panel and the
+   settings gate read — and nothing of either surface is rendered until the assistant service says the
+   founder is signed in. The door fails closed: dark, or unanswered, it stays a door. It is read once, when
+   the door mounts; Doorway.tsx keys this component by role, so a role change reads it again, and a
+   navigation inside the portal, which rewrites the address, cannot lift it. */
 export default function ControlTowerDoor({ audience }: { audience: RoleId }) {
+ const [gated] = useState(founderGateHolds);
+ if (gated) return <FounderGate open={() => <Surface audience={audience}/>}/>;
+ return <Surface audience={audience}/>;
+}
+
+/* The portal — or, for the parallel run and a rollback, one of the two old shells. */
+function Surface({ audience }: { audience: RoleId }) {
  const { surface, workspace } = roleOf(audience);
  const legacy = new URLSearchParams(window.location.search).get(portalContract.legacy.param) === portalContract.legacy.value;
  if (surface === 'portal' && !legacy) return <PortalShell audience={audience}/>;

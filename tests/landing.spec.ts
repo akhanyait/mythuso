@@ -56,14 +56,27 @@ test('the price it advertises is still the catalogue\u2019s, and it is on the fi
   await expect(page.locator('.landing-services li').first()).toContainText(money(live[0].price));
 });
 
-/* The photograph is the contract's crop, WebP first with the JPEG behind it, and never the 2 MB
-   editorial PNGs the page carried until 26 September. Since 28 September the hero stands on its first
-   banner, so the first view costs one small picture. */
-test('the hero serves the contract\u2019s WebP crop, one picture', async ({ page }) => {
+/* The figure is the contract's own, as two WebP widths for one srcset with a fallback behind them, and
+   never the 2 MB editorial PNGs the page carried until 26 September. Since 28 September it is the
+   founder's cut-out rather than a crop of his composition, sized by its own width and height so it is
+   never cropped by the page, and a phone is offered the 640-pixel file: the first view on a phone is
+   measured by what the browser actually fetched, which is the only figure a metered reader pays. */
+test('the hero serves the contract\u2019s figure, one picture, and a phone takes the small one', async ({ page }, testInfo) => {
+  const stem = `/banners/hero-${hero.slides[0].photograph}`;
   const sources = page.locator('.landing-portrait .landing-slide picture source');
   await expect(sources).toHaveCount(1);
-  await expect(sources.first()).toHaveAttribute('srcset', `/banners/${hero.slides[0].photograph}.webp`);
-  await expect(page.locator('.landing-portrait .landing-slide.is-on img')).toHaveAttribute('src', `/banners/${hero.slides[0].photograph}.jpg`);
+  await expect(sources.first()).toHaveAttribute('srcset', new RegExp(`^${stem}-640\\.webp 640w, ${stem}-\\d+\\.webp \\d+w$`));
+  const img = page.locator('.landing-portrait .landing-slide.is-on img');
+  await expect(img).toHaveAttribute('src', new RegExp(`^${stem}\\.(png|jpg)$`));
+  /* Whole, at its own aspect: the box the page draws is the file's shape, to a hundredth. */
+  const [natural, drawn] = await img.evaluate(async (el: HTMLImageElement) => {
+    await el.decode();
+    const box = el.getBoundingClientRect();
+    return [el.naturalWidth / el.naturalHeight, box.width / box.height];
+  });
+  expect(Math.abs(natural - drawn)).toBeLessThan(0.01);
+  const fetched = await img.evaluate((el: HTMLImageElement) => el.currentSrc);
+  if (testInfo.project.name === 'mobile') expect(fetched).toContain(`${stem}-640.webp`);
   expect(await page.locator('img[src*="/editorial/"][src$=".png"]').count()).toBe(0);
 });
 

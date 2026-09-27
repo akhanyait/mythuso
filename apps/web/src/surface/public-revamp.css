@@ -34,75 +34,6 @@
   background: var(--brand-orange);
   border-radius: 50%;
 }
-.editorial-intro {
-  padding-bottom: 4px;
-}
-.landing .editorial-hero .landing-portrait-frame::before {
-  display: none;
-}
-.editorial-care-note {
-  align-self: start;
-  min-height: 460px;
-  padding: 28px;
-  border-radius: 30px;
-  background: var(--studio-lime);
-  color: var(--studio-ink-deep);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-.editorial-note-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 1px;
-}
-.editorial-care-note > div > span {
-  font-size: 13px;
-}
-.editorial-care-note > div > strong {
-  display: block;
-  font-size: 58px;
-  line-height: 1.1;
-  font-weight: 500;
-  letter-spacing: -3px;
-}
-.editorial-care-note strong i {
-  font-size: 13px;
-  font-style: normal;
-  letter-spacing: 0;
-}
-.editorial-care-note p {
-  margin: 12px 0 20px;
-  font-size: 15px;
-  line-height: 1.5;
-}
-.editorial-care-note > a {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  background: var(--studio-ink-deep);
-  color: white;
-  padding: 14px 20px;
-  border-radius: 999px;
-  font-size: 14px;
-  min-height: 48px;
-}
-.editorial-care-note > small {
-  font-size: 13px;
-  margin-top: 12px;
-}
-.landing .editorial-hero .landing-hero-marks {
-  margin: 0;
-  gap: 26px;
-}
-.landing .editorial-hero .landing-hero-marks[hidden] {
-  display: none;
-}
 .landing .studio-bar {
   background: var(--studio-night);
   border-radius: 20px;
@@ -530,55 +461,42 @@
   }
 }
 @media (max-width: 600px) {
-  .editorial-note-top {
-    grid-column: 1 / -1;
-  }
-  .editorial-care-note > div > strong {
-    font-size: 46px;
-  }
-  .editorial-care-note p {
-    margin: 8px 0 0;
-    font-size: 13px;
-  }
-  .editorial-care-note > a {
-    padding: 12px;
-    font-size: 13px;
-  }
-  .editorial-care-note > small {
-    grid-column: 1 / -1;
-    margin: 0;
-  }
   .landing .landing-final {
     border-radius: 26px;
   }
 }
-@media (max-width: 600px) {
-  .editorial-care-note > div > strong {
-    font-size: 42px;
-  }
-  .editorial-care-note strong i {
-    display: block;
-    font-size: 13px;
-    line-height: 1.5;
-  }
-  .editorial-care-note > a {
-    gap: 6px;
-  }
-  .editorial-care-note > a > svg {
-    flex-shrink: 0;
-  }
-}
+/* ---- The hero, 28 September 2026: a figure on the brand's pale ground ----------------------------
+
+   The founder called the hero's photographs "cut and low quality", asked for the lime price panel
+   to go, for the dark strip to sit on the hero, and for the hero's own words to stop calling the page
+   a preview (the notice bar above and the footer still say it, in their own words). The dark ink
+   stage and the full-bleed photograph went with the crops they were built for. What replaces them:
+
+   THE GROUND IS PAPER WASHED WITH MINT. Paper under most of the words, mint towards the figure, so
+   the figure has somewhere to stand. Every run of type on the stage is a pair declared on
+   studioPaper — studioInkDeep for the headline, studioOlive for its second tone ("the headline's
+   second tone on the ground"), studioInkMuted for the lede, studioInk for the price line — and a
+   wash lowers each of those ratios, so they were computed on the worst ground a word can land on:
+   the phone's two washes stacked, 54% mint over paper. There studioOlive measures 4.98,
+   studioInkMuted 5.34 and studioInk 8.99, against 5.86, 6.29 and 10.59 on paper; the brand green
+   the headline's accent used to be would not have held (3.19 on paper), which is why the accent is
+   olive here. A wash stronger than 54% under the copy needs these three measured again.
+
+   THE FIGURE IS A CUT-OUT ON A TINTED PANEL, NEVER CROPPED BY THE PAGE. The supplied cut-outs meet the
+   edge of their own frame at the sides and the foot, so the panel is exactly the picture's width and
+   its foot is the picture's foot: those straight edges become the panel's edges rather than a
+   shoulder ending in mid-air. The head rises over the panel's top edge, which is the one thing a
+   cut-out can do that a photograph cannot. The picture is sized by its own width and height
+   attributes, so it is never cropped, never upscaled past its file, and never moves the page when
+   it arrives. Lilac, because the nurse's scrubs are teal and mint behind teal is a figure with no
+   edge; studioLilac is one of the studio tints the patient app's home cards stand on.
+
+   THE DARK STRIP SITS ON THE HERO. The ledge is pulled up over the stage's foot by --bar-lift and
+   carries its own shadow; the stage keeps that much again below its last line, so the strip covers
+   the foot of the figure's panel and nothing a reader reads or presses. */
 .landing .editorial-hero {
-  --hero-pad: clamp(20px, 4.6vw, 64px);
-  /* The picture's own band in the stacked composition, and the width of the ink panel in the split
-    one. The panel is zero below the split breakpoint, which is what makes one set of rules serve
-    both: every offset below is written against --hero-panel, and at nought it simply falls away. */
-  /* 28vh rather than the 34 it was: the price line under the call to action has to sit inside the
-     first screen of a 390×844 phone, and tests/landing.spec.ts measures that it does. The fifty
-     pixels came off the photograph rather than off the words. */
-  --hero-band: clamp(220px, 28vh, 300px);
-  --hero-panel: 0px;
-  --hero-feather: 72px;
+  --hero-pad: var(--pad);
+  --bar-lift: 32px;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
@@ -592,214 +510,78 @@
   isolation: isolate;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  min-height: clamp(620px, 96vh, 900px);
-  background: var(--studio-ink-deep);
+  row-gap: 16px;
+  padding: 8px var(--hero-pad) calc(var(--bar-lift) + 28px);
+  overflow: clip;
+  /* A phone's stage ends in a fifth of mint, so the page below it is visibly another ground and the
+     strip lifted over the join reads as lying across the hero's edge rather than floating in paper. */
+  background:
+    radial-gradient(
+      90% 70% at 88% 18%,
+      color-mix(in srgb, var(--brand-mint) 42%, transparent),
+      transparent 72%
+    ),
+    linear-gradient(
+      to bottom,
+      transparent 50%,
+      color-mix(in srgb, var(--brand-mint) 20%, transparent)
+    ),
+    var(--studio-paper);
 }
 .hero-stage > * {
-  grid-area: 1 / 1;
   min-width: 0;
 }
-.hero-stage::after {
-  content: "";
-  grid-area: 1 / 1;
-  z-index: 2;
-  pointer-events: none;
-  background: linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent calc(var(--hero-band) - var(--hero-feather)),
-    color-mix(in srgb, var(--studio-ink-deep) 55%, transparent)
-      calc(var(--hero-band) - var(--hero-feather) * 0.38),
-    var(--studio-ink-deep) var(--hero-band)
-  );
-}
-.landing .editorial-hero .landing-portrait {
-  /* z-index:auto deliberately: the figure must NOT open a stacking context, or the two floating
-    cards inside it could never rise above the feather that is painted over the stage. */
-  z-index: auto;
-  display: block;
-  position: relative;
-  margin: 0;
-  gap: 0;
-}
-.landing .editorial-hero .landing-portrait-frame {
-  position: static;
-  display: block;
-  inset: auto;
-  width: auto;
-  height: auto;
-  aspect-ratio: auto;
-  border: 0;
-  border-radius: 0;
-  background: none;
-  overflow: visible;
-}
-.landing .editorial-hero .landing-slide {
-  position: absolute;
-  inset: 0;
-  z-index: auto;
-  display: block;
-}
-.landing .editorial-hero .editorial-photo-visual {
-  position: absolute;
-  inset: 0 0 auto var(--hero-panel);
-  height: var(--hero-band);
-  overflow: hidden;
-  background: var(--studio-ink-deep);
-}
-.landing .editorial-hero .editorial-photo-visual img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 42%;
-}
-.landing
-  .editorial-hero
-  .landing-slide:first-child
-  .editorial-photo-visual
-  img {
-  object-position: 74% 8%;
-}
-.landing .editorial-hero .landing-portrait-place {
-  position: absolute;
-  z-index: 4;
-  top: var(--hero-pad);
-  left: calc(var(--hero-panel) + var(--hero-pad));
-  right: auto;
-  bottom: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  width: fit-content;
-  max-width: calc(100% - var(--hero-panel) - var(--hero-pad) * 2);
-  margin: 0;
-  padding: 9px 15px;
-  border: 0;
-  border-radius: var(--r-pill);
-  /* 92% rather than 86%: this pill is the one piece of type that still stands on the photograph,
-    and at 86% it measured 4.56:1 over the garden banner's sky — a tenth of a point of margin, and
-    none at all in a browser that ignores backdrop-filter. At 92% the worst it can composite to is
-    rgb(43,58,49), which carries paper at 10.3:1. */
-  background: color-mix(in srgb, var(--studio-ink-deep) 92%, transparent);
-  backdrop-filter: blur(10px);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.4;
-  color: var(--studio-paper);
-  text-align: left;
-}
-.landing .editorial-hero .landing-portrait-place svg {
-  color: var(--brand-mint);
-}
-.landing .editorial-hero .landing-portrait figcaption {
-  position: absolute;
-  z-index: 4;
-  left: var(--hero-pad);
-  right: auto;
-  bottom: calc(var(--hero-pad) * 0.6);
-  max-width: calc(100% - var(--hero-pad) * 2);
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: none;
-  box-shadow: none;
-  font-size: 13px;
-  line-height: 1.5;
-  color: color-mix(in srgb, var(--studio-paper) 76%, var(--studio-ink-deep));
-  text-align: left;
-}
-.editorial-photo-footer {
-  position: absolute;
-  z-index: 3;
-  left: var(--hero-pad);
-  right: var(--hero-pad);
-  top: auto;
-  bottom: calc(var(--hero-pad) + 30px);
-  display: grid;
-  justify-items: stretch;
-  gap: 10px;
-}
-.editorial-photo-caption {
-  position: static;
-  padding: 13px 18px;
-  border-radius: var(--r-panel);
-  background: color-mix(in srgb, var(--studio-paper) 92%, transparent);
-  backdrop-filter: blur(16px) saturate(1.15);
-  box-shadow: var(--shadow-raised);
-  color: var(--studio-ink-deep);
-  text-align: left;
-}
-.editorial-photo-caption > span {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  color: var(--studio-olive);
-}
-.editorial-photo-caption > strong {
-  display: block;
-  margin-top: 5px;
-  font-size: 18px;
-  line-height: 1.2;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-}
-.editorial-photo-cards {
-  position: static;
-  display: grid;
-  gap: 10px;
-  width: 100%;
-}
-.landing .editorial-hero .landing-hero-card {
-  position: static;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  width: 100%;
-  max-width: none;
-  padding: 12px 16px;
-  border: 0;
-  border-radius: var(--r-panel);
-  background: color-mix(in srgb, var(--studio-paper) 92%, transparent);
-  backdrop-filter: blur(16px) saturate(1.15);
-  box-shadow: var(--shadow-raised);
-  font-size: 14px;
-  color: var(--studio-ink-muted);
-}
-.landing .editorial-hero .landing-hero-card.at-top {
-  display: flex;
-}
+
+/* The words. */
 .landing .editorial-hero .landing-hero-copy {
-  z-index: 5;
-  align-self: stretch;
+  order: 2;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
-  width: 100%;
-  padding: calc(var(--hero-band) + 26px) var(--hero-pad)
-    calc(var(--hero-pad) + 262px);
 }
 .landing .editorial-hero .landing-hero-slide {
   display: block;
-  max-width: none;
+  max-width: 620px;
   padding: 0;
-  color: var(--surface);
 }
 .landing .editorial-hero .landing-hero-eyebrow {
   display: flex;
   align-items: center;
   gap: 9px;
-  margin: 0 0 16px;
+  margin: 0 0 14px;
   padding: 0;
-  border: 0;
   border-radius: 0;
-  background: transparent;
+  background: none;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--studio-paper);
+  color: var(--studio-ink);
+}
+.landing-hero-eyebrow > span {
+  width: 7px;
+  height: 7px;
+  background: var(--brand-orange);
+  border-radius: 50%;
+}
+.landing .editorial-hero .landing-portrait-place {
+  grid-column: 1;
+  grid-row: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: start;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: left;
+  color: var(--studio-ink-muted);
+}
+.landing .editorial-hero .landing-portrait-place svg {
+  flex-shrink: 0;
+  color: var(--studio-olive);
 }
 .landing .editorial-hero h1 {
   max-width: none;
@@ -808,7 +590,7 @@
   font-weight: 500;
   line-height: 1;
   letter-spacing: -0.05em;
-  color: var(--surface);
+  color: var(--studio-ink-deep);
 }
 .landing .editorial-hero .h1-line {
   display: block;
@@ -819,75 +601,225 @@
   display: block;
 }
 .landing .editorial-hero h1 .landing-h1-accent {
-  color: var(--brand-mint);
+  color: var(--studio-olive);
 }
 .editorial-intro {
   padding: 0;
 }
 .landing .editorial-hero .landing-hero-lede {
-  margin: 18px 0 0;
+  margin: 14px 0 0;
   max-width: 46ch;
   font-size: 15px;
   line-height: 1.6;
-  color: var(--studio-paper);
+  color: var(--studio-ink-muted);
 }
+/* The founder's own lime, as his banner set it: brandInk on brandLime is a declared pair at 10.47. */
 .landing .editorial-hero .primary {
-  margin: 22px 0 0;
+  margin: 18px 0 0;
   min-height: 54px;
   padding: 14px 26px;
   border-radius: var(--r-pill);
-  background: var(--studio-lime);
-  color: var(--studio-ink-deep);
+  background: var(--brand-lime);
+  color: var(--brand-ink);
   font-size: 16px;
   font-weight: 600;
+  box-shadow: var(--shadow);
   transition:
     translate 0.25s var(--ease-soft),
     background 0.25s var(--ease-soft),
     box-shadow 0.25s var(--ease-soft);
 }
 .landing .editorial-hero .primary:hover {
-  background: var(--surface);
-  color: var(--studio-ink-deep);
+  background: color-mix(in srgb, var(--brand-lime) 86%, var(--brand-ink));
+  color: var(--brand-ink);
   translate: 0 -3px;
-  box-shadow: 0 16px 28px -16px
-    color-mix(in srgb, var(--studio-ink-deep) 45%, transparent);
+  box-shadow: var(--shadow-raised);
 }
+.landing .editorial-hero .landing-hero-price {
+  max-width: 50ch;
+  border-top-color: var(--studio-line);
+  color: var(--studio-ink);
+}
+
+/* The figure. On a phone it is the first thing in the stage and two columns wide: the picture on
+   the right and, on its left, the two contract cards overlapping its edge; its two standing lines on
+   one row under both. 54% and not more because the price line under the call to action has to be
+   inside a 390×844 first screen, and tests/landing.spec.ts measures that it is.
+
+   The cards are grid items here rather than boxes pinned to the picture. The frame and the slide
+   step aside (display: contents — they carry no text and no role of their own), so the picture and
+   the two cards share one grid: the first card at the top of the picture's rows, the second at the
+   foot, and if the two are taller than the picture, as they are at 320px, the rows grow instead of
+   the cards landing on each other. */
+.landing .editorial-hero .landing-portrait {
+  order: 1;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) min(54%, 260px);
+  grid-template-rows: auto auto auto;
+  gap: 8px 0;
+  margin: 0;
+}
+.landing .editorial-hero .landing-portrait-frame,
+.landing .editorial-hero .landing-slide {
+  display: contents;
+}
+/* landing.css draws the frame as a mint blob at 4:5 that clips what it holds; none of that is this
+   figure, whose panel is the picture's own and whose cards hang over its edges. */
+.landing .editorial-hero .landing-portrait-frame {
+  width: auto;
+  height: auto;
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  overflow: visible;
+}
+/* The picture, and the panel behind it. The panel starts 30% down, which is below every head and
+   above every cut edge in the three cut-outs — the highest, the care cut-out's right side, starts at
+   38% — so a rounded top corner never meets a straight edge of the picture.
+
+   The cut: clipped at the sides and the foot to the panel's own corners and open above, so the head
+   rises over the panel — and clipped here, on a box that never moves, so the drift inside it cannot
+   carry a straight edge off the panel's. */
+.landing .editorial-hero .editorial-photo-visual {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  align-self: start;
+  position: relative;
+  isolation: isolate;
+  clip-path: inset(-40% 0 0 round 0 0 var(--r-panel) var(--r-panel));
+}
+.landing .editorial-hero .editorial-photo-visual::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 30% 0 0;
+  border-radius: var(--r-panel);
+  background: var(--studio-lilac);
+}
+.landing .editorial-hero .editorial-photo-visual img {
+  position: static;
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: fill;
+  transform-origin: 50% 100%;
+}
+/* A photograph is framed, not cut out: the whole of it in the panel's corners. */
+.landing .editorial-hero [data-figure="photograph"] .editorial-photo-visual::before {
+  inset: 0;
+}
+.landing .editorial-hero [data-figure="photograph"] .editorial-photo-visual {
+  clip-path: inset(0 round var(--r-panel));
+}
+.landing .editorial-hero .landing-portrait figcaption {
+  grid-column: 2;
+  grid-row: 3;
+  justify-self: end;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: right;
+  color: var(--studio-ink-muted);
+}
+
+/* The two cards: white, one shadow, a tinted disc and the contract's lines. On a phone they reach
+   28px over the picture's edge, never its faces, which in all three cut-outs are right of a quarter
+   of the width. */
+.landing .editorial-hero .landing-hero-card {
+  position: relative;
+  z-index: 2;
+  inset: auto;
+  grid-column: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  justify-self: end;
+  width: auto;
+  max-width: 240px;
+  margin: 0 -28px 0 0;
+  padding: 10px 12px 10px 10px;
+  border: 0;
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-raised);
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--studio-ink-muted);
+}
+.landing .editorial-hero .landing-hero-card.at-top {
+  grid-row: 1;
+  align-self: start;
+  margin-top: 8px;
+}
+.landing .editorial-hero .landing-hero-card.at-foot {
+  grid-row: 2;
+  align-self: end;
+  margin-bottom: 8px;
+}
+.landing .editorial-hero .landing-hero-card .landing-hero-disc {
+  width: 30px;
+  height: 30px;
+}
+.landing .editorial-hero .landing-hero-card .landing-hero-disc svg {
+  width: 17px;
+  height: 17px;
+}
+.landing .editorial-hero .landing-hero-card i {
+  font-size: 15px;
+}
+/* Under 380px a disc costs a card a third of its line, and every line then wraps; the glyph repeats
+   the title beside it, so it is the one thing on the card that can go. */
+@media (max-width: 379px) {
+  .landing .editorial-hero .landing-hero-card .landing-hero-disc {
+    display: none;
+  }
+}
+
+/* The ledge: the strip, lifted over the stage's foot, and the glow behind it. */
 .hero-ledge {
   position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 22px;
-  padding: clamp(22px, 2.6vw, 34px) var(--hero-pad) clamp(24px, 3vw, 40px);
+  z-index: 2;
+  margin-top: calc(var(--bar-lift) * -1);
+  padding: 0 var(--hero-pad) clamp(24px, 3vw, 40px);
 }
-/* The one continuous motion on the whole page: two soft washes of the brand's own mint and lime,
-   blurred past the point of being a shape at all, drifting behind the price panel and trust marks.
-   It sits on the ledge rather than over the photograph, because a glow behind a portrait is a
-   Instagram filter and a glow behind a paper panel is just paper catching light — and because the
-   ledge's own background is the plain page ground, nothing here is measured against a contrast pair
-   the palette declares: it never sits under a word. z-index -1 keeps it inside the ledge's own
-   stacking context, under the price card and the trust list, painted above nothing but the ground.
-   Static and simply present when motion is off or the ledge is off-screen; the drift is the only
-   thing gated, never the wash itself. */
+.landing .editorial-hero .studio-bar-wrap {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+.landing .editorial-hero .studio-bar {
+  box-shadow: var(--shadow-raised);
+}
+/* One of the page's two endless movements: two washes of the brand's mint and lime, blurred past
+   being a shape, drifting behind the strip. Its box ends at the ledge's own foot and a mask takes
+   it to nothing before it gets there, because the hero clips what overflows it and a blur that
+   reaches a clip edge is a hard line across the page — measured at ten levels of blue on the lime
+   side before the mask went on. Nothing is ever read on it — the strip is opaque and
+   the paper round it carries no words until the next section. Static when motion is off or the hero is off-screen; only the drift is gated. */
 .hero-ledge::before {
   content: "";
   position: absolute;
   z-index: -1;
-  inset: -40% -10% -10%;
+  inset: -40% -6% 0;
   pointer-events: none;
-  opacity: 0.9;
-  filter: blur(46px);
+  opacity: 0.8;
+  filter: blur(40px);
   background:
     radial-gradient(
-      48% 68% at 12% 20%,
-      color-mix(in srgb, var(--brand-mint) 75%, transparent) 0%,
+      40% 44% at 14% 46%,
+      color-mix(in srgb, var(--brand-mint) 70%, transparent) 0%,
       transparent 70%
     ),
     radial-gradient(
-      52% 70% at 90% 68%,
-      color-mix(in srgb, var(--brand-lime) 65%, transparent) 0%,
+      46% 46% at 86% 50%,
+      color-mix(in srgb, var(--brand-lime) 50%, transparent) 0%,
       transparent 72%
     );
+  -webkit-mask-image: linear-gradient(to bottom, var(--studio-ink) 45%, transparent);
+  mask-image: linear-gradient(to bottom, var(--studio-ink) 45%, transparent);
   will-change: transform;
 }
 @keyframes hero-ledge-glow-drift {
@@ -909,263 +841,149 @@
 .landing-hero[data-ambient="paused"] .hero-ledge::before {
   animation-play-state: paused;
 }
-.hero-ledge > * {
-  min-width: 0;
-}
-.editorial-trust {
-  display: block;
-  margin: 0;
-}
-.landing .editorial-hero .landing-hero-marks {
-  margin: 0;
-  gap: 14px 26px;
-}
-.landing .editorial-hero .landing-hero-foot {
-  display: grid;
-  margin: 0;
-}
-.landing .editorial-hero .landing-slide-rule {
-  min-width: 44px;
-}
-.editorial-care-note {
-  align-self: start;
-  min-height: 0;
-  padding: 26px;
-  border-radius: var(--r-panel);
-  background: var(--studio-lime);
-  color: var(--studio-ink-deep);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 16px;
-  align-items: center;
-}
-.editorial-care-note > .editorial-note-top,
-.editorial-care-note > small {
-  grid-column: 1 / -1;
-}
-.editorial-care-note > div > strong {
-  font-size: clamp(40px, 6vw, 52px);
-  letter-spacing: -0.04em;
-}
-.editorial-care-note strong i {
-  display: block;
-  font-size: 13px;
-  line-height: 1.5;
-}
-.editorial-care-note p {
-  margin: 10px 0 0;
-  font-size: 14px;
-}
-.editorial-care-note > a {
-  gap: 10px;
-  padding: 13px 18px;
-  font-size: 14px;
-}
-.editorial-care-note > a > svg {
-  flex-shrink: 0;
-}
-.editorial-care-note > small {
-  margin: 0;
-}
-.landing .editorial-hero .studio-bar-wrap {
-  width: 100%;
-  margin: 0;
-  padding: 0 var(--hero-pad) clamp(24px, 3vw, 40px);
-}
-@media (max-width: 399px) {
-  .landing .editorial-hero .landing-hero-copy {
-    padding-bottom: calc(var(--hero-pad) + 324px);
-  }
-}
-@media (min-width: 400px) and (max-width: 899px) {
-  .editorial-photo-cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .landing .editorial-hero .landing-hero-card {
-    padding: 12px;
-    gap: 10px;
-    border-radius: var(--r-card);
-  }
-  .landing .editorial-hero .landing-hero-card .landing-hero-disc {
-    width: 34px;
-    height: 34px;
-  }
-}
+
 @media (min-width: 560px) and (max-width: 899px) {
-  .hero-stage {
-    min-height: clamp(620px, 88vh, 860px);
-  }
-  .landing .editorial-hero .landing-hero-copy {
-    padding-bottom: calc(var(--hero-pad) + 214px);
+  .landing .editorial-hero .landing-portrait {
+    grid-template-columns: minmax(0, 1fr) min(54%, 340px);
   }
   .landing .editorial-hero h1 {
-    font-size: clamp(44px, 6.4vw, 58px);
+    font-size: clamp(44px, 6.4vw, 56px);
   }
   .landing .editorial-hero .landing-hero-lede {
     font-size: 16px;
   }
-  .landing .editorial-hero .landing-hero-slide {
-    max-width: 620px;
-  }
 }
-@media (min-width: 760px) {
-  .landing .editorial-hero .landing-hero-foot {
-    grid-template-columns: auto minmax(44px, 1fr) auto auto;
-    gap: 12px;
-    align-items: center;
-  }
-  .landing .editorial-hero .landing-slide-index {
-    grid-area: 1 / 1;
-  }
-  .landing .editorial-hero .landing-slide-rule {
-    grid-area: 1 / 2;
-  }
-  .landing .editorial-hero .landing-hero-foot .m-pause {
-    grid-area: 1 / 3;
-  }
-  .landing .editorial-hero .landing-slide-steps {
-    grid-area: 1 / 4;
-  }
-}
+
+/* A desk: the words on the left and the figure on the right, standing on the stage's foot, where
+   the strip crosses the bottom of its panel. The figure is sized by the height the stage has to
+   give it and never by the column, so it is the same picture at 900px as at 1440. */
 @media (min-width: 900px) {
   .landing .editorial-hero {
-    --hero-panel: clamp(360px, 38vw, 560px);
-    --hero-feather: clamp(90px, 10vw, 170px);
+    --bar-lift: 32px;
+    --figure-h: clamp(440px, 62vh, 660px);
   }
   .hero-stage {
-    min-height: clamp(540px, 74vh, 700px);
-  }
-  .hero-stage::after {
-    background: linear-gradient(
-      to right,
-      var(--studio-ink-deep) 0,
-      var(--studio-ink-deep) var(--hero-panel),
-      color-mix(in srgb, var(--studio-ink-deep) 42%, transparent)
-        calc(var(--hero-panel) + var(--hero-feather) * 0.38),
-      transparent calc(var(--hero-panel) + var(--hero-feather))
-    );
-  }
-  .landing .editorial-hero .editorial-photo-visual {
-    inset: 0 0 0 var(--hero-panel);
-    height: auto;
-  }
-  .landing .editorial-hero .landing-portrait-place {
-    left: var(--hero-pad);
-    max-width: calc(var(--hero-panel) - var(--hero-pad) * 2);
-  }
-  .landing .editorial-hero .landing-portrait figcaption {
-    max-width: calc(var(--hero-panel) - var(--hero-pad) * 2);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr);
+    column-gap: clamp(24px, 4vw, 64px);
+    align-items: end;
+    padding: clamp(24px, 3vw, 44px) var(--hero-pad) 0;
+    background:
+      radial-gradient(
+        60% 80% at 80% 60%,
+        color-mix(in srgb, var(--brand-mint) 46%, transparent),
+        transparent 70%
+      ),
+      var(--studio-paper);
   }
   .landing .editorial-hero .landing-hero-copy {
-    width: var(--hero-panel);
-    align-content: center;
-    padding: calc(var(--hero-pad) + 74px) var(--hero-pad)
-      calc(var(--hero-pad) + 58px);
+    order: 1;
+    align-self: center;
+    padding: 0 0 calc(var(--bar-lift) + 40px);
   }
   .landing .editorial-hero h1 {
-    font-size: clamp(38px, 4vw, 58px);
+    font-size: clamp(44px, 4.4vw, 64px);
     line-height: 0.98;
     letter-spacing: -0.055em;
   }
   .landing .editorial-hero .landing-hero-lede {
     margin-top: 22px;
-    font-size: 16px;
+    font-size: 18px;
   }
   .landing .editorial-hero .primary {
-    margin-top: 26px;
+    margin-top: 28px;
   }
-  .editorial-photo-footer {
-    left: calc(var(--hero-panel) + var(--hero-feather) * 0.72);
-    right: var(--hero-pad);
-    top: calc(var(--hero-pad) + 34px);
-    bottom: calc(var(--hero-pad) + 16px);
-    width: auto;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr) auto;
-    justify-items: start;
-    gap: 12px;
+  .landing .editorial-hero .landing-portrait {
+    order: 2;
+    display: block;
+    width: min(100%, calc(var(--figure-h) * 0.8));
+    justify-self: center;
   }
-  .editorial-photo-caption {
-    grid-row: 1;
-    width: min(300px, 100%);
+  .landing .editorial-hero .landing-portrait-frame,
+  .landing .editorial-hero .landing-slide {
+    position: relative;
+    display: block;
   }
-  .editorial-photo-cards {
-    grid-row: 3;
-    align-self: end;
-    width: min(300px, 100%);
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
+  .landing .editorial-hero [data-figure="photograph"] {
+    margin-bottom: calc(var(--bar-lift) + 24px);
   }
+  /* On a desk the panel's foot is under the strip, so it is square there; the rounding would only
+     show as a notch either side of the strip. */
+  .landing .editorial-hero .editorial-photo-visual::before {
+    border-radius: var(--r-panel) var(--r-panel) 0 0;
+  }
+  .landing .editorial-hero .editorial-photo-visual {
+    clip-path: inset(-40% 0 0);
+  }
+  /* The two standing lines stand just left of the panel's foot, above the strip, one over the
+     other: on the paper rather than on the picture, where they would sit on somebody's clothing
+     and be read against nothing measurable. */
+  .landing .editorial-hero .landing-portrait-place,
+  .landing .editorial-hero .landing-portrait figcaption {
+    position: absolute;
+    right: calc(100% + 16px);
+    white-space: nowrap;
+    text-align: right;
+  }
+  .landing .editorial-hero .landing-portrait figcaption {
+    bottom: calc(var(--bar-lift) + 16px);
+  }
+  .landing .editorial-hero .landing-portrait-place {
+    bottom: calc(var(--bar-lift) + 40px);
+  }
+  /* The cards as the supplied art placed them, over the picture's edges and below every face: in
+     all three cut-outs the faces end above 53% of the height, so the first card stands on the
+     left from 56% down and the second on the right, lower. At 1024px a card a third of the way
+     down sat on the care cut-out's cheek. */
   .landing .editorial-hero .landing-hero-card {
-    padding: 13px 16px;
+    position: absolute;
+    width: max-content;
+    max-width: 260px;
+    margin: 0;
+    padding: 14px 18px 14px 14px;
+    gap: 12px;
+  }
+  .landing .editorial-hero .landing-hero-card.at-top {
+    top: 56%;
+    right: auto;
+    bottom: auto;
+    left: -40px;
+    margin: 0;
+  }
+  .landing .editorial-hero .landing-hero-card.at-foot {
+    top: auto;
+    right: -24px;
+    bottom: calc(var(--bar-lift) + 40px);
+    left: auto;
+    margin: 0;
+  }
+  .landing .editorial-hero .landing-hero-card .landing-hero-disc {
+    width: 40px;
+    height: 40px;
+  }
+  .landing .editorial-hero .landing-hero-card .landing-hero-disc svg {
+    width: 20px;
+    height: 20px;
   }
 }
-@media (min-width: 1024px) {
-  .hero-ledge {
-    grid-template-columns: auto minmax(0, 1fr) 320px;
-    column-gap: clamp(24px, 3vw, 48px);
-    align-items: center;
-  }
-  .editorial-trust {
-    grid-column: 1;
-    grid-row: 1;
-  }
-  .landing .editorial-hero .landing-hero-foot {
-    grid-column: 2;
-    grid-row: 1;
-    justify-self: end;
-    width: min(460px, 100%);
-  }
-  .editorial-care-note {
-    grid-column: 3;
-    grid-row: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    justify-content: space-between;
-    padding: 26px 28px;
-    margin-top: clamp(-190px, -13vw, -110px);
-  }
-  .editorial-photo-footer {
-    bottom: calc(var(--hero-pad) + 110px);
-  }
-  .editorial-care-note > div > strong {
-    font-size: 52px;
-  }
-  .editorial-care-note strong i {
-    display: inline;
-  }
-  .editorial-care-note p {
-    margin: 12px 0 20px;
-    font-size: 15px;
-  }
-}
-@media (max-width: 479px) {
-  .editorial-care-note {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 14px;
-  }
-  .editorial-care-note strong i {
-    display: inline;
-  }
-}
+
 @keyframes hero-photo-in {
   from {
     opacity: 0;
-    transform: scale(1.1);
+    transform: translate3d(0, 24px, 0);
   }
   to {
     opacity: 1;
     transform: none;
   }
 }
+/* The figure breathes: a three per cent swell from its own feet, so the foot stays on the panel's
+   edge and the head rises. */
 @keyframes hero-photo-drift {
   from {
-    transform: scale(1) translate3d(0, 0, 0);
+    transform: scale(1);
   }
   to {
-    transform: scale(1.08) translate3d(-1.4%, -1.4%, 0);
+    transform: scale(1.03);
   }
 }
 @keyframes hero-line-up {
@@ -1198,42 +1016,18 @@
     transform: none;
   }
 }
-@keyframes hero-chip-in {
-  from {
-    opacity: 0;
-    transform: translate3d(0, -12px, 0);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
 
 /* The entrance, in two halves.
 
-   What stands outside the four slides — the photograph's first arrival, the place pill, the
-   caption, the disclosure, the price line and the ledge — runs once, on first paint, and is gated
-   on data-motion like every other entrance on the page.
-
-   What belongs to a slide — the eyebrow, the two lines of the headline, the lede, the call to
-   action and the two cards — is scoped to the slide that is showing. Until 26 September these
-   selectors matched all four slides, so at first paint three banners nobody could see ran the
-   whole cascade behind the one they could. Scoping it to .is-on means it runs on the banner
-   showing, and runs again each time the carousel turns: the words rise in under the new
-   picture, which is the choreography a rotation was missing. Because it now replays, it is also
-   gated on data-decor: a reader who has pressed pause has stopped the page moving, and a headline
-   that still lifted itself into place on every turn they made by hand would not have heard them.
-   Nothing is hidden by it — without either flag every element is simply there. */
+   What stands outside the slide — the figure's first arrival, the note, the price line and the
+   ledge — runs once, on first paint, and is gated on data-motion like every other entrance on the
+   page. What belongs to the slide — the eyebrow, the two lines of the headline, the lede, the call
+   to action and the two cards — is scoped to the slide showing and gated on data-decor as well, so
+   a reader who has pressed pause is not shown a headline lifting itself into place. Nothing is
+   hidden by it: without either flag every element is simply there. */
 @media (prefers-reduced-motion: no-preference) {
-  html[data-motion="on"]
-    .landing
-    .editorial-hero
-    .landing-slide:first-child
-    .editorial-photo-visual {
-    animation: hero-photo-in 1500ms var(--ease-soft) both;
-  }
-  html[data-motion="on"] .landing .editorial-hero .landing-portrait-place {
-    animation: hero-chip-in 620ms var(--ease-soft) 260ms both;
+  html[data-motion="on"] .landing .editorial-hero .editorial-photo-visual {
+    animation: hero-photo-in 1100ms var(--ease-soft) both;
   }
   html[data-motion="on"] .landing .editorial-hero .h1-line {
     overflow: hidden;
@@ -1275,39 +1069,33 @@
     .primary {
     animation: hero-rise-in 700ms var(--ease-soft) 780ms both;
   }
-  html[data-motion="on"]
-    .landing
-    .editorial-hero
-    .landing-slide:first-child
-    .editorial-photo-caption {
-    animation: hero-rise-in 700ms var(--ease-soft) 860ms both;
-  }
   html[data-decor="on"][data-motion="on"]
     .landing
     .editorial-hero
     .landing-slide.is-on
     .landing-hero-card.at-top {
-    animation: hero-card-in 760ms var(--ease-soft) 940ms both;
+    animation: hero-card-in 760ms var(--ease-soft) 700ms both;
   }
   html[data-decor="on"][data-motion="on"]
     .landing
     .editorial-hero
     .landing-slide.is-on
     .landing-hero-card.at-foot {
-    animation: hero-card-in 760ms var(--ease-soft) 1040ms both;
+    animation: hero-card-in 760ms var(--ease-soft) 820ms both;
   }
   html[data-motion="on"] .landing .editorial-hero .landing-hero-price {
     animation: hero-rise-in 700ms var(--ease-soft) 900ms both;
   }
-  html[data-motion="on"] .landing .editorial-hero .landing-portrait figcaption {
-    animation: hero-rise-in 700ms var(--ease-soft) 1100ms both;
+  html[data-motion="on"] .landing .editorial-hero .landing-portrait figcaption,
+  html[data-motion="on"] .landing .editorial-hero .landing-portrait-place {
+    animation: hero-rise-in 700ms var(--ease-soft) 1000ms both;
   }
   html[data-motion="on"] .hero-ledge > * {
-    animation: hero-rise-in 720ms var(--ease-soft) 1160ms both;
+    animation: hero-rise-in 720ms var(--ease-soft) 1060ms both;
   }
-  /* The picture breathes: one of the two endless movements this page keeps. Transform only, on
-     the banner showing, stopped by the pause control with everything else, and — the same rule
-     the ledge glow already followed — held still while the hero is off-screen. */
+  /* The figure's drift: one of the two endless movements this page keeps. Transform only, on the
+     banner showing, stopped by the pause control with everything else, and held still while the
+     hero is off-screen. */
   html[data-decor="on"]
     .landing
     .editorial-hero
@@ -1319,7 +1107,7 @@
   }
   /* !important because the drift above is a shorthand, and a shorthand resets play-state to running
      at its own, higher specificity — which is how the old hero loops were measured still running
-     at full page scroll. The same reason the orbit rules used it before they went. */
+     at full page scroll. */
   .landing-hero[data-ambient="paused"] .editorial-photo-visual img {
     animation-play-state: paused !important;
   }

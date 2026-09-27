@@ -78,10 +78,10 @@
  ],
 
  "standing": {
-  "place": "Johannesburg · Launch preview",
-  "placeWhy": "Top right of every slide in the supplied art. It says where and it says preview, which is two disclosures in five words.",
-  "photographNote": "Design preview · Illustrative photography",
-  "photographNoteWhy": "Bottom right of every slide. It is the same refusal the landing page already makes about its photographs — nobody in them is a MyThuso nurse and nobody is a patient — and it stays on the picture rather than in a footnote, because that is where somebody looks.",
+  "place": "Johannesburg",
+  "placeWhy": "Top right of every slide in the supplied art, beside the eyebrow. It says where. It said \"Johannesburg · Launch preview\" until 28 September 2026, when the founder took the word preview off the hero as final copy: the notice bar above the hero and the footer still say, in their own sentences, that MyThuso is in development and that nothing on the page books a visit, and neither of those moved.",
+  "photographNote": "Illustrative photography",
+  "photographNoteWhy": "Beside the figure on every slide. The people shown are illustrative: none of them is a MyThuso nurse and none is a patient, which is the refusal the footer makes at length, and it stays at the picture rather than only in a footnote, because that is where somebody looks. It read \"Design preview · Illustrative photography\" until 28 September 2026; the founder took the word preview off the hero as final copy, and the refusal itself stays.",
   "priceLine": "A SANC-registered nurse at your door, from {price}. A registered doctor reviews what they find.",
   "priceLineWhy": "Under the headline on every slide, and never rotated away. Four reviews of the public page on 26 September agreed on one thing: a stranger could read the whole first screen and not learn what this costs or who comes. {price} is a placeholder the page fills from packages/catalog/services.json — the lowest launch price — so the sentence lives here and the number lives where every other number does."
  },

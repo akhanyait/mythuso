@@ -1030,9 +1030,10 @@ if (
  * photographs named by stem, and the two lines every slide carries. Six things are checked, and each
  * of them is a way the banner could quietly stop being the contract.
  *
- * A picture for every slide, published in both formats. A slide whose photograph has not been
- * distributed is a blank frame on the one page a stranger reads first, and the WebP is not a nicety:
- * four photographs on a metered South African connection is the difference between 140 kB and 290.
+ * A figure for every slide, published in all three forms — two WebP widths and a fallback — and at
+ * the size the page says it is. A slide whose figure has not been distributed is a blank frame on the
+ * one page a stranger reads first, and the widths are not a nicety: a phone on a metered South
+ * African connection is sent the 640-pixel file and never the desktop's.
  *
  * Every icon name drawn, every tint known, every destination answered. The contract names ideas
  * rather than glyphs so that three platforms can each use the set they have; the web's answer is the
@@ -1058,16 +1059,50 @@ if (
     throw new Error(
       "packages/catalog/hero.json has fewer than two slides, so the landing page is carrying a carousel around one picture.",
     );
+  /* Each slide's figure, from source to page. Since 28 September 2026 the hero draws
+    `packages/banners/hero-<slide>.png` — the founder's cut-outs at the size he supplied them, and
+    the one photograph for the slide that has none — rather than the 585-pixel crops of his
+    compositions it drew before. Every one must exist, be published in all three forms
+    scripts/render-illustrations.mjs writes, and be newer than its source, because a published
+    figure older than the file it was made from is last month's picture under this month's name.
+
+    And lib/hero.ts's table must say what the file says. The page sets width and height from it so
+    the first screen does not move when the picture lands, and it chooses a PNG or a JPEG fallback
+    from `cutout` — so both are read back out of the source's own PNG header here: the size from
+    IHDR, and an alpha channel (colour type 6) for a cut-out. A figure re-cut in prepare-banners.py
+    without its row being changed fails here rather than as a squashed picture. */
+  const figureRows = new Map(
+    [...heroLib.matchAll(/'([\w-]+)':\s*\{\s*width:\s*(\d+),\s*height:\s*(\d+),\s*cutout:\s*(true|false)\s*\}/g)]
+      .map(([, stem, width, height, cutout]) => [stem, { width: Number(width), height: Number(height), cutout: cutout === "true" }]),
+  );
+  const figureFiles = (slide) => {
+    const row = figureRows.get(slide.photograph);
+    const stem = `/banners/hero-${slide.photograph}`;
+    return [`${stem}-640.webp`, `${stem}-${row.width}.webp`, `${stem}.${row.cutout ? "png" : "jpg"}`];
+  };
   for (const slide of hero.slides) {
-    const source = `packages/banners/${slide.photograph}.jpg`;
+    const source = `packages/banners/hero-${slide.photograph}.png`;
     if (!existsSync(source))
       throw new Error(
-        `Hero slide "${slide.id}" names the photograph ${slide.photograph}, and ${source} does not exist. The crops live in packages/banners; run: python3 scripts/prepare-banners.py`,
+        `Hero slide "${slide.id}" names the photograph ${slide.photograph}, and ${source} does not exist. The figures live in packages/banners; run: python3 scripts/prepare-banners.py`,
       );
-    for (const published of [
-      `apps/web/public/banners/${slide.photograph}.jpg`,
-      `apps/web/public/banners/${slide.photograph}.webp`,
-    ]) {
+    const row = figureRows.get(slide.photograph);
+    if (!row)
+      throw new Error(
+        `Hero slide "${slide.id}" names the photograph ${slide.photograph}, and apps/web/src/lib/hero.ts has no size for it — an <img> with no width and height moves the first screen when it lands.`,
+      );
+    const header = readFileSync(source);
+    const [width, height, colourType] = [header.readUInt32BE(16), header.readUInt32BE(20), header[25]];
+    if (width !== row.width || height !== row.height)
+      throw new Error(
+        `apps/web/src/lib/hero.ts says ${slide.photograph} is ${row.width}×${row.height}, and ${source} is ${width}×${height}. The page would draw it at the wrong shape; correct the row.`,
+      );
+    if ((colourType === 6) !== row.cutout)
+      throw new Error(
+        `apps/web/src/lib/hero.ts says ${slide.photograph} ${row.cutout ? "is" : "is not"} a cut-out, and ${source} ${colourType === 6 ? "has an" : "has no"} alpha channel. A cut-out with a JPEG fallback arrives in a white box; correct the row.`,
+      );
+    for (const path of figureFiles(slide)) {
+      const published = `apps/web/public${path}`;
       if (!existsSync(published))
         throw new Error(
           `Hero slide "${slide.id}" has no ${published}, so its half of the banner is a blank frame. Run: node scripts/render-illustrations.mjs`,
@@ -1079,15 +1114,21 @@ if (
     }
   }
   /* Every picture the public page asks for, weighed. Until 26 September the hero fetched four
-    editorial PNGs of 2.2 to 2.8 MB each — while the contract's own WebP crops, 35 kB apiece, sat
-    published and unused — and two more 2.2 MB PNGs hung off sections further down. The first view
-    of the one page a stranger reads on a metered South African connection was about 2.4 MB. So
-    every path under apps/web/public that Landing.tsx or lib/hero.ts names, by literal or by the
-    two banner templates, must exist and weigh no more than 150 kB, and the editorial PNGs may not
-    be named at all: a photograph belongs in packages/banners, published in both formats by
-    scripts/render-illustrations.mjs, or it does not belong on this page. */
+    editorial PNGs of 2.2 to 2.8 MB each, and the first view of the one page a stranger reads on a
+    metered South African connection was about 2.4 MB. So every path under apps/web/public that
+    Landing.tsx or lib/hero.ts names — by literal, by the step template, or as a slide's figure —
+    must exist and weigh no more than LIMIT, and the editorial PNGs may not be named at all: a
+    photograph belongs in packages/banners, published by scripts/render-illustrations.mjs, or it
+    does not belong on this page.
+
+    LIMIT was 150 kB for 585-pixel crops. It is 240 kB since 28 September, because that is what the
+    heaviest desktop figure weighs — the care cut-out at its native 1122 pixels, 238 kB as WebP —
+    and a cap below the file the page is built to ask for is a cap the build ignores by exception.
+    It is not a phone's figure. `sizes` asks a phone for the 640-pixel file, 107 kB at its heaviest,
+    and the first view on a phone was measured at that when the cap moved. A figure that needs more
+    than this has been encoded wrongly or cut too large, and the answer is in prepare-banners.py. */
   {
-    const LIMIT = 150 * 1024;
+    const LIMIT = 240 * 1024;
     const named = new Set();
     for (const match of landing.matchAll(/["'`](\/(?:banners|editorial|brand)\/[^"'`$]+?)["'`]/g))
       named.add(match[1]);
@@ -1097,11 +1138,10 @@ if (
         named.add(`/editorial/step-${step}.jpg`);
     }
     for (const slide of hero.slides)
-      for (const ext of ["webp", "jpg"])
-        named.add(`/banners/${slide.photograph}.${ext}`);
+      for (const path of figureFiles(slide)) named.add(path);
     if (/\/editorial\/[\w-]+\.png/.test(landing))
       throw new Error(
-        `apps/web/src/features/Landing.tsx names an editorial PNG — ${landing.match(/\/editorial\/[\w-]+\.png/)[0]}. Those are 2 MB each; the page's photographs are the contract's crops in packages/banners, published as WebP and JPEG by scripts/render-illustrations.mjs.`,
+        `apps/web/src/features/Landing.tsx names an editorial PNG — ${landing.match(/\/editorial\/[\w-]+\.png/)[0]}. Those are 2 MB each; the page's figures are the contract's in packages/banners, published by scripts/render-illustrations.mjs.`,
       );
     for (const path of named) {
       if (/\.svg$/.test(path)) continue;
@@ -1113,7 +1153,7 @@ if (
       const bytes = statSync(file).size;
       if (bytes > LIMIT)
         throw new Error(
-          `${file} is ${Math.round(bytes / 1024)} kB, and the landing page may not ask for a picture over ${LIMIT / 1024} kB. Its first view is read on metered connections; crop it into packages/banners and run scripts/render-illustrations.mjs.`,
+          `${file} is ${Math.round(bytes / 1024)} kB, and the landing page may not ask for a picture over ${LIMIT / 1024} kB. Its first view is read on metered connections; cut it in scripts/prepare-banners.py and run scripts/render-illustrations.mjs.`,
         );
     }
   }
@@ -34473,10 +34513,12 @@ console.log(
     const text = read(f);
     if (text.includes(field))
       throw new Error(`${f} names ${field}. A revealed key is read by founder access's reveal component and nowhere else.`);
-    /* Since 28 September 2026 one more file reads the session's state — lib/founder-gate.ts, the settings
-       gate — and it is held below to reading state and nothing else. */
-    if (/lib\/founder-access['"]/.test(text) && f !== "apps/web/src/lib/founder-gate.ts")
-      throw new Error(`${f} imports lib/founder-access. Only the reveal panel and the settings gate do.`);
+    /* Since 28 September 2026 two more files read the session's state — lib/founder-gate.ts, the settings
+       gate, held below to reading state and nothing else; and shells/FounderGate.tsx, the Control Tower's
+       door, held in the Founder's door block at the end of this file to reading state, asking the probe,
+       and drawing the reveal panel's own form through a dynamic import. */
+    if (/lib\/founder-access['"]/.test(text) && f !== "apps/web/src/lib/founder-gate.ts" && f !== "apps/web/src/shells/FounderGate.tsx")
+      throw new Error(`${f} imports lib/founder-access. Only the reveal panel, the settings gate and the Control Tower's door do.`);
     if (/^\s*import (?!type\b)[^;]*founder\/FounderAccess/m.test(text))
       throw new Error(`${f} imports the founder panel statically. It arrives on a dynamic import, so nobody who does not open it downloads it.`);
   }
@@ -34616,5 +34658,141 @@ console.log(
 
   console.log(
     `Golden sets · ${golden.sets.length} languages (${[...languagesSeen].join(", ")}), ${ids.size} cases, ${reviewedSets} reviewed set${reviewedSets === 1 ? "" : "s"} — an unreviewed set is reported and never required; every case names who drafted or reviewed it, expects a route the harness knows, is in its set's language and carries no phone or identity number; every language one voice.languages lists.`,
+  );
+}
+
+/* ==== The founder's door (28 September 2026) ========================================================
+   packages/catalog/founder-access.json#door, on the founder's instruction — "When you click on Control
+   Tower it must bring logins with 2FA": in production the Control Tower and the back office are drawn
+   behind the founder's two-factor sign-in, and the portal only while the assistant service says the
+   founder's session is live. The door is apps/web/src/shells/FounderGate.tsx; it asks the same session
+   state the reveal panel asks and draws the reveal panel's own form. What is held here is what the
+   contract promises: the door holds on exactly import.meta.env.PROD or the contract's parameter, and on
+   nothing else; one line draws the portal, under one condition, and dark or silence never falls through;
+   the door carries no factor, draws no form of its own and requests nothing itself; it stores, logs and
+   addresses nothing; every sentence on it is the contract's; PortalShell renders nothing of the portal
+   while the door holds; the roles it names are exactly the portal's; nothing on the patient's first load
+   names the door, its contract or its parameter; the
+   sheet moves in the tokens' time only; only the portal's shell reaches the door, behind the portal's
+   dynamic import; and the journeys exist and hold the fail-closed answers. Each was proved by breaking
+   its source and restoring it (docs/FEATURE-MAP.md, the founder's door entry). */
+{
+  const fa = JSON.parse(read("packages/catalog/founder-access.json"));
+  const door = fa.door;
+  const gateFile = "apps/web/src/shells/FounderGate.tsx";
+  const gate = uncommented(read(gateFile));
+  const shellFile = "apps/web/src/shells/PortalShell.tsx";
+  const shell = uncommented(read(shellFile));
+  const rolesFile = "apps/web/src/lib/roles.ts";
+  const rolesCode = uncommented(read(rolesFile));
+  const sheetFile = "apps/web/src/shells/founder-gate.css";
+  const sheet = uncommented(read(sheetFile));
+  const panelFile = "apps/web/src/features/portal/gilbertone/founder/FounderAccess.tsx";
+  const specFile = "tests/founder-gate.spec.ts";
+  const said = (s) => typeof s === "string" && s.trim().length > 0;
+
+  /* 1. The contract: the founder's dated decision, the parameter, the two portal roles and no others,
+     a why that says what this door is not, and the sentence that says no other account exists. */
+  if (door?.decision?.by !== "Founder" || door.decision.on !== "2026-09-28" || !/2FA/.test(door.decision.what))
+    throw new Error("packages/catalog/founder-access.json#door does not carry the founder's decision of 28 September 2026 that the Control Tower opens on a two-factor sign-in. A door in front of the product is a decision on file or it is a lock somebody added.");
+  if (door.param !== "gate" || door.value !== "founder")
+    throw new Error(`packages/catalog/founder-access.json#door's parameter is ${door.param}=${door.value}. It is gate=founder: the journeys, roles.ts and the door all read it, and the two literals in roles.ts are held to it below.`);
+  const portalRoles = [...rolesCode.matchAll(/\{ id: '([a-z-]+)', label: '[^']*', surface: 'portal'/g)].map((m) => m[1]);
+  if (JSON.stringify(door.roles) !== JSON.stringify(portalRoles))
+    throw new Error(`packages/catalog/founder-access.json#door names the roles [${door.roles}] and lib/roles.ts opens the portal for [${portalRoles}]. The door stands in front of exactly the roles that open the portal — the patient, nurse, doctor and partner previews are not behind it.`);
+  if (!/one person/.test(door.why) || !/not an admin login/.test(door.why) || !/G16/.test(door.why) || !/still do not exist/.test(door.why))
+    throw new Error("packages/catalog/founder-access.json#door's why no longer says that this door admits one person, is not an admin login system, and that the administration layers behind gate G16 still do not exist. A sign-in screen in front of the Control Tower is exactly what a reader takes for an admin login, and the contract has to say it is not.");
+  for (const w of ["heading", "sentence", "holding", "leave"])
+    if (!said(door.words?.[w])) throw new Error(`packages/catalog/founder-access.json#door.words has no ${w}. Every sentence on the door is read from here.`);
+  if (!/no other account exists yet/i.test(door.words.sentence))
+    throw new Error("packages/catalog/founder-access.json#door.words.sentence no longer says that no other account exists yet. The door says on its face that it is one person's, so nobody reads it as their sign-in.");
+
+  /* 2. The condition, exactly: production, or the contract's parameter in the address — read from the
+     contract, not typed — and import.meta.env read once in the file. */
+  if (!/export const founderGateHolds = \(\): boolean =>\s*import\.meta\.env\.PROD \|\| new URLSearchParams\(window\.location\.search\)\.get\(door\.param\) === door\.value;/.test(gate)
+    || (gate.match(/import\.meta\.env/g) ?? []).length !== 1 || !/\bfounderDoor as door\b/.test(gate))
+    throw new Error(`${gateFile}'s founderGateHolds is no longer exactly import.meta.env.PROD || the address carrying the contract's gate=founder. Anything narrower is a production build that draws the Control Tower without the founder's sign-in; anything wider is a door the founder did not ask for.`);
+
+  /* 3. One line draws the portal, under one condition, and it fails closed: refused — dark, silent,
+     cross-site, locked — draws the service's sentence and the contract's holding line, and nothing else. */
+  if ((gate.match(/\bopen\(\)/g) ?? []).length !== 1 || !/if \(state\.phase === 'signed-in'\) return <>\{open\(\)\}<\/>;\s*return <Door state=\{state\}\/>;/.test(gate))
+    throw new Error(`${gateFile} draws the portal somewhere other than the one line under state.phase === 'signed-in', or draws something other than the door otherwise. Dark or unanswered must stay a door.`);
+  if (!/useFounderState\(\)/.test(gate) || !/void probe\(\)/.test(gate))
+    throw new Error(`${gateFile} no longer reads the founder's session state through useFounderState and asks the service through probe. The door decides nothing itself.`);
+  if (!/state\.phase === 'refused' && <>\s*<p className="founder-gate-refusal" role="status">\{state\.message\}<\/p>\s*<p className="founder-gate-status">\{door\.words\.holding\}<\/p>/.test(gate))
+    throw new Error(`${gateFile} no longer draws a refusal — founder access dark, the service silent, a lock — as the service's own sentence with the contract's holding line and no form. ${fa.words.notAnswered}`);
+
+  /* 4. No factor and no form of its own: the reveal panel's SignIn, through a dynamic import, is the one
+     form; the door never names a password, a code, a reveal, or makes a request. */
+  if (/<form\b|<input\b|password|\bcode\b|\bfetch\s*\(|signIn\(|\breveal\b|revealedKey/.test(gate))
+    throw new Error(`${gateFile} draws a form or an input of its own, or names a password, a code, a reveal or a request. The door carries no factor: FounderAccess.tsx's SignIn is the product's one sign-in form.`);
+  if (!/const SignIn = lazy\(\(\) => import\('\.\.\/features\/portal\/gilbertone\/founder\/FounderAccess'\)\.then\(m => \(\{ default: m\.SignIn \}\)\)\);/.test(gate))
+    throw new Error(`${gateFile} no longer reaches the reveal panel's SignIn through a dynamic import. One form, arriving only when the door is drawn.`);
+  if (!/^export function SignIn\(/m.test(read(panelFile)))
+    throw new Error(`${panelFile} no longer exports SignIn, which the Control Tower's door draws.`);
+
+  /* 5. Stores, logs and addresses nothing. */
+  const leak = gate.match(/localStorage|sessionStorage|indexedDB|document\.cookie|history\.(pushState|replaceState)|location\.(href|assign|replace|hash)|console\.|postMessage|sendBeacon|caches\.|dangerouslySetInnerHTML/);
+  if (leak) throw new Error(`${gateFile} uses ${leak[0]}. The door stores nothing, logs nothing and writes nothing to an address.`);
+
+  /* 6. Every sentence on the door is the contract's. */
+  for (const w of ["heading", "sentence", "holding", "leave"])
+    if (!gate.includes(`door.words.${w}`)) throw new Error(`${gateFile} no longer draws founder-access.json#door.words.${w}.`);
+  if (!/words\.checking/.test(gate))
+    throw new Error(`${gateFile} no longer says, while the service is being asked, the contract's checking sentence.`);
+
+  /* 7. PortalShell renders nothing of the portal while the door holds: the door is read once at mount,
+     the one gated line hands the surface to the door as a function, and the portal and the two old shells
+     are drawn only inside Surface. */
+  if (!/export default function ControlTowerDoor\(\{ audience \}: \{ audience: RoleId \}\) \{\s*const \[gated\] = useState\(founderGateHolds\);\s*if \(gated\) return <FounderGate open=\{\(\) => <Surface audience=\{audience\}\/>\}\/>;\s*return <Surface audience=\{audience\}\/>;\s*\}/.test(shell))
+    throw new Error(`${shellFile}'s ControlTowerDoor no longer reads founderGateHolds once and hands the whole surface to FounderGate as a function to call. The portal must not be rendered — not hidden, not rendered — while the door holds.`);
+  const surfaceAt = shell.indexOf("function Surface(");
+  if (surfaceAt < 0 || /<PortalShell\b|<LegacyStaff\b|<LegacyBackOffice\b/.test(shell.slice(0, surfaceAt)) || (shell.match(/<Surface\b/g) ?? []).length !== 2)
+    throw new Error(`${shellFile} draws the portal or an old shell outside Surface, or draws Surface somewhere other than the door's two arms.`);
+  if (!/import \{ FounderGate, founderGateHolds \} from '\.\/FounderGate';/.test(shell))
+    throw new Error(`${shellFile} no longer imports the door.`);
+
+  /* 8. Nothing on the patient's first load knows the door: lib/roles.ts and Doorway.tsx, which every entry
+     carries, name neither the contract nor the parameter. The demo login's buttons meet the door in production
+     because they open the same ControlTowerDoor the address does — proved against the built app, not by
+     carrying the parameter through the role switcher, which would cost the patient bytes for a journey. */
+  for (const f of [rolesFile, "apps/web/src/Doorway.tsx", "apps/web/src/App.tsx"]) {
+    const code = uncommented(read(f));
+    if (/founder-access|founder-gate|FounderGate|['"]gate['"]/.test(code))
+      throw new Error(`${f} names the founder's door, its contract or its parameter, and it is on the patient's first load. The door is the portal's, behind the portal's dynamic import.`);
+  }
+
+  /* 9. The sheet: the tokens' time and curve only, nothing endless, nothing typed in hex, removed under
+     reduced motion; and every control at the 44px floor. */
+  for (const m of sheet.matchAll(/(animation|transition)\s*:\s*([^;]+);/g)) {
+    if (/^none\b/.test(m[2].trim())) continue;
+    if (!/var\(--t-(quick|settle|enter)\)/.test(m[2]) || !/var\(--ease-soft\)/.test(m[2]) || /\b\d+m?s\b/.test(m[2]) || /infinite/.test(m[2]))
+      throw new Error(`${sheetFile} has "${m[1]}: ${m[2]}". Motion on the door is the tokens' duration and curve, once, and never a number typed here.`);
+  }
+  if (!/@media \(prefers-reduced-motion: reduce\) \{ \.founder-gate-card\.rise \{ animation: none !important; \} \}/.test(sheet))
+    throw new Error(`${sheetFile} no longer removes the card's entrance under reduced motion.`);
+  if (/#[0-9a-f]{3,8}\b/i.test(sheet))
+    throw new Error(`${sheetFile} types a colour. Every colour on the door is a token of the wordmark's palette.`);
+  for (const [selector, what] of [["\\.founder-gate \\.g1-field input", "the inputs"], ["\\.founder-gate \\.g1-founder-button", "the buttons"], ["\\.founder-gate-leave", "the way back"]])
+    if (!new RegExp(`${selector} \\{[^}]*min-height: 44px`).test(sheet))
+      throw new Error(`${sheetFile} no longer holds ${what} to 44px.`);
+
+  /* 10. Only the portal's shell reaches the door, and the shell is still behind Doorway's dynamic import,
+     so the patient's first load carries none of it. */
+  for (const f of files("apps/web/src").filter((f) => /\.tsx?$/.test(f)))
+    if (f !== shellFile && f !== gateFile && /import[^;]*shells\/FounderGate/.test(uncommented(read(f))))
+      throw new Error(`${f} reaches the founder's door. Only shells/PortalShell.tsx does, behind the portal's dynamic import.`);
+  if (!/lazy\(\(\) => import\('\.\/shells\/PortalShell'\)\)/.test(read("apps/web/src/Doorway.tsx")))
+    throw new Error("apps/web/src/Doorway.tsx no longer reaches the portal — and now the door in front of it — through a dynamic import. The patient's first load must carry neither.");
+
+  /* 11. The journeys exist and hold the fail-closed answers, on the contract's parameter. */
+  const spec = read(specFile);
+  if (!spec.includes("founder-access-dark") || !spec.includes("words.notAnswered") || !/door\.param/.test(spec) || !/nothingOfThePortal/.test(spec) || !/founder-no-session/.test(spec))
+    throw new Error(`${specFile} no longer holds the door shut on dark, on silence and after the session's end, with nothing of the portal in the tree, on the contract's parameter.`);
+  if (!/## The Control Tower's door, 28 September 2026/.test(read("docs/governance/FOUNDER-ACCESS.md")))
+    throw new Error("docs/governance/FOUNDER-ACCESS.md has no dated section for the Control Tower's door. The governance record is where a change to who can open the Control Tower is written down.");
+
+  console.log(
+    `Founder's door · the Control Tower and the back office behind the founder's sign-in on exactly import.meta.env.PROD || ${door.param}=${door.value}; one line draws the portal, under one condition, and dark or silence stays a door in the contract's words; no factor, no form and no request of its own — the reveal panel's SignIn through a dynamic import; nothing stored, logged or addressed; PortalShell renders nothing of the portal while the door holds; the roles exactly [${door.roles.join(", ")}]; nothing on the patient's first load names it; the sheet in the tokens' time only and every control 44px; only the portal's shell reaches it; the journeys hold it shut on dark, on silence and after the session's end.`,
   );
 }

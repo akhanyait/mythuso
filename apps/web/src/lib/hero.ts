@@ -8,8 +8,8 @@ import contract from '../../../../packages/catalog/hero.json';
  * is the three things a contract of words cannot do for itself.
  *
  * IT NAMES A PICTURE FOR A SLIDE. A contract of sentences knows nothing about a crop, so the
- * photograph is named by stem in the contract and turned into an address here — WebP first for a
- * metered connection, the .jpg the same crop was published as behind it.
+ * photograph is named by stem in the contract and turned into addresses here — two WebP widths for
+ * a metered phone and a wide desk, and a fallback behind them.
  *
  * IT TURNS A DESTINATION INTO A DOOR. `action.goes` is one of four words. Where each of them leads
  * is a property of this application's addresses rather than of the banner, and it is written once
@@ -54,13 +54,38 @@ export const standing = contract.standing;
    sentence in a JSON file is still a second copy of a price. */
 export const priceLine = (price: string) => standing.priceLine.replace('{price}', price);
 
-/* The photograph, WebP first. scripts/render-illustrations.mjs publishes both from the one crop in
-   packages/banners, and the .jpg stays as the fallback for a browser that cannot decode the other —
-   which is the same ladder the cut-outs already use, for the same reason: this page is read on
-   mid-range Android handsets on metered data, and the four photographs are about 140 kB as WebP
-   against about 290 kB as JPEG. */
-export const photographWebp = (slide: HeroSlide) => `/banners/${slide.photograph}.webp`;
-export const photographJpeg = (slide: HeroSlide) => `/banners/${slide.photograph}.jpg`;
+/* The figure, since 28 September 2026. The founder called the hero's crops "cut and low quality",
+   and they were: 585-pixel slivers of a composition whose right third is under two baked cards,
+   cropped again by the page and upscaled on a desktop. The same people exist as transparent cut-outs
+   at 1122×1402, and scripts/prepare-banners.py takes those — and, for the one slide that has no
+   cut-out, the walking couple at native size from the part of the frame nothing is baked over.
+
+   The pixel size of each is written here because an <img> without width and height moves the whole
+   first screen when the picture arrives, and a type cannot read a PNG header. It is not a second
+   copy of anything a person decides: scripts/check-boundaries.mjs reads the source's own header in
+   packages/banners and fails the build when this table disagrees with it, and the same check holds
+   `cutout` to whether that source has an alpha channel.
+
+   `srcSet` is two widths: 640 for a phone, where the figure stands about 200 CSS pixels wide and 640
+   still covers a three-times screen, and the native width for a desktop. `fallback` is for a browser
+   that cannot decode WebP — a PNG for a cut-out, because a JPEG has no transparency and the figure
+   would arrive in a white box, and a JPEG for the photograph. */
+type Figure = { width: number; height: number; cutout: boolean };
+const figures: Record<string, Figure> = {
+ 'care-that-comes-to-you': { width: 1122, height: 1402, cutout: true },
+ 'for-your-family': { width: 1122, height: 1402, cutout: true },
+ 'everyday-wellbeing': { width: 720, height: 830, cutout: false },
+ 'for-the-nurses': { width: 1122, height: 1402, cutout: true }
+};
+export const figureFor = (slide: HeroSlide) => {
+ const { width, height, cutout } = figures[slide.photograph];
+ const stem = `/banners/hero-${slide.photograph}`;
+ return {
+  width, height, cutout,
+  srcSet: `${stem}-640.webp 640w, ${stem}-${width}.webp ${width}w`,
+  fallback: `${stem}.${cutout ? 'png' : 'jpg'}`
+ };
+};
 
 /* Where each of the four calls to action leads.
  *

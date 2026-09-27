@@ -63,6 +63,24 @@
       "previewSentence": "Founder access is not switched on here, so these settings are a preview: a change lives in this tab's memory, reaches no patient, and a reload puts the defaults back."
     }
   },
+  "door": {
+    "_note": "The Control Tower's door, on the founder's instruction of 28 September 2026. In production, opening the Control Tower or the back office — /app/?role=control-tower, /app/?role=back-office, or either role's button on the demo login — draws the founder's two-factor sign-in first, and the portal only while the assistant service says the founder's session is live: the same password and authenticator code, the same four routes, the same cookie, lock and burned codes as the reveal panel above, and the reveal panel's own form (apps/web/src/shells/FounderGate.tsx draws it through a dynamic import, so there is one sign-in form in the product). It fails closed: where the service says founder access is dark, or does not answer at all, the door stays shut and says so in the contract's own sentence, and never falls through to the portal. Sign-out puts the door back. Outside production it is drawn only when the address carries the parameter below, which is how the journeys in tests/founder-gate.spec.ts cover it and how every other Control Tower journey stays exactly as it was; the demo login's buttons open the same door the address does, and that is proved against the built app rather than by carrying the parameter through the role switcher, which is on the patient's first load.",
+    "decision": {
+      "by": "Founder",
+      "on": "2026-09-28",
+      "what": "When you click on Control Tower it must bring logins with 2FA."
+    },
+    "param": "gate",
+    "value": "founder",
+    "roles": ["control-tower", "back-office"],
+    "why": "This door admits one person, the founder, and it is not an admin login system. The fifteen administration layers behind gate G16 — accounts, roles, permissions, tenants, a record of who changed what — still do not exist, and a door drawn to look like their sign-in would be the overstated readiness this codebase refuses everywhere else; so the door says in its own sentence that no other account exists yet. The patient, nurse, doctor and partner previews are not behind it: they are demonstrations on synthetic data, with nothing to protect and nothing to grant, and the demo login still says so on every one of them. The parameter is the developer's and the journey's way to draw the door where import.meta.env.PROD is false; it grants nothing, because the door itself grants nothing — every factor is checked by the service, and the door only asks it and draws the answer. What the door decides is drawn, never what is allowed.",
+    "words": {
+      "heading": "The founder's door",
+      "sentence": "The Control Tower opens to the founder alone, signed in with the password and an authenticator code. No other account exists yet: this is one person's door, not a sign-in for administrators.",
+      "holding": "Nothing of the Control Tower is drawn until the founder is signed in.",
+      "leave": "Back to MyThuso"
+    }
+  },
   "request": {
     "header": "X-MyThuso-Founder",
     "headerValue": "1",

@@ -60,8 +60,11 @@ export function FounderGatePanel({ sentence, phase }: { sentence: string; phase:
  </div>;
 }
 
-/* The two factors, cleared from the form the moment they are sent, whatever the answer. */
-function SignIn({ message }: { message: string | null }) {
+/* The two factors, cleared from the form the moment they are sent, whatever the answer. Exported for one
+   other caller — the Control Tower's door, shells/FounderGate.tsx, which reaches this module through a
+   dynamic import — so the product has one sign-in form, and this file stays the only one that draws a
+   password field. */
+export function SignIn({ message }: { message: string | null }) {
  const [password, setPassword] = useState('');
  const [code, setCode] = useState('');
  const [busy, setBusy] = useState(false);
