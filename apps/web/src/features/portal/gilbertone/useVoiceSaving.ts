@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { savePresentationVoice, type VoiceLabel } from '../../../lib/gilbertone-admin';
 import { fill } from '../../../lib/portal';
-import { settingsScreen, useSettingsHistories, type Proposed } from '../../../lib/settings';
+import { settingsRefusal, settingsScreen, useSettingsHistories, type Proposed } from '../../../lib/settings';
+import { useFounderGate } from '../../../lib/founder-gate';
 
 /* Saving a presentation voice, for the Voice screen's table and for the preview panel: one reason, one
  * outcome, one door. The change itself goes through lib/gilbertone-admin.ts's savePresentationVoice and
@@ -18,9 +19,13 @@ const whenOf = (at: number) => new Date(at).toLocaleTimeString('en-ZA', { hour: 
 
 export function useVoiceSaving() {
  useSettingsHistories();
+ /* The founder's gate, 28 September 2026: a save while it is shut is refused here in the gate's own sentence,
+    and the screens disable Save beside that sentence too, so the door is shut twice for the same reason. */
+ const gate = useFounderGate();
  const [reason, setReason] = useState('');
  const [outcome, setOutcome] = useState<Proposed | null>(null);
  const save = (classId: string, value: VoiceLabel) => {
+  if (gate.locked) { setOutcome({ ok: false, refusal: { ...settingsRefusal('change', 'setting-change-not-permitted'), statement: gate.sentence } }); return; }
   const result = savePresentationVoice(classId, value, reason);
   setOutcome(result);
   if (result.ok) setReason('');
@@ -28,5 +33,5 @@ export function useVoiceSaving() {
  const sentence = outcome === null ? null
   : outcome.ok ? fill(settingsScreen.applied, { version: outcome.change.settingsVersion, at: whenOf(outcome.change.at) })
   : outcome.refusal.statement;
- return { reason, setReason, outcome, sentence, save, clear: () => setOutcome(null) } as const;
+ return { reason, setReason, outcome, sentence, save, gate, clear: () => setOutcome(null) } as const;
 }

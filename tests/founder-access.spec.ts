@@ -208,3 +208,54 @@ test('the API Registry carries the panel on the two Azure cards only', async ({ 
  await expect(azure.locator('.g1-founder').getByRole('article')).toHaveCount(1);
  await expect(azure.locator('.g1-founder')).toContainText(masked(LAST_FOUR));
 });
+
+/* The settings gate, on the founder's amendment of 28 September 2026 (packages/catalog/founder-access.json#gate):
+   where the service says founder access is on and nobody is signed in, the Configuration editor offers no
+   Change button and draws the sign-in where the editor would be; the same sign-in opens it, and Sign out
+   shuts it again; where the service says founder access is dark, the editor is a preview and says so. Every
+   sentence is the contract's. The mock is the same one the reveal journeys use. */
+test.describe('the settings gate', () => {
+ const gate = founder.gate.words as Record<string, string>;
+ const minutes = (s: string) => s.replace('{minutes}', String(founder.session.lifetimeSeconds / 60));
+ const settingsSay = json('../packages/catalog/settings.json').screen as Record<string, string>;
+ const openConfiguration = async (page: Page) => {
+  await page.goto('/app/?role=back-office&category=configuration');
+  await expect(page.getByRole('heading', { level: 1, name: settingsSay.tab })).toBeVisible();
+ };
+ test('shut while founder access is on and nobody is signed in; the sign-in opens it; sign out shuts it', async ({ page }) => {
+  const mock: Mock = { requests: [] };
+  await mockService(page, mock);
+  await openConfiguration(page);
+  const panel = page.getByRole('region', { name: gate.lockedHeading });
+  await expect(panel).toContainText(minutes(gate.lockedSentence));
+  await expect(page.getByRole('button', { name: new RegExp(`^${settingsSay.change} `) })).toHaveCount(0);
+  await panel.getByLabel(words.passwordLabel, { exact: true }).fill(PASSWORD);
+  await panel.getByLabel(words.codeLabel, { exact: true }).fill(CODE);
+  await panel.getByRole('button', { name: words.signIn, exact: true }).click();
+  await expect(panel).toContainText(minutes(gate.openSentence));
+  await expect(page.getByRole('button', { name: new RegExp(`^${settingsSay.change} `) }).first()).toBeVisible();
+  await panel.getByRole('button', { name: words.signOut, exact: true }).click();
+  await expect(panel).toContainText(minutes(gate.lockedSentence));
+  await expect(page.getByRole('button', { name: new RegExp(`^${settingsSay.change} `) })).toHaveCount(0);
+  /* Nothing typed went anywhere but the session route's body: no address carries a password or a code. */
+  for (const request of mock.requests) expect(request.url()).not.toMatch(new RegExp(`${PASSWORD}|${CODE}`));
+ });
+ test('a preview where founder access is dark: the editor is open and says so', async ({ page }) => {
+  const mock: Mock = { dark: true, requests: [] };
+  await mockService(page, mock);
+  await openConfiguration(page);
+  await expect(page.getByRole('region', { name: gate.lockedHeading })).toContainText(gate.previewSentence);
+  await expect(page.getByRole('button', { name: new RegExp(`^${settingsSay.change} `) }).first()).toBeVisible();
+ });
+ test('the Voice screen’s Save waits on the gate too', async ({ page }) => {
+  const mock: Mock = { requests: [] };
+  await mockService(page, mock);
+  await page.route('**/assistant/health', route => route.fulfill({ json: { ok: true, mode: 'service', azure: true, ollama: false, production: true, activated: true, speech: false } }));
+  await page.route('**/assistant/v1/status', route => route.fulfill({ json: { ok: true, mode: 'service', azure: true, ollama: false, production: true, activated: true, speech: false } }));
+  await page.goto('/app/?role=back-office&category=gilbertone&tab=voice');
+  await expect(page.locator('#pt-category .pt-loading')).toHaveCount(0);
+  const saves = page.locator('button.g1-live', { hasText: /^Save as default/ });
+  await expect(saves.first()).toBeDisabled();
+  await expect(page.locator('#pt-subpanel')).toContainText(minutes(gate.lockedSentence));
+ });
+});

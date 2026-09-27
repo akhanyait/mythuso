@@ -56,12 +56,12 @@ test('the price it advertises is still the catalogue\u2019s, and it is on the fi
   await expect(page.locator('.landing-services li').first()).toContainText(money(live[0].price));
 });
 
-/* The photographs are the contract's crops, WebP first with the JPEG behind it, and never the 2 MB
-   editorial PNGs the page carried until 26 September. Only the banner showing and the next one are
-   asked for at all, so the first view costs two small pictures rather than four large ones. */
-test('the hero serves the contract\u2019s WebP crops, two at a time', async ({ page }) => {
+/* The photograph is the contract's crop, WebP first with the JPEG behind it, and never the 2 MB
+   editorial PNGs the page carried until 26 September. Since 28 September the hero stands on its first
+   banner, so the first view costs one small picture. */
+test('the hero serves the contract\u2019s WebP crop, one picture', async ({ page }) => {
   const sources = page.locator('.landing-portrait .landing-slide picture source');
-  await expect(sources).toHaveCount(2);
+  await expect(sources).toHaveCount(1);
   await expect(sources.first()).toHaveAttribute('srcset', `/banners/${hero.slides[0].photograph}.webp`);
   await expect(page.locator('.landing-portrait .landing-slide.is-on img')).toHaveAttribute('src', `/banners/${hero.slides[0].photograph}.jpg`);
   expect(await page.locator('img[src*="/editorial/"][src$=".png"]').count()).toBe(0);
@@ -92,7 +92,7 @@ test('the hero asks for one thing', async ({ page }) => {
      reach: the three that are not showing are visibility:hidden and inert. Both halves are
      asserted, because "one visible" on its own would pass just as happily if the other three were
      merely off-screen and still in the tab order. */
-  await expect(page.locator('.landing-hero .primary')).toHaveCount(hero.slides.length);
+  await expect(page.locator('.landing-hero .primary')).toHaveCount(1);
   await expect(page.locator('.landing-hero .primary:visible')).toHaveCount(1);
   await expect(page.locator('.landing-hero h1:visible')).toHaveCount(1);
 });
@@ -100,11 +100,12 @@ test('the hero asks for one thing', async ({ page }) => {
 /* Every call to action goes somewhere, and two of the four name a section of the product rather
    than its front door. A banner that offers "Explore family care" and opens a home screen has not
    done the one thing it offered, so each destination is followed. */
-test('each banner\u2019s call to action opens what it says it opens', async ({ page }) => {
+test('the banner\u2019s call to action opens what it says it opens', async ({ page }) => {
   const pages: Record<string, string> = { 'My family': 'My family', 'Live well': 'Live well' };
-  for (let i = 0; i < hero.slides.length; i += 1) {
+  /* One banner stands on the page since 28 September; the other three stay in the contract, unshown,
+     and their destinations are held by lib/hero.ts's own tests rather than walked here. */
+  for (let i = 0; i < 1; i += 1) {
     const slide = hero.slides[i];
-    if (i) await page.getByRole('button', { name: /Show the next banner/ }).click();
     const action = page.getByRole('link', { name: new RegExp(slide.action.label) });
     const href = await action.getAttribute('href');
     expect(href, `${slide.id} has no destination`).toMatch(/^\/\?role=/);
@@ -341,104 +342,78 @@ test.describe('when the reader has asked for less motion', () => {
   });
 });
 
-/* ---- The hero's four banners ----
+/* ---- The hero's banner ----
 
-   This is the third carousel this page has had, and the first one cost an afternoon: nine SVG
-   bubbles on an infinite loop behind a screen that had stopped rendering them, and four specs that
-   failed on whichever click happened to land while something was in flight. So what is asserted
-   here is not that it looks right — it is the three properties that make a thing which moves by
-   itself safe to put in front of somebody, each of them driven rather than read out of the source.
-
-   Every word comes out of packages/catalog/hero.json, like every figure in this file comes out of
-   the contract it belongs to. The founder supplied four finished compositions and asked for the
-   pieces loose; a test that typed "Better care. Closer to home." would pass while the page had
-   started showing something else entirely. */
+   This is the fourth hero this page has had. The third rotated four banners with a counter, a pause
+   pill and two arrows beneath; on 28 September 2026 the founder asked for that strip to go, and a
+   picture that rotates by itself with no control to stop it is what WCAG 2.2.2 refuses, so the hero
+   now stands on the contract's first banner and the page's one pause control lives in the top bar.
+   Every word still comes out of packages/catalog/hero.json, like every figure in this file comes out
+   of the contract it belongs to. */
 const slideTitle = (n: number) => `${hero.slides[n - 1].headline.lead} ${hero.slides[n - 1].headline.accent}`;
-const showing = (page: import('@playwright/test').Page) => page.locator('.landing-hero-slide.is-on h1').innerText();
-/* The rotation the page is written to. Nothing waits for exactly this — the two assertions below
-   poll, so a shorter one passes sooner and a longer one is given twenty seconds — but the two
-   pauses that have to prove nothing happened need a length to be longer than. */
-const SLIDE_MS = 7000;
+const showing = async (page: import('@playwright/test').Page) => (await page.locator('.landing-hero-slide.is-on h1').innerText()).replace(/\s+/g, ' ').trim();
 
-test('the hero shows four banners, and only the one showing is on the page', async ({ page }) => {
-  await expect(page.locator('.landing-hero-slide')).toHaveCount(hero.slides.length);
-  await expect(page.locator('.landing-hero-slide.is-on')).toHaveCount(1);
-  // both halves of a banner change together: the words on the left and the photograph on the right
+test('the hero stands on the first banner, with no strip beneath it', async ({ page }) => {
+  await expect(page.locator('.landing-hero-slide')).toHaveCount(1);
   await expect(page.locator('.landing-portrait .landing-slide.is-on')).toHaveCount(1);
   await expect(page.getByRole('heading', { level: 1, name: slideTitle(1) })).toBeVisible();
-  // the other three are inert and hidden, so neither a keyboard nor a screen reader reaches them
-  await expect(page.getByText(hero.slides[1].body)).toBeHidden();
-  /* The two standing lines belong to the figure rather than to a banner, so they are on all four at
-     once. A sentence saying nobody in these photographs is a MyThuso nurse is not something a
-     rotation may carry off the screen. */
+  await expect(page.getByText(hero.slides[1].body)).toHaveCount(0);
+  /* The two standing lines belong to the figure: a sentence saying nobody in these photographs is a
+     MyThuso nurse is on the page whatever else is. */
   await expect(page.locator('.landing-portrait figcaption').first()).toHaveText(hero.standing.photographNote);
   await expect(page.locator('.landing-portrait-place')).toContainText(hero.standing.place);
-  await page.getByRole('button', { name: `Show the next banner: ${slideTitle(2)}` }).click();
-  await expect(page.getByRole('heading', { level: 1, name: slideTitle(2) })).toBeVisible();
-  await expect(page.locator('.landing-portrait figcaption').first()).toHaveText(hero.standing.photographNote);
-  // and the arrows wrap in both directions rather than dead-ending on the last banner
-  await page.getByRole('button', { name: `Show the previous banner: ${slideTitle(1)}` }).click();
-  await expect(page.getByRole('heading', { level: 1, name: slideTitle(1) })).toBeVisible();
+  /* The strip the founder asked to remove: no trust marks, no counter, no arrows, and the hero holds no
+     pause pill of its own. */
+  await expect(page.locator('.landing-hero-marks')).toHaveCount(0);
+  await expect(page.locator('.landing-slide-index')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Show the (next|previous) banner/ })).toHaveCount(0);
+  await expect(page.locator('.landing-hero .m-pause')).toHaveCount(0);
+  await page.waitForTimeout(8_000);
+  expect(await showing(page), 'the hero moved on with nothing to stop it').toBe(slideTitle(1));
 });
 
 /* Every word on the banner comes from packages/catalog/hero.json, which is the whole reason the
    four supplied compositions were taken apart. A slide rendering its own copy would pass every
    assertion above; this one walks the contract and asks the page for each piece. */
-test('every word on a banner is the contract\u2019s', async ({ page }) => {
-  for (let i = 0; i < hero.slides.length; i += 1) {
-    const slide = hero.slides[i];
-    if (i) await page.getByRole('button', { name: /Show the next banner/ }).click();
-    const on = page.locator('.landing-hero-slide.is-on');
-    await expect(on).toContainText(slide.eyebrow);
-    await expect(on).toContainText(slide.body);
-    await expect(on.getByRole('link', { name: new RegExp(slide.action.label) })).toBeVisible();
-    const trust = page.locator('.editorial-trust .landing-hero-marks:visible');
-    for (const mark of slide.marks) for (const line of mark.lines) await expect(trust).toContainText(line);
-    const figure = page.locator('.landing-portrait .landing-slide.is-on');
-    for (const card of slide.cards) {
-      await expect(figure).toContainText(card.title);
-      for (const line of card.lines) await expect(figure).toContainText(line);
-    }
+test('every word on the banner is the contract\u2019s', async ({ page }) => {
+  const slide = hero.slides[0];
+  const on = page.locator('.landing-hero-slide.is-on');
+  await expect(on).toContainText(slide.eyebrow);
+  await expect(on).toContainText(slide.body);
+  await expect(on.getByRole('link', { name: new RegExp(slide.action.label) })).toBeVisible();
+  const figure = page.locator('.landing-portrait .landing-slide.is-on');
+  for (const card of slide.cards) {
+    await expect(figure).toContainText(card.title);
+    for (const line of card.lines) await expect(figure).toContainText(line);
   }
 });
 
 /* WCAG 2.2.2, which is the defect this page has already fixed once. Anything that moves by itself
-   for more than five seconds needs a mechanism to pause it, and the mechanism here is the page's
-   one pause control rather than a second one belonging to the carousel — so pressing it has to
-   stop the pictures as well as the two drifts. Both halves are asserted, because a pause control
-   on something that never moved would prove nothing. */
-test('the hero rotates on its own, and the page’s pause control stops it', async ({ page }) => {
-  test.setTimeout(90_000);
-  const first = await showing(page);
-  await expect.poll(() => showing(page), { timeout: 20_000 }).not.toBe(first);
+   for more than five seconds needs a mechanism to pause it. The hero no longer moves; the two ambient
+   drifts still do, and the page's one pause control — in the top bar since 28 September — stops them. */
+test('the page\u2019s pause control, in the top bar, stops the ambient motion', async ({ page }) => {
+  const pause = page.locator('.landing-nav .m-pause');
+  await expect(pause).toHaveCount(1);
+  /* The entrance animations are one-shot and finish on their own; what the control must stop is the
+     endless kind, so they are given their moment before the press. */
+  await page.waitForTimeout(3_000);
   await page.getByRole('button', { name: 'Pause motion' }).click();
-  const held = await showing(page);
   /* The flag every decorative animation on this page is gated on is down, and none of them is
      running. Keyframe animations only: a transition still settling is a state change the reader
-     just caused with that very press, and stopping the page's motion does not mean the button they
-     pressed may not finish colouring. What must be gone is the endless kind. */
+     just caused with that very press. */
   expect(await page.evaluate(() => document.documentElement.dataset.decor)).toBeUndefined();
   expect(await page.evaluate(() => document.getAnimations()
     .filter(a => a.playState === 'running' && (a as CSSAnimation).animationName)
     .map(a => (a as CSSAnimation).animationName))).toEqual([]);
-  await page.waitForTimeout(SLIDE_MS * 1.6);
-  expect(await showing(page), 'the hero moved on after the reader had stopped the motion').toBe(held);
-  await page.getByRole('button', { name: 'Play motion' }).click();
-  await expect.poll(() => showing(page), { timeout: 20_000 }).not.toBe(held);
+  await expect(page.getByRole('button', { name: 'Play motion' })).toBeVisible();
 });
 
 test.describe('when the reader has asked for less motion, the hero', () => {
   test.use({ reducedMotion: 'reduce' });
-  test('does not rotate, offers no pause control, and can still be walked by hand', async ({ page }) => {
-    test.setTimeout(60_000);
-    const first = await showing(page);
+  test('offers no pause control and nothing runs', async ({ page }) => {
     // nothing to pause, so nothing offering to. A disabled button explaining an absence is worse
     await expect(page.locator('.m-pause')).toHaveCount(0);
-    await page.waitForTimeout(SLIDE_MS * 1.6);
-    expect(await showing(page), 'the hero rotated for a reader who had asked for stillness').toBe(first);
+    expect(await showing(page)).toBe(slideTitle(1));
     expect(await page.evaluate(() => document.getAnimations().filter(a => a.playState === 'running').length)).toBe(0);
-    // removing the motion may not remove the pictures: the arrows are how they are reached
-    await page.getByRole('button', { name: /Show the next banner/ }).click();
-    expect(await showing(page)).not.toBe(first);
   });
 });

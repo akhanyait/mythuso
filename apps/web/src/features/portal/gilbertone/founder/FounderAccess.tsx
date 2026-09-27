@@ -47,6 +47,19 @@ export function FounderAccessPanel({ cardId }: { cardId?: string }) {
  </div>;
 }
 
+/* The settings gate's panel, on the founder's amendment of 28 September 2026: drawn where a settings editor
+   would be, it shows the same sign-in form as the reveal panel while the founder is signed out, the session
+   line and Sign out while signed in, and the contract's preview sentence where founder access is dark or the
+   service does not answer. It reveals nothing and draws no field of its own — SignIn above is the one form. */
+export function FounderGatePanel({ sentence, phase }: { sentence: string; phase: 'checking' | 'signed-out' | 'refused' | 'signed-in' | 'preview' }) {
+ return <div className="g1-founder g1-founder-gate" role="region" aria-label={founderContract.gate.words.lockedHeading}>
+  {phase === 'signed-out' && <p className="pt-label">{founderContract.gate.words.lockedHeading}</p>}
+  <p className={phase === 'refused' ? 'g1-founder-refusal' : 'helper'} role={phase === 'checking' ? 'status' : undefined}>{sentence}</p>
+  {phase === 'signed-out' && <SignIn message={null}/>}
+  {phase === 'signed-in' && <button type="button" className="secondary g1-founder-button" onClick={() => void signOut()}>{words.signOut}</button>}
+ </div>;
+}
+
 /* The two factors, cleared from the form the moment they are sent, whatever the answer. */
 function SignIn({ message }: { message: string | null }) {
  const [password, setPassword] = useState('');

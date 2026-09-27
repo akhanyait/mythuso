@@ -221,9 +221,10 @@ export function VoicePreview({ placement, cardId }: { placement: string; cardId?
      <textarea id={reasonField} value={saving.reason} onChange={event => { saving.setReason(event.target.value); saving.clear(); }} aria-describedby={`${reasonField}-help`} autoComplete="off" spellCheck={false}/>
      <small id={`${reasonField}-help`}>{settingsScreen.reasonHelp}</small>
     </label>
-    <LiveButton id="voice-save-as-default" describedBy={asked === inForce ? `${saveWhy}-same` : saveWhy} disabled={asked === inForce} onClick={() => { if (asked) saving.save(classId, asked); }}/>
+    <LiveButton id="voice-save-as-default" describedBy={saving.gate.locked ? `${saveWhy}-gate` : asked === inForce ? `${saveWhy}-same` : saveWhy} disabled={asked === inForce || saving.gate.locked} onClick={() => { if (asked) saving.save(classId, asked); }}/>
     <LiveSentence id="voice-save-as-default" sentenceId={saveWhy}/>
     <p id={`${saveWhy}-same`} className="g1-refusal">{words.nothingToSave}</p>
+    <p id={`${saveWhy}-gate`} className={saving.gate.locked ? 'g1-refusal' : 'helper'}>{saving.gate.sentence}</p>
     <p className="helper">{words.sessionSentence}</p>
     {saving.sentence && <p className={saving.outcome?.ok ? 'g1-verdict' : 'g1-rejected'} role={saving.outcome?.ok ? 'status' : 'alert'}>{saving.sentence}</p>}
    </div>

@@ -1682,3 +1682,13 @@ html:has(.landing) {
     font-size: 14px;
   }
 }
+
+/* The page's one pause control, in the top bar since 28 September 2026, when the strip beneath the
+   hero went. A compact pill beside Log in: the icon and the written label at the width of the
+   other bar items, so the header keeps one line on a phone and the label is never clipped. */
+.landing-nav .landing-nav-pause { margin-left: auto; margin-right: 10px; padding: 0 12px; min-height: 44px; min-width: 44px; font-size: 0.875rem; }
+.landing-nav .landing-nav-pause + .landing-cta { margin-left: 0; }
+@media (max-width: 720px) {
+  .landing-nav .landing-nav-pause { margin-right: 6px; padding: 0 10px; }
+  .landing-nav .landing-nav-pause span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}

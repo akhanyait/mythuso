@@ -34397,10 +34397,11 @@ console.log(
   if (fa.lockout.consecutiveFailures !== 5 || fa.lockout.lockSeconds !== 900)
     throw new Error("packages/catalog/founder-access.json's lock is no longer five consecutive failures for fifteen minutes, as the founder specified.");
 
-  /* 5. The cookie, exactly: __Host-, HttpOnly, Secure, SameSite=Strict, Path=/, Max-Age the fifteen
-     minutes, 256 random bits compared in constant time, no Domain, and a session that is never renewed. */
-  if (!fa.session.cookie.startsWith("__Host-") || JSON.stringify(fa.session.attributes) !== JSON.stringify(["HttpOnly", "Secure", "SameSite=Strict", "Path=/"]) || fa.session.lifetimeSeconds !== 900 || fa.session.idBytes !== 32)
-    throw new Error("packages/catalog/founder-access.json's session cookie is no longer __Host-, HttpOnly, Secure, SameSite=Strict, Path=/, fifteen minutes and 256 random bits.");
+  /* 5. The cookie, exactly: __Host-, HttpOnly, Secure, SameSite=Strict, Path=/, Max-Age the two hours the
+     founder set on 28 September 2026 (fifteen minutes before), 256 random bits compared in constant time,
+     no Domain, and a session that is never renewed. */
+  if (!fa.session.cookie.startsWith("__Host-") || JSON.stringify(fa.session.attributes) !== JSON.stringify(["HttpOnly", "Secure", "SameSite=Strict", "Path=/"]) || fa.session.lifetimeSeconds !== 7200 || fa.session.idBytes !== 32)
+    throw new Error("packages/catalog/founder-access.json's session cookie is no longer __Host-, HttpOnly, Secure, SameSite=Strict, Path=/, two hours and 256 random bits.");
   if (!faLibCode.includes('`${COOKIE}=${id}; ${contract.session.attributes.join("; ")}; Max-Age=${contract.session.lifetimeSeconds}`'))
     throw new Error(`${faLibFile} no longer builds the session cookie from exactly the contract's name, attributes and lifetime.`);
   if (/Domain=|Expires=/i.test(faLibCode))
@@ -34472,11 +34473,23 @@ console.log(
     const text = read(f);
     if (text.includes(field))
       throw new Error(`${f} names ${field}. A revealed key is read by founder access's reveal component and nowhere else.`);
-    if (/lib\/founder-access['"]/.test(text))
-      throw new Error(`${f} imports lib/founder-access. Only the reveal panel does.`);
+    /* Since 28 September 2026 one more file reads the session's state — lib/founder-gate.ts, the settings
+       gate — and it is held below to reading state and nothing else. */
+    if (/lib\/founder-access['"]/.test(text) && f !== "apps/web/src/lib/founder-gate.ts")
+      throw new Error(`${f} imports lib/founder-access. Only the reveal panel and the settings gate do.`);
     if (/^\s*import (?!type\b)[^;]*founder\/FounderAccess/m.test(text))
       throw new Error(`${f} imports the founder panel statically. It arrives on a dynamic import, so nobody who does not open it downloads it.`);
   }
+  /* The settings gate (28 September 2026) reads the session's state and nothing else: no reveal, no revealed
+     key, no request of its own, and nothing that could carry a password or a code. */
+  const faGate = uncommented(read("apps/web/src/lib/founder-gate.ts"));
+  if (/\breveal\b|revealedKey|\bfetch\s*\(|password|\bcode\b|signIn\(/.test(faGate) || !/useFounderState\(\)/.test(faGate) || !/founder\.gate\.words/.test(faGate))
+    throw new Error("apps/web/src/lib/founder-gate.ts does more than read the founder's session state into the contract's gate words. The gate opens an editor; it never signs in, reveals or requests anything itself.");
+  if (!/if \(state\.refusalId === 'founder-access-dark' \|\| state\.refusalId === null\) return \{ locked: false, phase: 'preview'/.test(faGate) || !/if \(state\.phase === 'signed-in'\) return \{ locked: false, phase: 'signed-in'/.test(faGate))
+    throw new Error("apps/web/src/lib/founder-gate.ts no longer opens the editor only for a signed-in founder, or as a preview only where founder access is dark or nothing answered. A gate that opened on any other answer would be a gate somebody else could pass.");
+  for (const f of fa.gate.unlocks)
+    if (!existsSync(f) || !/founder-gate|useVoiceSaving|Configuration/.test(read(f)))
+      throw new Error(`packages/catalog/founder-access.json#gate says ${f} is unlocked by the founder's session, and it does not read the gate.`);
   const split = faScreen.indexOf("function RevealKey(");
   const revealKey = faScreen.slice(split);
   if (split < 0 || faScreen.slice(0, split).includes(field) || !revealKey.includes(`shown.${field}`))

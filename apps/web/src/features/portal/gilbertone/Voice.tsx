@@ -83,7 +83,7 @@ export function VoiceScreen() {
         <select aria-label={fill(words.voiceSelectLabel, { class: c.label })} value={shown} onChange={event => { setChosen({ ...chosen, [c.id]: event.target.value as VoiceLabel }); saving.clear(); }}>
          {voiceChoicesOf(c.id).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
-        <LiveButton id="voice-save-as-default" name={`Save as default: ${c.label}`} describedBy={unchanged ? `${saveWhy}-same` : saveWhy} disabled={unchanged} onClick={() => saving.save(c.id, shown!)}/>
+        <LiveButton id="voice-save-as-default" name={`Save as default: ${c.label}`} describedBy={saving.gate.locked ? `${saveWhy}-gate` : unchanged ? `${saveWhy}-same` : saveWhy} disabled={unchanged || saving.gate.locked} onClick={() => saving.save(c.id, shown!)}/>
         <small>{fill(words.inForceSentence, { label: voiceChoicesOf(c.id).find(o => o.value === inForce[c.id])?.label ?? inForce[c.id]! })}</small>
        </div>
        : <span className="g1-locked-cell">{words.lockedRowSentence}</span>}</td>
@@ -98,6 +98,7 @@ export function VoiceScreen() {
     </label>
     <LiveSentence id="voice-save-as-default" sentenceId={saveWhy}/>
     <p id={`${saveWhy}-same`} className="g1-refusal">{words.nothingToSave}</p>
+    <p id={`${saveWhy}-gate`} className={saving.gate.locked ? 'g1-refusal' : 'helper'}>{saving.gate.sentence}</p>
     <p className="helper">{words.sessionSentence}</p>
     {saving.sentence && <p id={outcomeId} className={saving.outcome?.ok ? 'g1-verdict' : 'g1-rejected'} role={saving.outcome?.ok ? 'status' : 'alert'}>{saving.sentence}</p>}
    </div>

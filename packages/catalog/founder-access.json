@@ -5,7 +5,9 @@
     "on": "2026-09-24",
     "what": "A founder login and a guarded eye reveal of the two Azure keys in the Control Tower, built production-grade and dark by default.",
     "amends": "docs/PROMPT-CONTROL-TOWER-UI.md §1 (\"API keys never reach the browser in full\") and §12 (\"Do not reveal a full key to the browser\") for exactly one caller — the founder, signed in with a password and an authenticator code, typing a fresh code for each reveal — and exactly two keys. Every other administration screen, every other key and every other person is held to §1 and §12 unchanged.",
-    "why": "The founder holds the Azure resources and is the one person who re-enters a key when one is malformed (docs/governance/ASSISTANT-ACTIVATION.md: the speech key stored on 22 September was 140 characters with spaces in it). Reading the key back without a terminal on the box is what was asked for; the controls below are what make it something other than a key on a web page."
+    "why": "The founder holds the Azure resources and is the one person who re-enters a key when one is malformed (docs/governance/ASSISTANT-ACTIVATION.md: the speech key stored on 22 September was 140 characters with spaces in it). Reading the key back without a terminal on the box is what was asked for; the controls below are what make it something other than a key on a web page.",
+    "amendedOn": "2026-09-28",
+    "amendment": "The founder's instruction of 28 September 2026: sign in once with the password and the authenticator code, for two hours rather than fifteen minutes, and let that one sign-in also unlock changing settings on the Control Tower — the Configuration tab, GilbertOne's Voice and Speech settings — because today the founder is the only person who has access. A reveal of a key still needs a fresh code each time. Where founder access is switched off, or the service does not answer, the settings editors stay a preview held in the tab's memory and say so; the gate is enforced in the browser until the service keeps a settings history and enforces it itself."
   },
   "enable": {
     "variable": "MYTHUSO_FOUNDER_ACCESS",
@@ -40,15 +42,26 @@
   "session": {
     "cookie": "__Host-mythuso_founder",
     "idBytes": 32,
-    "lifetimeSeconds": 900,
+    "lifetimeSeconds": 7200,
     "attributes": ["HttpOnly", "Secure", "SameSite=Strict", "Path=/"],
     "concurrent": 1,
-    "why": "A random 256-bit id, held in the service's memory only — a restart signs the founder out, and nothing about a session is ever written down. Fifteen minutes from sign-in and not a second more: there is no renewal, because a session that renews itself is one that outlives the person who opened it. One session at a time: a new sign-in ends the previous one. The __Host- prefix makes the browser refuse the cookie unless it is Secure, has Path=/ and names no Domain, so no other name under mythuso.co.za can set or read it; HttpOnly keeps it from every script, SameSite=Strict from every other site's page."
+    "why": "A random 256-bit id, held in the service's memory only — a restart signs the founder out, and nothing about a session is ever written down. Two hours from sign-in and not a second more — fifteen minutes until the founder's amendment of 28 September 2026, when the same sign-in came to unlock the Control Tower's settings for a working session — and there is no renewal, because a session that renews itself is one that outlives the person who opened it. One session at a time: a new sign-in ends the previous one. The __Host- prefix makes the browser refuse the cookie unless it is Secure, has Path=/ and names no Domain, so no other name under mythuso.co.za can set or read it; HttpOnly keeps it from every script, SameSite=Strict from every other site's page."
   },
   "lockout": {
     "consecutiveFailures": 5,
     "lockSeconds": 900,
     "why": "Five consecutive failures — a wrong password, a wrong or reused code at sign-in, or a wrong or reused code at a reveal — lock founder access for fifteen minutes, for the whole account rather than per address, because there is one account and an attacker has as many addresses as they like. The lock ends every open session. It is refused before any password is hashed, so it is also what keeps a stranger from spending the box's memory on scrypt. The price is that a stranger can keep the founder locked out: that is the residual risk docs/governance/FOUNDER-ACCESS.md records, and it is the right way round."
+  },
+  "gate": {
+    "_note": "Since 28 September 2026 the founder's session also unlocks the settings editors in the Control Tower. The gate lives in the browser (apps/web/src/lib/founder-gate.ts): it asks the same session state the reveal panel does, and opens the editor only when the service says the founder is signed in. Where the service says founder access is dark, or does not answer at all — a local preview, a test — the editor is open as a preview, because every setting in the web preview lives in the tab's memory and reaches no patient; the screen says so in previewSentence. This is a gate on a preview until the service keeps a settings history, at which point the settings routes take the session cookie and the browser's gate stops being the only one.",
+    "unlocks": ["apps/web/src/features/Configuration.tsx", "apps/web/src/features/portal/gilbertone/Voice.tsx", "apps/web/src/features/portal/gilbertone/VoicePreview.tsx", "apps/web/src/features/portal/gilbertone/SpeechSettings.tsx"],
+    "words": {
+      "lockedHeading": "Sign in to change a setting",
+      "lockedSentence": "Founder access is switched on for this server, so a setting is changed only by the founder, signed in with the password and an authenticator code. One sign-in lasts {minutes} minutes and unlocks every settings editor in the Control Tower.",
+      "checkingSentence": "Asking the assistant service whether the founder is signed in…",
+      "openSentence": "Signed in as the founder. Settings can be changed on this screen until the session ends, {minutes} minutes after sign-in.",
+      "previewSentence": "Founder access is not switched on here, so these settings are a preview: a change lives in this tab's memory, reaches no patient, and a reload puts the defaults back."
+    }
   },
   "request": {
     "header": "X-MyThuso-Founder",

@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from 'react';
+import { Suspense, lazy, useId, useState, type FormEvent } from 'react';
 import { ArrowRight, CircleAlert, Search, ShieldAlert, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import vetting from '../../../../packages/catalog/vetting.json' with { type: 'json' };
 import {
@@ -7,6 +7,11 @@ import {
 } from '../../../../packages/engines/src/settings/shape.ts';
 import { adminOnDuty, applyChange, doctorOnDuty, engineIds, previewChange, reviewsOf, settingsEngineOf, useSettingsHistories, useSettingsReviews } from '../lib/settings';
 import { whoIs } from '../lib/roles';
+import { useFounderGate } from '../lib/founder-gate';
+
+/* The founder's sign-in, drawn where the editor would be while the gate is shut, on a dynamic import so
+   nobody who does not open a settings screen downloads it. */
+const FounderGatePanel = lazy(() => import('./portal/gilbertone/founder/FounderAccess').then(m => ({ default: m.FounderGatePanel })));
 import { ChoiceChips, RangeSlider, Switch } from './portal/Fields';
 
 /* Configuration, on the back office: every setting every engine works to, in one place.
@@ -299,6 +304,9 @@ function Figure({ limits, value }: { limits: Limits; value: unknown }) {
    same component. */
 export function Configuration({ engine, onEngine, fixed = false }: { engine: string; onEngine: (engine: string) => void; fixed?: boolean }) {
  const histories = useSettingsHistories();
+ /* The founder's gate, 28 September 2026: the editor opens only when the service says the founder is signed
+    in, or as a preview where founder access is dark or nothing answers. lib/founder-gate.ts decides. */
+ const gate = useFounderGate();
  /* A doctor's confirmation changes what a setting says about its review, so the screen redraws on one. */
  useSettingsReviews();
  const id = useId();
@@ -314,6 +322,7 @@ export function Configuration({ engine, onEngine, fixed = false }: { engine: str
  return <div className="cf-area">
   <div className="privacy-note"><SlidersHorizontal size={19}/>{say.intro}</div>
   <div className="privacy-note alert"><CircleAlert size={19}/>{say.preview}</div>
+  <Suspense fallback={null}><FounderGatePanel sentence={gate.sentence} phase={gate.phase}/></Suspense>
   {/* One bar, two fields: what a setting is called and which engine owns it. Each keeps its own visible
       label, and the bar is only how they sit together — so a phone stacks them without losing either. */}
   <div className="cf-tools" role="search">
@@ -336,12 +345,12 @@ export function Configuration({ engine, onEngine, fixed = false }: { engine: str
   </div>
   <p className="ss-version" role="status">{fill(say.shown, { shown: String(shown), total: String(total) })}</p>
   {groups.length
-   ? groups.map(group => <EngineGroup key={group.block.engine} block={group.block} items={group.items} history={histories[group.block.engine] ?? []}/>)
+   ? groups.map(group => <EngineGroup key={group.block.engine} block={group.block} items={group.items} history={histories[group.block.engine] ?? []} locked={gate.locked}/>)
    : <p className="helper">{say.noMatch}</p>}
  </div>;
 }
 
-function EngineGroup({ block, items, history }: { block: SettingsBlock; items: readonly Setting[]; history: readonly Change[] }) {
+function EngineGroup({ block, items, history, locked }: { block: SettingsBlock; items: readonly Setting[]; history: readonly Change[]; locked: boolean }) {
  const id = useId();
  const [open, setOpen] = useState<string | null>(null);
  const [applied, setApplied] = useState<Change | null>(null);
@@ -350,8 +359,8 @@ function EngineGroup({ block, items, history }: { block: SettingsBlock; items: r
   <div className="section-title"><h2 id={id + '-title'}>{block.heading}</h2></div>
   <p className="helper">{block.intro}</p>
   <p className="ss-version" role="status">{fill(say.version, { version: String(snapshot.settingsVersion) })}{applied ? ` · ${fill(say.applied, { version: String(applied.settingsVersion), at: clockOf(applied.at) })}` : ''}</p>
-  <ol className="panel ss-timings">{items.map(setting => <SettingItem key={setting.key} engine={block.engine} setting={setting} snapshot={snapshot}
-   history={history.filter(change => change.setting === setting.key)} open={open === setting.key}
+  <ol className="panel ss-timings">{items.map(setting => <SettingItem key={setting.key} engine={block.engine} setting={setting} snapshot={snapshot} locked={locked}
+   history={history.filter(change => change.setting === setting.key)} open={open === setting.key && !locked}
    onOpen={() => { setOpen(setting.key); setApplied(null); }} onClose={() => setOpen(null)} onApplied={change => { setApplied(change); setOpen(null); }}/>)}</ol>
  </section>;
 }
@@ -361,8 +370,8 @@ function EngineGroup({ block, items, history }: { block: SettingsBlock; items: r
    "Last changed by" or "Not changed from the default" — so the tint is never the only difference. */
 const standingOf = (waitsOnReview: boolean, changed: boolean) => waitsOnReview ? 'review' : changed ? 'changed' : 'default';
 
-function SettingItem({ engine, setting, snapshot, history, open, onOpen, onClose, onApplied }: {
- engine: string; setting: Setting; snapshot: Snapshot; history: readonly Change[]; open: boolean; onOpen: () => void; onClose: () => void; onApplied: (change: Change) => void;
+function SettingItem({ engine, setting, snapshot, history, open, locked, onOpen, onClose, onApplied }: {
+ engine: string; setting: Setting; snapshot: Snapshot; history: readonly Change[]; open: boolean; locked: boolean; onOpen: () => void; onClose: () => void; onApplied: (change: Change) => void;
 }) {
  const inForce = snapshot.values[setting.key];
  const last = history.at(-1);
@@ -406,7 +415,9 @@ function SettingItem({ engine, setting, snapshot, history, open, onOpen, onClose
      </table></div>
     : <p className="helper">{say.historyEmpty} {say.historyNeverEdited}</p>}
   </details>
-  {open
+  {/* While the founder's gate is shut there is no Change button at all: the gate's own panel at the top of
+      the screen says why and carries the sign-in, so nothing here explains an absence twice. */}
+  {locked ? null : open
    ? <ChangeForm engine={engine} setting={setting} expectedVersion={snapshot.settingsVersion} from={inForce} onClose={onClose} onApplied={onApplied}/>
    : <button className="secondary m-press cf-open" onClick={onOpen}>{say.change}<span className="visually-hidden"> {setting.label}</span></button>}
  </li>;

@@ -450,7 +450,7 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   const text = await page.locator('main').innerText();
   expect(text).not.toMatch(/\bsk-[A-Za-z0-9._-]{3,}|•{3,}\s*\w{4}|SHA-256\s+[0-9a-f]{4}/);
   expect(text).not.toContain(PLANTED);
-  const editor = panel(page).getByRole('region', { name: words.editorHeading });
+  const editor = panel(page).getByRole('region', { name: new RegExp(`^${words.editorHeading}`) });
   await expect(editor.getByRole('combobox', { name: say.engine })).toHaveCount(0);
   await expect(editor.getByRole('heading', { level: 2, name: voice.settings.heading })).toBeVisible();
   /* A change through the embedded editor: the Azure speed to ninety, with a reason, reviewed then

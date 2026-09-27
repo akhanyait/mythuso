@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
   Apple,
-  ArrowLeft,
   ArrowRight,
   Bandage,
   CalendarClock,
@@ -55,7 +54,6 @@ import {
    wants the next one does not reach for the arrow — and it only ever runs while the page's
    decorative-motion flag is up, so a reader who has stopped motion, or asked their system for
    less of it, is never moved on at all. */
-const SLIDE_MS = 7000;
 /* Public content and role dashboards share the main address. A role selects a fictional
    preview workspace; real authentication remains the identity service's responsibility. */
 const appHref = "/?role=patient";
@@ -273,56 +271,20 @@ function useOpening() {
 }
 
 /* Editorial cover: one full-bleed photograph with the banner's words composed on it, and a ledge
-   of secondary matter beneath. The four contract-backed stories retain their real destinations and
-   accessible controls. */
+   of secondary matter beneath. Since 28 September 2026 it stands still on the first banner of
+   packages/catalog/hero.json: the founder asked for the strip beneath it — the trust marks, the
+   counter, the pause pill and the arrows — to go, and a picture that rotates by itself with no
+   control to stop it is what WCAG 2.2.2 refuses, so the rotation went with the controls rather than
+   outliving them. The other three banners stay in the contract, unshown, for the day a rotation
+   with a control comes back. The page's one pause control now sits in the top bar, where it still
+   stops the two ambient drifts. */
 function Hero() {
-  const { playing } = useDecor();
-  const [index, setIndex] = useState(0);
-  const [held, setHeld] = useState(false);
+  const slide = slides[0];
   const { opening, onClick: opened } = useOpening();
-  /* Which slides' photographs have actually been asked for. All four sit in the same absolutely-
-     positioned box (surface/public-revamp.css .editorial-hero .landing-slide), cross-faded with
-     opacity rather than moved off-screen, so the browser's own geometric lazy-load sees every one
-     of them as already in the viewport and fetches all four the moment the page opens, on the exact
-     metered connections this product is built for. Warming only the slide showing now and the one
-     showing next spreads that cost across the 7-second dwell between slides instead of paying all
-     of it on arrival, and a slide already warmed stays warmed so the cross-fade back to it never
-     re-fetches. The pictures are the contract's own crops from packages/banners — about 35 kB each
-     as WebP, 60 as JPEG — and never the 2 MB editorial PNGs this page carried until 26 September;
-     scripts/check-boundaries.mjs refuses those by path and by size. */
-  const [warmed, setWarmed] = useState(() => new Set([0, 1 % slides.length]));
-  const canHover =
-    typeof matchMedia === "function" &&
-    matchMedia("(hover: hover) and (pointer: fine)").matches;
-  const rotating = playing && !held;
-  useEffect(() => {
-    if (!rotating) return;
-    const timer = setTimeout(
-      () => setIndex((i) => (i + 1) % slides.length),
-      SLIDE_MS,
-    );
-    return () => clearTimeout(timer);
-  }, [rotating, index]);
-  useEffect(() => {
-    const next = (index + 1) % slides.length;
-    setWarmed((prev) =>
-      prev.has(index) && prev.has(next)
-        ? prev
-        : new Set(prev).add(index).add(next),
-    );
-  }, [index]);
-  const step = (by: number) => (index + by + slides.length) % slides.length;
-  const named = (i: number) =>
-    `${slides[i].headline.lead} ${slides[i].headline.accent}`;
-  const hold = canHover
-    ? { onMouseEnter: () => setHeld(true), onMouseLeave: () => setHeld(false) }
-    : {};
   return (
     <section
       className="landing-hero editorial-hero"
-      role="group"
-      aria-roledescription="carousel"
-      aria-label="MyThuso in four pictures"
+      aria-label="MyThuso"
       data-ambient="paused"
     >
       {/* The stage. Edge to edge, and two things in one cell: the photograph as the figure, and the
@@ -336,34 +298,27 @@ function Hero() {
       surface/revamp.css. A headline has already shipped on this project at 1.28:1; composing type
       over an image is exactly where that happens again if it is left to the eye. */}
       <div className="hero-stage">
-        <figure className="landing-portrait" {...hold}>
+        <figure className="landing-portrait">
           <div className="landing-portrait-frame">
-            {slides.map((slide, i) => (
-              <div
-                key={slide.id}
-                className={`landing-slide${i === index ? " is-on" : ""}`}
-                aria-hidden={i !== index}
-                inert={i !== index}
-              >
+            {[slide].map((slide) => (
+              <div key={slide.id} className="landing-slide is-on">
                 <div className="editorial-photo-visual">
-                  {warmed.has(i) && (
-                    <picture>
-                      <source
-                        srcSet={photographWebp(slide)}
-                        type="image/webp"
-                      />
-                      <img
-                        src={photographJpeg(slide)}
-                        alt=""
-                        aria-hidden="true"
-                        width="1774"
-                        height="887"
-                        loading={i === index ? "eager" : "lazy"}
-                        fetchPriority={i === index ? "high" : "low"}
-                        decoding="async"
-                      />
-                    </picture>
-                  )}
+                  <picture>
+                    <source
+                      srcSet={photographWebp(slide)}
+                      type="image/webp"
+                    />
+                    <img
+                      src={photographJpeg(slide)}
+                      alt=""
+                      aria-hidden="true"
+                      width="1774"
+                      height="887"
+                      loading="eager"
+                      fetchPriority="high"
+                      decoding="async"
+                    />
+                  </picture>
                 </div>
                 <div className="editorial-photo-footer">
                   <div className="editorial-photo-caption">
@@ -398,16 +353,9 @@ function Hero() {
           </p>
           <figcaption>{standing.photographNote}</figcaption>
         </figure>
-        <div className="landing-hero-copy" {...hold}>
-          {slides.map((slide, i) => (
-            <article
-              key={slide.id}
-              className={`landing-hero-slide${i === index ? " is-on" : ""}`}
-              aria-roledescription="slide"
-              aria-label={`${i + 1} of ${slides.length}`}
-              aria-hidden={i !== index}
-              inert={i !== index}
-            >
+        <div className="landing-hero-copy">
+          {[slide].map((slide) => (
+            <article key={slide.id} className="landing-hero-slide is-on">
               <div className="editorial-heading">
                 <p className="landing-hero-eyebrow">
                   <span /> {slide.eyebrow}
@@ -430,10 +378,9 @@ function Hero() {
                 <a
                   className="primary m-press"
                   href={heroHref(slide.action.goes)}
-                  tabIndex={i === index ? undefined : -1}
                   onClick={opened}
                 >
-                  {opening && i === index ? "Opening…" : slide.action.label}
+                  {opening ? "Opening…" : slide.action.label}
                   <ArrowRight size={18} />
                 </a>
               </div>
@@ -446,8 +393,8 @@ function Hero() {
         </div>
       </div>
 
-      {/* The ledge. What a reader consults rather than reads first: the price, what the visit includes,
-      and the controls for the four banners. It is on paper so the stage above it stays one image,
+      {/* The ledge. What a reader consults rather than reads first: the price and what the visit
+      includes. It is on paper so the stage above it stays one image,
       and the price panel is lifted into the picture's bottom edge from the width where there is
       room for it to overlap without covering anything. */}
       <div className="hero-ledge">
@@ -474,67 +421,6 @@ function Hero() {
           </a>
           <small>Planned launch pricing</small>
         </aside>
-        <div className="editorial-trust">
-          {slides.map((slide, i) => (
-            <ul
-              key={slide.id}
-              className="landing-hero-marks"
-              hidden={i !== index}
-            >
-              {slide.marks.map((mark) => (
-                <li key={mark.icon}>
-                  <span className="landing-hero-disc tint-mint">
-                    <HeroGlyph name={mark.icon} size={21} />
-                  </span>
-                  <span>
-                    {mark.lines.map((line) => (
-                      <i key={line}>{line}</i>
-                    ))}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ))}
-        </div>
-        <div className="landing-hero-foot">
-          <p className="landing-slide-index">
-            <span className="visually-hidden">Banner </span>
-            {String(index + 1).padStart(2, "0")}
-            <i aria-hidden="true">/</i>
-            <span className="visually-hidden">of </span>
-            {String(slides.length).padStart(2, "0")}
-          </p>
-          <span
-            className={`landing-slide-rule${rotating ? "" : " is-still"}`}
-            aria-hidden="true"
-            style={{ ["--slide-ms" as string]: `${SLIDE_MS}ms` }}
-          >
-            {slides.map((slide, i) => (
-              <i key={slide.id} className={i === index ? "is-on" : ""}>
-                <b />
-              </i>
-            ))}
-          </span>
-          <MotionPause />
-          <span className="landing-slide-steps">
-            <button
-              type="button"
-              className="landing-slide-step m-press"
-              onClick={() => setIndex(step(-1))}
-              aria-label={`Show the previous banner: ${named(step(-1))}`}
-            >
-              <ArrowLeft size={18} />
-            </button>
-            <button
-              type="button"
-              className="landing-slide-step m-press"
-              onClick={() => setIndex(step(1))}
-              aria-label={`Show the next banner: ${named(step(1))}`}
-            >
-              <ArrowRight size={18} />
-            </button>
-          </span>
-        </div>
       </div>
 
       <nav className="studio-bar-wrap" aria-label="Jump to a section">
@@ -646,6 +532,7 @@ export function Landing() {
             </a>
           ))}
         </nav>
+        <MotionPause className="landing-nav-pause" />
         <button
           className="primary landing-cta"
           type="button"

@@ -48,7 +48,7 @@ in the assistant service, and none of them trusts the page.
 | **Every code is burned** | An accepted code's step, and every step before it, is refused afterwards — at sign-in and at a reveal. | `lastUsedStep`; tests: replay refused |
 | **A fresh code for every reveal** | A live session is not enough to reveal: each reveal needs a code that has not been used. A stolen cookie reads metadata and reveals nothing. | reveal branch + `reveal()`; boundary check; test |
 | **Lockout** | Five consecutive failures — sign-in or reveal — lock the whole account for fifteen minutes and end every session. The lock is checked before any password is hashed. | `fail()`, `locked()`; boundary check; tests |
-| **The session** | A random 256-bit id in the cookie `__Host-mythuso_founder` — `HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=900`, no Domain. Held in memory only, hashed, compared in constant time, one at a time (a new sign-in ends the old one), fifteen minutes from sign-in with no renewal. A restart signs the founder out. | `sessionCookie()`, `sessionFrom()`; boundary check; test |
+| **The session** | A random 256-bit id in the cookie `__Host-mythuso_founder` — `HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=7200`, no Domain. Held in memory only, hashed, compared in constant time, one at a time (a new sign-in ends the old one), two hours (fifteen minutes until the founder's amendment of 28 September 2026, when the same sign-in came to unlock the Control Tower's settings) from sign-in with no renewal. A restart signs the founder out. | `sessionCookie()`, `sessionFrom()`; boundary check; test |
 | **Cross-site refused** | Every founder route refuses (`founder-request-cross-site`, 403) a request without the `X-MyThuso-Founder: 1` header or whose `Sec-Fetch-Site` is present and not `same-origin`. The origin policy grants that header to no origin, so a page on another site cannot even send it; the existing origin policy still refuses any browser origin but the site's own first. | `crossSite()`; test |
 | **Two names, exactly** | Only `AZURE_OPENAI_KEY` and `AZURE_SPEECH_KEY` can be revealed. Any other name is refused (`founder-name-not-allowed`) before the environment is read — never the password hash, the authenticator secret, an endpoint, or anything a future line in an env file might hold. | `REVEAL_ALLOWLIST`, `reveal()`; boundary check; test |
 | **The response** | The key travels in one response body with `Cache-Control: no-store` and `Pragma: no-cache`, and in nothing else — no header, no log, no URL. | reveal branch; test |
@@ -79,7 +79,7 @@ back in is root on the box, on purpose.
 | **Nothing** (an external attacker on the internet) | See whether founder access is on (401 against 503). Guess at sign-in, at most five times per fifteen minutes before the lock, behind nginx's 60 requests a minute. Keep the founder locked out by failing on purpose. | Reveal or read anything. Get a password hashed while the lock holds. Reach the service except through nginx. |
 | **The password alone** | Nothing more than the stranger above: sign-in needs the code too, and the refusal does not tell them the password was right. Their failures still count toward the lock. | Sign in; learn that the password is correct; reveal anything. |
 | **The password and one code they watched being typed** | Nothing, once the founder has used it: it is burned. Within the ninety seconds of its window, if the founder has not used it yet, sign in — and then still need a *further* fresh code to reveal. | Reveal a key without a second code nobody has used. |
-| **A stolen session cookie** (malware in the founder's browser could not read it — it is HttpOnly — but a copy from the founder's disk could) | Read the two keys' metadata (present, last four, fingerprint) until the session's fifteen minutes run out. | Reveal a key (each reveal needs a fresh code). Extend the session. Use it after a restart or a new sign-in. |
+| **A stolen session cookie** (malware in the founder's browser could not read it — it is HttpOnly — but a copy from the founder's disk could) | Read the two keys' metadata (present, last four, fingerprint) until the session's two hours run out. | Reveal a key (each reveal needs a fresh code). Extend the session. Use it after a restart or a new sign-in. |
 | **The authenticator secret** (the phone, or a copy of the URI from the scrollback) | Mint codes forever — the second factor is gone. Still needs the password. | Sign in without the password. |
 | **The founder's unlocked, compromised browser** | Everything the founder can do while signed in, including watching a reveal. This is the residual risk no server-side control removes. | Anything after sign-out or a restart without the founder's next code. |
 | **Root on the box** | Read `/etc/mythuso/assistant.env` and the keys directly, whether founder access exists or not; read or replace the founder credential. | — founder access neither adds to nor subtracts from root. |
@@ -107,6 +107,18 @@ back in is root on the box, on purpose.
 - **No DPIA covers this.** It touches no health information and no personal information but the
   founder's own sign-in; when the assistant's DPIA is written it should still name founder access, as
   the speech amendment in `CLAUDE.md` asks for the microphone.
+
+## The settings gate, 28 September 2026
+
+The founder's amendment: one sign-in, for two hours, also unlocks the settings editors in the
+Control Tower — the Configuration tab, GilbertOne's Voice saves and Speech settings — because the
+founder is the only person with access today. The gate is `apps/web/src/lib/founder-gate.ts`, in the
+browser: it opens an editor only when the service says the founder is signed in. Where founder access
+is switched off, or the service does not answer, the editors stay a preview and say so, since every
+setting in the web preview lives in the tab's memory and reaches no patient. That means the gate is a
+gate on a preview: the day the service keeps a settings history, the settings routes take the session
+cookie and enforce it themselves, and the browser's gate stops being the only one. A reveal of a key
+still needs a fresh code each time; the longer session does not change that.
 
 ## When this file is updated
 

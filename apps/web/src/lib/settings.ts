@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import {
- confirmReview, confirmerRoles, proposeChange, reviewStateOf, snapshotOf,
+ confirmReview, confirmerRoles, proposeChange, refusalFor, reviewStateOf, snapshotOf,
  type Change, type ChangeRequest, type Refusal, type Review, type ReviewState, type Setting, type SettingValue, type SettingsEngine, type Snapshot
 } from '../../../../packages/engines/src/settings/shape.ts';
 import { settingsEngines } from '../../../../packages/engines/src/settings/registry.ts';
@@ -84,6 +84,9 @@ const settingOf = (engine: string, key: string): Setting => {
 
 /* The shared screen words, for the doctor's review panel, which reads settings through this file alone. */
 export { settingsScreen } from '../../../../packages/engines/src/settings/shape.ts';
+/* A shared settings refusal by id — its status and its sentence from packages/catalog/settings.json — for a
+   screen that refuses a change before the rules see it, such as the founder's gate, in the contract's shape. */
+export const settingsRefusal = (kind: 'read' | 'change' | 'review', id: string): Refusal => refusalFor(kind, id);
 export type { Review } from '../../../../packages/engines/src/settings/shape.ts';
 export const engineIds = Object.keys(settingsEngines);
 export const settingsEngineOf = engineOf;

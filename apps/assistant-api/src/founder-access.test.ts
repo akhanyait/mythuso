@@ -29,7 +29,7 @@ import assistantContract from "../../../packages/catalog/apis/assistant.json" wi
    The fixtures are synthetic and shaped so scripts/check-boundaries.mjs's credential sweep has nothing
    to find: the two "keys" are fixed nonsense tokens with a hyphen in them, never assembled beside their
    variable's name with an equals sign, and the password is a sentence nobody would use. Time is always
-   passed in, so the TOTP window, the lock and the session's fifteen minutes are tested rather than
+   passed in, so the TOTP window, the lock and the session's two hours are tested rather than
    waited for. Every line the service writes while a test runs is read back and held to the absence of
    the password, every code typed, the cookie and both keys. */
 
@@ -252,7 +252,7 @@ test("a request without the founder header, or from another site, is refused bef
 
 /* ---- Sign-in, the cookie and the session --------------------------------------------------------- */
 
-test("sign-in sets exactly the specified cookie, and the session ends fifteen minutes later with no renewal", async () => {
+test("sign-in sets exactly the specified cookie, and the session ends two hours later with no renewal", async () => {
   const time = clock();
   await withFounderServer(await env(), time.now, async (base) => {
     const signed = await fetch(`${base}/assistant/v1/founder/session`, {
@@ -268,7 +268,7 @@ test("sign-in sets exactly the specified cookie, and the session ends fifteen mi
     assert.equal(name, contract.session.cookie);
     assert.match(id!, /^[A-Za-z0-9_-]{43}$/, "256 random bits, base64url");
     assert.deepEqual(attributes, [...contract.session.attributes, `Max-Age=${contract.session.lifetimeSeconds}`]);
-    assert.deepEqual(attributes, ["HttpOnly", "Secure", "SameSite=Strict", "Path=/", "Max-Age=900"]);
+    assert.deepEqual(attributes, ["HttpOnly", "Secure", "SameSite=Strict", "Path=/", "Max-Age=7200"]);
     const body = (await signed.json()) as Record<string, unknown>;
     assert.deepEqual(Object.keys(body).sort(), ["expiresAt", "signedIn"], "the id travels in the cookie only");
 

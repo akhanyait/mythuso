@@ -30,7 +30,7 @@ import contract from "../../../../packages/catalog/founder-access.json" with { t
      says which of them failed.
 
      A fresh code for every reveal, on top of the session. A stolen cookie alone reads the keys'
-     metadata for at most fifteen minutes and reveals nothing.
+     metadata for at most two hours and reveals nothing.
 
      Every accepted code is burned: the step it came from and every step before it are refused, so a
      code read over a shoulder is worth nothing once it has been used.
@@ -39,7 +39,8 @@ import contract from "../../../../packages/catalog/founder-access.json" with { t
      lock is checked before any password is hashed.
 
      A session is a random 256-bit id in this process's memory, hashed before it is kept, compared in
-     constant time, one at a time, fifteen minutes from sign-in with no renewal. A restart signs the
+     constant time, one at a time, two hours from sign-in with no renewal (fifteen minutes until the
+     founder's amendment of 28 September 2026). A restart signs the
      founder out, because nothing about a session is written down.
 
      Exactly two names can be revealed, read from the contract, and a name outside them is refused

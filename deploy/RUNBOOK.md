@@ -520,7 +520,10 @@ Not part of any deploy, and off on every box until the founder switches it on he
 Founder access lets the founder — and nobody else — sign in to the assistant service from the
 Control Tower (GilbertOne → Model Providers, or the Azure OpenAI and Azure Speech cards on API
 Registry) with a password and an authenticator code, and reveal the Azure OpenAI key or the Azure
-Speech key, one at a time, with a fresh code each time. `docs/governance/FOUNDER-ACCESS.md` is the
+Speech key, one at a time, with a fresh code each time. Since 28 September 2026 the session lasts
+two hours and the same sign-in unlocks the settings editors in the Control Tower — Configuration,
+GilbertOne's Voice and Speech settings — where founder access is switched on; where it is off, the
+editors stay a preview held in the tab's memory and say so. `docs/governance/FOUNDER-ACCESS.md` is the
 account of what it is, what it refuses and what it cannot protect against; read it first.
 
 Two lines in `/etc/mythuso/founder.env` switch it on, and they are two separate acts: the
