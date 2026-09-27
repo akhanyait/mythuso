@@ -71,7 +71,7 @@ export function SpeechSettingsScreen() {
  const locked = voice.lockedSettings;
  const own = voice.ownVoice;
  return <>
-  <Empty heading={words.serviceReadsDefaults.split('.')[0]!}>{words.serviceReadsDefaults}</Empty>
+  <Empty heading={words.serviceReadsDefaults.split(':')[0]!}>{words.serviceReadsDefaults}</Empty>
 
   <div className="g1-speech" data-layout={wide ? 'wide' : 'narrow'}>
   <div className="g1-speech-editor">
