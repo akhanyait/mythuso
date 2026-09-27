@@ -31,6 +31,13 @@
   { "id": "not-configured", "sentence": "Nothing in MyThuso can call this provider. It is a name on a list.", "why": "The honest state of every proposed card: no adapter, no key, no contract." }
  ],
 
+ "speechSelection": {
+  "stt": "MYTHUSO_STT_PROVIDER",
+  "tts": "MYTHUSO_TTS_PROVIDER",
+  "default": "azure-speech",
+  "why": "Added 28 September 2026 with the second and third speech providers. Each variable names a card below by id, per direction; unset means the default, which is the one provider with a South African region. A value that is not a built speech card serving that direction refuses the service at start-up, naming the cards it could have been (apps/assistant-api/src/lib/speech.ts). These are the service's own switches rather than a card's credential, so they are named here and not in any card's environment, and deploy/ops/configure-assistant-env.sh does not write them: selecting where a patient's voice goes is a decision written by hand, like the production acknowledgement."
+ },
+
  "cards": [
   {
    "id": "azure-openai",
@@ -66,11 +73,12 @@
    "buildStatus": "proposed",
    "statusToday": "not-configured",
    "environment": [],
-   "codeNames": ["dashscope", "qwen"],
+   "codeNames": ["qwen-plus", "qwen-max", "qwen-turbo", "compatible-mode/v1", "text-generation/generation"],
+   "_codeNamesWhy": "Until 28 September 2026 the sweep terms were \"dashscope\" and \"qwen\". That day the two speech adapters (alibaba-qwen-asr, alibaba-qwen-tts) were built on the same host and key, so the language model's own strings — its chat models and its two generation doors — are what the build sweeps for now. No speech adapter names any of them.",
    "capabilityRef": null,
    "feedRef": null,
    "gate": "G33",
-   "why": "Named by the plan. The residency selector's three regions for it are candidates in model-providers.json, none chosen."
+   "why": "Named by the plan. The residency selector's three regions for it are candidates in model-providers.json, none chosen. The speech models on the same platform have their own cards below, built and not configured; this card is the language model alone."
   },
   {
    "id": "deepseek",
@@ -111,6 +119,7 @@
    "productionConfigured": true,
    "productionEvidence": "docs/governance/ASSISTANT-ACTIVATION.md",
    "regionFrom": "apps/assistant-api/src/lib/speech.ts SPEECH_REGIONS",
+   "regions": { "pinnedTo": "southafricanorth", "southAfricanRegion": true, "why": "The one region SPEECH_REGIONS admits, the one the Watchful DPIA assessed. A pinned region is not a residency decision; it is the reason this card, and only this card, may be a speech default while §7 is blank." },
    "voicesFrom": "packages/catalog/assistant.json#voice.cloud.voices and #voice.languages[].ttsVoices",
    "pricing": {
     "perMillionCharactersUsd": 16,
@@ -158,14 +167,36 @@
    "category": "speech",
    "serves": ["tts"],
    "name": "Alibaba Qwen-TTS",
-   "buildStatus": "proposed",
+   "buildStatus": "built",
    "statusToday": "not-configured",
-   "environment": [],
-   "codeNames": ["dashscope", "qwen"],
+   "adapter": { "file": "apps/assistant-api/src/lib/providers/alibaba-qwen.ts", "symbol": "alibabaQwenTts" },
+   "environment": ["DASHSCOPE_API_KEY", "DASHSCOPE_REGION"],
+   "model": "qwen-tts",
+   "regions": {
+    "hosts": { "singapore": "dashscope-intl.aliyuncs.com", "beijing": "dashscope.aliyuncs.com" },
+    "selectedBy": "DASHSCOPE_REGION",
+    "southAfricanRegion": false,
+    "why": "DashScope serves from Singapore or Beijing and from nowhere in South Africa. GilbertOne's spoken answer sent to either is a cross-border transfer of special personal information under POPIA section 72, and the section 72 register has no basis for it."
+   },
+   "voices": { "en": { "default": "Cherry", "names": ["Cherry", "Serena", "Ethan", "Chelsie"] } },
+   "_voicesWhy": "The four voices the model's voice list documents for qwen-tts, each documented as speaking English among others; none is documented for isiZulu, isiXhosa, Sesotho or Afrikaans, so no voice is named for them and the adapter answers voiceUnavailable for each. The plan's claim that Qwen speaks no South African language holds for the four languages beside English. Read from the voice list on 2026-09-28, not measured. These are the only names apps/assistant-api/src/lib/speech.ts admits for this provider.",
+   "audioRetainedByProvider": "The documented non-streaming answer is a link to the rendered audio that stays valid for 24 hours on the provider's own storage: a copy of a spoken health answer outside this process for that long, by the provider's own documentation, and a fact the residency decision must weigh.",
+   "shapesFrom": { "documentation": "https://www.alibabacloud.com/help/en/model-studio/qwen-tts", "exercisedAgainstLiveApi": false, "why": "The request and the reading were written from the published reference and not tried against the live API in the change that built them; the adapter's header says so." },
+   "pricing": {
+    "perMillionCharactersUsd": null,
+    "unitCharacters": 1000000,
+    "currency": "USD",
+    "source": "https://help.aliyun.com/en/model-studio/model-qwen-tts",
+    "recordedOn": "2026-09-28",
+    "documented": { "region": "beijing", "currency": "CNY", "inputTextPerMillionTokens": 1.6, "outputAudioPerMillionTokens": 10 },
+    "why": "No international (Singapore) list price for qwen-tts could be read on the day recorded; the only figure documented is the Beijing region's, in CNY per million tokens for input text and output audio, which is neither per character nor in the currency Azure's card records. It is written here as documented rather than converted, because a converted figure is a guess that reads like a price. The per-million-characters figure stays null until an operator reads one, so the Voice screen's preview has nothing to multiply and says so."
+   },
+   "residency": { "tier": null, "section72Determined": false, "dpaRef": null },
+   "gate": "G33",
+   "_gateWhy": "G33 is the residency gate: a signed residency decision (docs/governance/DATA-RESIDENCY-OPTIONS.md §7), the section 72 register updated and a DPA executed. Until it closes the adapter may be configured in development only; apps/assistant-api/src/lib/speech.ts refuses to select it in production.",
    "capabilityRef": null,
    "feedRef": null,
-   "gate": "G33",
-   "why": "Named by the plan, which records it as speaking no South African language yet. That claim is the plan's and was not checked here."
+   "why": "Built 28 September 2026 on the founder's ask and configured nowhere. Selected by MYTHUSO_TTS_PROVIDER=alibaba-qwen-tts (speechSelection above). Speaks English of the contract's languages and nothing else it documents."
   },
   {
    "id": "deepgram-nova-3",
@@ -185,27 +216,51 @@
    "category": "speech",
    "serves": ["stt"],
    "name": "OpenAI Whisper (hosted)",
-   "buildStatus": "proposed",
+   "buildStatus": "built",
    "statusToday": "not-configured",
-   "environment": [],
-   "codeNames": ["whisper-1", "/audio/transcriptions"],
+   "adapter": { "file": "apps/assistant-api/src/lib/providers/openai-whisper.ts", "symbol": "openaiWhisper" },
+   "environment": ["OPENAI_API_KEY", "OPENAI_TRANSCRIBE_MODEL"],
+   "defaults": { "OPENAI_TRANSCRIBE_MODEL": "whisper-1" },
+   "regions": {
+    "hosts": { "default": "api.openai.com" },
+    "southAfricanRegion": false,
+    "why": "OpenAI publishes no processing region a customer can pin and none in South Africa; a capture sent here is processed in the United States. That is a cross-border transfer of special personal information under POPIA section 72, and the section 72 register has no basis for it."
+   },
+   "languages": ["en", "af"],
+   "_languagesWhy": "Of the contract's languages, English and Afrikaans are on Whisper's published language list; isiZulu, isiXhosa and Sesotho are not. The adapter refuses a capture in a language outside this list before anything leaves. Read from the model's documentation on 2026-09-28, not measured.",
+   "shapesFrom": { "documentation": "https://platform.openai.com/docs/api-reference/audio/createTranscription", "exercisedAgainstLiveApi": false, "why": "The request and the reading were written from the published reference and not tried against the live API in the change that built them; the adapter's header says so, and the first operator to configure it is the first to find out." },
+   "residency": { "tier": null, "section72Determined": false, "dpaRef": null },
+   "gate": "G33",
+   "_gateWhy": "G33 is the residency gate: a signed residency decision (docs/governance/DATA-RESIDENCY-OPTIONS.md §7), the section 72 register updated and a DPA executed. Until it closes the adapter may be configured in development only; apps/assistant-api/src/lib/speech.ts refuses to select it in production.",
    "capabilityRef": null,
    "feedRef": "speech-transcript",
-   "why": "The hosted API. faster-whisper running on the device, which the founder's speech amendment names, is not an external API and is not this card."
+   "why": "The hosted API, built 28 September 2026 on the founder's ask and configured nowhere. Selected by MYTHUSO_STT_PROVIDER=openai-whisper (speechSelection above). faster-whisper running on the device, which the founder's speech amendment names, is not an external API and is not this card."
   },
   {
    "id": "alibaba-qwen-asr",
    "category": "speech",
    "serves": ["stt"],
    "name": "Alibaba Qwen-ASR",
-   "buildStatus": "proposed",
+   "buildStatus": "built",
    "statusToday": "not-configured",
-   "environment": [],
-   "codeNames": ["dashscope", "qwen"],
+   "adapter": { "file": "apps/assistant-api/src/lib/providers/alibaba-qwen.ts", "symbol": "alibabaQwenAsr" },
+   "environment": ["DASHSCOPE_API_KEY", "DASHSCOPE_REGION"],
+   "model": "qwen3-asr-flash",
+   "regions": {
+    "hosts": { "singapore": "dashscope-intl.aliyuncs.com", "beijing": "dashscope.aliyuncs.com" },
+    "selectedBy": "DASHSCOPE_REGION",
+    "southAfricanRegion": false,
+    "why": "DashScope serves from Singapore or Beijing and from nowhere in South Africa. A patient's capture sent to either is a cross-border transfer of special personal information under POPIA section 72, and the section 72 register has no basis for it."
+   },
+   "languages": ["en"],
+   "_languagesWhy": "The model's documentation lists eleven languages; of the contract's, English alone. The adapter refuses a capture in a language outside this list before anything leaves. Read from the documentation on 2026-09-28, not measured.",
+   "shapesFrom": { "documentation": "https://www.alibabacloud.com/help/en/model-studio/qwen-asr-api-reference", "exercisedAgainstLiveApi": false, "why": "The request and the reading were written from the published reference and not tried against the live API in the change that built them; the adapter's header says so." },
+   "residency": { "tier": null, "section72Determined": false, "dpaRef": null },
+   "gate": "G33",
+   "_gateWhy": "G33 is the residency gate: a signed residency decision (docs/governance/DATA-RESIDENCY-OPTIONS.md §7), the section 72 register updated and a DPA executed. Until it closes the adapter may be configured in development only; apps/assistant-api/src/lib/speech.ts refuses to select it in production.",
    "capabilityRef": null,
    "feedRef": "speech-transcript",
-   "gate": "G33",
-   "why": "Named by the plan and by nothing else."
+   "why": "Built 28 September 2026 on the founder's ask and configured nowhere. Selected by MYTHUSO_STT_PROVIDER=alibaba-qwen-asr (speechSelection above)."
   },
   {
    "id": "payfast",
@@ -461,7 +516,10 @@
   { "route": "POST /v1/knowledge/search", "version": 2, "field": "query", "providerRef": "azure-openai", "phi": true, "after": "redactPHI, then embedded", "why": "A search query is a question, and a question may be about somebody's health." },
   { "route": "POST /v1/knowledge/search", "version": 2, "field": "query", "providerRef": "qdrant", "phi": true, "after": "as an embedding, where QDRANT_URL is set", "why": "An embedding of a health question is still derived from it." },
   { "route": "POST /v1/listen", "version": 3, "field": "audioBase64", "providerRef": "azure-speech", "phi": true, "after": "held in memory for the one request, never stored", "why": "What somebody says about their health is health information whether it arrives typed or spoken." },
-  { "route": "POST /v1/speak", "version": 3, "field": "text", "providerRef": "azure-speech", "phi": true, "after": "the catalogue's answer, read aloud", "why": "An answer about somebody's health, sent to be spoken, carries the question's subject with it." }
+  { "route": "POST /v1/speak", "version": 3, "field": "text", "providerRef": "azure-speech", "phi": true, "after": "the catalogue's answer, read aloud", "why": "An answer about somebody's health, sent to be spoken, carries the question's subject with it." },
+  { "route": "POST /v1/listen", "version": 3, "field": "audioBase64", "providerRef": "openai-whisper", "phi": true, "after": "held in memory for the one request, never stored here; only where MYTHUSO_STT_PROVIDER selects it, which production refuses while the residency decision is blank", "why": "The same capture, to a provider with no South African region: the flow exists in the tree the day the adapter does, and is recorded so the residency decision can weigh it rather than discover it." },
+  { "route": "POST /v1/listen", "version": 3, "field": "audioBase64", "providerRef": "alibaba-qwen-asr", "phi": true, "after": "held in memory for the one request, never stored here; only where MYTHUSO_STT_PROVIDER selects it, which production refuses while the residency decision is blank", "why": "As above, to Singapore or Beijing." },
+  { "route": "POST /v1/speak", "version": 3, "field": "text", "providerRef": "alibaba-qwen-tts", "phi": true, "after": "the catalogue's answer, read aloud, and by the provider's own documentation kept at a link for 24 hours on its storage; only where MYTHUSO_TTS_PROVIDER selects it, which production refuses while the residency decision is blank", "why": "As above, and with a retained copy the Azure flow does not have." }
  ],
  "_dataFlowsWhy": "Every route in packages/catalog/apis/assistant.json that sends a request field to an external provider, tagged by whether it may carry health information. scripts/check-boundaries.mjs holds each flow to a built route and a real field, refuses a health-information flow to a Tier 3 provider or to any provider that is not built, and reports — without failing, because it is production's state and not a code defect — how many health-information flows reach a provider with no residency decision. Today that is all of them, which is the gap docs/governance/ASSISTANT-ACTIVATION.md records.",
 
@@ -492,11 +550,16 @@
    "why": "Support access, backups, logs and telemetry can cross a border from an onshore region. A form that treated a region as the answer would close a question nobody had asked."
   },
   {
+   "id": "no-offshore-speech-for-health-information-without-a-residency-decision",
+   "statement": "A patient's capture and GilbertOne's spoken answer are health information. In production they are not sent to a speech provider with no South African region while docs/governance/DATA-RESIDENCY-OPTIONS.md §7 has no option chosen. The Information Officer and the responsible party sign that decision; no environment variable stands in for it.",
+   "why": "Two speech providers with no South African region were built on 28 September 2026 so they can be tested; the residency decision is the only thing that may let a patient's voice cross a border. apps/assistant-api/src/lib/speech.ts reads this statement, refuses the selection at start-up in its words and falls back to the default provider or to the speech-not-configured refusal, rather than using the provider quietly. An acknowledgement variable was considered and refused: who decides is written in that document's first section, and it is not an operator with root."
+  },
+  {
    "id": "the-not-connected-sentence-is-the-capability's",
    "statement": "A card never writes its own not-connected sentence. It names a capability, and the sentence is rendered from packages/catalog/capabilities.json word for word.",
    "why": "packages/catalog/feeds.json's the-notice-comes-from-the-capability rule, for the same reason: when an integration lands, one boolean changes and the sentence stops being said everywhere on the same day."
   }
  ],
 
- "preview": "No API Registry screen exists. No key has been entered, rotated or revoked through any screen, no provider has been enabled or disabled from one, and no balance has been read. Azure OpenAI and Azure Speech are configured in production, OpenFreeMap's tiles are asked for from the browser without a key, Ollama, Qdrant and the knowledge sources are built and dark, and every other card is a name in a plan."
+ "preview": "No key has been entered, rotated or revoked through any screen, no provider has been enabled or disabled from one, and no balance has been read. Azure OpenAI and Azure Speech are configured in production, OpenFreeMap's tiles are asked for from the browser without a key, Ollama, Qdrant and the knowledge sources are built and dark, OpenAI Whisper, Alibaba Qwen-ASR and Alibaba Qwen-TTS are built and configured nowhere — and refused in production for patient audio until the residency decision is signed — and every other card is a name in a plan."
 }

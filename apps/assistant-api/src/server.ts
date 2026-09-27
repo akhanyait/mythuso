@@ -25,7 +25,8 @@ import {
 } from "./lib/founder-access.ts";
 import { corsFor } from "./lib/origin-policy.ts";
 import {
-  cloudSpeech,
+  selectedSpeech,
+  speechSelection,
   SPEECH_VOICE_NAMES,
   type SpeechSeam,
 } from "./lib/speech.ts";
@@ -311,8 +312,9 @@ export function liveClinicalFlows(): ClinicalFlowSeam {
    of that catch; the search is a seam because
    the corpus it reads is a startup fact, and the one way to hold this file to its own "nothing
    is returned without a source to stand on" is to be able to hand it a match that has none; the
-   speech seam is ./lib/speech.ts's two Azure doors, injectable so the listen and speak tests can
-   prove the configured and the unconfigured halves without a credential or a network; the clinical
+   speech seam is ./lib/speech.ts's selection — Azure's two doors unless the environment names
+   another built provider per direction — injectable so the listen and speak tests can prove the
+   configured and the unconfigured halves without a credential or a network; the clinical
    seam is the one above, injectable so the triage routes can be held against a gate that is open
    and a gate that is shut without a ratified protocol existing to open the real one. The real
    entry passes nothing and gets all four real ones. A fifth seam, `turnStream`, is the streaming
@@ -323,7 +325,7 @@ export function liveClinicalFlows(): ClinicalFlowSeam {
 export function createAssistantServer(
   turn: typeof handleTurn = handleTurn,
   search: typeof retrieveKnowledge = retrieveKnowledge,
-  speech: SpeechSeam = cloudSpeech(),
+  speech: SpeechSeam = selectedSpeech(),
   clinical: ClinicalFlowSeam = liveClinicalFlows(),
   turnStream: typeof handleTurnStream = handleTurnStream,
   founder: FounderAccess = createFounderAccess(),
@@ -602,8 +604,10 @@ export function createAssistantServer(
       base64, its words travel back, and neither the audio nor a recording of it is kept — there
       is no store here a capture could reach. A fault out of the recogniser — a refusal, a
       timeout, a transport that hung — is one non-revealing 500, exactly as the knowledge route
-      treats a search that threw. */
-      if (!speech.configured() || !modelTierAllowed()) {
+      treats a search that threw. The gate asks about the hearing door alone ("stt"): since
+      28 September 2026 the two directions may be different providers, and a box with a voice
+      but no ear must refuse here rather than reach a door that is not there. */
+      if (!speech.configured("stt") || !modelTierAllowed()) {
         return send(res, 501, cors.headers, {
           error: "speech_not_configured",
           refusalId: "speech-not-configured",
@@ -675,8 +679,9 @@ export function createAssistantServer(
       in the response. A voice the contract does not name is refused with the route's own
       invalid-request rather than silently replaced, because a caller that asked for a voice
       should hear which voice it got. One call is one stretch of speech: a caller wanting sound
-      before the last sentence of an answer is voiced asks for the next stretch itself. */
-      if (!speech.configured() || !modelTierAllowed()) {
+      before the last sentence of an answer is voiced asks for the next stretch itself. The gate
+      asks about the speaking door alone ("tts"), for the reason the listen route gives. */
+      if (!speech.configured("tts") || !modelTierAllowed()) {
         return send(res, 501, cors.headers, {
           error: "speech_not_configured",
           refusalId: "speech-not-configured",
@@ -1338,6 +1343,18 @@ export function start(): void {
     console.error(refusal);
     process.exit(1);
   }
+  /* The speech selection's two refusals, enforced in the same place and for the same reason. A
+    value that names no built provider is a misconfiguration and the service does not start; a
+    provider with no South African region selected in production while the residency decision is
+    blank is refused in the registry's own words and the direction falls back to the default — the
+    service starts, and says so here, once, so nobody can believe a patient's voice is going where
+    the env file says. Neither line carries a value beyond the card id the operator typed. */
+  const selection = speechSelection();
+  if (selection.fatal) {
+    console.error(selection.fatal);
+    process.exit(1);
+  }
+  for (const line of selection.refused) console.error(line);
   const server = createAssistantServer();
   server.listen(8791, "127.0.0.1", () => {
     console.log("Assistant API listening on 127.0.0.1:8791");

@@ -1,15 +1,48 @@
 import assistant from "../../../../packages/catalog/assistant.json" with { type: "json" };
+import registry from "../../../../packages/catalog/api-registry.json" with { type: "json" };
+import modelProviders from "../../../../packages/catalog/model-providers.json" with { type: "json" };
+import { assistantActivation } from "./activation.ts";
+import {
+  alibabaQwenAsr,
+  alibabaQwenTts,
+  ALIBABA_QWEN_ASR_CARD_ID,
+  ALIBABA_QWEN_TTS_CARD_ID,
+} from "./providers/alibaba-qwen.ts";
+import {
+  openaiWhisper,
+  OPENAI_WHISPER_CARD_ID,
+} from "./providers/openai-whisper.ts";
+import {
+  CATALOG_LANGUAGES,
+  languageEntry,
+  localeFor,
+  SPEECH_LOCALE,
+  STT_TIMEOUT_MS,
+  TTS_TIMEOUT_MS,
+  type SpeechDirection,
+  type SpeechSeam,
+} from "./providers/seam.ts";
+
+export { SPEECH_LOCALE } from "./providers/seam.ts";
+export type {
+  ReadSpeech,
+  RecognisedSpeech,
+  SpeechDirection,
+  SpeechSeam,
+} from "./providers/seam.ts";
 
 /* The cloud voice, added 22 September 2026 with push-to-talk's two built routes.
 
    WHAT THIS IS. The Azure Speech REST adapter behind POST /assistant/v1/listen and
-   POST /assistant/v1/speak: one door in each direction — a capture turned into words, and words
-   that already exist turned into sound — and nothing else. It carries no model and writes no
-   sentence: every word it speaks came from the catalogue, and every word it hears is handed back
-   as a string its caller owns. The routes above it hold the contract's refusals; this file holds
-   only the two requests and the two readings.
+   POST /assistant/v1/speak — cloudSpeech() below — and, since 28 September 2026, the selection
+   between it and the two providers the founder asked for beside it, OpenAI Whisper and Alibaba
+   Qwen, whose adapters live in ./providers. Each is one door in each direction — a capture turned
+   into words, and words that already exist turned into sound — and nothing else. It carries no
+   model and writes no sentence: every word it speaks came from the catalogue, and every word it
+   hears is handed back as a string its caller owns. The routes above hold the contract's refusals;
+   this file holds the requests, the readings, and the one decision about which provider answers.
 
-   THE ENVIRONMENT GATE IS THE ONLY SWITCH. Every call re-reads AZURE_SPEECH_REGION and
+   THE ENVIRONMENT GATE IS THE ONLY SWITCH. Every Azure call re-reads AZURE_SPEECH_REGION and
    AZURE_SPEECH_KEY from this process's environment: both present means the cloud voice is
    configured, either missing means it is not, the routes answer the contract's
    speech-not-configured refusal and the browser's own voice carries on exactly as before. The
@@ -19,6 +52,28 @@ import assistant from "../../../../packages/catalog/assistant.json" with { type:
    else. This module opens no file, writes no recording and touches no filesystem at all: the
    capture lives as bytes in memory for the length of one request, and there is no code path in
    it that could keep one.
+
+   WHICH PROVIDER ANSWERS IS A LINE IN THE CONTRACT, READ ONCE AT START. api-registry.json's
+   speechSelection names two variables — MYTHUSO_STT_PROVIDER and MYTHUSO_TTS_PROVIDER — whose
+   values are card ids, and a default, azure-speech, the one speech provider with a South African
+   region. selectedSpeech() reads both when the server is built and composes one seam: hearing
+   through the stt card's adapter, speaking through the tts card's, and configured() per direction
+   so a route asks about its own door. A value naming no built speech card that serves that
+   direction is a misconfiguration the service refuses to start on, naming the cards it could have
+   been, exactly as the activation gate refuses on a missing acknowledgement.
+
+   AN OFFSHORE PROVIDER IS REFUSED IN PRODUCTION WHILE THE RESIDENCY DECISION IS BLANK. A patient's
+   capture and GilbertOne's spoken answer are health information (api-registry.json dataFlows).
+   Whisper processes in the United States and DashScope in Singapore or Beijing; each card records
+   regions.southAfricanRegion false. docs/governance/DATA-RESIDENCY-OPTIONS.md §7 — the decision
+   the responsible party and the Information Officer sign — has no option chosen, which
+   model-providers.json's residencyToday.decided mirrors and the build holds equal to the document.
+   So in production (NODE_ENV production, or the acknowledgement line present) a selection of such a
+   card is refused at start-up in the registry's own words, and the direction falls back to the
+   default: Azure where it is configured, the speech-not-configured refusal where it is not. Never
+   the offshore provider, and never quietly. There is deliberately no variable that overrides this:
+   the document's first section says who decides, and it is not whoever holds root on the box. In
+   development the selection is honoured, which is how the adapters are exercised at all.
 
    THE LOCALE AND THE VOICES ARE DECISIONS ON FILE. The recognition locale, the output format and
    the founder's two en-ZA voices are read from packages/catalog/assistant.json's voice.cloud,
@@ -31,7 +86,9 @@ import assistant from "../../../../packages/catalog/assistant.json" with { type:
    decided locale, en-ZA. Only some of those languages have a voice that speaks them: voice.languages
    marks each one ttsAvailable, and a language with no neural voice is answered without any Azure
    call so the route can show the contract's voiceUnavailableNotice rather than fail — the words are
-   still written, only the reading aloud is missing.
+   still written, only the reading aloud is missing. Another provider's voices are its card's, in
+   api-registry.json, and SPEECH_VOICE_NAMES below is every name from both places: what the route's
+   door admits.
 
    FAILURE IS ONE FLAG, NEVER AN EXCEPTION. Both doors return { ok: false } for every way an
    external call can end badly — an unconfigured process, a refusal, a timeout under the
@@ -41,22 +98,6 @@ import assistant from "../../../../packages/catalog/assistant.json" with { type:
    route treats a provider's raw error. Nothing Azure says is forwarded, and nothing about the
    audio or the words is ever logged. */
 
-/* One entry of the contract's voice.languages: a language GilbertOne may be written in, the
-   recognition locales Azure hears it in, and — only where the contract says a cloud voice exists
-   for it (ttsAvailable) — the two neural voices that speak it. */
-type CatalogVoice = { female: string; male: string };
-type CatalogLanguage = {
-  id: string;
-  name: string;
-  recognitionLocales: string[];
-  ttsAvailable?: boolean;
-  ttsVoices?: CatalogVoice;
-};
-
-/* Read once from the contract; the values cannot change while the process runs. */
-const CATALOG_LANGUAGES: readonly CatalogLanguage[] =
-  (assistant.voice.languages ?? []) as CatalogLanguage[];
-export const SPEECH_LOCALE: string = assistant.voice.cloud.recognitionLocale;
 export const SPEECH_OUTPUT_FORMAT: string = assistant.voice.cloud.outputFormat;
 /* The two voices a caller may name explicitly in a speak request, and the ones the route validates
    against. They stay the cloud voice's own en-ZA pair; a language's own voices are resolved from
@@ -66,78 +107,48 @@ export const SPEECH_VOICES: readonly string[] = [
   assistant.voice.cloud.voices.female,
   assistant.voice.cloud.voices.male,
 ];
+
+/* The registry's speech cards, as this file reads them: which directions each serves, whether it
+   has a South African region, its residency tier, and — for a speaking provider other than Azure —
+   the voices its card names per language. */
+type SpeechCard = {
+  id: string;
+  category: string;
+  buildStatus: string;
+  serves?: string[];
+  regions?: { southAfricanRegion?: boolean };
+  residency?: { tier: string | null };
+  voices?: Record<string, { default: string; names: string[] }>;
+};
+const BUILT_SPEECH_CARDS: readonly SpeechCard[] = (
+  registry.cards as SpeechCard[]
+).filter((card) => card.category === "speech" && card.buildStatus === "built");
+
 /* Every voice name the contract owns, across every language that has one — the en-ZA pair above
-   and, since the web started naming a language's own voice on 24 September 2026, the af-ZA pair.
-   This is what the route's door validates against. It validated against SPEECH_VOICES alone until
-   27 September, so a request naming af-ZA-AdriNeural — exactly what the patient panel sends for an
-   Afrikaans answer — was refused with 400 before the language-aware check below could see it, and
-   every Afrikaans reply was quietly read by the browser's voice instead. The check below still
-   holds a name to the language it was asked with. */
+   and, since the web started naming a language's own voice on 24 September 2026, the af-ZA pair —
+   and, since 28 September, every voice a built speech card in api-registry.json names. This is what
+   the route's door validates against. It validated against SPEECH_VOICES alone until 27 September,
+   so a request naming af-ZA-AdriNeural — exactly what the patient panel sends for an Afrikaans
+   answer — was refused with 400 before the language-aware check below could see it, and every
+   Afrikaans reply was quietly read by the browser's voice instead. Each adapter still holds a name
+   to the language it was asked with. */
 export const SPEECH_VOICE_NAMES: readonly string[] = [
   ...new Set([
     ...SPEECH_VOICES,
-    ...(
-      assistant.voice.languages as {
-        ttsAvailable?: boolean;
-        ttsVoices?: { female: string; male: string };
-      }[]
-    ).flatMap((language) =>
+    ...CATALOG_LANGUAGES.flatMap((language) =>
       language.ttsAvailable && language.ttsVoices
         ? [language.ttsVoices.female, language.ttsVoices.male]
         : [],
     ),
+    ...BUILT_SPEECH_CARDS.flatMap((card) =>
+      Object.values(card.voices ?? {}).flatMap((entry) => entry.names),
+    ),
   ]),
 ];
-/* Every recognition locale the contract names, across all its languages — en-ZA, en-GB, en-US and,
-   since the multi-language backend of 23 September 2026, zu-ZA, xh-ZA, af-ZA and st-ZA. */
-const RECOGNITION_LOCALES: readonly string[] = CATALOG_LANGUAGES.flatMap(
-  (language) => language.recognitionLocales ?? [],
-);
 
-/* How long each call may take. The capture ceiling is generous because a full push-to-talk
-   capture is uploaded and read in one request; the voice's is short because one call is one
-   stretch of a sentence, and a caller wanting sound sooner asks for the next stretch itself. */
-const STT_TIMEOUT_MS = 30 * 1000;
-const TTS_TIMEOUT_MS = 15 * 1000;
 /* What the audio comes back as. The contract's outputFormat is the encoder's own name for the
    stream (audio-24khz-48kbitrate-mono-mp3); what a player needs is the media type. */
 const SPOKEN_AUDIO_MIME = "audio/mpeg";
-
-/* What a capture was read into, or { ok: false } when it was not read at all. */
-export type RecognisedSpeech =
-  | { ok: true; text: string; language: string }
-  | { ok: false };
-
-/* What was voiced, or { ok: false } when it was not voiced at all. The not-ok reading carries
-   voiceUnavailable:true — with the locale that was asked for — when the reason is a language the
-   contract has no cloud voice for, so the route can tell that apart from a call that failed and
-   show the contract's own voiceUnavailableNotice instead of an error. */
-export type ReadSpeech =
-  | {
-      ok: true;
-      audioBase64: string;
-      format: string;
-      voice: string;
-      language: string;
-    }
-  | { ok: false; voiceUnavailable?: boolean; language?: string };
-
-/* The two doors and the configuration question, as one injectable shape: server.ts holds a seam
-   of this type, its own tests hand it a fake, and the production default is cloudSpeech() below.
-   The request shapes are the contract's own fields, minus the consent the route checks first. */
-export type SpeechSeam = {
-  configured(): boolean;
-  recognize(request: {
-    audioBase64: string;
-    language: string;
-    audioFormat: string;
-  }): Promise<RecognisedSpeech>;
-  synthesize(request: {
-    text: string;
-    language: string;
-    voice?: string;
-  }): Promise<ReadSpeech>;
-};
 
 /* The region and the key, read the way every credential in this service is read: by name, at the
    moment it is needed, and never stored. Both are required — a key with no region has nowhere to
@@ -171,38 +182,6 @@ function cloudCredentials(
     : null;
 }
 
-/* The contract's own language entry a declared language names — by one of its recognition locales
-   ("en-ZA", "af-ZA") or by its bare id ("en", "af"), case-insensitively. Undefined for a language
-   the contract does not carry, which is how synthesize tells a language with no cloud voice from
-   one with. */
-function languageEntry(language: string): CatalogLanguage | undefined {
-  const asked = language.trim().toLowerCase();
-  return (
-    CATALOG_LANGUAGES.find((entry) =>
-      (entry.recognitionLocales ?? []).some(
-        (locale) => locale.toLowerCase() === asked,
-      ),
-    ) ?? CATALOG_LANGUAGES.find((entry) => entry.id.toLowerCase() === asked)
-  );
-}
-
-/* The locale a call actually hears or speaks in. A declared language that names one of the
-   contract's own recognition locales is honoured — case-insensitively, in the contract's own
-   spelling; a bare language id ("af", "zu") meets that language's own first recognition locale;
-   and every other declaration meets the cloud voice's decided locale. The response echoes this
-   value, not the caller's ask, so a caller can tell which locale answered. */
-function localeFor(language: string): string {
-  const asked = language.trim().toLowerCase();
-  const exact = RECOGNITION_LOCALES.find(
-    (locale) => locale.toLowerCase() === asked,
-  );
-  if (exact) return exact;
-  const entry = CATALOG_LANGUAGES.find(
-    (candidate) => candidate.id.toLowerCase() === asked,
-  );
-  return entry?.recognitionLocales?.[0] ?? SPEECH_LOCALE;
-}
-
 /* SSML is XML, so the words are escaped before they are placed inside it: an ampersand or an
    angle bracket in an answer is a character in that answer, never markup. */
 const escapeXml = (value: string): string =>
@@ -220,11 +199,11 @@ const safeFormat = (value: string): string =>
   value.replace(/[^A-Za-z0-9/+.;=_-]/g, "").slice(0, 128) ||
   "application/octet-stream";
 
-/* The cloud voice, as the seam server.ts holds. fetch and the environment are parameters so the
-   tests can hand this its own: one fake fetch to see exactly what would leave, one empty
-   environment to prove the unconfigured path refuses before anything is sent. The production
-   caller passes nothing and gets the platform's fetch and this process's own environment, read
-   fresh on every call. */
+/* The Azure cloud voice, as a seam. fetch and the environment are parameters so the tests can hand
+   this its own: one fake fetch to see exactly what would leave, one empty environment to prove the
+   unconfigured path refuses before anything is sent. The production caller passes nothing and gets
+   the platform's fetch and this process's own environment, read fresh on every call. It is the
+   default in both directions; selectedSpeech() below is what server.ts holds. */
 export function cloudSpeech(
   fetchImpl: typeof fetch = fetch,
   env: Record<string, string | undefined> = process.env,
@@ -289,8 +268,8 @@ export function cloudSpeech(
     const entry = languageEntry(request.language);
     const voices = entry?.ttsAvailable ? entry.ttsVoices : undefined;
     if (!voices) return { ok: false, voiceUnavailable: true, language: locale };
-    /* The route checks the voice against SPEECH_VOICES and answers its own 400 for an unknown
-       name; this is the same check once more, widened to the two voices the contract names for THIS
+    /* The route checks the voice against SPEECH_VOICE_NAMES and answers its own 400 for an unknown
+       name; this is the same check once more, narrowed to the two voices the contract names for THIS
        language, because a door that would place a caller's string inside SSML must be sure the
        string is one the contract owns. With no voice asked for, the language's own female voice
        speaks — an Afrikaans answer in af-ZA-AdriNeural, an English one in the contract's default. */
@@ -341,4 +320,124 @@ export function cloudSpeech(
   };
 
   return { configured, recognize, synthesize };
+}
+
+/* ---- The selection, 28 September 2026 --------------------------------------------------------- */
+
+export const AZURE_SPEECH_CARD_ID = "azure-speech";
+/* The two variables and the default, read from the registry so the names live in one place. */
+export const SPEECH_SELECTION = registry.speechSelection as {
+  stt: string;
+  tts: string;
+  default: string;
+};
+/* The refusal the production gate speaks in: the registry's own statement, read and not typed. A
+   registry without it is a build without the gate's words, and the throw says so at import. */
+export const OFFSHORE_SPEECH_REFUSAL_ID =
+  "no-offshore-speech-for-health-information-without-a-residency-decision";
+const TIER_3_REFUSAL_ID = "no-health-information-to-a-tier-3-provider";
+const refusalStatement = (id: string): string => {
+  const found = registry.refusals.find((refusal) => refusal.id === id);
+  if (!found)
+    throw new Error(
+      `packages/catalog/api-registry.json has no "${id}" refusal; the speech selection refuses in its words.`,
+    );
+  return found.statement;
+};
+const OFFSHORE_STATEMENT = refusalStatement(OFFSHORE_SPEECH_REFUSAL_ID);
+const TIER_3_STATEMENT = refusalStatement(TIER_3_REFUSAL_ID);
+
+/* Every built speech card's adapter, by the card's id. A card the registry records as built with
+   no entry here is a card this file cannot select — the build holds the two lists equal. */
+type Adapter = (
+  fetchImpl?: typeof fetch,
+  env?: Record<string, string | undefined>,
+) => SpeechSeam;
+const ADAPTERS: Record<string, Adapter> = {
+  [AZURE_SPEECH_CARD_ID]: cloudSpeech,
+  [OPENAI_WHISPER_CARD_ID]: openaiWhisper,
+  [ALIBABA_QWEN_ASR_CARD_ID]: alibabaQwenAsr,
+  [ALIBABA_QWEN_TTS_CARD_ID]: alibabaQwenTts,
+};
+
+export type SpeechSelection = {
+  /* Per direction: the card the environment asked for (or the default), and the card that will
+     actually answer — the same unless the ask was refused. */
+  stt: { asked: string; card: string };
+  tts: { asked: string; card: string };
+  /* A value naming no built speech card for its direction. The service does not start on this. */
+  fatal: string | null;
+  /* The production refusals, one sentence each, printed once at start-up. The service starts, on
+     the default. */
+  refused: string[];
+};
+
+/* Which card answers each direction, decided from the environment once. Production is NODE_ENV
+   production or the acknowledgement line — either is a box that answers the public — and the
+   residency decision is model-providers.json's residencyToday.decided, which the build holds equal
+   to §7's "Option chosen" row. */
+export function speechSelection(
+  env: Record<string, string | undefined> = process.env,
+): SpeechSelection {
+  const activation = assistantActivation(env);
+  const production = activation.production || activation.acknowledged;
+  const decided = modelProviders.residencyToday.decided === true;
+  const fatal: string[] = [];
+  const refused: string[] = [];
+  const pick = (direction: SpeechDirection): { asked: string; card: string } => {
+    const variable = SPEECH_SELECTION[direction];
+    const asked = (env[variable] ?? "").trim() || SPEECH_SELECTION.default;
+    const serving = BUILT_SPEECH_CARDS.filter((card) =>
+      (card.serves ?? []).includes(direction),
+    );
+    const card = serving.find((candidate) => candidate.id === asked);
+    if (!card || !ADAPTERS[card.id]) {
+      fatal.push(
+        `Refusing to start: ${variable}=${asked} names no built speech provider that can ${direction === "stt" ? "listen" : "speak"}. It is one of ${serving.map((c) => c.id).join(", ")}, or unset for ${SPEECH_SELECTION.default}. Fix the line in this service's environment and start again.`,
+      );
+      return { asked, card: SPEECH_SELECTION.default };
+    }
+    const offshore = card.regions?.southAfricanRegion === false;
+    const tier = card.residency?.tier ?? null;
+    const fallback = `${SPEECH_SELECTION.default} ${direction === "stt" ? "listens" : "speaks"} instead, or the speech-not-configured refusal answers where it too is not configured.`;
+    if (production && offshore && (!decided || tier === null)) {
+      refused.push(
+        `${variable}=${asked} is refused in production: ${OFFSHORE_STATEMENT} ${fallback}`,
+      );
+      return { asked, card: SPEECH_SELECTION.default };
+    }
+    if (production && tier === "contractual") {
+      refused.push(
+        `${variable}=${asked} is refused in production: ${TIER_3_STATEMENT} ${fallback}`,
+      );
+      return { asked, card: SPEECH_SELECTION.default };
+    }
+    return { asked, card: card.id };
+  };
+  const stt = pick("stt");
+  const tts = pick("tts");
+  return { stt, tts, fatal: fatal[0] ?? null, refused };
+}
+
+/* The seam server.ts holds: one provider per direction, composed from the selection above. With
+   nothing selected it is Azure in both directions and behaves exactly as cloudSpeech() alone did.
+   configured() with no direction is both doors — the health route's one boolean — and with a
+   direction it is that door alone, which is what each route asks before it reads a body. */
+export function selectedSpeech(
+  fetchImpl: typeof fetch = fetch,
+  env: Record<string, string | undefined> = process.env,
+): SpeechSeam {
+  const selection = speechSelection(env);
+  const stt = ADAPTERS[selection.stt.card](fetchImpl, env);
+  const tts = ADAPTERS[selection.tts.card](fetchImpl, env);
+  return {
+    configured: (direction) =>
+      direction === "stt"
+        ? stt.configured("stt")
+        : direction === "tts"
+          ? tts.configured("tts")
+          : stt.configured("stt") && tts.configured("tts"),
+    recognize: (request) => stt.recognize(request),
+    synthesize: (request) => tts.synthesize(request),
+  };
 }

@@ -40,7 +40,7 @@ const sos = json('../packages/catalog/sos.json');
 
 type Gate = { id: string; label: string; sentence: string };
 type Action = { id: string; screen: string; label: string; gate: string | null; refusal?: string; live?: { since: string; decidedBy: string; sentence: string } };
-type Card = { id: string; name: string; category: string; statusToday: string; serves?: string[]; pricing?: { perMillionCharactersUsd: number; unitCharacters: number; recordedOn: string } };
+type Card = { id: string; name: string; category: string; statusToday: string; buildStatus: string; environment?: string[]; gate?: string; serves?: string[]; pricing?: { perMillionCharactersUsd: number | null; unitCharacters: number; recordedOn: string } };
 type QueryClass = { id: string; label: string; zone: string; previewMaySaveAsDefault: boolean; setting?: string };
 type Language = { id: string; name: string; ttsAvailable: boolean; ttsVoices?: Record<string, string> };
 const g1 = portal.gilbertone;
@@ -454,7 +454,9 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   await expect(panel(page)).toContainText(gate('module-8').sentence);
   const residency = panel(page).getByRole('region', { name: g1.compliance.residencyHeading });
   for (const p of providers.providers) {
-   const row = residency.getByRole('row', { name: new RegExp(`^${p.name.replace(/[()]/g, '\\$&')}`) });
+   /* The name and not a longer one: since 28 September 2026 the map also holds the registry's
+      Alibaba Qwen-ASR and Qwen-TTS rows, and "Alibaba Qwen" alone would match all three. */
+   const row = residency.getByRole('row', { name: new RegExp(`^${p.name.replace(/[()]/g, '\\$&')}(?!-)`) });
    await expect(row).toContainText(g1.modelProviders.residencyUnassigned);
   }
   await expect(residency).toContainText(providers.providers.find((p: { id: string }) => p.id === 'azure-openai').region);
@@ -472,6 +474,10 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
    for (const c of members) {
     const card = region.getByRole('article', { name: c.name, exact: true });
     await expect(card.locator('.g1-card-status').first()).toHaveText(c.statusToday);
+    /* A card's variables and its gate are drawn from the registry — since 28 September 2026 the three
+       speech providers built beside Azure render built · not-configured with theirs. */
+    for (const variable of c.environment ?? []) await expect(card).toContainText(variable);
+    if (c.gate) await expect(card).toContainText(c.gate);
     for (const a of (g1.actions as (Action & { registryAction?: string })[]).filter(x => x.registryAction))
      await expect(card.getByRole('button', { name: a.label, exact: true })).toBeDisabled();
    }
@@ -483,7 +489,10 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
      no Play, because nothing may call a provider the registry records as proposed. */
   const tts = cards.filter(c => (c.serves ?? []).includes('tts'));
   await expect(panel(page).locator('details.g1-details')).toHaveCount(tts.length);
-  const configured = tts.find(c => c.statusToday === 'configured' && c.pricing)!;
+  const configured = tts.find(c => c.statusToday === 'configured' && typeof c.pricing?.perMillionCharactersUsd === 'number')!;
+  const builtOffshore = cards.filter(c => c.category === 'speech' && c.buildStatus === 'built' && c.id !== configured.id);
+  expect(builtOffshore.map(c => c.id).sort(), 'the three providers built on 28 September 2026').toEqual(['alibaba-qwen-asr', 'alibaba-qwen-tts', 'openai-whisper']);
+  for (const c of builtOffshore) expect(c.statusToday, `${c.id} is configured nowhere`).toBe('not-configured');
   for (const c of tts) {
    const card = panel(page).getByRole('article', { name: c.name, exact: true });
    await card.locator('details.g1-details > summary').click();

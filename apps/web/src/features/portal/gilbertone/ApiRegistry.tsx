@@ -53,6 +53,7 @@ export function ApiRegistryScreen() {
      {notice && <p className="g1-notice">{notice}</p>}
      <dl className="pt-facts">
       {card.gate && <div className="g1-fact"><dt>Gate</dt><dd>{card.gate}</dd></div>}
+      {card.environment.length > 0 && <div className="g1-fact"><dt>Environment</dt><dd>{card.environment.join(', ')}</dd></div>}
       {card.prohibitedFor && <div className="g1-fact"><dt>Prohibited for</dt><dd>{card.prohibitedFor}</dd></div>}
       {card.calledFrom && <div className="g1-fact"><dt>Called from</dt><dd>{card.calledFrom}</dd></div>}
       <div className="g1-fact"><dt>Health check</dt><dd>{providers.panels.health.why}</dd></div>

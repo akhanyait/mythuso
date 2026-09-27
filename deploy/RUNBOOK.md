@@ -472,6 +472,27 @@ Rotating the key is the script again with the new one, then
 line survives a rotation: the script replaces only the three Azure lines. Taking the service
 back out is in _Backing it out_ below.
 
+### Choosing a speech provider
+
+Since 28 September 2026 the service can hear through OpenAI Whisper (hosted) or Alibaba Qwen-ASR
+and speak through Alibaba Qwen-TTS, beside Azure Speech, which is the default in both directions.
+The credentials go in through the same script (`OPENAI_API_KEY`, `DASHSCOPE_API_KEY` with
+`DASHSCOPE_REGION`); the choice is two lines written by hand in `/etc/mythuso/assistant.env`, one per
+direction, each a card id from `packages/catalog/api-registry.json`:
+`MYTHUSO_STT_PROVIDER=openai-whisper` (or `alibaba-qwen-asr`) and
+`MYTHUSO_TTS_PROVIDER=alibaba-qwen-tts`, then `sudo systemctl restart assistant-api.service`. An id
+that is not a built speech card for that direction stops the service from starting, and the line it
+prints names the cards it could have been. **In production the service refuses either of these
+providers for patient audio until the residency decision is signed:** neither has a South African
+region, a capture and a spoken answer are health information, and
+`docs/governance/DATA-RESIDENCY-OPTIONS.md` §7 — the decision the responsible party and the
+Information Officer sign — is blank. The service starts, prints the refusal in the registry's own
+words (`journalctl -u assistant-api.service` shows it), and carries on with Azure Speech for that
+direction, or with the speech-not-configured refusal where Azure too is unconfigured. There is no
+variable that overrides this, on purpose. On a development box the selection is honoured, which is
+how the adapters are tried at all — and nobody had tried them against the live APIs when they were
+built; each adapter's header says so.
+
 ---
 
 ## Founder access

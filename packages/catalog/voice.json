@@ -156,7 +156,7 @@
   "stt": ["azure-speech", "deepgram-nova-3", "openai-whisper", "alibaba-qwen-asr"],
   "registry": "packages/catalog/api-registry.json",
   "perTenant": false,
-  "_perTenantWhy": "The plan asks for a provider chosen per tenant. There is no tenant, so there is one choice, made by configuration on the box: Azure Speech, when both its variables are set and its region is southafricanorth. Each id above is a card in api-registry.json, which says of each whether it is built and whether it is configured — only azure-speech is either.",
+  "_perTenantWhy": "The plan asks for a provider chosen per tenant. There is no tenant, so there is one choice per direction, made by configuration on the box: api-registry.json's speechSelection names the two variables (MYTHUSO_STT_PROVIDER, MYTHUSO_TTS_PROVIDER) and the default, azure-speech, which answers when both its variables are set and its region is southafricanorth. Each id above is a card in api-registry.json, which says of each whether it is built and whether it is configured: since 28 September 2026 azure-speech, openai-whisper, alibaba-qwen-asr and alibaba-qwen-tts are built, and only azure-speech is configured. A built provider with no South African region is refused in production for these routes while the residency decision is blank; the registry's own refusal says so.",
   "onDeviceConversationMode": "The founder's speech amendment of 21 September 2026 (CLAUDE.md) keeps cloud voices out of the on-device conversation mode — ElevenLabs is named there — and keeps Azure Speech's two routes as the server-side fallback. A cloud TTS or STT card in the registry is never a route for the on-device mode, whatever its status."
  },
 

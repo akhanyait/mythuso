@@ -15369,10 +15369,15 @@ for (const file of files("packages/gilbertone/src")) {
       "apps/assistant-api/src/server.ts no longer imports ./lib/speech.ts. The two speech routes are the only callers of an external speech service, and the seam is what keeps the credentials, the locale and the voices behind one module with its own tests.",
     );
   const speechGated =
-    server.match(/!speech\.configured\(\)\s*\|\|\s*!modelTierAllowed\(\)/g) ??
+    server.match(/!speech\.configured\("(stt|tts)"\)\s*\|\|\s*!modelTierAllowed\(\)/g) ??
     [];
+  /* Since 28 September 2026 the two directions may be different providers, so each route asks
+     about its own door — "stt" for listen, "tts" for speak — and a gate that asked about the other
+     door, or about both, would refuse a configured ear because the voice is missing. */
   if (
     speechGated.length !== 2 ||
+    !speechGated.some((gate) => gate.includes('"stt"')) ||
+    !speechGated.some((gate) => gate.includes('"tts"')) ||
     !/\/assistant\/v1\/listen/.test(server) ||
     !/\/assistant\/v1\/speak/.test(server) ||
     !/speech\.recognize\(/.test(server) ||
@@ -33021,6 +33026,116 @@ const p2Summary = {};
           `packages/catalog/api-registry.json's "${card.id}" carries its own "${k}". A card never writes its own not-connected sentence; it names a capability and the sentence comes from packages/catalog/capabilities.json word for word.`,
         );
   }
+}
+
+/* 16a. A speech provider with no South African region is built, testable, and never the way a
+   patient's voice goes in production while the residency decision is blank. Added 28 September 2026
+   with OpenAI Whisper and Alibaba Qwen. Every built speech card says whether it has a South African
+   region and is selectable by the adapter symbol speech.ts holds; its environment is read in its own
+   adapter and nowhere else; the adapter types no host, no voice and no key shape, logs nothing and
+   touches no file, and says in its own text when its shapes were never tried against the live API. A
+   card without a South African region is never the selection's default, is selected by no file this
+   repository deploys and no env example, carries the residency gate, and every flow to it is health
+   information. speech.ts reads the two selection variables from the registry, refuses an offshore
+   selection in production in the registry's own refusal, and reads no variable that could stand in
+   for the Information Officer's signature; the credential script writes no selection line. What
+   cannot be checked: what the box's env file says — that is the RUNBOOK's, and the service's own
+   start-up line. */
+{
+  const built = p2.registry.cards.filter((c) => c.category === "speech" && c.buildStatus === "built");
+  const sel = p2.registry.speechSelection;
+  const speechFile = "apps/assistant-api/src/lib/speech.ts";
+  const speechCode = p2Code(read(speechFile));
+  const variable = /^[A-Z][A-Z0-9_]+$/;
+  if (!sel || !variable.test(sel.stt ?? "") || !variable.test(sel.tts ?? "") || sel.stt === sel.tts)
+    throw new Error(
+      "packages/catalog/api-registry.json's speechSelection no longer names one variable per direction. The two names live there and nowhere else, so the service, the RUNBOOK and the credential script cannot disagree about them.",
+    );
+  const fallback = built.find((c) => c.id === sel.default);
+  if (!fallback || fallback.regions?.southAfricanRegion !== true || !["stt", "tts"].every((d) => (fallback.serves ?? []).includes(d)))
+    throw new Error(
+      `packages/catalog/api-registry.json's speechSelection.default is "${sel.default}", which is not a built speech card serving both directions with a South African region. The default is where a patient's voice goes when nobody has decided otherwise, and it may not be offshore.`,
+    );
+  if (!/registry\.speechSelection/.test(speechCode))
+    throw new Error(`${speechFile} no longer reads the selection variables from packages/catalog/api-registry.json#speechSelection. The names live in the contract; a name typed in code is a second place for one of them to be wrong.`);
+  const offshoreRefusal = "no-offshore-speech-for-health-information-without-a-residency-decision";
+  if (!p2.registry.refusals.some((r) => r.id === offshoreRefusal && /DATA-RESIDENCY-OPTIONS\.md §7/.test(r.statement)))
+    throw new Error(`packages/catalog/api-registry.json no longer carries the "${offshoreRefusal}" refusal naming docs/governance/DATA-RESIDENCY-OPTIONS.md §7. It is the sentence the service refuses in; without it the refusal would be typed in code.`);
+  if (
+    !speechCode.includes(`"${offshoreRefusal}"`) ||
+    !/is refused in production/.test(speechCode) ||
+    !/southAfricanRegion === false/.test(speechCode) ||
+    !/residencyToday\.decided/.test(speechCode)
+  )
+    throw new Error(
+      `${speechFile} no longer refuses an offshore speech provider in production while the residency decision is blank — reading the "${offshoreRefusal}" refusal, the card's regions.southAfricanRegion and model-providers.json's residencyToday.decided, and saying "is refused in production". A patient's capture is health information, and this is the one place that keeps it in South Africa until the responsible party decides otherwise.`,
+    );
+  for (const m of speechCode.matchAll(/\benv\.([A-Z][A-Z0-9_]+)/g))
+    if (/RESIDENCY|OFFSHORE|CROSS_?BORDER|SECTION_?72|TRANSFER/.test(m[1]))
+      throw new Error(`${speechFile} reads ${m[1]}. There is no environment variable that acknowledges a residency decision: docs/governance/DATA-RESIDENCY-OPTIONS.md's "Who decides" names the responsible party and the Information Officer, and root on a box is neither.`);
+  /* The files a deployment reads its environment from, and every env example in the tree: none may
+     select an offshore card. deploy/nginx is not scanned — the proxy carries no service environment —
+     and prose is not, because the RUNBOOK names the line to explain it. */
+  const envFiles = [
+    ...files("deploy").filter((f) => !f.startsWith("deploy/nginx") && !/\.md$/.test(f)),
+    ...readdirSync(".").filter((n) => /\.env/.test(n)),
+    ...readdirSync("apps").flatMap((a) =>
+      statSync(`apps/${a}`).isDirectory() ? readdirSync(`apps/${a}`).filter((n) => /\.env/.test(n)).map((n) => `apps/${a}/${n}`) : [],
+    ),
+  ].filter((f) => existsSync(f) && statSync(f).isFile());
+  const keyShapes = [
+    [/\bsk-(?:ant-)?[A-Za-z0-9_-]{16,}/, "an OpenAI- or Anthropic-style secret key"],
+    [/(?<![0-9A-Fa-f])[0-9a-f]{32}(?![0-9A-Fa-f])/, "a 32-hex-character string, the shape of an Azure key"],
+  ];
+  for (const card of built) {
+    if (typeof card.regions?.southAfricanRegion !== "boolean" || !card.regions.why)
+      throw new Error(`packages/catalog/api-registry.json's built speech card "${card.id}" does not say whether it has a South African region (regions.southAfricanRegion, with a why). Where a patient's voice is processed is the first fact about a speech provider.`);
+    if (!card.adapter?.symbol || !speechCode.includes(card.adapter.symbol))
+      throw new Error(`${speechFile} does not select "${card.id}" by its adapter symbol ${card.adapter?.symbol ?? "(none)"}. A built speech card the selection cannot reach is a card the environment could name and nothing would answer.`);
+    if (card.regions.southAfricanRegion === false) {
+      if (card.gate !== "G33")
+        throw new Error(`packages/catalog/api-registry.json's "${card.id}" has no South African region and is not behind G33, the residency gate.`);
+      for (const flow of p2.registry.dataFlows.filter((f) => f.providerRef === card.id))
+        if (flow.phi !== true)
+          throw new Error(`packages/catalog/api-registry.json sends ${flow.route}'s ${flow.field} to ${card.id}, offshore, and does not tag it as health information. A capture and a spoken answer are.`);
+      if (card.shapesFrom?.exercisedAgainstLiveApi !== false && card.shapesFrom?.exercisedAgainstLiveApi !== true)
+        throw new Error(`packages/catalog/api-registry.json's "${card.id}" does not record whether its request shapes were exercised against the live API (shapesFrom.exercisedAgainstLiveApi). The first operator to configure it has to know.`);
+      const selecting = new RegExp(`^\\s*(?:export\\s+)?(?:${sel.stt}|${sel.tts})\\s*=\\s*["']?${card.id}\\b`, "m");
+      for (const f of envFiles)
+        if (selecting.test(read(f)))
+          throw new Error(`${f} selects ${card.id}, a speech provider with no South African region. No file this repository deploys, and no env example, may make a patient's voice cross a border by default; the service refuses it in production and the line belongs nowhere here.`);
+    }
+    if (card.id === sel.default) continue;
+    const source = read(card.adapter.file);
+    const code = p2Code(source);
+    if (/node:fs|from ['"]fs['"]|writeFile|createWriteStream|appendFile|FileHandle|node:fs\/promises/.test(code) || /console\./.test(code))
+      throw new Error(`${card.adapter.file} reaches for the filesystem or logs. A capture lives in memory for one request; a log line here is how a key or a patient's sentence ends up on disk.`);
+    const reads = new Set([...code.matchAll(/\benv\.([A-Z][A-Z0-9_]+)/g)].map((m) => m[1]));
+    for (const v of reads)
+      if (!(card.environment ?? []).includes(v))
+        throw new Error(`${card.adapter.file} reads ${v}, which its card "${card.id}" does not name. A card's variables are the ones its adapter reads — all of them.`);
+    for (const v of card.environment ?? [])
+      if (!reads.has(v))
+        throw new Error(`packages/catalog/api-registry.json's "${card.id}" names ${v}, and ${card.adapter.file} does not read it.`);
+    for (const host of Object.values(card.regions.hosts ?? {}))
+      if (code.includes(host))
+        throw new Error(`${card.adapter.file} types the host ${host}. Hosts are the card's regions.hosts, read by the adapter, so the one place a patient's voice can be sent is a line in the contract.`);
+    for (const entry of Object.values(card.voices ?? {}))
+      for (const name of entry.names)
+        if (new RegExp(`["'\`]${name}["'\`]`).test(code))
+          throw new Error(`${card.adapter.file} types the voice "${name}". Voices are the card's, read and not typed.`);
+    if (card.shapesFrom?.exercisedAgainstLiveApi === false && !/NOT\s+exercised\s+against\s+the\s+live\s+API/.test(source))
+      throw new Error(`${card.adapter.file} no longer says, in its own text, that its shapes were NOT exercised against the live API, while its card records exactly that. The first operator to configure it reads the file before the card.`);
+    for (const f of files(card.adapter.file.slice(0, card.adapter.file.lastIndexOf("/"))).filter((f) => /\.ts$/.test(f)))
+      for (const [shape, what] of keyShapes)
+        if (shape.test(read(f)))
+          throw new Error(`${f} contains ${what}. A fixture is shaped like nothing a provider would accept.`);
+  }
+  const ops = read("deploy/ops/configure-assistant-env.sh");
+  if (new RegExp(`printf\\s+'[^']*(?:${sel.stt}|${sel.tts})=`).test(ops))
+    throw new Error(`deploy/ops/configure-assistant-env.sh writes a ${sel.stt} or ${sel.tts} line. The script writes credentials; where a patient's voice goes is written by hand, like the production acknowledgement, so that typing a key and choosing a provider stay two acts.`);
+  p2Summary.speechProviders = built.length;
+  p2Summary.speechProvidersOffshore = built.filter((c) => c.regions.southAfricanRegion === false).length;
 }
 
 /* 17. No preference changes the clinical voice, and the three tiers hold. The classes a person may

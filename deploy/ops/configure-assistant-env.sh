@@ -138,6 +138,59 @@ if [ -n "$speech_region" ]; then
   fi
 fi
 
+# ── OpenAI Whisper (hosted) and Alibaba Qwen: the other two built speech providers ─────────────
+#
+# Added 28 September 2026. apps/assistant-api/src/lib/providers holds an adapter for each, built and
+# configured nowhere. Both sections are optional here exactly as Azure Speech is — blank to skip —
+# and a skipped section leaves any OPENAI_ or DASHSCOPE_ lines already in the file exactly as they
+# were, so a run that refreshes one credential cannot drop another. Each key is typed with echo off
+# and never echoed, argued or logged; each gets a fingerprint for the register and nothing else.
+#
+# This script writes credentials only. WHICH provider the service listens or speaks through is
+# MYTHUSO_STT_PROVIDER and MYTHUSO_TTS_PROVIDER (card ids from packages/catalog/api-registry.json),
+# written by hand — deploy/RUNBOOK.md, "Choosing a speech provider" — for the same reason the
+# acknowledgement line is: where a patient's voice goes is a decision, not a side effect of typing a
+# key. And in production the service refuses either of these providers for patient audio while
+# docs/governance/DATA-RESIDENCY-OPTIONS.md §7 is unsigned: neither has a South African region. It
+# says so at start-up, in the registry's words, and carries on with Azure Speech. Configuring one
+# here does not change that, and there is no line that would.
+printf 'OpenAI API key for hosted Whisper (OPENAI_API_KEY, input hidden) [blank to skip]: '
+read -rs openai_key || true
+printf '\n'
+openai_model=""
+if [ -n "$openai_key" ]; then
+  # The service accepts a bearer key of printable characters with no whitespace, 20 to 256 of them
+  # (providers/seam.ts PLAUSIBLE_BEARER_KEY); the same window here, so a key the script writes is a
+  # key the service will read as configured.
+  if printf '%s' "$openai_key" | grep -qvE '^[A-Za-z0-9._-]{20,256}$'; then
+    fail "That does not look like an OpenAI key (unexpected characters or length). Nothing was written — and if what was pasted really was a key, it is now in this shell's memory only, which dies with it."
+  fi
+  printf 'Transcription model (OPENAI_TRANSCRIBE_MODEL) [whisper-1]: '
+  read -r openai_model || true
+  openai_model=$(printf '%s' "$openai_model" | tr -d '[:space:]')
+  openai_model=${openai_model:-whisper-1}
+  printf '%s' "$openai_model" | grep -qE '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$' \
+    || fail "A model name is letters, digits, dots, hyphens and underscores. Nothing was written."
+fi
+
+printf 'DashScope region for Alibaba Qwen (DASHSCOPE_REGION; singapore or beijing) [blank to skip]: '
+read -r dashscope_region || true
+dashscope_region=$(printf '%s' "$dashscope_region" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
+dashscope_key=""
+if [ -n "$dashscope_region" ]; then
+  case "$dashscope_region" in
+    singapore|beijing) : ;;
+    *) fail "DashScope serves from singapore or beijing and nowhere else; the service reads no other region. Nothing was written." ;;
+  esac
+  printf 'DashScope API key (DASHSCOPE_API_KEY, input hidden): '
+  read -rs dashscope_key || true
+  printf '\n'
+  [ -n "$dashscope_key" ] || fail "A DashScope region was given but the key was empty — that pair could never work. Nothing was written."
+  if printf '%s' "$dashscope_key" | grep -qvE '^[A-Za-z0-9._-]{20,256}$'; then
+    fail "That does not look like a DashScope key (unexpected characters or length). Nothing was written — and if what was pasted really was a key, it is now in this shell's memory only, which dies with it."
+  fi
+fi
+
 # ── The fingerprint: how two people compare keys without disclosing them ───────────────────────
 #
 # Sixteen characters of the key's SHA-256, the same ceremony /etc/mythuso/key.fingerprint uses for
@@ -151,6 +204,15 @@ speech_fingerprint=""
 if [ -n "$speech_key" ]; then
   speech_fingerprint=$(printf '%s' "$speech_key" | { command -v sha256sum >/dev/null && sha256sum || shasum -a 256; } | cut -c1-16)
 fi
+# And the two hosted speech keys, the same way, when they were entered.
+openai_fingerprint=""
+if [ -n "$openai_key" ]; then
+  openai_fingerprint=$(printf '%s' "$openai_key" | { command -v sha256sum >/dev/null && sha256sum || shasum -a 256; } | cut -c1-16)
+fi
+dashscope_fingerprint=""
+if [ -n "$dashscope_key" ]; then
+  dashscope_fingerprint=$(printf '%s' "$dashscope_key" | { command -v sha256sum >/dev/null && sha256sum || shasum -a 256; } | cut -c1-16)
+fi
 
 # ── Write it, atomically ───────────────────────────────────────────────────────────────────────
 #
@@ -161,17 +223,19 @@ mkdir -p "$(dirname "$ENV_FILE")"
 tmp=$(mktemp "${ENV_FILE}.new.XXXXXX")
 trap 'rm -f "$tmp"' EXIT
 
-# Preserve anything else an operator put in this file by hand — QDRANT_URL, an OLLAMA_MODEL — and
-# replace only the lines this script owns. When a Speech credential is being written its old lines go
-# too; when Speech is skipped any AZURE_SPEECH_ lines already here are left untouched, so a run that
-# only refreshes the OpenAI pair cannot silently drop a working voice. A script that dropped the rest
-# of the file would be the BidZA .env lesson learned again: the server's configuration is the server's.
+# Preserve anything else an operator put in this file by hand — QDRANT_URL, an OLLAMA_MODEL, the
+# MYTHUSO_STT_PROVIDER and MYTHUSO_TTS_PROVIDER selection lines — and replace only the lines this
+# script owns. When a Speech credential is being written its old lines go too; when Speech is skipped
+# any AZURE_SPEECH_ lines already here are left untouched, so a run that only refreshes the OpenAI
+# pair cannot silently drop a working voice; the OPENAI_ and DASHSCOPE_ lines are kept or replaced by
+# the same rule, section by section. A script that dropped the rest of the file would be the BidZA
+# .env lesson learned again: the server's configuration is the server's.
 if [ -f "$ENV_FILE" ]; then
-  if [ -n "$speech_key" ]; then
-    grep -vE '^AZURE_(OPENAI|SPEECH)_' "$ENV_FILE" > "$tmp" || true
-  else
-    grep -v '^AZURE_OPENAI_' "$ENV_FILE" > "$tmp" || true
-  fi
+  owned='^AZURE_OPENAI_'
+  [ -n "$speech_key" ] && owned="$owned|^AZURE_SPEECH_"
+  [ -n "$openai_key" ] && owned="$owned|^OPENAI_"
+  [ -n "$dashscope_key" ] && owned="$owned|^DASHSCOPE_"
+  grep -vE "$owned" "$ENV_FILE" > "$tmp" || true
   # A file that was readable by others has to be treated as a key that was read — the same rule
   # deploy.sh applies to the identity service's env file. The new file below fixes the mode; this
   # note is the part that cannot be fixed by chmod.
@@ -189,6 +253,15 @@ printf 'AZURE_OPENAI_ENDPOINT=%s\nAZURE_OPENAI_KEY=%s\nAZURE_OPENAI_MODEL=%s\n' 
 if [ -n "$speech_key" ]; then
   printf 'AZURE_SPEECH_REGION=%s\nAZURE_SPEECH_KEY=%s\n' \
     "$speech_region" "$speech_key" >> "$tmp"
+fi
+# The two hosted speech providers, each only when it was entered, after the voice they stand beside.
+if [ -n "$openai_key" ]; then
+  printf 'OPENAI_API_KEY=%s\nOPENAI_TRANSCRIBE_MODEL=%s\n' \
+    "$openai_key" "$openai_model" >> "$tmp"
+fi
+if [ -n "$dashscope_key" ]; then
+  printf 'DASHSCOPE_REGION=%s\nDASHSCOPE_API_KEY=%s\n' \
+    "$dashscope_region" "$dashscope_key" >> "$tmp"
 fi
 
 chmod 0600 "$tmp"
@@ -228,7 +301,21 @@ else
   say "No Azure Speech credential was entered, so the cloud voice stays unconfigured and the panel"
   say "keeps the browser's own voice. Re-run and enter a region and key to switch the natural voice on."
 fi
-unset endpoint key model fingerprint speech_region speech_key speech_fingerprint
+if [ -n "$openai_fingerprint" ]; then
+  say "OpenAI Whisper key fingerprint: $openai_fingerprint (model $openai_model). The service reads it"
+  say "only where MYTHUSO_STT_PROVIDER=openai-whisper is in $ENV_FILE, written by hand; and in"
+  say "production it refuses that selection for patient audio until the residency decision is"
+  say "signed (docs/governance/DATA-RESIDENCY-OPTIONS.md §7), carrying on with Azure Speech."
+fi
+if [ -n "$dashscope_fingerprint" ]; then
+  say "DashScope region: $dashscope_region"
+  say "DashScope key fingerprint: $dashscope_fingerprint. The service reads it only where"
+  say "MYTHUSO_STT_PROVIDER=alibaba-qwen-asr or MYTHUSO_TTS_PROVIDER=alibaba-qwen-tts is in"
+  say "$ENV_FILE, written by hand; and in production it refuses either for patient audio until the"
+  say "residency decision is signed (docs/governance/DATA-RESIDENCY-OPTIONS.md §7)."
+fi
+unset endpoint key model fingerprint speech_region speech_key speech_fingerprint \
+  openai_key openai_model openai_fingerprint dashscope_region dashscope_key dashscope_fingerprint
 say ""
 if systemctl is-enabled --quiet assistant-api.service 2>/dev/null; then
   say "To put the new credentials to work:"

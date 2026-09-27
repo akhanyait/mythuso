@@ -78,7 +78,11 @@ export const registryActions = (): readonly Action[] => (g1.actions as readonly 
 
 /* ---- Providers ------------------------------------------------------------------------------- */
 
-export type Pricing = { readonly perMillionCharactersUsd: number; readonly unitCharacters: number; readonly currency: string; readonly source: string; readonly recordedOn: string; readonly why: string };
+/* A card's recorded list price. The figure is null where a card records that no per-character list
+   price could be read on the day (Alibaba Qwen-TTS since 28 September 2026), and a null figure is
+   never multiplied: the preview reads through a card whose figure is a number, below. */
+export type Pricing = { readonly perMillionCharactersUsd: number | null; readonly unitCharacters: number; readonly currency: string; readonly source: string; readonly recordedOn: string; readonly why: string };
+export type ReadPricing = Pricing & { readonly perMillionCharactersUsd: number };
 export type Card = (typeof registry.cards)[number] & {
  serves?: string[]; gate?: string; prohibitedFor?: string; keyRequired?: boolean; calledFrom?: string;
  detailsFrom?: string; regionFrom?: string; voicesFrom?: string; pricing?: Pricing;
@@ -160,8 +164,8 @@ export const savePresentationVoice = (classId: string, value: VoiceLabel, reason
 /* The one text-to-speech provider the preview reads through — the card voice.json lists for tts that the
    registry records as configured — and its recorded list price. The Voice screen and every TTS card's
    preview ask this rather than choosing a card, so a preview on ElevenLabs' card cannot call ElevenLabs. */
-export const previewProvider = (): Card | null =>
- voice.providers.tts.map(cardOf).find(c => c.statusToday === 'configured' && c.pricing) ?? null;
+export const previewProvider = (): (Card & { pricing: ReadPricing }) | null =>
+ voice.providers.tts.map(cardOf).find((c): c is Card & { pricing: ReadPricing } => c.statusToday === 'configured' && typeof c.pricing?.perMillionCharactersUsd === 'number') ?? null;
 
 export type PreviewAnswer =
  | { readonly ok: true; readonly audioBase64: string; readonly format: string; readonly voice: string; readonly language: string }

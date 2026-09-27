@@ -1733,3 +1733,35 @@ test('a foreign origin meets the origin refusal on all five clinical addresses, 
  assert.deepEqual(errors, []);
 });
 
+
+/* Since 28 September 2026 the door admits every voice a built speech card in api-registry.json names
+   beside the contract's own — Cherry, for Alibaba Qwen-TTS — and still refuses a name nothing names,
+   however a vendor documents it. Which provider actually speaks, and whether that voice belongs to
+   the language asked, is the seam's, and the seam is faked here; ./lib/speech-selection.test.ts and
+   ./lib/providers hold the real ones to it. */
+test('the speak door admits a built provider’s voice name and still refuses one nothing names', async () => {
+ const { seam, synthesises } = fakeCloudVoice('nothing is heard here');
+ const errors = await withServer(
+  mustNotRun,
+  async (base) => {
+   const cherry = await postTo(
+    base,
+    '/assistant/v1/speak',
+    JSON.stringify({ text: 'Good morning', language: 'en', voice: 'Cherry' }),
+   );
+   assert.equal(cherry.status, 200, 'a voice a built card names is admitted at the door');
+   assert.equal(((await cherry.json()) as { voice?: string }).voice, 'Cherry');
+   const sunny = await postTo(
+    base,
+    '/assistant/v1/speak',
+    JSON.stringify({ text: 'Good morning', language: 'en', voice: 'Sunny' }),
+   );
+   assert.equal(sunny.status, 400, 'a vendor-documented voice the card does not name is refused at the door');
+  },
+  notSearching,
+  seam,
+ );
+ assert.equal(synthesises.length, 1, 'only the admitted ask reached the voice');
+ assert.equal(synthesises[0].voice, 'Cherry');
+ assert.deepEqual(errors, []);
+});

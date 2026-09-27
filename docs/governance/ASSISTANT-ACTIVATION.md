@@ -56,6 +56,25 @@ The lines written between 21 and 24 September are still in the journal.
   co-tenant keeps that setting. MyThuso does not control it and must not edit it. Letting them age out
   is a decision too, and it should be written down as one.
 
+## Two more speech providers, built and refused offshore — 28 September 2026
+
+On the founder's ask, adapters for OpenAI Whisper (hosted) and Alibaba Qwen (ASR and TTS through
+DashScope) were built beside Azure Speech (`apps/assistant-api/src/lib/providers/`), and a selection
+per direction added (`MYTHUSO_STT_PROVIDER`, `MYTHUSO_TTS_PROVIDER`; default `azure-speech`). **Neither
+is configured anywhere, and neither has been exercised against its live API** — the request shapes
+are from the vendors' documentation, and each adapter's header says so.
+
+Neither provider has a South African region (OpenAI: United States; DashScope: Singapore or Beijing),
+and `packages/catalog/api-registry.json` records a patient's capture and GilbertOne's spoken answer
+as health-information flows to each. Because `DATA-RESIDENCY-OPTIONS.md` §7 is still blank, **the
+service refuses to select either for those routes in production**: it starts, prints the registry's
+own refusal (`no-offshore-speech-for-health-information-without-a-residency-decision`) and carries on
+with Azure Speech, or with the speech-not-configured refusal where Azure is unconfigured. There is
+deliberately no variable that overrides this. The three health-information flows to these providers
+are recorded and counted among the flows with no residency decision, which remains the open gap this
+record names above. Nothing about the running service on `liqzar-server` changed with this: the deploy
+publishes the runtime and does not restart it, and the selection lines are not in its env file.
+
 ## When this file is updated
 
 When somebody records who activated the service and under what approval. When the retention decision
