@@ -76,7 +76,9 @@ test('a routine answer rises once and is complete; under reduced motion it simpl
  const reply = panel(page).locator('.as-turn').last().locator('.as-reply');
  await expect(reply).toHaveAttribute('data-outcome', 'answer');
  await expect.poll(() => reply.evaluate(el => getComputedStyle(el).opacity)).toBe('1');
- expect(await movingIn(page, '.as-turn:last-child .as-reply')).toEqual([]);
+ /* "Complete" is read a frame after the rise ends: under load the finished entrance can still report itself
+    running on the frame opacity first reads 1, so this waits for stillness rather than sampling a frame. */
+ await expect.poll(() => movingIn(page, '.as-turn:last-child .as-reply')).toEqual([]);
 
  await page.emulateMedia({ reducedMotion: 'reduce' });
  await ask(page, 'How do I book a nurse?');
