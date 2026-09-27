@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import '../fields.css';
 import voice from '../../../../../../packages/catalog/voice.json' with { type: 'json' };
 import { containsPHI } from '../../../../../../packages/gilbertone/src/phi.ts';
 import { g1, previewProvider, previewSpeech, voiceChoicesOf, type VoiceLabel } from '../../../lib/gilbertone-admin';
@@ -26,7 +27,8 @@ import { useVoiceSaving } from './useVoiceSaving';
  *
  *   It never offers Save as default on the emergency, refusal or escalation register. The row is read
  *   from the class's own previewMaySaveAsDefault, never from its name; on a locked register the voice
- *   select is disabled and shows the platform's default from assistant.json, because that is the voice
+ *   chooser — a pair of radio chips on a presentation register — is one chip in a disabled fieldset,
+ *   the platform's default from assistant.json, because that is the voice
  *   the register is read in whatever any setting says, and Play sends exactly that.
  *
  * Play is live since the founder's decision of 27 September 2026. It asks the assistant service's own
@@ -160,17 +162,22 @@ export function VoicePreview({ placement, cardId }: { placement: string; cardId?
      {languages.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
     </select>
    </label>
-   <label className="g1-field" htmlFor={voiceField}>
-    <span>{words.previewVoiceLabel}</span>
+   <div className="g1-field">
     {chosen.previewMaySaveAsDefault
-     ? <select id={voiceField} aria-label={words.previewVoiceLabel} aria-describedby={`${voiceField}-locked`} value={asked ?? ''} onChange={event => { setLabel(event.target.value as VoiceLabel); saving.clear(); }}>
-      {choices.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-     </select>
-     : <select id={voiceField} aria-label={words.previewVoiceLabel} aria-describedby={`${voiceField}-locked`} value={asked ?? ''} disabled>
-      {platform && <option value={platform}>{words.platformDefaultWord}</option>}
-     </select>}
+     ? <fieldset className="fc-chips g1-voice-chips" id={voiceField} aria-describedby={`${voiceField}-locked`}>
+      <legend>{words.previewVoiceLabel}</legend>
+      <div className="fc-chip-row">{choices.map(o => <label className="fc-chip" key={o.value}>
+       <input type="radio" name={voiceField} checked={asked === o.value} onChange={() => { setLabel(o.value as VoiceLabel); saving.clear(); }}/><span>{o.label}</span>
+      </label>)}</div>
+     </fieldset>
+     : <fieldset className="fc-chips g1-voice-chips" id={voiceField} aria-describedby={`${voiceField}-locked`} disabled>
+      <legend>{words.previewVoiceLabel}</legend>
+      <div className="fc-chip-row">{platform && <label className="fc-chip">
+       <input type="radio" name={voiceField} checked readOnly/><span>{words.platformDefaultWord}</span>
+      </label>}</div>
+     </fieldset>}
     <small id={`${voiceField}-locked`}>{chosen.previewMaySaveAsDefault ? (voiceName ?? '') : words.lockedRowSentence}</small>
-   </label>
+   </div>
    <label className="g1-field wide" htmlFor={textField}>
     <span>{words.previewTextLabel}</span>
     <textarea id={textField} value={text} onChange={event => setText(event.target.value)}

@@ -7,7 +7,7 @@ import trust from '../../../../../packages/catalog/devices/trust-model.json' wit
 import { fill, portalContract, portalRefusal } from '../../lib/portal';
 import { usePortal } from './context';
 import { Frame } from './Frame';
-import { BuildWord, Empty, Region, RovingList } from './Parts';
+import { BuildWord, Empty, Figures, Region, RovingList } from './Parts';
 
 /* Devices & Fleet (§5.4): the fleet overview, the provisioning wizard and the device-class allowlist.
  *
@@ -31,10 +31,27 @@ export function DevicesCategory() {
  return <Frame>{place.tab === 'provisioning' ? <Provisioning/> : place.tab === 'allowlist' ? <Allowlist/> : <Fleet/>}</Frame>;
 }
 
+/* The fleet in four figures, each a count of a list a contract holds and this category shows: the real
+   devices allowlisted (the dark card, because it is the figure the whole category waits on), the classes
+   the registry knows, the indicators a fleet view would watch — with a ring of how many of them are
+   built today — and the thresholds. Nothing is typed; the day the allowlist gains a device the first
+   card changes by itself. */
+function FleetFigures() {
+ const f = facts();
+ const built = indicators.indicators.filter(i => i.builtToday).length;
+ return <Figures label="Devices and fleet in four figures" items={[
+  { name: 'Real devices allowlisted', value: String(f.real), chip: `DPIA ${f.dpia}`, lead: true },
+  { name: 'Device classes the registry knows', value: String(devices.deviceClasses.length), chip: 'None enabled at a site' },
+  { name: 'Indicators a fleet view would watch', value: String(indicators.indicators.length), chip: `${built} built today`, share: indicators.indicators.length ? built / indicators.indicators.length : 0 },
+  { name: 'Thresholds', value: String(thresholds.thresholds.length), chip: thresholds.thresholds.length ? undefined : 'None ratified by a clinician' }
+ ]}/>;
+}
+
 function Fleet() {
  const words = portalContract.devices;
  const f = facts();
  return <>
+  <FleetFigures/>
   <Empty heading={portalRefusal('no-device-class-enabled')}>{fill(words.fleetEmpty, f)}</Empty>
   <Region title="Needs attention">
    <Empty>{words.attentionEmpty}</Empty>

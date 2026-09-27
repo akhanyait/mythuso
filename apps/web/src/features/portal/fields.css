@@ -1,0 +1,348 @@
+/* The portal's form controls (Fields.tsx): a range slider, a switch and choice chips, each the native
+ * input underneath, restyled from the tokens.
+ *
+ * Every colour is a token. Every text pair is a row in tokens.json#contrast: charcoal on surface, surface
+ * on charcoal, studio paper on studio night (the slider's chip), studio ink on studio lime (a chosen
+ * chip's tick disc sits on lime and carries no word) and teal ink on teal soft (the switch's "on" word).
+ * The thumb, the chosen pill and the switch's knob are what carry a value; the track fills are
+ * decoration beside them, so no state is told by a fill alone.
+ *
+ * Every target is 44px: the slider is a 44px-tall input whose thumb is a 44px circle drawing a 28px
+ * knob, a chip's input fills its pill, and a switch's label is 44px tall. The focus ring is core.css's
+ * two rings, given the control's own radius here so a pill is ringed as a pill. No outline is removed.
+ *
+ * Motion is the shared system's: a switch's knob and a chip's ground settle over --t-quick with
+ * --ease-soft, nothing else moves, and reduced motion removes both — with !important, because this
+ * sheet loads after motion.css and a removal a later sheet can overrule is not a removal. */
+
+/* ---- The range slider ---------------------------------------------------------------------------- */
+.fc-range {
+  --fc-on: var(--brand-green);
+  --fc-off: var(--stone);
+  --fc-knob: var(--charcoal);
+  position: relative;
+  display: block;
+  min-width: 0;
+  padding-top: 36px;
+}
+.fc-range.is-night {
+  --fc-on: var(--studio-lime);
+  --fc-off: var(--sage-slate);
+  --fc-knob: var(--studio-lime);
+}
+/* The chip rides the thumb: its left edge at the thumb at the low end, its right edge at the high end,
+   centred between — so it never leaves the track's box, and a phone never scrolls sideways for it. */
+.fc-range-chip {
+  position: absolute;
+  top: 0;
+  left: calc(22px + var(--fc-ratio, 0) * (100% - 44px));
+  transform: translateX(calc(var(--fc-ratio, 0) * -100%));
+  padding: var(--space-4) var(--space-12);
+  border-radius: var(--r-pill);
+  background: var(--studio-night);
+  color: var(--studio-paper);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.fc-range.is-night .fc-range-chip {
+  background: var(--studio-lime);
+  color: var(--studio-ink);
+}
+.fc-range input[type="range"] {
+  --fc-fill: calc(22px + var(--fc-ratio, 0) * (100% - 44px));
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.fc-range input[type="range"]:focus-visible {
+  border-radius: var(--r-pill);
+}
+.fc-range input[type="range"]::-webkit-slider-runnable-track {
+  height: 12px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--fc-on) 0 var(--fc-fill), var(--fc-off) var(--fc-fill) 100%);
+}
+.fc-range input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 44px;
+  height: 44px;
+  margin-top: -16px;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle closest-side, var(--surface) 0 44%, var(--fc-knob) 47% 62%, transparent 65%);
+}
+.fc-range input[type="range"]::-moz-range-track {
+  height: 12px;
+  border-radius: var(--r-pill);
+  background: var(--fc-off);
+}
+.fc-range input[type="range"]::-moz-range-progress {
+  height: 12px;
+  border-radius: var(--r-pill);
+  background: var(--fc-on);
+}
+.fc-range input[type="range"]::-moz-range-thumb {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle closest-side, var(--surface) 0 44%, var(--fc-knob) 47% 62%, transparent 65%);
+}
+.fc-range input[type="range"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* A slider beside the exact field it moves: the field stays, because a value can be typed exactly and a
+   value outside the bounds must still reach the rules and be refused in the contract's sentence. */
+.fc-slide-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 7.5rem;
+  align-items: end;
+  gap: var(--space-12) var(--space-16);
+  min-width: 0;
+}
+.fc-slide-pair > input {
+  width: 100%;
+  min-width: 0;
+}
+@media (max-width: 420px) {
+  .fc-slide-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.fc-range-ends {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-8);
+  margin: 0;
+  color: var(--faint);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- The switch ---------------------------------------------------------------------------------- */
+.fc-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: 44px;
+  color: var(--charcoal);
+  font-size: 15px;
+  cursor: pointer;
+}
+.fc-switch input[type] {
+  position: relative;
+  flex: 0 0 auto;
+  width: 52px;
+  height: 32px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 2px solid var(--faint);
+  border-radius: var(--r-pill);
+  background: var(--cloud);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  transition:
+    background-color var(--t-quick) var(--ease-soft),
+    border-color var(--t-quick) var(--ease-soft);
+}
+.fc-switch input[type]::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow-raised);
+  transition: transform var(--t-quick) var(--ease-soft);
+}
+.fc-switch input[type]:checked {
+  background: var(--brand-green);
+  border-color: var(--brand-green);
+}
+.fc-switch input[type]:checked::before {
+  transform: translateX(20px);
+}
+.fc-switch input[type]:focus-visible {
+  border-radius: var(--r-pill);
+}
+.fc-switch input[type]:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.fc-switch-state {
+  padding: 2px var(--space-8);
+  border-radius: var(--r-pill);
+  background: var(--cloud);
+  color: var(--charcoal);
+  font-size: 13px;
+  font-weight: 600;
+}
+.fc-switch:has(input:checked) .fc-switch-state {
+  background: var(--teal-soft);
+  color: var(--teal-ink);
+}
+
+/* ---- Choice chips -------------------------------------------------------------------------------- */
+.fc-chips {
+  display: grid;
+  gap: var(--space-8);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.fc-chips > legend {
+  padding: 0;
+  margin: 0 0 var(--space-8);
+  color: var(--charcoal);
+  font-size: 14px;
+  font-weight: 600;
+}
+/* A disabled set is not a faded one: a faded chosen chip put white words on grey at a ratio nobody
+   measured. It is the recessed ground with charcoal on it (tokens.json#contrast, charcoal on cloud), the
+   chosen chip keeping its drawn tick, and the fieldset's disabled state saying the rest. */
+.fc-chips:disabled .fc-chip,
+.fc-chips:disabled .fc-chip:has(input:checked) {
+  background: var(--cloud);
+  border-color: var(--stone);
+  color: var(--charcoal);
+}
+.fc-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  min-width: 0;
+}
+.fc-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  max-width: 100%;
+  padding: var(--space-8) var(--space-16) var(--space-8) var(--space-12);
+  border: 1px solid var(--stone);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--charcoal);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.35;
+  cursor: pointer;
+  transition:
+    background-color var(--t-quick) var(--ease-soft),
+    border-color var(--t-quick) var(--ease-soft),
+    color var(--t-quick) var(--ease-soft);
+}
+.fc-chip:hover {
+  border-color: var(--charcoal);
+}
+/* The input is the whole pill, transparent: the pill is the target, and the ring is round the pill. */
+.fc-chip input[type] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.fc-chip input[type]:focus-visible {
+  border-radius: var(--r-pill);
+}
+/* The words sit over the input and let every press through to it, so the pill is one target. */
+.fc-chip > span {
+  position: relative;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.fc-chip > span::before {
+  content: "";
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--faint);
+  border-radius: 50%;
+}
+.fc-chip:has(input[type="checkbox"]) > span::before {
+  border-radius: 6px;
+}
+.fc-chip:has(input:checked) {
+  background: var(--charcoal);
+  border-color: var(--charcoal);
+  color: var(--surface);
+}
+.fc-chip:has(input:checked) > span::before {
+  border-color: var(--studio-lime);
+  background: var(--studio-lime);
+}
+/* The tick, drawn — so a chosen pill differs from an unchosen one by a mark as well as by its fill. */
+.fc-chip:has(input:checked) > span::after {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 50%;
+  width: 5px;
+  height: 10px;
+  border: solid var(--studio-ink);
+  border-width: 0 2px 2px 0;
+  transform: translate(0, -62%) rotate(45deg);
+}
+.fc-chips:disabled .fc-chip,
+.fc-chips:disabled .fc-chip input[type] {
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fc-switch input[type],
+  .fc-switch input[type]::before,
+  .fc-chip {
+    transition: none !important;
+  }
+}
+
+/* A slider whose value is said by an <output> beside it rather than by a chip above it. */
+.fc-range.is-bare {
+  padding-top: 0;
+}
+
+/* The number field a slider sits beside: core.css's field, sized to the number it holds. */
+.fc-number {
+  min-height: 44px;
+  font-variant-numeric: tabular-nums;
+}
+.fc-select {
+  min-height: 44px;
+  border-radius: var(--r-pill);
+}

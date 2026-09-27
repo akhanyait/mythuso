@@ -19,6 +19,30 @@ import scheduling from "../../../../packages/catalog/scheduling.json";
 import booking from "../../../../packages/catalog/booking.json";
 import vetting from "../../../../packages/catalog/vetting.json";
 import { accessSettingsNow, rotaAt } from "./settings";
+import {
+  fillerStems,
+  hasSequence,
+  stem,
+  stems,
+  tokens,
+} from "../../../../packages/gilbertone/src/stems.ts";
+import {
+  askWhichReading,
+  readingAnswer,
+  readingIn,
+  readingLeavesUnread,
+  type ReadingAnswer,
+  type ReadingMatch,
+} from "../../../../packages/gilbertone/src/readings.ts";
+import {
+  preparationFor,
+  type PreparationAnswer,
+} from "../../../../packages/gilbertone/src/preparation.ts";
+import {
+  medicinesAnswer,
+  type MedicinesAnswer,
+} from "../../../../packages/gilbertone/src/medicines.ts";
+import { accountHolderMedicines } from "./records";
 
 /* GilbertOne's reasoning, without a screen attached to it.
 
@@ -235,70 +259,12 @@ const groupName = (group: (typeof emergencyGroupsContract)[number]) =>
     : (conditions.find((c) => c.id === group.condition)?.name ?? group.id);
 
 /* ---- Words into stems ------------------------------------------------------------------------
-   Lower case, the contract's foldings (æ is ae), combining marks removed (é is e), apostrophes
-   removed, and anything outside a–z and 0–9 a space. Then the stemming rules, in the contract's order.
-   Checked on every platform against fixtures.stems. */
-const normalisation = contract.matcher.normalisation;
-const irregular: Record<string, string> = contract.matcher.stemming.irregular;
-
-export function tokens(text: string): string[] {
-  let folded = text.toLowerCase();
-  for (const [from, to] of Object.entries(normalisation.foldings))
-    folded = folded.split(from).join(to);
-  folded = folded.normalize("NFD").replace(/\p{M}+/gu, "");
-  for (const mark of normalisation.apostrophes)
-    folded = folded.split(mark).join("");
-  return folded
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim()
-    .split(" ")
-    .filter(Boolean);
-}
-
-const undouble = (word: string) =>
-  word.length >= 3 &&
-  word[word.length - 1] === word[word.length - 2] &&
-  !"aeiouslz".includes(word[word.length - 1])
-    ? word.slice(0, -1)
-    : word;
-
-export function stem(word: string): string {
-  let t = irregular[word] ?? word;
-  if (t.length >= 5 && t.endsWith("ing")) t = undouble(t.slice(0, -3));
-  else if (t.length >= 4 && (t.endsWith("ied") || t.endsWith("ies")))
-    t = `${t.slice(0, -3)}y`;
-  else if (t.length >= 4 && t.endsWith("ed") && !t.endsWith("eed"))
-    t = undouble(t.slice(0, -2));
-  else if (t.length >= 4 && /(s|x|z|ch|sh)es$/.test(t)) t = t.slice(0, -2);
-  else if (t.length >= 4 && t.endsWith("s") && !/(ss|us|is)$/.test(t))
-    t = t.slice(0, -1);
-  if (t.length >= 4 && t.endsWith("e")) t = t.slice(0, -1);
-  return t;
-}
-
-export const stems = (text: string) => tokens(text).map(stem);
-
-/* A term's words in order, each within maxGap words of the one before. Greedy from each start, which
-   is deterministic and is exactly what the other two platforms do. */
-function hasSequence(said: string[], term: string[], gap: number): boolean {
-  for (let start = 0; start < said.length; start++) {
-    if (said[start] !== term[0]) continue;
-    let at = start;
-    let whole = true;
-    for (let k = 1; k < term.length && whole; k++) {
-      let found = -1;
-      for (let j = at + 1; j < said.length && j <= at + 1 + gap; j++)
-        if (said[j] === term[k]) {
-          found = j;
-          break;
-        }
-      if (found < 0) whole = false;
-      else at = found;
-    }
-    if (whole) return true;
-  }
-  return false;
-}
+   The arithmetic — lower case, the contract's foldings, apostrophes removed, the stemming rules in
+   the contract's order, and a term's words in sequence within a gap — lives in
+   packages/gilbertone/src/stems.ts since 27 September 2026, so that the reading recogniser beside it
+   folds a message exactly as this matcher does. Re-exported here because every caller of this module
+   (the specs, the public sheet) reads them from it; checked on every platform against fixtures.stems. */
+export { stem, stems, tokens };
 
 export function emergencyGroupsIn(text: string): EmergencyGroup[] {
   const said = stems(text);
@@ -328,14 +294,38 @@ export function questionFor(
         length = term.length;
       }
     }
+  /* The reading question, since 27 September 2026, has two more ways in than its trigger phrases:
+     a measure named in the words of packages/catalog/reading-questions.json — "sugar", "bp",
+     "SpO2" — which competes on length like any trigger, so "when is my nurse coming, my bp was
+     150/95" is still the visit question with words left over; and a pair of numbers written the way
+     a cuff writes them, which is blood pressure only when nothing else in the message matched at
+     all. The measure is read again by the reply builder; this only decides which question won. */
+  const reading = readingQuestionFor(audience);
+  if (reading) {
+    const found = readingIn(text);
+    if (
+      found &&
+      (found.matchedWords > length || (!best && found.matchedWords === 0))
+    )
+      best = reading;
+  }
   return best;
 }
+
+const readingQuestionFor = (audience: AudienceId): Question | null =>
+  questionsFor(audience).find((q) => q.answer === "reading") ?? null;
 
 /* Reading everything: a word that is neither one of the question's own trigger words nor filler is a
    word GilbertOne did not read, and it is said so. Only a matched question is measured — a greeting
    consumes its whole message in the bridge, so no other trigger set reaches this rule. */
-const fillerStems = new Set(contract.matcher.readEverything.filler.map(stem));
 export function leavesUnread(text: string, question: Question): boolean {
+  /* A reading question reads its measure's aliases, the contract's own read words and — for this
+     question alone — the numbers, because a number is the question. packages/gilbertone/src/readings.ts
+     holds that rule beside the recogniser, so the package's tests and this matcher agree. */
+  if (question.answer === "reading") {
+    const found = readingIn(text);
+    if (found) return readingLeavesUnread(text, found, question.triggers);
+  }
   const covered = new Set([
     ...fillerStems,
     ...question.triggers.flatMap(stems),
@@ -362,6 +352,16 @@ export type Reply =
      so the panel treats it like every other reply — face, pulse, speech, outcome — without knowing
      or caring where the sentence came from. */
   | { kind: "service"; text: string }
+  /* The three answers of 27 September 2026, each read from a contract and never composed. A
+     reading: the measure a person named or the pair of numbers she wrote, and records.json's own
+     explanation for it, framed by packages/catalog/reading-questions.json — or, pressed as a chip
+     with nothing to read a measure from, the sentence asking which. A preparation: the list in
+     packages/catalog/visit-preparation.json for the service that is booked, or the sentence for
+     nothing booked. Medicines: the account holder's list read back line by line, protected entries
+     never among them. */
+  | { kind: "reading"; match: ReadingMatch | null; answer: ReadingAnswer | null; ask: string | null }
+  | { kind: "preparation"; answer: PreparationAnswer }
+  | { kind: "medicines"; answer: MedicinesAnswer }
   | {
       kind: "handover";
       rows: SummaryRow[];
@@ -394,9 +394,28 @@ export function replyTo(question: Question, visit: Visit | null = null): Reply {
       return { kind: "voice" };
     case "emergency":
       return { kind: "emergency", groups: [] };
+    case "preparation":
+      return {
+        kind: "preparation",
+        answer: preparationFor(visit?.service.id ?? null),
+      };
+    case "medicines":
+      return { kind: "medicines", answer: medicinesAnswer(accountHolderMedicines()) };
+    case "reading":
+      return { kind: "reading", match: null, answer: null, ask: askWhichReading() };
     default:
       return { kind: "unmatched" };
   }
+}
+
+/* The reading reply for a message with words in it: the recogniser's match and the contract's
+   answer for it. A reading question that won on a trigger phrase alone — "what does my reading
+   mean" with no measure and no number — gets the chip's own ask-which sentence. */
+export function readingReply(text: string): Reply {
+  const match = readingIn(text);
+  return match
+    ? { kind: "reading", match, answer: readingAnswer(match), ask: null }
+    : { kind: "reading", match: null, answer: null, ask: askWhichReading() };
 }
 
 export function pulseOf(reply: Reply): PulseId {
@@ -417,6 +436,12 @@ export function pulseOf(reply: Reply): PulseId {
       return answers.service.state as PulseId;
     case "handover":
       return answers.handover.state as PulseId;
+    case "reading":
+      return answers.reading.state as PulseId;
+    case "preparation":
+      return answers.preparation.state as PulseId;
+    case "medicines":
+      return answers.medicines.state as PulseId;
   }
 }
 
@@ -647,7 +672,9 @@ export function send(
   const reply: Reply =
     question.answer === "handover"
       ? handoverReply(turns, raised)
-      : replyTo(question, visit);
+      : question.answer === "reading"
+        ? readingReply(words)
+        : replyTo(question, visit);
   return append(turns, (id) => ({
     id,
     asked: words,
@@ -818,6 +845,29 @@ export function spokenOf(turn: Turn, audience: AudienceId): string {
       );
       numbers(answers.service.numbers);
       break;
+    case "reading":
+      /* The heading first, as the screen reads it, then every paragraph and the small print in
+         the order the screen shows them — the small print is the provenance, and provenance read
+         aloud is the one thing a spoken explanation may not leave out. */
+      if (turn.reply.answer) {
+        add(turn.reply.answer.heading, ...turn.reply.answer.paragraphs);
+        add(...turn.reply.answer.smallPrint);
+      } else if (turn.reply.ask) add(turn.reply.ask);
+      break;
+    case "preparation": {
+      const p = turn.reply.answer;
+      if (p.kind === "none") add(p.sentence);
+      else add(p.lead, ...p.items, p.review, p.neverInstructs);
+      break;
+    }
+    case "medicines": {
+      const m = turn.reply.answer;
+      add(m.heading, m.lead);
+      if (m.noMedicines) add(m.noMedicines);
+      else add(...m.lines);
+      add(m.protectedNotRead, m.neverChanges, m.preview);
+      break;
+    }
     case "handover": {
       const h = answers.handover;
       const out = turn.reply.desk.outOfHours;

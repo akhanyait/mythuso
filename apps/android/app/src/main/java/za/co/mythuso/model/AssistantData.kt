@@ -415,6 +415,21 @@ object GilbertData {
             "silence-is-not-safety",
             "GilbertOne not recognising an emergency does not mean there is not one.",
             "The emergency words are a draft, they have not been reviewed by a clinician, and no list of words catches every way a person describes something frightening. So the sentence stays beside the conversation on every platform instead of appearing only after a match."
+        ),
+        GilbertRefusal(
+            "no-reading-graded",
+            "GilbertOne never grades a reading. A number you say is set against the indicative range only to choose which written paragraph applies, and what it means for you is a clinician's judgement.",
+            "The paragraphs are records.json's explanations, written in advance and reviewed by nobody clinical yet, and the range is the observations section's — indicative, and never spoken. The words high, low and normal appear in this build only as things a person says; no sentence GilbertOne reads back says one about a number, and the build fails if packages/catalog/reading-questions.json types a digit."
+        ),
+        GilbertRefusal(
+            "no-invented-preparation",
+            "GilbertOne never tells you to fast, or to take, skip or stop a medicine before a visit.",
+            "A preparation list is written per service in packages/catalog/visit-preparation.json, every list says whether a clinician has reviewed it, and the build refuses an unreviewed list that carries a count of hours or doses, a unit of a medicine, or an instruction about food or a medicine. The only fasting sentence in the file says GilbertOne does not know which tests were ordered."
+        ),
+        GilbertRefusal(
+            "medicine-list-read-only",
+            "GilbertOne never adds to, stops or changes anything on your medicine list. Where it reads the list back, it reads it as your record holds it, and it never reads a protected entry aloud, or says whether there is one.",
+            "A reply is read aloud in whatever room the phone is in. A protected entry — an antiretroviral, a psychiatric medicine — is released by the patient entry by entry to a named party, and a voice in a kitchen is not a named party. The sentence about protected entries is said every time so that its presence never reveals anything."
         )
     )
 }

@@ -2687,3 +2687,23 @@
 .gos-capability .gos-button {
   margin-top: var(--space-8);
 }
+
+/* ---- The reading, preparation and medicines replies (27 September 2026) ------------------------
+   A list read back as sentences — what to have on the table, the medicine lines — sits in the reply
+   as a plain list, and the provenance small print under a reading explanation is set apart from
+   the paragraphs it qualifies by a hairline rather than a colour, so it still reads at arm's length. */
+.as-list {
+  margin: var(--space-8) 0;
+  padding-left: 20px;
+}
+.as-list li + li {
+  margin-top: var(--space-4);
+}
+.as-provenance {
+  border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  padding-top: var(--space-4);
+}
+.as-provenance + .as-provenance {
+  border-top: 0;
+  padding-top: 0;
+}

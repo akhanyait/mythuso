@@ -21,3 +21,29 @@ export type {
   SpeechState,
   TransitionResult,
 } from "./speech-state.js";
+/* The two founder asks of 27 September 2026, answered from contracts: the spoken reading
+   explanation and the pre-visit companion, with the medicine list read back beside it. Each is a
+   recogniser or an answer builder over a contract, and none of them decides an emergency — the
+   caller runs the emergency words first. The stems module is the matcher arithmetic the web's
+   lib/assistant.ts now reads from here rather than carrying. */
+export {
+  askWhichReading,
+  readingAnswer,
+  readingContract,
+  readingIn,
+  readingLeavesUnread,
+  readingName,
+  sideOf,
+} from "./readings.ts";
+export type {
+  ReadingAnswer,
+  ReadingFraming,
+  ReadingMatch,
+  ReadingMeasure,
+  ReadingSide,
+} from "./readings.ts";
+export { preparationContract, preparationFor } from "./preparation.ts";
+export type { PreparationAnswer } from "./preparation.ts";
+export { medicinesAnswer } from "./medicines.ts";
+export type { MedicineLine, MedicinesAnswer } from "./medicines.ts";
+export { fillerStems, hasSequence, stem, stems, tokens } from "./stems.ts";

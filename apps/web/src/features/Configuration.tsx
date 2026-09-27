@@ -7,6 +7,7 @@ import {
 } from '../../../../packages/engines/src/settings/shape.ts';
 import { adminOnDuty, applyChange, doctorOnDuty, engineIds, previewChange, reviewsOf, settingsEngineOf, useSettingsHistories, useSettingsReviews } from '../lib/settings';
 import { whoIs } from '../lib/roles';
+import { ChoiceChips, RangeSlider, Switch } from './portal/Fields';
 
 /* Configuration, on the back office: every setting every engine works to, in one place.
  *
@@ -145,10 +146,35 @@ const editorLabel = (limits: Limits) => fill(say.editors[limits.type as keyof ty
 
 function Editor({ limits, raw, onRaw, id, label, disabled }: { limits: Limits; raw: Raw; onRaw: (raw: Raw) => void; id: string; label: string; disabled: boolean }) {
  switch (limits.type) {
-  case 'minutes': case 'count': case 'percentage': case 'moneyCents': case 'list':
+  /* A number with bounds is a slider beside its exact field. The field is still the value: the slider
+     writes into it and reads from it, so what reaches the rules is exactly what it was before — the text
+     of a number — and a value typed outside the bounds, a nought or a word is refused in the contract's
+     sentence as it always was. The slider cannot go outside the bounds; the field can, on purpose. */
+  case 'minutes': case 'count': case 'percentage': case 'moneyCents': {
+   const cents = limits.type === 'moneyCents';
+   const field = <input id={id} className="fc-number" inputMode={cents ? 'decimal' : 'numeric'} value={String(raw)} disabled={disabled} onChange={event => onRaw(event.target.value)}/>;
+   const bounds = limits.bounds;
+   if (!bounds) return <><label htmlFor={id}>{label}</label>{field}</>;
+   const scale = (value: number) => cents ? value / 100 : value;
+   const [low, high] = [scale(bounds.lowest.value), scale(bounds.highest.value)];
+   const typed = String(raw).trim() === '' ? Number.NaN : Number(String(raw).trim().replace(',', '.'));
+   const at = Number.isFinite(typed) ? Math.min(high, Math.max(low, typed)) : low;
    return <>
     <label htmlFor={id}>{label}</label>
-    <input id={id} inputMode={limits.type === 'list' ? 'text' : limits.type === 'moneyCents' ? 'decimal' : 'numeric'} value={String(raw)} disabled={disabled} onChange={event => onRaw(event.target.value)}/>
+    <div className="fc-slide-pair">
+     <div>
+      <RangeSlider label={`${label}, ${limitsText(limits)}`} min={low} max={high} step={cents ? 0.01 : 1} value={at} disabled={disabled}
+       valueText={valueText(limits, cents ? Math.round(at * 100) : at)} onChange={next => onRaw(cents ? next.toFixed(2) : String(next))}/>
+      <p className="fc-range-ends" aria-hidden="true"><span>{valueText(limits, bounds.lowest.value)}</span><span>{valueText(limits, bounds.highest.value)}</span></p>
+     </div>
+     {field}
+    </div>
+   </>;
+  }
+  case 'list':
+   return <>
+    <label htmlFor={id}>{label}</label>
+    <input id={id} inputMode="text" value={String(raw)} disabled={disabled} onChange={event => onRaw(event.target.value)}/>
    </>;
   case 'text':
    return <>
@@ -156,23 +182,21 @@ function Editor({ limits, raw, onRaw, id, label, disabled }: { limits: Limits; r
     <textarea id={id} rows={4} value={String(raw)} disabled={disabled} aria-describedby={id + '-limit'} onChange={event => onRaw(event.target.value)}/>
     <p className="helper" id={id + '-limit'}>{limitsText(limits)}</p>
    </>;
+  /* A boolean with no words of its own is a switch. Every boolean the contracts hold today names its two
+     choices in sentences — "Words only", "Photos allowed, once the preview has them" — and a switch would
+     make an admin guess which of those is "on", so those are chips, like an enum. */
   case 'boolean': case 'enum': {
-   const choices = limits.allowed ?? [{ value: true, label: say.values.on }, { value: false, label: say.values.off }];
-   return <fieldset className="cf-choices" disabled={disabled}>
-    <legend>{label}</legend>
-    {choices.map(choice => <label className="cf-choice" key={String(choice.value)}>
-     <input type="radio" name={id} checked={raw === choice.value} onChange={() => onRaw(choice.value)}/>{choice.label}
-    </label>)}
-   </fieldset>;
+   if (limits.type === 'boolean' && !limits.allowed)
+    return <Switch label={label} checked={raw === true} disabled={disabled} stateText={raw === true ? say.values.on : say.values.off} onChange={checked => onRaw(checked)}/>;
+   const choices = limits.allowed ?? [];
+   return <ChoiceChips legend={label} name={id} disabled={disabled} className="cf-choices"
+    chips={choices.map(choice => ({ key: String(choice.value), label: choice.label, checked: raw === choice.value, onChange: () => onRaw(choice.value) }))}/>;
   }
   case 'roleList': {
    const chosen = raw as string[];
-   return <fieldset className="cf-choices" disabled={disabled}>
-    <legend>{label}</legend>
-    {(limits.allowedRoles?.roles ?? []).map(role => <label className="cf-choice" key={role}>
-     <input type="checkbox" checked={chosen.includes(role)} onChange={event => onRaw(event.target.checked ? [...chosen, role] : chosen.filter(r => r !== role))}/>{roleName(role)}
-    </label>)}
-   </fieldset>;
+   return <ChoiceChips legend={label} kind="checkbox" disabled={disabled} className="cf-choices"
+    chips={(limits.allowedRoles?.roles ?? []).map(role => ({ key: role, label: roleName(role), checked: chosen.includes(role),
+     onChange: checked => onRaw(checked ? [...chosen, role] : chosen.filter(r => r !== role)) }))}/>;
   }
   case 'schedule': {
    const windows = raw as Window[];
@@ -184,14 +208,12 @@ function Editor({ limits, raw, onRaw, id, label, disabled }: { limits: Limits; r
     <legend>{label}</legend>
     {windows.map((w, i) => <div className="cf-window" key={i}>
      <label htmlFor={`${id}-${i}-post`}>{say.editors.post}</label>
-     <select id={`${id}-${i}-post`} value={w.post} onChange={event => put(i, { post: event.target.value })}>
+     <select id={`${id}-${i}-post`} className="fc-select" value={w.post} onChange={event => put(i, { post: event.target.value })}>
       {held.map(post => <option key={post.id} value={post.id}>{post.label}</option>)}
      </select>
-     <fieldset className="cf-choices cf-days"><legend>{say.editors.days}</legend>
-      {settingsContract.days.map(day => <label className="cf-choice" key={day}>
-       <input type="checkbox" checked={w.days.includes(day)} onChange={event => put(i, { days: event.target.checked ? settingsContract.days.filter(d => d === day || w.days.includes(d)) : w.days.filter(d => d !== day) })}/>{dayName(day)}
-      </label>)}
-     </fieldset>
+     <ChoiceChips legend={say.editors.days} kind="checkbox" className="cf-choices cf-days"
+      chips={settingsContract.days.map(day => ({ key: day, label: dayName(day), checked: w.days.includes(day),
+       onChange: checked => put(i, { days: checked ? settingsContract.days.filter(d => d === day || w.days.includes(d)) : w.days.filter(d => d !== day) }) }))}/>
      <div className="cf-hours">
       <label>{say.editors.from}<input inputMode="numeric" value={w.from} onChange={event => put(i, { from: event.target.value })}/></label>
       <label>{say.editors.to}<input inputMode="numeric" value={w.to} onChange={event => put(i, { to: event.target.value })}/></label>

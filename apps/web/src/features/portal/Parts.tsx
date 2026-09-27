@@ -145,3 +145,62 @@ export function Region({ title, children, count }: { title: string; children: Re
   {children}
  </section>;
 }
+
+/* ---- Figures -------------------------------------------------------------------------------------
+   The portal's figure card: one large numeral, its name under it, a small chip above and, where the
+   figure is a share of something a contract or a register actually holds, a ring drawing that share.
+   A card never carries a number the caller did not count; this file draws what it is handed.
+
+   The tints are the name's, never the position's. core.css records why the old tint-1/2/3 rotation
+   went: colour chosen by an index is decoration in the shape of meaning, and a reordered strip
+   recoloured everything. A tint chosen from the figure's own name is at least stable — "Open
+   incidents" is the same colour on every screen that draws it and wherever it moves in a strip — and
+   it is never the only thing that tells two figures apart: the name is always written under the
+   numeral. The one figure a screen is about is the dark card instead, which is emphasis, not a tint. */
+/* Mint, lavender, peach and pale green — the reference's four, from the design tokens themselves rather
+   than from the clinical shell's remapped studio colours (portal.css, "The card tints"). */
+export type Tint = 'mint' | 'lavender' | 'peach' | 'lime';
+const TINTS: readonly Tint[] = ['mint', 'lavender', 'peach', 'lime'];
+const hashOf = (name: string) => [...name].reduce((hash, ch) => (hash * 31 + ch.charCodeAt(0)) >>> 0, 7);
+/* The tints of a set of figures shown together. Each name starts at its own tint and, if a name before
+   it alphabetically already holds that one, takes the next free; so two cards side by side are never
+   the same colour, and what decides a card's colour is the set of names on the screen and never the
+   order they are drawn in. */
+export function tintsFor(names: readonly string[]): ReadonlyMap<string, Tint> {
+ const taken = new Set<Tint>();
+ const tints = new Map<string, Tint>();
+ for (const name of [...names].sort()) {
+  const start = hashOf(name) % TINTS.length;
+  const tint = TINTS.map((_, step) => TINTS[(start + step) % TINTS.length]!).find(t => !taken.has(t)) ?? TINTS[start]!;
+  taken.add(tint);
+  tints.set(name, tint);
+ }
+ return tints;
+}
+
+/* A share drawn as a ring. It is presentation only — aria-hidden, because the numeral and the chip beside
+   it say the same arithmetic in words — and it rises once from empty when the card arrives, on
+   stroke-dashoffset alone, only while the portal's motion is on; reduced motion draws it where it ends. */
+export function Ring({ share, size = 64 }: { share: number; size?: number }) {
+ const drawn = Number.isFinite(share) ? Math.min(1, Math.max(0, share)) : 0;
+ return <svg className="pt-ring" viewBox="0 0 36 36" width={size} height={size} aria-hidden="true" focusable="false">
+  <circle className="pt-ring-track" cx="18" cy="18" r="15" pathLength={100}/>
+  {drawn > 0 && <circle className="pt-ring-fill" cx="18" cy="18" r="15" pathLength={100} style={{ strokeDashoffset: 100 - drawn * 100 }}/>}
+ </svg>;
+}
+
+export type FigureItem = { readonly name: string; readonly value: string; readonly chip?: string; readonly note?: string; readonly share?: number; readonly lead?: boolean };
+export function Figures({ label, items }: { label: string; items: readonly FigureItem[] }) {
+ const tints = tintsFor(items.filter(f => !f.lead).map(f => f.name));
+ return <ul className="pt-figures" aria-label={label}>
+  {items.map(f => <li key={f.name} className="pt-figure" data-tint={f.lead ? 'night' : tints.get(f.name)}>
+   <span className="pt-figure-top"><span className="pt-dot" aria-hidden="true"/>{f.chip && <span className="pt-figure-chip">{f.chip}</span>}</span>
+   <span className="pt-figure-body">
+    <strong className="pt-figure-value">{f.value}</strong>
+    {f.share !== undefined && <Ring share={f.share}/>}
+   </span>
+   <span className="pt-figure-name">{f.name}</span>
+   {f.note && <small className="pt-figure-note">{f.note}</small>}
+  </li>)}
+ </ul>;
+}

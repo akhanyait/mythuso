@@ -1,0 +1,87 @@
+{
+  "_note": "Spoken reading explanations, as data. A patient asks GilbertOne what a blood pressure of 136/85 means, whether a sugar of 7.2 is all right, or what SpO2 is, and the answer is the reviewed-in-advance explanation for that measure from packages/catalog/records.json (explanations.entries) — never a sentence written for her, never a grade. This file holds only what records.json does not: the words a person uses for each measure, the number of numbers each takes, the few words a question about a reading is allowed to carry without being 'unread', and the handful of framing sentences the answer needs around the explanation. The web's lib/assistant.ts and packages/gilbertone/src/readings.ts read it; no native app renders it yet — see platforms on the reading question in assistant.json. scripts/check-boundaries.mjs holds every id here to an explanation records.json actually has, every alias away from the emergency words, and every sentence here away from a digit.",
+  "version": 1,
+  "decidedBy": "Founder",
+  "on": "2026-09-27",
+  "why": "The founder asked, on 27 September 2026, for two things a patient can use today, each answered from contracts and never a fresh clinical judgement. This is the first. The Health Passport has explained the seven readings since records.json gained its explanations section, and a person holding a number in her hand still asks a person — or a search engine — what it means. GilbertOne can answer that question with the paragraph a doctor can read in advance, and it can do nothing else with the number.",
+  "whatIsNotHere": "No explanation sentence, no label, no unit and no reference range. The explanations are records.json's, the labels and ranges are its observations section's, and the answer builder reads both from there. A number a person says is read against that range only to choose which of the written paragraphs applies — above, below, or neither — and the range itself is never spoken, because it is indicative and a doctor may work to different numbers for her. No sentence here contains a digit, and the build fails if one does.",
+  "measures": [
+    {
+      "id": "blood-pressure",
+      "name": "Blood pressure",
+      "explains": ["systolic", "diastolic"],
+      "pairOfNumbers": true,
+      "aliases": ["blood pressure", "bp", "my pressure", "systolic", "diastolic", "top number", "bottom number"]
+    },
+    {
+      "id": "pulse",
+      "explains": ["pulse"],
+      "aliases": ["pulse", "heart rate", "heartbeat", "heart beat", "bpm", "beats per minute", "beats a minute"]
+    },
+    {
+      "id": "respiratory",
+      "explains": ["respiratory"],
+      "aliases": ["breathing rate", "respiratory rate", "respiration", "breaths per minute", "breaths a minute", "resp rate"]
+    },
+    {
+      "id": "temperature",
+      "explains": ["temperature"],
+      "aliases": ["temperature", "temp", "degrees"]
+    },
+    {
+      "id": "oxygen",
+      "explains": ["oxygen"],
+      "aliases": ["oxygen", "spo2", "saturation", "oxygen saturation", "oximeter", "o2"]
+    },
+    {
+      "id": "glucose",
+      "explains": ["glucose"],
+      "aliases": ["sugar", "glucose", "blood sugar", "blood glucose", "mmol"]
+    }
+  ],
+  "measuresWhy": "One entry per thing a person names, not per number a nurse writes down. Blood pressure is two observations in records.json and one word in a kitchen, so it explains both entries and takes a pair of numbers; every other measure explains one entry and takes one. A single-entry measure carries no name of its own — the observations label in records.json is its name, and a second copy of a label here would be a second place for it to drift — and only the pair carries one, because 'Blood pressure — systolic' and 'Blood pressure — diastolic' share a heading neither of them is. Aliases are matched on stems the way trigger phrases are, so 'sugars' and 'readings' match, and an alias is never an emergency word: a word that raises the ambulance numbers is not a word that opens an explanation.",
+  "numbers": {
+    "why": "The matcher folds punctuation to spaces, so 136/85 and 7.2 would arrive as four separate tokens. Numbers are read from the message as typed, before folding: a pair written with a slash or the word 'over' is a blood-pressure reading whether or not the measure was named, and a single number with a decimal point or a decimal comma is one value. A message with more than one plain number and no pair is not guessed at — nothing is matched against the range, and the answer says so.",
+    "pairPattern": "(?<![a-z0-9])(\\d{2,3})\\s*(?:/|over)\\s*(\\d{2,3})(?![a-z0-9])",
+    "singlePattern": "(?<![a-z0-9])\\d+(?:[.,]\\d+)?(?![a-z0-9])",
+    "patternsWhy": "Both refuse a digit joined to a letter, so the two in SpO2 and O2 are letters of a name rather than a reading of two per cent.",
+    "countedAsRead": true,
+    "countedAsReadWhy": "A digit in a reading question is the question. The unread rule counts every token of the message that is neither a trigger word nor filler, and a number would always be neither — so a number is read for this question alone, and only this one. 'When is my nurse coming, my bp was 150/95' is still the visit question with words left over, because the unread rule of that question does not know a number."
+  },
+  "readWords": ["mean", "means", "meaning", "okay", "ok", "fine", "good", "bad", "alright", "normal", "high", "low", "too", "reading", "readings", "level", "levels", "number", "numbers", "value", "result", "results", "should", "worried", "worry", "worrying", "over", "measure", "measurement", "measured", "took", "taken", "check", "checked", "says", "said", "machine", "monitor", "home", "morning", "tonight", "last", "night", "dangerous", "safe", "healthy", "ideal", "worse", "better", "concerned"],
+  "readWordsWhy": "The words a question about a reading carries besides the measure and the number — 'is my sugar of 7.2 okay', 'what does 136/85 mean', 'is a pulse of 110 too high'. The unread rule in assistant.json would otherwise say the rest of the message was not read and put the ambulance numbers beside a plain question. These are counted as read for the reading question only. None of them is an emergency word, and the build checks; and 'high', 'low' and 'normal' are here as things a person says, never as things GilbertOne says — no sentence in this file grades a number.",
+  "answer": {
+    "why": "The framing around the explanation, in the order the answer reads it: what number was read (or that none was), the explanation's own sentences from records.json, and its own closing. Every sentence that could be mistaken for a judgement says in the same breath that a nurse or doctor reads the value. {value} is the person's own number, echoed back exactly as she said it; {label} is the observations label from records.json; {measures} is the list of measure names from this file. No digit is typed here.",
+    "readValue": "I read {value} from what you said, and I do not grade it. What follows is the written explanation for this measurement, with the paragraph the indicative range points to. A nurse or doctor reads the value itself.",
+    "noValue": "You did not give me a number, so there is nothing to set against the indicative range. If you have one, say it and I will read the paragraph written for it. A nurse or doctor reads the value itself.",
+    "pairNeeded": "A blood-pressure reading is two numbers and I read only one, so I have not set it against anything. Say both, the way they are written on the cuff.",
+    "tooManyNumbers": "You gave me more than one number and I cannot tell which is the reading, so I have not set any of them against the indicative range. Say one, and I will read the paragraph written for it.",
+    "insideRange": "{label} at {value} sits inside the indicative adult range, so neither of the paragraphs written for a reading outside it applies. That is not a finding that all is well: one measurement on one day is not a judgement.",
+    "outsideRange": "{label} at {value} is outside the indicative adult range. This is the paragraph written for a reading on that side:",
+    "askWhich": "Tell me which reading you mean — {measures} — and the number, if you have it.",
+    "closingFrom": "whoDecides",
+    "smallPrintFrom": ["written", "unreviewed"],
+    "smallPrintWithValueFrom": "ranges"
+  },
+  "fixtures": {
+    "why": "One list every reader of this file runs against its own recogniser: the package's own tests and Playwright on the web. Each says what the recogniser must find — the measure, the numbers, and for each explained entry whether the number sits above, below or inside the indicative range in records.json — or that it must find nothing, because the emergency words come first, or because no measure and no pair is in the message. The sides are checked against records.json's own low and high, so a range moved there moves these expectations with it; a fixture that disagrees is a fixture that is wrong.",
+    "messages": [
+      { "says": "what does 136/85 mean?", "expect": "reading", "measure": "blood-pressure", "framing": "readValue", "values": { "systolic": 136, "diastolic": 85 }, "sides": { "systolic": "inside", "diastolic": "inside" }, "unread": false },
+      { "says": "What does 150 over 95 mean", "expect": "reading", "measure": "blood-pressure", "framing": "readValue", "values": { "systolic": 150, "diastolic": 95 }, "sides": { "systolic": "above", "diastolic": "above" }, "unread": false },
+      { "says": "my BP is 88/58, is that okay", "expect": "reading", "measure": "blood-pressure", "framing": "readValue", "values": { "systolic": 88, "diastolic": 58 }, "sides": { "systolic": "below", "diastolic": "below" }, "unread": false },
+      { "says": "is my sugar of 7.2 okay?", "expect": "reading", "measure": "glucose", "framing": "readValue", "values": { "glucose": 7.2 }, "sides": { "glucose": "inside" }, "unread": false },
+      { "says": "my glucose was 3,1 this morning", "expect": "reading", "measure": "glucose", "framing": "readValue", "values": { "glucose": 3.1 }, "sides": { "glucose": "below" }, "unread": false },
+      { "says": "what is SpO2?", "expect": "reading", "measure": "oxygen", "framing": "noValue", "values": null, "unread": false },
+      { "says": "is a pulse of 110 too high", "expect": "reading", "measure": "pulse", "framing": "readValue", "values": { "pulse": 110 }, "sides": { "pulse": "above" }, "unread": false },
+      { "says": "my temperature is 38.4", "expect": "reading", "measure": "temperature", "framing": "readValue", "values": { "temperature": 38.4 }, "sides": { "temperature": "above" }, "unread": false },
+      { "says": "blood pressure of 140", "expect": "reading", "measure": "blood-pressure", "framing": "pairNeeded", "values": null, "unread": false },
+      { "says": "my sugar was 5.1 and then 6.4", "expect": "reading", "measure": "glucose", "framing": "tooManyNumbers", "values": null, "unread": true },
+      { "says": "my sugar is low and my knee is sore", "expect": "reading", "measure": "glucose", "framing": "noValue", "values": null, "unread": true },
+      { "says": "what does 136/85 mean, I have chest pain", "expect": "emergency" },
+      { "says": "is my sugar of 2.1 okay, she is fitting", "expect": "emergency" },
+      { "says": "what does this mean", "expect": "none" },
+      { "says": "when is my nurse coming", "expect": "none" },
+      { "says": "I sat down for a while", "expect": "none" }
+    ]
+  }
+}

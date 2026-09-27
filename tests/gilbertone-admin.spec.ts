@@ -119,7 +119,10 @@ const OUTSIDE_FOUNDER = ':not(.g1-founder *)';
 async function holdsNothingOpen(page: Page, where: string) {
  await expect(panel(page).locator(`button:not([disabled]):not(.g1-live)${OUTSIDE_FOUNDER}`), `${where}: an enabled button that is not a live action`).toHaveCount(0);
  await expect(page.locator(`input[type="password"]:not([disabled])${OUTSIDE_FOUNDER}`), `${where}: an enabled password field`).toHaveCount(0);
- await expect(panel(page).locator(`input:not([disabled])${OUTSIDE_FOUNDER}`), `${where}: an enabled input`).toHaveCount(0);
+ /* The preview's voice chooser has been a group of radio chips since 27 September 2026, where it was a
+    select this count never read; its radios are the one enabled input, and only on a presentation
+    register's chooser, which the Voice test holds. Any other enabled input still fails here. */
+ await expect(panel(page).locator(`input:not([disabled]):not(.g1-voice-chips input[type="radio"])${OUTSIDE_FOUNDER}`), `${where}: an enabled input`).toHaveCount(0);
  /* A live button is one of the contract's live actions, by name, and is described by that action's own
     sentence — or, while it waits, by a sentence the screen gives it — never by nothing. */
  const live = await panel(page).locator('button.g1-live').evaluateAll(els => els.map(el => {
@@ -292,13 +295,15 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   /* The language select offers the languages with a voice, and only those. */
   const language = preview.getByRole('combobox', { name: words.previewLanguageLabel, exact: true });
   await expect(language.locator('option')).toHaveText(languages.filter(l => l.ttsAvailable).map(l => l.name));
-  /* On the presentation register the voice select follows the setting just saved; Play asks the
-     contract's route with that label's name for the language. */
+  /* On the presentation register the voice chooser — a radio chip per label, since 27 September 2026 a
+     group rather than a select — follows the setting just saved; Play asks the contract's route with
+     that label's name for the language. */
   const register = preview.getByRole('combobox', { name: words.previewClassLabel, exact: true });
   await register.selectOption(routine.id);
-  const voiceSelect = preview.getByRole('combobox', { name: words.previewVoiceLabel, exact: true });
-  await expect(voiceSelect).toBeEnabled();
-  await expect(voiceSelect).toHaveValue(otherLabel);
+  const voiceChooser = preview.getByRole('group', { name: words.previewVoiceLabel, exact: true });
+  const voiceChip = (value: string) => voiceChooser.getByRole('radio', { name: routineSetting.allowed.find(a => a.value === value)!.label, exact: true });
+  for (const radio of await voiceChooser.getByRole('radio').all()) await expect(radio).toBeEnabled();
+  await expect(voiceChip(otherLabel)).toBeChecked();
   await expect(preview).toContainText(english.ttsVoices![otherLabel]!);
   await expect(play).toBeEnabled();
   await play.click();
@@ -307,12 +312,13 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   expect(spoken[0]!.voice).toBe(english.ttsVoices![otherLabel]);
   expect(spoken[0]!.text).toBe(text);
   await expect(preview).toContainText(fill(words.previewTotalSentence.split('{cost}')[0]!, { plays: '1' }).trim());
-  /* On a locked register the voice select is disabled on the platform's default, no Save is offered,
-     and Play asks for the platform's voice whatever the setting says. */
+  /* On a locked register the voice chooser is disabled on the platform's default alone, no Save is
+     offered, and Play asks for the platform's voice whatever the setting says. */
   for (const c of locked) {
    await register.selectOption(c.id);
-   await expect(voiceSelect).toBeDisabled();
-   await expect(voiceSelect.locator('option')).toHaveText([words.platformDefaultWord]);
+   await expect(voiceChooser.getByRole('radio')).toHaveCount(1);
+   await expect(voiceChooser.getByRole('radio', { name: words.platformDefaultWord, exact: true })).toBeDisabled();
+   await expect(voiceChooser.getByRole('radio', { name: words.platformDefaultWord, exact: true })).toBeChecked();
    await expect(preview).toContainText(words.lockedRowSentence);
    await expect(preview.getByRole('button', { name: action('voice-save-as-default').label })).toHaveCount(0);
    await expect(preview).toContainText(voice.refusals.find((r: { id: string }) => r.id === 'no-save-as-default-on-a-locked-row').statement);
@@ -324,7 +330,7 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   await register.selectOption(routine.id);
   const previewSave = preview.getByRole('button', { name: action('voice-save-as-default').label, exact: true });
   await expect(previewSave).toBeDisabled();
-  await voiceSelect.selectOption(platformLabel);
+  await voiceChip(platformLabel).check();
   await expect(previewSave).toBeEnabled();
   await preview.getByLabel(say.reason).fill('Back to the platform voice: the other one read the booking steps too fast.');
   await previewSave.click();

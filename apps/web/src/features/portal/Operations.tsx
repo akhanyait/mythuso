@@ -20,6 +20,7 @@ import { settingsScreen } from "../../lib/settings";
 import { usePortal } from "./context";
 import { Frame } from "./Frame";
 import { DispatchDemo } from "./DispatchDemo";
+import { Ring, tintsFor } from "./Parts";
 import { ProvinceDemo } from "./ProvinceDemo";
 
 /* The four operational categories — Dispatch & Incidents, Vetting, Quality and Audit — drawn from the
@@ -46,24 +47,27 @@ const Movement = lazy(() =>
 );
 
 /* The strip the Control Tower workspace drew over both of its boards, read from the one place it is
-   written. The first figure leads, because the strip is ordered urgency-first. */
-function TowerStrip({
-  extra = [],
-}: {
-  extra?: { label: string; value: string; chip: string; flagged: boolean }[];
-}) {
-  const figures = [...controlTowerFigures(), ...extra];
+   written. The first figure leads, because the strip is ordered urgency-first: it is the dark card,
+   and every other figure takes the tint of its own name (Parts.tsx says why a name and never a
+   position). A figure that is a share of the register it was counted from carries a ring of that
+   share, drawn from the same two counts as its numeral and its chip. */
+type StripFigure = { label: string; value: string; chip: string; flagged: boolean; share?: number };
+function TowerStrip({ extra = [] }: { extra?: StripFigure[] }) {
+  const figures: StripFigure[] = [...controlTowerFigures(), ...extra];
+  const tints = tintsFor(figures.slice(1).map((f) => f.label));
   return (
     <Metrics>
       {figures.map((f, i) => (
-        <Metric
-          key={f.label}
-          label={f.label}
-          value={f.value}
-          chip={f.chip}
-          flagged={f.flagged}
-          lead={i === 0}
-        />
+        <div key={f.label} className="pt-strip-figure" data-tint={i === 0 ? "night" : tints.get(f.label)}>
+          <Metric
+            label={f.label}
+            value={f.value}
+            chip={f.chip}
+            flagged={f.flagged}
+            lead={i === 0}
+            visual={f.share === undefined ? undefined : <Ring share={f.share} size={56} />}
+          />
+        </div>
       ))}
     </Metrics>
   );
@@ -77,6 +81,7 @@ export function DispatchCategory() {
     vetting.subjects.filter(
       (s) => (!roleId || s.roleId === roleId) && !summarise(s).cleared,
     ).length;
+
   if (place.tab === "incidents")
     return (
       <Frame blurb={framingSection("Incidents")}>
@@ -118,6 +123,7 @@ export function DispatchCategory() {
             value: String(blocking()),
             chip: `Of ${vetting.subjects.length} on the register`,
             flagged: false,
+            share: blocking() / vetting.subjects.length,
           },
           {
             label: "Nurses blocked",

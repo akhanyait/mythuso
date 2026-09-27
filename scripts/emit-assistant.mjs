@@ -397,7 +397,19 @@ export function emitAssistant(root = "") {
     throw new Error(
       `${SOURCE} has no audiences list. Since the founder's audience decision there is no GilbertOne without one: every question is offered to named audiences and every shared fixture spoken to one.`,
     );
+  const PLATFORMS = ["web", "ios", "android"];
   for (const question of contract.questions) {
+    if (
+      question.platforms !== undefined &&
+      (!Array.isArray(question.platforms) ||
+        !question.platforms.length ||
+        question.platforms.some((p) => !PLATFORMS.includes(p)))
+    )
+      throw new Error(
+        `GilbertOne's question "${question.id}" carries platforms [${(
+          question.platforms ?? []
+        ).join(", ")}], which is empty or names a platform that does not exist (${PLATFORMS.join(", ")}). A question is every platform's unless its contract says which ones answer it.`,
+      );
     if (
       !Array.isArray(question.audiences) ||
       !question.audiences.length ||
@@ -417,6 +429,15 @@ export function emitAssistant(root = "") {
         `The shared fixture "${fixture.says}" is spoken to "${fixture.audience}", which the audiences list does not carry. All three platforms run the shared fixtures, and an audience one of them has never heard of cannot be scoped.`,
       );
   }
+  /* The questions a phone's matcher is given: every question without a platforms field, and every
+     question whose field names that phone. A question built on the web alone — the reading,
+     preparation and medicines questions of 27 September 2026 — is left out here rather than emitted
+     and answered with "I can't assess that", which is what the native reply builder does with an
+     answer kind it has never met. contract.platformsWhy is the record. */
+  const questionsFor = (platform) =>
+    contract.questions.filter(
+      (q) => q.platforms === undefined || q.platforms.includes(platform),
+    );
   const { identity, answers, voice, conversation, matcher, fixtures } =
     contract;
   /* The descriptor is not written out on its own. A native screen that wants to say "Your Thuso AI
@@ -488,7 +509,7 @@ ${contract.questionGroups.map((g) => `        GilbertQuestionGroup(id: ${swift(g
     ]
 
     static let questions: [GilbertQuestion] = [
-${contract.questions
+${questionsFor("ios")
   .map(
     (
       q,
@@ -738,7 +759,7 @@ ${contract.questionGroups.map((g) => `        GilbertQuestionGroup(${kotlin(g.id
     )
 
     val questions = listOf(
-${contract.questions
+${questionsFor("android")
   .map(
     (q) => `        GilbertQuestion(
             id = ${kotlin(q.id)}, asks = ${kotlin(q.asks)}, group = ${kotlin(q.group)}, answer = ${kotlin(q.answer)},

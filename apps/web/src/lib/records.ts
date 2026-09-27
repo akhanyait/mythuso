@@ -394,3 +394,15 @@ export const ageFrom = (dob: string) => {
 };
 export const longDate = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' });
 export const shortDate = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' });
+
+/* ---- The account holder's own list, for GilbertOne ---------------------------------------------
+   The patient app is Thando Mokoena's — the household's organiser, "you" in lib/household and the
+   first record in `patients` — and "read my medicine list back" reads hers. Each line is handed to
+   packages/gilbertone/src/medicines.ts already marked: protected by the same sensitivityOf() rule
+   every screen resolves an entry with, so a protected entry is never read aloud whatever its type
+   said, and stopped by the record's own word for it. The builder never sees the record. */
+export const accountHolderMedicines = () =>
+ patients[0].medication.map(m => ({
+  name: m.name, dose: m.dose, frequency: m.frequency,
+  protected: isProtected(m), stopped: Boolean(m.stopped)
+ }));

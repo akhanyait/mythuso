@@ -94,7 +94,9 @@ export function GatedCheckbox({ id }: { id: string }) {
    the caller's own contract numbers, handed to the sheet as a custom property that turns it into the
    percentage there — a GilbertOne screen types no digit but a 0 or a 1 — the whole thing is
    aria-disabled, and it moves nothing: it shows where the selector sits and what holds it, described
-   by the gate's sentence like every other control here. Every number is the caller's contract's. */
+   by the gate's sentence like every other control here. Every number is the caller's contract's.
+   The value's chip rides above the thumb on the same ratio, as the portal's live slider's does
+   (Fields.tsx), so the two read as one control — one that moves and one that is held. */
 export function GatedSlider({ id, label, min, max, value, valueText, ticks }: {
  id: string; label: string; min: number; max: number; value: number; valueText: string; ticks: readonly number[];
 }) {
@@ -104,14 +106,14 @@ export function GatedSlider({ id, label, min, max, value, valueText, ticks }: {
  const span = max - min;
  const ratio = span === 0 ? 0 : (value - min) / span;
  return <div className="g1-action">
-  <div className="pt-slider">
+  <div className="pt-slider" style={{ '--pt-ratio': ratio } as CSSProperties}>
    <div className="pt-slider-top">
-    <span className="pt-slider-chip">{valueText}</span>
     <span className="g1-tag">{gateOf(action.gate).label}</span>
    </div>
+   <div className="pt-slider-rail"><span className="pt-slider-chip">{valueText}</span></div>
    <div className="pt-range" role="slider" aria-label={label} aria-disabled="true"
     aria-valuemin={min} aria-valuemax={max} aria-valuenow={value} aria-valuetext={valueText} aria-describedby={why}>
-    <span className="pt-range-track" style={{ '--pt-ratio': ratio } as CSSProperties}>
+    <span className="pt-range-track">
      <span className="pt-range-fill"/>
      <span className="pt-range-thumb"/>
     </span>

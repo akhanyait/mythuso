@@ -19,6 +19,7 @@ their job is to read, decide and sign, not to search the repository.
 | [`DPIA-DRAFT.md`](DPIA-DRAFT.md) | A POPIA-oriented Data Protection Impact Assessment: inventory, purposes, flows, third parties, retention, rights, security, risks and measures | The **responsible party** signs; the **Information Officer** signs; counsel advises | Hand-written |
 | [`INFORMATION-OFFICER.md`](INFORMATION-OFFICER.md) | Appointing and registering the Information Officer and deputies, the PAIA manual, what the code already provides, and the decisions due before real patients | The **head of the private body** appoints; the **Information Officer** decides | Hand-written |
 | [`ADMIN-PORTAL-SCOPE.md`](ADMIN-PORTAL-SCOPE.md) | The admin portal that controls every role's access to everything: what it administers, what it reads rather than restates, the four tiers of "dynamic", and the identity dependency that decides its sequence | The **founder** decides the sequence, who the admin office is, and whether route enablement exists at all | Hand-written; refers to contracts rather than restating numbers |
+| [`GOLDEN-SETS.md`](GOLDEN-SETS.md) | How a first-language clinician reviews a golden set of patient sentences in isiZulu, isiXhosa or Afrikaans (`packages/catalog/assistant-golden-sets.json`), what "correct" means per route, and how a signed set turns the harness from reporting to requiring | A **first-language clinician** (SANC-registered nurse or HPCSA doctor) per language | Hand-written; the numbers are printed by `npm test`, never restated |
 
 ## The order
 

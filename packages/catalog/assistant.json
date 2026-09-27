@@ -133,6 +133,7 @@
     },
     "why": "GilbertOne answers \"When is my nurse coming?\" from the visit the home card shows — the store's first upcoming visit, formatted by the same shortWhenText — so the two can never name different days. With nothing booked it says what the home says about nothing booked, in scheduling.json's words."
   },
+  "platformsWhy": "A question may carry platforms, the platforms whose matcher offers and answers it; a question without the field is every platform's. Added 27 September 2026 with the reading, preparation and medicines questions, whose answer builders exist on the web alone: scripts/emit-assistant.mjs leaves a question out of AssistantData.swift and AssistantData.kt unless its platforms name that phone, so a phone never shows a chip its matcher would answer with 'I can't assess that'. A question that reaches the phones removes the field in the same change that ports its answer, and the shared fixtures for it move into fixtures.messages in that change too — until then its fixtures live beside its own contract and the web and the package run them.",
   "questions": [
     {
       "id": "settled",
@@ -274,6 +275,33 @@
         "back-office"
       ],
       "triggers": ["what if it cannot wait", "cannot wait", "cant wait"]
+    },
+    {
+      "id": "reading",
+      "asks": "What does my reading mean?",
+      "group": "situations",
+      "answer": "reading",
+      "audiences": ["patient"],
+      "platforms": ["web"],
+      "triggers": ["what does my reading mean", "my reading", "reading mean", "what does this number mean", "explain my reading"]
+    },
+    {
+      "id": "preparation",
+      "asks": "What should I have ready for my visit?",
+      "group": "situations",
+      "answer": "preparation",
+      "audiences": ["patient"],
+      "platforms": ["web"],
+      "triggers": ["what should i have ready", "have ready", "how do i prepare", "prepare for my visit", "prepare for the visit", "get ready for my visit", "what do i need for my visit", "what to prepare", "before my visit"]
+    },
+    {
+      "id": "medicines",
+      "asks": "Read my medicine list back",
+      "group": "situations",
+      "answer": "medicines",
+      "audiences": ["patient"],
+      "platforms": ["web"],
+      "triggers": ["read my medicine list", "my medicine list", "my medicines", "my medication", "medication list", "what medicines am i taking", "what am i taking", "read my medicines", "read back my medicines"]
     }
   ],
   "questionGroups": [
@@ -551,6 +579,25 @@
       "numbers": ["ambulance", "mobile"],
       "sosLabel": "Open Thuso SOS",
       "handoverLabel": "Talk to a nurse"
+    },
+    "reading": {
+      "state": "guiding",
+      "why": "The spoken reading explanation of 27 September 2026. Every sentence it reads is records.json's (explanations.entries and explanations.provenance) or packages/catalog/reading-questions.json's; this entry carries only the state, so the panel and the voice treat it like every other kind."
+    },
+    "preparation": {
+      "state": "guiding",
+      "why": "The pre-visit companion of 27 September 2026. Every sentence it reads is packages/catalog/visit-preparation.json's, with the service's name from services.json; this entry carries only the state."
+    },
+    "medicines": {
+      "state": "guiding",
+      "heading": "Your medicine list, read back",
+      "lead": "This is the medicine list your record holds, read back exactly as it is written. Nothing here is advice.",
+      "line": "{name}, {dose}, {frequency}.",
+      "noMedicines": "Your record holds no medicine to read back.",
+      "protectedNotRead": "Anything your record keeps in a protected category is not read here, whether or not there is one. Open your Health Passport to see everything on file.",
+      "neverChanges": "I cannot add, stop or change anything on this list. That belongs to whoever prescribed it: say so at your next visit, or ask a nurse.",
+      "preview": "In this preview the record is a sample, not your own.",
+      "why": "Read back, never interpreted. The line is a template over the record's own fields — name, dose, frequency — so no dose is typed here. The protected sentence is said every time, whether or not a protected entry exists, because saying it only when one exists would say that one exists; a reply is read aloud in a room."
     }
   },
   "silenceIsNotSafety": "GilbertOne not recognising an emergency does not mean there is not one. If you think it is an emergency, call {ambulance}, or {mobile} from a mobile.",
@@ -629,7 +676,10 @@
       "unmatched": "refusal",
       "unread": "refusal",
       "handover": "escalation",
-      "service": "routine"
+      "service": "routine",
+      "reading": "routine",
+      "preparation": "routine",
+      "medicines": "routine"
     },
     "surfaces": {
       "demonstrator": "patient-general",
@@ -694,6 +744,21 @@
         "cue": "A11",
         "posture": "attentive",
         "why": "The one answer in this contract nobody approved in advance: a language model's sentence, shown only when the operator has configured a provider and only under the answers.service heading that says so. The face cannot celebrate a sentence nobody verified and must not frown at it either — the concern face belongs to \"I can't assess that\", and this answer did assess something. Attentive is the posture for attention without endorsement, and A11 is the cue that already draws it: a small smile, soft eyes and a slight tilt toward the person reading, holding while the words are read — the same face the handover wears, because both are answers that ask to be listened to rather than believed. The disclosure beside the words carries the honesty; the face carries only the attention. Reusing A11 is deliberate: the rig has one supportive cue, and inventing a face for unverified text is the decision this section exists to take away from a component."
+      },
+      "reading": {
+        "cue": "A17",
+        "posture": "flat",
+        "why": "The spoken reading explanation ends where records.json's provenance ends: none of it is a diagnosis, and a doctor decides what the number means. That closing sentence is a limit stated to the person asking — the same shape as identity's whatItIsNot — and the face goes flat while a limit is stated, for the reason identity's does. A warm face over a paragraph about somebody's own blood pressure would read as reassurance the words do not give."
+      },
+      "preparation": {
+        "cue": "A13",
+        "posture": "warm",
+        "why": "A list of things to have on the table before a nurse arrives is the most routine sentence in this contract after the greeting: nothing is refused, nothing is interpreted, and nothing is celebrated. It wears the situations' cue for the situations' reason. The line saying no clinician has reviewed the list is a disclosure rather than a refusal, and it does not change the face; if a reviewer judges it should, the change is a line here and nowhere else."
+      },
+      "medicines": {
+        "cue": "A17",
+        "posture": "flat",
+        "why": "The medicine list is read back with a refusal in the same breath — GilbertOne cannot add, stop or change anything on it, and never reads a protected entry — and a refusal is not decorated with a smile. A17's brief flat face is the face every other refusal in this contract wears."
       }
     },
     "conversation": {
@@ -1115,6 +1180,21 @@
       "id": "silence-is-not-safety",
       "statement": "GilbertOne not recognising an emergency does not mean there is not one.",
       "why": "The emergency words are a draft, they have not been reviewed by a clinician, and no list of words catches every way a person describes something frightening. So the sentence stays beside the conversation on every platform instead of appearing only after a match."
+    },
+    {
+      "id": "no-reading-graded",
+      "statement": "GilbertOne never grades a reading. A number you say is set against the indicative range only to choose which written paragraph applies, and what it means for you is a clinician's judgement.",
+      "why": "The paragraphs are records.json's explanations, written in advance and reviewed by nobody clinical yet, and the range is the observations section's — indicative, and never spoken. The words high, low and normal appear in this build only as things a person says; no sentence GilbertOne reads back says one about a number, and the build fails if packages/catalog/reading-questions.json types a digit."
+    },
+    {
+      "id": "no-invented-preparation",
+      "statement": "GilbertOne never tells you to fast, or to take, skip or stop a medicine before a visit.",
+      "why": "A preparation list is written per service in packages/catalog/visit-preparation.json, every list says whether a clinician has reviewed it, and the build refuses an unreviewed list that carries a count of hours or doses, a unit of a medicine, or an instruction about food or a medicine. The only fasting sentence in the file says GilbertOne does not know which tests were ordered."
+    },
+    {
+      "id": "medicine-list-read-only",
+      "statement": "GilbertOne never adds to, stops or changes anything on your medicine list. Where it reads the list back, it reads it as your record holds it, and it never reads a protected entry aloud, or says whether there is one.",
+      "why": "A reply is read aloud in whatever room the phone is in. A protected entry — an antiretroviral, a psychiatric medicine — is released by the patient entry by entry to a named party, and a voice in a kitchen is not a named party. The sentence about protected entries is said every time so that its presence never reveals anything."
     }
   ],
   "refusalPolicies": {

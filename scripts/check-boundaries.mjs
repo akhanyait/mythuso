@@ -15115,11 +15115,42 @@ const answerKinds = new Set([
   "handover",
   "emergency",
 ]);
+/* The kinds only the web renders — the reading, preparation and medicines answers of 27 September
+   2026, built in packages/gilbertone and drawn by apps/web/src/features/Assistant.tsx. A question
+   answering with one carries platforms: ["web"], and scripts/emit-assistant.mjs leaves it out of
+   both phones' AssistantData, because their reply builders answer a kind they have never met with
+   "I can't assess that". The day a phone renders one, its kind moves up into answerKinds in the
+   same change that removes the platforms field. */
+const WEB_ONLY_ANSWER_KINDS = new Set(["reading", "preparation", "medicines"]);
 for (const question of gilbertContract.questions) {
-  if (!answerKinds.has(question.answer))
+  if (WEB_ONLY_ANSWER_KINDS.has(question.answer)) {
+    if (JSON.stringify(question.platforms) !== JSON.stringify(["web"]))
+      throw new Error(
+        `GilbertOne's question "${question.id}" answers with "${question.answer}", which only the web renders, and does not say platforms: ["web"]. A phone given this question would match it and answer "I can't assess that".`,
+      );
+  } else if (!answerKinds.has(question.answer))
     throw new Error(
       `GilbertOne's question "${question.id}" answers with "${question.answer}", which no platform knows how to render.`,
     );
+  else if (question.platforms !== undefined)
+    throw new Error(
+      `GilbertOne's question "${question.id}" carries platforms while answering with "${question.answer}", which every platform renders. The field exists for answers a phone cannot draw yet, not for choosing which phone is offered a question.`,
+    );
+  if (question.platforms !== undefined)
+    for (const [file, platform] of [
+      ["apps/ios/MyThuso/Models/AssistantData.swift", "ios"],
+      [
+        "apps/android/app/src/main/java/za/co/mythuso/model/AssistantData.kt",
+        "android",
+      ],
+    ])
+      if (
+        !question.platforms.includes(platform) &&
+        new RegExp(`id\s*[:=]\s*"${question.id}"`).test(read(file))
+      )
+        throw new Error(
+          `${file} carries GilbertOne's question "${question.id}", whose platforms [${question.platforms.join(", ")}] do not name ${platform}. Run: npm run assistant — the emitter leaves it out, and a phone offered it would answer "I can't assess that".`,
+        );
   if (
     question.answer === "situation" &&
     !gilbertContract.situations.some((s) => s.id === question.id)
@@ -15610,6 +15641,348 @@ for (const file of Object.values(GILBERT_FILES).flat()) {
         `${file} types the phrase "${literal}", which is a trigger or an emergency word in packages/catalog/assistant.json. Read it from the contract; a typed copy is a phrase one platform matches and the others do not.`,
       );
   }
+}
+
+/* ---- Spoken reading explanations and the pre-visit companion (27 September 2026) --------------
+ * Two things a patient can use today, each answered from contracts and never from a fresh clinical
+ * judgement. The reading answer is records.json's own explanation for the measure a person named,
+ * with packages/catalog/reading-questions.json holding only the words people use for each measure
+ * and the framing around the paragraph; the preparation answer is packages/catalog/visit-preparation.json's
+ * list for the booked service. These checks hold each new file to the contracts it derives from, hold
+ * every alias away from the emergency words, hold every sentence GilbertOne would read away from a
+ * digit and from grading a number, and — the check the second file was written for — refuse an
+ * unreviewed preparation list that carries a clinical instruction. Each was proven to fire by
+ * breaking its source. */
+{
+  const readingQuestions = JSON.parse(
+    read("packages/catalog/reading-questions.json"),
+  );
+  const preparation = JSON.parse(
+    read("packages/catalog/visit-preparation.json"),
+  );
+  const { stems: stemsOf } = await import(
+    "../packages/gilbertone/src/stems.ts"
+  );
+  for (const [file, contract] of [
+    ["packages/catalog/reading-questions.json", readingQuestions],
+    ["packages/catalog/visit-preparation.json", preparation],
+  ]) {
+    if (
+      !/founder/i.test(String(contract.decidedBy)) ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(String(contract.on)) ||
+      !contract.why
+    )
+      throw new Error(
+        `${file} has lost the record of who decided it, when, or why. A sentence GilbertOne reads to a patient about her own reading or her own visit is a decision on file or it is a sentence somebody typed.`,
+      );
+  }
+
+  /* The measures: every explained entry is an explanation records.json has, every explanation is
+     explained by exactly one measure, the pair is the one measure with two entries, and only it
+     carries a name — a single-entry measure's name is its observations label. */
+  const explainedBy = new Map();
+  for (const measure of readingQuestions.measures) {
+    if (!Array.isArray(measure.explains) || !measure.explains.length)
+      throw new Error(
+        `reading-questions.json's measure "${measure.id}" explains nothing. A measure with no explanation behind it is an alias that opens an empty answer.`,
+      );
+    for (const id of measure.explains) {
+      if (!explanationIds.includes(id))
+        throw new Error(
+          `reading-questions.json's measure "${measure.id}" explains "${id}", which packages/catalog/records.json has no explanation for. The words are records.json's; this file only names them.`,
+        );
+      if (explainedBy.has(id))
+        throw new Error(
+          `reading-questions.json explains "${id}" under both "${explainedBy.get(id)}" and "${measure.id}". One measure per explanation, or two aliases open two answers for one number.`,
+        );
+      explainedBy.set(id, measure.id);
+    }
+    if (Boolean(measure.pairOfNumbers) !== measure.explains.length === 2)
+      throw new Error(
+        `reading-questions.json's measure "${measure.id}" ${measure.pairOfNumbers ? "takes a pair of numbers but explains " + measure.explains.length + " entries" : "explains two entries but does not take a pair of numbers"}. A pair is two observations written as one reading, and nothing else is.`,
+      );
+    if (measure.explains.length === 1 && measure.name !== undefined)
+      throw new Error(
+        `reading-questions.json's measure "${measure.id}" carries a name of its own. Its name is the observations label in records.json, and a second copy here is a second place for it to drift.`,
+      );
+    if (measure.explains.length > 1 && !measure.name)
+      throw new Error(
+        `reading-questions.json's measure "${measure.id}" explains several entries and carries no name. Two labels share a heading neither of them is, and this file has to say what it is.`,
+      );
+  }
+  for (const id of explanationIds)
+    if (!explainedBy.has(id))
+      throw new Error(
+        `records.json explains "${id}" and reading-questions.json gives it no measure, so nobody can ask GilbertOne about it. Every reading a nurse takes is one a patient may ask about.`,
+      );
+
+  /* Aliases and read words: normal form, unique, never an emergency word and never filler. An alias
+     that is also an emergency word would open an explanation on a message the ambulance numbers
+     should answer; the emergency words are matched first, so it could never be reached — which is
+     the drift this refuses, a word that looks like it does something. */
+  const emergencyStems = new Set(
+    gilbertWords.groups.flatMap((g) => g.words.map((w) => stemsOf(w).join(" "))),
+  );
+  const fillerWords = new Set(gilbertContract.matcher.readEverything.filler);
+  const seenAliases = new Map();
+  for (const measure of readingQuestions.measures)
+    for (const alias of measure.aliases) {
+      if (!PHRASE.test(alias))
+        throw new Error(
+          `reading-questions.json's alias "${alias}" is not in normal form (lower-case letters and digits, single spaces).`,
+        );
+      if (seenAliases.has(alias))
+        throw new Error(
+          `reading-questions.json's alias "${alias}" is under both "${seenAliases.get(alias)}" and "${measure.id}".`,
+        );
+      seenAliases.set(alias, measure.id);
+      if (emergencyStems.has(stemsOf(alias).join(" ")))
+        throw new Error(
+          `reading-questions.json's alias "${alias}" is an emergency word in packages/catalog/gilbert-emergency-terms.json. The emergency words are matched first and end the matching, so this alias could never open an explanation; a word that raises the ambulance numbers is not a word that opens a paragraph.`,
+        );
+      if (alias.split(" ").every((word) => fillerWords.has(word)))
+        throw new Error(
+          `reading-questions.json's alias "${alias}" is made of filler words, so every message would name that measure.`,
+        );
+    }
+  for (const word of readingQuestions.readWords) {
+    if (!PHRASE.test(word) || word.includes(" "))
+      throw new Error(
+        `reading-questions.json's read word "${word}" is not one word in normal form.`,
+      );
+    if (emergencyStems.has(stemsOf(word).join(" ")))
+      throw new Error(
+        `reading-questions.json counts "${word}" as read, and it is an emergency word. The unread rule exists to say GilbertOne did not read something; an emergency word is the last thing to count as read.`,
+      );
+  }
+  if (readingQuestions.numbers?.countedAsRead !== true || !readingQuestions.numbers?.countedAsReadWhy)
+    throw new Error(
+      "reading-questions.json no longer counts a number as read for the reading question, or has lost the reason. Without it every reading question ends in the unread answer with the ambulance numbers beside a plain question about a number.",
+    );
+
+  /* The framing sentences: no digit, no grade, and the ones that could be mistaken for a judgement
+     say who reads the value. The closing and the small print are records.json's provenance, named
+     by key rather than copied. */
+  const framing = readingQuestions.answer;
+  for (const [key, sentence] of Object.entries(framing)) {
+    if (typeof sentence !== "string" || key === "why" || key.endsWith("From"))
+      continue;
+    if (/\d/.test(sentence))
+      throw new Error(
+        `reading-questions.json's answer.${key} carries a digit. No number is typed in this file: the one GilbertOne says is the person's own, filled in by {value}.`,
+      );
+    if (/\b(normal|abnormal|too high|too low|dangerous|healthy|fine)\b/i.test(sentence))
+      throw new Error(
+        `reading-questions.json's answer.${key} grades a number ("${sentence.match(/\b(normal|abnormal|too high|too low|dangerous|healthy|fine)\b/i)[0]}"). GilbertOne never grades a reading — assistant.json's no-reading-graded refusal — and the words high, low and normal are things a person says, never things it reads back.`,
+      );
+  }
+  for (const key of ["readValue", "noValue"])
+    if (!/nurse or doctor reads the value/i.test(framing[key] ?? ""))
+      throw new Error(
+        `reading-questions.json's answer.${key} no longer says that a nurse or doctor reads the value. It is the sentence a person hears beside her own number, and the deferral is the part that keeps it from being a judgement.`,
+      );
+  if (!framing.readValue.includes("{value}") || !framing.insideRange.includes("{value}") || !framing.outsideRange.includes("{label}"))
+    throw new Error(
+      "reading-questions.json's readValue, insideRange or outsideRange has lost its token. {value} is the person's own number and {label} is records.json's label; without them the sentence names nothing.",
+    );
+  const provenanceKeys = Object.keys(explanations.provenance);
+  for (const key of [framing.closingFrom, framing.smallPrintWithValueFrom, ...(framing.smallPrintFrom ?? [])])
+    if (!provenanceKeys.includes(key))
+      throw new Error(
+        `reading-questions.json's answer names the provenance sentence "${key}", which records.json's explanations.provenance does not carry. The closing and the small print are read from there by key, never copied.`,
+      );
+  if (framing.closingFrom !== "whoDecides")
+    throw new Error(
+      'reading-questions.json no longer closes every reading answer with records.json\'s whoDecides sentence — "none of this is a diagnosis", and a doctor decides what a reading means. It is the sentence the founder asked the answer to end on.',
+    );
+  if (!(framing.smallPrintFrom ?? []).includes("unreviewed") || !(framing.smallPrintFrom ?? []).includes("written"))
+    throw new Error(
+      "reading-questions.json's small print no longer carries records.json's written and unreviewed sentences. A paragraph about somebody's blood pressure read aloud without saying no clinician has reviewed it is the omission the provenance exists to prevent.",
+    );
+
+  /* The fixtures: honest kinds, real measures, and sides that agree with records.json's own ranges,
+     so a range moved there moves the expectation and a stale fixture fails here first. */
+  for (const fixture of readingQuestions.fixtures.messages) {
+    if (!["reading", "emergency", "none"].includes(fixture.expect))
+      throw new Error(
+        `reading-questions.json's fixture "${fixture.says}" expects "${fixture.expect}", which nothing reports.`,
+      );
+    if (fixture.expect !== "reading") continue;
+    const measure = readingQuestions.measures.find((m) => m.id === fixture.measure);
+    if (!measure)
+      throw new Error(
+        `reading-questions.json's fixture "${fixture.says}" names the measure "${fixture.measure}", which does not exist.`,
+      );
+    if (!["readValue", "noValue", "pairNeeded", "tooManyNumbers"].includes(fixture.framing) || typeof fixture.unread !== "boolean")
+      throw new Error(
+        `reading-questions.json's fixture "${fixture.says}" has no framing the answer knows, or no unread expectation.`,
+      );
+    for (const [entry, value] of Object.entries(fixture.values ?? {})) {
+      const spec = records.observations.measures.find((m) => m.id === entry);
+      if (!measure.explains.includes(entry) || !spec)
+        throw new Error(
+          `reading-questions.json's fixture "${fixture.says}" reads "${entry}", which its measure does not explain.`,
+        );
+      const side = value < spec.low ? "below" : value > spec.high ? "above" : "inside";
+      if (fixture.sides?.[entry] !== side)
+        throw new Error(
+          `reading-questions.json's fixture "${fixture.says}" expects ${entry} ${value} to be "${fixture.sides?.[entry]}", and records.json's range ${spec.low}–${spec.high} makes it "${side}". The side is records.json's arithmetic, not the fixture's opinion.`,
+        );
+    }
+  }
+  for (const [file, needs, why] of [
+    ["packages/gilbertone/src/readings.test.ts", /readingContract\.fixtures\.messages/, "the package runs the reading fixtures"],
+    ["tests/assistant.spec.ts", /reading-questions\.json[\s\S]*fixtures\.messages/, "the web runs the reading fixtures in Playwright"],
+  ])
+    if (!existsSync(file) || !needs.test(read(file)))
+      throw new Error(
+        `${file} no longer shows that ${why}. A recogniser nobody runs against the list is a recogniser that disagrees with it.`,
+      );
+
+  /* The preparation lists: one per service the catalogue sells and none for a service it does not,
+     each saying whether a clinician has read it — and, the check the file was written for, no
+     unreviewed list carrying a clinical instruction. The patterns are the sentence shapes a
+     preparation list slides into: a count of hours or doses, a unit of a medicine, telling somebody
+     to take, stop or skip a medicine, or not to eat. A list a clinician has signed may carry them,
+     and says who. */
+  const serviceIds = catalogue.map((s) => s.id);
+  const listed = Object.keys(preparation.services);
+  for (const id of serviceIds)
+    if (!listed.includes(id))
+      throw new Error(
+        `packages/catalog/services.json sells "${id}" and packages/catalog/visit-preparation.json has no list for it. Every visit has something to have ready, or a patient asking is told nothing.`,
+      );
+  for (const id of listed)
+    if (!serviceIds.includes(id))
+      throw new Error(
+        `packages/catalog/visit-preparation.json lists "${id}", which packages/catalog/services.json does not sell. A list for a visit nobody can book is advice about nothing.`,
+      );
+  const CLINICAL_INSTRUCTION = [
+    [/\b\d+\s*(hours?|hrs?|minutes?|days?|doses?|tablets?|pills?|units?|mg|ml|mmol|millilitres?|milligrams?)\b/i, "a count of hours, doses or a medicine's unit"],
+    [/\b(take|stop|skip|miss|double|halve|swallow|use)\b[^.;]*\b(medicine|medicines|medication|tablet|tablets|dose|doses|pill|pills|insulin|inhaler|injection)\b/i, "an instruction about a medicine"],
+    [/\b(do not eat|don't eat|dont eat|nothing to eat|eat nothing|no food|fast for|fasting for|stop eating|do not drink|don't drink|dont drink)\b/i, "an instruction about food or drink"],
+  ];
+  const instructionIn = (sentence) =>
+    CLINICAL_INSTRUCTION.find(([pattern]) => pattern.test(sentence))?.[1] ?? null;
+  const holdList = (label, items, reviewedBy) => {
+    if (!Array.isArray(items) || !items.length || items.some((i) => typeof i !== "string" || !i.trim()))
+      throw new Error(
+        `visit-preparation.json's ${label} is empty or carries something that is not a sentence.`,
+      );
+    for (const item of items) {
+      const instruction = instructionIn(item);
+      if (reviewedBy === null && instruction)
+        throw new Error(
+          `visit-preparation.json's ${label} says "${item}" — ${instruction} — and no clinician has reviewed it (reviewedBy is null). GilbertOne never invents clinical preparation: a list may carry such a sentence only once reviewedBy names the clinician who signed it.`,
+        );
+      if (reviewedBy === null && /\d/.test(item))
+        throw new Error(
+          `visit-preparation.json's ${label} says "${item}", which carries a digit, and no clinician has reviewed it. An unreviewed list carries no number at all: hours, doses and counts are the instructions it must not give.`,
+        );
+    }
+  };
+  holdList("common list", preparation.common, null);
+  for (const [id, entry] of Object.entries(preparation.services)) {
+    if (!("reviewedBy" in entry))
+      throw new Error(
+        `visit-preparation.json's list for "${id}" does not say whether a clinician has reviewed it. Null is an answer; silence is not.`,
+      );
+    if (entry.reviewedBy !== null && !/\b(SANC|HPCSA)\b/.test(String(entry.reviewedBy)))
+      throw new Error(
+        `visit-preparation.json's list for "${id}" is reviewed by "${entry.reviewedBy}", which names no SANC or HPCSA registration. A review is a registered clinician's signature, in the vetting register's own format, or it is a name.`,
+      );
+    holdList(`list for "${id}"`, entry.items, entry.reviewedBy);
+  }
+  for (const [key, sentence] of Object.entries(preparation.answer))
+    if (key !== "why" && /\d/.test(sentence))
+      throw new Error(
+        `visit-preparation.json's answer.${key} carries a digit. No number is typed in this file.`,
+      );
+  if (!preparation.answer.unreviewed?.includes("No clinician has reviewed this list"))
+    throw new Error(
+      'visit-preparation.json\'s unreviewed sentence no longer says "No clinician has reviewed this list". It is read in the reviewed sentence\'s place on every list today, and it is the sentence that keeps housekeeping from sounding like an instruction.',
+    );
+  if (!/\bfast\b/.test(preparation.answer.neverInstructs ?? "") || !/\btake or stop\b/.test(preparation.answer.neverInstructs ?? ""))
+    throw new Error(
+      "visit-preparation.json's neverInstructs sentence no longer refuses fasting and taking or stopping a medicine. It is the refusal every list ends on.",
+    );
+
+  /* The assistant contract's side: each new kind carries a state, a face (held above), a spoken
+     register naming a class voice.json has, and the medicines answer's template and its
+     every-time protected sentence. */
+  const voiceClasses = JSON.parse(read("packages/catalog/voice.json")).queryClasses.map((c) => c.id);
+  const registers = gilbertContract.spokenRegister?.answers ?? {};
+  for (const kind of new Set([
+    ...Object.keys(gilbertContract.answers),
+    ...gilbertContract.questions.map((q) => q.answer),
+  ])) {
+    /* The situations carry their state each in the situations section; every other kind in the
+       answers section. */
+    if (kind !== "situation" && !gilbertContract.answers[kind]?.state)
+      throw new Error(
+        `assistant.json's answer kind "${kind}" carries no state. The panel draws the Pulse from the answer's state and has none to invent.`,
+      );
+    if (!voiceClasses.includes(registers[kind]))
+      throw new Error(
+        `assistant.json's spokenRegister gives the "${kind}" answer the register "${registers[kind]}", which packages/catalog/voice.json has no class for. Every answer is read aloud in a register somebody decided; a kind with none is read in whichever voice the adapter last used.`,
+      );
+  }
+  for (const kind of ["reading", "preparation", "medicines"])
+    if (registers[kind] !== "routine")
+      throw new Error(
+        `assistant.json's spokenRegister reads the "${kind}" answer in the "${registers[kind]}" register. The founder's ask of 27 September 2026 was for a presentation answer, read in the routine register — the one an administrator may set a voice for — and moving it is a founder decision, not an edit.`,
+      );
+  const medicinesWords = gilbertContract.answers.medicines;
+  for (const token of ["{name}", "{dose}", "{frequency}"])
+    if (!medicinesWords.line?.includes(token))
+      throw new Error(
+        `assistant.json's answers.medicines.line no longer carries ${token}. The line is a template over the record's own fields, so that no dose is ever typed in this file.`,
+      );
+  if (!/whether or not there is one/.test(medicinesWords.protectedNotRead ?? ""))
+    throw new Error(
+      'assistant.json\'s answers.medicines.protectedNotRead no longer says "whether or not there is one". It is said every time so that its presence never reveals a protected entry; a sentence that stops saying so is a sentence that will be said only when one exists.',
+    );
+  for (const id of ["no-reading-graded", "no-invented-preparation", "medicine-list-read-only"])
+    if (!gilbertContract.refusals.some((r) => r.id === id))
+      throw new Error(
+        `assistant.json has lost the refusal "${id}". The valuable part of the reading and preparation answers is what they will not do, and that is written as a refusal every platform renders.`,
+      );
+
+  /* Nothing typed. The explanations, the framing, the lists and the medicines sentences are read
+     from their contracts by the package and the web; a copy in any of these files is the drift
+     records.json's explanations were moved to end. */
+  const readProse = [
+    ...explanationProse,
+    ...Object.entries(framing).filter(([k, v]) => typeof v === "string" && k !== "why" && !k.endsWith("From")).map(([, v]) => v),
+    ...preparation.common,
+    ...Object.values(preparation.services).flatMap((e) => e.items),
+    ...Object.entries(preparation.answer).filter(([k]) => k !== "why").map(([, v]) => v),
+    ...Object.entries(medicinesWords).filter(([k, v]) => typeof v === "string" && k !== "why" && k !== "state").map(([, v]) => v),
+  ];
+  for (const file of [
+    "packages/gilbertone/src/readings.ts",
+    "packages/gilbertone/src/preparation.ts",
+    "packages/gilbertone/src/medicines.ts",
+    "apps/web/src/lib/assistant.ts",
+    "apps/web/src/features/Assistant.tsx",
+  ]) {
+    const source = read(file);
+    for (const sentence of readProse)
+      if (source.includes(sentence))
+        throw new Error(
+          `${file} types "${sentence.slice(0, 60)}…", which is a sentence of a contract it should be reading. A typed copy is a sentence one platform says and the contract no longer controls.`,
+        );
+  }
+  for (const [file, needs, why] of [
+    ["apps/web/src/lib/assistant.ts", /readingIn\(/, "the web's matcher asks the package's reading recogniser"],
+    ["apps/web/src/lib/assistant.ts", /preparationFor\(visit\?\.service\.id \?\? null\)/, "the preparation answer is for the visit that is booked, or for nothing"],
+    ["apps/web/src/lib/records.ts", /protected: isProtected\(m\)/, "a medicine line is marked protected by the same rule every screen resolves an entry with"],
+    ["apps/web/src/features/Assistant.tsx", /reply\.answer\.smallPrint\.map/, "the panel prints the reading's provenance as small print"],
+  ])
+    if (!needs.test(read(file)))
+      throw new Error(
+        `${file} no longer shows that ${why}.`,
+      );
 }
 
 /* ---- The Pulse events: what may leave a conversation, and what never does -------------------- */
@@ -33231,13 +33604,19 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
     if (f === p4Founder) continue; /* founder access's sign-in and reveal: held by the Founder access block instead */
     if (/type=["'{]\s*["']?password/.test(code))
       throw new Error(`${f} sets an input's type to password itself. The one key field is ShapeField's, in Controls.tsx, disabled and without a value.`);
+    /* The portal's shared controls (features/portal/Fields.tsx) draw inputs this sweep cannot see from
+       here, so no GilbertOne file may reach for them: every field on these screens is written out in
+       the file that draws it, where the sweep below reads it. */
+    if (/^\s*import\b[^;]*from '\.\.\/Fields'/m.test(read(f)))
+      throw new Error(`${f} imports the portal's shared controls. A GilbertOne screen draws its fields itself, where this check reads them, or through Controls.tsx.`);
     for (const [tag, kind] of code.matchAll(/<(input|textarea|select)\b[^>]*>/g)) {
       /* The Voice screen and the voice preview draw selects and textareas of their own since 27
          September 2026 — a register, a language, one of two voice labels, a sentence and a reason —
-         and never an <input>: nothing key-shaped has a field to arrive in. */
-      const where = f.endsWith("/Controls.tsx") ? "controls" : p4LiveFiles.includes(f) && kind !== "input" ? "voice" : null;
+         and, for the voice label, radio chips since the same day's restyle: an <input> only ever of
+         type radio, whose value is one of two labels. Nothing key-shaped has a field to arrive in. */
+      const where = f.endsWith("/Controls.tsx") ? "controls" : p4LiveFiles.includes(f) && (kind !== "input" || /^<input type="radio"\s/.test(tag)) ? "voice" : null;
       if (!where)
-        throw new Error(`${f} draws a <${kind}> of its own. A GilbertOne screen draws a field only through Controls.tsx (disabled) — the exceptions are the Voice screen's and the voice preview's own selects and sentences, which no key can reach.`);
+        throw new Error(`${f} draws a <${kind}> of its own. A GilbertOne screen draws a field only through Controls.tsx (disabled) — the exceptions are the Voice screen's and the voice preview's own selects, radio chips and sentences, which no key can reach.`);
       if (where === "controls" && (!/\sdisabled[\s/>]/.test(tag) || /\b(value|defaultValue)=/.test(tag)))
         throw new Error(`${f} draws an input that is not disabled, or gives one a value: ${tag}. While no vault exists, no field on a GilbertOne screen accepts anything and none shows anything.`);
       if (where === "voice" && /password/.test(tag))
@@ -33392,8 +33771,12 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
     const guarded = (code.match(/previewMaySaveAsDefault\s*\?\s*<div className="g1-save g1-action"[\s\S]*?<LiveButton\s+id="voice-save-as-default"/g) ?? []).length;
     if (!saves || saves !== guarded)
       throw new Error(`${p4Dir}/VoicePreview.tsx draws Save as default ${saves} times, ${guarded} of them under the class's previewMaySaveAsDefault. The emergency, refusal and escalation registers play and offer nothing to save — ${locked}`);
-    if (!/chosen\.previewMaySaveAsDefault\s*\?\s*<select id=\{voiceField\}[^>]*\bonChange=[\s\S]*?:\s*<select id=\{voiceField\}[^>]*\sdisabled\s*>/.test(code))
-      throw new Error(`${p4Dir}/VoicePreview.tsx's voice select is no longer enabled only under the class's previewMaySaveAsDefault, with a disabled select otherwise. A locked register shows the platform's default and lets nobody choose.`);
+    /* The voice chooser is a fieldset of radio chips since 27 September 2026: live under the class's
+       previewMaySaveAsDefault, and otherwise a disabled fieldset with no handler, holding every radio
+       the panel draws between the two. */
+    const chooser = code.match(/chosen\.previewMaySaveAsDefault\s*\?\s*<fieldset className="fc-chips[^"]*" id=\{voiceField\}[^>]*>(?:(?!<\/fieldset>)[\s\S])*?\bonChange=[\s\S]*?<\/fieldset>\s*:\s*<fieldset className="fc-chips[^"]*" id=\{voiceField\}[^>]*\sdisabled\s*>(?:(?!<\/fieldset>|onChange)[\s\S])*<\/fieldset>/);
+    if (!chooser || (chooser[0].match(/<input type="radio"/g) ?? []).length !== (code.match(/<input type="radio"/g) ?? []).length)
+      throw new Error(`${p4Dir}/VoicePreview.tsx's voice chooser is no longer enabled only under the class's previewMaySaveAsDefault, with a disabled one otherwise. A locked register shows the platform's default and lets nobody choose.`);
     if (!/const asked: VoiceLabel \| null = chosen\.previewMaySaveAsDefault \? \(label \?\? inForce!\) : \(platform as VoiceLabel \| null\);/.test(code))
       throw new Error(`${p4Dir}/VoicePreview.tsx no longer sends a locked register's reading in the platform's own voice. What Play asks for on a locked register is the contract's defaultVoice, whatever any setting or choice says.`);
   }
@@ -33860,5 +34243,94 @@ console.log(
 
   console.log(
     `Founder access · ${faRoutes.length} routes, the founder's alone, each asking the gate first and dark unless ${fa.enable.variable}=${fa.enable.value} and a credential both hold, with nothing under deploy/ able to write either; a reveal allowlist of exactly ${fa.reveal.allowlist.join(" and ")}, checked before the environment is read; a reveal only with a live session and a fresh, burned code; ${fa.lockout.consecutiveFailures} failures lock for ${fa.lockout.lockSeconds / 60} minutes before any hash; the cookie ${fa.session.cookie} exactly ${fa.session.attributes.join("; ")}; Max-Age=${fa.session.lifetimeSeconds}, never renewed; one log line per act that cannot carry a secret; the identity service's TOTP and the script's numbers the contract's; and a revealed key held only in RevealKey's state, from the reveal route, wiped after ${fa.reveal.wipeAfterSeconds} seconds and stored nowhere.`,
+  );
+}
+
+/* GOLDEN SETS — packages/catalog/assistant-golden-sets.json, the founder's ask of 27 September 2026:
+   clinician-reviewed sentences in isiZulu, isiXhosa and Afrikaans, with English as the reference, that
+   apps/assistant-api/src/eval/golden-sets.test.ts runs through the turn route on every npm test. The
+   contract is a measurement, not a configuration, so what the build holds it to is its honesty: every
+   case says who drafted or reviewed it, expects a route the harness knows, is written in its set's
+   language and says why; no sentence carries a number shaped like somebody's phone or identity number
+   (a golden set is read by reviewers and committed in the open, and the phi-detected refusal would
+   swallow the case before it measured anything); a set that claims a review names the day and the
+   role; a day without a name is refused, because that is how a review gets claimed by accident; the
+   founder's four languages are all present with enough cases to mean something; and every language is
+   one assistant.json#voice.languages lists, because a set in a language the product does not speak
+   measures nothing. Proved by breaking the contract each way and restoring it (docs/FEATURE-MAP.md,
+   the golden-sets entry). */
+{
+  const goldenFile = "packages/catalog/assistant-golden-sets.json";
+  const golden = JSON.parse(read(goldenFile));
+  const harnessFile = "apps/assistant-api/src/eval/golden-sets.ts";
+  const harness = read(harnessFile);
+  const assistantContract = JSON.parse(read("packages/catalog/assistant.json"));
+  const spoken = assistantContract.voice.languages.map((l) => l.id);
+  const refusalIds = assistantContract.refusalPolicies.policies.map((p) => p.id);
+  const routes = ["emergency", "handover", "in-scope", "unmatched"];
+  const founderAskedFor = ["en", "zu", "xh", "af"];
+  const fewestCases = 25;
+  const dayShape = /^\d{4}-\d{2}-\d{2}$/;
+  /* The same shapes packages/gilbertone/src/phi.ts refuses a message for: a +27 number, a local
+     0-prefixed number, a thirteen-digit run. An email address is allowed, on a reserved domain, because
+     the phi-detected refusal needs one sentence per language to be measured against. */
+  const looksLikeANumber = /\+27\s?\d[\d\s]{7,10}|\b0[1-9]\d[\d\s]{7,9}\b|\b\d{13}\b/;
+  const named = (s) => typeof s === "string" && s.trim().length > 0;
+
+  if (!named(golden._note) || !named(golden.status) || !Array.isArray(golden.sets) || golden.harness !== "apps/assistant-api/src/eval/golden-sets.test.ts")
+    throw new Error(`${goldenFile} has lost its note, its status, its sets or the name of the harness that runs it.`);
+  if (!/reviewedBy (is )?null/.test(golden._note) || !/never REQUIRED/i.test(golden._note))
+    throw new Error(`${goldenFile}'s note no longer says that a set with reviewedBy null is run and reported, never required.`);
+  for (const route of routes)
+    if (!harness.includes(`"${route}"`))
+      throw new Error(`${harnessFile} no longer knows the route "${route}" that ${goldenFile} may expect.`);
+  if (!/refusalPolicies\.policies\.map\(\(policy\) => policy\.id\)/.test(harness))
+    throw new Error(`${harnessFile} no longer takes the refusal ids it accepts from assistant.json#refusalPolicies, so a refusal:<id> could name a policy that does not exist.`);
+  if (!/reviewedBy \? "hard" : "soft"/.test(harness) || !/if \(!report\.reviewed\) return;/.test(read("apps/assistant-api/src/eval/golden-sets.test.ts")))
+    throw new Error("apps/assistant-api/src/eval/golden-sets.ts no longer lets the set's reviewedBy decide whether a failure breaks the build. An unreviewed set is reported, never required.");
+
+  const languagesSeen = new Set();
+  const ids = new Set();
+  let reviewedSets = 0;
+  for (const set of golden.sets) {
+    if (!spoken.includes(set.language))
+      throw new Error(`${goldenFile} has a set in "${set.language}", which packages/catalog/assistant.json#voice.languages does not list. A set in a language the product does not speak measures nothing.`);
+    if (languagesSeen.has(set.language)) throw new Error(`${goldenFile} has two sets in "${set.language}". One set per language.`);
+    languagesSeen.add(set.language);
+    if (!named(set.reviewerRole))
+      throw new Error(`${goldenFile}'s ${set.language} set does not say what kind of reviewer it needs (reviewerRole).`);
+    if (set.reviewedBy !== null && !named(set.reviewedBy))
+      throw new Error(`${goldenFile}'s ${set.language} set has a reviewedBy that is neither null nor a name.`);
+    if (set.reviewedBy !== null && !dayShape.test(set.reviewedOn ?? ""))
+      throw new Error(`${goldenFile}'s ${set.language} set is reviewed by ${set.reviewedBy} but names no reviewedOn day. A review has a day and a role or it is not a review.`);
+    if (set.reviewedBy === null && set.reviewedOn !== null)
+      throw new Error(`${goldenFile}'s ${set.language} set names a reviewedOn day with no reviewer. That is a review claimed by accident.`);
+    if (set.reviewedBy !== null) reviewedSets += 1;
+    if (!Array.isArray(set.cases) || set.cases.length < fewestCases)
+      throw new Error(`${goldenFile}'s ${set.language} set has ${set.cases?.length ?? 0} cases; a set needs at least ${fewestCases} to measure anything.`);
+    for (const c of set.cases) {
+      if (!named(c.id)) throw new Error(`${goldenFile}'s ${set.language} set has a case with no id.`);
+      if (ids.has(c.id)) throw new Error(`${goldenFile} has two cases with the id "${c.id}".`);
+      ids.add(c.id);
+      if (!named(c.message)) throw new Error(`${goldenFile}'s case ${c.id} has no message.`);
+      const route = c.expect?.route;
+      const known = typeof route === "string" && (routes.includes(route) || (route.startsWith("refusal:") && refusalIds.includes(route.slice("refusal:".length))));
+      if (!known)
+        throw new Error(`${goldenFile}'s case ${c.id} expects "${route}", which the harness does not know. The routes are ${routes.join(", ")} and refusal:<id> for ${refusalIds.join(", ")}.`);
+      if (c.expect?.language !== set.language)
+        throw new Error(`${goldenFile}'s case ${c.id} says it is in "${c.expect?.language}" inside the ${set.language} set.`);
+      if (!named(c.why)) throw new Error(`${goldenFile}'s case ${c.id} does not say why its route is the right one.`);
+      if (!named(c.draftedBy) && !named(c.reviewedBy))
+        throw new Error(`${goldenFile}'s case ${c.id} names nobody who drafted or reviewed it. A reviewer has to know whether to check it.`);
+      if (looksLikeANumber.test(c.message))
+        throw new Error(`${goldenFile}'s case ${c.id} carries something shaped like a phone or identity number. No golden sentence does: the set is committed in the open, and the phi-detected refusal would swallow it.`);
+    }
+  }
+  for (const language of founderAskedFor)
+    if (!languagesSeen.has(language))
+      throw new Error(`${goldenFile} has no ${language} set. The founder asked for isiZulu, isiXhosa and Afrikaans beside the English reference.`);
+
+  console.log(
+    `Golden sets · ${golden.sets.length} languages (${[...languagesSeen].join(", ")}), ${ids.size} cases, ${reviewedSets} reviewed set${reviewedSets === 1 ? "" : "s"} — an unreviewed set is reported and never required; every case names who drafted or reviewed it, expects a route the harness knows, is in its set's language and carries no phone or identity number; every language one voice.languages lists.`,
   );
 }

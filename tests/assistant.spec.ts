@@ -3016,3 +3016,228 @@ test("the spoken reading of a crisis answer says the ambulance numbers, then the
   expect(read.chest).not.toContain(crisisContract.heading);
   expect(read.chest).not.toContain(sadag);
 });
+
+/* ---- Spoken reading explanations and the pre-visit companion, 27 September 2026 ------------------
+   Two things a patient can use today, each answered from contracts. A reading — "what does 136/85
+   mean", "is my sugar of 7.2 okay", "what is SpO2" — gets records.json's own explanation for the
+   measure, with the measure's name as the heading and the provenance as small print: written by a
+   person, reviewed by no clinician, a doctor decides. A number is never graded; the paragraph the
+   range points to is read, and no sentence says high, low or normal about it. An emergency word in
+   the same message still wins. With a visit booked, the panel offers what to have ready as a chip
+   and answers with visit-preparation.json's list for that service, saying no clinician has reviewed
+   it; the medicine list is read back line by line, protected entries never among them, and nothing
+   is changed. Every sentence asserted here is read from the contracts rather than retyped. */
+const readingQuestions = json("../packages/catalog/reading-questions.json");
+const preparationContract = json("../packages/catalog/visit-preparation.json");
+const recordsContract = json("../packages/catalog/records.json");
+const explanationOf = (id: string) =>
+  recordsContract.explanations.entries.find((e: { id: string }) => e.id === id);
+const observationLabel = (id: string) =>
+  recordsContract.observations.measures.find((m: { id: string }) => m.id === id).label;
+const provenance = recordsContract.explanations.provenance;
+const contractQuestion = (answer: string) =>
+  gilbert.questions.find((q: { answer: string }) => q.answer === answer);
+
+test("a blood pressure in a person's own words is explained from records.json, headed and provenanced, never graded", async ({
+  page,
+}) => {
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  await ask(page, "what does 136/85 mean?");
+  const reply = log(page).locator(".as-reply").last();
+  await expect(reply).toHaveAttribute("data-outcome", "answer");
+  await expect(reply).toHaveAttribute("data-question", "reading");
+  await expect(reply.locator(".as-headline")).toHaveText("Blood pressure");
+  await expect(reply).toContainText(explanationOf("systolic").measures);
+  await expect(reply).toContainText(explanationOf("diastolic").measures);
+  /* Her own number, echoed; inside the range, so neither paragraph written for outside it is read. */
+  await expect(reply).toContainText("136/85");
+  await expect(reply).toContainText(observationLabel("systolic"));
+  await expect(reply).not.toContainText(explanationOf("systolic").above);
+  await expect(reply).not.toContainText(explanationOf("systolic").below);
+  await expect(reply).toContainText(provenance.whoDecides);
+  const small = reply.locator(".as-provenance");
+  await expect(small).toHaveCount(3);
+  await expect(small.nth(0)).toHaveText(provenance.written);
+  await expect(small.nth(1)).toHaveText(provenance.unreviewed);
+  await expect(small.nth(2)).toHaveText(provenance.ranges);
+  await expect(reply).not.toContainText(/\b(normal|abnormal)\b/i);
+  await expect(reply.locator(".as-unread")).toHaveCount(0);
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute("data-cue", faceOf("reading").cue);
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute("data-pulse", "guiding");
+});
+
+test("a sugar with a number outside the range reads the paragraph written for that side, and what to do", async ({
+  page,
+}) => {
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  await ask(page, "my glucose was 3,1 this morning");
+  const reply = log(page).locator(".as-reply").last();
+  await expect(reply).toHaveAttribute("data-outcome", "answer");
+  await expect(reply.locator(".as-headline")).toHaveText(observationLabel("glucose"));
+  await expect(reply).toContainText(explanationOf("glucose").below);
+  await expect(reply).toContainText(explanationOf("glucose").whatToDo);
+  await expect(reply).not.toContainText(explanationOf("glucose").above);
+  await expect(reply).toContainText(provenance.whoDecides);
+  await expect(reply.locator(".as-provenance").nth(1)).toHaveText(provenance.unreviewed);
+});
+
+test("a measure with no number is explained and asked for one; the reading is spoken in the routine register", async ({
+  page,
+}) => {
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  await ask(page, "what is SpO2?");
+  const reply = log(page).locator(".as-reply").last();
+  await expect(reply).toHaveAttribute("data-outcome", "answer");
+  await expect(reply.locator(".as-headline")).toHaveText(observationLabel("oxygen"));
+  await expect(reply).toContainText(readingQuestions.answer.noValue);
+  await expect(reply).toContainText(explanationOf("oxygen").measures);
+  await expect(reply.locator(".as-provenance")).toHaveCount(2);
+  /* What the voice is handed is the reply's own words, heading first and provenance last, in the
+     register the contract maps the kind to. */
+  const spoken = await page.evaluate(async () => {
+    const lib = (await import("/src/lib/assistant.ts" as string)) as AssistantLib;
+    const turn = lib.send(lib.opening("patient"), "what is SpO2?", null, false, "patient").at(-1)!;
+    return { words: lib.spokenOf(turn, "patient"), register: lib.voiceClassOf(turn.reply, turn.unread) };
+  });
+  expect(spoken.register).toBe(gilbert.spokenRegister.answers.reading);
+  expect(spoken.words.startsWith(observationLabel("oxygen"))).toBe(true);
+  expect(spoken.words).toContain(explanationOf("oxygen").measures);
+  expect(spoken.words.endsWith(provenance.unreviewed)).toBe(true);
+});
+
+test("an emergency word beside a reading still wins, and the explanation is not read", async ({
+  page,
+}) => {
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  await ask(page, "what does 136/85 mean, my chest feels tight");
+  const reply = log(page).locator(".as-reply").last();
+  await expect(reply).toHaveAttribute("data-outcome", "emergency");
+  await expect(reply).toHaveAttribute("data-groups", /chest-pain/);
+  await expect(reply).toContainText(condition("chest-pain"));
+  await expect(reply).toContainText(sos.emergency.headline);
+  await expect(reply).not.toContainText(explanationOf("systolic").measures);
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute("data-pulse", "escalate");
+});
+
+test("the web recogniser agrees with the reading contract's shared fixtures", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, "Arithmetic, not layout: once is enough.");
+  await page.goto("/app/");
+  const disagreements = await page.evaluate(
+    async ({ fixtures }) => {
+      const lib = (await import("/src/lib/assistant.ts" as string)) as AssistantLib;
+      const found: string[] = [];
+      for (const f of fixtures) {
+        const turn = lib.send(lib.opening("patient"), f.says, null, false, "patient").at(-1)!;
+        const kind = lib.outcomeOf(turn);
+        if (f.expect === "emergency") {
+          if (kind !== "emergency") found.push(`"${f.says}" gave ${kind}`);
+          continue;
+        }
+        if (f.expect === "none") {
+          if (turn.reply.kind === "reading") found.push(`"${f.says}" was read as a reading`);
+          continue;
+        }
+        if (turn.reply.kind !== "reading" || !turn.reply.match) {
+          found.push(`"${f.says}" gave ${turn.reply.kind}`);
+          continue;
+        }
+        const match = turn.reply.match;
+        if (match.measure.id !== f.measure) found.push(`"${f.says}" matched ${match.measure.id}`);
+        if (match.framing !== f.framing) found.push(`"${f.says}" framed ${match.framing}`);
+        if (JSON.stringify(match.values) !== JSON.stringify(f.values ?? null))
+          found.push(`"${f.says}" read ${JSON.stringify(match.values)}`);
+        if (turn.unread !== f.unread) found.push(`"${f.says}" unread ${turn.unread}`);
+      }
+      return found;
+    },
+    { fixtures: readingQuestions.fixtures.messages },
+  );
+  expect(disagreements).toEqual([]);
+});
+
+test("with a visit booked, what to have ready is offered as a chip and answered with that service's list", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await page.goto("/app/");
+  await expect(page.getByText(nothingBooked.name).first()).toBeVisible();
+  /* Nothing booked: the chip is not offered, and the question typed gets the nothing-booked sentence. */
+  await launcher(page).click();
+  await consent(page);
+  const preparationQuestion = contractQuestion("preparation");
+  await expect(panel(page).getByRole("button", { name: preparationQuestion.asks, exact: true })).toHaveCount(0);
+  await ask(page, "how do I prepare for my visit?");
+  const before = log(page).locator(".as-reply").last();
+  await expect(before).toHaveAttribute("data-question", "preparation");
+  await expect(before).toContainText(preparationContract.answer.nothingBooked);
+  /* The routine answer's warm face, asserted here while the gesture runs: A13 settles inside a
+     second, and on the re-opened panel below the open's own reading cue (A05, an activity) outranks
+     any gesture, so the face is the first open's to show. */
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute("data-cue", faceOf("preparation").cue);
+  await page.keyboard.press("Escape");
+  await expect(panel(page)).toBeHidden();
+  const sidebar = page.getByRole("navigation", { name: "Main navigation" });
+  if (await sidebar.isVisible())
+    await sidebar.getByRole("button", { name: "Book a nurse", exact: true }).click();
+  else await page.locator(".tabbar button").nth(1).click();
+  await page.getByRole("button", { name: /Elderly care/ }).first().click();
+  const d = page.getByRole("dialog");
+  for (let step = 0; step < 5; step++)
+    await d.getByRole("button", { name: "Continue" }).click();
+  await d.getByRole("checkbox").check();
+  await confirmBooking(d);
+  await d.getByRole("button", { name: "View my visits" }).click();
+  await launcher(page).click();
+  const chip = panel(page).getByRole("button", { name: preparationQuestion.asks, exact: true });
+  await expect(chip).toBeVisible();
+  await chip.click();
+  const reply = log(page).locator(".as-reply").last();
+  await expect(reply).toHaveAttribute("data-outcome", "answer");
+  await expect(reply).toHaveAttribute("data-question", "preparation");
+  await expect(reply.locator(".as-headline")).toHaveText("Elderly care");
+  const items = reply.locator(".as-list li");
+  await expect(items).toHaveCount(preparationContract.common.length + preparationContract.services.senior.items.length);
+  await expect(items.first()).toHaveText(preparationContract.common[0]);
+  await expect(items.last()).toHaveText(preparationContract.services.senior.items.at(-1));
+  await expect(reply).toContainText(preparationContract.answer.unreviewed);
+  await expect(reply).toContainText(preparationContract.answer.neverInstructs);
+});
+
+test("the medicine list is read back as the record holds it, protected entries never, and nothing changed", async ({
+  page,
+}) => {
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  await ask(page, "read my medicine list back");
+  const reply = log(page).locator(".as-reply").last();
+  const words = gilbert.answers.medicines;
+  await expect(reply).toHaveAttribute("data-outcome", "answer");
+  await expect(reply).toHaveAttribute("data-question", "medicines");
+  await expect(reply.locator(".as-headline")).toHaveText(words.heading);
+  await expect(reply).toContainText(words.lead);
+  /* The account holder's list: amlodipine is current, hydrochlorothiazide was stopped in June. */
+  const lines = reply.locator(".as-list li");
+  await expect(lines).toHaveCount(1);
+  await expect(lines.first()).toContainText("Amlodipine");
+  await expect(reply).not.toContainText("Hydrochlorothiazide");
+  await expect(reply).toContainText(words.protectedNotRead);
+  await expect(reply).toContainText(words.neverChanges);
+  await expect(reply).toContainText(words.preview);
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute("data-cue", faceOf("medicines").cue);
+  /* Read aloud in full, refusals included, in the routine register. */
+  const spoken = await page.evaluate(async () => {
+    const lib = (await import("/src/lib/assistant.ts" as string)) as AssistantLib;
+    const turn = lib.send(lib.opening("patient"), "read my medicine list back", null, false, "patient").at(-1)!;
+    return { words: lib.spokenOf(turn, "patient"), register: lib.voiceClassOf(turn.reply, turn.unread) };
+  });
+  expect(spoken.register).toBe(gilbert.spokenRegister.answers.medicines);
+  expect(spoken.words).toContain(words.neverChanges);
+  expect(spoken.words).toContain(words.protectedNotRead);
+});

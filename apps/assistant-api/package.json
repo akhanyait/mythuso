@@ -7,7 +7,8 @@
     "start": "node src/server.ts",
     "check": "tsc",
     "test": "node --test \"src/**/*.test.ts\"",
-    "eval:gilbertone": "node src/eval/run-eval.ts"
+    "eval:gilbertone": "node src/eval/run-eval.ts",
+    "eval:golden-sets": "node --test src/eval/golden-sets.test.ts"
   },
   "dependencies": {
     "@langchain/community": "^0.3.59",

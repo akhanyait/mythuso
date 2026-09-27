@@ -152,12 +152,26 @@ test('the welcome screen names the six capabilities from the catalogue and gives
 
 test('patient suggestions answer the six navigation questions and keep extra symptoms on the safety path', async ({ page }) => {
  const ui = JSON.parse(readFileSync(new URL('../packages/catalog/assistant-chat-ui.json', import.meta.url), 'utf8'));
+ /* The browser's own voice is stood down, as tests/assistant.spec.ts stands it down. Each chip's reply
+    is read aloud, and the next chip cancels that reading; in headless Chromium (the 1243 build
+    installed on 27 September 2026) a cancel on a live utterance stalls input delivery, so the second
+    click never returned and the assertion read an empty reply. What this journey measures is the
+    words each chip answers with, not the voice — which the voice specs cover with a stand-in of
+    their own. */
+ await page.addInitScript(() => {
+  const synth = (window as unknown as { speechSynthesis?: { speak: () => void; cancel: () => void } }).speechSynthesis;
+  if (synth) { synth.speak = () => {}; synth.cancel = () => {}; }
+ });
  await page.goto('/app/?open=assistant');
  const panel = page.locator('#assistant-panel');
  await panel.getByRole('checkbox', { name: 'I understand GilbertOne is not a doctor.' }).check();
  await panel.getByRole('checkbox', { name: 'I know what to do in an emergency.' }).check();
  await panel.getByRole('button', { name: 'I Accept and Continue' }).click();
- await expect(panel.locator('.as-chips .as-ask')).toHaveCount(6);
+ /* The six navigation questions, plus the two contract questions offered on every open since
+    28 September 2026 — the reading explanation and the medicine-list read-back; the pre-visit one is
+    offered only while a visit is booked, and this demo patient has none. Each of the six is still
+    walked by name below, so the count is a guard against a chip quietly vanishing, not the point. */
+ await expect(panel.locator('.as-chips .as-ask')).toHaveCount(ui.patientQuestions.length + 2);
  for (const question of ui.patientQuestions) {
    await panel.getByRole('button', { name: question.asks, exact: true }).click();
    await expect(panel.locator('.as-reply').last()).toContainText(question.answer);

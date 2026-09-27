@@ -1,0 +1,129 @@
+{
+  "_note": "What to have ready before a booked visit, per service, as data. A patient with a visit booked asks GilbertOne what she should have ready, and the answer is this file's list for the service she booked — read back as sentences, never composed. Keyed by the service ids in packages/catalog/services.json, one entry per service and no service without one; scripts/check-boundaries.mjs holds the two lists to each other. The web's lib/assistant.ts and packages/gilbertone/src/preparation.ts read it; no native app renders it yet — see platforms on the preparation question in assistant.json.",
+  "version": 1,
+  "decidedBy": "Founder",
+  "on": "2026-09-27",
+  "why": "The second of the two things the founder asked for on 27 September 2026. A visit goes better when the medicine boxes are on the table and somebody can open the door, and that is the kind of thing a patient asks the night before — of a person, if there is one. It is also exactly where an assistant starts giving clinical instructions it has no standing to give: how long to fast, which tablet to skip. So every list here is written by nobody clinical, says so, and is held by the build to carrying no such instruction until a clinician has signed it.",
+  "reviewedByWhy": "Every service's list carries reviewedBy, and today every one is null: no clinician has read these lists, and the answer says so in the reviewed sentence's place. The build refuses an unreviewed list that carries a clinical instruction — a count of hours or doses, a unit of a medicine, a sentence telling somebody to take, stop or skip a medicine, or one telling her not to eat — because a preparation list is the easiest place in this product to write 'do not eat for eight hours' as if it were housekeeping. The day a clinician reviews a list, reviewedBy carries the registration in the vetting register's own format, and only then may that list carry such a sentence. Reviewing one service does not review the others.",
+  "answer": {
+    "why": "The framing around a list, in the order the answer reads it. {service} is the service's name from services.json, {reviewedBy} the registration on file. No digit is typed here.",
+    "lead": "For your {service} visit, have this ready:",
+    "unreviewed": "No clinician has reviewed this list yet. It is a written list held inside the app, and if your nurse, your doctor or the booking told you something different, follow that.",
+    "reviewed": "This list was reviewed by {reviewedBy}. If your nurse, your doctor or the booking told you something different, follow that.",
+    "nothingBooked": "You have no visit booked, so there is nothing to prepare for yet. Book a nurse and ask me again.",
+    "neverInstructs": "Nothing here tells you to eat, fast, take or stop anything. That instruction can only come from your nurse, your doctor or the booking itself."
+  },
+  "common": [
+    "Have your identity document or clinic card, and the boxes of everything you take, on the table.",
+    "Have somebody who can open the door, and keep pets in another room while the nurse is with you.",
+    "Write down what you want to ask before the nurse arrives, and have a chair and a table where the nurse can work."
+  ],
+  "commonWhy": "Read before every service's own items, so a list is never only the three things that are true of every visit. They are housekeeping, not clinical: a document, a door, a chair.",
+  "services": {
+    "vitals": {
+      "reviewedBy": null,
+      "items": [
+        "Sit quietly for a while before the nurse arrives: a reading taken after rushing to the door is a different reading.",
+        "If you have your own blood-pressure cuff or glucose meter, have it and its recent readings to hand."
+      ]
+    },
+    "wound": {
+      "reviewedBy": null,
+      "items": [
+        "Leave the dressing as it is; the nurse will remove it. Have clean towels and somewhere to wash hands nearby.",
+        "Have any letter that describes the wound or the operation ready."
+      ]
+    },
+    "mother": {
+      "reviewedBy": null,
+      "items": [
+        "Have the Road to Health booklet and any notes from the clinic or hospital ready.",
+        "Have a warm, quiet room for the baby, and somewhere to lay the baby flat for the check."
+      ]
+    },
+    "blood": {
+      "reviewedBy": null,
+      "items": [
+        "If your doctor or the booking said the test is a fasting one, follow exactly what they said. GilbertOne does not know which tests were ordered and cannot tell you whether to eat.",
+        "Wear a sleeve that rolls up easily, and have the request form or the doctor's letter that names the tests ready."
+      ]
+    },
+    "injection": {
+      "reviewedBy": null,
+      "items": [
+        "Have the prescription or the letter that asks for the injection or vaccine ready, and your vaccination card if you have one.",
+        "Wear something that leaves the upper arm easy to reach."
+      ]
+    },
+    "planning": {
+      "reviewedBy": null,
+      "items": [
+        "Nobody else needs to be in the room; if you would like somebody with you, that is your choice.",
+        "Have a note of what you use now and any questions you want to ask."
+      ]
+    },
+    "postop": {
+      "reviewedBy": null,
+      "items": [
+        "Have your discharge letter and any notes from the hospital ready, and leave the dressing as it is.",
+        "Have the boxes of anything the hospital sent you home with on the table."
+      ]
+    },
+    "senior": {
+      "reviewedBy": null,
+      "items": [
+        "Have the person's medicine boxes, clinic card and any hospital letters together in one place.",
+        "If possible, have somebody who knows their routine nearby during the visit."
+      ]
+    },
+    "certificate": {
+      "reviewedBy": null,
+      "items": [
+        "Have your employer's details ready if the note is for work.",
+        "The nurse assesses you and a doctor reviews it; a note is not promised before the assessment."
+      ]
+    },
+    "screening": {
+      "reviewedBy": null,
+      "items": [
+        "Wear something that makes the chest easy to reach for the ECG.",
+        "Have a clean container ready if the booking asked for a urine sample."
+      ]
+    },
+    "sos": {
+      "reviewedBy": null,
+      "items": [
+        "Nothing needs preparing for an urgent visit. If it cannot wait for a nurse, do not wait: call an ambulance now.",
+        "Unlock the door and have somebody who can meet the nurse."
+      ]
+    },
+    "mens": {
+      "reviewedBy": null,
+      "items": [
+        "Have a note of anything you want to ask, however small.",
+        "Nobody else needs to be in the room; if you would like somebody with you, that is your choice."
+      ]
+    },
+    "mental": {
+      "reviewedBy": null,
+      "items": [
+        "A quiet room where you will not be interrupted, and somebody you trust nearby afterwards if you would like.",
+        "Have a note of what you want to say; there is no wrong way to say it."
+      ]
+    },
+    "allied": {
+      "reviewedBy": null,
+      "items": [
+        "Have any referral letter and the notes from the visit that asked for this one ready.",
+        "Clear a little floor space if the visit is physiotherapy, and have the shoes and aids you use every day to hand."
+      ]
+    },
+    "carer": {
+      "reviewedBy": null,
+      "items": [
+        "Have the person's routine written down: meals, medicine times, what they can do alone and what they need help with.",
+        "Show the carer where things are kept before leaving them together."
+      ]
+    }
+  }
+}

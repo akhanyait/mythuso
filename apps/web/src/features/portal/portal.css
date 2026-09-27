@@ -253,7 +253,7 @@
 .portal .pt-row > strong {
   font-weight: 600;
 }
-.portal .pt-row > span:not(.pt-status-wrap):not(.pt-build):not(.pt-checking) {
+.portal .pt-row > span:not(.pt-status-wrap):not(.pt-build):not(.pt-checking):not(.g1-tag) {
   flex: 1 1 100%;
   color: var(--charcoal);
   font-size: 14px;
@@ -1597,4 +1597,811 @@
   .portal .g1-preview-fields .wide {
     grid-column: 1 / -1;
   }
+}
+
+/* ==== The pastel system (27 September 2026) ==========================================================
+   The founder's brief of 27 September: soft tinted cards with one large numeral each, rings and pill
+   bars that arrive once, pill controls and tab bars, generous space, ink on tint, and one dark card for
+   emphasis. It is written here, against the shared parts — Figures and Ring in Parts.tsx, the tab list,
+   the roving list, the region, the tables, the empty state, the controls in Fields.tsx and
+   gilbertone/Controls.tsx — so all fourteen categories inherit it, rather than three screens being
+   polished by hand and eleven left as they were.
+
+   The rules this section keeps, because the build does not read this sheet for all of them:
+   - Every tinted ground sets its own ink in the same rule. The four card tints — mint, lavender, peach,
+     pale green — carry the token inks resolved on :root ("The card tints" below); the lime pill and the
+     paper panels carry the shell's studio ink; the night card carries studio paper, with studio lime as
+     its one accent word and --focus as its inner ring. No word is ever set in a tint.
+   - Tints belong to a figure's name (Parts.tsx#tintsFor), never to its position.
+   - Radii are the tokens': --r-panel (28) for a card that holds a figure, --r-card (20) for a row or a
+     note, --r-control (16) for a field, --r-pill for anything pressed.
+   - Motion is the shared system's tokens and curve only, finite, on transform, opacity and
+     stroke-dashoffset, started only under [data-decor='on'] (which the portal's pause control and the
+     reduced-motion query both clear) and removed with !important at the foot of this section. */
+
+/* ---- Ground and headings ---------------------------------------------------------------------- */
+.portal .pt-intro h1 {
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.6px;
+  line-height: 1.15;
+  color: var(--charcoal);
+}
+@media (min-width: 1000px) {
+  .portal .pt-intro h1 {
+    font-size: 36px;
+    letter-spacing: -1px;
+  }
+}
+.portal .pt-intro p {
+  max-width: 62ch;
+  font-size: 15px;
+}
+.portal .pt-region {
+  margin: var(--space-40) 0 0;
+}
+.portal .pt-region > h2 {
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.4px;
+  margin: 0 0 var(--space-16);
+}
+
+/* ---- Tabs: pills. The categories are a column of pills on a wide screen and a strip of them on a
+   phone, the strip scrolling inside itself; a category's own tabs are a segmented track whose chosen
+   tab is ink on paper. Inside a strip that scrolls, the two-ring focus indicator is drawn inside the
+   pill, because a ring drawn outside it is clipped by the strip's own scrolling box. */
+.portal .sidebar .pt-tablist.vertical {
+  gap: var(--space-4);
+}
+.portal .sidebar .pt-tab {
+  background: transparent;
+  border-color: transparent;
+  color: var(--charcoal);
+}
+.portal .sidebar .pt-tab:hover {
+  background: var(--cloud);
+  color: var(--charcoal);
+}
+.portal .sidebar .pt-tab[aria-selected="true"] {
+  background: var(--studio-night);
+  border-color: var(--studio-night);
+  color: var(--studio-paper);
+}
+.portal .pt-tab:focus-visible {
+  border-radius: var(--r-pill);
+}
+.portal .pt-tablist.horizontal .pt-tab:focus-visible {
+  outline-offset: -3px;
+  box-shadow: inset 0 0 0 6px var(--focus-edge);
+}
+.portal .pt-strip-nav .pt-tab {
+  background: var(--surface);
+  border-color: var(--stone);
+  color: var(--charcoal);
+}
+.portal .pt-strip-nav .pt-tab[aria-selected="true"] {
+  background: var(--studio-night);
+  border-color: var(--studio-night);
+  color: var(--studio-paper);
+}
+.portal .pt-tablist.pt-subtabs {
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 var(--space-24);
+  padding: var(--space-4);
+  gap: var(--space-4);
+  border-radius: var(--r-pill);
+  background: var(--cloud);
+  color: var(--charcoal);
+}
+.portal .pt-subtabs .pt-tab {
+  background: transparent;
+  border-color: transparent;
+  color: var(--charcoal);
+}
+.portal .pt-subtabs .pt-tab:hover {
+  background: var(--surface);
+}
+.portal .pt-subtabs .pt-tab[aria-selected="true"] {
+  background: var(--surface);
+  border-color: var(--surface);
+  color: var(--charcoal);
+  box-shadow: var(--shadow-raised);
+}
+.portal .pt-subtabs .pt-tab[aria-selected="true"]:focus-visible {
+  box-shadow: inset 0 0 0 6px var(--focus-edge);
+}
+
+/* ---- Notes above the work. The preview sentence is a quiet paper note on every category; the one
+   dark card is kept for what a reader must not miss — the old-address notice, and on Configuration the
+   sentence saying a change reaches nobody and a reload undoes it. */
+.portal .pt-preview {
+  background: var(--surface);
+  color: var(--charcoal);
+  border-radius: var(--r-card);
+  padding: var(--space-12) var(--space-20);
+}
+.portal .pt-notice,
+.portal .cf-area > .privacy-note.alert {
+  padding: var(--space-20) var(--space-24);
+  border: 0;
+  border-radius: var(--r-panel);
+  background: var(--studio-night);
+  color: var(--studio-paper);
+  font-size: 15px;
+  line-height: 1.55;
+}
+.portal .pt-notice .text-button {
+  color: var(--studio-lime);
+  text-decoration: underline;
+  font-weight: 600;
+}
+.portal .cf-area > .privacy-note.alert > svg {
+  color: var(--studio-lime);
+}
+.portal .pt-context {
+  border-radius: var(--r-card);
+  padding: var(--space-16) var(--space-20);
+}
+
+/* ---- Figure cards ----------------------------------------------------------------------------- */
+.portal .pt-figures {
+  list-style: none;
+  margin: 0 0 var(--space-24);
+  padding: 0;
+  display: grid;
+  gap: var(--space-16);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+}
+.portal .pt-figure,
+.portal .s-metrics > .s-metric,
+.portal .pt-strip-figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  min-width: 0;
+  padding: var(--space-24);
+  border-radius: var(--r-panel);
+  background: var(--surface);
+  color: var(--charcoal);
+}
+/* The card tints. The clinical shell remaps the studio palette onto the brand's (shells/shells.css): its
+   lilac becomes a six per cent ink wash and its lime becomes mint, so a card painted with --studio-lilac
+   inside the portal was grey, and two of four cards were the same green. The reference has lavender,
+   peach and a pale green beside the mint, and the design tokens have all three. So the portal's tints
+   are resolved on :root — above the shell, where each studio variable is still the token's own value —
+   and inherited as values rather than names. Every pair is a row in tokens.json#contrast: studio ink on
+   studio lilac (9.04), on studio peach (8.92) and on studio lime (11.46); brand ink on brand mint (8.09,
+   declared as mint on ink). The ink is resolved on :root for the same reason. */
+:root {
+  --pt-tint-mint: var(--brand-mint);
+  --pt-tint-lavender: var(--studio-lilac);
+  --pt-tint-peach: var(--studio-peach);
+  --pt-tint-lime: var(--studio-lime);
+  --pt-tint-ink: var(--studio-ink);
+  --pt-tint-ink-muted: var(--studio-ink-muted);
+}
+.portal .pt-figure[data-tint="mint"],
+.portal .pt-strip-figure[data-tint="mint"] {
+  background: var(--pt-tint-mint);
+  color: var(--brand-ink);
+}
+.portal .pt-figure[data-tint="lavender"],
+.portal .pt-strip-figure[data-tint="lavender"] {
+  background: var(--pt-tint-lavender);
+  color: var(--pt-tint-ink);
+}
+.portal .pt-figure[data-tint="peach"],
+.portal .pt-strip-figure[data-tint="peach"] {
+  background: var(--pt-tint-peach);
+  color: var(--pt-tint-ink);
+}
+.portal .pt-figure[data-tint="lime"],
+.portal .pt-strip-figure[data-tint="lime"] {
+  background: var(--pt-tint-lime);
+  color: var(--pt-tint-ink);
+}
+.portal .pt-figure[data-tint="night"],
+.portal .pt-strip-figure[data-tint="night"] {
+  background: var(--studio-night);
+  color: var(--studio-paper);
+}
+.portal .pt-figure-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  min-height: 28px;
+}
+/* A small dot in the card's own ink, the reference's status mark. Decoration: the chip beside it and the
+   name under the numeral are the words. */
+.portal .pt-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.portal .pt-figure-chip {
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--studio-ink);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: right;
+}
+.portal .pt-figure[data-tint="night"] .pt-figure-chip {
+  background: var(--studio-lime);
+  color: var(--studio-ink);
+}
+.portal .pt-figure-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-16);
+  min-height: 64px;
+}
+.portal .pt-figure-value,
+.portal .pt-strip-figure .s-metric-value,
+.portal .s-metrics > .s-metric .s-metric-value {
+  font-size: 42px;
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -1.5px;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+}
+@media (min-width: 1000px) {
+  .portal .pt-figure-value,
+  .portal .pt-strip-figure .s-metric-value {
+    font-size: 64px;
+    letter-spacing: -2.5px;
+  }
+}
+.portal .pt-figure[data-tint="night"] .pt-figure-value,
+.portal .pt-strip-figure[data-tint="night"] .s-metric-value {
+  color: var(--studio-lime);
+}
+.portal .pt-figure-name,
+.portal .pt-strip-figure .s-metric-label {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: inherit;
+}
+.portal .pt-figure-note {
+  font-size: 13px;
+  line-height: 1.45;
+  color: inherit;
+}
+/* The strip the workspace shares: its metric keeps its own markup (tests and the workspace read it),
+   and sits in a tinted card; the card, not the metric, is the grid item. */
+.portal .s-metrics {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: var(--space-16);
+  padding: var(--space-8) 0 var(--space-24);
+}
+.portal .pt-strip-figure > .s-metric {
+  padding: 0;
+  gap: var(--space-8);
+  background: none;
+  color: inherit;
+}
+.portal .pt-strip-figure .s-metric-chip {
+  background: var(--surface);
+  border-color: var(--surface);
+  color: var(--charcoal);
+  white-space: normal;
+}
+.portal .pt-strip-figure .s-metric-chip.flagged {
+  background: var(--charcoal);
+  border-color: var(--charcoal);
+  color: var(--surface);
+}
+.portal .pt-strip-figure[data-tint="night"] .s-metric-chip {
+  background: var(--studio-lime);
+  border-color: var(--studio-lime);
+  color: var(--studio-ink);
+}
+.portal .pt-strip-figure[data-tint="night"] .s-metric-chip.flagged {
+  background: var(--surface);
+  border-color: var(--surface);
+  color: var(--charcoal);
+}
+.portal .pt-strip-figure .s-metric-figure {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-16);
+  width: 100%;
+}
+.portal .pt-strip-figure .s-metric-figure > .pt-ring {
+  order: 1;
+}
+
+/* ---- The ring ----------------------------------------------------------------------------------- */
+.portal .pt-ring {
+  flex: 0 0 auto;
+  display: block;
+  transform: rotate(-90deg);
+}
+.portal .pt-ring circle {
+  fill: none;
+  stroke-width: 5;
+}
+.portal .pt-ring-track {
+  stroke: var(--surface);
+}
+.portal .pt-ring-fill {
+  stroke: var(--studio-ink);
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+}
+.portal [data-tint="night"] .pt-ring-track {
+  stroke: var(--sage-slate);
+}
+.portal [data-tint="night"] .pt-ring-fill {
+  stroke: var(--studio-lime);
+}
+/* Rises once from empty to its share when the card arrives, and never again until the panel is opened
+   anew; the end state is the inline offset, so there is no second copy of the share in this sheet. */
+[data-decor="on"] .portal .pt-ring-fill {
+  animation: pt-ring-in var(--t-enter) var(--ease-soft) both;
+}
+@keyframes pt-ring-in {
+  from {
+    stroke-dashoffset: 100;
+  }
+}
+
+/* ---- Rows, regions, notes ------------------------------------------------------------------------ */
+.portal .pt-row {
+  padding: var(--space-16) var(--space-20);
+  border-radius: var(--r-card);
+  border-color: transparent;
+  background: var(--surface);
+}
+.portal .pt-row:hover {
+  border-color: var(--stone);
+}
+.portal .pt-empty {
+  padding: var(--space-20) var(--space-24);
+  border-radius: var(--r-card);
+  border: 1px dashed var(--stone);
+  background: var(--surface);
+  color: var(--charcoal);
+}
+.portal .pt-empty strong {
+  font-size: 16px;
+}
+.portal .pt-step {
+  padding: var(--space-20);
+  border-radius: var(--r-card);
+  border-color: transparent;
+  background: var(--surface);
+}
+.portal .pt-step-n {
+  flex: 0 0 36px;
+  height: 36px;
+  background: var(--studio-lime);
+  color: var(--studio-ink);
+}
+.portal .pt-status,
+.portal .pt-build,
+.portal .g1-tag {
+  padding: 3px 10px;
+}
+.portal .pt-tree {
+  padding: var(--space-8);
+  border-radius: var(--r-panel);
+  background: var(--surface);
+  color: var(--charcoal);
+}
+.portal .pt-node[aria-selected="true"] {
+  background: var(--studio-night);
+  color: var(--studio-paper);
+}
+.portal .pt-node:focus-visible {
+  border-radius: var(--r-pill);
+}
+
+/* ---- Tables: a header of small capitals, and each row a soft card on the ground. They still scroll
+   inside .table-scroll on a phone, never the page. */
+.portal .pt-table,
+.portal .admin-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 var(--space-8);
+  margin-top: 0;
+}
+.portal .pt-table thead th,
+.portal .admin-table thead th {
+  padding: var(--space-4) var(--space-16);
+  border: 0;
+  background: transparent;
+  color: var(--studio-ink-muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.portal .pt-table tbody th,
+.portal .pt-table tbody td,
+.portal .admin-table tbody th,
+.portal .admin-table tbody td {
+  padding: var(--space-16);
+  border: 0;
+  background: var(--surface);
+  color: var(--charcoal);
+  font-size: 14px;
+  line-height: 1.5;
+  vertical-align: top;
+}
+.portal .pt-table tbody th,
+.portal .admin-table tbody th {
+  font-weight: 600;
+}
+.portal .pt-table tbody tr > :first-child,
+.portal .admin-table tbody tr > :first-child {
+  border-radius: var(--r-control) 0 0 var(--r-control);
+}
+.portal .pt-table tbody tr > :last-child,
+.portal .admin-table tbody tr > :last-child {
+  border-radius: 0 var(--r-control) var(--r-control) 0;
+}
+.portal .pt-table caption,
+.portal .admin-table caption {
+  padding: 0 0 var(--space-4);
+  color: var(--studio-ink-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ---- Fields: pill selects with a drawn chevron, rounded text fields, pill buttons ------------------ */
+.portal select:not([multiple]) {
+  -webkit-appearance: none;
+  appearance: none;
+  min-height: 44px;
+  max-width: 100%;
+  padding: 0 44px 0 var(--space-16);
+  border: 1px solid var(--stone);
+  border-radius: var(--r-pill);
+  background-color: var(--surface);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--charcoal) 50%),
+    linear-gradient(135deg, var(--charcoal) 50%, transparent 50%);
+  background-position:
+    calc(100% - 22px) 50%,
+    calc(100% - 16px) 50%;
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+  color: var(--charcoal);
+  font-size: 15px;
+  cursor: pointer;
+}
+.portal select:not([multiple]):hover {
+  border-color: var(--charcoal);
+}
+.portal select:focus-visible {
+  border-radius: var(--r-pill);
+}
+.portal select:not([multiple]):disabled {
+  background-color: var(--cloud);
+  border-color: var(--stone);
+  color: var(--charcoal);
+  cursor: not-allowed;
+}
+.portal input:is([type="text"], [type="search"], [inputmode]),
+.portal textarea {
+  min-height: 44px;
+  padding: var(--space-8) var(--space-16);
+  border: 1px solid var(--stone);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  color: var(--charcoal);
+  font-size: 15px;
+}
+.portal input:is([type="text"], [type="search"], [inputmode]):focus-visible,
+.portal textarea:focus-visible {
+  border-radius: var(--r-control);
+}
+.portal .primary,
+.portal .secondary {
+  min-height: 44px;
+  padding-inline: var(--space-20);
+  border-radius: var(--r-pill);
+}
+.portal .primary:focus-visible,
+.portal .secondary:focus-visible {
+  border-radius: var(--r-pill);
+}
+
+/* ---- Configuration: each setting its own card, the value in force as a lime pill, the change form a
+   paper panel inside it, and the confirmation the dark card — the moment a change is about to reach
+   every desk it names. */
+.portal .cf-tools {
+  padding: var(--space-20) var(--space-24);
+  border-radius: var(--r-panel);
+  background: var(--surface);
+  color: var(--charcoal);
+}
+.portal .ss-panel > .section-title h2 {
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.4px;
+}
+.portal ol.panel.ss-timings {
+  gap: var(--space-12);
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+.portal ol.panel.ss-timings::before {
+  display: none;
+}
+.portal .ss-timing {
+  gap: var(--space-12);
+  padding: var(--space-24);
+  border-radius: var(--r-panel);
+  background: var(--surface);
+  color: var(--charcoal);
+}
+.portal .ss-timing + .ss-timing {
+  border-top: 0;
+}
+.portal .ss-timing-head strong {
+  font-size: 17px;
+}
+.portal .ss-in-force {
+  align-items: center;
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-16);
+  border-radius: var(--r-pill);
+  background: var(--studio-lime);
+  color: var(--studio-ink);
+}
+.portal .ss-in-force small {
+  color: var(--studio-ink-muted);
+}
+.portal .ss-in-force b {
+  padding: var(--space-4) var(--space-12);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--studio-ink);
+  font-size: 18px;
+  font-weight: 500;
+}
+.portal .ss-form {
+  gap: var(--space-12);
+  max-width: 640px;
+  padding: var(--space-20);
+  border: 0;
+  border-radius: var(--r-card);
+  background: var(--studio-paper);
+  color: var(--studio-ink);
+}
+.portal .ss-form > label {
+  color: var(--studio-ink);
+  font-weight: 600;
+}
+.portal .ss-confirm {
+  gap: var(--space-12);
+  padding: var(--space-20);
+  border: 0;
+  border-radius: var(--r-card);
+  background: var(--studio-night);
+  color: var(--studio-paper);
+}
+.portal .ss-confirm strong,
+.portal .ss-confirm p {
+  color: var(--studio-paper);
+}
+.portal .ss-confirm .secondary {
+  background: transparent;
+  border-color: var(--studio-paper);
+  color: var(--studio-paper);
+}
+.portal .ss-confirm .primary {
+  background: var(--studio-lime);
+  color: var(--studio-ink);
+}
+.portal .cf-window {
+  display: grid;
+  gap: var(--space-12);
+  padding: var(--space-16);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  color: var(--charcoal);
+}
+
+/* ---- GilbertOne ---------------------------------------------------------------------------------- */
+.portal .g1-card,
+.portal .g1-preview,
+.portal .g1-founder-key {
+  padding: var(--space-24);
+  border-radius: var(--r-panel);
+  border-color: transparent;
+  background: var(--surface);
+}
+.portal .pt-g1-state {
+  padding: var(--space-20) var(--space-24);
+  border-radius: var(--r-panel);
+  border-color: transparent;
+  background: var(--surface);
+}
+.portal .g1-locked {
+  padding: var(--space-20);
+  border-radius: var(--r-card);
+}
+/* The gated level selector: the same slider as Fields.tsx's, held. A 12px pill track, the share of the
+   way filled in soft sage, a white knob ringed in charcoal, and the value's chip riding above the thumb
+   on the same ratio. It is aria-disabled and moves nothing, so it has no hover and no transition. */
+.portal .pt-slider-rail {
+  position: relative;
+  height: 30px;
+  margin: 0 14px;
+}
+.portal .pt-slider-chip {
+  position: absolute;
+  top: 0;
+  left: calc(var(--pt-ratio, 0) * 100%);
+  transform: translateX(calc(var(--pt-ratio, 0) * -100%));
+  padding: var(--space-4) var(--space-12);
+  background: var(--studio-night);
+  color: var(--studio-paper);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.portal .pt-range-track {
+  height: 12px;
+  background: var(--stone);
+}
+.portal .pt-range-fill {
+  height: 12px;
+  background: var(--soft-sage);
+}
+.portal .pt-range-thumb {
+  background: var(--surface);
+  border: 5px solid var(--charcoal);
+  box-shadow: var(--shadow-raised);
+}
+/* The Show metadata checkbox, disabled beside its gate: a drawn box rather than the browser's, so it
+   reads as the same family as the chips. */
+.portal .g1-check input {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 2px solid var(--faint);
+  border-radius: 8px;
+  background: var(--cloud);
+  cursor: not-allowed;
+}
+.portal .g1-check input:focus-visible {
+  border-radius: 8px;
+}
+.portal .g1-voice-cell {
+  gap: var(--space-12);
+}
+
+/* ---- Removal -------------------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .portal .pt-ring-fill,
+  [data-decor="on"] .portal .pt-ring-fill {
+    animation: none !important;
+  }
+}
+/* A contract path in a refusal or a discrepancy has nowhere a browser will break it; on a phone it was
+   the one line on the Overview that widened main. */
+.portal .pt-refusals strong,
+.portal .pt-refusals span {
+  overflow-wrap: anywhere;
+}
+
+/* On a phone the figures sit two to a row, as the reference's tiles do, and the one the screen is about
+   takes the whole row as the dark card; a chip wraps under the dot rather than squeezing the numeral. */
+@media (max-width: 599px) {
+  .portal .pt-figures,
+  .portal .s-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-12);
+  }
+  .portal .pt-figure,
+  .portal .pt-strip-figure,
+  .portal .s-metrics > .s-metric {
+    padding: var(--space-16);
+    border-radius: var(--r-card);
+  }
+  .portal .pt-figure[data-tint="night"],
+  .portal .pt-strip-figure[data-tint="night"] {
+    grid-column: 1 / -1;
+  }
+  .portal .pt-figure-top {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+  .portal .pt-figure-chip {
+    text-align: left;
+  }
+  .portal .pt-figure-body {
+    min-height: 0;
+    flex-wrap: wrap;
+    gap: var(--space-8);
+  }
+  .portal .pt-figure-value,
+  .portal .pt-strip-figure .s-metric-value {
+    font-size: 40px;
+  }
+  .portal .pt-figure-name,
+  .portal .pt-strip-figure .s-metric-label {
+    font-size: 14px;
+  }
+}
+
+/* The clinical sheet turns a wide strip into a flex row divided by hairlines; in the portal each figure
+   is its own card, so the strip stays a grid and the hairlines and their margins go. */
+.portal .s-metrics {
+  display: grid;
+}
+.portal .s-metrics > .s-metric + .s-metric,
+.portal .pt-strip-figure + .pt-strip-figure > .s-metric {
+  margin-left: 0;
+  padding-left: 0;
+  border-left: 0;
+}
+.portal .s-metrics > .s-metric + .s-metric {
+  padding-left: var(--space-24);
+}
+.portal .pt-strip-figure .s-metric-chip {
+  padding: 3px 10px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.portal .s-metrics,
+.portal .pt-figures {
+  align-items: stretch;
+}
+/* A chip that wraps to a second line keeps a control's radius rather than a pill's, which on two lines
+   reads as a lozenge. One line at this size is round-ended either way. */
+.portal .pt-figure-chip,
+.portal .pt-strip-figure .s-metric-chip {
+  border-radius: var(--r-control);
+}
+
+/* Numerals line up across a strip. Each card takes its rows from the strip's grid (subgrid), so a chip
+   that wraps to three lines on one card moves every card's numeral down together rather than only its
+   own, and a row of figures stays a row of figures. */
+.portal .pt-figure {
+  display: grid;
+  grid-row: span 4;
+  grid-template-rows: subgrid;
+  row-gap: var(--space-8);
+  align-content: start;
+}
+.portal .pt-strip-figure {
+  display: grid;
+  grid-row: span 3;
+  grid-template-rows: subgrid;
+  row-gap: var(--space-8);
+}
+.portal .pt-strip-figure > .s-metric {
+  display: contents;
+}
+.portal .pt-strip-figure .s-metric-chip-line {
+  align-items: flex-start;
+}
+.portal .pt-figure-body,
+.portal .pt-strip-figure .s-metric-value,
+.portal .pt-strip-figure .s-metric-figure {
+  align-self: end;
 }

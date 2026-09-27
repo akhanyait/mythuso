@@ -17,8 +17,11 @@ import {
   type ReactNode,
 } from "react";
 import {
+  Activity,
   Ambulance,
   CalendarDays,
+  ClipboardList,
+  Pill,
   FileText,
   MessageCircle,
   Mic,
@@ -185,6 +188,9 @@ const QUESTION_ICONS: Record<string, typeof Ambulance> = {
   voice: Lock,
   nurse: UserRound,
   emergency: Ambulance,
+  reading: Activity,
+  preparation: ClipboardList,
+  medicines: Pill,
 };
 
 const SESSION_SUBJECT = "subject-this-session";
@@ -806,6 +812,26 @@ export default function Assistant({
                       </h3>
                       {group.id === "situations" && <p>{ui.topicsLead}</p>}
                       <div className="as-chips">
+                        {/* The contract's own patient questions of 27 September 2026, offered
+                            beside the help chips in the situations group: the reading and the
+                            medicine list always, and what to have ready only while a visit is
+                            booked — a chip for preparing a visit that does not exist would answer
+                            with the nothing-booked sentence, which is a chip nobody should have to
+                            press to learn. They go through choose(), like every contract question. */}
+                        {group.id === "situations" &&
+                          questionsFor(audienceId)
+                            .filter(
+                              (q) =>
+                                (q.answer === "preparation" && visit !== null) ||
+                                q.answer === "reading" ||
+                                q.answer === "medicines",
+                            )
+                            .sort(
+                              (a, b) =>
+                                ui.questionOrder.indexOf(a.id) -
+                                ui.questionOrder.indexOf(b.id),
+                            )
+                            .map(chip)}
                         {help.map((q) => {
                           const Icon = QUESTION_ICONS[q.id];
                           return (
@@ -1316,6 +1342,65 @@ function ReplyBody({
           )}
         </>
       );
+    case "reading":
+      /* The spoken reading explanation: the measure's name as the heading, records.json's own
+         paragraphs in the order the voice reads them, and the provenance as small print — the
+         written-by-a-person and read-by-no-clinician sentences, which a screen that explains a
+         blood pressure is not allowed to leave off. Nothing here is typed: heading, paragraphs and
+         small print all arrive from packages/gilbertone/src/readings.ts as the contracts' words. */
+      return reply.answer ? (
+        <>
+          <p className="as-headline">{reply.answer.heading}</p>
+          {reply.answer.paragraphs.map((paragraph, index) => (
+            <p key={index}>{paragraph}</p>
+          ))}
+          {reply.answer.smallPrint.map((line, index) => (
+            <p key={`small-${index}`} className="as-quiet as-provenance">
+              {line}
+            </p>
+          ))}
+        </>
+      ) : (
+        <p>{reply.ask}</p>
+      );
+    case "preparation": {
+      const p = reply.answer;
+      if (p.kind === "none") return <p>{p.sentence}</p>;
+      return (
+        <>
+          <p className="as-headline">{p.serviceName}</p>
+          <p>{p.lead}</p>
+          <ul className="as-list">
+            {p.items.map((item, index) => (
+              <li key={index}>{item}</li>
+            ))}
+          </ul>
+          <p className="as-quiet as-provenance">{p.review}</p>
+          <p className="as-quiet">{p.neverInstructs}</p>
+        </>
+      );
+    }
+    case "medicines": {
+      const m = reply.answer;
+      return (
+        <>
+          <p className="as-headline">{m.heading}</p>
+          <p>{m.lead}</p>
+          {m.noMedicines ? (
+            <p>{m.noMedicines}</p>
+          ) : (
+            <ul className="as-list">
+              {m.lines.map((line, index) => (
+                <li key={index}>{line}</li>
+              ))}
+            </ul>
+          )}
+          <p className="as-quiet">{m.protectedNotRead}</p>
+          <p className="as-quiet">{m.neverChanges}</p>
+          <p className="as-quiet as-provenance">{m.preview}</p>
+        </>
+      );
+    }
     case "service":
       /* A sentence a language model wrote, drawn under the heading that says so — the same
          order spokenOf reads aloud, so the voice and the screen cannot tell two stories. The

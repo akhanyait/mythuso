@@ -13,7 +13,7 @@ import {
 } from "../../lib/portal";
 import { usePortal } from "./context";
 import { Frame } from "./Frame";
-import { Empty, Region, RovingList, Status } from "./Parts";
+import { Empty, Figures, Region, Ring, RovingList, Status } from "./Parts";
 import { FounderDashboardDemo } from "./FounderDemo";
 import "./design-widgets.css";
 
@@ -85,20 +85,63 @@ function DemoBanner() {
   );
 }
 
-/* Every widget derives from the same series. No totals are copied into presentation code. */
+/* Every widget derives from the same series. No totals are copied into presentation code.
+   The three figures are the portal's figure cards, tinted by their own names; the bars are pills that
+   rise once from the baseline when the panel arrives, weekdays in mint and the weekend in peach — the
+   same two the ring splits the week into, so the colour says which half of the ring a bar belongs to
+   and the day's name under the bar says it again. Heights are the day's share of the peak, so the
+   tallest bar is the peak day's and nothing is scaled by a number typed here. */
 function WeeklyWidgets() {
  const visits=visitDemo.visits;
  const total=visits.reduce((n,v)=>n+v.count,0);
  const peak=visits.reduce((a,b)=>a.count>b.count?a:b);
- const weekday=visits.filter(v=>![0,6].includes(new Date(v.date+'T12:00:00Z').getUTCDay())).reduce((n,v)=>n+v.count,0);
- const share=total?weekday/total*100:0;
+ const weekend=(date:string)=>[0,6].includes(new Date(date+'T12:00:00Z').getUTCDay());
+ const weekday=visits.filter(v=>!weekend(v.date)).reduce((n,v)=>n+v.count,0);
+ const share=total?weekday/total:0;
  const day=(date:string)=>new Date(date+'T12:00:00Z').toLocaleDateString('en-ZA',{weekday:'short',timeZone:'UTC'});
  return <section className="pt-weekly" aria-labelledby="weekly-heading">
   <header><span className="pt-widget-kicker">CONTROL TOWER / SAMPLE WEEK</span><h2 id="weekly-heading">The week, at a glance.</h2><p>{visitDemo.period.from} — {visitDemo.period.to} · Demonstration data</p></header>
-  <div className="pt-weekly-metrics">{[{label:'Total sample visits',value:total,note:'Across the sample week'},{label:'Daily average',value:(total/visits.length).toFixed(1),note:'Derived from the same series'},{label:'Highest sample day',value:peak.count,note:day(peak.date)}].map(m=><div key={m.label}><span>{m.label}</span><strong>{m.value}</strong><small>{m.note}</small></div>)}</div>
-  <div className="pt-weekly-charts"><section><h3>Visits through the week</h3><p className="helper">Illustrative visit counts</p><div className="pt-week-bars" aria-hidden="true">{visits.map(v=><div key={v.date}><strong>{v.count}</strong><i style={{height:`${v.count/peak.count*150}px`}}/><span>{day(v.date)}</span></div>)}</div></section><section className="pt-week-share"><h3>A clearer view of the mix</h3><div className="pt-week-donut" style={{background:`conic-gradient(var(--teal) 0 ${share}%, var(--mango) ${share}% 100%)`}} role="img" aria-label={`Sample visits: ${weekday} on weekdays, ${total-weekday} at the weekend`}><div><strong>{total}</strong><span>sample visits</span></div></div><dl><div><dt>Weekdays</dt><dd>{weekday}</dd></div><div><dt>Weekend</dt><dd>{total-weekday}</dd></div></dl></section></div>
+  <Figures label="The sample week in three figures" items={[
+   {name:'Total sample visits',value:String(total),note:'Across the sample week',chip:'Sample'},
+   {name:'Daily average',value:(total/visits.length).toFixed(1),note:'Derived from the same series',chip:'Sample'},
+   {name:'Highest sample day',value:String(peak.count),note:day(peak.date),chip:'Sample'}]}/>
+  <div className="pt-weekly-charts">
+   <section><h3>Visits through the week</h3><p className="helper">Illustrative visit counts</p>
+    <div className="pt-week-bars" aria-hidden="true">{visits.map(v=><div key={v.date} className={weekend(v.date)?'is-weekend':'is-weekday'}>
+     <strong>{v.count}</strong><span className="pt-bar-track"><i style={{height:`${v.count/peak.count*100}%`}}/></span><span>{day(v.date)}</span></div>)}</div>
+   </section>
+   <section className="pt-week-share"><h3>A clearer view of the mix</h3>
+    <div className="pt-week-donut" role="img" aria-label={`Sample visits: ${weekday} on weekdays, ${total-weekday} at the weekend`}>
+     <Ring share={share} size={200}/><div><strong>{total}</strong><span>sample visits</span></div>
+    </div>
+    <dl><div className="is-weekday"><dt>Weekdays</dt><dd>{weekday}</dd></div><div className="is-weekend"><dt>Weekend</dt><dd>{total-weekday}</dd></div></dl>
+   </section>
+  </div>
   <details className="pt-week-values"><summary>Exact sample values</summary><table className="result-table"><caption>Visits in the demonstration week</caption><thead><tr><th scope="col">Date</th><th scope="col">Visits</th></tr></thead><tbody>{visits.map(v=><tr key={v.date}><th scope="row">{v.date} · {day(v.date)}</th><td>{v.count}</td></tr>)}</tbody></table></details>
  </section>;
+}
+
+/* The state of the world in four figures, before anything else on the screen: each one counts rows this
+   screen lists further down — the gates in the open-gates table, the services in the services list,
+   the discrepancies and the changes — so a reader can check every numeral against its list. Open gates
+   leads, as the dark card, because what is blocked is what an operator opens this screen to find. The
+   services ring is the share of them in a connected state right now, the live one included once its
+   health route has answered. */
+function WorldFigures({ health }: { health: AssistantHealth | null }) {
+  const services = section("service-state").services ?? [];
+  const gates = section("open-gates").gates ?? [];
+  const connected = services.filter((s) => (s.fixedState ?? health?.state) === "connected").length;
+  return (
+    <Figures
+      label="The state of the world"
+      items={[
+        { name: section("open-gates").label, value: String(gates.length), chip: "Each waits on its owner", lead: true },
+        { name: "Services", value: String(services.length), chip: `${connected} connected`, share: services.length ? connected / services.length : 0 },
+        { name: "Recorded, not resolved", value: String(overview.discrepancies.length), chip: "Each has an owner" },
+        { name: section("what-changed").label, value: String(portalContract.overview.whatChanged.length), chip: "From the feature map" },
+      ]}
+    />
+  );
 }
 
 function StateOfTheWorld() {
@@ -122,6 +165,7 @@ function StateOfTheWorld() {
   const changed = portalContract.overview.whatChanged;
   return (
     <>
+      <WorldFigures health={health} />
       {/* ── DEMO DATA — for show and tell only. Replace with real metrics when a feed exists. ── */}
       <DemoBanner />
       <WeeklyWidgets />

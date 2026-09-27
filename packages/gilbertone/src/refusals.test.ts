@@ -34,6 +34,11 @@ test('asking for a medicine or a diagnosis is referred to a clinician', () => {
     'am I sick',
     'what medicine should I drink',
     'what is my diagnosis',
+    /* A dose asked with the modals people actually use. "Can I give" was answered, not refused, until
+       the first golden set caught it (packages/catalog/assistant-golden-sets.json, 28 September 2026). */
+    'How much Panado can I give my child?',
+    'how much paracetamol could I take tonight',
+    'how much ibuprofen to give a 6 year old',
   ]) {
     const result = evaluateRefusals(input, 'patient', true);
     assert.equal(result.refused, true, input);

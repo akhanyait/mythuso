@@ -1,6 +1,7 @@
 import founderDemo from "../../../../../packages/catalog/founder-dashboard-demo.json" with { type: "json" };
 import { useState } from "react";
 import { Region } from "./Parts";
+import { Switch } from "./Fields";
 
 /* ── DEMO DATA — for show and tell only ──────────────────────────────────────────────────────────
  * This entire component reads from packages/catalog/founder-dashboard-demo.json, which holds
@@ -196,21 +197,19 @@ export function FounderDashboardDemo() {
 
       <Region title="Break-glass access (demo)">
         <div className="pt-demo-breakglass">
-          <label className="pt-demo-toggle-row">
-            <span className="pt-demo-toggle-label">
-              <strong>{bg.label}</strong>
-              <span>{bg.why}</span>
-            </span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={breakGlassOn}
-              className={`pt-demo-toggle ${breakGlassOn ? "is-on" : "is-off"}`}
-              onClick={() => setBreakGlassOn(!breakGlassOn)}
-            >
-              <span className="pt-demo-toggle-thumb" />
-            </button>
-          </label>
+          <div className="pt-demo-toggle-row">
+            <Switch
+              label={
+                <span className="pt-demo-toggle-label">
+                  <strong>{bg.label}</strong>
+                  <span>{bg.why}</span>
+                </span>
+              }
+              checked={breakGlassOn}
+              onChange={setBreakGlassOn}
+              stateText={breakGlassOn ? "On" : "Off"}
+            />
+          </div>
           {bg.audited && <span className="pt-demo-audit-chip">audited</span>}
         </div>
       </Region>

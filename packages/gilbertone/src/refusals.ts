@@ -81,8 +81,12 @@ const refuse = (id: string): RefusalResult => {
    belongs behind clinical-referral like every other request for medical advice, not past it. */
 const medicalAdvice =
   /should i take|do i have|am i sick|what medicine|diagnos/i;
+/* "should I give" was the only modal this knew until 28 September 2026, and the first golden set
+   (packages/catalog/assistant-golden-sets.json) found the gap in one sentence: "How much Panado can I
+   give my child?" was answered rather than refused. A dose is asked with can, could, may, must, do,
+   or with no modal at all — "how much Panado to give" — and every one of them is the same question. */
 const dosingQuestion =
-  /how much .+ should i (give|take)|what('s| is) the (dose|dosage)|how many (mg|milligrams|tablets|ml)\b/i;
+  /how much .+ (should|can|could|may|must|do) i (give|take)|how much .+ to (give|take)|what('s| is) the (dose|dosage)|how many (mg|milligrams|tablets|ml)\b/i;
 const roleSpoofing = /i am a doctor|i am a nurse|treat me as|act as if i/i;
 
 export function evaluateRefusals(
