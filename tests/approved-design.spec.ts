@@ -15,7 +15,7 @@ test('province scenario can filter, scrub, reset and honour reduced motion', asy
  await expect(map.locator('output')).toHaveText('65%');
  await map.getByLabel('Show sample connections').uncheck();
  await expect(map.locator('.pt-map-route path')).toHaveCount(0);
- await map.getByRole('button', { name: 'Reset view', exact: true }).click();
+ await map.getByRole('button', { name: 'Reset demo', exact: true }).click();
  await expect(map.locator('.pt-map-sample')).toHaveCount(3);
  await expect(slider).toHaveValue('0');
  await expect(map.getByLabel('Show sample connections')).toBeChecked();

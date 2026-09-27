@@ -66,6 +66,28 @@ export const SPEECH_VOICES: readonly string[] = [
   assistant.voice.cloud.voices.female,
   assistant.voice.cloud.voices.male,
 ];
+/* Every voice name the contract owns, across every language that has one — the en-ZA pair above
+   and, since the web started naming a language's own voice on 24 September 2026, the af-ZA pair.
+   This is what the route's door validates against. It validated against SPEECH_VOICES alone until
+   27 September, so a request naming af-ZA-AdriNeural — exactly what the patient panel sends for an
+   Afrikaans answer — was refused with 400 before the language-aware check below could see it, and
+   every Afrikaans reply was quietly read by the browser's voice instead. The check below still
+   holds a name to the language it was asked with. */
+export const SPEECH_VOICE_NAMES: readonly string[] = [
+  ...new Set([
+    ...SPEECH_VOICES,
+    ...(
+      assistant.voice.languages as {
+        ttsAvailable?: boolean;
+        ttsVoices?: { female: string; male: string };
+      }[]
+    ).flatMap((language) =>
+      language.ttsAvailable && language.ttsVoices
+        ? [language.ttsVoices.female, language.ttsVoices.male]
+        : [],
+    ),
+  ]),
+];
 /* Every recognition locale the contract names, across all its languages — en-ZA, en-GB, en-US and,
    since the multi-language backend of 23 September 2026, zu-ZA, xh-ZA, af-ZA and st-ZA. */
 const RECOGNITION_LOCALES: readonly string[] = CATALOG_LANGUAGES.flatMap(

@@ -771,6 +771,40 @@ test('the speak route voices the words it was given, defaults to the female voic
  assert.deepEqual(errors, []);
 });
 
+/* The patient panel names a language's own voice since 24 September — af-ZA-AdriNeural for an
+   Afrikaans answer — and until 27 September the door refused every name outside the en-ZA pair, so
+   Afrikaans was read by the browser's voice while the contract's voice was never asked. The door
+   now admits any voice the contract names; a voice from the wrong language is still refused, by the
+   speech seam, and an invented one is still 400 at the door. */
+test('the speak route admits a language’s own voice, and still refuses one the contract does not name', async () => {
+ const { seam, synthesises } = fakeCloudVoice('niks word hier gehoor nie');
+ const errors = await withServer(
+  mustNotRun,
+  async (base) => {
+   const adri = await postTo(
+    base,
+    '/assistant/v1/speak',
+    JSON.stringify({ text: 'Goeie môre', language: 'af', voice: 'af-ZA-AdriNeural' }),
+   );
+   assert.equal(adri.status, 200, 'the Afrikaans voice the contract names is admitted at the door');
+   assert.equal(((await adri.json()) as { voice?: string }).voice, 'af-ZA-AdriNeural');
+   const invented = await postTo(
+    base,
+    '/assistant/v1/speak',
+    JSON.stringify({ text: 'Goeie môre', language: 'af', voice: 'af-ZA-PietNeural' }),
+   );
+   assert.equal(invented.status, 400, 'a name the contract does not carry is still refused at the door');
+   /* A voice from the wrong language is the speech seam's refusal, not the door's, and the seam is
+      faked here; ./lib/speech.test.ts holds the real one to it. */
+  },
+  notSearching,
+  seam,
+ );
+ assert.equal(synthesises.length, 1, 'only the admitted ask reached the voice');
+ assert.equal(synthesises[0].voice, 'af-ZA-AdriNeural');
+ assert.deepEqual(errors, []);
+});
+
 test('a recogniser fault and a voicer fault are each one non-revealing 500, one structured line, and none of the secrets', async () => {
  const poisoned = () =>
   new Error(

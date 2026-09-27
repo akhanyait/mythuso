@@ -24,7 +24,11 @@ import {
   type FounderAccess,
 } from "./lib/founder-access.ts";
 import { corsFor } from "./lib/origin-policy.ts";
-import { cloudSpeech, SPEECH_VOICES, type SpeechSeam } from "./lib/speech.ts";
+import {
+  cloudSpeech,
+  SPEECH_VOICE_NAMES,
+  type SpeechSeam,
+} from "./lib/speech.ts";
 import { triageGate } from "./lib/triage-gate.ts";
 import { validateVital, type VitalInput } from "./lib/vitals.ts";
 import { handleTurn, handleTurnStream, RequiredFieldMissingError } from "./routes/turn.ts";
@@ -697,7 +701,9 @@ export function createAssistantServer(
       const language =
         typeof asked.language === "string" ? asked.language.trim() : "";
       const voice = typeof asked.voice === "string" ? asked.voice.trim() : "";
-      if (!text || !language || (voice && !SPEECH_VOICES.includes(voice))) {
+      /* Any voice the contract names, in any language; the speech seam then holds the name to the
+         language asked for. Checking the en-ZA pair alone here is what silenced Afrikaans. */
+      if (!text || !language || (voice && !SPEECH_VOICE_NAMES.includes(voice))) {
         return send(res, 400, cors.headers, {
           error: "invalid_request",
           refusalId: "invalid-request",
