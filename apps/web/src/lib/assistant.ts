@@ -42,6 +42,7 @@ import {
   medicinesAnswer,
   type MedicinesAnswer,
 } from "../../../../packages/gilbertone/src/medicines.ts";
+import { evaluateRefusals } from "../../../../packages/gilbertone/src/refusals.ts";
 import { accountHolderMedicines } from "./records";
 
 /* GilbertOne's reasoning, without a screen attached to it.
@@ -346,6 +347,18 @@ export type Reply =
   | { kind: "greeting" }
   | { kind: "emergency"; groups: EmergencyGroup[] }
   | { kind: "unmatched" }
+  /* A refusal the deterministic policy engine made — packages/gilbertone/src/refusals.ts, the same
+     four rules the assistant service asks before it classifies anything. Since 28 September 2026 the
+     web asks them too, for a message no contract question matched: "how much Panado can I give my
+     child" used to land on "I can't assess that", while the service's own refusal for it was dropped
+     at the bridge for carrying no source. The sentence is the contract's (refusalPolicies), read by
+     the package and never typed here; the id says which rule spoke. */
+  | {
+      kind: "refusal";
+      refusalId: string;
+      sentence: string;
+      severity: "hard" | "soft";
+    }
   /* The second-tier answer, since 20 September 2026: words a language model wrote, shown under the
      answers.service heading only when the assistant API answered with a source above its keyword
      classifier — 'model', or 'orchestrator' since the LangChain tier of 21 September. It lives here
@@ -432,6 +445,8 @@ export function pulseOf(reply: Reply): PulseId {
       return answers.emergency.state as PulseId;
     case "unmatched":
       return answers.unmatched.state as PulseId;
+    case "refusal":
+      return answers.refusal.state as PulseId;
     case "service":
       return answers.service.state as PulseId;
     case "handover":
@@ -642,16 +657,31 @@ export function send(
       unread: false,
     }));
   const question = questionFor(words, audience);
-  if (!question)
+  if (!question) {
+    /* Refused before it is unmatched, and only then. A contract question that matched is the
+       contract's own answer; the four policies are asked of what nothing matched — the order the
+       service keeps too, a refusal ahead of any model, which is also why the bridge never refines a
+       refused turn. Consent is true here because the panel's gate is the confirmation refusals.ts
+       asks for. An escalation the result may carry is the service's to act on and is not read. */
+    const refused = evaluateRefusals(words, audience, true);
     return append(turns, (id) => ({
       id,
       asked: words,
       channel: "typed",
-      reply: { kind: "unmatched" },
+      reply:
+        refused.refused && refused.refusalId && refused.sentence
+          ? {
+              kind: "refusal",
+              refusalId: refused.refusalId,
+              sentence: refused.sentence,
+              severity: refused.severity ?? "hard",
+            }
+          : { kind: "unmatched" },
       matched: null,
       groups: [],
       unread: false,
     }));
+  }
   const unread =
     question.answer !== "emergency" && leavesUnread(words, question);
   /* A claim about everything is not made to a message GilbertOne did not read all of. */
@@ -751,6 +781,8 @@ export function greet(turns: Turn[], text: string): Turn[] {
 export const outcomeOf = (turn: Turn): string =>
   turn.reply.kind === "emergency"
     ? "emergency"
+    : turn.reply.kind === "refusal"
+      ? "refusal"
     : turn.reply.kind === "unmatched" && !turn.matched
       ? "unmatched"
       : turn.unread
@@ -832,6 +864,11 @@ export function spokenOf(turn: Turn, audience: AudienceId): string {
         answers.unmatched.ifUrgent,
       );
       numbers(answers.unmatched.numbers);
+      break;
+    case "refusal":
+      /* The policy's sentence, whole. It names its own door — a nurse — and no number, because the
+         emergency words were asked before this reply existed. */
+      add(turn.reply.sentence);
       break;
     case "service":
       /* The heading first, because it is what the screen says first: these words were written by a

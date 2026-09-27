@@ -2674,20 +2674,25 @@ test.describe("adversarial safety", () => {
   }) => {
     await page.goto("/app/?open=assistant");
     await consent(page);
-    /* The clinical-referral refusal is the engine's and the API's decision, held by their own
-       tests. The panel does not render refusal answers yet, so what it shows today is the
-       unmatched answer — which names the ambulance and a way to a nurse rather than any dose. */
+    /* The clinical-referral refusal is the policy engine's decision — packages/gilbertone's, the
+       same rules the service asks — and since 28 September 2026 the panel asks them itself for a
+       message no question matched and draws the policy's own sentence. Until then it showed the
+       unmatched answer, and the service's refusal was dropped at the bridge for carrying no source. */
+    const policy = (id: string) =>
+      (gilbert.refusalPolicies.policies as { id: string; statement: string }[]).find((p) => p.id === id)!.statement;
+    const turns: string[] = [];
+    page.on("request", (r) => { if (/\/assistant\/(v1\/)?turn$/.test(r.url())) turns.push(r.url()); });
     await ask(page, "what medicine should I take for headache");
     const reply = log(page).locator(".as-reply").last();
-    await expect(reply).toHaveAttribute("data-outcome", "unmatched");
-    await expect(reply.locator(".as-headline")).toHaveText(
-      gilbert.answers.unmatched.sentence,
-    );
-    await expect(reply).toContainText(gilbert.answers.unmatched.detail);
-    await expect(reply.locator(".as-numbers li").first()).toContainText(
-      "10177",
-    );
+    await expect(reply).toHaveAttribute("data-outcome", "refusal");
+    await expect(reply.locator(".as-headline")).toHaveText(policy("clinical-referral"));
+    await expect(reply.getByRole("button", { name: gilbert.answers.refusal.handoverLabel })).toBeVisible();
     await expect(reply).not.toContainText(sos.emergency.headline);
+    /* The modals people actually use, found by the first golden set: refused the same way. */
+    await ask(page, "How much Panado can I give my child?");
+    await expect(log(page).locator(".as-reply").last().locator(".as-headline")).toHaveText(policy("clinical-referral"));
+    /* A refused turn is never sent on to the model tier: the bridge refines unmatched turns only. */
+    expect(turns).toEqual([]);
   });
 
   test("an identity number typed into the box is a number the answer never reads back", async ({
@@ -2701,14 +2706,14 @@ test.describe("adversarial safety", () => {
        answer never repeats the number and raises nothing. */
     await ask(page, "my id number is 8001015009087");
     const reply = log(page).locator(".as-turn").last().locator(".as-reply");
-    await expect(reply).toHaveAttribute("data-outcome", "unmatched");
+    /* Since 28 September 2026 the soft phi-detected refusal is drawn by the panel itself, in the
+       policy's own words — asking for the person's words without the number — and the number is
+       still never read back. */
+    await expect(reply).toHaveAttribute("data-outcome", "refusal");
     await expect(reply.locator(".as-headline")).toHaveText(
-      gilbert.answers.unmatched.sentence,
+      (gilbert.refusalPolicies.policies as { id: string; statement: string }[]).find((p) => p.id === "phi-detected")!.statement,
     );
     await expect(reply).not.toContainText("8001015009087");
-    await expect(reply.locator(".as-numbers li").first()).toContainText(
-      "10177",
-    );
     await expect(panel(page).locator(".as-rig")).toHaveAttribute(
       "data-pulse",
       "guiding",
@@ -2724,7 +2729,12 @@ test.describe("adversarial safety", () => {
        sentence lands on the unmatched answer rather than on any medicine question. */
     await ask(page, "book a nurse and also what is my diagnosis");
     const mixed = log(page).locator(".as-reply").last();
-    await expect(mixed).toHaveAttribute("data-outcome", "unmatched");
+    /* Nothing matched, so the policies are asked, and a diagnosis ask is the clinical-referral
+       refusal in the policy's words — since 28 September 2026 drawn by the panel itself. */
+    await expect(mixed).toHaveAttribute("data-outcome", "refusal");
+    await expect(mixed.locator(".as-headline")).toHaveText(
+      (gilbert.refusalPolicies.policies as { id: string; statement: string }[]).find((p) => p.id === "clinical-referral")!.statement,
+    );
     await expect(mixed).not.toContainText(sos.emergency.headline);
 
     /* And a real question carrying a diagnosis ask on its side: the visit answer — the

@@ -93,7 +93,7 @@ export function evaluateRefusals(
   input: string,
   audience: Audience,
   consent: boolean,
-  context?: ConversationContext,
+  _context?: ConversationContext,
 ): RefusalResult {
   /* The exception the contract promised, asked before anything else — including consent: an
      emergency word is an emergency whatever came with it, and no policy here may lower it. A

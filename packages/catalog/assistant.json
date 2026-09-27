@@ -463,6 +463,11 @@
     }
   },
   "answers": {
+    "refusal": {
+      "state": "guiding",
+      "handoverLabel": "Talk to a nurse",
+      "why": "The four policies in refusalPolicies were the service's alone until 28 September 2026: the web bridge accepted a service reply only from a model tier, so the refusal the service made for \"how much Panado can I give my child\" was dropped and the person saw \"I can't assess that\" instead. The web now asks packages/gilbertone's evaluateRefusals itself, for a message no contract question matched, and draws the policy's own sentence under this kind — the same words, from the same file, offline. The kind carries no sentence of its own: the words are the policy's, and the one door drawn beside them is the nurse the clinical-referral sentence says MyThuso can arrange."
+    },
     "unmatched": {
       "state": "guiding",
       "sentence": "I can't assess that.",
@@ -668,6 +673,7 @@
     "on": "2026-09-27",
     "why": "Which register of packages/catalog/voice.json each kind of answer is read aloud in, decided the day the presentation registers became an administrator's setting. It is the voice's map the way affect is the face's: deterministic from the answer kind alone, no model, and written here where somebody accountable can read it. What the register means is voice.json's to say — its zones decide whether a register's voice may be set at all — and this section only says which register each kind belongs to. The emergency answer is the emergency register; every answer that carries a refusal (what GilbertOne is not, what it keeps, what it could not assess or could not read) is the refusal register; the handover to a nurse is the escalation register, because telling somebody to be seen is a clinical act however warm the summary; the situations, the greeting and a model's routine sentence are the routine register. The classes for a surface say which presentation register a routine answer reads in: the patient's panel and the demonstrator are patient-general, the Control Tower's and the back office's panels are admin-facing, a nurse's, a doctor's and a partner's panel name no presentation register and read in the platform's own voice — and the public page's sheet, which has no voice today, is the signed-out visitor's the day it gets one.",
     "answers": {
+      "refusal": "refusal",
       "situation": "routine",
       "greeting": "routine",
       "identity": "refusal",
@@ -700,6 +706,11 @@
     "why": "The founder asked for one GilbertOne across the product, expressive and interactive, and took the decision that makes that buildable inside the contract: affect is deterministic and derived from the answer kind alone — no model, no network, no mood — so every face a patient can meet is written here where somebody accountable can read it, and the same answer wears the same face every time. This is the web rig's map. The phones carry the six states and no cues, so nothing in this section is emitted to them and no platform renders it but the one that draws the face.",
     "neverSoften": "Affect may never soften a refusal or an emergency. The emergency answer holds the flat, steady face of the one safety cue until the patient's own Start again rests it, and no later answer's warmth displaces it — the same rule the handover carries as neverLowered: an emergency anywhere in a conversation stays an emergency, and a calmer message afterwards lowers neither the urgency nor the face. The answers that refuse — the two that say they cannot assess, and the two that carry this contract's own refusals about what GilbertOne is not and what it keeps — wear flat or concerned faces and never warm ones, because a smile beside a refusal is precisely the softening this sentence exists to prevent.",
     "answers": {
+      "refusal": {
+        "cue": "A17",
+        "posture": "flat",
+        "why": "A policy refusal — no diagnosis, no dose, no acting as staff, no identity number read back — is a limit stated to the person asking, the same shape as identity's whatItIsNot, and it wears the same brief flat face for the same reason: neverSoften. It is deliberately not the unmatched answer's concerned A12, because nothing here failed to understand; the message was understood and declined."
+      },
       "situation": {
         "cue": "A13",
         "posture": "warm",

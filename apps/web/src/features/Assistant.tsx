@@ -1317,6 +1317,23 @@ function ReplyBody({
           )}
         </>
       );
+    case "refusal":
+      /* The policy's own sentence, and the one door it names — MyThuso can arrange a nurse. The
+         emergency numbers are not drawn here: a refusal is not the unmatched answer, nothing failed
+         to understand, and the emergency words were asked before this reply existed. */
+      return (
+        <>
+          <p className="as-headline">{reply.sentence}</p>
+          {allowHandover && (
+            <div className="as-actions">
+              <button type="button" className="as-go" onClick={handOver}>
+                <UserRound size={17} aria-hidden="true" />
+                {answers.refusal.handoverLabel}
+              </button>
+            </div>
+          )}
+        </>
+      );
     case "unmatched":
       return (
         <>
