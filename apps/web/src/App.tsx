@@ -88,7 +88,11 @@ import { careTipsRoute } from './lib/care-tips-route.generated';
    build the whole branch folds to null and the dynamic import is never emitted — the patient's first
    view pays nothing for it. No icon is wired into a screen yet; that is a later wave's work. */
 const IconGallery = import.meta.env.DEV ? lazy(() => import('./features/IconGallery').then(m => ({ default: m.IconGallery }))) : null;
-const developmentSections = IconGallery ? ['Icons'] : [];
+/* The shared components' gallery, at `?open=ui`, on the same terms: development builds only, behind the same
+   constant and its own dynamic import, so neither the gallery nor apps/web/src/ui/ui.css reaches either entry
+   until a screen imports a component. */
+const UiGallery = import.meta.env.DEV ? lazy(() => import('./features/UiGallery').then(m => ({ default: m.UiGallery }))) : null;
+const developmentSections = import.meta.env.DEV ? ['Icons', 'UI'] : [];
 function EmergencyWhileSosLoads() {
  return <div className="sos"><div className="sos-emergency">
   <div className="sos-emergency-head"><div><strong>{sosEmergency.headline}</strong><p>{sosEmergency.lead}</p></div></div>
@@ -264,6 +268,7 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
            : page === 'Language & access' ? <Access/>
             : page === 'Explore MyThuso' ? <Explore open={setModal} onOnboarding={() => setOnboarding('first-run')} navigate={navigate}/>
              : IconGallery && page === 'Icons' ? <Suspense fallback={<p className="helper" role="status">Opening the icon family.</p>}><IconGallery/></Suspense>
+             : UiGallery && page === 'UI' ? <Suspense fallback={<p className="helper" role="status">Opening the shared components.</p>}><UiGallery/></Suspense>
               : <MoreHub navigate={navigate} open={setModal} onSignOut={signOut}/>}
   </PatientShell>
   {booking &&<Modal surface={SURFACE} title="A nurse, at your door." onClose={() => setBooking(null)}><Suspense fallback={<p className="helper" role="status">Opening the booking.</p>}><BookingFlow service={booking} person={forPerson ?? undefined} held={heldHours(rows)} previousNurseFor={person => previousNurseIn(rows, person)} onComplete={v => { setRows([rowFor(v, `VIS-01${rows.length}`), ...rows]); setBooking(null); navigate('My visits'); }}/></Suspense></Modal>}

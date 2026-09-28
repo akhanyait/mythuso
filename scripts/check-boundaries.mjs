@@ -36634,3 +36634,209 @@ console.log(
     `MyThuso icon family · ${ic.icons.length} icons of ${icSource} on three platforms (${icEmitted.length} generated files), the ${icConcepts.length} commissioned concepts among them; no path or signal dot typed in ${icSources.length} hand-written sources; the pulse on transform alone under [data-decor="on"], calc(var(--t-quick) * ${pulse.durationFromToken.times}) = ${pulse.durationMs} ms on var(--ease-soft), removed under reduced motion, between ${pulse.from} and ${pulse.to}; ${icPairsChecked} MyThuso imports beside Lucide with no concept said twice; the gallery behind the development flag alone.`,
   );
 }
+
+/* The shared components — 28 September 2026 */
+/* The design handoff's component library, rebuilt under apps/web/src/ui on plain CSS that reads the token
+   variables (wave 2b). The handoff's look wins; this build's rules win over its look where the two
+   disagree. What is held here is what would let the library drift back into being a second design system,
+   or into putting words where they cannot be read:
+
+   1. No colour literal (hex, rgb, hsl, oklch, oklab, lab, lch, hwb, color()), no typed px radius or
+      box-shadow, no literal duration and no curve in any stylesheet under apps/web/src/ui — icons.css
+      included. Every font size is a step of tokens.json's type scale, and the component target is
+      tokens.json#targets.minimum.
+   2. Every component the handoff's catalogue names is exported by the barrel, apart from the ones named
+      below with the reason they are not rebuilt here.
+   3. Every interactive component is its native element, and nothing in apps/web/src/ui puts a press
+      handler or an interactive role on a div or a span.
+   4. IconButton's label is required and is its aria-label; Field points its control at its message by id.
+   5. No text in ui.css is drawn on a pair tokens.json#contrast.knownFailures parks, and every colour
+      ui.css sets as words clears 4.5:1 — as a mark or a control's edge 3:1 — on the ground it sits on,
+      computed from tokens.json for the light theme and the dark. The inks ui.css defines per theme are
+      resolved through its own blocks, and its prefers-color-scheme block must say what its
+      [data-theme="dark"] block says.
+   6. Until a screen adopts them, the components reach neither entry: only the development gallery (behind
+      import.meta.env.DEV and a dynamic import) and the portal's fields import them.
+   Each was proved by breaking its source and restoring it (docs/FEATURE-MAP.md, the shared-components row). */
+{
+  const uiDir = "apps/web/src/ui";
+  const uiFail = (message) => { throw new Error(`The shared components: ${message}`); };
+  const uiTokens = JSON.parse(read("packages/design-tokens/tokens.json"));
+  const uiSheet = `${uiDir}/ui.css`;
+  const uiSheets = files(uiDir).filter((f) => f.endsWith(".css"));
+  const uiSources = files(uiDir).filter((f) => /\.tsx?$/.test(f) && !f.includes("/icons/"));
+  const stripCss = (css) => css.replace(/\/\*[\s\S]*?\*\//g, " ");
+
+  /* 1. */
+  if (!uiSheets.includes(uiSheet)) uiFail(`${uiSheet} is missing.`);
+  const typeSteps = new Set([...Object.values(uiTokens.typography.scale), uiTokens.typography.minimumBody]);
+  for (const sheet of uiSheets) {
+    const css = stripCss(read(sheet));
+    const literal = css.match(/#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb|color)\(/);
+    if (literal) uiFail(`${sheet} writes the colour literal "${literal[0]}". A colour here is a token variable, or three platforms end up disagreeing.`);
+    for (const m of css.matchAll(/(border(?:-[a-z]+)*-radius|box-shadow)\s*:\s*([^;}]+)/g))
+      if (/\d(?:\.\d+)?px/.test(m[2])) uiFail(`${sheet} types "${m[1]}: ${m[2].trim()}". Radii are --r-sm / --r-md / --r-lg / --r-pill and shadows are --shadow and --shadow-raised.`);
+    const duration = css.match(/(?<![\w.-])\d*\.?\d+m?s\b/);
+    if (duration) uiFail(`${sheet} types the duration "${duration[0]}". Motion is --t-quick, --t-settle or --t-enter, or a product of one.`);
+    if (/cubic-bezier\(|\b(?:ease|ease-in|ease-out|ease-in-out|linear)\b(?=[^;{}]*;)/.test(css.replace(/--ease-soft/g, "")))
+      uiFail(`${sheet} names a curve of its own. The product has one, --ease-soft.`);
+    if (/\binfinite\b/.test(css) && sheet === uiSheet) uiFail(`${sheet} runs an animation forever. A spinner that runs forever is the one piece of motion this codebase refuses outright.`);
+    for (const m of css.matchAll(/font-size\s*:\s*([\d.]+)px/g))
+      if (!typeSteps.has(Number(m[1]))) uiFail(`${sheet} sets font-size ${m[1]}px, which is not a step of tokens.json#typography.scale (${[...typeSteps].sort((a, b) => a - b).join(", ")}).`);
+  }
+  const uiCss = stripCss(read(uiSheet));
+  const target = uiCss.match(/--ui-target:\s*(\d+)px/);
+  if (!target || Number(target[1]) !== uiTokens.targets.minimum) uiFail(`${uiSheet}'s --ui-target is not tokens.json#targets.minimum (${uiTokens.targets.minimum}).`);
+
+  /* 2. GilbertOne is the handoff's animated assistant: an endless turn-and-blink over a PNG. The build has
+     its own GilbertOne mark and its own motion rules for the assistant (features/GilbertAvatar.tsx and the
+     GilbertOne sweeps), so it is not rebuilt as a shared component. */
+  const notRebuilt = { GilbertOne: "the build's own GilbertOne mark and avatar stand in its place" };
+  const catalogue = JSON.parse(read("packages/brand/lovable-handoff/handoff/docs/component-catalog.json"));
+  const barrel = uncommented(read(`${uiDir}/index.ts`));
+  const exported = new Set();
+  const modules = new Set();
+  for (const m of barrel.matchAll(/export\s*\{([^}]*)\}\s*from\s*'\.\/([\w/.]+)'/g)) {
+    modules.add(m[2]);
+    for (const name of m[1].split(",").map((s) => s.trim()).filter((s) => s && !s.startsWith("type "))) exported.add(name);
+  }
+  for (const m of barrel.matchAll(/export\s*\*\s*from\s*'\.\/([\w/.]+)'/g))
+    for (const c of read(`${uiDir}/${m[1]}.tsx`).matchAll(/^export const (\w+)/gm)) exported.add(c[1]);
+  for (const { name } of catalogue.components) {
+    if (notRebuilt[name]) continue;
+    if (!exported.has(name) && !modules.has(name)) uiFail(`the handoff's catalogue names ${name} and ${uiDir}/index.ts does not export it.`);
+  }
+  for (const name of Object.keys(notRebuilt))
+    if (!catalogue.components.some((c) => c.name === name)) uiFail(`${name} is excused from the barrel but the catalogue no longer names it.`);
+
+  /* 3. A JSX opening tag, read with its braces balanced so an arrow function's => does not end it. */
+  const openingTags = (code, names) => {
+    const out = [];
+    for (const m of code.matchAll(new RegExp(`<(${names})\\b`, "g"))) {
+      let depth = 0, i = m.index + m[0].length;
+      for (; i < code.length; i++) {
+        const ch = code[i];
+        if (ch === "{") depth++;
+        else if (ch === "}") depth--;
+        else if (ch === ">" && depth === 0) break;
+      }
+      out.push({ tag: m[1], text: code.slice(m.index, i + 1) });
+    }
+    return out;
+  };
+  const interactiveRole = /\brole=["{']*(button|link|tab|checkbox|switch|menuitem|option|radio|slider|textbox|combobox|spinbutton)\b/;
+  for (const f of uiSources) {
+    const code = uncommented(read(f));
+    for (const { tag, text } of openingTags(code, "div|span|p|li|ul|section|article|hr|img|h[1-6]|label")) {
+      const handler = text.match(/\bon(Click|MouseDown|MouseUp|PointerDown|PointerUp|TouchStart|TouchEnd)=/);
+      const keyed = /\bonKeyDown=/.test(text) && !/role="tablist"/.test(text);
+      if (handler || keyed || interactiveRole.test(text) || /\btabIndex=/.test(text))
+        uiFail(`${f} makes a <${tag}> interactive (${text.slice(0, 80)}…). A control is its native element — button, input, select, textarea or a — or it has to reimplement the keyboard and forgets some of it.`);
+    }
+  }
+  const nativeOf = { Button: /<button\b/, Tabs: /<button\b[^>]*role="tab"/, NavigationItem: /<button\b/, Input: /<input\b/, Textarea: /<textarea\b/, Select: /<select\b/, Checkbox: /<input\b[^>]*type="checkbox"/ };
+  for (const [name, element] of Object.entries(nativeOf))
+    if (!element.test(uncommented(read(`${uiDir}/${name}.tsx`)))) uiFail(`${uiDir}/${name}.tsx no longer renders its native element.`);
+
+  /* 4. */
+  const iconButton = uncommented(read(`${uiDir}/IconButton.tsx`));
+  if (!/\blabel:\s*string;/.test(iconButton) || !/aria-label=\{label\}/.test(iconButton))
+    uiFail(`${uiDir}/IconButton.tsx no longer requires label or no longer makes it the aria-label. A button that is only an icon has no name otherwise.`);
+  const field = uncommented(read(`${uiDir}/Field.tsx`));
+  if (!/const descriptionId = `\$\{htmlFor\}-description`/.test(field) || !/'aria-describedby':/.test(field) || !/id=\{descriptionId\}/.test(field))
+    uiFail(`${uiDir}/Field.tsx no longer points its control at its hint or error by id (aria-describedby → ${"${htmlFor}"}-description).`);
+
+  /* 5. */
+  const themes = ["light", "dark"];
+  const kebabOf = (s) => s.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+  const roleOfVar = Object.fromEntries(uiTokens.semantic.names.map((r) => [`--color-${kebabOf(r)}`, r]));
+  const legacyOfVar = Object.fromEntries(Object.entries(uiTokens.color).map(([n, hex]) => [`--${kebabOf(n)}`, hex]));
+  const blockOf = (selector) => {
+    const at = uiCss.indexOf(selector);
+    if (at < 0) uiFail(`${uiSheet} has lost its "${selector.trim()}" block of inks.`);
+    const body = uiCss.slice(uiCss.indexOf("{", at) + 1, uiCss.indexOf("}", at));
+    return Object.fromEntries([...body.matchAll(/(--ui-[\w-]+)\s*:\s*var\((--[\w-]+)\)/g)].map((m) => [m[1], m[2]]));
+  };
+  const aliases = { light: blockOf(':root, [data-theme="light"] {'), dark: blockOf('[data-theme="dark"] {') };
+  const mediaDark = blockOf(':root:not([data-theme="light"]) {');
+  for (const [name, value] of Object.entries(aliases.dark))
+    if (mediaDark[name] !== value) uiFail(`${uiSheet}'s prefers-color-scheme block says ${name} is ${mediaDark[name]}; its [data-theme="dark"] block says ${value}.`);
+  const resolve = (variable, theme, seen = 0) => {
+    if (seen > 4) uiFail(`${variable} resolves in a circle.`);
+    if (roleOfVar[variable]) return { hex: uiTokens.semantic[theme][roleOfVar[variable]].hex, role: roleOfVar[variable] };
+    if (aliases[theme][variable]) return resolve(aliases[theme][variable], theme, seen + 1);
+    if (legacyOfVar[variable]) return { hex: legacyOfVar[variable] };
+    return null;
+  };
+  const channels = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const lum = (rgb) => rgb.map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)).reduce((s, c, i) => s + c * [0.2126, 0.7152, 0.0722][i], 0);
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  /* A tint is color-mix(in oklab, <colour> N%, transparent) over the ground; it is composited here in sRGB,
+     which is within a hair of what the browser paints for a light tint. tests/ui.spec.ts measures the
+     painted pixels themselves. */
+  const groundOf = (value, theme, under) => {
+    const plain = value.match(/^var\((--[\w-]+)\)$/);
+    if (plain) { const r = resolve(plain[1], theme); return r && { rgb: channels(r.hex), role: r.role }; }
+    const tint = value.match(/^color-mix\(in oklab,\s*var\((--[\w-]+)\)\s*([\d.]+)%,\s*transparent\)$/);
+    if (tint) {
+      const r = resolve(tint[1], theme); const a = Number(tint[2]) / 100;
+      return r && { rgb: channels(r.hex).map((c, i) => c * a + under[i] * (1 - a)) };
+    }
+    return null;
+  };
+  const failing = new Set(uiTokens.contrast.knownFailures.map((f) => `${f.foreground}|${f.background}`));
+  /* A mark drawn over another element's fill: the tick sits on the checked box, so it is measured there. */
+  const groundFrom = { ".ui-checkbox__check": ".ui-checkbox__input:checked" };
+  const ruleBody = (selector) => uiCss.match(new RegExp(`(^|\\})\\s*${selector.replace(/[.:]/g, "\\$&")}\\s*\\{([^}]*)\\}`))?.[2] ?? uiFail(`${uiSheet} has lost the rule "${selector}".`);
+  let uiPairs = 0;
+  for (const m of uiCss.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const selector = m[1].trim();
+    if (/^(from|to|\d+%)/.test(selector)) continue;
+    const decls = Object.fromEntries([...m[2].matchAll(/([a-z-]+)\s*:\s*([^;]+)/g)].map((d) => [d[1], d[2].trim()]));
+    const mark = /__(icon|dot|chevron|check)\b|ui-spinner|ui-button__spinner/.test(selector);
+    const uses = [];
+    if (decls.color && /^var\(/.test(decls.color)) uses.push({ what: mark ? "mark" : "text", value: decls.color });
+    const edge = decls["border-color"] ?? decls.border?.match(/var\([^)]+\)/)?.[0];
+    if (edge && /ui-control|ui-checkbox__input/.test(selector) && !/:checked/.test(selector)) uses.push({ what: "edge", value: edge });
+    if (decls.outline && /focus/.test(selector)) uses.push({ what: "edge", value: decls.outline.match(/var\([^)]+\)/)[0] });
+    for (const use of uses) {
+      const variable = use.value.match(/^var\((--[\w-]+)\)$/)?.[1];
+      if (!variable) continue;
+      for (const theme of themes) {
+        const fg = resolve(variable, theme);
+        if (!fg) uiFail(`${uiSheet} "${selector}" sets ${use.value}, which is not a token this check can measure.`);
+        const surface = channels(uiTokens.semantic[theme].surface.hex);
+        const borrowed = groundFrom[selector] && ruleBody(groundFrom[selector]).match(/background:\s*([^;]+);/)?.[1].trim();
+        const background = borrowed ?? decls.background ?? decls["background-color"];
+        const grounds = background && (use.what === "text" || borrowed) && !/^(transparent|currentColor)$/.test(background)
+          ? [groundOf(background, theme, surface)]
+          : ["background", "surface"].map((g) => ({ rgb: channels(uiTokens.semantic[theme][g].hex), role: g }));
+        const floor = use.what === "text" ? 4.5 : 3;
+        for (const ground of grounds) {
+          if (!ground) uiFail(`${uiSheet} "${selector}" paints a ground this check cannot measure (${background}).`);
+          if (fg.role && ground.role && failing.has(`${theme}.${fg.role}|${theme}.${ground.role}`))
+            uiFail(`${uiSheet} "${selector}" draws ${theme}.${fg.role} on ${theme}.${ground.role}, a pair tokens.json#contrast.knownFailures parks. Use the replacement its row names.`);
+          const measured = ratio(channels(fg.hex), ground.rgb);
+          if (measured < floor)
+            uiFail(`${uiSheet} "${selector}" sets ${use.value} as ${use.what}; on the ${theme} ${ground.role ?? "tint"} it measures ${measured.toFixed(2)}:1, under ${floor}:1.`);
+          uiPairs++;
+        }
+      }
+    }
+  }
+
+  /* 6. */
+  const appCode = uncommented(read("apps/web/src/App.tsx"));
+  if (!/const UiGallery = import\.meta\.env\.DEV \? lazy\(\(\) => import\('\.\/features\/UiGallery'\)/.test(appCode))
+    uiFail("apps/web/src/App.tsx no longer reaches the component gallery behind import.meta.env.DEV and a dynamic import.");
+  const adopters = ["apps/web/src/features/UiGallery.tsx", "apps/web/src/features/portal/Fields.tsx"];
+  for (const f of files("apps/web/src").filter((f) => /\.tsx?$/.test(f) && !f.startsWith(`${uiDir}/`) && !adopters.includes(f))) {
+    const code = uncommented(read(f));
+    if (/from\s+['"][./]*(?:\.\.\/)*ui(?:\/(?!icons\/)[\w]+)?['"]/.test(code) || /features\/UiGallery/.test(code) && f !== "apps/web/src/App.tsx")
+      uiFail(`${f} imports the shared components. Until a screen is restyled to wear them (waves 3 and 4), only the gallery and the portal's fields do, so neither entry downloads ui.css; add the screen to this list in the change that measures its entry.`);
+  }
+
+  console.log(
+    `The shared components · ${uiSheets.length} sheets under ${uiDir} with no colour literal, typed radius, shadow or duration, every size on the type scale; ${catalogue.components.length - Object.keys(notRebuilt).length} of the catalogue's ${catalogue.components.length} components in the barrel (${Object.keys(notRebuilt).join(", ")} not rebuilt, with its reason); ${Object.keys(nativeOf).length} interactive components on their native element and no press on a div; IconButton named and Field wired by id; ${uiPairs} colour uses measured across two themes, none on a parked pair; the gallery behind the development flag and ${adopters.length} importers.`,
+  );
+}

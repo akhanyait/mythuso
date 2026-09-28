@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { Select as SharedSelect } from '../../ui/Select';
 import './fields.css';
 
 /* The portal's form controls, drawn once so every category and the Configuration editors wear the same
@@ -89,13 +90,19 @@ export function ChoiceChips({ legend, name, kind = 'radio', chips, disabled = fa
  </fieldset>;
 }
 
-/* A native select in the fields' pill, for a choice among more options than chips hold in a row — an engine,
-   a rota's post. The caller keeps the <label>; this is the control and nothing else. */
+/* A native select for a choice among more options than chips hold in a row — an engine, a rota's post. The
+   caller keeps the <label>; this is the control and nothing else.
+
+   Since 28 September 2026 it is the shared Select (apps/web/src/ui) under the portal's own signature: the
+   handoff's field, chevron and focus outline, with the value handed back as a string, which is all a
+   settings screen wants from it. The adapter is the whole of the difference, so a settings page and any
+   other screen that adopts the shared components draw the same select. It no longer wears fc-select: that
+   class stays for the voice preview's two selects, which the GilbertOne sweep keeps out of this file. */
 export function Select({ id, value, onChange, children, disabled = false, describedBy }: {
  id: string; value: string; onChange: (value: string) => void; children: ReactNode; disabled?: boolean; describedBy?: string;
 }) {
- return <select id={id} className="fc-select" value={value} disabled={disabled} aria-describedby={describedBy}
-  onChange={event => onChange(event.target.value)}>{children}</select>;
+ return <SharedSelect id={id} value={value} disabled={disabled} aria-describedby={describedBy}
+  onChange={event => onChange(event.target.value)}>{children}</SharedSelect>;
 }
 
 /* One setting as a row: its label and what it decides, the control, and the value in force beneath it in the

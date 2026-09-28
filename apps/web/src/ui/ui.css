@@ -1,0 +1,445 @@
+/* The shared components — the design handoff of 28 September 2026, without Tailwind.
+
+   Every rule here is one of the handoff's utility classes translated into the token variable that means
+   the same thing: its colours are the --color-<role> variables tokens.generated.css emits from
+   tokens.json#semantic, its radii --r-sm / --r-md / --r-lg, its shadows --shadow (the handoff's sm) and
+   --shadow-raised (its md), its spacing the --space-* scale, its motion --t-quick / --t-settle / --t-enter
+   on --ease-soft. Nothing is a colour literal, a typed radius, a typed shadow or a typed duration, and
+   scripts/check-boundaries.mjs ("The shared components") fails the build if one arrives. A handoff
+   half-step the scale does not have (6 and 10 pixels) is spent as half of a token rather than typed.
+
+   Type sizes are px from the product's one scale (13 to 64): the tokens have no font-size variables for the
+   web yet, and the build holds every size written here to that scale.
+
+   Loaded only with the components, behind a dynamic import. It overrides core.css's element rules —
+   input, select, button, label, :focus-visible — by class, because core.css is the older design and still
+   dresses every screen that has not adopted these. */
+
+/* ---- Inks that change with the ground ------------------------------------------------------------
+   The handoff's orange (danger, coral), lime (warning, highlight) and green (success, info, accent) are
+   fills and marks on a light ground and cannot carry words there: tokens.json#contrast.knownFailures
+   parks the orange at 2.99:1 and the lime at 1.21:1 on white, and the green clears only the 3:1 non-text
+   floor. On a dark ground every one of them reads. So a component that needs one of them as words, or as
+   a mark the orange and lime are too faint for, spends an ink named here: on light the replacement the
+   knownFailures row names (#b42318 is --danger and #92400e is --mango-ink, already measured as the
+   build's refusal and warning labels; the green's text ink is --teal-ink, measured as "a value in
+   range"), on dark the handoff's own colour. The same for primary as words, whose dark value measures
+   3.87:1 on a muted panel; its row names the dark accent.
+
+   A filled button's hover and press are the handoff's fill at 90% (or 85%, 80%, 75%) — mixed with
+   transparent, which on a light ground lightens it. On a dark ground the same mix darkens it, and the
+   dark primary at 90% under its dark words measured 4.46:1 in tests/ui.spec.ts; so on dark the fill is
+   mixed with the foreground instead, which lightens it and keeps the words above 4.5. --ui-press-mix is
+   that one difference.
+
+   These four inks are mappings between existing tokens, not new values. They belong in tokens.json#semantic
+   as roles of their own — dangerInk, warningInk, successInk, primaryInk — so iOS and Android get the
+   same answer; until then they live here, where the build reads them. */
+:root, [data-theme="light"] {
+ --ui-danger-ink: var(--danger);
+ --ui-warning-ink: var(--mango-ink);
+ --ui-success-ink: var(--teal-ink);
+ --ui-primary-ink: var(--color-primary);
+ --ui-press-mix: transparent;
+ /* tokens.json#targets.minimum: a control smaller than a fingertip is a control somebody misses. */
+ --ui-target: 44px;
+}
+@media (prefers-color-scheme: dark) {
+ :root:not([data-theme="light"]) {
+  --ui-danger-ink: var(--color-danger);
+  --ui-warning-ink: var(--color-warning);
+  --ui-success-ink: var(--color-success);
+  --ui-primary-ink: var(--color-accent);
+  --ui-press-mix: var(--color-foreground);
+ }
+}
+[data-theme="dark"] {
+ --ui-danger-ink: var(--color-danger);
+ --ui-warning-ink: var(--color-warning);
+ --ui-success-ink: var(--color-success);
+ --ui-primary-ink: var(--color-accent);
+ --ui-press-mix: var(--color-foreground);
+}
+
+/* ---- Focus: one outline for every component ------------------------------------------------------
+   The handoff's @layer base rule — a 2-pixel ring-coloured outline 2 pixels out — on every focusable
+   component, including the ones whose handoff classes remove it (focus-visible:outline-none on Button,
+   Tab and the fields, which left a keyboard user nowhere). The ring is the handoff's green: 3.4:1 on
+   white and more on the dark ground, over the 3:1 a focus indicator needs, and it lands on the ground
+   outside the control rather than on the control's own fill. core.css's two-ring focus (mango inside
+   ink) stays on everything that has not adopted these components; the box-shadow it adds is replaced
+   by the component's own shadow, so focus never stacks a second one.
+
+   .is-focus is the gallery's forced state, so a screenshot can show focus beside rest. */
+/* --ui-shadow is a component's own resting shadow. Custom properties inherit, so every focusable
+   component starts from none — a button inside a card must not borrow the card's. */
+:is(.ui-button, .ui-tab, .ui-nav-item, .ui-checkbox__input) { --ui-shadow: none; }
+:is(.ui-button, .ui-tab, .ui-nav-item, .ui-control, .ui-checkbox__input):is(:focus-visible, .is-focus) {
+ outline: 2px solid var(--color-ring);
+ outline-offset: 2px;
+ box-shadow: var(--ui-shadow, none);
+}
+
+/* ---- Motion ---------------------------------------------------------------------------------------
+   Colour changes on a press or a hover run on the quick duration, the handoff's transition-colors.
+   Nothing here runs forever: the one keyframe is the loading arc's single turn as it arrives. */
+:is(.ui-button, .ui-tab, .ui-nav-item, .ui-control, .ui-checkbox__input, .ui-card--interactive) {
+ transition: color var(--t-quick) var(--ease-soft),
+             background-color var(--t-quick) var(--ease-soft),
+             border-color var(--t-quick) var(--ease-soft);
+}
+@keyframes ui-turn-once {
+ from { transform: rotate(-270deg); }
+ to { transform: rotate(0deg); }
+}
+.ui-spinner, .ui-button__spinner { animation: ui-turn-once var(--t-enter) var(--ease-soft) both; }
+
+/* ---- Targets --------------------------------------------------------------------------------------
+   md and above are 44 tall. The handoff's small button, small icon button and tab keep their compact
+   faces and are given a hit area that reaches 44 in each direction they fall short — a transparent
+   pseudo-element the pointer lands on, centred on the face — so they are small to look at and not to
+   press. */
+:is(.ui-button--sm, .ui-button--icon-sm, .ui-tab) { position: relative; }
+:is(.ui-button--sm, .ui-button--icon-sm, .ui-tab)::before {
+ content: "";
+ position: absolute;
+ top: calc(50% - var(--ui-target) / 2);
+ bottom: calc(50% - var(--ui-target) / 2);
+ left: min(0px, calc(50% - var(--ui-target) / 2));
+ right: min(0px, calc(50% - var(--ui-target) / 2));
+}
+
+/* ---- Button ---------------------------------------------------------------------------------------
+   Every variant has a transparent border so a secondary button, the one with a visible edge, is the
+   same size as its neighbours. core.css's hover brightness filter is cleared: the handoff answers a
+   hover with a fill, and two answers at once is a muddy one. */
+.ui-button {
+ display: inline-flex;
+ min-width: 0;
+ align-items: center;
+ justify-content: center;
+ gap: var(--space-8);
+ white-space: nowrap;
+ border: 1px solid transparent;
+ font-family: inherit;
+ font-weight: 600;
+ line-height: 1.2;
+ text-decoration: none;
+ cursor: pointer;
+}
+.ui-button:is(:hover, .is-hover):not(:disabled) { filter: none; }
+.ui-button:disabled { pointer-events: none; opacity: .45; }
+.ui-button svg { width: var(--space-16); height: var(--space-16); }
+
+.ui-button--sm { min-height: var(--space-32); border-radius: var(--r-sm); padding: 0 var(--space-12); font-size: 13px; }
+.ui-button--md { min-height: var(--ui-target); border-radius: var(--r-md); padding: 0 var(--space-16); font-size: 14px; }
+.ui-button--lg { min-height: calc(var(--space-24) * 2); border-radius: var(--r-md); padding: 0 var(--space-20); font-size: 16px; }
+.ui-button--icon { width: var(--ui-target); height: var(--ui-target); border-radius: var(--r-md); padding: 0; }
+.ui-button--icon svg { width: var(--space-20); height: var(--space-20); }
+.ui-button--icon.ui-button--icon-sm { width: var(--space-32); height: var(--space-32); }
+.ui-button--icon.ui-button--icon-sm svg { width: var(--space-16); height: var(--space-16); }
+.ui-button--icon.ui-button--icon-lg { width: calc(var(--space-24) * 2); height: calc(var(--space-24) * 2); }
+
+.ui-button--primary { background: var(--color-primary); color: var(--color-primary-foreground); }
+.ui-button--primary:is(:hover, .is-hover):not(:disabled) { background: color-mix(in oklab, var(--color-primary) 90%, var(--ui-press-mix)); }
+.ui-button--primary:active:not(:disabled) { background: color-mix(in oklab, var(--color-primary) 80%, var(--ui-press-mix)); }
+
+.ui-button--accent { background: var(--color-accent); color: var(--color-accent-foreground); }
+.ui-button--accent:is(:hover, .is-hover):not(:disabled) { background: color-mix(in oklab, var(--color-accent) 85%, var(--ui-press-mix)); }
+.ui-button--accent:active:not(:disabled) { background: color-mix(in oklab, var(--color-accent) 75%, var(--ui-press-mix)); }
+
+.ui-button--secondary { border-color: var(--color-border); background: var(--color-surface); color: var(--color-foreground); }
+.ui-button--secondary:is(:hover, .is-hover):not(:disabled) { background: var(--color-muted); }
+
+.ui-button--ghost { background: transparent; color: var(--color-foreground); }
+.ui-button--ghost:is(:hover, .is-hover):not(:disabled) { background: var(--color-muted); }
+
+/* The handoff writes white on its orange. That measures 2.99:1 on light and 2.16:1 on dark
+   (knownFailures), so the words are the dark ink both rows propose: --color-accent-foreground is #001c26
+   on light and #00121c on dark, the ink the handoff already sets on its bright fills — 5.9:1 and 7.4:1
+   on the orange. The button stays orange; only its words change. */
+.ui-button--destructive { background: var(--color-danger); color: var(--color-accent-foreground); }
+.ui-button--destructive:is(:hover, .is-hover):not(:disabled) { background: color-mix(in oklab, var(--color-danger) 90%, var(--ui-press-mix)); }
+
+/* ---- Card ------------------------------------------------------------------------------------------ */
+.ui-card {
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-lg);
+ background: var(--color-surface);
+ color: var(--color-foreground);
+ box-shadow: var(--ui-shadow);
+ --ui-shadow: var(--shadow);
+}
+.ui-card--elevated { --ui-shadow: var(--shadow-raised); }
+.ui-card--interactive:is(:hover, .is-hover) { border-color: var(--color-accent); }
+.ui-card--pad-sm { padding: var(--space-16); }
+.ui-card--pad-md { padding: var(--space-20); }
+.ui-card--pad-lg { padding: var(--space-24); }
+.ui-card__header {
+ display: flex;
+ flex-direction: column;
+ gap: var(--space-4);
+ border-bottom: 1px solid var(--color-border);
+ padding: var(--space-16) var(--space-20);
+}
+.ui-card__title { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; line-height: 1.4; color: var(--color-foreground); }
+.ui-card__description { margin: 0; font-size: 14px; line-height: 1.45; color: var(--color-muted-foreground); }
+.ui-card__content { padding: var(--space-20); }
+
+/* ---- MetricCard ------------------------------------------------------------------------------------ */
+.ui-metric { min-width: 0; }
+.ui-metric__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-8); margin-bottom: var(--space-16); color: var(--color-muted-foreground); }
+.ui-metric__head svg { width: var(--space-20); height: var(--space-20); }
+.ui-metric__label { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.ui-metric__value { margin: 0; font-family: var(--font-display); font-size: 32px; font-weight: 600; line-height: 1.15; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.ui-metric__trend { margin: var(--space-4) 0 0; font-size: 13px; font-weight: 500; line-height: 1.4; color: var(--ui-success-ink); }
+
+/* ---- Fields: Input, Textarea, Select ---------------------------------------------------------------
+   44 tall rather than the handoff's 40. The resting edge is the muted ink rather than the handoff's
+   --color-input: a text field's boundary is how a reader finds it, SC 1.4.11 holds it to 3:1, and the
+   handoff's input colour measures 1.3:1 on a card (knownFailures names the muted ink as the fix, on light
+   and on dark). Focus turns the edge to the ring and adds the one outline; the handoff's 2-pixel halo
+   is not drawn, because the outline already sits where it would. Invalid is the danger ink, which a
+   boundary can be seen in, and the words under the field say what is wrong. */
+.ui-control {
+ display: block;
+ width: 100%;
+ max-width: 100%;
+ min-height: var(--ui-target);
+ margin: 0;
+ padding: 0 var(--space-12);
+ border: 1px solid var(--color-muted-foreground);
+ border-radius: var(--r-md);
+ background: var(--color-surface);
+ color: var(--color-foreground);
+ font-family: inherit;
+ font-size: 14px;
+ line-height: 1.4;
+ --ui-shadow: var(--shadow);
+ box-shadow: var(--ui-shadow);
+}
+.ui-control::placeholder { color: var(--color-muted-foreground); opacity: 1; }
+.ui-control:is(:focus, .is-focus) { border-color: var(--color-ring); }
+.ui-control:disabled { cursor: not-allowed; opacity: .5; }
+.ui-control[aria-invalid="true"] { border-color: var(--ui-danger-ink); }
+.ui-textarea { min-height: calc(var(--space-32) * 3); padding: calc(var(--space-20) / 2) var(--space-12); line-height: 1.5; resize: vertical; }
+.ui-select-wrap { position: relative; display: block; min-width: 0; }
+.ui-select { appearance: none; padding-right: calc(var(--space-32) + var(--space-4)); text-overflow: ellipsis; }
+/* The chevron is the component's, so no sheet may draw a second one under it: core.css and the portal each
+   paint a chevron into every select's background, and the portal's rule outranks a single class. This
+   selector outranks both, and clears only the background image — a screen's own shape for the field
+   (the portal's pill) still stands until that screen is restyled. */
+.ui-select-wrap > select.ui-select:not([multiple]) { background-image: none; }
+.ui-select__chevron {
+ position: absolute;
+ top: 50%;
+ right: var(--space-12);
+ width: var(--space-16);
+ height: var(--space-16);
+ transform: translateY(-50%);
+ color: var(--color-muted-foreground);
+ pointer-events: none;
+}
+
+/* ---- Checkbox ---------------------------------------------------------------------------------------
+   The label is the target: 44 tall, its words on a 20-pixel line with the box beside the first line. */
+.ui-checkbox {
+ display: inline-flex;
+ align-items: flex-start;
+ gap: calc(var(--space-20) / 2);
+ min-height: var(--ui-target);
+ padding: var(--space-12) 0;
+ color: var(--color-foreground);
+ font-size: 14px;
+ font-weight: 400;
+ line-height: 1.43;
+ cursor: pointer;
+}
+.ui-checkbox:has(.ui-checkbox__input:disabled) { cursor: not-allowed; opacity: .5; }
+.ui-checkbox__box { position: relative; display: inline-flex; flex: none; margin-top: calc(var(--space-4) / 2); }
+.ui-checkbox__input {
+ appearance: none;
+ display: block;
+ width: var(--space-16);
+ height: var(--space-16);
+ min-height: 0;
+ margin: 0;
+ padding: 0;
+ border: 1px solid var(--color-muted-foreground);
+ border-radius: var(--r-sm);
+ background: var(--color-surface);
+ cursor: inherit;
+}
+.ui-checkbox__input:checked { border-color: var(--color-primary); background: var(--color-primary); }
+.ui-checkbox__check {
+ position: absolute;
+ inset: 0;
+ width: var(--space-16);
+ height: var(--space-16);
+ padding: calc(var(--space-4) / 2);
+ color: var(--color-primary-foreground);
+ opacity: 0;
+ pointer-events: none;
+}
+.ui-checkbox__input:checked + .ui-checkbox__check { opacity: 1; }
+
+/* ---- Field ------------------------------------------------------------------------------------------ */
+.ui-field { display: grid; gap: calc(var(--space-12) / 2); min-width: 0; }
+.ui-field__label { display: block; margin: 0; color: var(--color-foreground); font-size: 14px; font-weight: 600; line-height: 1.43; }
+.ui-field__required { margin-left: var(--space-4); color: var(--ui-danger-ink); }
+.ui-field__message { margin: 0; color: var(--color-muted-foreground); font-size: 13px; line-height: 1.4; }
+.ui-field__message--error { color: var(--ui-danger-ink); }
+
+/* ---- Alert ------------------------------------------------------------------------------------------
+   Its border is a tint of its colour, as the handoff draws it; the icon and the title carry the
+   variant, so the tint is a hint rather than the message. */
+.ui-alert {
+ display: flex;
+ gap: var(--space-12);
+ padding: var(--space-16);
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-md);
+ background: var(--color-surface);
+ color: var(--color-foreground);
+}
+.ui-alert--info { border-color: color-mix(in oklab, var(--color-info) 35%, transparent); }
+.ui-alert--success { border-color: color-mix(in oklab, var(--color-success) 35%, transparent); }
+.ui-alert--warning { border-color: color-mix(in oklab, var(--color-warning) 50%, transparent); }
+.ui-alert--danger { border-color: color-mix(in oklab, var(--color-danger) 35%, transparent); }
+.ui-alert__icon { display: inline-flex; flex: none; margin-top: calc(var(--space-4) / 2); }
+.ui-alert__icon svg { width: var(--space-20); height: var(--space-20); }
+.ui-alert--info .ui-alert__icon { color: var(--color-info); }
+.ui-alert--success .ui-alert__icon { color: var(--color-success); }
+.ui-alert--warning .ui-alert__icon { color: var(--ui-warning-ink); }
+.ui-alert--danger .ui-alert__icon { color: var(--ui-danger-ink); }
+.ui-alert__body { min-width: 0; }
+.ui-alert__title { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.43; color: var(--color-foreground); }
+.ui-alert__text { margin-top: var(--space-4); font-size: 14px; line-height: 1.5; color: var(--color-muted-foreground); }
+.ui-alert__text p { margin: 0; font-size: inherit; line-height: inherit; }
+
+/* ---- Badge ------------------------------------------------------------------------------------------ */
+.ui-badge {
+ display: inline-flex;
+ align-items: center;
+ gap: calc(var(--space-12) / 2);
+ border-radius: var(--r-pill);
+ font-size: 13px;
+ font-weight: 600;
+ line-height: 1.3;
+ white-space: nowrap;
+}
+.ui-badge--sm { padding: calc(var(--space-4) / 2) var(--space-8); }
+.ui-badge--md { padding: var(--space-4) calc(var(--space-20) / 2); }
+.ui-badge__dot { width: calc(var(--space-12) / 2); height: calc(var(--space-12) / 2); border-radius: var(--r-pill); background: currentColor; }
+.ui-badge--neutral { background: var(--color-muted); color: var(--color-muted-foreground); }
+.ui-badge--primary { background: color-mix(in oklab, var(--color-primary) 10%, transparent); color: var(--ui-primary-ink); }
+.ui-badge--accent { background: color-mix(in oklab, var(--color-accent) 15%, transparent); color: var(--color-foreground); }
+.ui-badge--success { background: color-mix(in oklab, var(--color-success) 15%, transparent); color: var(--color-foreground); }
+.ui-badge--warning { background: color-mix(in oklab, var(--color-warning) 20%, transparent); color: var(--color-foreground); }
+.ui-badge--danger { background: color-mix(in oklab, var(--color-danger) 12%, transparent); color: var(--ui-danger-ink); }
+
+/* ---- StatusIndicator -------------------------------------------------------------------------------- */
+.ui-status { display: inline-flex; align-items: center; gap: var(--space-8); color: var(--color-foreground); font-size: 14px; line-height: 1.43; }
+.ui-status__dot { flex: none; width: var(--space-8); height: var(--space-8); border-radius: var(--r-pill); }
+.ui-status--online .ui-status__dot { background: var(--color-success); }
+.ui-status--busy .ui-status__dot { background: var(--ui-warning-ink); }
+.ui-status--offline .ui-status__dot { border: 2px solid var(--color-muted-foreground); background: transparent; }
+
+/* ---- Tabs -------------------------------------------------------------------------------------------
+   The list wraps rather than scrolling sideways, so no tab is ever hidden off the edge of a phone. */
+.ui-tabs {
+ display: inline-flex;
+ flex-wrap: wrap;
+ align-items: center;
+ gap: var(--space-4);
+ max-width: 100%;
+ padding: var(--space-4);
+ border-radius: var(--r-md);
+ background: var(--color-muted);
+}
+.ui-tab {
+ min-height: calc(var(--space-32) + var(--space-4));
+ padding: 0 var(--space-12);
+ border: 0;
+ border-radius: var(--r-sm);
+ background: transparent;
+ color: var(--color-muted-foreground);
+ font-family: inherit;
+ font-size: 14px;
+ font-weight: 600;
+ line-height: 1.2;
+}
+.ui-tab:is(:hover, .is-hover):not(:disabled) { filter: none; color: var(--color-foreground); }
+.ui-tab--active { background: var(--color-surface); color: var(--color-foreground); --ui-shadow: var(--shadow); box-shadow: var(--ui-shadow); }
+
+/* ---- NavigationItem ------------------------------------------------------------------------------- */
+.ui-nav-item {
+ display: flex;
+ align-items: center;
+ gap: var(--space-12);
+ width: 100%;
+ min-height: var(--ui-target);
+ padding: 0 var(--space-12);
+ border: 0;
+ border-radius: var(--r-md);
+ background: transparent;
+ color: var(--color-muted-foreground);
+ font-family: inherit;
+ font-size: 14px;
+ font-weight: 500;
+ line-height: 1.3;
+ text-align: left;
+}
+.ui-nav-item svg { width: var(--space-20); height: var(--space-20); }
+.ui-nav-item:is(:hover, .is-hover):not(:disabled) { filter: none; background: var(--color-muted); color: var(--color-foreground); }
+.ui-nav-item--active, .ui-nav-item--active:is(:hover, .is-hover):not(:disabled) {
+ background: color-mix(in oklab, var(--color-accent) 15%, transparent);
+ color: var(--color-foreground);
+ font-weight: 600;
+}
+.ui-nav-item__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* flex:none because the patient shell's sheets stretch a span inside a navigation button. */
+.ui-nav-item__count { flex: none; padding: 0 calc(var(--space-12) / 2); border-radius: var(--r-pill); background: var(--color-muted); font-size: 13px; }
+.ui-nav-item .ui-nav-item__chevron { width: var(--space-16); height: var(--space-16); }
+
+/* ---- Avatar ----------------------------------------------------------------------------------------- */
+.ui-avatar { position: relative; display: inline-flex; flex: none; overflow: hidden; border-radius: var(--r-pill); background: var(--color-muted); }
+.ui-avatar--sm { width: var(--space-32); height: var(--space-32); }
+.ui-avatar--md { width: var(--space-40); height: var(--space-40); }
+.ui-avatar--lg { width: calc(var(--space-24) * 2); height: calc(var(--space-24) * 2); }
+.ui-avatar__image { width: 100%; height: 100%; object-fit: cover; }
+.ui-avatar__fallback {
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ width: 100%;
+ height: 100%;
+ background: color-mix(in oklab, var(--color-primary) 10%, transparent);
+ color: var(--ui-primary-ink);
+ font-size: 13px;
+ font-weight: 700;
+}
+
+/* ---- Divider ---------------------------------------------------------------------------------------- */
+.ui-divider { flex: none; margin: 0; border: 0; background: var(--color-border); }
+.ui-divider--horizontal { width: 100%; height: 1px; }
+.ui-divider--vertical { width: 1px; height: auto; align-self: stretch; }
+
+/* ---- Spinner -----------------------------------------------------------------------------------------
+   A ring in the muted colour with one quarter in the tone. The tone is a mark, held to 3:1: the
+   handoff's primary and its accent both clear it on either ground. */
+.ui-spinner { display: inline-block; flex: none; border: 2px solid var(--color-muted); border-top-color: currentColor; border-radius: var(--r-pill); }
+.ui-spinner--sm { width: var(--space-16); height: var(--space-16); }
+.ui-spinner--md { width: var(--space-24); height: var(--space-24); }
+.ui-spinner--lg { width: var(--space-32); height: var(--space-32); }
+.ui-spinner--primary { color: var(--color-primary); }
+.ui-spinner--accent { color: var(--color-accent); }
+.ui-spinner--current { color: currentColor; }
+
+/* ---- Reduced motion ---------------------------------------------------------------------------------
+   Removed, not shortened: a colour change still happens, it simply does not travel, and the loading arc
+   rests where it would have finished. */
+@media (prefers-reduced-motion: reduce) {
+ :is(.ui-button, .ui-tab, .ui-nav-item, .ui-control, .ui-checkbox__input, .ui-card--interactive) { transition: none; }
+ .ui-spinner, .ui-button__spinner { animation: none; }
+}
