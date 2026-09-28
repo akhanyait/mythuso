@@ -16,6 +16,7 @@ import { Frame } from "./Frame";
 import { Empty, Figures, Region, Ring, RovingList, Status } from "./Parts";
 import { FounderDashboardDemo } from "./FounderDemo";
 import "./design-widgets.css";
+import { Alert } from "../../ui/Alert";
 
 /* The portal's landing screen (§5.3), rendered from packages/catalog/control-tower-overview.json.
  *
@@ -74,14 +75,13 @@ const answered = (health: AssistantHealth) => {
  * source is connected, the demo block is removed and the cards read from the contract instead. */
 function DemoBanner() {
   return (
-    <div className="pt-demo-banner" role="note">
-      <strong>DEMO DATA — for show and tell only.</strong>
-      <span>
+    <Alert variant="warning" role="note" className="pt-demo-banner" title="DEMO DATA — for show and tell only.">
+      <p>
         The cards and chart below read invented figures from a demonstration
         file. No real visit data, metric or time-series is connected yet.
         Replace with the care visit log when it exists.
-      </span>
-    </div>
+      </p>
+    </Alert>
   );
 }
 

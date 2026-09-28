@@ -67,7 +67,7 @@ async function openForm(page: Page, key: string) {
 /* A choice is picked by what it means rather than by its label: "Appointed" is inside "Not appointed", and a
    journey that picked the wrong one of those would pass while recording the opposite of what it meant. */
 const choose = (form: Locator, record: { fields: { key: string; allowed?: { value: string | boolean; means: string }[] }[] }, field: string, value: string | boolean) =>
-  form.locator('.cf-choice').filter({ hasText: record.fields.find(f => f.key === field)!.allowed!.find(c => c.value === value)!.means }).locator('input').check();
+  form.locator('.oi-radio').filter({ hasText: record.fields.find(f => f.key === field)!.allowed!.find(c => c.value === value)!.means }).locator('input').check();
 
 test('the three records are drawn from the contract, every sign-off field blank, each beside what is still refused', async ({ page }) => {
   const area = await openGovernance(page);
@@ -96,7 +96,7 @@ test('the three records are drawn from the contract, every sign-off field blank,
     for (const field of record.fields) {
       await expect(panel).toContainText(field.help);
       const shown = field.allowed ? field.allowed.find(choice => choice.value === field.blank)!.label : say.blank;
-      await expect(panel.locator('.gr-fields > div').filter({ has: page.locator('dt', { hasText: exactly(field.label) }) }).locator('dd')).toHaveText(shown);
+      await expect(panel.locator('.gr-values > div').filter({ has: page.locator('dt', { hasText: exactly(field.label) }) }).locator('dd')).toHaveText(shown);
     }
   }
   expect(await noOverflow(page), 'the governance register scrolls sideways').toBe(true);

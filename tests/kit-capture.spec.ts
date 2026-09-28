@@ -93,7 +93,10 @@ test('assessment carries provenance through to the consultation', async ({ page 
   await d.getByRole('button', { name: 'Sign assessment' }).click();
   await d.getByRole('button', { name: /Open the consultation record/ }).click();
   await expect(d.getByText('Blood pressure — systolic')).toBeVisible();
-  await expect(d.locator('.review-line').filter({ hasText: 'Oxygen saturation' }).locator('.prov-device').first()).toBeVisible();
+  /* The row a reading stands on in the record, whichever shape the record draws it in — a review line, or since
+     the consultation record's restyle a list item. What is held is the fact, not the markup: the oxygen saturation
+     reached the record still saying a device took it. */
+  await expect(d.locator(':is(.review-line, li)').filter({ hasText: 'Oxygen saturation' }).locator('.prov-device').first()).toBeVisible();
   expect(errors).toEqual([]);
 });
 test('patient file vitals carry origins', async ({ page }) => {

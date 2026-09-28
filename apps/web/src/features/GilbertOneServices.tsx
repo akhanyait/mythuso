@@ -23,7 +23,9 @@ import {
   type TriageStart,
   type TriageStep,
 } from "../lib/gilbertone-service";
-import type { AudienceId, Reply } from "../lib/assistant";
+import { identity, type AudienceId, type Reply } from "../lib/assistant";
+import { Button } from "../ui/Button";
+import { GilbertOneLogo } from "./GilbertAvatar";
 
 /* The panel's connected-capability region, and the whole of the patient-facing integration with the
  * GilbertOne service's versioned routes beyond the turn the bridge already carries.
@@ -115,10 +117,10 @@ function StatusReadout({
 }) {
   if (status === "idle")
     return (
-      <button type="button" className="gos-button" onClick={onCheck}>
+      <Button className="gos-button" onClick={onCheck}>
         <Radio size={16} aria-hidden="true" />
         {copy.statusButton}
-      </button>
+      </Button>
     );
   if (status === "loading")
     return (
@@ -146,9 +148,9 @@ function StatusReadout({
         ))}
       </dl>
       <p className="gos-note">{copy.statusGated}</p>
-      <button type="button" className="gos-button subtle" onClick={onCheck}>
+      <Button variant="secondary" className="gos-button" onClick={onCheck}>
         {copy.statusRecheck}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -302,10 +304,10 @@ export function GilbertOneServices({
           <Refusal refusal={assessment.refusal} />
           <p className="gos-note">{copy.nurseOfferBody}</p>
           {handover.state === "idle" && (
-            <button type="button" className="gos-button" onClick={prepare}>
+            <Button className="gos-button" onClick={prepare}>
               <UserRound size={16} aria-hidden="true" />
               {copy.nurseOfferButton}
-            </button>
+            </Button>
           )}
         </div>
       );
@@ -381,9 +383,7 @@ export function GilbertOneServices({
             {copy.handoverSubmittedHeading}
           </p>
         ) : (
-          <button
-            type="button"
-            className="gos-button"
+          <Button className="gos-button"
             onClick={send}
             disabled={submit.state === "loading"}
           >
@@ -391,14 +391,23 @@ export function GilbertOneServices({
             {submit.state === "loading"
               ? `${copy.handoverSubmitButton}…`
               : copy.handoverSubmitButton}
-          </button>
+          </Button>
         )}
       </div>
     );
   };
 
   return (
-    <section className="gos-region" aria-label={copy.regionLabel}>
+    <section className="gos-region" aria-labelledby="gos-region-title">
+      {/* The region is GilbertOne's own service, so it is introduced by the official logo, with the
+          descriptor beside the name as everywhere the name stands. The region's label is its heading. */}
+      <div className="gos-head">
+        <GilbertOneLogo width={96} alt={identity.name} />
+        <div>
+          <h3 id="gos-region-title">{copy.regionLabel}</h3>
+          <p>{identity.descriptorLine}</p>
+        </div>
+      </div>
       <details className="gos-block">
         <summary>
           <Radio size={16} aria-hidden="true" />
@@ -418,20 +427,16 @@ export function GilbertOneServices({
               </p>
               <p className="gos-lead">{copy.triageOfferBody}</p>
               <div className="gos-actions">
-                <button
-                  type="button"
-                  className="gos-button"
+                <Button className="gos-button"
                   onClick={beginAssessment}
                 >
                   {copy.triageAccept}
-                </button>
-                <button
-                  type="button"
-                  className="gos-button subtle"
+                </Button>
+                <Button variant="secondary" className="gos-button"
                   onClick={() => setAssessment({ state: "declined" })}
                 >
                   {copy.triageDecline}
-                </button>
+                </Button>
               </div>
             </>
           ) : (
@@ -452,10 +457,10 @@ export function GilbertOneServices({
         {handover.state === "idle" ? (
           <>
             <p className="gos-lead">{copy.nurseOfferBody}</p>
-            <button type="button" className="gos-button" onClick={prepare}>
+            <Button className="gos-button" onClick={prepare}>
               <Stethoscope size={16} aria-hidden="true" />
               {copy.handoverPrepareButton}
-            </button>
+            </Button>
           </>
         ) : (
           handoverView()
@@ -477,10 +482,10 @@ export function GilbertOneServices({
           </summary>
           <p className="gos-lead">{copy.knowledgeLead}</p>
           {knowledge === "idle" ? (
-            <button type="button" className="gos-button" onClick={seeSources}>
+            <Button className="gos-button" onClick={seeSources}>
               <BookOpen size={16} aria-hidden="true" />
               {copy.knowledgeButton}
-            </button>
+            </Button>
           ) : (
             knowledgeView()
           )}

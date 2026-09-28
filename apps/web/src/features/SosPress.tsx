@@ -5,6 +5,7 @@ import { areaSharingEndsAt, notSentSentence, sosEngine, standDownReasons, status
 import { zones } from '../lib/geography';
 import { nameOf, pressSos, standDownPress, useSosDesk } from '../lib/sos-desk';
 import type { Answers } from '../lib/sos';
+import { Button, Card } from '../ui';
 import './sos-press.css';
 
 /* Pressing SOS, once the answers point at a door, and what the press did and did not do.
@@ -34,32 +35,32 @@ export function PressSos({ answers }: { answers: Answers }) {
    const result = pressSos({ conditionTicked: answers.flagged.length > 0, zoneId, callbackAvailable: answers.canAnswerAPhone === true });
    if (result.ok) { setPressedRef(result.sos.sosRef); setRefused(null); } else setRefused(result.refusal);
   };
-  return <div className="panel sos-press">
-   <button className="sos-press-button" onClick={press}><Siren size={18} aria-hidden="true"/>{say.press}</button>
-   <p className="helper">{say.pressHelp}</p>
+  return <Card padding="md" className="sos-press">
+   <div><Button variant="destructive" className="sos-press-button" onClick={press} leadingIcon={<Siren aria-hidden="true"/>}>{say.press}</Button></div>
+   <p className="sos-help">{say.pressHelp}</p>
    {refused && <p className="fs-refused" role="alert">{refused.statement}</p>}
-  </div>;
+  </Card>;
  }
 
  const attempts = s.attempts.filter(a => a.sosRef === pressed.sosRef);
  const areaEnds = areaSharingEndsAt(pressed);
- return <section className="panel sos-raised" aria-labelledby={id + '-head'}>
+ return <Card padding="md" className="sos-raised" role="region" aria-labelledby={id + '-head'}>
   <h3 id={id + '-head'}>{say.heading}</h3>
   <p role="status">{fill(say.recorded, { at: clockOf(pressed.raisedAt) })} {routed[pressed.routedTo]}</p>
-  <p className="sos-partner"><Ban size={16} aria-hidden="true"/>{sosEngine.partner.notConnected}</p>
-  {!pressed.stoodDown && <p className="helper">{areaEnds === null ? say.areaNotShared : fill(say.areaShared, { ends: clockOf(areaEnds) })}</p>}
+  <p className="sos-partner"><Ban aria-hidden="true"/>{sosEngine.partner.notConnected}</p>
+  {!pressed.stoodDown && <p className="sos-help">{areaEnds === null ? say.areaNotShared : fill(say.areaShared, { ends: clockOf(areaEnds) })}</p>}
   <div className="sos-nok">
    <strong>{say.nextOfKinHeading}</strong>
    {attempts.length === 0 ? <p>{say.noNextOfKin}</p>
     : attempts.map(a => <p key={a.notificationRef}><span className="sos-nok-name">{nameOf(s, a.nominationRef)}</span> · {statusLabel(a.statusCode)}. {notSentSentence(a.reasonCode)}</p>)}
   </div>
   {pressed.stoodDown
-   ? <p className="sos-stood" role="status"><Undo2 size={16} aria-hidden="true"/>{fill(say.stoodDown, { at: clockOf(pressed.stoodDown.at), reason: reasonLabel(pressed.stoodDown.reasonCode) })}</p>
+   ? <p className="sos-stood" role="status"><Undo2 aria-hidden="true"/>{fill(say.stoodDown, { at: clockOf(pressed.stoodDown.at), reason: reasonLabel(pressed.stoodDown.reasonCode) })}</p>
    : <div className="sos-press-reasons" role="group" aria-label={say.standDown}>
-     <span className="helper">{say.standDown}</span>
-     {standDownReasons.map(r => <button key={r.id} className="secondary" onClick={() => setRefused(standDownPress(pressed.sosRef, r.id))}>{r.label}</button>)}
+     <span className="sos-help">{say.standDown}</span>
+     {standDownReasons.map(r => <Button key={r.id} variant="secondary" onClick={() => setRefused(standDownPress(pressed.sosRef, r.id))}>{r.label}</Button>)}
     </div>}
-  <p className="helper">{sosEngine.priority.statement}</p>
+  <p className="sos-help">{sosEngine.priority.statement}</p>
   {refused && <p className="fs-refused" role="alert">{refused.statement}</p>}
- </section>;
+ </Card>;
 }

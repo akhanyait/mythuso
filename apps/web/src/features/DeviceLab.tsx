@@ -4,6 +4,7 @@ import {
   listPresets, getPreset, createSimulatorSession, advanceSession, presetOffsets,
   type SimulatorReading, type SimulatorSession
 } from '../../../../packages/engines/src/devices/simulator.ts';
+import { Alert, Badge, Button, type BadgeVariant } from '../ui';
 import './device-lab.css';
 
 /* Device Lab: a staff-only simulator that generates synthetic vital sign readings for testing
@@ -14,7 +15,16 @@ import './device-lab.css';
  * instruments contacted. It arrives on a dynamic import from the Control Tower's More tools,
  * so none of it is on a patient's first load.
  *
- * Nothing here is a real service. No device is contacted. Every reading is fictional. */
+ * Nothing here is a real service. No device is contacted. Every reading is fictional.
+ *
+ * On the identity since wave 4b. The synthetic-data banner is the danger Alert — its words unchanged and
+ * still announced — the scenarios are selectable tiles with the aqua edge, and each reading says its band
+ * in words on a Badge beside a shape, where it used to be a coloured numeral and a glyph with an
+ * aria-label a span cannot carry. The status dot no longer pulses: a session that is running says so in
+ * words, and a dot that blinks for as long as a simulator runs is motion nobody can stop. */
+const bandBadge: Record<Severity, { variant: BadgeVariant; words: string }> = {
+ normal: { variant: 'success', words: 'Normal band' }, warning: { variant: 'warning', words: 'Warning band' }, critical: { variant: 'danger', words: 'Critical band' }
+};
 
 /* ---- Reference ranges for colour coding ------------------------------------------------------- */
 
@@ -104,12 +114,9 @@ export function DeviceLab() {
   const isActive = session?.active ?? false;
 
   return (
-    <section className="dl form-stack" aria-labelledby="dl-heading">
+    <section className="dl form-stack nurse-ui" aria-labelledby="dl-heading">
       {/* SYNTHETIC DATA banner — prominent, unmissable */}
-      <div className="dl-banner" role="alert">
-        <AlertTriangle size={20} aria-hidden="true"/>
-        <span>SYNTHETIC DATA — NOT A REAL PATIENT</span>
-      </div>
+      <Alert variant="danger" className="dl-banner" icon={<AlertTriangle aria-hidden="true"/>} title="SYNTHETIC DATA — NOT A REAL PATIENT"/>
 
       <h2 id="dl-heading" className="section-title">Device Lab</h2>
       <p className="helper">
@@ -139,19 +146,15 @@ export function DeviceLab() {
 
       {/* Controls */}
       <div className="button-row dl-controls">
-        <button className="primary" onClick={start} disabled={isActive}>
-          <Play size={16}/> Start simulation
-        </button>
-        <button className="secondary" onClick={stop} disabled={!isActive}>
-          <Square size={16}/> Stop simulation
-        </button>
+        <Button variant="primary" onClick={start} disabled={isActive} leadingIcon={<Play aria-hidden="true"/>}>Start simulation</Button>
+        <Button variant="secondary" onClick={stop} disabled={!isActive} leadingIcon={<Square aria-hidden="true"/>}>Stop simulation</Button>
         {preset && <span className="helper dl-count">{preset.readings.length} readings in preset</span>}
       </div>
 
       {/* Session status */}
       {session && (
         <div className="dl-status">
-          <span className={`dl-dot ${isActive ? 'active' : 'stopped'}`}/>
+          <span className={`dl-dot ${isActive ? 'active' : 'stopped'}`} aria-hidden="true"/>
           <span>{isActive ? 'Simulating…' : 'Stopped'}</span>
           <span className="helper">Session {session.id}</span>
           <span className="helper">Total readings: {session.readings.length}</span>
@@ -168,11 +171,11 @@ export function DeviceLab() {
               const Icon = TYPE_ICONS[r.type] ?? Activity;
               return (
                 <li key={`${r.type}-${i}`} className={`dl-reading dl-${severity}`}>
-                  <span className="dl-reading-icon"><Icon size={18}/></span>
+                  <span className="dl-reading-icon" aria-hidden="true"><Icon size={18}/></span>
                   <span className="dl-reading-label">{TYPE_LABELS[r.type] ?? r.type}</span>
                   <span className="dl-reading-value">{r.value}</span>
                   <span className="dl-reading-unit">{r.unit}</span>
-                  <span className="dl-reading-severity" aria-label={severity}>{severity === 'normal' ? '●' : severity === 'warning' ? '▲' : '■'}</span>
+                  <Badge size="sm" variant={bandBadge[severity].variant} className="dl-reading-severity">{bandBadge[severity].words}</Badge>
                 </li>
               );
             })}

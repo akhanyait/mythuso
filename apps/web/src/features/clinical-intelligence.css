@@ -1,24 +1,90 @@
 /* Clinical Intelligence: the inbox, the consultation frame, triage and guidance answers, outcome questions.
-   Fetched with the clinical workspace, never on a patient's first load. Built from the workspace's own panel,
-   helper and refusal styles; this sheet only lays the rows out. */
-.ci-panel { display: grid; gap: var(--space-12, 12px); }
-.ci-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; }
-.ci-list, .ci-facts, .ci-stages, .ci-outcomes { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
-.ci-item { display: grid; gap: 8px; padding: 14px 16px; border-radius: 14px; background: var(--surface-raised, rgba(255, 255, 255, 0.72)); }
-.ci-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
-.ci-head strong { font-variant-numeric: tabular-nums; }
-.ci-facts li { font-size: 0.92rem; }
-.ci-sign, .ci-signed, .ci-answer { display: grid; gap: 6px; }
+   Fetched with the clinical workspace, never on a patient's first load.
+
+   ON THE IDENTITY (28 September 2026, the Lovable handoff, wave 4c). The inbox is the doctor's command view:
+   three MetricCards counted off real lists, then the visits as rows that arrive one after another. Every
+   colour is a role from tokens.json#semantic or one of ui.css's measured inks, and every word stands on a
+   ground set from the same roles, so it holds in either theme. Pairs, light theme, sRGB relative luminance:
+   foreground on surface 16.37; muted-foreground on surface 5.66, on muted 4.77; a signed row's rule is the
+   accent, a mark at 3.64. A signed row differs by its rule AND its status sentence AND the buttons it no
+   longer has; nothing is told by colour alone.
+
+   MOTION. The rows rise in once, a sixth of --t-enter apart (the handoff's 70 ms), on --ease-soft,
+   opacity and transform only, capped at the fifth row; nothing under reduced motion. */
+.ci-panel { display: grid; gap: var(--space-12); min-width: 0; }
+.ci-panel .section-title { margin: 0; }
+.ci-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-muted-foreground); }
+.ci-list, .ci-facts, .ci-stages, .ci-outcomes { display: grid; gap: var(--space-8); margin: 0; padding: 0; list-style: none; }
+.ci-facts { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.ci-facts li { min-width: 0; font-size: 14px; line-height: 1.5; }
+.ci-facts .ui-badge { white-space: normal; }
+.ci-sign, .ci-signed, .ci-answer { display: grid; gap: var(--space-8); min-width: 0; }
 .ci-signed p, .ci-answer p { margin: 0; }
-.ci-signed svg { vertical-align: -3px; margin-right: 6px; }
-.ci-label { margin: 0; font-weight: 600; }
+.ci-signed svg { margin-right: var(--space-8); vertical-align: -3px; }
+.ci-label { margin: 0; font-size: 14px; font-weight: 600; color: var(--color-foreground); }
 .ci-stages li { display: grid; gap: 2px; }
-.ci-stages span { font-size: 0.92rem; }
-.ci-frame { display: grid; gap: 12px; }
-.ci-heading { display: grid; gap: 4px; }
-.ci-heading textarea { width: 100%; box-sizing: border-box; }
-.ci-required { font-style: normal; font-size: 0.8rem; opacity: 0.8; }
-.ci-not strong { font-size: 1.05rem; }
+.ci-stages span { font-size: 14px; line-height: 1.5; }
+.ci-not strong { font-size: 16px; }
+
+/* ---- The command view ------------------------------------------------------------------------------ */
+.ci-command-head { display: grid; gap: var(--space-4); }
+.ci-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: var(--space-12); min-width: 0; }
+.ci-metric { position: relative; overflow: hidden; }
+/* The metric the inbox is opened for: the aqua rule along its top, a mark (3.64). */
+.ci-metric.is-lead::before { content: ''; position: absolute; inset: 0 0 auto; height: 3px; background: var(--color-accent); }
+.ci-metric .ui-metric__trend { color: var(--color-muted-foreground); font-weight: 500; }
+.ci-metric .mythuso-icon { color: var(--color-foreground); }
+.ci-preview { margin: 0; }
+
+/* A visit waiting to be signed: a white row with the reference set as the figure it is worked by. */
+.ci-item {
+ display: grid;
+ gap: var(--space-12);
+ min-width: 0;
+ padding: var(--space-16) var(--space-20);
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-lg);
+ background: var(--color-surface);
+ color: var(--color-foreground);
+ transition: border-color var(--t-quick) var(--ease-soft);
+}
+.ci-item:hover { border-color: color-mix(in srgb, var(--color-accent) 34%, var(--color-border)); }
+.ci-item.is-signed { position: relative; overflow: hidden; }
+.ci-item.is-signed::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--color-accent); }
+.ci-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-4) var(--space-12); }
+.ci-head strong { font-family: var(--font-display); font-size: 18px; font-weight: 600; letter-spacing: .01em; font-variant-numeric: tabular-nums; }
+.ci-head .ss-meta { font-size: 14px; color: var(--color-muted-foreground); }
+.ci-empty { margin: 0; padding: var(--space-16); border: 1px dashed var(--color-border); border-radius: var(--r-lg); }
+@keyframes ci-row-in {
+ from { opacity: 0; transform: translate3d(0, var(--space-8), 0); }
+ to { opacity: 1; transform: none; }
+}
+.ci-list > .ci-item { animation: ci-row-in var(--t-enter) var(--ease-soft) both; animation-delay: calc(var(--ci-i, 0) * var(--t-enter) / 6); }
+
+/* ---- The consultation frame -------------------------------------------------------------------------
+   Four headings as four fields, each with its required word as a badge and a rule that turns aqua once
+   something is written under it — a mark AND the count at the foot, so progress is never colour alone. */
+.ci-frame { display: grid; gap: var(--space-16); }
+.ci-heading { display: grid; gap: var(--space-4); padding-left: var(--space-12); border-left: 3px solid var(--color-border); }
+.ci-heading.is-written { border-left-color: var(--color-accent); }
+.ci-heading-label { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); font-size: 15px; color: var(--color-foreground); }
+.ci-heading .helper { margin: 0; }
+.ci-heading textarea { box-sizing: border-box; width: 100%; }
+.ci-frame-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-12); }
+.ci-frame-count { font-size: 14px; font-weight: 600; color: var(--color-muted-foreground); font-variant-numeric: tabular-nums; }
+.ci-panel .ui-alert { margin: 0; }
+
 @media (max-width: 600px) {
  .ci-sign .button-row { flex-direction: column; align-items: stretch; }
+ .ci-sign .button-row .ui-button { white-space: normal; text-align: left; justify-content: flex-start; min-height: var(--ui-target, 44px); padding-block: var(--space-8); }
+ .ci-item { padding: var(--space-16); }
 }
+@media (prefers-reduced-motion: reduce) {
+ .ci-list > .ci-item { animation: none; }
+ .ci-item { transition: none; }
+}
+
+/* The panel's heading in the display face, the handoff's compact feature heading. */
+.ci-panel .section-title h2 { font-family: var(--font-display); font-size: 20px; font-weight: 600; line-height: 1.3; }
+/* The frame stands above the record's own hero on the records page; the section gap keeps them two things. */
+.ci-panel.ci-frame-panel { margin-bottom: var(--space-24); }

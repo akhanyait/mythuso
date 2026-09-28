@@ -1,28 +1,54 @@
 /* Thuso Kit's registry: the nurse's kit health, the Control Tower's recall and the patient's wearable link.
    Loaded with features/Devices.tsx, which arrives on a dynamic import, so none of it is on a patient's first
-   load. It leans on the shared panel, pill, helper and table styles and adds only what a device card needs. */
+   load.
 
-.dv-devices, .dv-readings, .dv-scope { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-12, 12px); }
-.dv-devices { grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
-.dv-device { display: grid; gap: var(--space-8, 8px); align-content: start; }
-.dv-device-head { display: grid; grid-template-columns: auto 1fr auto; gap: var(--space-12, 12px); align-items: center; }
-.dv-device-head small { display: block; color: var(--ink-quiet, #5b6b6a); }
-.dv-device.dv-recalled { border-inline-start: 4px solid var(--danger, #b3261e); }
-.dv-device.dv-stale { border-inline-start: 4px solid var(--amber, #b26a00); }
-.dv-facts, .dv-tags { display: grid; gap: var(--space-4, 4px); margin: 0; }
-.dv-facts > div, .dv-tags > div { display: grid; grid-template-columns: minmax(7.5rem, auto) 1fr; gap: var(--space-8, 8px); align-items: baseline; }
-.dv-facts dt { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; }
-.dv-facts dd, .dv-tags dd { margin: 0; }
+   On the identity since wave 4b (28 September 2026). The mint, peach and lavender tiles of the pastel system
+   are retired, and so are the raw colour fallbacks this sheet used to carry beside variables that did not
+   exist (--ink-quiet, --amber): every value is a token now. An instrument is a white Card; its three facts
+   are white tiles with an edge along the top that says well (aqua), needs her (the warning ink) or refused
+   (the danger ink), and the word at the head of each tile is always the state itself, so the edge is never
+   the only thing that says it. */
+
+.dv-devices, .dv-readings, .dv-scope { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-12); }
+.dv-devices { grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: var(--space-16); }
+.dv-device { display: grid; min-width: 0; }
+.dv-card { display: grid; gap: var(--space-12); align-content: start; min-width: 0; }
+.dv-device.dv-recalled .dv-card { border-color: color-mix(in oklab, var(--color-danger) 45%, var(--color-border)); }
+.dv-device-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-12); align-items: center; }
+.dv-device-head strong { display: block; font-size: 15px; font-weight: 600; color: var(--color-foreground); }
+.dv-device-head small { display: block; font-size: 13px; color: var(--color-muted-foreground); }
+.dv-icon { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: var(--r-md); background: var(--color-muted); color: var(--color-primary); }
+.dv-icon svg { width: 20px; height: 20px; }
+
+.dv-health { display: grid; gap: var(--space-16); min-width: 0; margin-top: var(--space-24); }
+.dv-health-head { display: grid; gap: var(--space-4); padding-bottom: var(--space-12); border-bottom: 1px solid var(--color-border); }
+.dv-health-head h2 { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 600; color: var(--color-foreground); }
+.dv-health-head p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--color-muted-foreground); max-width: 72ch; }
+
+.dv-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr)); gap: var(--space-8); margin: 0; }
+.dv-facts > div { position: relative; overflow: hidden; display: grid; align-content: start; gap: var(--space-4); padding: var(--space-12) var(--space-12) var(--space-12); border: 1px solid var(--color-border); border-radius: var(--r-md); background: var(--color-surface); }
+.dv-facts > div::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--color-border); }
+.dv-facts > div[data-edge='well']::before { background: var(--color-accent); }
+.dv-facts > div[data-edge='needs']::before { background: var(--mango-ink); }
+.dv-facts > div[data-edge='refused']::before { background: var(--danger); }
+.dv-facts dt { display: inline-flex; gap: var(--space-4); align-items: center; font-size: 13px; font-weight: 600; color: var(--color-foreground); }
+.dv-facts dt svg { width: 14px; height: 14px; flex: none; color: var(--color-muted-foreground); }
+.dv-facts dd { margin: 0; font-size: 14px; line-height: 1.45; color: var(--color-foreground); }
 /* The span, not the card: the card carries dv-stale as its state class too, and this rule used to turn
    every word on a stale instrument's card amber and bold. */
-span.dv-stale { color: var(--amber, #b26a00); font-weight: 600; }
-.dv-reading { border-top: 1px solid var(--line, rgba(0, 0, 0, .08)); padding-top: var(--space-8, 8px); display: grid; gap: var(--space-4, 4px); }
-.dv-reading-head { display: flex; justify-content: space-between; gap: var(--space-8, 8px); flex-wrap: wrap; }
-.dv-tags dt { color: var(--ink-quiet, #5b6b6a); }
-.dv-weight { font-weight: 600; }
-.dv-no-weight { font-weight: 600; color: var(--amber, #b26a00); }
+span.dv-stale { color: var(--mango-ink); font-weight: 600; }
+
+.dv-reading { border-top: 1px solid var(--color-border); padding-top: var(--space-8); display: grid; gap: var(--space-4); }
+.dv-reading-head { display: flex; justify-content: space-between; gap: var(--space-8); flex-wrap: wrap; }
+.dv-reading-head strong { font-size: 14px; color: var(--color-foreground); }
+.dv-reading-head small { font-size: 13px; color: var(--color-muted-foreground); font-variant-numeric: tabular-nums; }
+.dv-tags { display: grid; gap: var(--space-4); margin: 0; }
+.dv-tags > div { display: grid; grid-template-columns: minmax(7.5rem, auto) 1fr; gap: var(--space-8); align-items: center; }
+.dv-tags dt { font-size: 13px; color: var(--color-muted-foreground); }
+.dv-tags dd { margin: 0; font-size: 14px; color: var(--color-foreground); }
 .dv-mark { margin: 0; }
-.dv-capture-source { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.dv-capture-source { display: inline-flex; flex-wrap: wrap; gap: var(--space-4) var(--space-8); }
+
 /* The registry sits in the Control Tower's stacked Incidents page. A grid or flex child keeps its content's width
    unless told otherwise, so the table widened the page on a phone instead of scrolling inside its own container. */
 .dv-registry, .dv-health, .dv-link { min-width: 0; max-width: 100%; }
@@ -30,48 +56,16 @@ span.dv-stale { color: var(--amber, #b26a00); font-weight: 600; }
    header is absolutely positioned, and while the scroller was not its containing block it escaped the clip at
    the fifth column's edge and made the Control Tower's main scroll sideways on a phone. */
 .dv-registry > .table-scroll { position: relative; max-width: 100%; min-width: 0; overflow-x: auto; }
-.dv-table th small { display: block; font-weight: 400; color: var(--ink-quiet, #5b6b6a); }
-.dv-table td button { white-space: nowrap; }
+.dv-table th small { display: block; font-weight: 400; color: var(--color-muted-foreground); }
+.dv-table td .ui-button { white-space: nowrap; }
+.dv-field { display: grid; gap: var(--space-8); max-width: 360px; font-size: 14px; font-weight: 600; color: var(--color-foreground); }
 .dv-not-connected { margin: 0; }
-.dv-scope-choice { display: grid; gap: var(--space-4, 4px); }
+.dv-scope-choice { display: grid; gap: var(--space-4); }
 .dv-marks-mean summary { cursor: pointer; font-weight: 600; }
-@media (max-width: 520px) {
- .dv-facts > div, .dv-tags > div { grid-template-columns: 1fr; gap: 0; }
- .dv-device-head { grid-template-columns: auto 1fr; }
- .dv-device-head .pill { grid-column: 1 / -1; justify-self: start; }
-}
 
-/* ---- The nurse's kit in the pastel system (28 September 2026) ----------------------------------------
-   Each instrument is a paper card and its facts are three stat tiles — the sync, the calibration, the
-   power — each headed by the contract's own word for its state and tinted by it: mint where it is well
-   (reporting, calibration in date), peach where it needs her (stale, calibration due or overdue),
-   lavender where there is nothing to judge (power, never synced, not tracked). The word is always the
-   state, so the tint is never the only difference. A recalled instrument's tile is left on paper: a
-   recall is a refusal, and a refusal is not decorated — its alert, its red edge and its words stand as
-   they did. Every tinted rule sets the shell's ink with it: 8.09 on mint, 9.19 on peach, 9.41 on
-   lavender; the stale sentence in mangoInk, 5.41 on peach. */
-.clinical .dv-health .dv-devices { gap: var(--space-16); }
-.clinical .dv-health .dv-device { border-radius: var(--r-panel); padding: var(--space-20); gap: var(--space-12); }
-.clinical .dv-health .dv-facts { grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr)); gap: var(--space-8); }
-.clinical .dv-health .dv-facts > div {
- display: grid;
- grid-template-columns: 1fr;
- align-content: start;
- gap: var(--space-4);
- padding: var(--space-12) var(--space-16);
- border-radius: var(--r-card);
- background: var(--cl-tint-lavender);
- color: var(--brand-ink);
-}
-.clinical .dv-health .dv-facts > div[data-state='reporting'],
-.clinical .dv-health .dv-facts > div[data-state='in-date'] { background: var(--cl-tint-mint); color: var(--brand-ink); }
-.clinical .dv-health .dv-facts > div[data-state='stale'],
-.clinical .dv-health .dv-facts > div[data-state='due'],
-.clinical .dv-health .dv-facts > div[data-state='overdue'] { background: var(--cl-tint-peach); color: var(--brand-ink); }
-.clinical .dv-health .dv-facts > div[data-state='recalled'] { background: var(--surface); color: var(--brand-ink); box-shadow: inset 0 0 0 1px var(--studio-line); }
-.clinical .dv-health .dv-facts dt { font-size: 13px; font-weight: 600; letter-spacing: .02em; color: inherit; }
-.clinical .dv-health .dv-facts dd { font-size: 14px; line-height: 1.45; color: inherit; }
-.clinical .dv-health span.dv-stale { color: var(--mango-ink); }
 @media (max-width: 520px) {
- .clinical .dv-health .dv-facts { grid-template-columns: 1fr; }
+ .dv-facts { grid-template-columns: 1fr; }
+ .dv-tags > div { grid-template-columns: 1fr; gap: 0; }
+ .dv-device-head { grid-template-columns: auto minmax(0, 1fr); }
+ .dv-device-head .ui-badge { grid-column: 1 / -1; justify-self: start; }
 }

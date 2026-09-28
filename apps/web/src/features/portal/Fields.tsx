@@ -1,5 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { Checkbox } from '../../ui/Checkbox';
 import { Select as SharedSelect } from '../../ui/Select';
+import { cx } from '../../ui/cx';
 import './fields.css';
 
 /* The portal's form controls, drawn once so every category and the Configuration editors wear the same
@@ -12,6 +14,11 @@ import './fields.css';
  * rather than rebuilt from divs. A div pretending to be a slider has to reimplement the arrow keys,
  * Home and End, Page Up and Down, the value a screen reader announces and the form it belongs to, and
  * every one it forgets is a person who cannot set the value. The native element already does all of it.
+ *
+ * Since the Lovable identity (28 September 2026, wave 4e) this file is a thin layer over the shared
+ * components of apps/web/src/ui: the select is the shared Select, the switch is the shared Checkbox, a row
+ * wears the shared Field's label and message, and fields.css draws the slider and the chips — which the
+ * handoff has no component for — on the same tokens, so they read as one family with the rest.
  *
  * The stylesheet beside this file travels with it, so the legacy back office that still draws
  * Configuration.tsx for the cutover's parallel run gets the same controls as the portal, and neither
@@ -55,26 +62,33 @@ export function RangeSlider({ id, label, min, max, step = 1, value, valueText, o
  </div>;
 }
 
-/* A switch for a setting that is on or off and nothing else. It is a checkbox with the switch role, so
-   Space toggles it and a screen reader says "switch, on"; the word beside it says the state too, so the
-   thumb's side and the track's colour are never the only difference between on and off. A boolean that
-   names its two choices in sentences — "Words only" and "Photos allowed" — is not drawn as a switch:
-   which side is "on" would be a guess, so those are ChoiceChips. */
-export function Switch({ label, checked, onChange, stateText, describedBy, disabled = false, tone = 'paper' }: {
+/* A setting that is on or off and nothing else. Until 28 September 2026 this was a drawn switch; the handoff
+   has no switch, and its Checkbox is exactly "an independent binary choice", so the setting is now the
+   shared Checkbox — the native checkbox under the handoff's box and tick, its whole label the 44-pixel
+   target. The tick, not a fill, says it is on, and the state word beside the label ("On", "Off") says it
+   again in words; that word is hidden from a screen reader, which already hears "checked". The name stays
+   Switch because the build reads every settings screen's import of it by that name.
+
+   A boolean that names its two choices in sentences — "Words only" and "Photos allowed" — is not drawn
+   here: which of those is "checked" would be a guess, so those are ChoiceChips. */
+export function Switch({ label, checked, onChange, stateText, describedBy, disabled = false }: {
  label: ReactNode; checked: boolean; onChange: (checked: boolean) => void; stateText?: string;
  describedBy?: string; disabled?: boolean; tone?: 'paper' | 'night';
 }) {
- return <label className={`fc-switch is-${tone}`}>
-  <input type="checkbox" role="switch" checked={checked} disabled={disabled} aria-describedby={describedBy}
-   onChange={event => onChange(event.target.checked)}/>
-  <span className="fc-switch-label">{label}</span>
-  {stateText && <span className="fc-switch-state" aria-hidden="true">{stateText}</span>}
- </label>;
+ return <div className="fc-switch">
+  <Checkbox checked={checked} disabled={disabled} aria-describedby={describedBy} onChange={event => onChange(event.target.checked)}
+   label={<span className="fc-switch-label">{label}{stateText && <span className="fc-switch-state" aria-hidden="true">{stateText}</span>}</span>}/>
+ </div>;
 }
 
-/* Choices as pills: radios for one of several, checkboxes for any of several. The input fills its pill,
-   so the whole pill is the 44px target and the focus ring is drawn round the pill; a chosen pill is
-   ink with a drawn tick, so the tick — not only the fill — says which is chosen. */
+/* Choices as the handoff's badge-shaped toggles: radios for one of several, checkboxes for any of several.
+   The input fills its pill, so the whole pill is the 44px target and the focus ring is drawn round it; a
+   chosen pill takes the aqua the handoff keeps for a selection, with a drawn tick, so the tick — not only
+   the fill — says which is chosen. Two radios are a segmented pair on the Tabs' track instead (fields.css).
+
+   The brief of 28 September asked for toggle buttons with aria-pressed. They stay radios and checkboxes:
+   a radio group is announced "1 of 3, selected" and moves by the arrow keys, a set of pressed buttons is
+   neither, and the build holds these chips to the two input kinds below. The look is the badge's. */
 export type Chip = { readonly key: string; readonly label: ReactNode; readonly checked: boolean; readonly onChange: (checked: boolean) => void };
 export function ChoiceChips({ legend, name, kind = 'radio', chips, disabled = false, className = '' }: {
  legend: ReactNode; name?: string; kind?: 'radio' | 'checkbox'; chips: readonly Chip[]; disabled?: boolean; className?: string;
@@ -105,14 +119,14 @@ export function Select({ id, value, onChange, children, disabled = false, descri
   onChange={event => onChange(event.target.value)}>{children}</SharedSelect>;
 }
 
-/* One setting as a row: its label and what it decides, the control, and the value in force beneath it in the
-   settings contract's own words. The label is drawn here only for a control that does not carry its own —
+/* One setting as a row, in the shared Field's shape — the label in the Field's weight, what it decides in the
+   Field's message ink, the control, and the value in force beneath it in the settings contract's own words. The label is drawn here only for a control that does not carry its own —
    a slider or a text field; a switch and a set of chips name themselves, so the caller passes them whole. */
 export function FieldRow({ label, help, htmlFor, inForce, children, className = '' }: {
  label?: ReactNode; help?: ReactNode; htmlFor?: string; inForce?: ReactNode; children: ReactNode; className?: string;
 }) {
- return <div className={`fc-row ${className}`}>
-  {label && <label className="fc-row-label" htmlFor={htmlFor}><strong>{label}</strong>{help && <span>{help}</span>}</label>}
+ return <div className={cx('fc-row', 'ui-field', className)}>
+  {label && <label className="fc-row-label" htmlFor={htmlFor}><strong className="ui-field__label">{label}</strong>{help && <span className="ui-field__message">{help}</span>}</label>}
   {children}
   {inForce && <p className="fc-in-force">{inForce}</p>}
  </div>;
@@ -125,3 +139,5 @@ export function FieldRow({ label, help, htmlFor, inForce, children, className = 
 export function SaveBar({ label, children, className = '' }: { label?: string; children: ReactNode; className?: string }) {
  return <div className={`fc-savebar ${className}`} role={label ? 'group' : undefined} aria-label={label}>{children}</div>;
 }
+/* Its buttons are the caller's, and since wave 4e every caller draws them as the handoff's Button variants —
+   the step forward primary, the step back secondary — so the bar is the same bar wherever it ends a page. */

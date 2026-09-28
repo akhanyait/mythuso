@@ -1,47 +1,45 @@
-/* Patient decisions: quiet structure, stable figures and purposeful next actions. */
-.care-next-action { display:flex; align-items:center; gap:20px; padding:24px; margin-bottom:24px; border:1px solid var(--studio-line); border-radius:24px; background:white; }
-.care-next-action > div { flex:1; min-width:0; }
-.care-next-action .home-eyebrow { margin-bottom:7px; }
-.care-next-action h2 { font-size:25px; font-weight:500; letter-spacing:-.7px; margin:0 0 8px; }
-.care-next-action p:last-child { margin:0; color:var(--studio-ink-muted); }
-.care-next-symbol { display:grid;place-items:center;flex-shrink:0;width:54px;height:54px;border-radius:50%;background:var(--studio-lime); }
-.journey-summary { display:flex;gap:12px;align-items:center;position:sticky;top:0;z-index:2;background:var(--studio-paper,#f5f4ef);border:1px solid var(--studio-line);padding:14px;border-radius:16px;margin-bottom:18px; }
+/* Patient decisions: quiet structure, stable figures and purposeful next actions — on the design handoff's
+   white cards and compact corners since 28 September 2026. The home's own next step moved to
+   patient-identity.css with the home. */
+.journey-summary { display:flex;gap:12px;align-items:center;position:sticky;top:0;z-index:2;background:var(--surface);border:1px solid var(--stone);padding:14px;border-radius:var(--r-lg);margin-bottom:18px; }
 .journey-summary > div { flex:1;min-width:0; }
 .journey-summary strong { font-size:15px;line-height:1.4; }
 .journey-summary > strong { white-space:nowrap;font-variant-numeric:tabular-nums; }
-.journey-summary small { display:block;color:var(--studio-ink-muted);font-size:13px;line-height:1.5;margin-top:3px; }
-.journey-step-focus:focus { outline:2px solid var(--studio-olive);outline-offset:4px;border-radius:4px; }
-.journey-connection { display:flex;align-items:flex-start;gap:10px;padding:14px;border:1px solid var(--studio-line);border-radius:12px;margin-bottom:18px;font-size:14px;line-height:1.5; }
+.journey-summary small { display:block;color:var(--faint);font-size:13px;line-height:1.5;margin-top:3px; }
+/* The step's heading takes focus when a step arrives, so a screen reader starts there. The ring shows when the
+   keyboard brought it, not after a tap — a box drawn round a heading nobody tabbed to reads as a fault. */
+.journey-step-focus:focus-visible { outline:2px solid var(--color-ring);outline-offset:4px;border-radius:var(--r-sm); }
+.journey-step-focus:focus:not(:focus-visible) { outline:none; }
+.journey-connection { display:flex;align-items:flex-start;gap:10px;padding:14px;border:1px solid var(--stone);border-radius:var(--r-md);margin-bottom:18px;font-size:14px;line-height:1.5; }
 .journey-connection svg { flex-shrink:0; }
-.clinician-profile { padding:22px;border:1px solid var(--studio-line);border-radius:20px;background:white;min-width:0; }
+.clinician-profile { padding:var(--space-20);border:1px solid var(--stone);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow);min-width:0; }
 .clinician-profile header { display:flex;align-items:center;gap:14px; }
 .clinician-profile header > div { flex:1;min-width:0; }
 .clinician-profile .home-eyebrow { font-size:13px;letter-spacing:1px;line-height:1.5;margin-bottom:6px; }
-.clinician-profile h3 { margin:0 0 6px;font-size:20px;letter-spacing:-.4px; }
+.clinician-profile h3 { margin:0 0 6px;font-family:var(--font-display);font-size:20px;font-weight:600;letter-spacing:0; }
 .clinician-profile p { font-size:14px;line-height:1.6; }
-.clinician-profile header p:last-child { margin:0;color:var(--studio-ink-muted); }
-.clinician-monogram { display:grid;place-items:center;flex-shrink:0;width:58px;height:58px;border-radius:50%;background:var(--studio-lilac);font-size:19px; }
-.clinician-facts { display:flex;flex-wrap:wrap;gap:16px 32px;border-block:1px solid var(--studio-line);padding:16px 0;margin:20px 0; }
-.clinician-facts dt { font-size:13px;color:var(--studio-ink-muted);margin-bottom:5px; }
+.clinician-profile header p:last-child { margin:0;color:var(--faint); }
+.clinician-monogram { display:grid;place-items:center;flex-shrink:0;width:58px;height:58px;border-radius:var(--r-pill);background:color-mix(in srgb, var(--brand-ink) 10%, var(--surface));color:var(--brand-ink);font-size:18px;font-weight:600; }
+.clinician-facts { display:flex;flex-wrap:wrap;gap:16px 32px;border-block:1px solid var(--stone);padding:16px 0;margin:20px 0; }
+.clinician-facts dt { font-size:13px;color:var(--faint);margin-bottom:5px; }
 .clinician-facts dd { font-size:14px;margin:0;overflow-wrap:anywhere; }
 .clinician-checks summary { display:flex;align-items:center;gap:8px;cursor:pointer;min-height:44px;font-weight:600;font-size:14px; }
 .clinician-checks summary::after { content:'+';margin-left:auto;font-size:20px; }
 .clinician-checks[open] summary::after { content:'−'; }
 .clinician-checks ul { list-style:none;margin:0;padding:0; }
-.clinician-checks li { padding:12px 0;border-top:1px solid var(--studio-line); }
+.clinician-checks li { padding:12px 0;border-top:1px solid var(--stone); }
 .clinician-checks li > div { display:flex;justify-content:space-between;gap:12px;font-size:13px; }
-.clinician-checks li span { color:var(--studio-ink-muted); }
-.clinician-checks li small { display:block;margin-top:5px;line-height:1.5;color:var(--studio-ink-muted); }
+.clinician-checks li span { color:var(--faint); }
+.clinician-checks li small { display:block;margin-top:5px;line-height:1.5;color:var(--faint); }
 .care-team-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px; }
-.visit-support { padding:18px;border:1px solid var(--studio-line);border-radius:16px;background:var(--studio-paper,#f5f4ef); }
+.visit-support { padding:18px;border:1px solid var(--stone);border-radius:var(--r-lg);background:var(--glass-floor); }
 .visit-support h3 { margin-top:0; }
 .visit-support p { font-size:14px;line-height:1.6; }
-.visit-ready-hint { display:flex;align-items:center;gap:10px;border-top:1px solid var(--studio-line);padding-top:14px;margin-bottom:0;font-size:13px;line-height:1.5; }
 .catalog-filter-summary { display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 20px;font-size:14px; }
 .care-timeline-tools { display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:22px 0 12px; }
 .care-timeline-tools .tabs { flex:1;flex-wrap:wrap;margin:0; }
 .care-timeline-tools label { display:grid;gap:6px;font-size:13px;min-width:145px; }
-.care-timeline-tools select { padding:10px;border:1px solid var(--studio-line);border-radius:10px;background:white; }
+.care-timeline-tools select { padding:10px;border:1px solid var(--faint);border-radius:var(--r-md);background:var(--surface); }
 .care-timeline .timeline-status { margin-top:7px;font-size:13px;font-weight:600; }
 @media (prefers-reduced-motion:no-preference) {
  .clinician-checks[open] > :not(summary), .care-timeline .explain-body { animation:care-detail-in 180ms ease-out; }

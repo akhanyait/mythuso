@@ -262,9 +262,12 @@ const SHARED_BY_BOTH_AUDIENCES = ['DemoLogin', 'Kit', 'KitCapture', 'LiveMap', '
    and the Access domain behind the roster, and both are opened from a dialog or a row rather than drawn on
    a patient's first view. They arrive on dynamic imports from App.tsx now, a boundary check fails if either
    is imported statically, and the patient's first load fell 14 kB. A clinician never opens either. */
+/* The identity restyle of 28 September 2026 moved the Passport, Consent, the visit summary, Live well, the
+   language screen and the order details behind doors on a dynamic import (features/deferred.tsx), so their
+   bodies left this list's cost and the small door module joined it. Interpreting left with the language screen. */
 const CARRIED_BY_THE_ONE_ENTRY = [
   'Access', 'Arrival', 'Consent', 'Dashboard', 'Guardian', 'Help',
-  'Interpreting', 'Onboarding', 'Pages', 'Passport', 'PatientShell', 'VisitSummary',
+  'Onboarding', 'Pages', 'Passport', 'PatientShell', 'VisitSummary', 'deferred',
   /* Live well, added the same night as the one entry. It is a patient feature and the patient is
      the default surface, so it loads with the rest of the patient app rather than behind a role —
      which is the cost this list exists to keep visible, not a leak. The ratchet did its job: it

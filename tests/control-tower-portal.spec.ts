@@ -396,8 +396,7 @@ test.describe('a screen that arrives', () => {
    global change on all to look the same. Don't forget animations." What is held here is the pattern every
    screen now shares, walked across every category and every tab on both viewports: the one head, no
    sideways scroll (in the page, and inside main, where a page-level measurement cannot see), every control
-   at the 44px floor or declared, the arrival stagger on the panel, and section cards whose neighbours never
-   share a ground. Then the three things a settings page does that a board does not — the save bar under the
+   at the 44px floor or declared, the arrival stagger on the panel, and every section the shared Card. Then the three things a settings page does that a board does not — the save bar under the
    contract's one sentence, the saved card's flash, and the chip that lifts — and the founder's door wearing
    the same head. */
 import { MIN_TARGET, EXEMPT_SELECTORS, horizontalOverflow, measureTargets } from './audit';
@@ -432,17 +431,22 @@ test.describe('one settings page', () => {
    const small = (await measureTargets(page, MIN_TARGET, EXEMPT_SELECTORS)).filter(t => !t.declared).map(t => `${t.where} ${t.width}x${t.height}`)
     .filter(t => !knownElsewhere?.test(t));
    expect(small, `${where}: controls under ${MIN_TARGET}px`).toEqual([]);
-   /* Neighbouring section cards never share a ground, and none is left without one unless it is the panel
-      the Speech settings change fields or the preview already are. */
-   const grounds = await body.evaluate(root => [...root.querySelectorAll('section.pt-section')].map(s => ({
+   /* Every section is the shared Card (Lovable identity, 28 September 2026): a named region on a ground of
+      its own with the card's hairline edge. Until that day neighbouring sections were told apart by rotating
+      pastel tints; the tints are retired, and a section's title and the gap between cards do that work, as
+      they do everywhere in the handoff — so what is held is that no section is a bare, edgeless run of text. */
+   const cards = await body.evaluate(root => [...root.querySelectorAll('.pt-section')].map(s => ({
+    region: s.getAttribute('role') === 'region' && !!s.getAttribute('aria-labelledby'),
+    card: s.classList.contains('ui-card'),
     ground: getComputedStyle(s).backgroundColor,
-    panel: !!s.querySelector(':scope > .g1-change, :scope > .g1-preview'),
-    next: s.nextElementSibling?.matches('section.pt-section') ?? false
+    edge: getComputedStyle(s).borderTopStyle,
+    folded: !!s.closest('.g1-fold-body')
    })));
-   grounds.forEach((g, i) => {
-    if (!g.panel) expect(g.ground, `${where}: a section card with no ground`).not.toBe('rgba(0, 0, 0, 0)');
-    if (g.next && !g.panel && !grounds[i + 1]!.panel) expect(g.ground, `${where}: two neighbouring section cards share a ground`).not.toBe(grounds[i + 1]!.ground);
-   });
+   for (const c of cards) {
+    expect(c.region && c.card, `${where}: a section that is not a named region drawn as the shared Card`).toBe(true);
+    expect(c.ground, `${where}: a section card with no ground`).not.toBe('rgba(0, 0, 0, 0)');
+    if (!c.folded) expect(c.edge, `${where}: a section card with no edge`).toBe('solid');
+   }
   }
  });
 

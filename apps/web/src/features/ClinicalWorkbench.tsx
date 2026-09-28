@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { Activity, AlertTriangle, ArrowRight, ArrowUpRight, CalendarDays, Check, ClipboardList, Cpu, HeartPulse, House, Lock, PackageCheck, PenLine, Radio, ShieldCheck, Stethoscope, Video } from 'lucide-react';
+import { Activity, AlertTriangle, ArrowRight, ArrowUpRight, Check, Cpu, HeartPulse, House, Lock, PenLine, Radio, ShieldCheck, Stethoscope, Video } from 'lucide-react';
+import { Badge, Button, MyThusoMedicationIcon, MyThusoResultsIcon, MyThusoVisitIcon } from '../ui';
 import { useThusoIQ } from '../lib/thusoiq';
 import { bounds, label, latestSample, refusal, sampleFreshness, soapKeys, thusoiq, type Appointment, type Assessment, type Command, type Consultation, type MedicationRequest, type Notes, type Patient, type State } from '../../../../packages/thusoiq/index.ts';
 /* The four SOAP headings, the sentence under each of them and the one note that says who may
@@ -16,7 +17,10 @@ type Run = (command: Command, message: string) => boolean;
  *  out — run a command, or move to the tool that can. */
 type Work = { role: Role; state: State; patientId: string; patient: Patient; consultation?: Consultation; run: Run; go: (tool: Tool) => void };
 
-const tools = [['Appointments', CalendarDays], ['Consultation', Stethoscope], ['Diagnostic review', ClipboardList], ['Dispensary', PackageCheck], ['Wearables', HeartPulse]] as const;
+/* Three of the five are healthcare actions the MyThuso icon family draws — a visit, a reviewed result, a
+   medicine — and wear its icon; the consultation and the wearable keep Lucide's, because the family's
+   health icon stands for the patient's whole record and would say something else here. */
+const tools = [['Appointments', MyThusoVisitIcon], ['Consultation', Stethoscope], ['Diagnostic review', MyThusoResultsIcon], ['Dispensary', MyThusoMedicationIcon], ['Wearables', HeartPulse]] as const;
 const modeIcon: Record<string, typeof House> = { home: House, video: Video };
 const visitModes = thusoiq.appointments.modes;
 const visitStates = thusoiq.appointments.states;
@@ -142,10 +146,10 @@ function VisitRow({ visit, lead, work }: { visit: Appointment; lead: boolean; wo
    {lead && <p className="iq-visit-detail">{stateDetail(visit.status)}</p>}
    {visit.reason && <p className="iq-visit-detail">{visit.reason}</p>}
    {lead && <div className="button-row">
-    {visit.status === 'scheduled' && <button className="secondary" onClick={() => run({ type: 'appointment.transition', patientId, appointmentId: visit.id, status: 'arrived' }, 'Patient checked in.')}>Check in</button>}
-    {visit.status === 'arrived' && !opened && <button className="primary" onClick={() => { if (run({ type: 'consultation.open', patientId, appointmentId: visit.id }, 'Consultation opened.')) go('Consultation'); }}>Open consultation</button>}
-    {visit.status === 'arrived' && opened && opened.status !== 'signed' && <button className="secondary" onClick={() => go('Consultation')}>Open the record<ArrowUpRight size={15} aria-hidden="true"/></button>}
-    {visit.status === 'arrived' && opened?.status === 'signed' && <button className="secondary" onClick={() => run({ type: 'appointment.transition', patientId, appointmentId: visit.id, status: 'completed' }, 'Appointment completed.')}>Complete visit</button>}
+    {visit.status === 'scheduled' && <Button variant="secondary" onClick={() => run({ type: 'appointment.transition', patientId, appointmentId: visit.id, status: 'arrived' }, 'Patient checked in.')}>Check in</Button>}
+    {visit.status === 'arrived' && !opened && <Button variant="primary" onClick={() => { if (run({ type: 'consultation.open', patientId, appointmentId: visit.id }, 'Consultation opened.')) go('Consultation'); }}>Open consultation</Button>}
+    {visit.status === 'arrived' && opened && opened.status !== 'signed' && <Button variant="secondary" onClick={() => go('Consultation')}>Open the record<ArrowUpRight size={15} aria-hidden="true"/></Button>}
+    {visit.status === 'arrived' && opened?.status === 'signed' && <Button variant="secondary" onClick={() => run({ type: 'appointment.transition', patientId, appointmentId: visit.id, status: 'completed' }, 'Appointment completed.')}>Complete visit</Button>}
    </div>}
   </div>
  </li>;
@@ -179,7 +183,7 @@ function ComposeVisit({ role, patientId, run }: { role: Role; patientId: string;
    <label><span>Minutes</span><input type="number" name="minutes" min={bounds.appointmentMinutes.min} max={bounds.appointmentMinutes.max} defaultValue={30} required/></label>
   </div>
   <p className="iq-hint">{refusal('duration-out-of-bounds', { min: bounds.appointmentMinutes.min, max: bounds.appointmentMinutes.max })}</p>
-  <button className="primary" type="submit">Schedule appointment</button>
+  <Button variant="primary" type="submit">Schedule appointment</Button>
  </form>;
 }
 
@@ -203,7 +207,7 @@ function ConsultationTool({ work }: { work: Work }) {
   <div className="iq-section-head"><h3>Consultation record</h3><span>No open encounter</span></div>
   <Nothing title="No encounter is open for this patient"
    say="A consultation hangs off a visit somebody has arrived at, so the record can never describe a visit that had not started."
-   action={<button className="secondary" onClick={() => go('Appointments')}>Go to the visits<ArrowUpRight size={15} aria-hidden="true"/></button>}/>
+   action={<Button variant="secondary" onClick={() => go('Appointments')}>Go to the visits<ArrowUpRight size={15} aria-hidden="true"/></Button>}/>
  </>;
  const locked = consultation.status === 'signed' || role === 'Partner';
  const written = soapSteps.filter(step => draft[step.key].trim()).length;
@@ -242,9 +246,9 @@ function ConsultationTool({ work }: { work: Work }) {
      : <>
       <Outstanding reasons={blocks}/>
       <div className="button-row">
-       <button className="primary" disabled={!dirty} onClick={() => run({ type: 'consultation.save', patientId, consultationId: consultation.id, notes: draft }, 'Consultation draft saved in this sandbox session.')}>Save clinical draft</button>
-       <button className="secondary" onClick={() => run({ type: 'consultation.submit', patientId, consultationId: consultation.id }, 'Sent for doctor review in the sandbox.')}>Request doctor review</button>
-       {role === 'Doctor' && <button className="secondary" onClick={() => run({ type: 'consultation.sign', patientId, consultationId: consultation.id }, 'Consultation signed. Its notes are now locked.')}>Sign consultation</button>}
+       <Button variant="primary" disabled={!dirty} onClick={() => run({ type: 'consultation.save', patientId, consultationId: consultation.id, notes: draft }, 'Consultation draft saved in this sandbox session.')}>Save clinical draft</Button>
+       <Button variant="secondary" onClick={() => run({ type: 'consultation.submit', patientId, consultationId: consultation.id }, 'Sent for doctor review in the sandbox.')}>Request doctor review</Button>
+       {role === 'Doctor' && <Button variant="secondary" onClick={() => run({ type: 'consultation.sign', patientId, consultationId: consultation.id }, 'Consultation signed. Its notes are now locked.')}>Sign consultation</Button>}
       </div>
      </>}
   </footer>
@@ -278,7 +282,7 @@ function DiagnosisTool({ work }: { work: Work }) {
   {assessment && <AssessmentRecord assessment={assessment}/>}
   {!consultation && <Nothing title="No encounter is open for this patient"
    say="An assessment is recorded against an encounter, so that what was concluded and what it was concluded from stay on one record."
-   action={<button className="secondary" onClick={() => go('Appointments')}>Go to the visits<ArrowUpRight size={15} aria-hidden="true"/></button>}/>}
+   action={<Button variant="secondary" onClick={() => go('Appointments')}>Go to the visits<ArrowUpRight size={15} aria-hidden="true"/></Button>}/>}
   {mayPropose && <form className="iq-compose" onSubmit={event => {
    event.preventDefault();
    run({ type: 'diagnosis.propose', patientId, consultationId: consultation.id, impression: field(event, 'impression'), evidence: field(event, 'evidence') }, 'Assessment recorded for doctor review.');
@@ -286,7 +290,7 @@ function DiagnosisTool({ work }: { work: Work }) {
    <div className="iq-compose-head"><h4>Record an assessment</h4><p>Both fields travel to the doctor together. The second is what the first is based on.</p></div>
    <label><span>{label('clinical-impression')}</span><textarea name="impression" required maxLength={bounds.noteCharacters.max} rows={3}/></label>
    <label><span>{label('supporting-evidence')}</span><textarea name="evidence" required maxLength={bounds.noteCharacters.max} rows={3}/></label>
-   <button className="primary" type="submit">Submit assessment for review</button>
+   <Button variant="primary" type="submit">Submit assessment for review</Button>
   </form>}
   {assessment?.status === 'proposed' && role === 'Doctor' && <form className="iq-compose" onSubmit={event => {
    event.preventDefault();
@@ -301,7 +305,7 @@ function DiagnosisTool({ work }: { work: Work }) {
     </div>
    </fieldset>
    <label><span>{label('review-rationale')}</span><textarea name="rationale" required maxLength={bounds.noteCharacters.max} rows={3}/></label>
-   <button className="primary" type="submit">Record doctor decision</button>
+   <Button variant="primary" type="submit">Record doctor decision</Button>
   </form>}
  </>;
 }
@@ -353,7 +357,7 @@ function DispensaryTool({ work }: { work: Work }) {
    <label><span>{label('prescription-item')}</span><select name="item">{items.map(item => <option key={item} value={item}>{item}</option>)}</select></label>
    <label><span>{label('prescriber-directions')}</span><textarea name="directions" required maxLength={bounds.noteCharacters.max} rows={3}/></label>
    <label className="narrow"><span>Quantity</span><input name="quantity" type="number" min={bounds.quantity.min} max={bounds.quantity.max} defaultValue={10} required/></label>
-   <button className="primary" type="submit">Send to dispensary</button>
+   <Button variant="primary" type="submit">Send to dispensary</Button>
   </form>}
   {role !== 'Partner' && <p className="helper">A pharmacy partner verifies the prescription and records the handover.</p>}
  </>;
@@ -394,7 +398,7 @@ function RequestChain({ request, role, state, patientId, run }: { request: Medic
    <label><span>Stock batch</span><select name="batch">{batches.map(batch => <option key={batch.id} value={batch.id}>{batch.id} · {batch.quantity} available · expires {dayOf(batch.expiresAt)}</option>)}</select></label>
    <label className="iq-attest"><input type="checkbox" name="original" required/><span>Original prescription checked</span></label>
    <label className="iq-attest"><input type="checkbox" name="allergies" required/><span>Allergy record reconciled</span></label>
-   <button className="secondary" type="submit">Verify prescription</button>
+   <Button variant="secondary" type="submit">Verify prescription</Button>
   </form>}
   {role === 'Partner' && !verified && request.status !== 'dispensed' && <form className="iq-compose inset quiet" onSubmit={event => {
    event.preventDefault();
@@ -402,7 +406,7 @@ function RequestChain({ request, role, state, patientId, run }: { request: Medic
   }}>
    <div className="iq-compose-head"><h4>Or hold it</h4><p>A held request keeps its place and carries the reason it was stopped.</p></div>
    <label><span>{label('hold-reason')}</span><textarea name="reason" required maxLength={bounds.noteCharacters.max} rows={2}/></label>
-   <button className="secondary" type="submit">Hold this request</button>
+   <Button variant="secondary" type="submit">Hold this request</Button>
   </form>}
   {role === 'Partner' && request.status === 'verified' && <form className="iq-compose inset" onSubmit={event => {
    event.preventDefault();
@@ -410,7 +414,7 @@ function RequestChain({ request, role, state, patientId, run }: { request: Medic
   }}>
    <div className="iq-compose-head"><h4>Hand it over</h4><p>The last check before the medicine leaves the counter is the only one about who is standing there.</p></div>
    <label className="iq-attest"><input type="checkbox" name="recipient" required/><span>Recipient identity checked</span></label>
-   <button className="primary" type="submit">Record handover</button>
+   <Button variant="primary" type="submit">Record handover</Button>
   </form>}
  </article>;
 }
@@ -469,7 +473,7 @@ function WearablesTool({ work, streaming, setStreaming, now }: { work: Work; str
    </label>
    <Outstanding reasons={[...(patient.consent ? [] : [refusal('consent-required')]), ...(connection.consent ? [] : [refusal('wearable-consent-required')])]}/>
    <div className="button-row">
-    <button className="primary" disabled={!connection.consent || !patient.consent} onClick={() => setStreaming(!streaming)}><Radio size={16} aria-hidden="true"/>{streaming ? 'Pause simulator' : 'Start simulator'}</button>
+    <Button variant="primary" disabled={!connection.consent || !patient.consent} onClick={() => setStreaming(!streaming)}><Radio size={16} aria-hidden="true"/>{streaming ? 'Pause simulator' : 'Start simulator'}</Button>
    </div>
   </div>}
   <details className="iq-provenance">
@@ -545,8 +549,8 @@ export function ClinicalWorkbench({ role, worklist }: { role: Role; worklist?: R
       every one of them, at every width. */}
   <header className="iq-heading">
    <div className="iq-heading-top">
-    <span className="iq-eyebrow"><Cpu size={16}/> THUSOIQ · CLINICAL WORKSPACE</span>
-    <span className="iq-status"><span/>Fictional sandbox</span>
+    <span className="iq-eyebrow"><Cpu size={16} aria-hidden="true"/> THUSOIQ · CLINICAL WORKSPACE</span>
+    <Badge variant="neutral" dot className="iq-status">Fictional sandbox</Badge>
    </div>
    <div className="iq-heading-say">
     <h2>{standing[role].before} <Say of={standing[role].glyph}/> {standing[role].after}</h2>
@@ -567,7 +571,7 @@ export function ClinicalWorkbench({ role, worklist }: { role: Role; worklist?: R
     <PatientIdentity patient={patient} consultation={consultation}/>
     <div className="iq-tools" role="group" aria-label="Clinical tools">{tools.map(([name, Icon]) =>
      <button key={name} aria-pressed={tool === name} onClick={() => go(name)}>
-      <Icon size={17} aria-hidden="true"/>{name}
+      <Icon width={18} height={18} aria-hidden="true"/>{name}
       {!!counts[name] && <span className="iq-tool-count">{counts[name]}</span>}
      </button>)}
     </div>

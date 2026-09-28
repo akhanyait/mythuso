@@ -1,6 +1,7 @@
 import { ArrowRight, Ban, GraduationCap, ShieldCheck, ShieldX } from 'lucide-react';
 import { SectionTitle } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
+import { Button } from '../ui';
 import { modules, money, services } from '../lib/catalog';
 import { capabilityById, roleById } from '../lib/vetting';
 import careApi from '../../../../packages/catalog/apis/care.json' with { type: 'json' };
@@ -58,7 +59,7 @@ export function LocumShifts({ onClose }: { onClose: () => void }) {
    <span><strong>{capabilityById(grant.capability)?.name ?? grant.capability}</strong><small>{grant.refusal}</small></span>
   </div>)}</div>
   <div className="privacy-note alert"><ShieldX size={19}/>Urgency is not a reason to send somebody. A shift that nobody cleared can take stays unfilled, and the Control Tower has no override for it — which is the same rule the dispatch board is already held to, and the reason this is a register rather than a sign-up sheet.</div>
-  <button className="primary full" onClick={onClose}>Close<ArrowRight size={16}/></button>
+  <Button variant="primary" className="full" onClick={onClose} trailingIcon={<ArrowRight aria-hidden="true"/>}>Close</Button>
  </div>;
 }
 
@@ -85,6 +86,6 @@ export function Academy({ onClose }: { onClose: () => void }) {
   </dl></div>
   <div className="privacy-note"><GraduationCap size={19}/>Where a course does count towards a council’s own CPD requirement, what counts is the council’s decision and the certificate is theirs. MyThuso would record that it happened; it would not decide what it was worth.</div>
   <div className="privacy-note"><ShieldCheck size={19}/>Nothing here is accredited, and nothing on this screen has been read by an education provider or a professional council.</div>
-  <button className="primary full" onClick={onClose}>Close<ArrowRight size={16}/></button>
+  <Button variant="primary" className="full" onClick={onClose} trailingIcon={<ArrowRight aria-hidden="true"/>}>Close</Button>
  </div>;
 }

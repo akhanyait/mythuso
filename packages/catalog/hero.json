@@ -86,6 +86,32 @@
   "priceLineWhy": "Under the headline on every slide, and never rotated away. Four reviews of the public page on 26 September agreed on one thing: a stranger could read the whole first screen and not learn what this costs or who comes. {price} is a placeholder the page fills from packages/catalog/services.json — the lowest launch price — so the sentence lives here and the number lives where every other number does."
  },
 
+ "stage": {
+  "_note": "Added 28 September 2026 with the Lovable identity (packages/brand/lovable-handoff), whose hero is a stage: two slanted planes, a slant-cut portrait, a badge and a slow pulse. The figure is still the first slide's, above; what is new is the words the stage and the page around it carry, kept here beside the banner's so none of them is typed into features/Landing.tsx. Nothing below is a price, a share, a range or a refusal — those stay in their own contracts and the page reads them there.",
+  "badge": "GilbertOne, a guide on this page",
+  "badgeWhy": "The pulse beside it says that something on this page will answer, and something does: the public guide in the corner of the screen. It never says listening. The guide takes typed questions only, and a pulse beside the word listening on a page with no microphone would be a microphone indicator that lies.",
+  "guide": {
+   "title": "Ask GilbertOne",
+   "line": "GilbertOne is MyThuso’s guide. On this page it answers questions about the service, and the round button in the corner of the screen opens it."
+  },
+  "kit": {
+   "title": "What a nurse would carry",
+   "devices": [
+    { "id": "blood-pressure", "name": "Blood pressure monitor", "photo": "device-bp-monitor" },
+    { "id": "pulse-oximeter", "name": "Pulse oximeter", "photo": "device-pulse-oximeter" }
+   ],
+   "devicesWhy": "Two of the instruments in the connected kit a nurse brings, as the handoff photographed them. The sentence under them is the devices capability's own notice from packages/catalog/capabilities.json, read by the page, because the numbers on these screens are a photographer's and no instrument is paired."
+  },
+  "impact": {
+   "eyebrow": "Where it starts",
+   "title": "One city first.",
+   "coverage": "Phase one is northern Johannesburg and Soweto. Everywhere else on this map is drawn because it is there, not because anybody is working in it.",
+   "coverageWhy": "A copy of packages/catalog/geography.json's coverage.sentence, word for word, and scripts/check-boundaries.mjs fails the build the moment the two differ. It is copied rather than imported because importing the geography contract into the public page hoisted all of it — every zone, window and refusal — into a chunk both entries load, 3.8 kB gzipped for one sentence.",
+   "planNote": "Where the funding proposal plans to open, in its order. A plan, not a promise.",
+   "mapNote": "An illustration of the country. The lines are not routes and the points are not clinics.",
+   "why": "The map is the handoff's network illustration of South Africa. Under it the page reads packages/catalog/geography.json's own coverage sentence, which says exactly how little of that map is served, and the points of packages/catalog/business-model.json's trajectory by name only: no visit count, subscriber figure or revenue from it is shown."
+  }
+ },
  "_iconNote": "Names rather than glyphs. Each app already has an icon set and a way of drawing a tinted disc; naming the idea lets three platforms each draw it their own way, and stops a fourth copy of an SVG appearing in a JSON file.",
  "_tintNote": "Two tints, peach and mint, alternating between a slide's two cards. They are the brand's own, and the contrast pairs are declared in packages/design-tokens/tokens.json — the tint is a disc behind an icon and never carries a word.",
  "_orderNote": "Four slides in the order the founder numbered them, 01 to 04: what the service is, who it is for, what it adds, and who delivers it. The counter and the progress rule in the supplied art are the carousel's, and the app already draws both."

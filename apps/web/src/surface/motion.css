@@ -122,16 +122,16 @@
  min-height: 44px;
  min-width: 44px;
  padding: 0 14px;
- border: 1px solid var(--faint);
- border-radius: var(--r-pill);
- background: var(--surface);
- color: var(--charcoal);
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-md);
+ background: var(--color-surface);
+ color: var(--color-foreground);
  font-size: 13px;
  font-weight: 500;
  cursor: pointer;
  transition: background-color var(--t-quick) var(--ease-soft), border-color var(--t-quick) var(--ease-soft);
 }
-.m-pause:hover { background: var(--cloud); }
+.m-pause:hover { background: var(--color-muted); }
 .m-pause:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus), 0 0 0 6px var(--focus-edge); }
 .m-pause svg { flex-shrink: 0; }
 .m-pause span { white-space: nowrap; }
@@ -164,7 +164,7 @@
    1, written by the screen, drawn as a conic sweep masked to a ring. It rises once from empty; the end
    state is the inline value, so the share has no second copy here. */
 @property --m-share { syntax: '<number>'; inherits: false; initial-value: 0; }
-.m-ring { flex: none; width: 36px; height: 36px; border-radius: 50%; background: conic-gradient(currentColor calc(var(--m-share) * 100%), var(--studio-line) 0); mask: radial-gradient(farthest-side, transparent 70%, currentColor 72%); }
+.m-ring { flex: none; width: 36px; height: 36px; border-radius: 50%; background: conic-gradient(currentColor calc(var(--m-share) * 100%), var(--color-muted) 0); mask: radial-gradient(farthest-side, transparent 70%, currentColor 72%); }
 @keyframes m-ring-in { from { --m-share: 0; } }
 [data-motion='on'] .m-ring { animation: m-ring-in var(--t-enter) var(--ease-soft) both; }
 
@@ -176,13 +176,13 @@
    step is --m-tab, the chosen tab's index, written by PatientShell (-1 when no tab is chosen). */
 .patient-surface .tabbar::after {
  content: ''; position: absolute; top: 15px; left: 8px; width: calc((100% - 32px) / 5); height: 26px; pointer-events: none;
- background: var(--studio-lime); clip-path: inset(0 calc(50% - 22px) round var(--r-pill));
+ background: color-mix(in oklab, var(--color-accent) 16%, transparent); clip-path: inset(0 calc(50% - 22px) round var(--r-md));
  transform: translate3d(calc((100% + 4px) * var(--m-tab, 0)), 0, 0);
  transition: transform var(--t-settle) var(--ease-soft);
 }
 .patient-surface .tabbar[style*='-1']::after { opacity: 0; }
 .patient-surface .tabbar button { position: relative; z-index: 1; }
-.patient-surface .tabbar button.active .tab-icon { background: none; color: var(--brand-ink); }
+.patient-surface .tabbar button.active .tab-icon { background: none; color: var(--color-foreground); }
 
 /* ---- Removal ---------------------------------------------------------------------------------
    Not shortening. A 420ms entrance run at 80ms is still a thing that moved, and a reader who has

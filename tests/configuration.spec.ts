@@ -405,9 +405,11 @@ test('an admin narrows who may be offered an injection, Configuration says it is
 /* The founder, 28 September 2026: "there is this orange border that comes up when you click settings". A text
    field matches :focus-visible on every click, so core.css's keyboard ring — amber with a 7px halo — was drawn
    round the search field by a mouse. Inside the portal a field now wears one calm ring of brand green and no
-   halo, however it was reached; a button reached by Tab keeps the two rings, green inside the ink. The colours
-   are read from the token file, so this holds the rule rather than a hex. */
-test('a field clicked into wears one calm green ring and no halo; a button reached by Tab keeps two rings', async ({ page }) => {
+   halo, however it was reached. Since the Lovable identity of the same day a button wears the same ring: the
+   shared components draw one 2px outline in the ring colour, 2px out, on every control, and the portal's
+   buttons are those components — so the two rings a button wore until then are gone with the rest of the old
+   look. The colours are read from the token file, so this holds the rule rather than a hex. */
+test('a field clicked into wears one calm green ring and no halo; a button reached by Tab wears the same one ring', async ({ page }) => {
   const tokens = JSON.parse(readFileSync(new URL('../packages/design-tokens/tokens.json', import.meta.url), 'utf8')) as { color: Record<string, string> };
   const rgb = (hex: string) => `rgb(${[1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(', ')})`;
   const ringOf = (el: Element) => { const s = getComputedStyle(el); return { width: s.outlineWidth, style: s.outlineStyle, color: s.outlineColor, offset: s.outlineOffset, halo: s.boxShadow }; };
@@ -428,9 +430,8 @@ test('a field clicked into wears one calm green ring and no halo; a button reach
   const cancel = form.getByRole('button', { name: say.cancel });
   await expect(cancel).toBeFocused();
   const ring = await cancel.evaluate(ringOf);
-  expect(ring).toMatchObject({ width: '3px', style: 'solid', color: rgb(tokens.color.brandGreen) });
-  expect(ring.halo, 'a button reached by Tab keeps its outer ring').toContain('7px');
-  expect(ring.halo).toContain(rgb(tokens.color.focusEdge));
+  expect(ring).toMatchObject({ width: '2px', style: 'solid', color: rgb(tokens.color.brandGreen), offset: '2px' });
+  expect(ring.halo, 'a button reached by Tab wears the one ring and no halo').toBe('none');
 });
 
 /* The slider says what its value means as it moves, in the contract's words: the change it would make, asked

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CircleAlert, Clock, Radio, ShieldAlert, ShieldX } from 'lucide-react';
-import { EmptyNote, Pill } from '../components/UI';
+import { Badge, Button, Card, Field, Select, type BadgeVariant } from '../ui';
+import { OfficeNote } from '../surface/Office';
 import records from '../../../../packages/catalog/records.json' with { type: 'json' };
 import type { Refusal } from '../../../../packages/engines/src/safety/domain/rules.ts';
 import { categories, groups, rungOf, rungs, sentinelContract, sentinelRefusal, tierFour, type Report } from '../../../../packages/engines/src/safety/domain/sentinel.ts';
@@ -34,8 +35,9 @@ const fill = (sentence: string, values: Record<string, string>) => sentence.repl
 const when = (at: number) => new Date(at).toLocaleString('en-ZA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Africa/Johannesburg' });
 const measureLabel = (id: string) => records.observations.measures.find(m => m.id === id)?.label ?? id;
 const stateOf = (id: string) => baselinesSay.states.find(s => s.id === id);
-const stateTone: Record<string, string> = { forming: 'plain', formed: '', suspended: 'amber' };
-const toldTone: Record<string, string> = { 'sentinel-record': 'plain', 'nurse-queue': 'amber', 'core-loop': 'danger' };
+/* A baseline's state and a raised tier's reach are Badges in the contract's own words; the tint only repeats them. */
+const stateTone: Record<string, BadgeVariant> = { forming: 'neutral', formed: 'success', suspended: 'warning' };
+const toldTone: Record<string, BadgeVariant> = { 'sentinel-record': 'neutral', 'nurse-queue': 'warning', 'core-loop': 'danger' };
 const labelIn = (list: readonly { id: string; label: string }[], id: string) => list.find(x => x.id === id)?.label ?? id;
 
 /* The person on this screen, as the workspace signs them in: the party and the role the vetting fixtures give it. */
@@ -56,9 +58,9 @@ export function SentinelState({ workspace }: { workspace: Exclude<Workspace, 'co
  const [refused, setRefused] = useState<Refusal | null>(null);
  const [notice, setNotice] = useState('');
  const state = patient ? sentinelStateNow(patient) : null;
- if (!patient || !state) return <section className="sn-state form-stack" aria-labelledby="sn-state-heading">
-  <h2 id="sn-state-heading" className="section-title">{say.heading}</h2>
-  <EmptyNote>{sentinelRefusal('baselines', 'nothing-heard-for-that-patient').statement}</EmptyNote>
+ if (!patient || !state) return <section className="oi-section sn-state" aria-labelledby="sn-state-heading">
+  <h2 id="sn-state-heading" className="oi-section-title">{say.heading}</h2>
+  <OfficeNote icon={<Radio aria-hidden="true"/>}>{sentinelRefusal('baselines', 'nothing-heard-for-that-patient').statement}</OfficeNote>
  </section>;
  const raise = () => {
   if (!who || rung === null) return;
@@ -68,56 +70,57 @@ export function SentinelState({ workspace }: { workspace: Exclude<Workspace, 'co
   setNotice(`${fill(say.raised, { rung: String(result.value.rung), time: when(result.value.raisedAt) })} ${rungOf(result.value.rung)?.whoIsTold ?? ''}`);
   setEntry(''); setRung(null);
  };
- return <section className="sn-state form-stack" aria-labelledby="sn-state-heading">
-  <h2 id="sn-state-heading" className="section-title">{say.heading}</h2>
-  <p className="helper">{say.intro}</p>
-  <p className="sn-patient">{fill(say.patient, { patient })}</p>
-  <div className="panel sn-evaluation" role="status">
-   <Pill tone="plain">{say.evaluation}</Pill>
-   <p>{state.evaluation.sentence}</p>
-  </div>
-  <ul className="sn-baselines">{state.baselines.map(b => <li key={b.metric} className={`panel sn-baseline sn-${b.stateCode}`} aria-label={measureLabel(b.metric)}>
-   <div className="sn-baseline-head"><strong>{measureLabel(b.metric)}</strong><Pill tone={stateTone[b.stateCode]}>{stateOf(b.stateCode)?.label}</Pill></div>
-   <p>{fill(say.counted, { counted: String(b.countedSoFar), needed: String(b.neededToForm), days: String(b.windowDays) })}</p>
-   <p className="helper">{stateOf(b.stateCode)?.sentence}</p>
-   {b.suspendedSince !== null && <p className="helper sn-suspended"><Clock size={13}/><span>{fill(say.suspendedSince, { time: when(b.suspendedSince) })}</span></p>}
-   {b.leftByRecall > 0 && <p className="helper"><ShieldX size={13}/><span>{fill(say.leftByRecall, { count: String(b.leftByRecall) })}</span></p>}
-   <small>{fill(say.openedUnder, { version: String(b.settingsVersion) })}</small>
+ return <section className="oi-section sn-state" aria-labelledby="sn-state-heading">
+  <div className="oi-head"><h2 id="sn-state-heading" className="oi-section-title">{say.heading}</h2><p className="oi-lead">{say.intro}</p></div>
+  <p className="oi-subtitle sn-patient">{fill(say.patient, { patient })}</p>
+  <div className="oi-note sn-evaluation" role="status"><Radio aria-hidden="true"/><span className="oi-stack"><span><Badge>{say.evaluation}</Badge></span><span>{state.evaluation.sentence}</span></span></div>
+  <ul className="sn-baselines">{state.baselines.map(b => <li key={b.metric} className={`ui-card ui-card--default ui-card--pad-sm sn-baseline sn-${b.stateCode}`} aria-label={measureLabel(b.metric)}>
+   <div className="oi-card-head"><p className="oi-row__title">{measureLabel(b.metric)}</p><Badge variant={stateTone[b.stateCode]}>{stateOf(b.stateCode)?.label}</Badge></div>
+   <p className="sn-count">{fill(say.counted, { counted: String(b.countedSoFar), needed: String(b.neededToForm), days: String(b.windowDays) })}</p>
+   <p className="oi-help">{stateOf(b.stateCode)?.sentence}</p>
+   {b.suspendedSince !== null && <p className="oi-help oi-with-icon sn-suspended"><Clock aria-hidden="true"/><span>{fill(say.suspendedSince, { time: when(b.suspendedSince) })}</span></p>}
+   {b.leftByRecall > 0 && <p className="oi-help oi-with-icon"><ShieldX aria-hidden="true"/><span>{fill(say.leftByRecall, { count: String(b.leftByRecall) })}</span></p>}
+   <span className="oi-row__meta">{fill(say.openedUnder, { version: String(b.settingsVersion) })}</span>
   </li>)}</ul>
-  <p className="helper"><Clock size={13}/><span>{baselinesSay.suspendedMeans}</span></p>
-  <p className="helper"><ShieldX size={13}/><span>{baselinesSay.recalledMeans}</span></p>
-  <p className="helper"><Radio size={13}/><span>{fill(say.staleFrom, { interval: staleIntervalText() })}</span></p>
+  <div className="oi-stack">
+   <p className="oi-help oi-with-icon"><Clock aria-hidden="true"/><span>{baselinesSay.suspendedMeans}</span></p>
+   <p className="oi-help oi-with-icon"><ShieldX aria-hidden="true"/><span>{baselinesSay.recalledMeans}</span></p>
+   <p className="oi-help oi-with-icon"><Radio aria-hidden="true"/><span>{fill(say.staleFrom, { interval: staleIntervalText() })}</span></p>
+  </div>
 
-  {who && <form className="panel form-stack sn-raise" aria-labelledby={`sn-raise-heading-${workspace}`} onSubmit={e => { e.preventDefault(); raise(); }}>
-   <h3 id={`sn-raise-heading-${workspace}`}>{say.raiseHeading}</h3>
-   <p className="helper">{say.raiseIntro}</p>
-   <label>{say.entry}<select value={entry} onChange={e => { setEntry(e.target.value); setRefused(null); }}>
+  {who && <form className="ui-card ui-card--default ui-card--pad-md oi-card-body sn-raise" aria-labelledby={`sn-raise-heading-${workspace}`} onSubmit={e => { e.preventDefault(); raise(); }}>
+   <div className="oi-stack"><h3 id={`sn-raise-heading-${workspace}`} className="oi-subtitle">{say.raiseHeading}</h3>
+    <p className="oi-help">{say.raiseIntro}</p></div>
+   <Field label={say.entry} htmlFor={`sn-entry-${workspace}`}><Select id={`sn-entry-${workspace}`} value={entry} onChange={e => { setEntry(e.target.value); setRefused(null); }}>
     <option value="">Choose…</option>
     {entriesFor(patient).map(r => <option key={r.recordEntryRef} value={r.recordEntryRef}>{measureLabel(r.metric)} · {when(r.heardAt)}</option>)}
-   </select></label>
-   <fieldset className="sn-rungs"><legend>{say.rung}</legend>
-    {rungs.map(r => <label key={r.rung} className="sn-rung">
+   </Select></Field>
+   <fieldset className="oi-choices sn-rungs"><legend>{say.rung}</legend>
+    {rungs.map(r => <label key={r.rung} className="oi-radio sn-rung">
      <input type="radio" name={`sn-rung-${workspace}`} checked={rung === r.rung} onChange={() => { setRung(r.rung); setRefused(null); }}/>
      <span><strong>{r.label}</strong><small>{r.whoIsTold}</small></span>
     </label>)}
    </fieldset>
-   <button className="primary" disabled={!entry || rung === null}>{say.raise}</button>
-   {refused && <div className="privacy-note alert" role="alert"><ShieldX size={19}/>{refused.statement}</div>}
-   <p className="helper" role="status">{notice}</p>
+   <div className="oi-actions"><Button type="submit" variant="primary" disabled={!entry || rung === null}>{say.raise}</Button></div>
+   {refused && <OfficeNote refusal role="alert" icon={<ShieldX aria-hidden="true"/>}>{refused.statement}</OfficeNote>}
+   <p className="oi-help" role="status">{notice}</p>
   </form>}
 
-  <div className="panel sn-refused-tier" role="note" aria-labelledby={`sn-refused-tier-${workspace}`}>
-   <h3 id={`sn-refused-tier-${workspace}`}>{say.tierFourHeading}</h3>
-   <p>{sentinelRefusal('raise', tierFour.refusal).statement}</p>
-   <ul>{tierFour.needs.map(n => <li key={n.id}>{n.sentence}</li>)}</ul>
+  <div className="oi-note oi-note--refusal sn-refused-tier" role="note" aria-labelledby={`sn-refused-tier-${workspace}`}>
+   <ShieldX aria-hidden="true"/>
+   <div className="oi-stack">
+    <h3 id={`sn-refused-tier-${workspace}`} className="oi-subtitle">{say.tierFourHeading}</h3>
+    <p>{sentinelRefusal('raise', tierFour.refusal).statement}</p>
+    <ul>{tierFour.needs.map(n => <li key={n.id}>{n.sentence}</li>)}</ul>
+   </div>
   </div>
 
-  <h3>{say.raisedList}</h3>
-  {state.raised.length ? <ul className="sn-raised">{state.raised.map(d => <li key={d.deviationRef}>
-   <Pill tone={toldTone[d.toldCode]}>{rungOf(d.rung)?.label}</Pill>
-   <span>{fill(say.raised, { rung: String(d.rung), time: when(d.raisedAt) })} {rungOf(d.rung)?.whoIsTold}</span>
-  </li>)}</ul> : <EmptyNote>{say.noneRaised}</EmptyNote>}
-  <p className="helper"><Radio size={13}/><span>{sentinelContract.screens.preview}</span></p>
+  <h3 className="oi-subtitle">{say.raisedList}</h3>
+  {state.raised.length ? <Card><ul className="oi-rows sn-raised">{state.raised.map(d => <li key={d.deviationRef}><div className="oi-row">
+   <div className="oi-row__body"><span className="oi-row__meta">{fill(say.raised, { rung: String(d.rung), time: when(d.raisedAt) })} {rungOf(d.rung)?.whoIsTold}</span></div>
+   <div className="oi-row__aside"><Badge variant={toldTone[d.toldCode]}>{rungOf(d.rung)?.label}</Badge></div>
+  </div></li>)}</ul></Card> : <OfficeNote icon={<Radio aria-hidden="true"/>}>{say.noneRaised}</OfficeNote>}
+  <p className="oi-help oi-with-icon"><Radio aria-hidden="true"/><span>{sentinelContract.screens.preview}</span></p>
  </section>;
 }
 
@@ -139,29 +142,30 @@ export function SafeguardingReport({ workspace }: { workspace: Workspace }) {
   setRefused(null); setRecorded(result.value); setGroup(''); setCategory('');
  };
  const heading = `sg-report-heading-${workspace}`;
- return <section className="sg-report form-stack" aria-labelledby={heading}>
-  <h2 id={heading} className="section-title">{report.heading}</h2>
-  <p className="helper">{report.intro}</p>
-  <p className="sn-patient">{fill(report.patient, { patient })}</p>
-  <form className="panel form-stack" onSubmit={e => { e.preventDefault(); record(); }}>
-   <label>{report.group}<select value={group} onChange={e => setGroup(e.target.value)}>
-    <option value="">Choose…</option>{groups.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
-   </select></label>
-   <label>{report.category}<select value={category} onChange={e => setCategory(e.target.value)}>
-    <option value="">Choose…</option>{categories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-   </select></label>
-   <p className="helper">{safeguarding.categoryIsProtected}</p>
-   <p className="helper">{safeguarding.noNarrative}</p>
-   <button className="primary">{report.record}</button>
+ return <section className="oi-section sg-report" aria-labelledby={heading}>
+  <div className="oi-head"><h2 id={heading} className="oi-section-title">{report.heading}</h2><p className="oi-lead">{report.intro}</p></div>
+  <p className="oi-subtitle sn-patient">{fill(report.patient, { patient })}</p>
+  <form className="ui-card ui-card--default ui-card--pad-md oi-card-body" onSubmit={e => { e.preventDefault(); record(); }}>
+   <div className="oi-form-row">
+    <Field label={report.group} htmlFor={`${heading}-group`}><Select id={`${heading}-group`} value={group} onChange={e => setGroup(e.target.value)}>
+     <option value="">Choose…</option>{groups.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
+    </Select></Field>
+    <Field label={report.category} htmlFor={`${heading}-category`}><Select id={`${heading}-category`} value={category} onChange={e => setCategory(e.target.value)}>
+     <option value="">Choose…</option>{categories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+    </Select></Field>
+   </div>
+   <p className="oi-help">{safeguarding.categoryIsProtected}</p>
+   <p className="oi-help">{safeguarding.noNarrative}</p>
+   <div className="oi-actions"><Button type="submit" variant="primary">{report.record}</Button></div>
   </form>
-  {refused && <div className="privacy-note alert" role="alert"><ShieldX size={19}/>{refused.statement}</div>}
-  {recorded && <div className="panel form-stack sg-recorded" role="status">
-   <p><strong>{fill(report.recorded, { time: when(recorded.recordedAt) })}</strong></p>
-   <p className="sg-not-sent"><ShieldAlert size={15}/><span>{safeguarding.statutory.notSent}</span></p>
+  {refused && <OfficeNote refusal role="alert" icon={<ShieldX aria-hidden="true"/>}>{refused.statement}</OfficeNote>}
+  {recorded && <div className="ui-card ui-card--default ui-card--pad-md oi-card-body sg-recorded" role="status">
+   <p className="oi-subtitle">{fill(report.recorded, { time: when(recorded.recordedAt) })}</p>
+   <p className="oi-with-icon sg-not-sent"><ShieldAlert aria-hidden="true"/><span>{safeguarding.statutory.notSent}</span></p>
    <p>{safeguarding.statutory.mayApply.find(m => m.group === recorded.groupCode)?.sentence}</p>
    <p>{safeguarding.officer.heldFor}</p>
-   <p className="helper">{safeguarding.neverAutoCloses}</p>
-   <p className="helper">{safeguarding.reporterNeverShown}</p>
+   <p className="oi-help">{safeguarding.neverAutoCloses}</p>
+   <p className="oi-help">{safeguarding.reporterNeverShown}</p>
   </div>}
  </section>;
 }
@@ -171,21 +175,19 @@ export function SafeguardingReport({ workspace }: { workspace: Workspace }) {
 export function SafeguardingDesk() {
  useSentinel();
  const rows = safeguardingRowsNow();
- return <section className="sg-desk" aria-labelledby="sg-desk-title">
-  <div className="fs-desk-head">
-   <h2 id="sg-desk-title">{desk.heading}</h2>
-   <p>{desk.intro}</p>
-  </div>
-  {rows.length === 0 ? <p className="fs-desk-empty">{desk.empty}</p> : <ol className="sg-desk-list">{rows.map(row => <li key={row.reportRef} className="sg-desk-row">
-   <div className="fs-row-line">
-    <span className="fs-row-kind"><CircleAlert size={13} aria-hidden="true"/>{labelIn(safeguarding.states, row.stateCode)}</span>
-    <span className="fs-row-ref">{row.reportRef}</span>
-    <span className="fs-row-who"><strong>{labelIn(groups, row.groupCode)}</strong><small>{fill(desk.recordedAgo, { age: String(row.ageMinutes) })}</small></span>
-   </div>
-   <p className="fs-row-note">{safeguarding.officer.heldFor}</p>
-   <p className="fs-row-note sg-not-sent">{safeguarding.statutory.notSent}</p>
-  </li>)}</ol>}
-  <p className="helper">{safeguarding.guardian}</p>
-  <p className="helper"><Radio size={13}/><span>{sentinelContract.screens.preview}</span></p>
+ return <section className="oi-section sg-desk" aria-labelledby="sg-desk-title">
+  <div className="oi-head"><h2 id="sg-desk-title" className="oi-section-title">{desk.heading}</h2><p className="oi-lead">{desk.intro}</p></div>
+  {rows.length === 0 ? <OfficeNote icon={<CircleAlert aria-hidden="true"/>} role="status">{desk.empty}</OfficeNote>
+   : <Card><ol className="oi-rows sg-desk-list">{rows.map(row => <li key={row.reportRef} className="sg-desk-row"><div className="oi-row">
+    <div className="oi-row__body">
+     <span className="sos-row-line"><Badge variant="warning">{labelIn(safeguarding.states, row.stateCode)}</Badge><span className="oi-row__meta">{row.reportRef}</span></span>
+     <p className="oi-row__title">{labelIn(groups, row.groupCode)}</p>
+     <span className="oi-row__meta">{safeguarding.officer.heldFor}</span>
+     <span className="oi-row__meta oi-row__meta--refusal sg-not-sent">{safeguarding.statutory.notSent}</span>
+    </div>
+    <div className="oi-row__aside"><span className="oi-row__figure oi-row__meta">{fill(desk.recordedAgo, { age: String(row.ageMinutes) })}</span></div>
+   </div></li>)}</ol></Card>}
+  <p className="oi-help">{safeguarding.guardian}</p>
+  <p className="oi-help oi-with-icon"><Radio aria-hidden="true"/><span>{sentinelContract.screens.preview}</span></p>
  </section>;
 }

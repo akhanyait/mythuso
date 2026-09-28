@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ArrowRight, Ban, CalendarClock, CircleAlert, Ear, Info, Lock, Pill as PillIcon, Repeat, ShieldX, Signature, Stethoscope } from 'lucide-react';
+import { Button } from '../ui';
 import { EmptyNote, Pill, SectionTitle } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import {
@@ -226,7 +227,7 @@ export function Dispensing() {
 
    <div className="review-line"><span>Last collected</span><strong>{formatDay(lastCollectedOn)}</strong></div>
    <div className="review-line"><span>Next collection due</span><strong>{formatDay(nextCollectionOn)}</strong></div>
-   <button className="primary" disabled={!open} onClick={() => setCollectTried(true)}>Collect a repeat<ArrowRight size={16}/></button>
+   <Button variant="primary" disabled={!open} onClick={() => setCollectTried(true)} trailingIcon={<ArrowRight aria-hidden="true"/>}>Collect a repeat</Button>
    {collectTried ? <div className={collection.allowed ? 'privacy-note' : 'privacy-note alert'} role="status">
     <CalendarClock size={19}/>{collection.reason}
    </div> : null}

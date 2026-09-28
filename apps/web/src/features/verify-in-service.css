@@ -1,24 +1,39 @@
 /* Verify in service: the patient's door check, her complaint, the reviewer's queue, the desk's board of shift
-   starts and the nurse's door code. Loaded with the screens, never on the patient's first view. */
-.vis-door { display: flex; flex-direction: column; gap: 14px; }
-.vis-expected { display: flex; align-items: center; gap: 12px; }
+   starts and the nurse's door code. Loaded with the screens, never on the patient's first view.
+
+   On the tokens since wave 4b (28 September 2026). This sheet typed its own gaps in pixels, set the facts'
+   labels at 12px — under the product's floor of 13 — and the door code at 34, which the type scale does not
+   have. Every gap is a space token now, the labels are 13, the code is 36, and a refusal is white with the
+   danger ink's edge and glyph rather than words set on a pink tint. The layout of every screen is unchanged. */
+.vis-door { display: flex; flex-direction: column; gap: var(--space-12); }
+.vis-expected { display: flex; align-items: center; gap: var(--space-12); }
 .vis-expected div { display: flex; flex-direction: column; }
-.vis-expected small { color: var(--faint); }
-.vis-code { display: flex; flex-direction: column; gap: 10px; max-width: 380px; }
+.vis-expected small { color: var(--color-muted-foreground); }
+.vis-code { display: flex; flex-direction: column; gap: var(--space-8); max-width: 380px; }
 .vis-code .code-input input { letter-spacing: 0.3em; }
-.vis-refusal, .vis-alarm { display: flex; flex-direction: column; gap: 6px; color: var(--danger); background: var(--danger-soft); border-radius: var(--r-control); padding: 12px 14px; margin: 0; }
-.vis-refusal { flex-direction: row; align-items: flex-start; gap: 8px; }
-.vis-alarm p { display: flex; gap: 8px; margin: 0; font-weight: 600; }
-.vis-ok { display: flex; gap: 8px; align-items: flex-start; margin: 0; }
-.vis-matched { display: flex; flex-direction: column; gap: 10px; }
-.vis-matched p { display: flex; gap: 8px; margin: 0; }
-.vis-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 0; }
+.vis-refusal, .vis-alarm { display: flex; flex-direction: column; gap: var(--space-4); margin: 0; padding: var(--space-12) var(--space-16); border: 1px solid color-mix(in oklab, var(--color-danger) 35%, var(--color-border)); border-left: 3px solid var(--danger); border-radius: var(--r-md); background: var(--color-surface); color: var(--color-foreground); }
+.vis-refusal { flex-direction: row; align-items: flex-start; gap: var(--space-8); }
+.vis-refusal > svg, .vis-alarm svg { flex: none; color: var(--danger); margin-top: 2px; }
+.vis-alarm p { display: flex; gap: var(--space-8); margin: 0; font-weight: 600; }
+.vis-ok { display: flex; gap: var(--space-8); align-items: flex-start; margin: 0; }
+.vis-matched { display: flex; flex-direction: column; gap: var(--space-8); }
+.vis-matched p { display: flex; gap: var(--space-8); margin: 0; }
+.vis-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-8); margin: 0; }
 .vis-facts div { display: flex; flex-direction: column; }
-.vis-facts dt { font-size: 12px; color: var(--faint); }
+.vis-facts dt { font-size: 13px; color: var(--color-muted-foreground); }
 .vis-facts dd { margin: 0; font-weight: 600; }
-.danger-outline { border: 2px solid var(--danger); color: var(--danger); background: var(--surface); border-radius: var(--r-control); min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; }
-.vis-queue, .vis-board, .vis-nurse-code, .vis-notices, .vis-complaint { display: flex; flex-direction: column; gap: 10px; }
-.vis-row { display: flex; flex-direction: column; gap: 8px; }
+.danger-outline { border: 2px solid var(--danger); color: var(--danger); background: var(--color-surface); border-radius: var(--r-md); min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: var(--space-8); font-weight: 600; }
+.vis-queue, .vis-board, .vis-notices, .vis-complaint { display: flex; flex-direction: column; gap: var(--space-8); }
+.vis-row { display: flex; flex-direction: column; gap: var(--space-8); }
 .vis-age { font-variant-numeric: tabular-nums; }
-.vis-detail blockquote { margin: 0; padding: 10px 14px; border-left: 3px solid var(--line); color: var(--ink); }
-.vis-digits { font-size: 34px; font-weight: 700; letter-spacing: 0.25em; font-variant-numeric: tabular-nums; }
+.vis-detail blockquote { margin: 0; padding: var(--space-8) var(--space-12); border-left: 3px solid var(--color-border); color: var(--color-foreground); }
+
+/* ---- The nurse's door code, on her day ------------------------------------------------------------ */
+.vis-nurse-code { display: grid; gap: var(--space-12); margin: var(--space-16) 0; min-width: 0; }
+.vis-nurse-head { display: flex; align-items: flex-start; gap: var(--space-12); }
+.vis-nurse-head h2 { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--color-foreground); }
+.vis-nurse-head p { margin: var(--space-4) 0 0; font-size: 14px; line-height: 1.5; color: var(--color-muted-foreground); }
+.vis-initials { display: inline-grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: var(--r-pill); background: var(--color-muted); color: var(--color-primary); font-size: 14px; font-weight: 600; }
+.vis-shown { display: grid; gap: var(--space-4); padding: var(--space-12) var(--space-16); border-radius: var(--r-md); background: var(--color-surface-raised); }
+.vis-digits { font-family: var(--font-display); font-size: 36px; font-weight: 600; letter-spacing: 0.25em; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.vis-nurse-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); justify-content: flex-start; }

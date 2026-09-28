@@ -535,7 +535,7 @@ if (!rosterParticipants.has(signLanguage.teleconsult.participantId))
     `The sign-language accommodation points at a call participant "${signLanguage.teleconsult.participantId}" that the teleconsultation roster does not have. An interpreter added by a second mechanism is an interpreter nobody consented to.`,
   );
 for (const file of [
-  "apps/web/src/features/Access.tsx",
+  "apps/web/src/features/AccessPage.tsx",
   "apps/web/src/App.tsx",
 ]) {
   if (!read(file).includes("signLanguage"))
@@ -543,7 +543,7 @@ for (const file of [
       `${file} no longer reads the sign-language accommodation from the contract`,
     );
 }
-if (!read("apps/web/src/features/Access.tsx").includes("mustNeverHappen"))
+if (!read("apps/web/src/features/AccessPage.tsx").includes("mustNeverHappen"))
   throw new Error(
     "The accessibility screen no longer renders what must never happen to a Deaf patient. Those six sentences are the accommodation; the rest is arrangements.",
   );
@@ -746,7 +746,7 @@ const clinicalSources = {
    registration number there is the one place a preview should not be fictional twice over. */
 const attributionSources = {
   ...clinicalSources,
-  "web orders": "apps/web/src/features/Orders.tsx",
+  "web orders": "apps/web/src/features/OrderDetails.tsx",
   "ios orders": "apps/ios/MyThuso/Features/OrdersView.swift",
   "android orders":
     "apps/android/app/src/main/java/za/co/mythuso/ui/OrderScreens.kt",
@@ -11455,7 +11455,7 @@ for (const [platform, file] of Object.entries(dispensingScreens)) {
    authorisation were not modelled. They are, and the sentence that replaced it lives in one place
    rather than three, because three copies of it is exactly what went stale the first time. */
 const orderScreens = {
-  "apps/web/src/features/Orders.tsx": "crossReference",
+  "apps/web/src/features/OrderDetails.tsx": "crossReference",
   "apps/ios/MyThuso/Features/OrdersView.swift": "Dispensing.crossReference",
   "apps/android/app/src/main/java/za/co/mythuso/ui/OrderScreens.kt":
     "dispensingCrossReference",
@@ -13568,7 +13568,7 @@ if (!/reason = state === 'stood-down'/.test(emergencySimulator))
    is real, not whether anything is behind it. */
 const SIMULATED_SURFACES = [
   ["apps/web/src/features/Dispensing.tsx", '<NotConnected of="dispensing"'],
-  ["apps/web/src/features/Orders.tsx", '<NotConnected of="dispensing"'],
+  ["apps/web/src/features/OrderDetails.tsx", '<NotConnected of="dispensing"'],
   ["apps/web/src/features/Interpreting.tsx", '<NotConnected of="interpreting"'],
   ["apps/web/src/features/Booking.tsx", '<NotConnected of="interpreting"'],
   ["apps/web/src/features/Teleconsult.tsx", '<NotConnected of="interpreting"'],
@@ -26482,6 +26482,7 @@ console.log(
     "apps/web/src/lib/devices.ts",
     "apps/web/src/features/Kit.tsx",
     "apps/web/src/features/Passport.tsx",
+    "apps/web/src/features/PassportScreens.tsx",
     "apps/ios/MyThuso/Features/DevicesView.swift",
     "apps/ios/MyThuso/Models/Devices.swift",
     "apps/ios/MyThuso/Features/KitView.swift",
@@ -26518,6 +26519,7 @@ console.log(
     "apps/web/src/shells/PatientShell.tsx",
     "apps/web/src/features/Kit.tsx",
     "apps/web/src/features/Passport.tsx",
+    "apps/web/src/features/PassportScreens.tsx",
   ]) {
     if (
       existsSync(f) &&
@@ -35755,13 +35757,13 @@ console.log(
   const app = read("apps/web/src/App.tsx");
   if (!/const CareTipsPage = lazy\(\(\) => import\('\.\/features\/CareTips'\)/.test(app) || /^import [^;]*from '\.\/features\/CareTips'/m.test(app))
     ctFail("apps/web/src/App.tsx no longer loads the care tips on a dynamic import. A patient on metered data does not download a screen she has not opened.");
-  for (const entry of ["apps/web/src/App.tsx", "apps/web/src/features/VisitSummary.tsx"])
+  for (const entry of ["apps/web/src/App.tsx", "apps/web/src/features/VisitSummary.tsx", "apps/web/src/features/VisitSummaryScreens.tsx"])
     if (/^import [^;]*from '[^']*(packages\/catalog\/care-tips\.json|lib\/care-tips'|features\/CareTips(Door)?')/m.test(read(entry)))
       ctFail(`${entry} imports the care tips, their door or their contract statically. Each is on the patient's first load, and a JSON module imported there is kept whole in the entry bundle, every tip with it; the router reads care-tips-route.generated.ts and the rest arrives on dynamic imports.`);
   if (!/import \{ careTipsRoute \} from '\.\/lib\/care-tips-route\.generated'/.test(app))
     ctFail("apps/web/src/App.tsx no longer reads the route's name from care-tips-route.generated.ts, which is generated from the contract.");
-  if (!/const CareTipsDoor = lazy\(\(\) => import\('\.\/CareTips'\)\.then\(m => \(\{ default: m\.CareTipsDoor \}\)\)\)/.test(read("apps/web/src/features/VisitSummary.tsx")))
-    ctFail("A completed visit no longer loads the care tips' door on a dynamic import (apps/web/src/features/VisitSummary.tsx), or no longer has one.");
+  if (!/const CareTipsDoor = lazy\(\(\) => import\('\.\/CareTips'\)\.then\(m => \(\{ default: m\.CareTipsDoor \}\)\)\)/.test(read("apps/web/src/features/VisitSummaryScreens.tsx")))
+    ctFail("A completed visit no longer loads the care tips' door on a dynamic import (apps/web/src/features/VisitSummaryScreens.tsx), or no longer has one.");
   if (!/page === careTipsRoute\.opens \?/.test(app) || !/\[\.\.\.patientSections, careTipsRoute\.opens(?:, [^\]]+)?\]/.test(app))
     ctFail("apps/web/src/App.tsx no longer routes the care tips by the contract's own name, or ?open=care-tips no longer opens them.");
   if (!/export function CareTipsDoor[\s\S]*navigate\(careTipsRoute\.opens\)/.test(read("apps/web/src/features/CareTips.tsx")))
@@ -36276,7 +36278,7 @@ console.log(
   const parts = uncommented(read(osp.parts));
   if (!/export function PageHead\(/.test(parts) || !/className=\{`pt-head \$\{className\}`\}/.test(parts))
     throw new Error(`${osp.parts} no longer exports the one head every Control Tower screen wears.`);
-  if (!/<section className="pt-region pt-section"/.test(parts))
+  if (!/<Card role="region" aria-labelledby=\{id\} padding="md" className="pt-region pt-section">/.test(parts))
     throw new Error(`${osp.parts}'s Region is no longer the settings page's section card.`);
   for (const f of [osp.frame, osp.door])
     if (!/<PageHead\b/.test(uncommented(read(f))))
@@ -36829,7 +36831,16 @@ console.log(
   const appCode = uncommented(read("apps/web/src/App.tsx"));
   if (!/const UiGallery = import\.meta\.env\.DEV \? lazy\(\(\) => import\('\.\/features\/UiGallery'\)/.test(appCode))
     uiFail("apps/web/src/App.tsx no longer reaches the component gallery behind import.meta.env.DEV and a dynamic import.");
-  const adopters = ["apps/web/src/features/UiGallery.tsx", "apps/web/src/features/portal/Fields.tsx"];
+  const adopters = ["apps/web/src/features/UiGallery.tsx", "apps/web/src/features/portal/Fields.tsx", "apps/web/src/features/Assistant.tsx", "apps/web/src/features/GilbertOneServices.tsx", "apps/web/src/features/PublicAssistant.tsx", "apps/web/src/components/AssistantVoiceButton.tsx", "apps/web/src/features/Dashboard.tsx", "apps/web/src/features/Booking.tsx", "apps/web/src/features/Medicines.tsx", "apps/web/src/shells/PatientShell.tsx", "apps/web/src/shells/StaffShell.tsx", "apps/web/src/shells/AdminShell.tsx", "apps/web/src/shells/PortalShell.tsx", "apps/web/src/surface/Office.tsx", "apps/web/src/features/Admin.tsx", "apps/web/src/features/Dispatch.tsx", "apps/web/src/features/Vetting.tsx", "apps/web/src/features/AuditExports.tsx", "apps/web/src/features/Claims.tsx", "apps/web/src/features/Groups.tsx", "apps/web/src/features/Sponsor.tsx", "apps/web/src/features/OrderDetails.tsx", "apps/web/src/features/SosDesk.tsx", "apps/web/src/features/SosPress.tsx", "apps/web/src/features/UssdSimulator.tsx", "apps/web/src/features/GovernanceReadiness.tsx", "apps/web/src/features/Sentinel.tsx", "apps/web/src/features/AccessPage.tsx",
+    /* Wave 4c, the doctor's workspace on the identity: every one behind the staff shell's dynamic import. */
+    "apps/web/src/features/ClinicalDeck.tsx", "apps/web/src/features/ClinicalIntelligence.tsx", "apps/web/src/features/ClinicalWorkbench.tsx", "apps/web/src/features/Consultation.tsx", "apps/web/src/features/Teleconsult.tsx", "apps/web/src/features/Clinical.tsx", "apps/web/src/features/SettingReviews.tsx", "apps/web/src/features/DoctorFees.tsx", "apps/web/src/features/ConcernBoard.tsx", "apps/web/src/features/Hl7Results.tsx",
+    /* Wave 4e, the Control Tower on the identity: every one behind the portal's dynamic import (the engine-settings
+       screen also behind the clinical workspace's and the legacy back office's), and the founder's door behind it. */
+    "apps/web/src/features/Configuration.tsx", "apps/web/src/features/portal/Configuration.tsx", "apps/web/src/features/portal/DispatchDemo.tsx", "apps/web/src/features/portal/FounderDemo.tsx", "apps/web/src/features/portal/Frame.tsx", "apps/web/src/features/portal/Modals.tsx", "apps/web/src/features/portal/Operations.tsx", "apps/web/src/features/portal/Overview.tsx", "apps/web/src/features/portal/Parts.tsx", "apps/web/src/features/portal/gilbertone/Controls.tsx", "apps/web/src/features/portal/gilbertone/Intelligence.tsx", "apps/web/src/features/portal/gilbertone/Knowledge.tsx", "apps/web/src/features/portal/gilbertone/SpeechSettings.tsx", "apps/web/src/features/portal/gilbertone/founder/FounderAccess.tsx", "apps/web/src/features/portal/gilbertone/founder/FounderActions.tsx", "apps/web/src/shells/FounderGate.tsx",
+    /* Wave 4b, the nurse's screens on the identity: every one behind the staff shell's dynamic import, or behind a
+       dynamic import of its own (KitDeck and Devices from Thuso Kit, DeviceLab from the Control Tower, VerifyInService
+       from the arrival and the day). Kit.tsx and KitCapture.tsx are on the patient's entry and import none of it. */
+    "apps/web/src/features/VisitQueue.tsx", "apps/web/src/features/KitDeck.tsx", "apps/web/src/features/CareVisit.tsx", "apps/web/src/features/FieldSafety.tsx", "apps/web/src/features/Devices.tsx", "apps/web/src/features/DeviceLab.tsx", "apps/web/src/features/Earnings.tsx", "apps/web/src/features/VerifyInService.tsx", "apps/web/src/features/NurseTools.tsx", "apps/web/src/features/Dispensing.tsx"];
   for (const f of files("apps/web/src").filter((f) => /\.tsx?$/.test(f) && !f.startsWith(`${uiDir}/`) && !adopters.includes(f))) {
     const code = uncommented(read(f));
     if (/from\s+['"][./]*(?:\.\.\/)*ui(?:\/(?!icons\/)[\w]+)?['"]/.test(code) || /features\/UiGallery/.test(code) && f !== "apps/web/src/App.tsx")
@@ -36839,4 +36850,739 @@ console.log(
   console.log(
     `The shared components · ${uiSheets.length} sheets under ${uiDir} with no colour literal, typed radius, shadow or duration, every size on the type scale; ${catalogue.components.length - Object.keys(notRebuilt).length} of the catalogue's ${catalogue.components.length} components in the barrel (${Object.keys(notRebuilt).join(", ")} not rebuilt, with its reason); ${Object.keys(nativeOf).length} interactive components on their native element and no press on a div; IconButton named and Field wired by id; ${uiPairs} colour uses measured across two themes, none on a parked pair; the gallery behind the development flag and ${adopters.length} importers.`,
   );
+}
+
+/* Wave 3b — GilbertOne on the identity */
+/* 28 September 2026. The Lovable handoff's official GilbertOne logo — the seated character above the
+   name — replaces the five SVG cuts drawn that morning, and the rig is recoloured to the same
+   character. What is held here is what would let either drift back without anybody deciding it should:
+
+   1. The logo is the master, resized whole. Two WebP derivatives of the handoff's PNG, each under the
+      150 kB the brief allows, each at the master's own 1448:1086 — a derivative at any other ratio has
+      been cropped, and a crop is the one thing the handoff forbids besides recolouring. The master itself
+      is never served, and the retired SVG cuts stay retired.
+   2. Wherever the logo stands, the descriptor stands beside it: the name and its correction are read
+      together, on the consent card, the welcome, the signed-out sheet and the services region.
+   3. The rig is the official character by token: every part of the palette a class in
+      gilbert-avatar.css reading a token, no colour typed into the drawing, and no lettering on the head.
+   4. The panel and the sheet stay on the identity: no colour literal and no corner rounder than the
+      tokens' 12 in the four stylesheets this wave moved onto them.
+   5. The handoff's animated PNG component is not adopted: the rig is the in-product form. */
+{
+  const w3Fail = (m) => { throw new Error(`GilbertOne on the identity: ${m}`); };
+  const master = "packages/brand/lovable-handoff/handoff/src/assets/logos/gilbert-one-logo.png";
+  const masterBytes = readFileSync(master);
+  const [mw, mh] = [masterBytes.readUInt32BE(16), masterBytes.readUInt32BE(20)];
+  /* The canvas size from a WebP's own header, VP8X (extended, which alpha needs) or VP8L. */
+  const webpSize = (buf) => {
+    if (buf.toString("ascii", 0, 4) !== "RIFF" || buf.toString("ascii", 8, 12) !== "WEBP") return null;
+    const chunk = buf.toString("ascii", 12, 16);
+    if (chunk === "VP8X") return [1 + buf.readUIntLE(24, 3), 1 + buf.readUIntLE(27, 3)];
+    if (chunk === "VP8L") { const b = buf.readUInt32LE(21); return [1 + (b & 0x3fff), 1 + ((b >> 14) & 0x3fff)]; }
+    return null;
+  };
+  const logoDir = "apps/web/public/lovable/gilbertone";
+  const derivatives = existsSync(logoDir) ? readdirSync(logoDir).filter((f) => /^gilbertone-logo-\d+\.webp$/.test(f)) : [];
+  if (derivatives.length < 2) w3Fail(`${logoDir} should hold the logo's two WebP derivatives (a 1x and a 2x); it holds ${derivatives.length}.`);
+  for (const f of derivatives) {
+    const buf = readFileSync(join(logoDir, f));
+    const size = webpSize(buf);
+    if (!size) w3Fail(`${logoDir}/${f} is not a WebP this check can read.`);
+    if (buf.length > 150 * 1024) w3Fail(`${logoDir}/${f} is ${Math.round(buf.length / 1024)} kB; a logo derivative is at most 150 kB.`);
+    if (size[0] !== Number(f.match(/(\d+)\.webp$/)[1])) w3Fail(`${logoDir}/${f} is ${size[0]} wide, not the width its name says.`);
+    if (Math.abs(size[0] * mh - size[1] * mw) > mw) w3Fail(`${logoDir}/${f} is ${size.join("×")}, not the master's ${mw}:${mh}. A derivative at another ratio has been cropped or stretched, and the official logo is resized whole or not at all.`);
+  }
+  for (const f of files("apps/web/public"))
+    if (/gilbert-one-logo\.png$|gilbertone-(logo|mark|icon)[\w-]*\.svg$/.test(f))
+      w3Fail(`${f} is served. The logo's master is never served, and the SVG cuts of the morning of 28 September are retired: the official logo is the WebP derivatives.`);
+  for (const f of files("apps/web/src").filter((f) => /\.(tsx?|css)$/.test(f)))
+    if (/brand\/gilbertone-(logo|mark|icon)/.test(read(f))) w3Fail(`${f} still points at a retired GilbertOne SVG cut.`);
+
+  /* 2. */
+  const avatarFile = "apps/web/src/features/GilbertAvatar.tsx";
+  const avatar = read(avatarFile);
+  if (!/export function GilbertOneLogo\(/.test(avatar) || !/gilbertone-logo-320\.webp 320w, \$\{LOGO\}-640\.webp 640w|\$\{LOGO\}-320\.webp 320w, \$\{LOGO\}-640\.webp 640w/.test(avatar))
+    w3Fail(`${avatarFile} no longer draws the official logo from its two derivatives.`);
+  for (const [file, times] of [["apps/web/src/features/Assistant.tsx", 2], ["apps/web/src/features/PublicAssistant.tsx", 1], ["apps/web/src/features/GilbertOneServices.tsx", 1]]) {
+    const code = uncommented(read(file));
+    const logos = (code.match(/<GilbertOneLogo\b/g) ?? []).length;
+    if (logos < times) w3Fail(`${file} draws the official GilbertOne logo ${logos} time(s), not the ${times} this wave put there.`);
+    if (!/identity\.descriptorLine/.test(code)) w3Fail(`${file} shows the GilbertOne logo without identity.descriptorLine beside it. The name and its correction are read together.`);
+    if (/GilbertOneWordmark|G1Mark/.test(code)) w3Fail(`${file} draws a GilbertOne mark other than the official logo.`);
+  }
+
+  /* 3. */
+  const rigCss = read("apps/web/src/features/gilbert-avatar.css");
+  const drawing = avatar.slice(avatar.indexOf("export function GilbertAvatar("));
+  if (/#[0-9a-fA-F]{3,8}\b/.test(rigCss.replace(/\/\*[\s\S]*?\*\//g, "")) || /#[0-9a-fA-F]{3,8}\b|fill:\s*["'`]|\bfill=["'][^"'u]/.test(drawing))
+    w3Fail("the rig types a colour. Every part of the character reads a token through gilbert-avatar.css.");
+  if (/<text\b/.test(drawing)) w3Fail(`${avatarFile} prints lettering on the rig's head. The name belongs to the logo beside it.`);
+  for (const [part, token] of [["go-helmet", "--mist"], ["go-plate", "--brand-ink"], ["go-lid", "--brand-ink"], ["go-eye", "--brand-cyan"], ["go-ear", "--brand-green"], ["go-antenna-ball", "--brand-lime"], ["go-antenna-stem", "--brand-ink"]]) {
+    const painted = [...rigCss.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^}]*)\}/g)]
+      .some(([, sel, body]) => sel.split(",").some((s) => s.trim() === `.${part}`) && new RegExp(`fill:\\s*var\\(${token}\\)`).test(body));
+    if (!painted) w3Fail(`gilbert-avatar.css no longer paints .${part} with ${token}, the official character's colour for it.`);
+    if (!new RegExp(`className="${part}"|className="go-eye`).test(avatar)) w3Fail(`${avatarFile} no longer draws .${part}.`);
+  }
+  if (tokens.color.brandCyan !== "#51F3FC" || !tokens.colorGenerations.current.includes("brandCyan"))
+    w3Fail("tokens.json no longer carries brandCyan #51F3FC as a current colour — the character's eyes, sampled from the logo master.");
+
+  /* 4. */
+  for (const sheet of ["apps/web/src/features/assistant.css", "apps/web/src/features/gilbertone-theme.css", "apps/web/src/features/public-assistant.css", "apps/web/src/features/gilbert-avatar.css"]) {
+    const css = read(sheet).replace(/\/\*[\s\S]*?\*\//g, "");
+    const hex = css.match(/#[0-9a-fA-F]{3,8}\b/);
+    if (hex) w3Fail(`${sheet} types ${hex[0]}. The panel and the sheet read tokens.`);
+    const round = [...css.matchAll(/border-radius:\s*([^;]+);/g)].flatMap(([, v]) => v.match(/\d+(?:\.\d+)?px/g) ?? []).find((px) => parseFloat(px) > 12);
+    if (round) w3Fail(`${sheet} rounds a corner at ${round}. Nothing on the identity is rounder than the card's 12, bar a pill.`);
+  }
+
+  /* 5. */
+  for (const f of files("apps/web/src").filter((f) => /\.(tsx?|css)$/.test(f)))
+    if (/illustrations\/gilbert-one\.png|@keyframes gilbert-(look|blink|turn)\b|gilbert-one__gaze/.test(read(f)))
+      w3Fail(`${f} adopts the handoff's animated GilbertOne component. The rig is the in-product form and the logo the brand form; the drifting-eyes PNG is neither.`);
+
+  console.log(`GilbertOne on the identity · ${derivatives.length} logo derivatives at the master's ${mw}:${mh}, each under 150 kB; the logo with its descriptor on four surfaces; the rig on seven tokens with no lettering; four stylesheets with no colour literal and no corner over 12; the retired SVG cuts and the animated PNG kept out.`);
+}
+
+/* Wave 4c — doctor screens on the identity ================================================================
+ *
+ * The doctor's workspace was restyled onto the Lovable handoff's identity on 28 September 2026: the inbox
+ * as the command view, the consultation as the SOAP frame with a rail, the teleconsultation's roster,
+ * recording indicator and connection ladder on white cards. What the restyle promised, held here:
+ *   1. No pastel tint, night ground, glass blur or colour literal comes back into the doctor's sheets.
+ *   2. Every type size in them is a step of the product's scale.
+ *   3. Their motion runs once, on the tokens, transform and opacity only, and every sheet that animates
+ *      says what happens under reduced motion.
+ *   4. The command view's figures are counted off lists, never typed.
+ *   5. The consultation keeps its gates: the diagnosis is a doctor's field, a gated section is absent for
+ *      a role never granted it, and the signature stays refused while a required section is unwritten.
+ *   6. The call keeps its recording indicator, and asks for no camera or microphone.
+ *   7. None of it reaches the patient's first load. */
+{
+  const w4cFail = (message) => {
+    throw new Error(`Wave 4c, the doctor's screens on the identity: ${message}`);
+  };
+  const w4cSheets = [
+    "apps/web/src/features/clinical-deck.css",
+    "apps/web/src/features/clinical-workbench.css",
+    "apps/web/src/features/clinical-intelligence.css",
+    "apps/web/src/features/consult-file.css",
+    "apps/web/src/features/clinical-records.css",
+    "apps/web/src/features/hl7-quarantine.css",
+  ];
+  /* The product's fourteen steps. tokens.json#typography.scale names eight of them by role and has no list
+     of the rest, so the list is written once here until the token file carries it. */
+  const w4cScale = new Set([13, 14, 15, 16, 18, 20, 22, 24, 28, 32, 36, 40, 42, 64]);
+  let w4cRules = 0;
+  for (const f of w4cSheets) {
+    const css = read(f).replace(/\/\*[\s\S]*?\*\//g, "");
+    /* 1. */
+    if (/--cl-tint-|--brand-mint|--studio-lilac|data-tint/.test(css))
+      w4cFail(`${f} paints a pastel tint again. The doctor's cards are white since the identity; colour is spent on action, selection and progress.`);
+    if (/backdrop-filter\s*:\s*blur|radial-gradient/.test(css))
+      w4cFail(`${f} draws glass or a lit ground again. The handoff's guidelines refuse glass effects and decorative gradients.`);
+    const literal = css.match(/#[0-9a-f]{3,8}\b|\brgba?\(|\bhsla?\(/i);
+    if (literal) w4cFail(`${f} types the colour ${literal[0]}. Every colour is a role from tokens.json#semantic or one of ui.css's measured inks.`);
+    /* 2. */
+    for (const m of css.matchAll(/font-size\s*:\s*([\d.]+)px/g))
+      if (!w4cScale.has(Number(m[1]))) w4cFail(`${f} sets a ${m[1]}px type size, which the scale does not have.`);
+    if (/font-size\s*:\s*clamp\(/.test(css)) w4cFail(`${f} sets a fluid type size; the doctor's headlines step through the scale by container instead.`);
+    /* 3. */
+    if (/\binfinite\b/.test(css)) w4cFail(`${f} runs an animation forever. The doctor's motion arrives once.`);
+    const animated = [...css.matchAll(/\banimation\s*:\s*([^;]+);/g)].filter((m) => !/^none\b/.test(m[1].trim()));
+    for (const [, value] of animated)
+      if (!/var\(--t-(quick|settle|enter)\)/.test(value) || !/var\(--ease-soft\)/.test(value))
+        w4cFail(`${f} animates on "${value.trim()}". Motion here is on --t-quick, --t-settle or --t-enter and --ease-soft.`);
+    for (const m of css.matchAll(/animation-delay\s*:\s*([^;]+);/g))
+      if (/\b\d+m?s\b/.test(m[1])) w4cFail(`${f} types a stagger of ${m[1].trim()}. A stagger is a fraction of --t-enter, the handoff's 70 ms derived rather than typed.`);
+    for (const m of css.matchAll(/@keyframes\s+([\w-]+)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g))
+      for (const prop of [...m[2].matchAll(/([a-z-]+)\s*:/g)].map((p) => p[1]))
+        if (!/^(transform|opacity)$/.test(prop)) w4cFail(`${f}'s @keyframes ${m[1]} animates ${prop}. Transform and opacity only.`);
+    if (animated.length && !/prefers-reduced-motion:\s*reduce/.test(css))
+      w4cFail(`${f} animates and says nothing about a reader who asked for less motion.`);
+    w4cRules += animated.length;
+  }
+  /* 4. */
+  const w4cInbox = read("apps/web/src/features/ClinicalIntelligence.tsx");
+  const w4cValues = [...w4cInbox.matchAll(/<MetricCard[^>]*?value=\{([^}]+\)?)\}/g)].map((m) => m[1].trim());
+  if (w4cValues.length !== 3 || w4cValues.some((v) => !/^String\((waiting|signedToday|toAcknowledge)\)$/.test(v)))
+    w4cFail(`the clinical inbox's command view shows ${w4cValues.join(", ") || "no counted figure"}. Its three figures are String(waiting), String(signedToday) and String(toAcknowledge), each the length of a list.`);
+  for (const [name, from] of [
+    ["waiting", /rows\.filter\(row => !row\.signedAs\)\.length/],
+    ["signedToday", /rows\.filter\([^\n]*dayOf\(row\.signedAt\) === today\)\.length/],
+    ["toAcknowledge", /medicines\.results\.filter\([^\n]*acknowledgedAt === null\)\.length/],
+  ])
+    if (!new RegExp(`const ${name} = ${from.source}`).test(w4cInbox)) w4cFail(`the inbox's ${name} is no longer counted off its list.`);
+  /* 5. */
+  const w4cRecord = read("apps/web/src/features/Consultation.tsx");
+  if (!/if \(section\.id === 'assessment'\) return mayDiagnose/.test(w4cRecord) || !/Diagnosis — not recorded\. A doctor’s\./.test(w4cRecord))
+    w4cFail("the consultation no longer keeps the diagnosis a doctor's field, or no longer says so to a nurse.");
+  if (!/const offered = consultationSections\.filter\(s => !s\.gatedBy \|\| roleGrants\(writer, s\.gatedBy\)\)/.test(w4cRecord))
+    w4cFail("the consultation offers a gated section — medication, tests, referral — to a role never granted it.");
+  if (!/disabled=\{!mayWrite\.allowed \|\| outstanding\.length > 0\}/.test(w4cRecord))
+    w4cFail("the consultation can be signed while a required section is unwritten.");
+  /* 6. */
+  const w4cCall = read("apps/web/src/features/Teleconsult.tsx");
+  if (!/<StatusIndicator status="offline" label="Not recording"/.test(w4cCall))
+    w4cFail("the teleconsultation lost its recording indicator. The contract's design for a recording is that it is unmistakable on every screen, and so is its absence.");
+  if (/getUserMedia|mediaDevices|RTCPeerConnection/.test(uncommented(w4cCall)))
+    w4cFail("the teleconsultation asks for a camera, a microphone or a media connection. Nothing here opens one.");
+  /* 7. */
+  for (const f of ["apps/web/src/main.tsx", "apps/web/src/App.tsx", "apps/web/src/shells/PatientShell.tsx"])
+    if (existsSync(f) && /^import (?!type\b)[^;]*from '[^']*features\/(ClinicalDeck|ClinicalWorkbench|ClinicalIntelligence|Consultation|Teleconsult|PatientFile|Hl7Results)'/m.test(read(f)))
+      w4cFail(`${f} imports a doctor's screen statically. The workspace arrives on a dynamic import, and a patient on metered data must not download it.`);
+  console.log(
+    `Wave 4c, the doctor's screens on the identity · ${w4cSheets.length} sheets with no pastel tint, glass, lit ground or colour literal and every size on the scale; ${w4cRules} animations, each once, on the tokens, transform and opacity only, with reduced motion answered; the inbox's 3 figures counted off lists; the diagnosis, the gated sections and the unwritten-section refusal kept; the call's recording indicator kept and no media asked for; nothing on the patient's first load.`,
+  );
+}
+
+/* Wave 4d — partner and back office on the identity */
+/* The dispatch board, the vetting register, the back-office console, claims, groups, the sponsor's statement,
+   the partner's orders, the SOS desk and the press, the USSD simulator, the audit-export desk, governance
+   readiness, Sentinel and Language & access, rebuilt on the shared components and one office sheet
+   (apps/web/src/surface/office-identity.css). What is held here is what would let this wave quietly undo
+   itself, or undo something older than it:
+
+   1. The two screens App.tsx imports statically — Orders.tsx and Access.tsx — are doors and nothing more:
+      each lazy-imports its page (OrderDetails.tsx, AccessPage.tsx), imports no shared component, no office
+      piece and no stylesheet, and App.tsx names neither page. Otherwise the patient's first view pays for a
+      pharmacy's screen and the components it wears.
+   2. The office sheet and this wave's screen sheets write no colour literal, no px radius or shadow, no
+      animation that runs forever, and every font size on the type scale — the handoff's compact look, on
+      the tokens, and nothing rounder or pastel.
+   3. The retired furniture stays retired on these screens: no tinted service-icon tiles, no privacy-note
+      panels, no legacy Pill or Metric, and `record-row` survives only as the dispatch candidates' name that
+      journeys find a nurse by.
+   4. The honesty and the refusals are still on the screens that owe them, read from where they live.
+   5. A dispatch pin that can be pressed is 44 pixels of target: the schematic's hit circle is half of
+      tokens.json#targets.minimum and map.css keeps it transparent over every fill rule above it.
+   Each was proved by breaking its source and restoring it (docs/FEATURE-MAP.md, the wave 4d row). */
+{
+  const w4dFail = (message) => { throw new Error(`Wave 4d, partner and back office: ${message}`); };
+  const w4dStrip = (code) => code.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\{\/\*[\s\S]*?\*\/\}/g, " ");
+  const w4dTokens = JSON.parse(read("packages/design-tokens/tokens.json"));
+  const w4dDir = "apps/web/src/features";
+
+  /* 1. */
+  for (const [door, page] of [["Orders", "OrderDetails"], ["Access", "AccessPage"]]) {
+    const code = w4dStrip(read(`${w4dDir}/${door}.tsx`));
+    if (!new RegExp(`lazy\\(\\(\\) => [^;]*import\\('\\./${page}'\\)`).test(code) && !new RegExp(`import\\('\\./${page}'\\)`).test(code))
+      w4dFail(`${w4dDir}/${door}.tsx no longer reaches ${page}.tsx through a dynamic import.`);
+    const heavy = code.match(/from\s+'(?:\.\.\/ui[^']*|\.\.\/surface\/Office[^']*|\.\/(?!\w+'\s*$)[^']+|[^']+\.css)'/);
+    if (heavy) w4dFail(`${w4dDir}/${door}.tsx imports ${heavy[0]}. App.tsx imports this file statically, so anything it imports is on the patient's first load; it is a door to ${page}.tsx and nothing more.`);
+  }
+  const w4dApp = w4dStrip(read("apps/web/src/App.tsx"));
+  if (/from\s+'\.\/features\/(OrderDetails|AccessPage)'/.test(w4dApp))
+    w4dFail("apps/web/src/App.tsx imports OrderDetails or AccessPage statically, which puts a partner's screen and the language table back on the patient's first load.");
+
+  /* 2. */
+  const w4dSheets = ["apps/web/src/surface/office-identity.css", `${w4dDir}/group-claims.css`, `${w4dDir}/sos-desk.css`, `${w4dDir}/ussd.css`, `${w4dDir}/sentinel.css`];
+  const w4dSteps = new Set([...Object.values(w4dTokens.typography.scale), w4dTokens.typography.minimumBody]);
+  for (const sheet of w4dSheets) {
+    const css = read(sheet).replace(/\/\*[\s\S]*?\*\//g, " ");
+    const literal = css.match(/#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch|lab|lch|hwb)\(/);
+    if (literal) w4dFail(`${sheet} writes the colour literal "${literal[0]}". A colour on these screens is a token variable.`);
+    for (const m of css.matchAll(/(border(?:-[a-z]+)*-radius|box-shadow)\s*:\s*([^;}]+)/g))
+      if (/\d(?:\.\d+)?px/.test(m[2])) w4dFail(`${sheet} types "${m[1]}: ${m[2].trim()}". Corners are --r-sm, --r-md, --r-lg or --r-pill and the one shadow is --shadow.`);
+    if (/\binfinite\b/.test(css)) w4dFail(`${sheet} runs an animation forever.`);
+    for (const m of css.matchAll(/font-size\s*:\s*([\d.]+)px/g))
+      if (!w4dSteps.has(Number(m[1]))) w4dFail(`${sheet} sets font-size ${m[1]}px, which is not a step of the type scale.`);
+    if (/var\(--(?:pale-sage|soft-sage|studio-peach|studio-lilac|studio-lime|mango-soft|indigo-soft|teal-soft|danger-soft|surface-sunken|radius-14|text-12)\)/.test(css))
+      w4dFail(`${sheet} paints a pastel tint or reads a variable the token set does not define. The handoff's surfaces are white on its ground, and a variable that resolves to nothing draws nothing.`);
+  }
+
+  /* 3. */
+  const w4dScreens = ["Admin", "Dispatch", "Vetting", "AuditExports", "Claims", "Groups", "Sponsor", "OrderDetails", "SosDesk", "SosPress", "UssdSimulator", "GovernanceReadiness", "Sentinel", "AccessPage"].map((n) => `${w4dDir}/${n}.tsx`);
+  for (const f of w4dScreens) {
+    const code = w4dStrip(read(f));
+    const retired = code.match(/className="[^"]*\b(service-icon|privacy-note|c-figures|nt-deck|underline-tabs|review-line|result-table)\b/);
+    if (retired) w4dFail(`${f} draws the retired "${retired[1]}". These screens are the shared components and the office sheet now.`);
+    if (/import\s*\{[^}]*\b(Pill|Metric|Metrics|SectionTitle|EmptyNote)\b[^}]*\}\s*from\s*'\.\.\/(components\/UI|surface\/Surface)'/.test(code))
+      w4dFail(`${f} imports the legacy Pill, Metric, SectionTitle or EmptyNote. A state is a Badge in words and a figure is the office figure.`);
+    if (!/from '\.\.\/ui'/.test(code)) w4dFail(`${f} no longer wears the shared components.`);
+  }
+  const w4dDispatch = w4dStrip(read(`${w4dDir}/Dispatch.tsx`));
+  if ((w4dDispatch.match(/record-row/g) ?? []).length !== 1)
+    w4dFail(`${w4dDir}/Dispatch.tsx carries "record-row" somewhere other than the one candidate row journeys find a nurse by.`);
+
+  /* 4. */
+  const w4dOwed = [
+    [`${w4dDir}/Dispatch.tsx`, ['<NotConnected of="dispatch"', "Nothing above has been sent.", "decision.reason", "No routing provider is connected"]],
+    [`${w4dDir}/Vetting.tsx`, ["gate-rule", "needsSecondReviewer(", "decisions(subject)", '<NotConnected of="credential-verification"', "the console refuses to let one name do both"]],
+    [`${w4dDir}/SosDesk.tsx`, ["notSentSentence(", '<NotConnected of="messaging"', "tryNextOfKinAgain("]],
+    [`${w4dDir}/SosPress.tsx`, ["sosEngine.partner.notConnected", "notSentSentence(", "sosEngine.priority.statement"]],
+    [`${w4dDir}/Claims.tsx`, ["claim.notSentBecause", "claimConsent.never", "codeSets.statement", '<NotConnected of="scheme-claims"']],
+    [`${w4dDir}/Groups.tsx`, ["noPooledMoney", "employerWords.statement", "words.never", '<NotConnected of="payments"']],
+    [`${w4dDir}/Sponsor.tsx`, ["sponsorContract.neverSees", "cannotRequireDetail.sentence", "payingIsNotPermission", '<NotConnected of="payments"']],
+    [`${w4dDir}/OrderDetails.tsx`, ["Nothing here dispenses anything.", "mayDispense.reason", "mayRelease.reason"]],
+    [`${w4dDir}/Admin.tsx`, ["Nothing on this screen is a compliance status."]],
+  ];
+  for (const [f, needles] of w4dOwed) {
+    const code = read(f);
+    for (const needle of needles) if (!code.includes(needle)) w4dFail(`${f} no longer carries ${JSON.stringify(needle)}. A restyle may move a sentence; it may not drop one.`);
+  }
+
+  /* 5. */
+  const w4dMap = read("apps/web/src/map/LiveMap.tsx");
+  const w4dTarget = w4dMap.match(/const TARGET_PX = (\d+);/);
+  if (!w4dTarget || Number(w4dTarget[1]) !== w4dTokens.targets.minimum)
+    w4dFail(`apps/web/src/map/LiveMap.tsx's TARGET_PX is not tokens.json#targets.minimum (${w4dTokens.targets.minimum}). A dispatch pin is pressed with a finger.`);
+  if (!/<circle cx=\{x\} cy=\{y\} r=\{hit\} fill="transparent" className="map-hit"\/>/.test(w4dMap) || !/const hit = \(\(TARGET_PX \/ 2\) \* 100\) \/ \(side \|\| \d+\);/.test(w4dMap))
+    w4dFail("apps/web/src/map/LiveMap.tsx no longer gives a pin that can be pressed its transparent 44-pixel target, measured from the drawn square.");
+  if (!/\.map-pin \.map-hit\.map-hit \{ fill: transparent; stroke: none; \}/.test(read("apps/web/src/map/map.css")))
+    w4dFail("apps/web/src/map/map.css no longer keeps a pin's press target transparent; the fill rules above it would paint it as a second, larger pin.");
+
+  console.log(
+    `Wave 4d, partner and back office on the identity · Orders and Access are doors to their pages, off the patient's first load; ${w4dSheets.length} sheets on the tokens with no pastel and every size on the scale; ${w4dScreens.length} screens on the shared components with the retired furniture gone; ${w4dOwed.reduce((n, [, x]) => n + x.length, 0)} honesty lines and refusals held in place; dispatch pins ${w4dTokens.targets.minimum} pixels of target.`,
+  );
+}
+
+/* Wave 4a — patient screens on the identity */
+/* The patient's screens on the design handoff of 28 September 2026. What this holds is what a restyle is most
+   likely to undo quietly:
+     1. The home draws only what the record holds. Its figures read lib/passport (the reading sets and the
+        doctor's review in packages/catalog/passport.json) and the visit a person booked; the handoff's goal
+        bars are not drawn, because no contract defines a goal, and a progress bar towards a target nobody set
+        is an invented number.
+     2. The screens that paid for the home stay paid for. The Passport's pages, the consent screens, a past
+        visit's summary and Live well arrive on a dynamic import behind names App.tsx imports statically; a
+        static import of any of their Screens modules from those four files puts them all back on the first
+        load, silently.
+     3. The pastel tints are retired from the sheets that dressed the patient's screens, and they do not come
+        back as a card's ground.
+     4. The home's own sheet holds the rules the rest of the web does: every size on the scale, no colour
+        literal, nothing that runs for ever, and reduced motion answered. */
+{
+  const w4aFail = (m) => { throw new Error(`Wave 4a, patient screens on the identity: ${m}`); };
+  const w4aUncomment = (code) => code.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const w4aHome = w4aUncomment(read("apps/web/src/features/Dashboard.tsx"));
+
+  /* 1. */
+  for (const reads of ["readingSets", "lastReview", "latestSet", "seriesFor"])
+    if (!new RegExp(`import \\{[^}]*\\b${reads}\\b[^}]*\\} from '\\.\\./lib/passport'`).test(w4aHome))
+      w4aFail(`apps/web/src/features/Dashboard.tsx no longer reads ${reads} from lib/passport. The home's figures are the record's, not the screen's.`);
+  if (/goal/i.test(w4aHome))
+    w4aFail("apps/web/src/features/Dashboard.tsx draws a goal. No contract in packages/catalog defines a health goal, so a goal on the home is a number invented to fill a card.");
+  if (/(?:value|trend)=\{?['"`][^'"`]*\d[^'"`]*['"`]/.test(w4aHome))
+    w4aFail("apps/web/src/features/Dashboard.tsx types a figure into a metric. A figure on the home is derived from the record or the visit, never written.");
+
+  /* 2. */
+  const w4aDeferred = [["Passport", "PassportScreens"], ["Consent", "ConsentScreens"], ["VisitSummary", "VisitSummaryScreens"], ["Wellbeing", "WellbeingScreens"]];
+  for (const [door, screens] of w4aDeferred) {
+    const f = `apps/web/src/features/${door}.tsx`;
+    if (!existsSync(`apps/web/src/features/${screens}.tsx`)) w4aFail(`apps/web/src/features/${screens}.tsx is gone, and ${f} hands its screens over from it.`);
+    const code = w4aUncomment(read(f));
+    if (/^import (?!type\b)[^;]*from '\.\/[A-Za-z]+Screens'/m.test(code))
+      w4aFail(`${f} imports ${screens} statically. App.tsx imports ${door} on the patient's first load, so every screen in ${screens} would ride in it again.`);
+    if (!new RegExp(`import\\('\\./${screens}'\\)`).test(code) || !/from '\.\/deferred'/.test(code))
+      w4aFail(`${f} no longer hands its screens over through deferred() and a dynamic import of ./${screens}.`);
+  }
+  if (!/lazy\(/.test(read("apps/web/src/features/deferred.tsx")) || !/role="status"/.test(read("apps/web/src/features/deferred.tsx")))
+    w4aFail("apps/web/src/features/deferred.tsx no longer loads lazily, or no longer says in a status what it is opening.");
+
+  /* 3. */
+  const w4aTints = /background[^;]*var\(--(?:studio-lime|studio-lilac|studio-peach|brand-mint|pale-sage|soft-sage)\)/;
+  for (const sheet of ["apps/web/src/surface/patient.css", "apps/web/src/surface/approved-care.css", "apps/web/src/surface/care-journey.css", "apps/web/src/surface/patient-identity.css", "apps/web/src/features/booking-look.css", "apps/web/src/features/shop.css", "apps/web/src/features/mom-plans.css", "apps/web/src/features/medicines.css"]) {
+    const hit = w4aUncomment(read(sheet)).match(w4aTints);
+    if (hit) w4aFail(`${sheet} paints a pastel ground again (${hit[0]}). The handoff's surfaces are white; a tint is spent on a selection or a state, and neither of those is pastel.`);
+  }
+  if (/data-tint=/.test(w4aHome)) w4aFail("apps/web/src/features/Dashboard.tsx tints a card by its category again.");
+
+  /* 4. */
+  const w4aScale = new Set([13, 14, 15, 16, 18, 20, 22, 24, 28, 32, 36, 40, 42, 64]);
+  for (const sheet of ["apps/web/src/surface/patient-identity.css", "apps/web/src/features/shop.css"]) {
+    const code = w4aUncomment(read(sheet));
+    for (const [, size] of code.matchAll(/font-size:\s*([\d.]+)px/g))
+      if (!w4aScale.has(Number(size))) w4aFail(`${sheet} sets a font size of ${size}px, which is not on the type scale.`);
+    if (/font-size:\s*clamp\(/.test(code)) w4aFail(`${sheet} sets a font size with clamp(), which renders sizes between the steps of the scale.`);
+  }
+  const w4aSheet = w4aUncomment(read("apps/web/src/surface/patient-identity.css"));
+  const w4aHex = w4aSheet.match(/#[0-9a-fA-F]{3,8}\b/);
+  if (w4aHex) w4aFail(`apps/web/src/surface/patient-identity.css writes the colour ${w4aHex[0]}. Every colour is a token.`);
+  if (/\binfinite\b/.test(w4aSheet)) w4aFail("apps/web/src/surface/patient-identity.css runs an animation for ever. The home's motion arrives and stops.");
+  if (!/@media \(prefers-reduced-motion: reduce\)[\s\S]*\.pd-draw[\s\S]*animation: none/.test(w4aSheet))
+    w4aFail("apps/web/src/surface/patient-identity.css no longer removes the trend's drawing under reduced motion.");
+  if (!/\.pd-welcome__mountain \{[^}]*color-mix\(in oklab, var\(--color-accent\) 7%, transparent\)/.test(w4aSheet))
+    w4aFail("apps/web/src/surface/patient-identity.css no longer draws the welcome's mountains at seven per cent of the accent, as the handoff does.");
+
+  console.log(`Wave 4a, patient screens on the identity · the home reads the record and draws no goal; ${w4aDeferred.length} doors hand their screens over on a dynamic import; no pastel ground in 8 sheets; the home's sheet on the scale, token-only, finite and still under reduced motion`);
+}
+
+/* Wave 3a — shell and landing on the identity */
+/* The public page's hero stage and the product's shell, restyled onto the Lovable handoff of 28 September
+   2026 (packages/brand/lovable-handoff) by wave 3a. What is held here is what would let either drift back
+   into the generation it replaced, or out of the rules the handoff's look does not get to overrule:
+
+   1. The stage is the handoff's — two planes, a slant-cut portrait panel, a badge with its pulse — and
+      the figure in it is still the first slide's of packages/catalog/hero.json. The badge's words, the
+      guide, the kit and the impact band are hero.json's `stage`, never typed into features/Landing.tsx.
+   2. The coverage sentence under the map is a copy of packages/catalog/geography.json's, carried in
+      hero.json because importing the geography contract put all of it on both entries; the copy must be
+      the sentence, word for word.
+   3. The page's ambient motion is exactly two loops, both in surface/public-revamp.css: hero-particle-drift
+      and hero-signal-pulse. Each is behind html[data-decor="on"], touches transform and opacity only, spends
+      a motion token rather than a typed time, and is paused under data-ambient="paused". tests/motion.spec.ts
+      asserts the running set; this holds the sheet to it.
+   4. The two landing sheets are on the identity: no colour literal, no studio or sage token, every font
+      size a step of the product's type scale, no weight under 400 (Figtree starts there).
+   5. Every picture under apps/web/public/lovable is a WebP of 150 kB or less, every one the page names
+      exists, and the GilbertOne logo is its master's whole frame — the same aspect, so it was never
+      cropped.
+   6. The patient's primary destinations wear the MyThuso family through the handoff's NavigationItem, in
+      the patient shell and on its tab bar, and the staff shells use the same NavigationItem; the patient
+      chrome is not glass.
+   7. Inter is gone: no woff2 of it in /fonts and nothing in the web app names it.
+   8. The browser chrome colours in landing.html and index.html are the roles the bars are painted in.
+   Each was proved by breaking its source and restoring it (docs/FEATURE-MAP.md, the wave 3a row). */
+{
+  const w3a = (message) => { throw new Error(`Wave 3a, shell and landing: ${message}`); };
+  const w3aRead = (f) => readFileSync(f, "utf8");
+  const w3aStrip = (css) => css.replace(/\/\*[\s\S]*?\*\//g, " ");
+  const hero = JSON.parse(w3aRead("packages/catalog/hero.json"));
+  const landing = w3aRead("apps/web/src/features/Landing.tsx");
+  const stageSheet = w3aRead("apps/web/src/surface/public-revamp.css");
+  const pageSheet = w3aRead("apps/web/src/landing.css");
+  const w3aTokens = JSON.parse(w3aRead("packages/design-tokens/tokens.json"));
+
+  /* 1. */
+  for (const piece of ['className="hero-plane hero-plane--left"', 'className="hero-plane hero-plane--right"', 'className="hero-portrait"', 'className="hero-badge"', 'className="hero-signal"'])
+    if (!landing.includes(piece)) w3a(`features/Landing.tsx no longer draws ${piece} — the handoff's stage is two planes, the slant-cut portrait, the badge and its pulse.`);
+  if (!/const figure = figureFor\(slide\)/.test(landing) || !/const slide = slides\[0\]/.test(landing))
+    w3a("the stage no longer stands on the first slide's figure from packages/catalog/hero.json. The portrait panel is the handoff's; the person in it is the contract's.");
+  if (!/clip-path:\s*polygon\(10% 0, 100% 0, 100% 100%, 0 100%, 0 14%\)/.test(w3aStrip(stageSheet).match(/\.hero-portrait\s*\{[^}]*\}/)?.[0] ?? ""))
+    w3a("surface/public-revamp.css no longer cuts .hero-portrait on the handoff's slant (polygon(10% 0, 100% 0, 100% 100%, 0 100%, 0 14%)).");
+  const stageWords = [hero.stage?.badge, hero.stage?.guide?.title, hero.stage?.guide?.line, hero.stage?.kit?.title, hero.stage?.impact?.title, hero.stage?.impact?.planNote, hero.stage?.impact?.mapNote, ...(hero.stage?.kit?.devices ?? []).map((d) => d.name)];
+  if (stageWords.some((w) => typeof w !== "string" || !w.trim())) w3a("packages/catalog/hero.json's stage is missing one of its sentences.");
+  const landingCode = landing.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+  for (const w of stageWords) if (w.length >= 14 && landingCode.includes(w)) w3a(`features/Landing.tsx types "${w}", which is packages/catalog/hero.json's stage. Render it from there.`);
+  for (const use of ["stage.badge", "stage.guide.line", "stage.kit.devices", "stage.impact.coverage", "stage.impact.mapNote"])
+    if (!landing.includes(use)) w3a(`features/Landing.tsx no longer reads ${use} from packages/catalog/hero.json.`);
+  if (!/capabilities\.find\(\(c\) => c\.id === "devices"\)\?\.notice/.test(landing))
+    w3a("the kit's photographs no longer stand over the devices capability's own notice. Their screens show a photographer's numbers.");
+
+  /* 2. */
+  const coverage = JSON.parse(w3aRead("packages/catalog/geography.json")).coverage.sentence;
+  if (hero.stage.impact.coverage !== coverage)
+    w3a(`packages/catalog/hero.json's stage.impact.coverage is not packages/catalog/geography.json's coverage.sentence, word for word. The map may be the whole country only because this sentence says how little of it is served: "${coverage}"`);
+  if (/packages\/catalog\/geography\.json['"]/.test(landing))
+    w3a("features/Landing.tsx imports packages/catalog/geography.json, which puts the whole contract on both entries for one sentence. Read the checked copy in hero.json.");
+
+  /* 3. */
+  const stageCode = w3aStrip(stageSheet);
+  const frames = new Map([...stageCode.matchAll(/@keyframes\s+([\w-]+)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g)].map((m) => [m[1], m[2]]));
+  const endless = new Map();
+  for (const rule of stageCode.matchAll(/([^{}]*)\{([^{}]*animation:[^;}]*\binfinite\b[^{}]*)\}/g)) {
+    const name = rule[2].match(/animation:\s*([\w-]+)/)[1];
+    endless.set(name, [...(endless.get(name) ?? []), rule[1].trim()]);
+    if (!/html\[data-decor="on"\]/.test(rule[1])) w3a(`surface/public-revamp.css runs ${name} forever on "${rule[1].trim()}" without html[data-decor="on"], so the pause control cannot stop it.`);
+    if (/(^|[\s,(])\d*\.?\d+m?s\b/.test(rule[2].match(/animation:[^;}]*/)[0])) w3a(`surface/public-revamp.css types a time for ${name}. Loops spend a motion token.`);
+  }
+  const budget = ["hero-particle-drift", "hero-signal-pulse"];
+  if ([...endless.keys()].sort().join() !== budget.join())
+    w3a(`the landing page's endless animations are ${[...endless.keys()].join(", ") || "none"}; the budget is exactly ${budget.join(" and ")}. A third loop is the defect tests/motion.spec.ts exists to catch.`);
+  for (const name of budget) {
+    const props = [...(frames.get(name) ?? "").matchAll(/([a-z-]+)\s*:/g)].map((m) => m[1]);
+    if (!props.length || props.some((p) => p !== "transform" && p !== "opacity")) w3a(`${name} animates ${props.join(", ") || "nothing"}; an endless loop may touch transform and opacity only.`);
+  }
+  if (!/\.landing-hero\[data-ambient="paused"\] \.hero-particle,\s*\.landing-hero\[data-ambient="paused"\] \.hero-signal::after\s*\{\s*animation-play-state:\s*paused !important;/.test(stageCode))
+    w3a("surface/public-revamp.css no longer holds the particles and the pulse still while the stage is off-screen.");
+  if (/\binfinite\b/.test(w3aStrip(pageSheet))) w3a("apps/web/src/landing.css runs something forever. The page's two loops live in the stage's sheet and nowhere else.");
+
+  /* 4. */
+  /* The product's fourteen steps. tokens.json#typography.scale names nine of them as roles and not the
+     ladder, which is why this list is written here as the other wave-4 sections write it; a steps array
+     in tokens.json would retire all three copies. */
+  const scale = new Set([13, 14, 15, 16, 18, 20, 22, 24, 28, 32, 36, 40, 42, 64]);
+  for (const [file, css] of [["apps/web/src/landing.css", pageSheet], ["apps/web/src/surface/public-revamp.css", stageSheet]]) {
+    const code = w3aStrip(css);
+    const literal = code.match(/#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(|(?<![\w-])(?:white|black)(?![\w-])/);
+    if (literal) w3a(`${file} writes the colour "${literal[0]}". The page is the --color-* roles and the brand tokens.`);
+    const retired = code.match(/--(?:studio-[a-z-]+|pale-sage|soft-sage|muted-sage|sage-slate|charcoal|mist|cloud|stone)\b/);
+    if (retired) w3a(`${file} spends ${retired[0]}, a token of the generation the identity replaced.`);
+    for (const m of code.matchAll(/font-size\s*:\s*([^;}]+)/g)) {
+      const px = m[1].trim().match(/^([\d.]+)px$/);
+      if (!px || !scale.has(Number(px[1]))) w3a(`${file} sets font-size ${m[1].trim()}. A size is a step of tokens.json#typography.scale, written in pixels, changed by media query rather than clamp().`);
+    }
+    const light = code.match(/font-weight\s*:\s*([1-3]00)\b/);
+    if (light) w3a(`${file} asks for weight ${light[1]}. Figtree and Outfit are served from 400 and 500.`);
+  }
+
+  /* 5. */
+  /* Recursive, because the folder is shared: the assistant's own derivatives live in a subfolder of it
+     and are held to the same two rules. */
+  const pub = "apps/web/public/lovable";
+  const pubFiles = readdirSync(pub, { recursive: true }).map(String).filter((f) => statSync(`${pub}/${f}`).isFile());
+  for (const f of pubFiles) {
+    const head = readFileSync(`${pub}/${f}`).subarray(0, 12).toString("latin1");
+    if (!f.endsWith(".webp") || !head.startsWith("RIFF") || head.slice(8) !== "WEBP") w3a(`${pub}/${f} is not a WebP. The handoff's masters are re-encoded for a screen, never served as they came.`);
+    const size = statSync(`${pub}/${f}`).size;
+    if (size > 150 * 1024) w3a(`${pub}/${f} is ${Math.round(size / 1024)} kB; a picture on the public page is 150 kB or less.`);
+  }
+  const named = new Set([...landing.matchAll(/\/lovable\/[\w-]+\.webp/g)].map((m) => m[0]));
+  for (const d of hero.stage.kit.devices) for (const w of [400, 640]) named.add(`/lovable/${d.photo}-${w}.webp`);
+  for (const path of named) if (!existsSync(`apps/web/public${path}`)) w3a(`the landing page asks for ${path}, and apps/web/public${path} does not exist.`);
+  const webpSize = (file) => {
+    const b = readFileSync(file);
+    const chunk = b.toString("latin1", 12, 16);
+    if (chunk === "VP8X") return [1 + b.readUIntLE(24, 3), 1 + b.readUIntLE(27, 3)];
+    if (chunk === "VP8L") { const bits = b.readUInt32LE(21); return [1 + (bits & 0x3fff), 1 + ((bits >> 14) & 0x3fff)]; }
+    return [b.readUInt16LE(26) & 0x3fff, b.readUInt16LE(28) & 0x3fff];
+  };
+  const master = readFileSync("packages/brand/lovable-handoff/handoff/src/assets/logos/gilbert-one-logo.png");
+  const masterAspect = master.readUInt32BE(16) / master.readUInt32BE(20);
+  for (const f of pubFiles.filter((f) => /(^|\/)gilbertone-logo-/.test(f))) {
+    const [w, h] = webpSize(`${pub}/${f}`);
+    if (Math.abs(w / h - masterAspect) > 0.01) w3a(`${pub}/${f} is ${w}×${h}, which is not the official GilbertOne logo's frame (${masterAspect.toFixed(3)}:1). The logo is never cropped or separated from its name.`);
+  }
+
+  /* 6. */
+  const patientShell = w3aRead("apps/web/src/shells/PatientShell.tsx");
+  const primary = { Overview: "MyThusoDashboardIcon", "Book a nurse": "MyThusoQuickIcon", "My visits": "MyThusoVisitIcon", "Health Passport": "MyThusoHealthIcon", "Live well": "MyThusoMindIcon", "My family": "MyThusoFamilyIcon" };
+  for (const [page, icon] of Object.entries(primary))
+    if (!new RegExp(`\\['${page}', ${icon}\\]`).test(patientShell)) w3a(`the patient's sidebar no longer draws ${page} with ${icon}. The primary destinations wear the MyThuso family.`);
+  for (const [page, icon] of [["Overview", "MyThusoDashboardIcon"], ["Book a nurse", "MyThusoQuickIcon"], ["My visits", "MyThusoVisitIcon"], ["Health Passport", "MyThusoHealthIcon"]])
+    if (!new RegExp(`\\['${page}', '[^']+', ${icon}\\]`).test(patientShell)) w3a(`the patient's tab bar no longer draws ${page} with ${icon}.`);
+  if (!/<NavigationItem key=\{label\} active=\{page === label\}/.test(patientShell)) w3a("the patient's sidebar no longer draws its destinations with the handoff's NavigationItem.");
+  if (/className="(?:sidebar|topbar|tabbar) glass"|PATIENT_SURFACE = '[^']*glass/.test(patientShell)) w3a("the patient's chrome is glass again. The handoff refuses frosted panels.");
+  for (const f of ["apps/web/src/shells/StaffShell.tsx", "apps/web/src/shells/AdminShell.tsx"])
+    if (!/<NavigationItem key=\{id\}/.test(w3aRead(f)) || /<NavRow\b/.test(w3aRead(f))) w3a(`${f} no longer draws its sections with the handoff's NavigationItem.`);
+
+  /* 7. */
+  const fontsDir = "apps/web/public/fonts";
+  const inter = readdirSync(fontsDir).filter((f) => /inter/i.test(f));
+  if (inter.length) w3a(`${fontsDir} still ships ${inter.join(", ")}. The faces are Outfit and Figtree.`);
+  for (const f of ["index.html", "landing.html", "status.html", "shop.html", "src/surface/core.css"].map((f) => `apps/web/${f}`))
+    if (/inter-latin|font-family:\s*Inter\b/.test(w3aStrip(w3aRead(f)).replace(/<!--[\s\S]*?-->/g, ""))) w3a(`${f} names Inter.`);
+
+  /* 8. */
+  const sem = w3aTokens.semantic;
+  const chrome = (f, light, dark) => {
+    const html = w3aRead(`apps/web/${f}`);
+    if (!html.includes(`<meta name="theme-color" content="${light}" media="(prefers-color-scheme: light)"/>`) || !html.includes(`<meta name="theme-color" content="${dark}" media="(prefers-color-scheme: dark)"/>`))
+      w3a(`apps/web/${f}'s theme-color is not ${light} and ${dark}, the roles its first bar is painted in.`);
+  };
+  chrome("landing.html", sem.light.primary.hex, sem.dark.primary.hex);
+  chrome("index.html", sem.light.surface.hex, sem.dark.surface.hex);
+
+  console.log(`Wave 3a, shell and landing on the identity · the handoff's stage on the contract's figure, its words hero.json's; the coverage copy word for word; exactly ${budget.length} ambient loops, gated, token-timed, composited and paused off-screen; two landing sheets on the roles and the scale; ${pubFiles.length} WebP derivatives under 150 kB and the GilbertOne logo whole; ${Object.keys(primary).length} primary destinations on the MyThuso family through NavigationItem; no Inter; the browser chrome on the roles`);
+}
+
+/* Wave 4e — Control Tower on the identity */
+/* 28 September 2026. The founder: "you will also align the control tower with the similar look and feel and
+   forms." The Control Tower, the engine-settings screen and the founder's door are drawn on the handoff's
+   components and tokens, and the pastel system they wore until that day is retired. What is held here is
+   what would let them drift back without anybody deciding it should:
+
+   1. The pastel system is gone and stays gone: no card tint, no studio, aurora or pre-identity variable, no
+      data-tint, no tintsFor, and no colour literal or gradient ground in the four sheets the portal draws
+      with. Every colour those sheets spend is a --color-* role or one of ui.css's measured inks.
+   2. Aqua is spent on a selection, a progress bar or a mark, never on words: no sheet sets color to the
+      accent, which measures under 4.5:1 as text on white.
+   3. The sheets keep the handoff's compact corners by name (--r-sm, --r-md, --r-lg, --r-pill, or a
+      component's inherit), one shadow on anything (never two stacked), every size on the product's type
+      scale and none below 13, and no endless animation.
+   4. The shared parts draw with the shared components: a section is the Card, a figure the MetricCard, a
+      status or a build word the Badge, a category's own tabs the handoff's Tabs, a wait the Spinner, and a
+      provider card's state the Badge too. A settings row wears the shared Field's label and message, the
+      on-or-off setting is the shared Checkbox, and the select the shared Select.
+   5. Every button a Control Tower file draws is the shared Button, its buttonVariants(), or one of the
+      native buttons the GilbertOne checks above read word for word — never core.css's bare .primary or
+      .secondary, which would be the old look arriving one screen at a time.
+   6. The founder's door is the shared Card on the handoff's ground with the ghost Button as its way back,
+      and its sheet paints no gradient; the portal's category rail wears the MyThuso family for the four
+      concepts the family draws, and the portal's focus is the shared components' one ring.
+   Each was proved by breaking its source and restoring it (docs/FEATURE-MAP.md, the Control Tower on the
+   identity row). */
+{
+  const w4e = (message) => { throw new Error(`Control Tower on the identity: ${message}`); };
+  const w4eDir = "apps/web/src/features/portal";
+  const w4eSheets = [`${w4eDir}/portal.css`, `${w4eDir}/fields.css`, `${w4eDir}/design-widgets.css`, "apps/web/src/shells/founder-gate.css"];
+  const w4eStrip = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "");
+  const w4eFiles = [
+    ...files(w4eDir).filter((f) => /\.tsx?$/.test(f)),
+    "apps/web/src/features/Configuration.tsx", "apps/web/src/shells/PortalShell.tsx", "apps/web/src/shells/FounderGate.tsx",
+  ];
+
+  /* 1. and 2. and 3. */
+  const retired = /--pt-tint-|--studio-|--aurora-|--(?:charcoal|pane|pane-line|faint|stone|cloud|glow|glass-floor|pale-sage|soft-sage|sage-slate|mango-soft|teal-soft|teal-light|accent-soft|brand-lime|brand-mint|brand-ink|brand-green|brand-orange)\b/;
+  const scale = new Set([13, 14, 15, 16, 18, 20, 22, 24, 28, 32, 36, 40, 42, 64]);
+  let w4eRules = 0;
+  for (const sheet of w4eSheets) {
+    const css = w4eStrip(read(sheet));
+    const old = css.match(retired);
+    if (old) w4e(`${sheet} spends ${old[0]}. The portal reads the handoff's --color-* roles; the pastel and studio grounds are retired.`);
+    const hex = css.match(/#[0-9a-f]{3,8}\b/i);
+    if (hex) w4e(`${sheet} types the colour ${hex[0]}. Every colour is a token role.`);
+    /* A gradient is a ground the handoff refuses. Three drawings are gradients by construction and are named:
+       the slider's filled track and its thumb, the count's progress bar, and the voice preview's chevron. */
+    for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g))
+      if (/gradient\(/.test(body) && !/\.fc-range\b|\.cf-area > \.ss-version::after|\.fc-select\b/.test(selector))
+        w4e(`${sheet} paints a gradient on "${selector.trim()}". The handoff draws no gradients; the three that are drawings are named here.`);
+    for (const m of css.matchAll(/(?:^|[;{\s])color\s*:\s*var\(--color-accent\)/g))
+      w4e(`${sheet} sets words in the accent (${m[0].trim()}). Aqua is a selection, a progress bar or a mark; as text on white it measures under 4.5:1.`);
+    for (const m of css.matchAll(/border-radius\s*:\s*([^;]+);/g))
+      if (!/^(?:var\(--r-(?:sm|md|lg|pill)\)|inherit|0|50%)$/.test(m[1].trim()) && !/^var\(--r-(?:sm|md)\) 0 0 var\(--r-(?:sm|md)\)$/.test(m[1].trim()))
+        w4e(`${sheet} rounds a corner with "${m[1].trim()}". Corners are the handoff's compact set by name: --r-sm, --r-md, --r-lg, or a pill.`);
+    for (const m of css.matchAll(/box-shadow\s*:\s*([^;]+);/g)) {
+      const value = m[1].trim();
+      if (/,/.test(value.replace(/\([^()]*\)/g, "")))
+        w4e(`${sheet} stacks two shadows ("${value}"). Elevation is one shadow, never two.`);
+      if (!/^(?:none|var\(--shadow(?:-raised)?\)|var\(--ui-shadow[^)]*\))$/.test(value))
+        w4e(`${sheet} draws a shadow of its own ("${value}"). A shadow is --shadow or --shadow-raised.`);
+    }
+    for (const m of css.matchAll(/font-size\s*:\s*(\d+)px/g))
+      if (!scale.has(Number(m[1]))) w4e(`${sheet} sets a ${m[1]}px size. The type scale is ${[...scale].join(", ")}, and nothing renders below 13.`);
+    if (/\binfinite\b/.test(css)) w4e(`${sheet} runs an animation forever. Nothing the Control Tower draws is endless.`);
+    w4eRules += (css.match(/\{/g) ?? []).length;
+  }
+  for (const f of w4eFiles) {
+    const code = uncommented(read(f));
+    const tint = code.match(/\bdata-tint\b|\btintsFor\b|--pt-tint-/);
+    if (tint) w4e(`${f} still reaches for ${tint[0]}. The pastel tints are retired; a figure, a register or a section is white, and its name says what it is.`);
+    /* 5. */
+    const bare = code.match(/className=["{`]+(?:primary|secondary)(?:\s[^"`}]*)?["`}]/);
+    if (bare && !/^className="primary g1-live"$/.test(bare[0]))
+      w4e(`${f} draws a button with core.css's bare class (${bare[0]}). A Control Tower button is the shared Button or buttonVariants(); the one exception is LiveButton's "primary g1-live", which the GilbertOne checks read word for word.`);
+    if (/className=["{`][^"`}]*\bicon-button\b/.test(code)) w4e(`${f} draws a bare icon-button. An icon action is the shared IconButton.`);
+  }
+
+  /* 4. */
+  const parts = uncommented(read(`${w4eDir}/Parts.tsx`));
+  /* A function's body, and only its body: from its declaration to the next top-level declaration. */
+  const w4eBody = (code, name) => {
+    const at = code.search(new RegExp(`^export (?:function|const) ${name}\\b`, "m"));
+    if (at < 0) return "";
+    const next = code.slice(at + 1).search(/^(?:export )?(?:function|const|type) /m);
+    return next < 0 ? code.slice(at) : code.slice(at, at + 1 + next);
+  };
+  for (const [name, fn, shape] of [
+    ["Region as the Card", "Region", /<Card role="region"[\s\S]*?<\/Card>/],
+    ["Figures as MetricCards", "Figures", /<MetricCard\b/],
+    ["Status as the Badge", "Status", /<Badge\b/],
+    ["BuildWord as the Badge", "BuildWord", /<Badge\b/],
+    ["a category's tabs as the handoff's Tabs", "Tablist", /<TabsList\b[\s\S]*?<Tab\b/],
+    ["Loading with the Spinner", "Loading", /<Spinner\b/],
+  ]) if (!shape.test(w4eBody(parts, fn))) w4e(`${w4eDir}/Parts.tsx no longer draws ${name}. The shared parts are the handoff's components, or every screen drifts back one part at a time.`);
+  for (const [f, fn, shape, what] of [
+    [`${w4eDir}/gilbertone/Controls.tsx`, "CardStatusWord", /<Badge\b/, "a provider card's state as the Badge"],
+    [`${w4eDir}/Fields.tsx`, "Switch", /<Checkbox\b/, "the on-or-off setting as the shared Checkbox"],
+    [`${w4eDir}/Fields.tsx`, "Select", /<SharedSelect\b/, "the select as the shared Select"],
+    [`${w4eDir}/Fields.tsx`, "FieldRow", /'ui-field'[\s\S]*?className="ui-field__label"/, "a settings row in the shared Field's label"],
+    ["apps/web/src/features/Configuration.tsx", "Configuration", /<Alert variant="warning" title=\{say\.preview\}/, "the preview sentence as the handoff's warning Alert"],
+  ]) if (!shape.test(w4eBody(uncommented(read(f)), fn))) w4e(`${f} no longer draws ${what}.`);
+
+  /* 6. */
+  const gate = uncommented(read("apps/web/src/shells/FounderGate.tsx"));
+  if (!/<Card variant="elevated" padding="lg" className="founder-gate-card rise">/.test(gate) || !/<Button variant="ghost" className="founder-gate-leave"/.test(gate))
+    w4e("apps/web/src/shells/FounderGate.tsx is no longer the shared Card with the ghost Button as its way back.");
+  if (/gradient\(/.test(w4eStrip(read("apps/web/src/shells/founder-gate.css"))))
+    w4e("apps/web/src/shells/founder-gate.css paints a gradient ground again. The door stands on the handoff's calm ground.");
+  const shell = uncommented(read("apps/web/src/shells/PortalShell.tsx"));
+  for (const [category, icon] of [["overview", "MyThusoDashboardIcon"], ["dispatch", "MyThusoVisitIcon"], ["configuration", "MyThusoSettingsIcon"], ["clinical", "MyThusoHealthIcon"]])
+    if (!new RegExp(`\\b${category}: ${icon}\\b`).test(shell)) w4e(`the Control Tower's rail no longer draws ${category} with ${icon}. A category with a concept in the MyThuso family wears the family's icon.`);
+  const rails = shell.match(/<Tablist label="Categories"[\s\S]*?\/>/g) ?? [];
+  if (rails.length !== 2 || rails.some((tag) => !/\blook="nav"/.test(tag)))
+    w4e("the Control Tower's categories — the sidebar's and the phone's strip — are no longer both drawn as the handoff's navigation items.");
+  const sheet = w4eStrip(read(`${w4eDir}/portal.css`));
+  if (!/\.portal :focus-visible \{\s*outline: 2px solid var\(--color-ring\);\s*outline-offset: 2px;\s*box-shadow: none;\s*\}/.test(sheet))
+    w4e(`${w4eDir}/portal.css no longer gives everything focusable in the portal the shared components' one ring.`);
+
+  console.log(
+    `Control Tower on the identity · ${w4eSheets.length} sheets and ${w4eRules} rules with no pastel, studio or aurora variable, no colour literal and no gradient ground, aqua never on words, the compact corners by name, one shadow, every size on the scale and nothing endless; ${w4eFiles.length} files with no tint and no bare core.css button; the shared parts on the Card, the MetricCard, the Badge, the Tabs and the Spinner; the settings rows on the shared Field, Checkbox and Select; the founder's door the elevated Card with its ghost way back; four categories on the MyThuso family; and one focus ring.`,
+  );
+}
+
+/* Wave 4b — nurse screens on the identity */
+/* The nurse's workspace moved onto the Lovable handoff's look on 28 September 2026: the visit queue, the care
+   visit, Thuso Kit's command view and reading rows, field safety, the kit's instruments, Device Lab, earnings and
+   the door code. What these checks hold is what that restyle must not have cost:
+
+     1. surface/nurse-identity.css — the handoff's nurse-* rules translated — spends tokens and nothing else: no
+        colour literal, a corner only by name, one shadow and only the elevation tokens, durations only on the
+        motion tokens, every size a step of the scale, nothing endless, and every animated rule taken away under
+        reduced motion with !important.
+     2. The Care Studio tints are gone from every sheet this wave rewrote, and no raw colour or sub-floor size is
+        left in them either — device-lab.css carried six hex values and 12px type, devices.css hex fallbacks.
+     3. Thuso Kit is on the patient's entry. Kit.tsx, KitCapture.tsx and Interpreting.tsx import neither the
+        shared components nor the nurse sheet; KitDeck and Devices carry both behind the kit's dynamic imports.
+     4. The readiness ring is two counts and no percentage: the register's checks through summarise() and the
+        kit's calibrations through calibrationOf(), with the capability decision as the only gate on screen.
+     5. The route map stays the schematic's straight measurement: the line is dashed, the dispatch notice stands
+        above it, and CareVisit still hands LiveMap the straight link rather than drawing a route of its own.
+     6. A reading's clinical weight is the Devices contract's own answer, clinicalUseOf(), in its own words — never
+        a weight this screen decides — and the patient's trend is drawn only through readings that reached the
+        record, two or more of one measure. */
+{
+  const w4b = (message) => { throw new Error(`Wave 4b, the nurse's screens: ${message}`); };
+  const w4bCss = (f) => read(f).replace(/\/\*[\s\S]*?\*\//g, " ");
+  /* The product's one scale, as the other waves on the identity hold it; tokens.json names only some of its steps. */
+  const w4bScale = new Set([13, 14, 15, 16, 18, 20, 22, 24, 28, 32, 36, 40, 42, 64]);
+  const nurseSheet = "apps/web/src/surface/nurse-identity.css";
+  const rewritten = [nurseSheet, "apps/web/src/features/nurse-kit.css", "apps/web/src/features/devices.css", "apps/web/src/features/device-lab.css", "apps/web/src/features/verify-in-service.css"];
+  /* The earnings half of nurse-tools.css is this wave's; the vetting half belongs to another screen and keeps its tints until that screen moves. */
+  const toolsCss = w4bCss("apps/web/src/features/nurse-tools.css");
+  const earningsCss = toolsCss.slice(toolsCss.indexOf(":is(.clinical, body) .earnings.nurse-ui"), toolsCss.indexOf(".nt-ring"));
+  if (earningsCss.length < 200) w4b("nurse-tools.css has lost its earnings section on the identity (:is(.clinical, body) .earnings.nurse-ui).");
+  let w4bRules = 0;
+
+  /* 1 and 2. */
+  const sheets = rewritten.map((f) => [f, w4bCss(f)]).concat([["apps/web/src/features/nurse-tools.css (earnings)", earningsCss]]);
+  for (const [f, css] of sheets) {
+    const literal = css.match(/#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(|\boklch\(/);
+    if (literal) w4b(`${f} writes a colour of its own ("${literal[0]}"). Every colour is a token.`);
+    const tint = css.match(/--(?:studio-(?:peach|lime|paper|olive|lilac|line|ink(?:-muted|-deep)?)|pale-sage|soft-sage|muted-sage|cl-tint-[\w-]+|mango-soft|danger-soft|charcoal|ink-quiet|amber)\b/);
+    if (tint) w4b(`${f} still spends ${tint[0]}. The Care Studio tints and the older inks are retired on the nurse's screens: a surface is white or raised, a line is the border, a word is the foreground or the muted foreground.`);
+    for (const m of css.matchAll(/font-size\s*:\s*([\d.]+)(px|rem|em)/g))
+      if (m[2] !== "px" || !w4bScale.has(Number(m[1]))) w4b(`${f} sets a ${m[1]}${m[2]} size. The type scale is ${[...w4bScale].join(", ")} in pixels, and nothing renders below 13.`);
+    for (const m of css.matchAll(/border-radius\s*:\s*([^;]+);/g))
+      if (!/^(?:(?:0|inherit|var\(--r-(?:sm|md|lg|pill)\))\s*)+$/.test(m[1].trim())) w4b(`${f} rounds a corner with "${m[1].trim()}". Corners are --r-sm, --r-md, --r-lg or a pill, by name.`);
+    for (const m of css.matchAll(/box-shadow\s*:\s*([^;]+);/g))
+      if (!/^(?:none|var\(--shadow(?:-raised)?\)|var\(--ui-shadow[^)]*\))$/.test(m[1].trim())) w4b(`${f} draws a shadow of its own ("${m[1].trim()}"). Elevation is one shadow, --shadow or --shadow-raised.`);
+    for (const m of css.matchAll(/(?:transition|animation(?:-duration|-delay)?)\s*:\s*([^;]+);/g))
+      if (/\b\d+(?:\.\d+)?m?s\b/.test(m[1].replace(/var\([^)]*\)/g, ""))) w4b(`${f} types a duration ("${m[1].trim()}"). Motion runs on --t-quick, --t-settle and --t-enter.`);
+    if (/\binfinite\b/.test(css)) w4b(`${f} runs an animation forever. Nothing on the nurse's screens is endless.`);
+    w4bRules += (css.match(/\{/g) ?? []).length;
+  }
+  const nurseCss = w4bCss(nurseSheet);
+  const reduced = nurseCss.slice(nurseCss.lastIndexOf("@media (prefers-reduced-motion: reduce)"));
+  if (!/animation:\s*none\s*!important/.test(reduced)) w4b(`${nurseSheet} does not take its motion away under prefers-reduced-motion, with !important.`);
+  const body = nurseCss.slice(0, nurseCss.lastIndexOf("@media (prefers-reduced-motion: reduce)"));
+  for (const m of body.matchAll(/([^{}]+)\{[^{}]*\banimation\s*:\s*(?!none)[^;}]+/g)) {
+    const selector = m[1].trim().split(",").map((s) => s.trim()).find((s) => !reduced.includes(s));
+    if (selector) w4b(`${nurseSheet} animates "${selector}" and its reduced-motion block does not name it. A reader who asked for stillness gets the finished drawing, not the drawing drawn.`);
+  }
+
+  /* 3. */
+  for (const f of ["apps/web/src/features/Kit.tsx", "apps/web/src/features/KitCapture.tsx", "apps/web/src/features/Interpreting.tsx"]) {
+    const code = uncommented(read(f));
+    if (/from\s+['"]\.\.\/ui['"]|nurse-identity\.css/.test(code))
+      w4b(`${f} is on the patient's entry and now imports the shared components or the nurse sheet. They belong behind KitDeck's dynamic import, where a patient who never opens the kit pays nothing for them.`);
+  }
+  if (!/const KitDeck = lazy\(\(\) => import\('\.\/KitDeck'\)\)/.test(uncommented(read("apps/web/src/features/Kit.tsx"))))
+    w4b("apps/web/src/features/Kit.tsx no longer reaches KitDeck through a dynamic import.");
+
+  /* 4. */
+  const deck = uncommented(read("apps/web/src/features/KitDeck.tsx"));
+  if (!/summarise\(capturer\)/.test(deck) || !/calibrationOf\(instrument\)/.test(deck) || !/can\(capturer, 'write-clinical-note'\)/.test(deck))
+    w4b("KitDeck's readiness ring is no longer counted from the register (summarise), the kit's calibrations (calibrationOf) and the capability decision (can). A ring drawn from anything else is a figure nobody measured.");
+  if (/percent|\d+\s*%|\*\s*100\b/i.test(deck.replace(/'[^']*'|"[^"]*"/g, "")))
+    w4b("KitDeck works out a percentage. Readiness is two counts in words, never a score.");
+
+  /* 5. */
+  const straight = nurseCss.match(/\.nurse-map-panel \.livemap-canvas\.schematic \.map-straight\s*\{([^}]*)\}/);
+  if (!straight || !/stroke-dasharray\s*:\s*[\d.]+\s+[\d.]+/.test(straight[1]))
+    w4b(`${nurseSheet} no longer draws the map's straight line dashed. A solid line over roads is read as a route, and this product never draws one.`);
+  const visit = uncommented(read("apps/web/src/features/CareVisit.tsx"));
+  const route = visit.slice(visit.indexOf("view.stage === 'route'"), visit.indexOf("view.stage === 'start'"));
+  if (!/<NotConnected of="dispatch"/.test(route) || !/<LiveMap\b[^>]*link=\{nurseBase \? \{ from: nurseBase\.at, to: visitZone\.at \}/.test(route))
+    w4b("CareVisit's route stage has lost the dispatch notice or the schematic's straight link. The map panel is the simulated map with its honesty line, never a route of its own.");
+
+  /* 6. */
+  const devices = uncommented(read("apps/web/src/features/Devices.tsx"));
+  const source = devices.slice(devices.indexOf("export function CaptureSource"), devices.indexOf("const EFFECTIVE"));
+  if (!/clinicalUseOf\(\{/.test(source) || !/nurse\.carries\b/.test(source) || !/nurse\.carriesNot\b/.test(source))
+    w4b("CaptureSource no longer asks clinicalUseOf for a reading's clinical weight, or no longer says it in devices.json's words.");
+  if (!/p\.state === 'stored'/.test(visit) || !/list\.length > 1/.test(visit))
+    w4b("CareVisit's patient trend is no longer drawn only through readings that reached the record, two or more of one measure.");
+
+  console.log(`Wave 4b, the nurse's screens on the identity · ${sheets.length} sheets and ${w4bRules} rules on tokens alone, no tint, literal, typed corner, shadow or duration, every size on the scale and nothing endless; every animation in nurse-identity.css taken away under reduced motion; Kit, KitCapture and Interpreting off the shared components on the patient's entry; the readiness ring two counts and no percentage; the map's line straight and dashed under the dispatch notice; clinical weight the Devices contract's answer; the trend only through readings on record.`);
 }

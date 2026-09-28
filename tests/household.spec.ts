@@ -72,7 +72,8 @@ test('a sponsor is shown a household reference, a state and billing lines, and n
   await page.goto('/app/');
   await goSection(page, 'My family');
   await page.getByRole('button', { name: /Care you sponsor/ }).click();
-  const link = page.locator('.panel').filter({ hasText: household.screen.sponsor.heading });
+  /* The sponsor's statement is a shared Card since the identity restyle (ui-card); the roster above is still a panel. */
+  const link = page.locator(':is(.panel, .ui-card)').filter({ hasText: household.screen.sponsor.heading });
   await expect(link.getByRole('heading', { name: household.screen.sponsor.heading })).toBeVisible();
   /* The sponsorship names a household and a member of it, by reference. Nobody typed a name into it. */
   await expect(link.getByText(/A member of household SIM-HH-/)).toBeVisible();
@@ -87,7 +88,8 @@ test('a sponsor is shown a household reference, a state and billing lines, and n
   /* The sponsorship panel carries references, a state and a line detail, and nothing else. Asserted on the
      rows themselves rather than on the absence of words, because "what was found" is on this screen —
      in the list of what a sponsor never sees, which is where it belongs. */
-  await expect(link.locator('.review-line')).toHaveCount(3);
+  /* The panel's rows are the office identity's facts since 28 September 2026 (a dl.oi-facts of rows); the older markup was review-line. */
+  await expect(link.locator(':is(.review-line, .oi-facts > div)')).toHaveCount(3);
 });
 
 test('a split has to add up, and each payer accepts their own share before any of it is payable', async ({ page }) => {

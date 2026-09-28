@@ -20,7 +20,9 @@ import { settingsScreen } from "../../lib/settings";
 import { usePortal } from "./context";
 import { Frame } from "./Frame";
 import { DispatchDemo } from "./DispatchDemo";
-import { Ring, tintsFor } from "./Parts";
+import { Ring } from "./Parts";
+import { Card } from "../../ui/Card";
+import { buttonVariants } from "../../ui/Button";
 import { ProvinceDemo } from "./ProvinceDemo";
 
 /* The four operational categories — Dispatch & Incidents, Vetting, Quality and Audit — drawn from the
@@ -47,18 +49,20 @@ const Movement = lazy(() =>
 );
 
 /* The strip the Control Tower workspace drew over both of its boards, read from the one place it is
-   written. The first figure leads, because the strip is ordered urgency-first: it is the dark card,
-   and every other figure takes the tint of its own name (Parts.tsx says why a name and never a
-   position). A figure that is a share of the register it was counted from carries a ring of that
-   share, drawn from the same two counts as its numeral and its chip. */
+   written. The first figure leads, because the strip is ordered urgency-first: it is the elevated card,
+   as the portal's own lead figure is (Parts.tsx#Figures). A figure that is a share of the register it
+   was counted from carries a ring of that share, drawn from the same two counts as its numeral and its chip.
+
+   Each figure is the handoff's Card holding the workspace's own Metric rather than a MetricCard: the
+   parallel-run journey reads .s-metric's label, value and chip in the kept workspace and here and fails if
+   they differ, so the markup inside the card is the workspace's, and portal.css gives it MetricCard's type. */
 type StripFigure = { label: string; value: string; chip: string; flagged: boolean; share?: number };
 function TowerStrip({ extra = [] }: { extra?: StripFigure[] }) {
   const figures: StripFigure[] = [...controlTowerFigures(), ...extra];
-  const tints = tintsFor(figures.slice(1).map((f) => f.label));
   return (
     <Metrics>
       {figures.map((f, i) => (
-        <div key={f.label} className="pt-strip-figure" data-tint={i === 0 ? "night" : tints.get(f.label)}>
+        <Card key={f.label} padding="md" variant={i === 0 ? "elevated" : "default"} className={i === 0 ? "pt-strip-figure is-lead" : "pt-strip-figure"}>
           <Metric
             label={f.label}
             value={f.value}
@@ -67,7 +71,7 @@ function TowerStrip({ extra = [] }: { extra?: StripFigure[] }) {
             lead={i === 0}
             visual={f.share === undefined ? undefined : <Ring share={f.share} size={56} />}
           />
-        </div>
+        </Card>
       ))}
     </Metrics>
   );
@@ -101,10 +105,11 @@ export function DispatchCategory() {
         </Suspense>
         {/* The field-safety settings, from under the board whose waits they decide. */}
         <div className="privacy-note space-top cf-link">
-          <TimerReset size={19} />
+          <TimerReset size={19} aria-hidden="true" />
           <span>{settingsScreen.operationsNote}</span>
           <button
-            className="secondary"
+            type="button"
+            className={buttonVariants({ variant: "secondary" })}
             onClick={() => {
               setSettingsEngine("safety");
               go("configuration", "tree");

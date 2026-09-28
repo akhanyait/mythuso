@@ -28,7 +28,7 @@
 .me-tier{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:var(--space-8) var(--space-16);padding:var(--space-12) 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .me-tier strong{font-size:16px;color:var(--ink)}
 .me-tier small{display:block;font-size:14px;color:var(--body);font-weight:400}
-.me-price{font-size:22px;font-weight:300;font-variant-numeric:tabular-nums;white-space:nowrap}
+.me-price{font-family:var(--font-display);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 .me-includes,.me-rules,.me-columns ul{list-style:none;margin:0;padding:0;display:grid;gap:var(--space-8)}
 .me-includes li,.me-columns li{font-size:15px;line-height:1.5;color:var(--slate);padding-left:var(--space-16);position:relative}
 .me-includes li::before,.me-columns li::before{content:"";position:absolute;left:0;top:.6em;width:6px;height:6px;border-radius:var(--r-pill);background:var(--slate)}

@@ -285,19 +285,25 @@ test('everything focusable shows a focus indicator', async ({ page }) => {
    are vacuous today and cost nothing, and on the day somebody points a stylesheet back at the old
    ramp they are not vacuous at all.
 
-   The ground is asserted in the same breath. Paper rather than white is the decision every other
-   surface on this page is a consequence of — the cards are only readable as cards because the page
-   behind them is darker — and a stray `background:#fff` would undo the lot while every one of the
-   assertions above went on passing. */
-const fillsOnly: string[] = ['studioLime', 'studioLilac', 'studioPeach', 'sageSlate', 'mutedSage', 'softSage', 'paleSage'].map(name => {
-  const hex: string = tokens.color[name];
-  return `rgb(${[1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(', ')})`;
-});
-const ground: string = tokens.color.studioPaper;
+   Since the Lovable identity of 28 September 2026 the list carries the handoff's own two fills as
+   well: its lime (warning, highlight) and its orange (danger, coral) measure 1.2 and 3.0 on white and
+   tokens.json#contrast.knownFailures refuses both as words. Its green, the accent, is not in the list:
+   it is allowed as the headline's large second line, where it clears the 3:1 large text needs.
+
+   The ground is asserted in the same breath. It was studioPaper and is the handoff's page ground now,
+   the light scheme's --color-background — the cards are white and only read as cards because the page
+   behind them is not — and a stray `background:#fff` would undo the lot while every one of the
+   assertions above went on passing. Playwright renders the light scheme, so the light value is read. */
+const toRgb = (hex: string) => `rgb(${[1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(', ')})`;
+const fillsOnly: string[] = [
+  ...['studioLime', 'studioLilac', 'studioPeach', 'sageSlate', 'mutedSage', 'softSage', 'paleSage'].map(name => toRgb(tokens.color[name])),
+  ...['warning', 'highlight', 'danger', 'coral'].map(role => toRgb(tokens.semantic.light[role].hex)),
+];
+const ground: string = tokens.semantic.light.background.hex;
 
 test('the accent fills and never labels, on the page ground the language is built on', async ({ page }) => {
   expect(await page.locator('.landing').evaluate(el => getComputedStyle(el).backgroundColor))
-    .toBe(`rgb(${[1, 3, 5].map(i => parseInt(ground.slice(i, i + 2), 16)).join(', ')})`);
+    .toBe(toRgb(ground));
 
   const carrying = await page.evaluate(ramp => {
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -311,7 +317,7 @@ test('the accent fills and never labels, on the page ground the language is buil
     }
     return [...found];
   }, fillsOnly);
-  expect(carrying, 'text is being carried by an accent fill, and studioLime measures 1.05:1 on studioPaper').toEqual([]);
+  expect(carrying, 'text is being carried by a fill that cannot be read as words on this ground').toEqual([]);
 });
 
 /* The page animates. Two things have to stay true whatever the motion setting: no section is ever

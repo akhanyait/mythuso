@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { BadgeCheck, Check, ClipboardList, Lock, NotebookPen, PenLine, ShieldX, Stethoscope, UserCheck } from 'lucide-react';
 import { NotConnected } from '../components/NotConnected';
 import { CalibrationCaveat, CalibrationTag, ProvenanceTag, type Source } from '../components/Provenance';
 import { can, formatEventTime, roleById, type VettingSubject } from '../lib/vetting';
 import { subjectById } from '../lib/vetting-fixtures';
 import schema from '../../../../packages/catalog/records.json';
-import { ClinicalDeck, type DeckFigure } from './ClinicalDeck';
+import { ClinicalDeck } from './ClinicalDeck';
+import { Badge, Button, Card } from '../ui';
 import './clinical-records.css';
 
 /* One shape for every encounter. The sections, which of them are required, which capability each
@@ -40,7 +41,7 @@ export const assessmentFields = { nursing: 'assessment-nursing', impression: 'as
 const placeholders: Record<string, string> = {
  reason: 'Why the patient asked to be seen, in their words where it matters…',
  history: 'Onset, duration, what makes it better or worse, medicine already taken…',
- observations: 'Anything measured that the readings above do not carry…',
+ observations: 'Anything measured that the readings on record do not carry…',
  examination: 'What you examined, and what you found…',
  plan: 'What is being done about it, by whom, and by when…',
  medication: 'Medicine, dose, frequency, duration and repeats…',
@@ -86,9 +87,21 @@ const roleGrants = (subject: VettingSubject, capability: string) =>
 /* Section names are read from the data, so they arrive cased for a label rather than for a
    sentence. */
 const sentence = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+/* What the rail calls the readings, and what the observations section points to. */
+const readingsHeading = 'Readings on record';
 
-export function ConsultationComposer({ reference = 'TH-2048', patient = 'Lerato Molefe', seed, readings = [], writer: initialWriter, title = 'Consultation record', onClose }:
- { reference?: string; patient?: string; seed?: ConsultationDraft; readings?: SeededObservation[]; writer?: string; title?: string; onClose?: () => void }) {
+/* THE CONSULTATION LAYOUT (the identity of 28 September 2026, the Lovable handoff, wave 4c). The record is
+   the main column — the sections down their spine, SOAP and the long form as two arrangements of the same
+   fields — and a rail beside it holds what a clinician reads while writing: how much is written and what
+   still stops the signature, whose record it is and who is writing, the readings on record with where each
+   came from and how much weight it bears, and, when the encounter was a call, the line it was held on.
+   The rail comes first in reading order, because who is writing is decided before a word is typed and a
+   reading is read before it is written about; on a wide screen it stands to the right. Its cards arrive
+   one after another on the tokens, and not at all for a reader who asked for stillness. `line` is the
+   teleconsultation's connection ladder, handed in by the call rather than imported from it, because the
+   call already imports this file. */
+export function ConsultationComposer({ reference = 'TH-2048', patient = 'Lerato Molefe', seed, readings = [], writer: initialWriter, title = 'Consultation record', line, onClose }:
+ { reference?: string; patient?: string; seed?: ConsultationDraft; readings?: SeededObservation[]; writer?: string; title?: string; line?: ReactNode; onClose?: () => void }) {
  const [writerId, setWriterId] = useState(initialWriter ?? writers[0].id);
  const [view, setView] = useState<'record' | 'soap' | 'read'>('record');
  const [record, setRecord] = useState<ConsultationDraft>(seed ?? {});
@@ -135,13 +148,7 @@ export function ConsultationComposer({ reference = 'TH-2048', patient = 'Lerato 
      the page, because a heading a sighted reader has already read is not a second instruction. */
   const duplicated = own.length === 1 && own[0].label === s.name;
   return <>
-   {s.id === 'observations' && readings.length > 0 && <div className="cr-readings">
-    {readings.map(r => <div className="review-line" key={r.id}>
-     <span>{r.label}<span className="prov-row"><ProvenanceTag source={r.source}/><CalibrationTag source={r.source}/></span></span>
-     <strong className={r.flagged ? 'flagged' : ''}>{r.value} {r.unit}{r.flagged ? ' ⚠' : ''}</strong>
-    </div>)}
-    {readings.map(r => <CalibrationCaveat key={r.id} source={r.source}/>)}
-   </div>}
+   {s.id === 'observations' && readings.length > 0 && <p className="cr-note">{readings.length} {readings.length === 1 ? 'reading is' : 'readings are'} on record for this encounter, each with where it came from and how far it can be relied on, in {readingsHeading.toLowerCase()} beside this record.</p>}
    {decision.allowed ? own.map(f => field(f, duplicated))
     : <><div className="cr-locked"><Lock size={15}/><span>{s.name} — locked</span></div>
        {/* The reason is worth repeating only where it is this section's own. A form the writer may
@@ -172,37 +179,55 @@ export function ConsultationComposer({ reference = 'TH-2048', patient = 'Lerato 
   </section>;
  };
 
- /* The record counting itself. The ring has one arc per field this writer is offered, lit where the
-    field holds something — the same test the spine's marks and the refusal at the foot are drawn
-    from, so the three can never disagree. Nothing on it moves as somebody types: a mark that filled
-    itself under a clinician's hand would be the record animating her own words back at her. */
- const figures: DeckFigure[] = [
-  { label: 'Fields written', value: String(filled), unit: `of ${offeredFields.length}`, flagged: false,
-    chip: signature ? 'Signed' : 'Draft — not signed',
-    shape: { kind: 'ring', segments: offeredFields.map(f => !!value(f.id)) } },
-  { label: 'Required sections still to write', value: String(outstanding.length), flagged: false,
-    chip: outstanding.length ? 'Before this can be signed' : 'Ready to sign' }
- ];
- return <div className="cr c-page">
+ /* The record counting itself. One segment per field this writer is offered, lit where the field holds
+    something — the same test the spine's marks and the refusal at the foot are drawn from, so the three
+    can never disagree. Nothing on it moves as somebody types: a mark that filled itself under a
+    clinician's hand would be the record animating her own words back at her. */
+ const rail = [
+  <Card key="progress" className="cr-rail-card cr-progress" aria-label="How much of this record is written">
+   <div className="cr-rail-head"><span className="cr-rail-eyebrow">Fields written</span>
+    <Badge size="sm" variant={signature ? 'success' : 'neutral'}>{signature ? 'Signed' : 'Draft — not signed'}</Badge></div>
+   <p className="cr-progress-figure"><strong>{filled}</strong><small>of {offeredFields.length}</small></p>
+   <span className="cr-progress-track" aria-hidden="true">{offeredFields.map(f => <i key={f.id} className={value(f.id) ? 'on' : ''}/>)}</span>
+   <p className="cr-rail-line">{outstanding.length
+    ? `${outstanding.length} required ${outstanding.length === 1 ? 'section' : 'sections'} still to write before this can be signed.`
+    : 'Every required section is written. It is ready to sign.'}</p>
+  </Card>,
+  <Card key="patient" className="cr-rail-card cr-patient">
+   <span className="cr-rail-eyebrow">{reference}</span>
+   <strong className="cr-rail-name">{patient}</strong>
+   {/* Who is writing is a fact about whose record this is, so the choice of writer stands beside the
+       patient's name rather than floating on the sheet above the first section. */}
+   <label className="cr-writer"><span>Writing as</span><select value={writerId} disabled={!!signature} onChange={e => { setWriterId(e.target.value); setSignature(null); }}>
+    {writers.map(w => <option key={w.id} value={w.id}>{w.name} · {w.reference}</option>)}
+   </select></label>
+   <p className="cr-rail-line">{role?.name ?? writer.reference}</p>
+  </Card>,
+  readings.length > 0 && <Card key="readings" className="cr-rail-card cr-readings-card" role="group" aria-label={readingsHeading}>
+   <span className="cr-rail-eyebrow">{readingsHeading}</span>
+   <ul className="cr-readings-list">{readings.map(r => <li key={r.id} className={r.flagged ? 'is-flagged' : ''}>
+    <span className="cr-reading-name">{r.label}</span>
+    <strong className="cr-reading-value">{r.value}<small>{r.unit}</small></strong>
+    {r.flagged && <Badge size="sm" variant="warning" className="cr-reading-flag">Outside its range</Badge>}
+    <span className="prov-row"><ProvenanceTag source={r.source}/><CalibrationTag source={r.source}/></span>
+    <CalibrationCaveat source={r.source}/>
+   </li>)}</ul>
+  </Card>,
+  line && <Card key="line" className="cr-rail-card cr-line">{line}</Card>
+ ].filter(Boolean);
+ return <div className="cr c-page consultation">
   {/* What a reader wants from a record before they read it is whose it is, who is writing it and
-      whether it has been signed. Whose is the pale panel; the count and the signature are the glass;
-      the sentence under the headline is the record contract's own reason for having one shape. */}
-  <ClinicalDeck role="Consultation record" title={title} figures={figures}
+      whether it has been signed. The hero says what the record holds; the rail beside the document
+      says whose it is and how far it has got; the sentence under the headline is the record
+      contract's own reason for having one shape. */}
+  <ClinicalDeck role="Consultation record" title={title} figures={[]}
    headline={['What this record holds,', { glyph: 'file' }, 'and who may sign it.']}
-   note={spec.why}
-   panel={<>
-    <span className="c-panel-eyebrow">{reference}</span>
-    <strong className="c-panel-name">{patient}</strong>
-    {/* Who is writing is a fact about whose record this is, so the choice of writer stands beside the
-        patient's name rather than floating on the sheet above the first section. */}
-    <label className="cr-writer"><span>Writing as</span><select value={writerId} disabled={!!signature} onChange={e => { setWriterId(e.target.value); setSignature(null); }}>
-     {writers.map(w => <option key={w.id} value={w.id}>{w.name} · {w.reference}</option>)}
-    </select></label>
-    <p className="c-panel-line">{role?.name ?? writer.reference}</p>
-   </>}>
+   note={spec.why}>
    <NotConnected of="clinical-records"/>
   </ClinicalDeck>
-  <div className="c-sheet cr cr-doc">
+  <div className="consultation-layout">
+  <aside className="consultation-rail" aria-label="This consultation">{rail}</aside>
+  <div className="c-sheet cr cr-doc consultation-main">
   {!mayWrite.allowed && <div className="privacy-note alert" role="status"><ShieldX size={19}/>{mayWrite.reason} The form is read-only rather than merely unsignable: an entry nobody may put their registration against is not a record, it is a note that looks like one.</div>}
 
   {/* One rail, lifted, rather than three underlined words: the same shape the workspace uses for
@@ -260,7 +285,7 @@ export function ConsultationComposer({ reference = 'TH-2048', patient = 'Lerato 
    <div className="review-line"><span>Role</span><strong>{signature.role}</strong></div>
    <div className="review-line"><span>Signed</span><strong>{formatEventTime(signature.at)}</strong></div>
    <div className="review-line"><span>Diagnosis</span><strong>{signature.diagnosis ? 'Recorded by the signing doctor' : 'Not recorded — a nurse’s assessment is not a diagnosis'}</strong></div>
-   {onClose && <button className="primary full" onClick={onClose}>Close<Check size={17}/></button>}
+   {onClose && <Button variant="primary" className="cr-close" onClick={onClose} trailingIcon={<Check aria-hidden="true"/>}>Close</Button>}
   </div> : <div className="cr-foot">
    <div className="cr-foot-say">
     <p className="cr-foot-line"><PenLine size={15}/>Draft — {writer.name} has not signed</p>
@@ -269,13 +294,14 @@ export function ConsultationComposer({ reference = 'TH-2048', patient = 'Lerato 
      : 'Every required section is written. Signing attaches the name, the council registration and the moment of signing.'}</p>
    </div>
    <div className="button-row">
-    {onClose && <button className="secondary" onClick={onClose}>Close</button>}
-    <button className="primary" disabled={!mayWrite.allowed || outstanding.length > 0}
+    {onClose && <Button variant="secondary" onClick={onClose}>Close</Button>}
+    <Button variant="primary" disabled={!mayWrite.allowed || outstanding.length > 0} leadingIcon={<Check aria-hidden="true"/>}
      onClick={() => setSignature({ name: writer.name, reference: writer.reference, role: role?.name ?? '—', at: new Date().toISOString(), diagnosis: mayDiagnose && !!value(assessmentFields.diagnosis) })}>
-     <Check size={16}/>Sign consultation
-    </button>
+     Sign consultation
+    </Button>
    </div>
   </div>}
+  </div>
   </div>
  </div>;
 }

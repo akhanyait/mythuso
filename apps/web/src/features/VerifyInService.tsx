@@ -11,6 +11,7 @@ import {
  sendComplaint, shiftStartsNow, showDoorCode, useVerifyInService
 } from '../lib/verify-in-service';
 import { sampleVisitRows, type VisitRow } from './Pages';
+import { Button, Card } from '../ui';
 import './verify-in-service.css';
 
 /* Verify in service on the web: the patient's check of the person at her door, her complaint about a visit, the
@@ -229,17 +230,22 @@ export function NurseDoorCode() {
   setRefusal(null);
   setShown({ digits: result.digits, expiresAt: result.expiresAt, attemptsAllowed: result.attemptsAllowed });
  };
- return <section className="panel vis-nurse-code" aria-label={say.heading}>
-  <div className="section-title"><h2>{say.heading}</h2><span className="avatar nurse-avatar" aria-hidden="true">{initialsOf(nurse.name)}</span></div>
-  <p className="helper">{say.intro}</p>
+ /* On the identity (wave 4b): a white Card on her day, the initials where a photograph would be, and the code
+    itself in the display face, large and spaced, because it is read aloud across a doorway. Showing it is the
+    one aqua action; showing it again is quieter, because the first press is the decision. */
+ return <Card role="region" padding="md" className="vis-nurse-code nurse-ui" aria-label={say.heading}>
+  <div className="vis-nurse-head">
+   <span className="vis-initials" aria-hidden="true">{initialsOf(nurse.name)}</span>
+   <div><h2>{say.heading}</h2><p>{say.intro}</p></div>
+  </div>
   <p className="helper">{say.preview} {row.id} · {nurse.name}</p>
-  {shown && <>
+  {shown && <div className="vis-shown">
    <output className="vis-digits" aria-label={say.heading}>{shown.digits}</output>
    <p className="helper">{fill(say.expires, { at: time(shown.expiresAt) })} {fill(say.tries, { attempts: shown.attemptsAllowed })}</p>
-  </>}
+  </div>}
   <Refused refusal={refusal}/>
-  <button className={shown ? 'secondary' : 'primary'} onClick={show}><KeyRound size={16}/>{shown ? say.again : say.button}</button>
- </section>;
+  <div className="nurse-actions vis-nurse-actions"><Button variant={shown ? 'secondary' : 'accent'} leadingIcon={<KeyRound aria-hidden="true"/>} onClick={show}>{shown ? say.again : say.button}</Button></div>
+ </Card>;
 }
 
 /* What a nurse is told about complaints about her: that they exist, their kind, their state and their outcome. */

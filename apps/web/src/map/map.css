@@ -256,3 +256,7 @@
 .livemap-canvas.schematic .map-ground { fill: var(--studio-paper, var(--mist)); }
 .map-pin > g > circle, .map-pin > g > rect { stroke: var(--surface); stroke-width: .6; paint-order: stroke; }
 .map-pin > g:focus-visible > circle, .map-pin > g:focus-visible > rect { stroke: var(--focus); stroke-width: 1.6; }
+
+/* The press target under a pin that can be pressed (LiveMap.tsx, Mark): transparent, unstroked, and
+   out-ranking every fill and focus rule above, which would otherwise paint it as a second, larger pin. */
+.map-pin .map-hit.map-hit { fill: transparent; stroke: none; }

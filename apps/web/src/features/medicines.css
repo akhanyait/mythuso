@@ -17,7 +17,7 @@
 .md-panel, .md-patient { display: grid; gap: var(--space-12); min-width: 0; }
 .md-panel.is-queue { margin-bottom: var(--space-32); }
 .md-head { display: grid; gap: var(--space-4); }
-.md-head h2 { margin: 0; font-size: 20px; font-weight: 600; color: var(--charcoal); }
+.md-head h2 { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 600; color: var(--charcoal); }
 .md-head p { margin: 0; max-width: 68ch; font-size: 14px; line-height: 1.55; color: var(--body); }
 .md-panel .not-connected.inline, .md-authorise .not-connected.inline, .md-pin-sheet .not-connected.inline { margin: 0; }
 
@@ -32,7 +32,7 @@
 
 .md-notice {
  margin: 0; max-width: 68ch; padding: var(--space-8) var(--space-12);
- border-left: 3px solid var(--indigo); border-radius: var(--r-control); background: var(--canvas);
+ border-left: 3px solid var(--brand-ink); border-radius: var(--r-md); background: var(--glass-floor);
  font-size: 14px; line-height: 1.5; color: var(--slate);
 }
 
@@ -42,11 +42,11 @@
 /* The whole label is the target, padded on every side, as the field-safety reasons are. */
 .md-choice {
  display: flex; align-items: center; gap: var(--space-12); min-height: 44px; padding: var(--space-12);
- border: 1px solid var(--line); border-radius: var(--r-control); background: var(--surface);
+ border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface);
  font-size: 14px; font-weight: 400; color: var(--charcoal); cursor: pointer;
 }
-.md-choice:has(input:checked) { border-color: var(--charcoal); box-shadow: inset 0 0 0 1px var(--charcoal); }
-.md-choice input { flex: none; width: 18px; height: 18px; min-height: 0; margin: 0; padding: 0; accent-color: var(--charcoal); }
+.md-choice:has(input:checked) { border-color: var(--brand-green); background: color-mix(in srgb, var(--brand-green) 8%, var(--surface)); box-shadow: inset 0 0 0 1px var(--brand-green); }
+.md-choice input { flex: none; width: 18px; height: 18px; min-height: 0; margin: 0; padding: 0; accent-color: var(--brand-green); }
 .md-choice > span:not(.md-schedule) { flex: 1; min-width: 0; display: grid; gap: 2px; }
 .md-choice strong { font-size: 15px; font-weight: 500; }
 .md-choice small { font-size: 13px; color: var(--faint); font-variant-numeric: tabular-nums; }
@@ -58,19 +58,19 @@
 /* Not checked. Its reason is a paragraph in the flow of the form, never a chip, and the tick is the whole label. */
 .md-check {
  display: grid; gap: var(--space-8); max-width: 68ch; padding: var(--space-12) var(--space-16);
- border-left: 3px solid var(--mango-ink); border-radius: var(--r-control); background: var(--mango-soft);
+ border-left: 3px solid var(--mango-ink); border-radius: var(--r-md); background: var(--mango-soft);
 }
 .md-check > strong { font-size: 15px; font-weight: 600; color: var(--charcoal); }
 .md-check > p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--charcoal); }
 .md-tick { display: flex; align-items: flex-start; gap: var(--space-12); min-height: 44px; padding-block: var(--space-12); font-size: 14px; font-weight: 500; color: var(--charcoal); cursor: pointer; }
-.md-tick input { flex: none; width: 18px; height: 18px; min-height: 0; margin: 2px 0 0; padding: 0; accent-color: var(--charcoal); }
+.md-tick input { flex: none; width: 18px; height: 18px; min-height: 0; margin: 2px 0 0; padding: 0; accent-color: var(--brand-green); }
 
-.md-refused { margin: 0; max-width: 68ch; font-size: 14px; font-weight: 500; line-height: 1.5; color: var(--danger); }
+.md-refused { margin: 0; max-width: 68ch; }
 .md-done { margin: 0; max-width: 68ch; font-size: 14px; font-weight: 500; line-height: 1.5; color: var(--teal-ink); }
 .md-empty { margin: 0; font-size: 14px; line-height: 1.5; color: var(--faint); }
 .md-carried { margin: 0; font-size: 13px; line-height: 1.5; color: var(--slate); }
 
-.md-rows { list-style: none; margin: 0; padding: 0; display: grid; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--surface); min-width: 0; }
+.md-rows { list-style: none; margin: 0; padding: 0; display: grid; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow); min-width: 0; }
 .md-row { display: grid; gap: var(--space-8); padding: var(--space-12) var(--space-16); min-width: 0; }
 .md-row + .md-row { border-top: 1px solid var(--line); }
 .md-row-line { display: grid; grid-template-columns: minmax(0, 200px) minmax(0, 1fr) auto; align-items: center; gap: var(--space-16); min-width: 0; }
@@ -104,8 +104,8 @@
 .md-pin-sheet > h3 { margin: 0; font-size: 16px; font-weight: 600; color: var(--charcoal); }
 .md-pin {
  margin: 0; padding: var(--space-16); text-align: center;
- border: 1px solid var(--line); border-radius: var(--r-card); background: var(--canvas);
- font-size: 40px; font-weight: 600; letter-spacing: .18em; color: var(--ink); font-variant-numeric: tabular-nums;
+ border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface);
+ font-family: var(--font-display); font-size: 40px; font-weight: 600; letter-spacing: .18em; color: var(--brand-ink); font-variant-numeric: tabular-nums;
 }
 .md-pin-sheet > .md-pin-once { font-weight: 500; color: var(--charcoal); }
 .md-pin-input { font-variant-numeric: tabular-nums; letter-spacing: .12em; max-width: 280px; }

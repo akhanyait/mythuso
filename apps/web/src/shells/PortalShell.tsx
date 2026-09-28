@@ -1,5 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState, type ComponentType } from 'react';
-import { Activity, BarChart3, BookOpen, CalendarRange, Cpu, Info, KeyRound, Landmark, LayoutGrid, LogOut, Radar, ScrollText, ShieldAlert, ShieldCheck, SlidersHorizontal, TrendingUp } from 'lucide-react';
+import { Wordmark } from '../components/Wordmark';
+import { BarChart3, BookOpen, Cpu, FileClock, Info, KeyRound, Landmark, LogOut, ScrollText, ShieldAlert, ShieldCheck, TrendingUp } from 'lucide-react';
 import { AssistantLauncher } from '../components/AssistantLauncher';
 import { G1Mark } from '../components/G1Mark';
 import { MotionPause } from '../components/MotionPause';
@@ -8,6 +9,11 @@ import { FounderGate, founderGateHolds } from './FounderGate';
 import { useVettingState } from '../features/Vetting';
 import { PortalContext, type PortalContextValue } from '../features/portal/context';
 import { Loading, Tablist } from '../features/portal/Parts';
+import { Avatar, AvatarFallback } from '../ui/Avatar';
+import { Button } from '../ui/Button';
+import { IconButton } from '../ui/IconButton';
+import { Select } from '../ui/Select';
+import { MyThusoDashboardIcon, MyThusoHealthIcon, MyThusoSettingsIcon, MyThusoVisitIcon, type MyThusoIconComponent } from '../ui/icons/MyThusoIcons.generated';
 import { categories, categoryById, contextParam, headingOf, overviewRefusal, pickerRefusal, placeFromSearch, portalContract, searchForPlace, tabOf, tabsOf, type ContextId, type PortalPlace } from '../lib/portal';
 import { t } from '../lib/i18n';
 import { endSession } from '../lib/auth';
@@ -73,15 +79,22 @@ const bodies: Record<string, ComponentType> = {
 const PortalModal = lazy(() => import('../features/portal/Modals'));
 
 /* One icon per category, so a column of fourteen is recognisable at a glance. The words carry it;
-   the icon is decoration and is hidden from a screen reader. GilbertOne carries its own mark. */
-const icons: Record<string, typeof Radar> = {
- overview: LayoutGrid, dispatch: Radar, vetting: ShieldCheck, quality: BarChart3, audit: CalendarRange,
- devices: Cpu, configuration: SlidersHorizontal, finance: Landmark, compliance: ShieldAlert,
- governance: ScrollText, clinical: Activity, catalogue: BookOpen, growth: TrendingUp
+   the icon is decoration and is hidden from a screen reader. GilbertOne carries its own mark.
+
+   Four categories are a concept the MyThuso icon family was drawn for, and wear the family's icon rather
+   than a generic one (the handoff: "never mix a generic icon and a MyThuso icon for the same concept"): the
+   Overview is the dashboard, Dispatch & Incidents is where visits are sent out, Clinical oversight is
+   health, Configuration is settings. Audit loses the calendar it wore, because the calendar is the family's
+   visit and two icons for one idea on one rail is the mix the family forbids. The rest have no concept in
+   the family and stay Lucide, the handoff's utility set. */
+const icons: Record<string, typeof ShieldCheck | MyThusoIconComponent> = {
+ overview: MyThusoDashboardIcon, dispatch: MyThusoVisitIcon, vetting: ShieldCheck, quality: BarChart3, audit: FileClock,
+ devices: Cpu, configuration: MyThusoSettingsIcon, finance: Landmark, compliance: ShieldAlert,
+ governance: ScrollText, clinical: MyThusoHealthIcon, catalogue: BookOpen, growth: TrendingUp
 };
 const iconFor = (category: Category) => category.id === 'gilbertone'
  ? <G1Mark className="pt-tab-g1"/>
- : (() => { const Icon = icons[category.id] ?? LayoutGrid; return <Icon size={18} strokeWidth={1.8} aria-hidden="true"/>; })();
+ : (() => { const Icon = icons[category.id] ?? MyThusoDashboardIcon; return <Icon aria-hidden="true" className="pt-tab-icon"/>; })();
 
 /* The two old shells, for the parallel run and for a rollback. docs/control-tower-cutover.md: for one
    release cycle ?legacy=1 opens the Control Tower workspace or the back office as they were, read-only;
@@ -181,7 +194,7 @@ function PortalShell({ audience }: { audience: RoleId }) {
  const Body = bodies[category.id];
  const categoryItems = categories.map(c => ({ id: c.id, label: c.label, icon: iconFor(c) }));
  const identity = who && <>
-  <span className="avatar small">{who.initials}</span>
+  <Avatar size="sm"><AvatarFallback initials={who.initials}/></Avatar>
   <span><strong>{who.subject.name}</strong><small>{who.roleName} · {who.subject.reference}</small></span>
  </>;
 
@@ -189,16 +202,16 @@ function PortalShell({ audience }: { audience: RoleId }) {
   <div className="app-shell clinical aurora portal">
    <a href="#main" className="skip-link">{t('shell.skip', 'en-ZA')}</a>
    <aside className="sidebar">
-    <span className="brand"><img src="/brand/mythuso-logo.svg" alt="MyThuso"/></span>
+    <span className="brand"><Wordmark/></span>
     {identity && <div className="staff-id">{identity}</div>}
     <div className="nav-label">CATEGORIES</div>
     <nav aria-label="Control Tower categories" className="pt-side-nav">
      <Tablist label="Categories" items={categoryItems} selected={category.id} onSelect={id => go(id)}
-      idPrefix="pt-side" panelId="pt-category" orientation="vertical"/>
+      idPrefix="pt-side" panelId="pt-category" orientation="vertical" look="nav"/>
     </nav>
     <div className="sidebar-bottom">
-     <button className="settings-link" onClick={founderDoor}><KeyRound size={18}/>Founder sign-in · 2FA</button>
-     <button className="settings-link" onClick={leave}><LogOut size={18}/>Leave the Control Tower</button>
+     <Button variant="ghost" className="settings-link" leadingIcon={<KeyRound aria-hidden="true"/>} onClick={founderDoor}>Founder sign-in · 2FA</Button>
+     <Button variant="ghost" className="settings-link" leadingIcon={<LogOut aria-hidden="true"/>} onClick={leave}>Leave the Control Tower</Button>
     </div>
    </aside>
    <div className="workspace surface">
@@ -208,8 +221,8 @@ function PortalShell({ audience }: { audience: RoleId }) {
      <div className="topbar-actions">
       <MotionPause className="pt-pause"/>
       {/* The same door on a phone, where the sidebar's foot is not drawn. */}
-      <button className="icon-button" aria-label="Founder sign-in · 2FA" onClick={founderDoor}><KeyRound size={19}/></button>
-      <button className="icon-button" aria-label="Leave the Control Tower" onClick={leave}><LogOut size={19}/></button>
+      <IconButton variant="ghost" label="Founder sign-in · 2FA" onClick={founderDoor}><KeyRound aria-hidden="true"/></IconButton>
+      <IconButton variant="ghost" label="Leave the Control Tower" onClick={leave}><LogOut aria-hidden="true"/></IconButton>
      </div>
     </header>
     <DemoBar note={t('shell.previewBadge', 'en-ZA')}/>
@@ -219,11 +232,11 @@ function PortalShell({ audience }: { audience: RoleId }) {
           1000px. Only one of the two is ever displayed, so a screen reader meets one. */}
       <nav aria-label="Control Tower categories" className="pt-strip-nav">
        <Tablist label="Categories" items={categoryItems} selected={category.id} onSelect={id => go(id)}
-        idPrefix="pt-strip" panelId="pt-category"/>
+        idPrefix="pt-strip" panelId="pt-category" look="nav"/>
       </nav>
       {/* Not an access control, said where a reader would assume one: the capability's own sentence
           about the switcher, then what that means for a portal of categories. */}
-      <p className="pt-preview" role="note"><Info size={17} aria-hidden="true"/><span>{pickerRefusal()} {portalContract.previewPicker.sentence}</span></p>
+      <p className="pt-preview" role="note"><Info aria-hidden="true"/><span>{pickerRefusal()} {portalContract.previewPicker.sentence}</span></p>
       <ContextBar place={place} onChange={setContext}/>
       {cameByOldAddress && <p className="pt-notice" role="status">
        <span>{portalContract.notice.sentence}</span>
@@ -247,22 +260,23 @@ function PortalShell({ audience }: { audience: RoleId }) {
 
 /* Where the reader is: site, period and tenant, in the address (§5.2). Each says what it does and
    does not change, because two of the three change nothing yet and a control that silently changes
-   nothing is a control lying about itself. */
+   nothing is a control lying about itself. Each is the handoff's Field — label, the shared Select, the
+   sentence as the field's message — and the tenant, which cannot be chosen, is the label and its words. */
 function ContextBar({ place, onChange }: { place: PortalPlace; onChange: (id: ContextId, value: string) => void }) {
  const site = contextParam('site');
  const period = contextParam('period');
  const tenant = contextParam('tenant');
  return <div className="pt-context" role="group" aria-label="Context">
   {([['site', site], ['period', period]] as const).map(([id, p]) =>
-   <label key={id} className="pt-context-field">
-    <span>{p.label}</span>
-    <select value={place[id]} onChange={event => onChange(id, event.target.value)} aria-describedby={`pt-context-${id}`}>
+   <div key={id} className="pt-context-field ui-field">
+    <label htmlFor={`pt-context-${id}-field`} className="ui-field__label">{p.label}</label>
+    <Select id={`pt-context-${id}-field`} value={place[id]} onChange={event => onChange(id, event.target.value)} aria-describedby={`pt-context-${id}`}>
      {p.values.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
-    </select>
-    <small id={`pt-context-${id}`}>{p.sentence}</small>
-   </label>)}
-  <div className="pt-context-field">
-   <span>{tenant.label}</span>
+    </Select>
+    <small id={`pt-context-${id}`} className="ui-field__message">{p.sentence}</small>
+   </div>)}
+  <div className="pt-context-field ui-field">
+   <span className="ui-field__label">{tenant.label}</span>
    <strong className="pt-context-value">{tenant.sentence}</strong>
    {place.tenantAsked && <small role="note">{overviewRefusal('no-invented-tenant')}</small>}
   </div>

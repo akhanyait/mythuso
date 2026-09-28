@@ -1,0 +1,452 @@
+/* THE NURSE'S SCREENS ON THE IDENTITY — wave 4b, 28 September 2026.
+ *
+ * The handoff's nurse-* rules (its theme.css: a command view with a readiness ring, workload bars and a
+ * queue; a route map with roads, blocks, a drawn route, pins and a clinic marker; a field visit with
+ * readings, metrics and a schedule fill; a patient profile with a trend), translated into the token
+ * variables and nothing else. White surfaces, compact corners, one shadow, aqua (--color-accent) for
+ * action, selection and progress and never for words on white — it measures 3.4:1 there, so a word
+ * that needs it is drawn in --ui-success-ink, the measured teal ink.
+ *
+ * Loaded only by modules that ride the clinical workspace's dynamic import — VisitQueue, CareVisit,
+ * FieldSafety, KitDeck, Earnings — so the patient's entry downloads none of it. Thuso Kit itself is on
+ * the patient's entry and imports nothing from here: its rows are dressed by nurse-kit.css, which
+ * KitDeck carries behind the kit's one dynamic import.
+ *
+ * Several of these screens still carry a class the older sheets style (.clinical .vq-strip in
+ * clinical.css, .care-slot in care-visit.css), because a spec outside this workspace finds the element
+ * by it. Where that is so the rule here is written one step more specific — .clinical .vq-strip.nurse-strip
+ * — rather than with !important, so the older rule is outranked without being fought.
+ *
+ * Motion is finite and on the tokens: a bar, a ring and a route draw once on arrival and rest. Nothing
+ * here runs forever, and the reduced-motion block at the foot takes every one of them away. */
+
+/* ---- Shared ------------------------------------------------------------------------------------ */
+.nurse-eyebrow { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--color-muted-foreground); }
+.nurse-facts { display: grid; margin: 0; min-width: 0; }
+.nurse-facts > div {
+ display: grid;
+ grid-template-columns: minmax(0, 1fr) auto;
+ gap: var(--space-4) var(--space-16);
+ align-items: baseline;
+ padding: var(--space-8) 0;
+ border-top: 1px solid var(--color-border);
+}
+.nurse-facts dt { font-size: 13px; line-height: 1.45; color: var(--color-muted-foreground); min-width: 0; }
+.nurse-facts dd { margin: 0; font-size: 14px; line-height: 1.45; font-weight: 600; color: var(--color-foreground); text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ---- The shared components inside the clinical shell --------------------------------------------
+   clinical.css dresses every input in the workspace with `.clinical input` — one class and an element,
+   which outranks the shared components' single class, so a Checkbox there lost its edge and its corner
+   and drew a faint pill. Every root on these screens carries .nurse-ui, and under it the components get
+   their own values back from the same tokens ui.css spends. Scoped to these screens: the rest of the
+   shell is somebody else's to move. */
+.clinical .nurse-ui .ui-checkbox__input { border: 1px solid var(--color-muted-foreground); border-radius: var(--r-sm); background: var(--color-surface); width: var(--space-16); min-height: 0; padding: 0; }
+.clinical .nurse-ui .ui-checkbox__input:checked { border-color: var(--color-primary); background: var(--color-primary); }
+.clinical .nurse-ui .ui-control { border-color: var(--color-muted-foreground); border-radius: var(--r-md); background: var(--color-surface); color: var(--color-foreground); min-height: var(--ui-target); padding-top: 0; padding-bottom: 0; }
+.clinical .nurse-ui .ui-control:is(:focus, .is-focus) { border-color: var(--color-ring); }
+.clinical .nurse-ui label.ui-checkbox { color: var(--color-foreground); }
+
+/* ---- The strip --------------------------------------------------------------------------------
+   One line above the assessment. A white bar with a hairline; offline is the solid foreground edge and
+   the struck cloud in its disc, beside the words that say it. */
+.clinical .vq-strip.nurse-strip {
+ display: flex;
+ align-items: center;
+ gap: var(--space-12);
+ width: 100%;
+ min-height: 56px;
+ padding: var(--space-8) var(--space-16) var(--space-8) var(--space-8);
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-lg);
+ background: var(--color-surface);
+ color: var(--color-foreground);
+ box-shadow: var(--shadow);
+ text-align: left;
+ transition: border-color var(--t-quick) var(--ease-soft);
+}
+.clinical .vq-strip.nurse-strip.offline { border-color: var(--color-foreground); }
+.clinical .vq-strip.nurse-strip:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; box-shadow: var(--shadow); }
+.nurse-strip__disc { display: inline-grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: var(--r-md); background: var(--color-muted); color: var(--color-primary); }
+.nurse-strip.offline .nurse-strip__disc { background: var(--color-primary); color: var(--color-primary-foreground); }
+.nurse-strip__disc svg { width: 20px; height: 20px; }
+.clinical .nurse-strip .nurse-strip__say { flex: 1; min-width: 0; }
+.clinical .nurse-strip strong { display: block; font-size: 15px; font-weight: 600; color: var(--color-foreground); }
+.clinical .nurse-strip small { display: block; font-size: 13px; line-height: 1.45; color: var(--color-muted-foreground); }
+.clinical .vq-strip.nurse-strip i { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: var(--r-md); color: var(--color-muted-foreground); transition: transform var(--t-quick) var(--ease-soft); }
+.clinical .vq-strip.nurse-strip i svg { width: 18px; height: 18px; }
+
+/* ---- The queue: the command view's workload and its rows --------------------------------------- */
+.clinical .vq-panel.nurse-queue { margin-bottom: var(--space-16); overflow: hidden; }
+.nurse-queue__head {
+ display: flex;
+ flex-wrap: wrap;
+ align-items: flex-start;
+ justify-content: space-between;
+ gap: var(--space-16);
+ padding: var(--space-20) var(--space-24);
+ border-bottom: 1px solid var(--color-border);
+}
+.nurse-queue__say { display: grid; gap: var(--space-4); flex: 1 1 320px; min-width: 0; }
+.nurse-queue__standing { margin: 0; font-size: 15px; line-height: 1.5; color: var(--color-foreground); max-width: 60ch; }
+.nurse-queue__controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8) var(--space-16); }
+.nurse-queue__controls .ui-button.offline { border-color: var(--color-foreground); }
+.nurse-queue__body { display: grid; gap: var(--space-20); padding: var(--space-20) var(--space-24) var(--space-24); min-width: 0; }
+.nurse-queue__group { display: grid; gap: var(--space-12); min-width: 0; }
+.clinical .nurse-queue .nurse-queue__group h3 { margin: 0; font-family: var(--font-display); font-size: 16px; font-weight: 600; color: var(--color-foreground); }
+.nurse-queue__empty { margin: 0; }
+
+/* Four workload bars, one per standing, scaled against the largest. Real columns: the label, the
+   track, then the count right-aligned so the numerals line up down the list. */
+.clinical .vq-counts.nurse-workload {
+ display: grid;
+ grid-template-columns: none;
+ gap: var(--space-8);
+ margin: 0;
+ padding: var(--space-16) var(--space-24);
+ list-style: none;
+ background: var(--color-surface-raised);
+ border-bottom: 1px solid var(--color-border);
+}
+.nurse-workload__row { display: grid; grid-template-columns: minmax(120px, 11rem) minmax(0, 1fr) 3ch; align-items: center; gap: var(--space-12); min-height: 28px; }
+.nurse-workload__label { font-size: 14px; color: var(--color-foreground); min-width: 0; }
+.nurse-workload__track { position: relative; height: var(--space-8); border-radius: var(--r-pill); background: var(--color-muted); overflow: hidden; }
+.nurse-workload__track i { position: absolute; inset: 0; border-radius: inherit; background: var(--color-primary); transform: scaleX(var(--share, 0)); transform-origin: left center; animation: nurse-grow var(--t-enter) var(--ease-soft) both; }
+.nurse-workload__row.is-held .nurse-workload__track i { background: var(--color-muted-foreground); }
+.nurse-workload__row.is-decision .nurse-workload__track i { background: var(--ui-danger-ink); }
+.nurse-workload__row.is-stored .nurse-workload__track i { background: var(--color-accent); }
+.clinical .nurse-workload .nurse-workload__count { display: block; margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 600; line-height: 1.2; text-align: right; color: var(--color-foreground); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+
+.nurse-queue-list { display: grid; gap: var(--space-8); margin: 0; padding: 0; list-style: none; }
+.clinical .vq-part.nurse-queue-row,
+.nurse-queue-row {
+ position: relative;
+ display: grid;
+ gap: var(--space-8);
+ padding: var(--space-16) var(--space-16) var(--space-16) var(--space-20);
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-md);
+ background: var(--color-surface);
+ min-width: 0;
+ transition: border-color var(--t-quick) var(--ease-soft);
+}
+/* The row's standing as an edge on its leading side, beside the badge that names it. */
+.nurse-queue-row::before { content: ''; position: absolute; left: -1px; top: var(--space-12); bottom: var(--space-12); width: 3px; border-radius: 0 var(--r-pill) var(--r-pill) 0; background: var(--color-border); }
+.nurse-queue-row[data-state="queued"]::before, .nurse-queue-row[data-state="sending"]::before { background: var(--color-primary); }
+.nurse-queue-row[data-state="stored"]::before { background: var(--color-accent); }
+.nurse-queue-row[data-state="conflicted"]::before { background: var(--ui-warning-ink); }
+.nurse-queue-row[data-state="refused"]::before { background: var(--ui-danger-ink); }
+.nurse-queue-row:hover { border-color: color-mix(in oklab, var(--color-accent) 40%, var(--color-border)); }
+.nurse-queue-row__head { display: flex; align-items: flex-start; gap: var(--space-12); min-width: 0; }
+.nurse-queue-row__icon { display: inline-grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: var(--r-md); background: var(--color-muted); color: var(--color-primary); }
+.nurse-queue-row__icon svg { width: 20px; height: 20px; }
+.nurse-queue-row__name { flex: 1; min-width: 0; }
+.nurse-queue-row__name strong { display: block; font-size: 15px; font-weight: 600; color: var(--color-foreground); }
+.nurse-queue-row__name small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.45; color: var(--color-muted-foreground); }
+.nurse-queue-row .helper { margin: 0; }
+.clinical .vq-part .nurse-queue-row__while { padding: var(--space-8) var(--space-12); border-radius: var(--r-sm); background: var(--color-surface-raised); color: var(--color-foreground); }
+
+/* What she can still do, beside what nobody else has: two columns, a tick and a stop, words first. */
+.clinical .vq-meanwhile.nurse-meanwhile { padding: var(--space-16) var(--space-20); border: 1px solid var(--color-border); border-radius: var(--r-md); background: var(--color-surface-raised); }
+.clinical .nurse-meanwhile h4 { color: var(--color-foreground); }
+.clinical .nurse-meanwhile li { color: var(--color-foreground); }
+
+/* ---- The command view (Thuso Kit) ---------------------------------------------------------------
+   A white hero and a row of white cards under it. The lead card — what is still on the phone — is the
+   one the screen is opened for, so it is the one with the aqua rule along its top and the largest
+   numeral; the readiness ring beside it is the second thing read; the three figures are the quiet row. */
+.nurse-command { display: grid; gap: var(--space-16); margin-bottom: var(--space-24); min-width: 0; }
+.nurse-command__hero { display: grid; gap: var(--space-12); min-width: 0; }
+.nurse-command .nurse-command__title { margin: 0; }
+.nurse-command__headline { margin: 0; font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1.2; letter-spacing: -.01em; color: var(--color-foreground); max-width: 34ch; }
+.nurse-command__note { margin: 0; font-size: 15px; line-height: 1.55; color: var(--color-muted-foreground); max-width: 62ch; }
+.nurse-command__switch { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8) var(--space-16); }
+.nurse-command__switch p { margin: 0; flex: 1 1 260px; font-size: 14px; line-height: 1.5; color: var(--color-foreground); min-width: 0; }
+.nurse-command__switch .ui-button.offline { border-color: var(--color-foreground); }
+
+.nurse-command__grid { display: grid; gap: var(--space-16); grid-template-columns: minmax(0, 1fr); min-width: 0; }
+@media (min-width: 900px) {
+ .nurse-command__grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+ .nurse-command__figures { grid-column: 1 / -1; }
+}
+.nurse-command__card { display: grid; align-content: start; gap: var(--space-12); min-width: 0; }
+.nurse-command__lead { position: relative; overflow: hidden; }
+.nurse-command__lead::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--color-accent); }
+.nurse-command__lead-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-8); }
+.nurse-command__figure { margin: 0; font-family: var(--font-display); font-size: 42px; font-weight: 600; line-height: 1; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.nurse-command__empty { display: flex; align-items: center; gap: var(--space-8); margin: 0; font-size: 14px; color: var(--color-muted-foreground); }
+.nurse-command__empty svg { width: 20px; height: 20px; color: var(--color-primary); }
+.nurse-command__figures { display: grid; gap: var(--space-16); grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); min-width: 0; }
+.nurse-command__metric .ui-metric__value { font-size: 28px; }
+/* The three labels wrap to different lengths; a two-line head keeps the numerals on one line across the row. */
+.nurse-command__metric .ui-metric__head { min-height: 36px; align-items: flex-start; margin-bottom: var(--space-12); }
+.nurse-command__metric-note { margin: var(--space-4) 0 0; font-size: 13px; line-height: 1.4; color: var(--color-muted-foreground); }
+.nurse-command__metric-note.is-flagged { color: var(--ui-warning-ink); font-weight: 600; }
+
+/* The waiting readings as bars, the longest wait longest. Real columns: the reading, the bar, the age. */
+.nurse-bars { display: grid; gap: var(--space-8); margin: 0; padding: 0; list-style: none; }
+.nurse-bars li { display: grid; grid-template-columns: minmax(84px, 7rem) minmax(0, 1fr) minmax(64px, auto); align-items: center; gap: var(--space-12); min-height: 24px; }
+.nurse-bars__label { font-size: 14px; font-weight: 600; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.nurse-bars__track { position: relative; height: var(--space-8); border-radius: var(--r-pill); background: var(--color-muted); overflow: hidden; }
+.nurse-bars__track i { position: absolute; inset: 0; border-radius: inherit; background: var(--color-primary); transform: scaleX(var(--share, 0)); transform-origin: left center; animation: nurse-grow var(--t-enter) var(--ease-soft) both; }
+.nurse-bars li:first-child .nurse-bars__track i { background: var(--color-accent); }
+.nurse-bars__age { font-size: 13px; color: var(--color-muted-foreground); text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Readiness: two rings of equal arcs. Lit arcs are solid and heavy; unlit are the thin track, so the two
+   differ by weight as well as colour, and the key beside the ring says both counts in words. */
+.nurse-readiness__body { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--space-20); }
+.nurse-ring { position: relative; width: 132px; height: 132px; flex: none; }
+.nurse-ring svg { display: block; width: 100%; height: 100%; }
+.nurse-ring__arc { fill: none; stroke: var(--color-muted); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 0; }
+.nurse-ring__arc.on { stroke-width: 6; animation: nurse-draw var(--t-enter) var(--ease-soft) both; animation-delay: calc(var(--i, 0) * var(--t-quick) / 4); }
+.nurse-ring__arc.is-register.on { stroke: var(--color-primary); }
+.nurse-ring__arc.is-kit.on { stroke: var(--color-accent); }
+.nurse-ring__figure { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; text-align: center; }
+.nurse-ring__figure strong { font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.nurse-ring__figure small { font-size: 13px; color: var(--color-muted-foreground); }
+.nurse-readiness__key { display: grid; gap: var(--space-8); margin: 0; min-width: 0; }
+.nurse-readiness__key > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-4) var(--space-12); align-items: center; }
+.nurse-readiness__key dt { display: flex; align-items: center; gap: var(--space-8); font-size: 13px; color: var(--color-muted-foreground); min-width: 0; }
+.nurse-readiness__key dd { margin: 0; font-size: 14px; font-weight: 600; color: var(--color-foreground); text-align: right; font-variant-numeric: tabular-nums; }
+.nurse-readiness__key dt i { flex: none; width: var(--space-12); height: var(--space-4); border-radius: var(--r-pill); background: var(--color-primary); }
+.nurse-readiness__key dt i.is-kit { background: var(--color-accent); }
+.nurse-readiness__caveat dt { padding-left: var(--space-20); }
+.nurse-readiness__gate { margin: 0; padding-top: var(--space-12); border-top: 1px solid var(--color-border); font-size: 14px; font-weight: 600; line-height: 1.45; color: var(--ui-success-ink); }
+.nurse-readiness__gate.is-refused { color: var(--ui-danger-ink); }
+
+@media (max-width: 599px) {
+ .nurse-command__headline { font-size: 24px; }
+ .nurse-readiness__body { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+ .nurse-readiness__key { width: 100%; }
+ .nurse-bars li { grid-template-columns: minmax(0, 1fr) auto; row-gap: var(--space-4); }
+ .nurse-bars__track { grid-column: 1 / -1; grid-row: 2; }
+}
+
+@keyframes nurse-draw { from { stroke-dashoffset: 1; } }
+/* ---- The offer on her day ------------------------------------------------------------------------
+   care-visit.css still dresses .care-slot, and a spec outside this workspace finds the card by it, so these
+   rules are written on .care-slot.nurse-offer and outrank it. The offer is a white Card with the visit's
+   mark, three facts in real columns and one aqua action; declined, lapsed and withheld drop to the raised
+   surface with no shadow, because they are sentences rather than decisions. */
+.care-slot.nurse-offer { display: grid; gap: var(--space-16); margin: var(--space-16) 0; padding: var(--space-20) var(--space-24); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); box-shadow: var(--shadow); min-width: 0; }
+.care-slot.care-offer.nurse-offer { border-top: 3px solid var(--color-accent); }
+.care-slot.nurse-offer.is-held { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; }
+.care-slot.nurse-offer:is(.is-quiet, .is-done) { background: var(--color-surface-raised); box-shadow: none; }
+.care-slot.nurse-offer.is-quiet p { margin: 0; font-size: 15px; line-height: 1.5; color: var(--color-foreground); }
+.nurse-offer__top { display: flex; align-items: flex-start; gap: var(--space-12); min-width: 0; }
+.nurse-offer__icon { display: inline-grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: var(--r-md); background: var(--color-muted); color: var(--color-primary); }
+.nurse-offer__icon svg { width: 24px; height: 24px; }
+.nurse-offer__say { display: grid; gap: var(--space-4); min-width: 0; }
+.care-slot .nurse-offer__name { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 600; line-height: 1.3; letter-spacing: 0; color: var(--color-foreground); }
+.nurse-offer__when { margin: 0; font-size: 14px; color: var(--color-muted-foreground); font-variant-numeric: tabular-nums; }
+.nurse-offer__markers { display: flex; flex-wrap: wrap; gap: var(--space-8); margin-top: var(--space-4); }
+.nurse-offer__markers .ui-badge { white-space: normal; }
+.nurse-offer__markers svg { width: 14px; height: 14px; flex: none; }
+.care-slot .care-facts.nurse-offer__facts > div { border-top-color: var(--color-border); }
+.care-slot .nurse-offer__facts dt { font-size: 13px; color: var(--color-muted-foreground); }
+.care-slot .nurse-offer__facts dd { font-family: var(--font-display); font-size: 20px; color: var(--color-foreground); }
+.care-slot .nurse-offer__facts dd small { font-family: var(--font-text); color: var(--color-muted-foreground); }
+.nurse-offer__note { display: flex; gap: var(--space-8); align-items: flex-start; margin: 0; font-size: 14px; line-height: 1.55; color: var(--color-muted-foreground); }
+.nurse-offer__note svg { flex: none; width: 16px; height: 16px; margin-top: 3px; color: var(--color-primary); }
+.nurse-offer__fact, .nurse-fact { display: flex; gap: var(--space-8); align-items: center; margin: 0; font-size: 15px; line-height: 1.5; color: var(--color-foreground); }
+.nurse-offer__fact svg, .nurse-fact svg { flex: none; width: 18px; height: 18px; color: var(--ui-success-ink); }
+.nurse-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-8); }
+.nurse-refusal { margin: 0; padding: var(--space-12) var(--space-16); border: 1px solid color-mix(in oklab, var(--color-danger) 35%, var(--color-border)); border-radius: var(--r-md); background: var(--color-surface); font-size: 15px; line-height: 1.5; color: var(--color-foreground); }
+.nurse-refusal-line { min-height: 1.5em; margin: 0; font-size: 14px; line-height: 1.5; font-weight: 600; color: var(--ui-danger-ink); }
+
+/* ---- The field visit ---------------------------------------------------------------------------- */
+.care-visit.nurse-field { display: grid; gap: var(--space-20); min-width: 0; }
+.nurse-field__intro { display: grid; gap: var(--space-8); min-width: 0; }
+.nurse-field .nurse-field__title { margin: 0; font-family: var(--font-display); font-size: 22px; font-weight: 600; line-height: 1.3; color: var(--color-foreground); }
+
+/* The booked time as a fill: aqua while it is inside the booking, the warning ink once it runs past, and
+   the words beside it say which — the colour is never the only thing that does. */
+.nurse-booked { display: grid; gap: var(--space-8); padding: var(--space-12) var(--space-16); border: 1px solid var(--color-border); border-radius: var(--r-md); background: var(--color-surface-raised); }
+.nurse-booked__say { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-4) var(--space-12); }
+.nurse-booked__words { font-size: 14px; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.nurse-booked__track { position: relative; height: var(--space-8); border-radius: var(--r-pill); background: var(--color-muted); overflow: hidden; }
+.nurse-booked__track i { position: absolute; inset: 0; border-radius: inherit; background: var(--color-accent); transform: scaleX(var(--share, 0)); transform-origin: left center; transition: transform var(--t-settle) var(--ease-soft); animation: nurse-grow var(--t-enter) var(--ease-soft) both; }
+.nurse-booked.is-over .nurse-booked__track i { background: var(--ui-warning-ink); }
+
+/* Six stages as a progress rail: a track under six marks, aqua behind her, the current stage ringed in
+   the foreground and named heavier. Done differs from to-do by the tick and the fill, not the tint alone. */
+.nurse-rail { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--space-8); }
+.nurse-rail li { position: relative; display: grid; gap: var(--space-8); align-content: start; font-size: 13px; line-height: 1.35; color: var(--color-muted-foreground); min-width: 0; }
+.nurse-rail li::before { content: ''; position: absolute; top: 13px; left: 28px; right: calc(var(--space-8) * -1); height: 2px; background: var(--color-border); }
+.nurse-rail li:last-child::before { display: none; }
+.nurse-rail li.is-done::before { background: var(--color-accent); }
+.nurse-rail__mark { position: relative; z-index: 1; display: inline-grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--color-border); border-radius: var(--r-pill); background: var(--color-surface); font-size: 13px; font-weight: 600; color: var(--color-muted-foreground); }
+.nurse-rail__mark svg { width: 14px; height: 14px; }
+.nurse-rail li.is-done .nurse-rail__mark { border-color: var(--color-accent); background: var(--color-accent); color: var(--color-accent-foreground); }
+.nurse-rail li.is-now { font-weight: 600; color: var(--color-foreground); }
+.nurse-rail li.is-now .nurse-rail__mark { border: 2px solid var(--color-foreground); color: var(--color-foreground); }
+
+.nurse-field__stage { display: grid; gap: var(--space-16); padding: var(--space-20); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); min-width: 0; }
+.nurse-field__stage h4 { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; line-height: 1.35; color: var(--color-foreground); }
+.nurse-code { display: grid; gap: var(--space-8); min-width: 0; }
+.nurse-code__label { display: inline-flex; gap: var(--space-8); align-items: center; font-size: 14px; font-weight: 600; color: var(--color-foreground); }
+.nurse-code__label svg { width: 16px; height: 16px; color: var(--color-primary); }
+
+.nurse-checklist { list-style: none; margin: 0; padding: 0; display: grid; }
+.nurse-checklist li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-12); align-items: center; padding: var(--space-12) 0; border-top: 1px solid var(--color-border); }
+.nurse-checklist li:first-child { border-top: 0; padding-top: 0; }
+.nurse-checklist__icon { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: var(--r-md); background: var(--color-muted); color: var(--color-primary); }
+.nurse-checklist__icon svg { width: 18px; height: 18px; }
+.nurse-checklist__name { min-width: 0; }
+.nurse-checklist__name strong { display: block; font-size: 15px; font-weight: 600; color: var(--color-foreground); }
+.nurse-checklist__name small { font-size: 13px; color: var(--color-muted-foreground); }
+
+/* The record stage: the visit's readings beside the patient, two columns where there is room. */
+.nurse-field__record { display: grid; gap: var(--space-16); grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); align-items: start; min-width: 0; }
+/* Inside the stage's own card these two are panels on the raised surface rather than cards of their own;
+   the reading rows inside them are the white, bordered things a nurse scans. */
+.nurse-readings, .nurse-patient { display: grid; gap: var(--space-12); min-width: 0; box-shadow: none; border-color: transparent; background: var(--color-surface-raised); }
+.nurse-readings__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-8); }
+.nurse-reading { display: grid; gap: var(--space-8); padding: var(--space-12) var(--space-16); border: 1px solid var(--color-border); border-radius: var(--r-md); background: var(--color-surface); min-width: 0; }
+.nurse-reading__value small { display: block; font-size: 13px; line-height: 1.4; color: var(--color-muted-foreground); }
+.nurse-reading__value strong { display: flex; align-items: baseline; gap: var(--space-4); font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1.15; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.nurse-reading__value strong i { font-family: var(--font-text); font-style: normal; font-size: 14px; font-weight: 500; color: var(--color-muted-foreground); }
+.nurse-reading__tags { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-8); min-width: 0; }
+.nurse-reading__tags .prov { white-space: normal; flex-wrap: wrap; border-radius: var(--r-md); }
+.nurse-reading__tags .prov em { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+.nurse-reading__tags .dv-capture-source { display: contents; }
+.nurse-reading__tags .pill { padding: 2px var(--space-8); border-radius: var(--r-pill); background: var(--color-muted); color: var(--color-muted-foreground); font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: 0; }
+.nurse-reading__tags .pill.amber { background: color-mix(in oklab, var(--color-warning) 20%, transparent); color: var(--color-foreground); }
+.nurse-patient__head { display: flex; align-items: center; gap: var(--space-12); }
+.nurse-patient__icon { display: inline-grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: var(--r-md); background: var(--color-muted); color: var(--color-primary); }
+.nurse-patient__icon svg { width: 22px; height: 22px; }
+.nurse-patient__title { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--color-foreground); }
+.nurse-patient__empty { margin: 0; font-size: 14px; line-height: 1.55; color: var(--color-muted-foreground); }
+.nurse-trend { display: grid; gap: var(--space-4); margin: 0; }
+.nurse-trend svg { display: block; width: 100%; height: 56px; }
+.nurse-trend polyline { fill: none; stroke: var(--color-primary); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; stroke-dasharray: 1; animation: nurse-draw var(--t-enter) var(--ease-soft) both; }
+.nurse-trend figcaption { display: flex; justify-content: space-between; gap: var(--space-8); font-size: 13px; color: var(--color-muted-foreground); font-variant-numeric: tabular-nums; }
+
+/* ---- The route map panel -----------------------------------------------------------------------
+   LiveMap's schematic, dressed with the handoff's ground from outside it: a raised surface ruled with the
+   grid, three roads painted as hard-edged bands on the frame, four blocks as the frame's and the canvas's
+   pseudo-elements, and the SVG's own ground made transparent so all of it shows through. None of it is a
+   place: the roads are texture, drawn nowhere in particular, and the dashed line between the two pins is
+   still the straight measurement map.css describes — it cuts across the roads rather than following one,
+   which says "not a route" better than the sentence under it can. It draws once on arrival.
+   Only under .nurse-map-panel, so the dispatch board and the patient's arrival keep their own map. */
+.nurse-map-panel .livemap-heading { color: var(--color-foreground); font-weight: 600; }
+.nurse-map-panel .livemap-heading span { padding: 2px var(--space-8); border-radius: var(--r-pill); background: var(--color-muted); color: var(--color-muted-foreground); font-size: 13px; font-weight: 600; }
+.nurse-map-panel .livemap-frame {
+ position: relative;
+ overflow: hidden;
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-lg);
+ background-color: var(--color-surface-raised);
+ background-image:
+  linear-gradient(-17deg, transparent 43%, var(--color-surface) 43%, var(--color-surface) 47%, transparent 47%),
+  linear-gradient(34deg, transparent 55%, var(--color-surface) 55%, var(--color-surface) 58.5%, transparent 58.5%),
+  linear-gradient(-8deg, transparent 70%, var(--color-surface) 70%, var(--color-surface) 73%, transparent 73%),
+  linear-gradient(color-mix(in oklab, var(--color-border) 45%, transparent) 1px, transparent 1px),
+  linear-gradient(90deg, color-mix(in oklab, var(--color-border) 45%, transparent) 1px, transparent 1px);
+ background-size: auto, auto, auto, 40px 40px, 40px 40px;
+}
+.nurse-map-panel .livemap-frame::before, .nurse-map-panel .livemap-frame::after,
+.nurse-map-panel .livemap-canvas::before, .nurse-map-panel .livemap-canvas::after {
+ content: '';
+ position: absolute;
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-md);
+ background: color-mix(in oklab, var(--color-surface) 64%, var(--color-accent));
+ opacity: .45;
+ pointer-events: none;
+}
+.nurse-map-panel .livemap-frame::before { width: 19%; height: 18%; left: 7%; top: 16%; transform: rotate(-8deg); }
+.nurse-map-panel .livemap-frame::after { width: 24%; height: 16%; right: 9%; top: 11%; transform: rotate(7deg); }
+.nurse-map-panel .livemap-canvas::before { width: 16%; height: 22%; right: 14%; bottom: 21%; transform: rotate(-5deg); }
+.nurse-map-panel .livemap-canvas::after { width: 22%; height: 15%; left: 30%; bottom: 15%; transform: rotate(5deg); }
+.nurse-map-panel .livemap-canvas { position: relative; border: 0; border-radius: 0; background: transparent; }
+.nurse-map-panel .livemap-canvas.schematic { background: transparent; }
+.nurse-map-panel .livemap-canvas.schematic svg { position: relative; z-index: 1; }
+.nurse-map-panel .livemap-canvas.schematic .map-ground { fill: transparent; }
+.nurse-map-panel .livemap-canvas.schematic .map-grid { stroke: transparent; }
+.nurse-map-panel .livemap-canvas.schematic .map-zone { fill: var(--color-accent); fill-opacity: .08; stroke: var(--color-accent); stroke-opacity: .5; stroke-width: .3; }
+.nurse-map-panel .livemap-canvas.schematic .map-label { fill: var(--color-foreground); stroke: var(--color-surface); font-weight: 600; }
+.nurse-map-panel .livemap-canvas.schematic .map-straight { stroke: var(--color-accent); stroke-width: .9; stroke-dasharray: 2 1.6; opacity: 1; animation: nurse-route calc(var(--t-enter) * 3) var(--ease-soft) both; }
+/* The handoff's markers: the nurse a highlight disc ringed in the foreground, the visit a primary square
+   edged in white. Circle and square still — shape, not colour, is what tells a nurse from a visit. */
+.nurse-map-panel .map-pin > g { transform-box: fill-box; transform-origin: center; animation: nurse-pin var(--t-enter) var(--ease-soft) both; }
+.nurse-map-panel .map-pin.visit-assigned > g { animation-delay: calc(var(--t-quick) / 2); }
+.nurse-map-panel .map-pin.nurse-busy circle { fill: var(--color-highlight); stroke: var(--color-foreground); stroke-width: .8; }
+.nurse-map-panel .map-pin.visit-assigned rect { fill: var(--color-primary); stroke: var(--color-surface); stroke-width: .8; }
+.nurse-map-panel .livemap-tiles { min-height: 44px; padding: 0 var(--space-16); border: 1px solid var(--color-border); border-radius: var(--r-md); background: var(--color-surface); color: var(--color-foreground); font-size: 14px; font-weight: 600; }
+.nurse-map-panel .livemap-tiles.on { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-primary-foreground); }
+.nurse-map-panel .livemap-note { color: var(--color-muted-foreground); }
+
+@keyframes nurse-route { from { stroke-dashoffset: 24; opacity: 0; } }
+@keyframes nurse-pin { from { opacity: 0; transform: translateY(-3px) scale(.7); } }
+
+@media (max-width: 720px) {
+ .nurse-rail { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: var(--space-12); }
+ .nurse-rail li:nth-child(3)::before { display: none; }
+}
+@media (max-width: 560px) {
+ .care-slot.nurse-offer { padding: var(--space-16); }
+ .care-slot.nurse-offer.is-held { grid-template-columns: auto minmax(0, 1fr); }
+ .care-slot.nurse-offer.is-held > .ui-button { grid-column: 1 / -1; }
+ .nurse-actions > .ui-button { flex: 1 1 auto; }
+ .nurse-field__stage { padding: var(--space-16); }
+}
+
+/* ---- Field safety: the strip on the visit ----------------------------------------------------------
+   clinical-screens.css still dresses .clinical .fs-visit and .fs-pressed (the second is how the journeys
+   find a pressed panic), so the rules here are written on those classes with .nurse-safety beside them.
+   Panic takes a row of its own at every width, as it did: findable without looking means the same size
+   and the same corner every time, in the one ink nothing else on the strip spends. */
+.clinical .fs-visit.nurse-safety, .nurse-safety { display: grid; gap: var(--space-12); padding: var(--space-16) var(--space-20); border: 1px solid var(--color-border); border-left: 3px solid var(--color-foreground); border-radius: var(--r-lg); background: var(--color-surface); box-shadow: var(--shadow); min-width: 0; }
+.clinical .fs-visit.nurse-safety.is-overdue { border-left-color: var(--ui-danger-ink); }
+.clinical .fs-visit.nurse-safety.is-closed { border-left-color: var(--color-border); box-shadow: none; }
+.nurse-safety__bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-12) var(--space-16); min-width: 0; }
+.nurse-safety__disc { display: inline-grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: var(--r-md); background: var(--color-muted); color: var(--color-primary); }
+.nurse-safety.is-overdue .nurse-safety__disc { background: color-mix(in oklab, var(--color-danger) 12%, transparent); color: var(--ui-danger-ink); }
+.nurse-safety__disc svg { width: 20px; height: 20px; }
+.nurse-safety__say { flex: 1 1 240px; display: grid; gap: 2px; min-width: 0; }
+.nurse-safety__say strong { font-family: var(--font-display); font-size: 18px; font-weight: 600; line-height: 1.3; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.nurse-safety__say small { font-size: 13px; line-height: 1.45; color: var(--color-muted-foreground); }
+.nurse-safety.is-overdue .nurse-safety__say small { color: var(--ui-danger-ink); font-weight: 600; }
+.nurse-safety__actions { display: flex; flex-wrap: wrap; gap: var(--space-8); width: 100%; }
+.nurse-safety__actions > .ui-button { flex: 1 1 auto; }
+.nurse-safety .ui-button.nurse-panic { flex: 1 1 100%; border-color: var(--ui-danger-ink); color: var(--ui-danger-ink); }
+.nurse-safety .ui-button.nurse-panic:hover { background: color-mix(in oklab, var(--color-danger) 10%, var(--color-surface)); }
+.nurse-safety__extend { display: grid; gap: var(--space-12); margin: 0; padding: var(--space-12) 0 0; border: 0; border-top: 1px solid var(--color-border); min-width: 0; }
+.nurse-safety__extend legend { float: left; width: 100%; padding: 0; font-size: 15px; font-weight: 600; color: var(--color-foreground); }
+.nurse-safety__reasons { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: var(--space-8); }
+/* A reason is a tile with the native radio in it: selected is the aqua edge and the filled dot, so it is
+   told by the control's own state and not by the tint. */
+.nurse-choice { display: flex; align-items: center; gap: var(--space-8); min-height: 44px; padding: var(--space-12); border: 1px solid var(--color-border); border-radius: var(--r-md); background: var(--color-surface); font-size: 14px; font-weight: 500; color: var(--color-foreground); cursor: pointer; }
+.nurse-choice:has(input:checked) { border-color: var(--color-accent); background: var(--color-surface-raised); }
+.clinical .nurse-choice input { flex: none; width: 18px; height: 18px; min-height: 0; margin: 0; padding: 0; accent-color: var(--color-primary); }
+.nurse-choice span { flex: 1; min-width: 0; }
+.nurse-safety__confirm { display: grid; gap: var(--space-8); padding: var(--space-16); border: 2px solid var(--ui-danger-ink); border-radius: var(--r-lg); background: var(--color-surface); }
+.nurse-safety__confirm strong { font-size: 16px; color: var(--color-foreground); }
+.nurse-safety__confirm p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-foreground); }
+.clinical .fs-pressed.nurse-safety__pressed { display: flex; align-items: flex-start; gap: var(--space-12); padding: var(--space-12) var(--space-16); border: 1px solid color-mix(in oklab, var(--color-danger) 35%, var(--color-border)); border-left: 3px solid var(--ui-danger-ink); border-radius: var(--r-md); background: var(--color-surface); }
+.nurse-safety__pressed > svg { flex: none; width: 20px; height: 20px; margin-top: 2px; color: var(--ui-danger-ink); }
+.clinical .nurse-safety__pressed strong { font-size: 15px; color: var(--color-foreground); }
+.clinical .nurse-safety__pressed p { margin: var(--space-4) 0 0; font-size: 14px; line-height: 1.5; color: var(--color-foreground); }
+
+/* The desk keeps its own row layout from clinical-screens.css; only its controls are the shared ones. */
+.fs-desk .nurse-desk__choose { width: auto; min-width: 220px; }
+.fs-desk .ui-select-wrap { flex: 1 1 220px; max-width: 320px; }
+
+@keyframes nurse-grow { from { transform: scaleX(0); } }
+
+@media (max-width: 599px) {
+ .nurse-queue__head, .nurse-queue__body { padding-left: var(--space-16); padding-right: var(--space-16); }
+ .clinical .vq-counts.nurse-workload { padding: var(--space-12) var(--space-16); }
+ .nurse-workload__row { grid-template-columns: minmax(0, 1fr) 3ch; row-gap: var(--space-4); }
+ .nurse-workload__track { grid-column: 1 / -1; grid-row: 2; }
+ .nurse-facts > div { grid-template-columns: minmax(0, 1fr); }
+ .nurse-facts dd { text-align: left; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+ .nurse-workload__track i, .nurse-bars__track i, .nurse-ring__arc.on, .nurse-booked__track i, .nurse-trend polyline,
+ .nurse-map-panel .livemap-canvas.schematic .map-straight, .nurse-map-panel .map-pin > g { animation: none !important; }
+ .nurse-booked__track i { transition: none !important; }
+ .clinical .vq-strip.nurse-strip i, .nurse-queue-row { transition: none !important; }
+}

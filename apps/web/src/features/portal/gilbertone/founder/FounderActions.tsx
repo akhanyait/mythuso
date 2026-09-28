@@ -5,6 +5,7 @@ import { fill } from '../../../../lib/portal';
 import { useFounderGate } from '../../../../lib/founder-gate';
 import { founderWords as words, putKey, readFounderProviders, readLogs, removeKey, setEnabled, testProvider, useFounderProviders, type LogLine, type ProviderMetadata } from '../../../../lib/founder-settings';
 import { codeDigits, masked } from '../../../../lib/founder-access';
+import { buttonVariants } from '../../../../ui/Button';
 
 /* The founder's controls on a provider card (packages/catalog/control-tower-portal.json#gilbertone.founder),
  * on the founder's instruction of 28 September 2026: "API Registry, Compliance, Intelligence, Model Providers
@@ -25,6 +26,12 @@ import { codeDigits, masked } from '../../../../lib/founder-access';
  * the provider's metadata — present, last four, fingerprint — and nothing else. The form says method="post"
  * so a form that somehow submitted without script still would not put a key in an address. Nothing here is
  * stored, logged or put in a URL, and scripts/check-boundaries.mjs holds this file to that.
+ *
+ * THE LOOK. The button and the fields are native elements in the shared components' classes, for the reason
+ * FounderAccess.tsx gives: the build reads them attribute by attribute. A card's founder controls are the handoff's
+ * secondary buttons — a row of them is one action group, and the handoff allows one primary in a group — and
+ * Save the key, the one that sends something, is the primary. What tells a control that acts from one that
+ * waits is its disabled state and the sentence beside it, never its colour.
  *
  * WHAT STAYS GATED. Configure scopes and Add a provider have no contract behind them, and Controls.tsx still
  * draws them disabled behind G32; the card says so in the contract's words beside these. */
@@ -48,7 +55,7 @@ export function FounderButton({ id, name, describedBy, onClick, disabled = false
  const action = actionOf(id);
  founderOf(action);
  const signedIn = phase === 'signed-in';
- return <button type={submit ? 'submit' : 'button'} className={`secondary g1-founder-live${signedIn ? ' is-open' : ''}`} onClick={onClick} disabled={!signedIn || disabled} aria-describedby={describedBy} aria-pressed={pressed}>{name ?? action.label}</button>;
+ return <button type={submit ? 'submit' : 'button'} className={`${buttonVariants({ variant: submit ? 'primary' : 'secondary' })} g1-founder-live${signedIn ? ' is-open' : ''}`} onClick={onClick} disabled={!signedIn || disabled} aria-describedby={describedBy} aria-pressed={pressed}>{name ?? action.label}</button>;
 }
 /* A founder action's record, drawn once beside its button. */
 export function FounderSentence({ id, sentenceId }: { id: string; sentenceId: string }) {
@@ -138,7 +145,7 @@ export function FounderCardControls({ card, actions, showMetadata = true }: { ca
    {(has('registry-enable') || has('registry-disable')) && <div className="g1-fact"><dt>{words.enabledLabel}</dt><dd>{meta.enabled ? g1.overview.trueWord : g1.overview.falseWord}</dd></div>}
   </dl>}
   {signedIn && meta && (has('provider-remove-key') || has('registry-enable') || has('registry-disable')) && !keyOpen && <label className="g1-field g1-founder-code"><span>{words.codeLabel}</span>
-   <input type="text" name="one-time-code" inputMode="numeric" autoComplete="one-time-code" spellCheck={false}
+   <input type="text" className="ui-control ui-input" name="one-time-code" inputMode="numeric" autoComplete="one-time-code" spellCheck={false}
     pattern={`\\d{${codeDigits}}`} maxLength={codeDigits} aria-describedby={`${why}-code`}
     value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} disabled={busy}/>
    <small id={`${why}-code`}>{words.codeHint}</small></label>}
@@ -156,10 +163,10 @@ export function FounderCardControls({ card, actions, showMetadata = true }: { ca
   {signedIn && <p id={`${why}-record`} className="g1-live-why">{actions.map(id => founderOf(actionOf(id)).sentence).join(' ')}</p>}
   {signedIn && keyOpen && <form className="g1-form g1-founder-form" method="post" onSubmit={submitKey} aria-label={`${actionOf('provider-enter-key').label}: ${card}`}>
    <label className="g1-field"><span>{words.keyLabel}</span>
-    <input type="password" name="key" autoComplete="off" required spellCheck={false} value={key} onChange={e => setKey(e.target.value)} disabled={busy} aria-describedby={`${why}-key`}/>
+    <input type="password" className="ui-control ui-input" name="key" autoComplete="off" required spellCheck={false} value={key} onChange={e => setKey(e.target.value)} disabled={busy} aria-describedby={`${why}-key`}/>
     <small id={`${why}-key`}>{words.keyHint}</small></label>
    <label className="g1-field"><span>{words.codeLabel}</span>
-    <input type="text" name="one-time-code" inputMode="numeric" autoComplete="one-time-code" required spellCheck={false}
+    <input type="text" className="ui-control ui-input" name="one-time-code" inputMode="numeric" autoComplete="one-time-code" required spellCheck={false}
      pattern={`\\d{${codeDigits}}`} maxLength={codeDigits} aria-describedby={`${why}-key-code`}
      value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} disabled={busy}/>
     <small id={`${why}-key-code`}>{words.codeHint}</small></label>

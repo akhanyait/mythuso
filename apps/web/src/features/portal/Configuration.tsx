@@ -7,6 +7,7 @@ import { roles } from '../../lib/roles';
 import { usePortal } from './context';
 import { Frame } from './Frame';
 import { Empty, Figures, Region, RovingList, Status, Tree } from './Parts';
+import { buttonVariants } from '../../ui/Button';
 
 /* Configuration as the tenant-admin home (§6.2): a tree of sites, wards, beds, staff, roles, branding
  * and integrations, each with its own screen and its own written empty state, and the settings screen
@@ -43,7 +44,7 @@ function NodeBody({ node }: { node: Node }) {
  if (node.id === 'staff') return <>
   <Empty>{empty}</Empty>
   <p className="helper">{vetting.subjects.length} parties are on the vetting register.</p>
-  <button type="button" className="secondary" onClick={() => go('vetting')}>Open Vetting</button>
+  <button type="button" className={buttonVariants({ variant: 'secondary' })} onClick={() => go('vetting')}>Open Vetting</button>
  </>;
  if (node.id === 'roles') return <>
   <Empty>{empty}</Empty>

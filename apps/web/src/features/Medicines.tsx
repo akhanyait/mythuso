@@ -10,6 +10,7 @@ import {
  verifyPrescription, words, writePrescription, type Round
 } from '../lib/medicines';
 import { subjectById } from '../lib/vetting-fixtures';
+import { Alert } from '../ui';
 import './medicines.css';
 /* The HL7 v2 bridge's parts of the lab results (Wave 5), on their own import: this file is also the patient's collector
    dialog, and nothing the doctor's HL7 result needs may ride in the chunk that dialog loads. */
@@ -34,9 +35,11 @@ const Hl7ReceiveButton = lazy(() => import('./Hl7Results').then(m => ({ default:
  * tested, and the capability notices say so in the contract's words.
  */
 
-/* A refusal is announced when it arrives, as an alert: it is the answer to what the person just pressed. */
+/* A refusal is announced when it arrives, as an alert: it is the answer to what the person just pressed. The
+   shared Alert's danger variant is role="alert" and pairs its icon with the words, so the refusal is never told
+   apart by its colour alone; the words are the route's own statement, unchanged. */
 function Refused({ refusal }: { refusal: Refusal | null }) {
- return refusal ? <p className="md-refused" role="alert">{refusal.statement}</p> : null;
+ return refusal ? <Alert variant="danger" className="md-refused" title={refusal.statement}/> : null;
 }
 /* A state is a word in a chip with a rule beside it, so waiting, done and stopped differ in shape as well as colour. */
 const State = ({ label, tone }: { label: string; tone: 'waiting' | 'done' | 'stopped' | '' }) => <span className={`md-state ${tone ? `is-${tone}` : ''}`}>{label}</span>;

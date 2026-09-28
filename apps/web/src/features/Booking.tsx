@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, Ban, Banknote, CalendarDays, CalendarClock, Chec
 import { type Service, money } from '../lib/catalog';
 import { SectionTitle, ServiceIcon } from '../components/UI';
 import { StepHead } from '../components/Steps';
+import { Field, Input, Select } from '../ui';
 import './booking-look.css';
 import { NotConnected } from '../components/NotConnected';
 import { endTime, kinds, labels, longDateOf, offeredDays, ruleById, slots, type Visit } from '../lib/scheduling';
@@ -313,12 +314,15 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
   {offline && <div className="journey-connection" role="status"><CircleAlert size={19}/><span>You’re offline. Your choices stay here while this booking is open. Reconnect to confirm; you can continue reviewing your details.</span></div>}
   {step === 0 ? <div className="form-stack">
    <div className="booking-summary"><span className="service-icon"><ServiceIcon name={service.icon}/></span><div><h3>{service.name}</h3><p>{service.duration} min · Registered nurse</p></div><strong>{money(service.price)}</strong></div>
-   <label>Who is this visit for?<select value={person} onChange={e => setPerson(e.target.value)}><option>Lerato Molefe</option><option>Nomsa Molefe</option><option>Thabo Molefe</option></select></label>
-   <p className="helper">Choose the person receiving care. Their record stays separate from yours.</p>
+   <Field label="Who is this visit for?" htmlFor="booking-person" hint="Choose the person receiving care. Their record stays separate from yours.">
+    <Select id="booking-person" value={person} onChange={e => setPerson(e.target.value)}><option>Lerato Molefe</option><option>Nomsa Molefe</option><option>Thabo Molefe</option></Select>
+   </Field>
    <button className="primary full" onClick={() => setStep(1)}>Continue<ArrowRight size={17}/></button>
   </div> : step === 1 ? <div className="form-stack">
    <h3>Where should the visit take place?</h3>
-   <label>Visit location<input value={address} onChange={e => setAddress(e.target.value)} maxLength={160} required/></label>
+   <Field label="Visit location" htmlFor="booking-address" required>
+    <Input id="booking-address" value={address} onChange={e => setAddress(e.target.value)} maxLength={160} required/>
+   </Field>
    <p className="helper">Sample availability and proposal pricing. Tests, medicines and prescriptions may require separate arrangements.</p>
    <div className="button-row"><button className="secondary" onClick={() => setStep(0)}><ArrowLeft size={16}/>Back</button><button className="primary" disabled={address.trim().length < 5} onClick={() => setStep(2)}>Continue<ArrowRight size={17}/></button></div>
   </div> : step === 2 ? <div className="form-stack">

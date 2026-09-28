@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
-import { BadgeCheck, Banknote, CalendarClock, CircleAlert, FileText, Gauge, Landmark, LockKeyhole, Radio, ScrollText, ShieldCheck, Stethoscope, TimerReset, Users } from 'lucide-react';
-import { Pill, SectionTitle } from '../components/UI';
+import { Banknote, CircleAlert, Gauge, Landmark, ShieldCheck, TimerReset } from 'lucide-react';
 import { ReadOnly } from '../components/ReadOnly';
-import { Metric, Metrics } from '../surface/Surface';
+import { Badge, Button, Card, Field, Input, Tab, TabsList } from '../ui';
+import { OfficeFacts, OfficeFigure, OfficeHead, OfficeNote, OfficeProgress, OfficeSection } from '../surface/Office';
 import { DispatchBoard, IncidentBoard, controlTowerCounts } from './Dispatch';
 import { useVettingState, VettingConsole, type VettingState } from './Vetting';
 import { summarise, type VettingSubject } from '../lib/vetting';
@@ -55,44 +55,32 @@ export function AdminConsole({ open, tab, setTab, readOnly = false }: { open: (s
    : tab === 'Clinical' ? <Clinical open={open} vetting={vetting}/> : tab === 'Catalogue' ? <Catalogue/> : tab === 'Growth' ? <Growth/>
    : tab === 'Finance' ? <Finance/> : tab === 'Compliance' ? <Compliance/> : tab === 'Governance' ? <GovernanceReadiness/>
     : <Configuration engine={settingsEngine} onEngine={setSettingsEngine}/>;
- return <>
+ return <div className="oi-screen">
   {/* The name of the console is the eyebrow and the name of the section is the heading, which is
       the way round it was not. Eight tabs each opened on "Operations console" set at the largest
       size on the screen, above a sentence listing all eight, above the one word that said which of
       them you were actually looking at — set smaller, and on the Operations tab set twice. The
       constant is chrome; the variable is the page. */}
-  <div className="page-intro">
-   <div className="eyebrow">MyThuso back office</div>
-   <h1>{tab}</h1>
-   <p>{tabBlurb[tab]}</p>
-  </div>
-  <div className="underline-tabs console-tabs" role="group" aria-label="Console sections">
-   {adminTabs.map(t => <button key={t} className={tab === t ? 'selected' : ''} aria-pressed={tab === t} onClick={() => setTab(t)}>{t}</button>)}
-  </div>
+  <OfficeHead eyebrow="MyThuso back office" title={tab} lead={tabBlurb[tab]}/>
+  <TabsList aria-label="Console sections" className="console-tabs">
+   {adminTabs.map(t => <Tab key={t} active={tab === t} onClick={() => setTab(t)}>{t}</Tab>)}
+  </TabsList>
   {/* Read-only is the parallel run's: the tab strip above still moves, and everything inside a tab is
       disabled, because the portal is the screen of record now (docs/control-tower-cutover.md). */}
   {readOnly ? <ReadOnly>{body}</ReadOnly> : body}
- </>;
-}
-/* A figure in the dashboard language: large, thin, tabular, with what it is underneath it. The icon
-   each of these used to carry is gone — twenty-four indigo-tinted glyphs across eight tabs is the
-   defect this design brief names, where a colour on everything has stopped carrying information.
-   The sentence under the label stays, because a console reports against a plan and "84" without
-   "63% of the month-9 plan" is a number nobody can act on. `flagged` fills the chip charcoal, which
-   is the one mark that says a figure is a problem.
-   The wrapper keeps `panel metric` as well as its own name: the console journeys in
-   tests/admin-and-session.spec.ts assert against `.panel.metric`, and a class is part of the
-   contract with them as much as any exported function is. clinical.css takes the card look back
-   off it, so what it draws is a Metric on the ground and nothing else. */
-function Kpi({ label, value, note, flagged, lead }: { label: string; value: string; note: string; flagged?: boolean; lead?: boolean }) {
- /* `lead` is on the wrapper rather than on the Metric inside it, because a console figure is the
-    number *and* the line saying what it is against — "84" without "84% of the month-9 plan" is a
-    number nobody can act on, and a tile that took the first and left the second outside it would
-    have split the one thing this screen reports. */
- return <div className={`c-figure panel metric${lead ? ' lead' : ''}`}>
-  <Metric label={label} value={value} chip={flagged ? 'Needs attention' : undefined} flagged={flagged}/>
-  <small>{note}</small>
  </div>;
+}
+/* A figure in the dashboard language: the handoff's MetricCard face, with what it is underneath it. The
+   icon each of these used to carry is gone — twenty-four tinted glyphs across eight tabs is the defect
+   this design brief names, where a colour on everything has stopped carrying information. The sentence
+   under the label stays, because a console reports against a plan and "84" without "63% of the month-9
+   plan" is a number nobody can act on. `flagged` is a Badge that says "Needs attention" in words, the
+   one mark that says a figure is a problem. */
+function Kpi({ label, value, note, flagged, lead }: { label: string; value: string; note: string; flagged?: boolean; lead?: boolean }) {
+ /* The number *and* the line saying what it is against, in one card — "84" without "84% of the
+    month-9 plan" is a number nobody can act on, and a tile that took the first and left the second
+    outside it would have split the one thing this screen reports. */
+ return <OfficeFigure label={label} value={value} note={note} flagged={flagged} lead={lead}/>;
 }
 /* Where the business is against the plan in the proposal, rather than against nothing. */
 function Overview({ vetting }: { vetting: VettingState }) {
@@ -103,8 +91,8 @@ function Overview({ vetting }: { vetting: VettingState }) {
     open incidents and one critical beside a board that could have been saying anything. */
  const tower = controlTowerCounts();
  const pace = (a: number, p: number) => Math.round((a / p) * 100);
- return <>
-  <div className="c-figures"><Metrics>
+ return <div className="oi-screen">
+  <div className="oi-figures">
    {/* Visits a day is the figure this console is against — the sentence under the heading says so,
        and it is the first line of the trajectory table below. Nothing here is typed that was not
        typed before it. */}
@@ -114,48 +102,47 @@ function Overview({ vetting }: { vetting: VettingState }) {
    <Kpi label="Nurses dispatchable" value={String(nurses.length - blocking(vetting.subjects, 'nurse'))} note={`Of ${nurses.length} in the vetting pipeline · read from the vetting module, not typed here`}/>
    <Kpi label="Reviews awaiting a doctor" value="12" note="2 flagged urgent · target 15 minutes"/>
    <Kpi label="Open incidents" value={String(tower.incidents)} note={`${tower.critical} critical · SLA acknowledged within ${acknowledgeWithinMinutes()} minutes`} flagged={tower.critical > 0}/>
-  </Metrics></div>
-  <SectionTitle title="Against the funding plan"/>
+  </div>
+  <h2 className="oi-section-title">Against the funding plan</h2>
   {/* Five columns of figures cannot be squeezed into 320 pixels, and they were not: the table sat
       four hundred and thirty wide inside a panel that could not hold it, so the last two columns
       were cut off with nothing on the screen saying so. It scrolls now, which is the pattern the
       patient file and the vetting register already use for the same problem. */}
-  <div className="panel table-scroll">
+  <Card className="oi-table-wrap">
    {/* Every column after the first is a figure, and the point of the table is reading one down
        against the one under it. Left-aligned they could not be: 30, 100, 300, 600, 1000 all began
        at the same pixel and ended five apart. */}
-   <table className="result-table figures">
+   <table className="oi-table">
     <caption>The proposal's indicative trajectory. These are targets, not results.</caption>
-    <thead><tr><th scope="col">Point</th><th scope="col">Visits/day</th><th scope="col">Subscribers</th><th scope="col">Revenue</th><th scope="col">Net</th></tr></thead>
+    <thead><tr><th scope="col">Point</th><th scope="col" className="is-figure">Visits/day</th><th scope="col" className="is-figure">Subscribers</th><th scope="col" className="is-figure">Revenue</th><th scope="col" className="is-figure">Net</th></tr></thead>
     <tbody>{businessModel.trajectory.map(row => <tr key={row.point}>
-     <th scope="row">{row.point}</th><td>{row.visitsPerDay}</td><td>{row.subscribers ? row.subscribers.toLocaleString() : '—'}</td>
-     <td>{bigMoney(row.revenue)}</td><td className={row.revenue - row.costs < 0 ? 'flagged' : ''}>{row.revenue - row.costs < 0 ? '−' : '+'}{bigMoney(Math.abs(row.revenue - row.costs))}</td>
+     <th scope="row">{row.point}</th><td className="is-figure">{row.visitsPerDay}</td><td className="is-figure">{row.subscribers ? row.subscribers.toLocaleString() : '—'}</td>
+     <td className="is-figure">{bigMoney(row.revenue)}</td><td className={`is-figure${row.revenue - row.costs < 0 ? ' is-refused' : ''}`}>{row.revenue - row.costs < 0 ? '−' : '+'}{bigMoney(Math.abs(row.revenue - row.costs))}</td>
     </tr>)}</tbody>
    </table>
-  </div>
-  <div className="privacy-note space-top"><Gauge size={19}/>Reporting against the plan is the point of this screen. A console that only shows today's numbers cannot tell an investor or a board whether the round is on track.</div>
- </>;
+  </Card>
+  <OfficeNote icon={<Gauge aria-hidden="true"/>}>Reporting against the plan is the point of this screen. A console that only shows today's numbers cannot tell an investor or a board whether the round is on track.</OfficeNote>
+ </div>;
 }
 function Operations({ open, vetting, openSettings }: { open: (s: string) => void; vetting: VettingState; openSettings: () => void }) {
  const stopped = blocking(vetting.subjects);
  const tower = controlTowerCounts();
- return <>
-  {/* One filled chip on a strip, not two. `flagged` means "this one" — a strip with two of them has
+ return <div className="oi-screen">
+  {/* One flagged figure on a strip, not two. `flagged` means "this one" — a strip with two of them has
       two things shouting and has stopped pointing at either. A party blocked by vetting is a
       standing state the Vetting tab holds; a critical incident is happening now. */}
-  <div className="c-figures"><Metrics>
+  <div className="oi-figures">
    <Kpi label="Parties blocking work" value={String(stopped)} note={`Of ${vetting.subjects.length} vetted parties · decided in the Vetting tab`}/>
    <Kpi label="Nurses blocked" value={String(blocking(vetting.subjects, 'nurse'))} note="Not offered on the board below, with the reason shown"/>
    <Kpi label="Open incidents" value={String(tower.incidents)} note={`${tower.critical} critical · SLA acknowledged within ${acknowledgeWithinMinutes()} minutes`} flagged={tower.critical > 0}/>
-  </Metrics></div>
+  </div>
   <DispatchBoard subjects={vetting.subjects} heading={false}/>
-  <SectionTitle title="Open incidents"/>
-  <IncidentBoard open={open}/>
+  <OfficeSection title="Open incidents"><IncidentBoard open={open}/></OfficeSection>
   {/* The timings the desk works to are changed on the Configuration tab, with every other engine's settings,
       so there is one place to change them and one history. The way there stays here, under the board and
       the incidents, where somebody on the desk looks for it. */}
-  <div className="privacy-note space-top cf-link"><TimerReset size={19}/><span>{settingsScreen.operationsNote}</span><button className="secondary" onClick={openSettings}>{settingsScreen.operationsOpen}</button></div>
- </>;
+  <div className="oi-note cf-link"><TimerReset aria-hidden="true"/><span className="oi-stack">{settingsScreen.operationsNote}<span><Button variant="secondary" onClick={openSettings}>{settingsScreen.operationsOpen}</Button></span></span></div>
+ </div>;
 }
 const reviewQueue = [
  { id: 'TH-2048', patient: 'Lerato Molefe', flag: 'Systolic 146, headache', waited: '4 min', urgent: true },
@@ -166,21 +153,21 @@ const reviewQueue = [
 function Clinical({ open, vetting }: { open: (s: string) => void; vetting: VettingState }) {
  const doctors = vetting.subjects.filter(s => s.roleId === 'doctor');
  const blocked = blocking(vetting.subjects, 'doctor');
- return <>
-  <div className="c-figures"><Metrics>
+ return <div className="oi-screen">
+  <div className="oi-figures">
    <Kpi label="Awaiting review" value={String(reviewQueue.length)} note="Urgent target 15 minutes · routine 4 hours"/>
    <Kpi label="Doctors who cannot sign" value={`${blocked} of ${doctors.length}`} note="The queue refuses the signature rather than warning about it" flagged={!!(blocked)}/>
    <Kpi label="AI agreed with the doctor" value="91%" note="Sample of 1,240 reviewed cases"/>
    <Kpi label="AI missed a finding" value="0.8%" note="Every miss is reviewed by the Medical Director" flagged/>
-  </Metrics></div>
-  <SectionTitle title="Doctor review queue"/>
-  <div className="panel">{reviewQueue.map(c => <button className="record-row" key={c.id} onClick={() => open(`Doctor review: ${c.id}`)}>
-   <span className={`service-icon ${c.urgent ? 'severity-critical' : ''}`}><FileText size={20}/></span>
-   <span><strong>{c.id} · {c.patient}</strong><small>{c.flag}</small></span>
-   <Pill tone={c.urgent ? 'amber' : 'plain'}>{c.urgent ? `Urgent · ${c.waited}` : c.waited}</Pill>
-  </button>)}</div>
-  <div className="privacy-note space-top"><ShieldCheck size={19}/>The agreement figures are the reason this screen exists. Decision support that is never audited against the clinician who signed the case is a claim, not a control.</div>
- </>;
+  </div>
+  <OfficeSection title="Doctor review queue">
+   <Card><div className="oi-rows">{reviewQueue.map(c => <button type="button" className="oi-row" key={c.id} onClick={() => open(`Doctor review: ${c.id}`)}>
+    <span className="oi-row__body"><span className="oi-row__title">{c.id} · {c.patient}</span><span className="oi-row__meta">{c.flag}</span></span>
+    <span className="oi-row__aside"><Badge variant={c.urgent ? 'danger' : 'neutral'} dot={c.urgent}>{c.urgent ? `Urgent · ${c.waited}` : c.waited}</Badge></span>
+   </button>)}</div></Card>
+   <OfficeNote icon={<ShieldCheck aria-hidden="true"/>}>The agreement figures are the reason this screen exists. Decision support that is never audited against the clinician who signed the case is a claim, not a control.</OfficeNote>
+  </OfficeSection>
+ </div>;
 }
 /* Pricing is where the marketplace works or does not. Editing a price recalculates what is left for
    the platform after the nurse and the payment provider, which is the number that actually matters. */
@@ -194,29 +181,27 @@ function Catalogue() {
  const shareOf = (s: { nurseShare: number; price: number }) => Math.round((s.nurseShare / s.price) * 100);
  const launchShares = [...new Set(services.filter(s => s.phase === 1).map(shareOf))];
  const lowest = [...services].sort((a, b) => a.nurseShare / a.price - b.nurseShare / b.price)[0]!;
- return <>
-  <div className="c-figures"><Metrics>
+ return <div className="oi-screen">
+  <div className="oi-figures">
    <Kpi label="Services" value={String(services.length)} note={`${services.filter(s => s.phase === 1).length} live, the rest by phase`}/>
    <Kpi label="Average platform margin" value={money(Math.round(rows.reduce((t, s) => t + platformMargin(s), 0) / rows.length))} note="After the nurse and payment costs"/>
    <Kpi label="Below R40 a visit" value={String(thin.length)} note="Too thin to carry support, insurance and review" flagged={!!(thin.length)}/>
-  </Metrics></div>
-  <div className="panel table-scroll">
-   <table className="result-table admin-table">
+  </div>
+  <Card className="oi-table-wrap">
+   <table className="oi-table">
     <caption>Change a price to see what the platform is left with. The nurse’s share is each service’s own figure in the catalogue: {launchShares.join(' or ')}% of the price for every launch service, and as little as {shareOf(lowest)}% for {lowest.name}.</caption>
-    <thead><tr><th scope="col">Service</th><th scope="col">Phase</th><th scope="col">Price</th><th scope="col">Nurse</th><th scope="col">Platform keeps</th></tr></thead>
-    <tbody>{rows.map(s => <tr key={s.id} className={platformMargin(s) < 40 ? 'flagged-row' : ''}>
+    <thead><tr><th scope="col">Service</th><th scope="col">Phase</th><th scope="col">Price</th><th scope="col" className="is-figure">Nurse</th><th scope="col" className="is-figure">Platform keeps</th></tr></thead>
+    <tbody>{rows.map(s => <tr key={s.id} className={platformMargin(s) < 40 ? 'is-flagged' : ''}>
      <th scope="row">{s.name}</th>
-     <td><Pill tone="plain">Phase {s.phase}</Pill></td>
-     <td><label className="cell-input"><span className="visually-hidden">{s.name} price in rand</span>
-      <input inputMode="numeric" value={s.price} onChange={e => setPrices({ ...prices, [s.id]: Number(e.target.value.replace(/\D/g, '')) || 0 })}/>
-     </label></td>
-     <td>{money(s.nurseShare)}</td>
-     <td>{money(platformMargin(s))}</td>
+     <td><Badge size="sm">Phase {s.phase}</Badge></td>
+     <td><Input inputMode="numeric" aria-label={`${s.name} price in rand`} value={s.price} onChange={e => setPrices({ ...prices, [s.id]: Number(e.target.value.replace(/\D/g, '')) || 0 })}/></td>
+     <td className="is-figure">{money(s.nurseShare)}</td>
+     <td className={`is-figure${platformMargin(s) < 40 ? ' is-refused' : ''}`}>{money(platformMargin(s))}</td>
     </tr>)}</tbody>
    </table>
-  </div>
-  <div className="privacy-note space-top"><Banknote size={19}/>Prices here change nothing a patient sees. In production a price change is a versioned, dated record — a patient must be charged what they were quoted, not what the catalogue says later.</div>
- </>;
+  </Card>
+  <OfficeNote icon={<Banknote aria-hidden="true"/>}>Prices here change nothing a patient sees. In production a price change is a versioned, dated record — a patient must be charged what they were quoted, not what the catalogue says later.</OfficeNote>
+ </div>;
 }
 function Growth() {
  /* One line per price a person could pay each month. MyThuso for Mom is three lines, because a range
@@ -228,36 +213,37 @@ function Growth() {
  const active: Record<string, number> = { chronic: 980, planning: 410, 'mom-essential': 84, 'mom-plus': 28, 'mom-premium': 8, senior: 74, recover: 26, alert: 10, cover: 0 };
  const mrr = subs.reduce((t, s) => t + (s.price ?? 0) * (active[s.id] ?? 0), 0);
  const [retainLow, retainHigh] = momPlan.economics.retainsPerParentMonthly;
- return <>
-  <div className="c-figures"><Metrics>
+ return <div className="oi-screen">
+  <div className="oi-figures">
    <Kpi label="Subscribers" value={Object.values(active).reduce((a, b) => a + b, 0).toLocaleString()} note="Across every plan"/>
    <Kpi label="Monthly recurring" value={bigMoney(mrr)} note="Before nurse and delivery costs"/>
    <Kpi label="B2B lines" value={String(businessModel.network.length)} note="Contracted revenue in the proposal"/>
-  </Metrics></div>
-  <SectionTitle title="Subscriptions"/>
-  <div className="panel table-scroll"><table className="result-table admin-table">
-   <thead><tr><th scope="col">Plan</th><th scope="col">Price</th><th scope="col">Active</th><th scope="col">Monthly</th><th scope="col">Phase</th></tr></thead>
+  </div>
+  <h2 className="oi-section-title">Subscriptions</h2>
+  <Card className="oi-table-wrap"><table className="oi-table">
+   <thead><tr><th scope="col">Plan</th><th scope="col" className="is-figure">Price</th><th scope="col" className="is-figure">Active</th><th scope="col" className="is-figure">Monthly</th><th scope="col">Phase</th></tr></thead>
    <tbody>{subs.map(s => <tr key={s.id}>
-    <th scope="row">{s.name}</th><td>{s.price ? `${money(s.price)}/m` : 'Per package'}</td>
-    <td>{(active[s.id] ?? 0).toLocaleString()}</td><td>{s.price ? bigMoney(s.price * (active[s.id] ?? 0)) : '—'}</td>
+    <th scope="row">{s.name}</th><td className="is-figure">{s.price ? `${money(s.price)}/m` : 'Per package'}</td>
+    <td className="is-figure">{(active[s.id] ?? 0).toLocaleString()}</td><td className="is-figure">{s.price ? bigMoney(s.price * (active[s.id] ?? 0)) : '—'}</td>
     <td>Phase {s.phase}</td>
    </tr>)}</tbody>
-  </table></div>
-  <div className="privacy-note space-top"><Banknote size={19}/>{plan.name} retains {money(retainLow)} to {money(retainHigh)} per parent per month in the Blueprint’s own model. It is an indicative figure rather than a trading result, and no visit cost is worked out from it.</div>
-  <SectionTitle title="Thuso Screen packages"/>
-  <div className="panel">{businessModel.screening.map(p => <div className="record-row static" key={p.id}>
-   <span className="service-icon"><ShieldCheck size={20}/></span>
-   <span><strong>{p.name}</strong><small>{p.includes}</small></span>
-   <strong>{p.price ? money(p.price) : 'Sponsored'}</strong>
-  </div>)}</div>
-  <SectionTitle title="Network and B2B"/>
-  <div className="panel table-scroll"><table className="result-table admin-table">
-   <thead><tr><th scope="col">Product</th><th scope="col">Buyer</th><th scope="col">Revenue</th><th scope="col">Phase</th></tr></thead>
-   <tbody>{businessModel.network.map(n => <tr key={n.id}>
-    <th scope="row">{n.product}</th><td>{n.buyer}</td><td>{n.revenue}</td><td>Phase {n.phase}</td>
-   </tr>)}</tbody>
-  </table></div>
- </>;
+  </table></Card>
+  <OfficeNote icon={<Banknote aria-hidden="true"/>}>{plan.name} retains {money(retainLow)} to {money(retainHigh)} per parent per month in the Blueprint’s own model. It is an indicative figure rather than a trading result, and no visit cost is worked out from it.</OfficeNote>
+  <OfficeSection title="Thuso Screen packages">
+   <Card><div className="oi-rows">{businessModel.screening.map(p => <div className="oi-row" key={p.id}>
+    <div className="oi-row__body"><p className="oi-row__title">{p.name}</p><span className="oi-row__meta">{p.includes}</span></div>
+    <span className="oi-row__figure">{p.price ? money(p.price) : 'Sponsored'}</span>
+   </div>)}</div></Card>
+  </OfficeSection>
+  <OfficeSection title="Network and B2B">
+   <Card className="oi-table-wrap"><table className="oi-table">
+    <thead><tr><th scope="col">Product</th><th scope="col">Buyer</th><th scope="col">Revenue</th><th scope="col">Phase</th></tr></thead>
+    <tbody>{businessModel.network.map(n => <tr key={n.id}>
+     <th scope="row">{n.product}</th><td>{n.buyer}</td><td>{n.revenue}</td><td>Phase {n.phase}</td>
+    </tr>)}</tbody>
+   </table></Card>
+  </OfficeSection>
+ </div>;
 }
 /* The round, what it buys and what has to be true before the next tranche is drawn. */
 function Finance() {
@@ -271,72 +257,75 @@ function Finance() {
   const subscriptionMargin = subscribers * 60;              // indicative margin per subscriber per month
   return { visitMargin, subscriptionMargin, total: visitMargin + subscriptionMargin };
  }, [visitsPerDay, subscribers, unitEconomics]);
- return <>
-  <div className="c-figures"><Metrics>
+ return <div className="oi-screen">
+  <div className="oi-figures">
    <Kpi label="Seed round" value={bigMoney(funding.round)} note={`Over ${funding.months} months`}/>
    <Kpi label="Released" value={bigMoney(released)} note={`${Math.round(released / funding.round * 100)}% of the round, gated on milestones`}/>
    <Kpi label="Modelled monthly margin" value={bigMoney(projection.total)} note={`${visitsPerDay} visits/day and ${subscribers.toLocaleString()} subscribers`}/>
-  </Metrics></div>
-  <SectionTitle title="What a visit actually leaves"/>
-  <div className="panel">
-   <div className="review-line"><span>{unitEconomics.worked.service} — patient pays</span><strong>{money(unitEconomics.worked.price)}</strong></div>
-   <div className="review-line"><span>Nurse receives ({Math.round(unitEconomics.worked.nurseShare / unitEconomics.worked.price * 100)}%)</span><strong>−{money(unitEconomics.worked.nurseShare)}</strong></div>
-   <div className="review-line"><span>Payment processing</span><strong>−{money(unitEconomics.worked.paymentCost)}</strong></div>
-   <div className="review-line"><span>Platform retains</span><strong>{money(unitEconomics.worked.platformRetains)}</strong></div>
-   <p className="helper">Doctor review is paid per case at {money(unitEconomics.doctorReviewFee[0])}–{money(unitEconomics.doctorReviewFee[1])} out of screening-bundle and subscription margin, not out of a standard visit.</p>
   </div>
-  <SectionTitle title="Model it"/>
-  <div className="panel two-column">
-   <label>Visits per day<input inputMode="numeric" value={visitsPerDay} onChange={e => setVisits(Number(e.target.value.replace(/\D/g, '')) || 0)}/></label>
-   <label>Subscribers<input inputMode="numeric" value={subscribers} onChange={e => setSubscribers(Number(e.target.value.replace(/\D/g, '')) || 0)}/></label>
-  </div>
-  <div className="panel space-top">
-   <div className="review-line"><span>Visit margin</span><strong>{bigMoney(projection.visitMargin)}</strong></div>
-   <div className="review-line"><span>Subscription margin</span><strong>{bigMoney(projection.subscriptionMargin)}</strong></div>
-   <div className="review-line"><span>Monthly total</span><strong>{bigMoney(projection.total)}</strong></div>
-  </div>
-  <SectionTitle title="Where the round goes"/>
-  <div className="panel">{funding.allocation.map(line => <div className="alloc-row" key={line.category}>
-   <span>{line.category}</span>
-   <div className="alloc-bar"><div style={{ width: `${line.amount / funding.round * 100}%` }}/></div>
-   <strong>{bigMoney(line.amount)}</strong>
-  </div>)}</div>
-  <SectionTitle title="Milestones that gate spending"/>
-  <div className="panel">{funding.milestones.map(m => <div className="record-row static" key={m.id}>
-   <span className={`service-icon ${achieved.includes(m.id) ? 'check-verified' : 'check-outstanding'}`}>{achieved.includes(m.id) ? <BadgeCheck size={20}/> : <CalendarClock size={20}/>}</span>
-   <span><strong>{m.id}</strong><small>{m.target}</small></span>
-   {m.releases ? <Pill tone={achieved.includes(m.id) ? 'teal' : 'plain'}>Releases {bigMoney(m.releases)}</Pill> : <Pill tone="plain">No tranche</Pill>}
-   <button className="secondary" onClick={() => setAchieved(a => a.includes(m.id) ? a.filter(x => x !== m.id) : [...a, m.id])}>
-    {achieved.includes(m.id) ? 'Mark not met' : 'Mark met'}
-   </button>
-  </div>)}</div>
-  <div className="privacy-note space-top"><Landmark size={19}/>Tranches are gated because a healthcare marketplace that scales before its vetting, review and incident handling hold is the failure mode that ends the company.</div>
- </>;
+  <OfficeSection title="What a visit actually leaves">
+   <Card padding="md" className="oi-card-body">
+    <OfficeFacts facts={[
+     [`${unitEconomics.worked.service} — patient pays`, money(unitEconomics.worked.price)],
+     [`Nurse receives (${Math.round(unitEconomics.worked.nurseShare / unitEconomics.worked.price * 100)}%)`, `−${money(unitEconomics.worked.nurseShare)}`],
+     ['Payment processing', `−${money(unitEconomics.worked.paymentCost)}`],
+     ['Platform retains', money(unitEconomics.worked.platformRetains)]
+    ]}/>
+    <p className="oi-help">Doctor review is paid per case at {money(unitEconomics.doctorReviewFee[0])}–{money(unitEconomics.doctorReviewFee[1])} out of screening-bundle and subscription margin, not out of a standard visit.</p>
+   </Card>
+  </OfficeSection>
+  <OfficeSection title="Model it">
+   <Card padding="md" className="oi-card-body">
+    <div className="oi-form-row">
+     <Field label="Visits per day" htmlFor="finance-visits"><Input id="finance-visits" inputMode="numeric" value={visitsPerDay} onChange={e => setVisits(Number(e.target.value.replace(/\D/g, '')) || 0)}/></Field>
+     <Field label="Subscribers" htmlFor="finance-subscribers"><Input id="finance-subscribers" inputMode="numeric" value={subscribers} onChange={e => setSubscribers(Number(e.target.value.replace(/\D/g, '')) || 0)}/></Field>
+    </div>
+    <OfficeFacts facts={[['Visit margin', bigMoney(projection.visitMargin)], ['Subscription margin', bigMoney(projection.subscriptionMargin)], ['Monthly total', bigMoney(projection.total)]]}/>
+   </Card>
+  </OfficeSection>
+  <OfficeSection title="Where the round goes">
+   <Card><ul className="oi-rows">{funding.allocation.map(line => <li key={line.category}><div className="oi-row oi-alloc">
+    <div className="oi-row__body"><p className="oi-row__title">{line.category}</p><OfficeProgress part={line.amount} whole={funding.round} label={`${Math.round(line.amount / funding.round * 100)}% of the round`}/></div>
+    <span className="oi-row__figure">{bigMoney(line.amount)}</span>
+   </div></li>)}</ul></Card>
+  </OfficeSection>
+  <OfficeSection title="Milestones that gate spending">
+   <Card><ul className="oi-rows">{funding.milestones.map(m => <li key={m.id}><div className="oi-row milestone-row">
+    <div className="oi-row__body"><p className="oi-row__title">{m.id}</p><span className="oi-row__meta">{m.target}</span></div>
+    <div className="oi-row__aside">
+     {m.releases ? <Badge variant={achieved.includes(m.id) ? 'success' : 'neutral'} dot={achieved.includes(m.id)}>Releases {bigMoney(m.releases)}</Badge> : <Badge>No tranche</Badge>}
+     <Button variant="secondary" onClick={() => setAchieved(a => a.includes(m.id) ? a.filter(x => x !== m.id) : [...a, m.id])}>
+      {achieved.includes(m.id) ? 'Mark not met' : 'Mark met'}
+     </Button>
+    </div>
+   </div></li>)}</ul></Card>
+   <OfficeNote icon={<Landmark aria-hidden="true"/>}>Tranches are gated because a healthcare marketplace that scales before its vetting, review and incident handling hold is the failure mode that ends the company.</OfficeNote>
+  </OfficeSection>
+ </div>;
 }
 function Compliance() {
  const controls = [
-  { name: 'SANC registration verified', detail: 'Checked at onboarding and re-checked annually', state: 'Designed', icon: BadgeCheck },
-  { name: 'HPCSA registration for the doctor panel', detail: 'Every signed decision is attributed', state: 'Designed', icon: Stethoscope },
-  { name: 'Consent recorded with version and wording', detail: 'Withdrawable, and shown back to the patient', state: 'Designed', icon: ShieldCheck },
-  { name: 'Append-only vetting decision log', detail: 'Designed: every verify, second, decline, suspension, appeal and renewal is added to a log this console cannot edit, delete or reorder', state: 'Designed', icon: ScrollText },
-  { name: 'Append-only access and decision audit', detail: 'Not built: the vetting log lives in memory and dies on reload. A server-side record with integrity protection, that a person with database access still cannot rewrite, does not exist', state: 'Not built', icon: FileText },
-  { name: 'SA hosting, encryption at rest and in transit', detail: 'Needs a backend before it can be true', state: 'Not built', icon: LockKeyhole },
-  { name: 'Information Officer and POPIA request handling', detail: 'Correction, deletion and access requests', state: 'Not built', icon: Users },
-  { name: `Incident escalation within ${acknowledgeWithinMinutes()} minutes`, detail: 'Acknowledged, then Clinical Lead review within 24 hours', state: 'Designed', icon: Radio },
-  { name: 'SAHPRA registration for devices and diagnostic software', detail: 'Required before any device or model ships', state: 'Not built', icon: CircleAlert }
+  { name: 'SANC registration verified', detail: 'Checked at onboarding and re-checked annually', state: 'Designed' },
+  { name: 'HPCSA registration for the doctor panel', detail: 'Every signed decision is attributed', state: 'Designed' },
+  { name: 'Consent recorded with version and wording', detail: 'Withdrawable, and shown back to the patient', state: 'Designed' },
+  { name: 'Append-only vetting decision log', detail: 'Designed: every verify, second, decline, suspension, appeal and renewal is added to a log this console cannot edit, delete or reorder', state: 'Designed' },
+  { name: 'Append-only access and decision audit', detail: 'Not built: the vetting log lives in memory and dies on reload. A server-side record with integrity protection, that a person with database access still cannot rewrite, does not exist', state: 'Not built' },
+  { name: 'SA hosting, encryption at rest and in transit', detail: 'Needs a backend before it can be true', state: 'Not built' },
+  { name: 'Information Officer and POPIA request handling', detail: 'Correction, deletion and access requests', state: 'Not built' },
+  { name: `Incident escalation within ${acknowledgeWithinMinutes()} minutes`, detail: 'Acknowledged, then Clinical Lead review within 24 hours', state: 'Designed' },
+  { name: 'SAHPRA registration for devices and diagnostic software', detail: 'Required before any device or model ships', state: 'Not built' }
  ];
- return <>
-  <div className="c-figures"><Metrics>
+ return <div className="oi-screen">
+  <div className="oi-figures">
    <Kpi label="Designed in the UI" value={String(controls.filter(c => c.state === 'Designed').length)} note="Drawn on a screen, not enforced anywhere"/>
    <Kpi label="Not built" value={String(controls.filter(c => c.state === 'Not built').length)} note="Needs a backend, a regulator or both" flagged/>
-  </Metrics></div>
-  <div className="panel">{controls.map(c => <div className="record-row static" key={c.name}>
-   <span className={`service-icon ${c.state === 'Designed' ? 'check-in-review' : 'check-outstanding'}`}><c.icon size={20}/></span>
-   <span><strong>{c.name}</strong><small>{c.detail}</small></span>
-   <Pill tone={c.state === 'Designed' ? 'amber' : 'plain'}>{c.state}</Pill>
-  </div>)}</div>
-  <div className="privacy-note alert space-top"><CircleAlert size={19}/>Nothing on this screen is a compliance status. It is a checklist of what must exist before real patient information touches this platform, and no patient information is held on it today.</div>
- </>;
+  </div>
+  <Card><ul className="oi-rows">{controls.map(c => <li key={c.name}><div className="oi-row control-row">
+   <div className="oi-row__body"><p className="oi-row__title">{c.name}</p><span className="oi-row__meta">{c.detail}</span></div>
+   <div className="oi-row__aside"><Badge variant={c.state === 'Designed' ? 'warning' : 'neutral'}>{c.state}</Badge></div>
+  </div></li>)}</ul></Card>
+  <OfficeNote refusal icon={<CircleAlert aria-hidden="true"/>}>Nothing on this screen is a compliance status. It is a checklist of what must exist before real patient information touches this platform, and no patient information is held on it today.</OfficeNote>
+ </div>;
 }
 /* The merged Control Tower draws these panels unchanged, under its own navigation
    (docs/control-tower-tab-inventory.md: each of them "moved"). They are exported rather than copied so

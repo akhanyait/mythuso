@@ -1,7 +1,9 @@
 import founderDemo from "../../../../../packages/catalog/founder-dashboard-demo.json" with { type: "json" };
 import { useState } from "react";
-import { Region } from "./Parts";
+import { Region, toneOf } from "./Parts";
 import { Switch } from "./Fields";
+import { Alert } from "../../ui/Alert";
+import { Badge } from "../../ui/Badge";
 
 /* ── DEMO DATA — for show and tell only ──────────────────────────────────────────────────────────
  * This entire component reads from packages/catalog/founder-dashboard-demo.json, which holds
@@ -151,15 +153,14 @@ export function FounderDashboardDemo() {
   return (
     <>
       {/* ── DEMO DATA — for show and tell only ── */}
-      <div className="pt-demo-banner" role="note">
-        <strong>DEMO DATA — for show and tell only.</strong>
-        <span>
+      <Alert variant="warning" role="note" className="pt-demo-banner" title="DEMO DATA — for show and tell only.">
+        <p>
           The Founder dashboard below reads invented figures from a
           demonstration file. No real deploy history, key metadata or
           system-health log is connected yet. Replace when the deploy/health log
           exists.
-        </span>
-      </div>
+        </p>
+      </Alert>
 
       <Region title="System health at a glance (demo)" count={rings.length}>
         <div className="pt-demo-rings-row">
@@ -181,11 +182,14 @@ export function FounderDashboardDemo() {
             <div key={k.id} className="pt-demo-vault-row">
               <strong>{k.label}</strong>
               <code className="pt-demo-vault-masked">{k.masked}</code>
-              <span
+              <Badge
+                variant={toneOf(k.status === "configured" ? "connected" : k.status)}
+                size="sm"
+                dot
                 className={`pt-status is-${k.status === "configured" ? "connected" : k.status === "not-configured" ? "not-configured" : k.status}`}
               >
                 {k.status}
-              </span>
+              </Badge>
             </div>
           ))}
           <p className="pt-demo-vault-note">
@@ -210,7 +214,7 @@ export function FounderDashboardDemo() {
               stateText={breakGlassOn ? "On" : "Off"}
             />
           </div>
-          {bg.audited && <span className="pt-demo-audit-chip">audited</span>}
+          {bg.audited && <Badge variant="danger" size="sm" className="pt-demo-audit-chip">audited</Badge>}
         </div>
       </Region>
 
@@ -219,7 +223,7 @@ export function FounderDashboardDemo() {
           {health.map((h) => (
             <div key={h.id} className="pt-demo-health-row">
               <strong>{h.label}</strong>
-              <span className={`pt-status is-${h.state}`}>{h.state}</span>
+              <Badge variant={toneOf(h.state)} size="sm" dot className={`pt-status is-${h.state}`}>{h.state}</Badge>
               <span className="pt-demo-health-uptime">{h.uptime}</span>
             </div>
           ))}

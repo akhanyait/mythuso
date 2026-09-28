@@ -1,54 +1,51 @@
-/* The portal's form controls (Fields.tsx): a range slider, a switch and choice chips, each the native
- * input underneath, restyled from the tokens.
+/* The portal's form controls (Fields.tsx), on the Lovable identity (28 September 2026, wave 4e).
  *
- * Every colour is a token. Every text pair is a row in tokens.json#contrast: charcoal on surface, surface
- * on charcoal, studio paper on studio night (the slider's chip), studio ink on studio lime (a chosen
- * chip's tick disc sits on lime and carries no word) and teal ink on teal soft (the switch's "on" word).
- * The slider's knob is ringed in brand green with a hairline of brand ink outside it, so the knob stands
- * off the green fill it rides on as well as off the paper beside it.
- * The thumb, the chosen pill and the switch's knob are what carry a value; the track fills are
- * decoration beside them, so no state is told by a fill alone.
+ * Fields.tsx is a thin layer over the shared components of apps/web/src/ui: its select is the shared
+ * Select and its switch the shared Checkbox, both drawn by ui.css. What this sheet draws is what the
+ * handoff has no component for — the range slider, the choice chips, the field row, the save bar — in the
+ * handoff's own terms, so they read as one family with the Field, the Badge and the Button beside them:
  *
- * Every target is 44px: the slider is a 44px-tall input whose thumb is a 44px circle drawing a 28px
- * knob, a chip's input fills its pill, and a switch's label is 44px tall. The focus ring is core.css's
- * two rings, given the control's own radius here so a pill is ringed as a pill. No outline is removed.
+ *   - Every colour is a --color-* role from tokens.json#semantic, or one of ui.css's measured inks
+ *     (--ui-danger-ink, --ui-warning-ink, --ui-primary-ink) where a role cannot carry words on white.
+ *     Nothing here is a hex or a studio or pastel variable; the pastel system is retired.
+ *   - Aqua is the handoff's colour for a selection and for progress, so it is the slider's filled track and
+ *     a chosen chip's ground and tick; the primary ink is the slider's thumb edge and its value chip.
+ *   - Corners are the compact set: --r-sm for a small mark, --r-md for a field or a segmented track,
+ *     --r-lg for the save bar; a chip is a pill because the handoff keeps pills for badges and compact
+ *     controls.
+ *   - One shadow at most on anything: --shadow for a raised segment, --shadow-raised for the save bar.
  *
- * Motion is the shared system's, and it is all in one section at the foot of this sheet ("The controls
- * that move", 28 September 2026): a switch's knob slides and stretches under a press, a two-choice set of
- * chips is a segmented toggle whose dark thumb slides to the chosen side, a chosen chip's disc pops and its
- * tick draws, and a slider's thumb and chip lift while held. Every one of them is finite, on transform,
- * opacity or a colour, started only under [data-decor='on'] — the page's motion flag, which the pause
- * control and the reduced-motion query both clear — and removed under reduced motion with !important,
- * because this sheet loads after motion.css and a removal a later sheet can overrule is not a removal. */
+ * Every target is 44px: the slider is a 44px-tall input whose thumb is a 44px circle drawing a 20px knob; a
+ * chip's face is the handoff's compact 32 and its input reaches six pixels above and below it, so the
+ * target is 44 while the face stays small; the checkbox's whole label is 44 tall (ui.css). The focus ring is
+ * the shared components' — a 2px ring-coloured outline 2px out — given the control's own radius here.
+ *
+ * Motion is the shared system's, and it is in two places at the foot of this sheet: "The controls that
+ * move" and the "One settings page" section the build reads. Every piece is finite, on transform,
+ * translate, scale, opacity or a colour, started only under [data-decor='on'] — the page's motion flag,
+ * which the pause control and the reduced-motion query both clear — and removed under reduced motion
+ * with !important, because this sheet loads after motion.css and a removal a later sheet can overrule is
+ * not a removal. */
 
 /* ---- The range slider ---------------------------------------------------------------------------- */
 .fc-range {
-  --fc-on: var(--brand-green);
-  --fc-off: var(--stone);
-  --fc-knob: var(--brand-green);
-  --fc-knob-edge: var(--brand-ink);
   position: relative;
   display: block;
   min-width: 0;
-  padding-top: 36px;
-}
-.fc-range.is-night {
-  --fc-on: var(--studio-lime);
-  --fc-off: var(--sage-slate);
-  --fc-knob: var(--studio-lime);
-  --fc-knob-edge: var(--studio-lime);
+  padding-top: calc(var(--space-32) + var(--space-4));
 }
 /* The chip rides the thumb: its left edge at the thumb at the low end, its right edge at the high end,
-   centred between — so it never leaves the track's box, and a phone never scrolls sideways for it. */
+   centred between — so it never leaves the track's box, and a phone never scrolls sideways for it. It is
+   the primary ink with white words, the pair the primary Button already measures. */
 .fc-range-chip {
   position: absolute;
   top: 0;
-  left: calc(22px + var(--fc-ratio, 0) * (100% - 44px));
+  left: calc(var(--ui-target, 44px) / 2 + var(--fc-ratio, 0) * (100% - var(--ui-target, 44px)));
   transform: translateX(calc(var(--fc-ratio, 0) * -100%));
-  padding: var(--space-4) var(--space-12);
-  border-radius: var(--r-pill);
-  background: var(--studio-night);
-  color: var(--studio-paper);
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--r-sm);
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
   font-size: 13px;
   font-weight: 600;
   line-height: 1.3;
@@ -56,12 +53,8 @@
   font-variant-numeric: tabular-nums;
   pointer-events: none;
 }
-.fc-range.is-night .fc-range-chip {
-  background: var(--studio-lime);
-  color: var(--studio-ink);
-}
 .fc-range input[type="range"] {
-  --fc-fill: calc(22px + var(--fc-ratio, 0) * (100% - 44px));
+  --fc-fill: calc(var(--ui-target, 44px) / 2 + var(--fc-ratio, 0) * (100% - var(--ui-target, 44px)));
   display: block;
   width: 100%;
   min-width: 0;
@@ -70,58 +63,70 @@
   margin: 0;
   padding: 0;
   border: 0;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-md);
   background: transparent;
+  box-shadow: none;
   cursor: pointer;
   -webkit-appearance: none;
   appearance: none;
 }
 .fc-range input[type="range"]:focus-visible {
-  border-radius: var(--r-pill);
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+  box-shadow: none;
 }
+/* The track: aqua up to the value — progress — and the muted ground after it. Six pixels, the handoff's
+   progress weight; the knob is what a finger finds, not the track. */
 .fc-range input[type="range"]::-webkit-slider-runnable-track {
-  height: 12px;
+  height: 6px;
   border-radius: var(--r-pill);
-  background: linear-gradient(90deg, var(--fc-on) 0 var(--fc-fill), var(--fc-off) var(--fc-fill) 100%);
+  background: linear-gradient(90deg, var(--color-accent) 0 var(--fc-fill), var(--color-muted) var(--fc-fill) 100%);
 }
+/* The thumb is 44px of hit area drawing a 20px white knob ringed in the primary ink: the knob stands off
+   the aqua it rides on and off the muted track beside it. */
 .fc-range input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 44px;
   height: 44px;
-  margin-top: -16px;
+  margin-top: -19px;
   border: 0;
   border-radius: 50%;
-  background: radial-gradient(circle closest-side, var(--surface) 0 40%, var(--fc-knob) 43% 56%, var(--fc-knob-edge) 58% 63%, transparent 66%);
+  background: radial-gradient(circle closest-side, var(--color-surface) 0 36%, var(--color-primary) 40% 45%, transparent 48%);
 }
 .fc-range input[type="range"]::-moz-range-track {
-  height: 12px;
+  height: 6px;
   border-radius: var(--r-pill);
-  background: var(--fc-off);
+  background: var(--color-muted);
 }
 .fc-range input[type="range"]::-moz-range-progress {
-  height: 12px;
+  height: 6px;
   border-radius: var(--r-pill);
-  background: var(--fc-on);
+  background: var(--color-accent);
 }
 .fc-range input[type="range"]::-moz-range-thumb {
   width: 44px;
   height: 44px;
   border: 0;
   border-radius: 50%;
-  background: radial-gradient(circle closest-side, var(--surface) 0 40%, var(--fc-knob) 43% 56%, var(--fc-knob-edge) 58% 63%, transparent 66%);
+  background: radial-gradient(circle closest-side, var(--color-surface) 0 36%, var(--color-primary) 40% 45%, transparent 48%);
 }
 .fc-range input[type="range"]:disabled {
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: .5;
+}
+/* A slider whose value is said by an <output> beside it rather than by a chip above it. */
+.fc-range.is-bare {
+  padding-top: 0;
 }
 
 /* A slider beside the exact field it moves: the field stays, because a value can be typed exactly and a
-   value outside the bounds must still reach the rules and be refused in the contract's sentence. */
+   value outside the bounds must still reach the rules and be refused in the contract's sentence. The field
+   is the shared Input, sized to the number it holds. */
 .fc-slide-pair {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 7.5rem;
-  align-items: end;
+  align-items: start;
   gap: var(--space-12) var(--space-16);
   min-width: 0;
 }
@@ -129,259 +134,52 @@
   width: 100%;
   min-width: 0;
 }
+.fc-slide-pair > input.fc-number {
+  margin-top: calc(var(--space-32) + var(--space-4));
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
 @media (max-width: 420px) {
   .fc-slide-pair {
     grid-template-columns: minmax(0, 1fr);
   }
-}
-.fc-range-ends {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-8);
-  margin: 0;
-  color: var(--faint);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
-
-/* ---- The switch ---------------------------------------------------------------------------------- */
-.fc-switch {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-12);
-  min-height: 44px;
-  color: var(--charcoal);
-  font-size: 15px;
-  cursor: pointer;
-}
-.fc-switch input[type] {
-  position: relative;
-  flex: 0 0 auto;
-  width: 52px;
-  height: 32px;
-  min-height: 0;
-  margin: 0;
-  padding: 0;
-  border: 2px solid var(--faint);
-  border-radius: var(--r-pill);
-  background: var(--cloud);
-  cursor: pointer;
-  -webkit-appearance: none;
-  appearance: none;
-}
-.fc-switch input[type]::before {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--surface);
-  box-shadow: var(--shadow-raised);
-  transform-origin: left center;
-}
-.fc-switch input[type]:checked {
-  background: var(--brand-green);
-  border-color: var(--brand-green);
-}
-.fc-switch input[type]:checked::before {
-  transform: translateX(20px);
-}
-.fc-switch input[type]:focus-visible {
-  border-radius: var(--r-pill);
-}
-.fc-switch input[type]:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-.fc-switch-state {
-  padding: 2px var(--space-8);
-  border-radius: var(--r-pill);
-  background: var(--cloud);
-  color: var(--charcoal);
-  font-size: 13px;
-  font-weight: 600;
-}
-.fc-switch:has(input:checked) .fc-switch-state {
-  background: var(--teal-soft);
-  color: var(--teal-ink);
-}
-
-/* ---- Choice chips -------------------------------------------------------------------------------- */
-.fc-chips {
-  display: grid;
-  gap: var(--space-8);
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-.fc-chips > legend {
-  padding: 0;
-  margin: 0 0 var(--space-8);
-  color: var(--charcoal);
-  font-size: 14px;
-  font-weight: 600;
-}
-/* A disabled set is not a faded one: a faded chosen chip put white words on grey at a ratio nobody
-   measured. It is the recessed ground with charcoal on it (tokens.json#contrast, charcoal on cloud), the
-   chosen chip keeping its drawn tick, and the fieldset's disabled state saying the rest. */
-.fc-chips:disabled .fc-chip,
-.fc-chips:disabled .fc-chip:has(input:checked) {
-  background: var(--cloud);
-  border-color: var(--stone);
-  color: var(--charcoal);
-}
-.fc-chip-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-8);
-  min-width: 0;
-}
-.fc-chip {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  max-width: 100%;
-  padding: var(--space-8) var(--space-16) var(--space-8) var(--space-12);
-  border: 1px solid var(--stone);
-  border-radius: var(--r-pill);
-  background: var(--surface);
-  color: var(--charcoal);
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.35;
-  cursor: pointer;
-}
-.fc-chip:hover {
-  border-color: var(--charcoal);
-}
-/* The input is the whole pill, transparent: the pill is the target, and the ring is round the pill. */
-.fc-chip input[type] {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: var(--r-pill);
-  background: transparent;
-  cursor: pointer;
-  -webkit-appearance: none;
-  appearance: none;
-}
-.fc-chip input[type]:focus-visible {
-  border-radius: var(--r-pill);
-}
-/* The words sit over the input and let every press through to it, so the pill is one target. */
-.fc-chip > span {
-  position: relative;
-  pointer-events: none;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-8);
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.fc-chip > span::before {
-  content: "";
-  flex: 0 0 auto;
-  box-sizing: border-box;
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--faint);
-  border-radius: 50%;
-}
-.fc-chip:has(input[type="checkbox"]) > span::before {
-  border-radius: 6px;
-}
-.fc-chip:has(input:checked) {
-  background: var(--charcoal);
-  border-color: var(--charcoal);
-  color: var(--surface);
-}
-/* The chosen pill's disc is the wordmark's lime, the one CI accent a chosen thing wears; the tick on it is
-   studio ink, which is brand ink inside the staff shells (brand ink on brand lime, 10.47). */
-.fc-chip:has(input:checked) > span::before {
-  border-color: var(--brand-lime);
-  background: var(--brand-lime);
-}
-/* The tick, drawn — so a chosen pill differs from an unchosen one by a mark as well as by its fill. */
-.fc-chip:has(input:checked) > span::after {
-  content: "";
-  position: absolute;
-  left: 7px;
-  top: 50%;
-  width: 5px;
-  height: 10px;
-  border: solid var(--studio-ink);
-  border-width: 0 2px 2px 0;
-  transform: translate(0, -62%) rotate(45deg);
-}
-.fc-chips:disabled .fc-chip,
-.fc-chips:disabled .fc-chip input[type] {
-  cursor: not-allowed;
-}
-
-/* A slider whose value is said by an <output> beside it rather than by a chip above it. */
-.fc-range.is-bare {
-  padding-top: 0;
-}
-
-/* The number field a slider sits beside: core.css's field, sized to the number it holds, and a pill like
-   the chip riding the thumb, so the two read as one control said twice. */
-.fc-number {
-  min-height: 44px;
-  font-variant-numeric: tabular-nums;
-}
-.fc-slide-pair > input.fc-number[inputmode] {
-  align-self: start;
-  margin-top: 36px;
-  border-radius: var(--r-pill);
-  font-size: 18px;
-  font-weight: 500;
-  text-align: center;
-}
-@media (max-width: 420px) {
-  .fc-slide-pair > input.fc-number[inputmode] {
+  .fc-slide-pair > input.fc-number {
     margin-top: 0;
   }
 }
 
 /* ---- Ticks: the bounds and the default, marked on the track -------------------------------------
-   Each tick sits under the thumb's centre at its value — the same 22px-in arithmetic as the chip — and
-   the words under the ends sit at the ends. A mark between the ends has its words on a line of its own,
-   anchored the way the chip is, so they never leave the track's box on a phone. */
+   Each tick sits under the thumb's centre at its value — the same half-a-target-in arithmetic as the chip
+   — and the words under the ends sit at the ends. A mark between the ends has its words on a line of its
+   own, anchored the way the chip is, so they never leave the track's box on a phone. */
 .fc-marks {
   position: relative;
   display: grid;
   gap: var(--space-4);
   min-width: 0;
   margin-top: var(--space-4);
-  color: var(--faint);
+  color: var(--color-muted-foreground);
   font-size: 13px;
   line-height: 1.4;
   font-variant-numeric: tabular-nums;
 }
 .fc-tick {
   position: absolute;
-  top: -17px;
-  left: calc(22px + var(--fc-at, 0) * (100% - 44px));
+  top: calc(-1 * var(--space-16));
+  left: calc(var(--ui-target, 44px) / 2 + var(--fc-at, 0) * (100% - var(--ui-target, 44px)));
   width: 2px;
-  height: 8px;
+  height: var(--space-8);
   margin-left: -1px;
   border-radius: var(--r-pill);
   background: currentColor;
   pointer-events: none;
 }
 .fc-tick.is-inner {
-  top: -19px;
-  height: 12px;
-  background: var(--brand-ink);
+  top: calc(-1 * var(--space-20));
+  height: var(--space-12);
+  background: var(--ui-primary-ink);
 }
 .fc-mark-ends {
   display: flex;
@@ -393,15 +191,9 @@
   margin-left: calc(var(--fc-at, 0) * 100%);
   transform: translateX(calc(var(--fc-at, 0) * -100%));
   max-width: 100%;
-  color: var(--brand-ink);
+  color: var(--ui-primary-ink);
   font-weight: 600;
   white-space: nowrap;
-}
-.fc-range.is-night .fc-tick.is-inner {
-  background: var(--studio-paper);
-}
-.fc-range.is-night .fc-mark-inner {
-  color: var(--studio-paper);
 }
 
 /* ---- What the value means, under the slider ---------------------------------------------------- */
@@ -414,11 +206,11 @@
   margin: 0;
   font-size: 14px;
   line-height: 1.5;
-  color: var(--studio-ink);
+  color: var(--color-foreground);
   overflow-wrap: anywhere;
 }
 .fc-meaning > p.is-change {
-  font-weight: 500;
+  font-weight: 600;
 }
 /* Empty, it stays in the tree — a live region that is not there when its words arrive is never heard —
    and gives back the gap it would otherwise hold open. */
@@ -430,79 +222,198 @@
   align-items: stretch;
   gap: var(--space-12);
 }
-/* The one place brand orange is spent on this screen: a short bar beside the words that say an edge is
-   near. It is a mark, never a word, and the words beside it say everything it does. */
+/* A short rule beside the words that say an edge is near, in the danger ink measured for a mark on white.
+   It is a mark, never a word, and the words beside it say everything it does. */
 .fc-edge-mark {
-  flex: 0 0 4px;
+  flex: 0 0 3px;
   border-radius: var(--r-pill);
-  background: var(--brand-orange);
-}
-.fc-select {
-  min-height: 44px;
-  border-radius: var(--r-pill);
+  background: var(--ui-danger-ink);
 }
 
-/* ---- The controls that move (28 September 2026) --------------------------------------------------
-   The founder asked for the settings' controls to have the life of the Jitter UI-element templates: a
-   toggle that slides, a chosen thing that pops, a thumb that answers being held. Each is written here
-   against the native element it already was, so the keyboard, the announced state and the form are
-   untouched, and each state still says itself without the motion — the switch's word, the chip's tick,
-   the slider's chip. See the note at the top of this sheet for the rules every one of them keeps. */
+/* ---- The setting that is on or off: the shared Checkbox --------------------------------------------
+   The label carries the setting's name and what it decides, and the state word after them in the neutral
+   badge's shape. It is aria-hidden in the markup: the checkbox already says "checked". */
+.fc-switch {
+  min-width: 0;
+}
+.fc-switch .ui-checkbox {
+  display: flex;
+  width: 100%;
+}
+.fc-switch-label {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.fc-switch-label strong {
+  font-weight: 600;
+}
+.fc-switch-label span:not(.fc-switch-state) {
+  color: var(--color-muted-foreground);
+}
+.fc-switch-state {
+  justify-self: start;
+  margin-top: var(--space-4);
+  padding: 2px var(--space-8);
+  border-radius: var(--r-pill);
+  background: var(--color-muted);
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.fc-switch:has(input:checked) .fc-switch-state {
+  background: color-mix(in oklab, var(--color-accent) 15%, transparent);
+  color: var(--color-foreground);
+}
 
-/* The switch: a tick drawn in the knob when on — brand green on white, a graphic at 3.39:1 (tokens.json
-   #contrast, brand green on surface) — and a soft green halo round the track, never while it holds focus,
-   because a field's focus ring in the portal is the outline and in the legacy shell core.css's box-shadow. */
-.fc-switch input[type]::after {
+/* ---- Choice chips: the handoff's badge, as a toggle ---------------------------------------------- */
+.fc-chips {
+  display: grid;
+  gap: var(--space-8);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.fc-chips > legend {
+  padding: 0;
+  margin: 0 0 var(--space-8);
+  color: var(--color-foreground);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.43;
+}
+.fc-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-12) var(--space-8);
+  min-width: 0;
+  padding-block: calc(var(--space-12) / 2);
+}
+/* The face is the handoff's compact 32; the input inside is 44 tall and centred on it, reaching past the
+   face above and below, so the pill is small to look at and 44 to press whatever its words wrap to. */
+.fc-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--space-32);
+  max-width: 100%;
+  padding: var(--space-4) var(--space-12) var(--space-4) calc(var(--space-20) / 2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-pill);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.3;
+  cursor: pointer;
+}
+/* A choice whose words are a sentence — a model's description, a named boolean — wraps, and a pill on two
+   lines reads as a lozenge; those sets take a field's corner instead. Short choices stay badge-shaped. */
+:is(.g1-knob-chips, .cf-choices:not(.cf-days)) .fc-chip-row:not(:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"])) > .fc-chip,
+:is(.g1-knob-chips, .cf-choices:not(.cf-days)) .fc-chip-row:not(:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"])) > .fc-chip input[type] {
+  border-radius: var(--r-md);
+}
+@media (hover: hover) {
+  .fc-chip:not(:has(input:disabled)):hover {
+    border-color: var(--color-muted-foreground);
+  }
+}
+.fc-chip input[type] {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: max(100%, var(--ui-target, 44px));
+  min-height: 0;
+  translate: 0 -50%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.fc-chip input[type]:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: -4px;
+  box-shadow: none;
+}
+/* The words sit over the input and let every press through to it, so the pill is one target. A chip's
+   words break between words, and inside one only when a single word is wider than the chip. */
+.fc-chip > span {
+  position: relative;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+/* The mark: a ring for a radio, a compact square for a checkbox — the Checkbox's own sixteen pixels. */
+.fc-chip > span::before {
+  content: "";
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: var(--space-16);
+  height: var(--space-16);
+  border: 1px solid var(--color-muted-foreground);
+  border-radius: 50%;
+  background: var(--color-surface);
+}
+.fc-chip:has(input[type="checkbox"]) > span::before {
+  border-radius: var(--r-sm);
+}
+/* Chosen: the handoff's selection aqua as a tint, its border in the aqua, the words heavier, and the mark
+   filled with a drawn tick — so a chosen chip differs from an unchosen one by the tick and the weight as
+   well as by its ground. */
+.fc-chip:has(input:checked) {
+  border-color: var(--color-accent);
+  background: color-mix(in oklab, var(--color-accent) 15%, var(--color-surface));
+  color: var(--color-foreground);
+  font-weight: 600;
+}
+.fc-chip:has(input:checked) > span::before {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+}
+.fc-chip:has(input:checked) > span::after {
   content: "";
   position: absolute;
-  top: 8px;
-  left: 12px;
-  width: 5px;
-  height: 9px;
-  border: solid var(--brand-green);
+  left: 5px;
+  top: 50%;
+  width: 4px;
+  height: 8px;
+  border: solid var(--color-surface);
   border-width: 0 2px 2px 0;
-  opacity: 0;
-  transform: translateX(20px) rotate(45deg) scale(0.2);
+  transform: translate(0, -62%) rotate(45deg);
 }
-.fc-switch input[type]:checked::after {
-  opacity: 1;
-  transform: translateX(20px) rotate(45deg);
+/* A disabled set is not a faded one: the chosen chip keeps its tick and its words, on the muted ground, and
+   the fieldset's disabled state says the rest. */
+.fc-chips:disabled .fc-chip,
+.fc-chips:disabled .fc-chip:has(input:checked) {
+  border-color: var(--color-border);
+  background: var(--color-muted);
+  color: var(--color-foreground);
+  cursor: not-allowed;
 }
-.fc-switch input[type]:checked::before {
-  transform-origin: right center;
+.fc-chips:disabled .fc-chip:has(input:checked) > span::before {
+  border-color: var(--color-muted-foreground);
+  background: var(--color-muted-foreground);
 }
-.fc-switch input[type]:checked:not(:focus-visible) {
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-green) 18%, transparent);
-}
-/* Under a press the knob stretches towards where it is going, the way a thumb squashes a real one. */
-[data-decor="on"] .fc-switch input[type]:active:not(:disabled)::before {
-  transform: scaleX(1.2);
-}
-[data-decor="on"] .fc-switch input[type]:checked:active:not(:disabled)::before {
-  transform: translateX(20px) scaleX(1.2);
-}
-[data-decor="on"] .fc-switch input[type] {
-  transition:
-    background-color var(--t-quick) var(--ease-soft),
-    border-color var(--t-quick) var(--ease-soft),
-    box-shadow var(--t-settle) var(--ease-soft);
-}
-[data-decor="on"] .fc-switch input[type]::before {
-  transition: transform var(--t-settle) var(--ease-soft);
-}
-[data-decor="on"] .fc-switch input[type]::after {
-  transition:
-    transform var(--t-settle) var(--ease-soft),
-    opacity var(--t-quick) var(--ease-soft);
+.fc-chips:disabled .fc-chip input[type] {
+  cursor: not-allowed;
 }
 
-/* Two choices, one of which must be chosen, are a toggle: a recessed track with the two choices in equal
-   halves and one dark thumb that slides to the chosen half. Found by shape rather than by a class, so the
-   Configuration editor's named booleans and the voice preview's two labels — which GilbertOne draws itself,
-   without Fields.tsx — are the same toggle. The words are charcoal on cloud unchosen and surface on
-   charcoal chosen (both rows in tokens.json#contrast), and the chosen half keeps its lime disc and drawn
-   tick, so the thumb is never the only thing that says which. Rounded as a card, not a pill: a label that
-   wraps to two lines on a phone reads as a lozenge in a pill. */
+/* Two choices, one of which must be chosen, are the handoff's segmented Tabs: a muted track with the two
+   choices in equal halves and one white raised thumb that slides to the chosen half. Found by shape rather
+   than by a class, so the Configuration editor's named booleans and the voice preview's two labels — which
+   GilbertOne draws itself, without Fields.tsx — are the same control. The chosen half keeps its drawn tick,
+   so the thumb is never the only thing that says which. */
 .fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"]) {
   position: relative;
   display: inline-grid;
@@ -512,8 +423,8 @@
   width: fit-content;
   max-width: 100%;
   padding: var(--space-4);
-  border-radius: var(--r-card);
-  background: var(--cloud);
+  border-radius: var(--r-md);
+  background: var(--color-muted);
   isolation: isolate;
 }
 .fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"])::before {
@@ -524,8 +435,9 @@
   bottom: var(--space-4);
   left: var(--space-4);
   width: calc(50% - var(--space-4));
-  border-radius: var(--r-control);
-  background: var(--charcoal);
+  border-radius: var(--r-sm);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
   opacity: 0;
   pointer-events: none;
 }
@@ -537,60 +449,81 @@
 }
 .fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"]) > .fc-chip {
   justify-content: center;
+  min-height: calc(var(--space-32) + var(--space-4));
   border-color: transparent;
-  border-radius: var(--r-control);
+  border-radius: var(--r-sm);
   background: transparent;
-  color: var(--charcoal);
+  color: var(--color-muted-foreground);
 }
+
 .fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"]) > .fc-chip:has(input:checked) {
   border-color: transparent;
   background: transparent;
-  color: var(--surface);
+  color: var(--color-foreground);
 }
 @media (hover: hover) {
-  .fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"]) > .fc-chip:not(:has(input:checked)):hover {
-    background: var(--surface);
+  .fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"]) > .fc-chip:not(:has(input:checked)):not(:has(input:disabled)):hover {
+    color: var(--color-foreground);
   }
-}
-.fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"]) > .fc-chip input[type]:focus-visible {
-  border-radius: var(--r-control);
-}
-/* Held: a disabled toggle's thumb is white on the recessed track, so its word stays charcoal on surface. */
-.fc-chips:disabled .fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"])::before {
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--stone);
 }
 .fc-chips:disabled .fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"]) > .fc-chip,
 .fc-chips:disabled .fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"]) > .fc-chip:has(input:checked) {
   background: transparent;
-  color: var(--charcoal);
+  color: var(--color-foreground);
 }
+
+/* ---- The voice preview's two selects ------------------------------------------------------------
+   The GilbertOne sweep keeps VoicePreview.tsx off Fields.tsx and the shared components, so its two native
+   selects wear this class and are given the shared field's face here: its height, edge, radius and inks,
+   and a chevron drawn from two gradients in the muted ink rather than an icon element. */
+.fc-select {
+  width: 100%;
+  max-width: 100%;
+  min-height: var(--ui-target, 44px);
+  padding: 0 calc(var(--space-32) + var(--space-4)) 0 var(--space-12);
+  border: 1px solid var(--color-muted-foreground);
+  border-radius: var(--r-md);
+  background-color: var(--color-surface);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--color-muted-foreground) 50%),
+    linear-gradient(135deg, var(--color-muted-foreground) 50%, transparent 50%);
+  background-position: calc(100% - 20px) 50%, calc(100% - 15px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  box-shadow: var(--shadow);
+  color: var(--color-foreground);
+  font-family: inherit;
+  font-size: 14px;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+.fc-select:focus-visible {
+  border-color: var(--color-ring);
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+.fc-select:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+/* ---- The controls that move (28 September 2026) --------------------------------------------------
+   A toggle that slides, a chosen thing that settles, a thumb that answers being held. Each is written
+   against the native element it already was, so the keyboard, the announced state and the form are
+   untouched, and each state still says itself without the motion — the chip's tick, the slider's chip. */
 [data-decor="on"] .fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"])::before {
   transition:
     transform var(--t-settle) var(--ease-soft),
     opacity var(--t-quick) var(--ease-soft);
 }
 
-/* A chosen chip: its ground settles, its disc pops once and its tick draws in just after. */
-@keyframes fc-pop {
-  from {
-    transform: scale(0.4);
-  }
-}
+/* A chosen chip: its tick draws in just after its ground settles. */
 @keyframes fc-tick {
   from {
     opacity: 0;
-    transform: translate(0, -62%) rotate(45deg) scale(0.2);
+    transform: translate(0, -62%) rotate(45deg) scale(.2);
   }
-}
-[data-decor="on"] .fc-chip {
-  transition:
-    background-color var(--t-quick) var(--ease-soft),
-    border-color var(--t-quick) var(--ease-soft),
-    color var(--t-quick) var(--ease-soft);
-}
-[data-decor="on"] .fc-chip:has(input:checked) > span::before {
-  animation: fc-pop var(--t-settle) var(--ease-soft) both;
 }
 [data-decor="on"] .fc-chip:has(input:checked) > span::after {
   animation: fc-tick var(--t-settle) var(--ease-soft) calc(var(--t-quick) / 3) both;
@@ -626,9 +559,6 @@
    vendor's thumb is its own rule — a selector list naming the other browser's pseudo-element is dropped
    whole by the browser that does not know it. */
 @media (prefers-reduced-motion: reduce) {
-  .fc-switch input[type],
-  .fc-switch input[type]::before,
-  .fc-switch input[type]::after,
   .fc-chip,
   .fc-chip > span::before,
   .fc-chip > span::after,
@@ -654,14 +584,15 @@
 }
 
 /* ==== One settings page (28 September 2026) =========================================================
-   The two shapes every settings page is built from (Fields.tsx#FieldRow, #SaveBar), the one look for a
-   typed field and a select, and the feedback that says a control heard you: a chip lifts under a pointer
-   or a keyboard, a thumb grows while it is held (above), and a card that took a saved change settles with
-   one brief flash of lime. All of it on transform, translate and opacity alone, in the tokens' three
-   durations and one curve, only while [data-decor='on'] (which the portal's pause control and the
-   reduced-motion query both clear), and removed outright at the foot of this section. */
+   The two shapes every settings page is built from (Fields.tsx#FieldRow, #SaveBar) and the feedback that
+   says a control heard you: a chip lifts under a pointer or a keyboard, a thumb grows while it is held
+   (above), and a card that took a saved change settles with one brief flash of aqua — the handoff's colour
+   for positive progress, since 28 September 2026 in place of the lime it had. All of it on transform,
+   translate and opacity alone, in the tokens' three durations and one curve, only while [data-decor='on']
+   (which the portal's pause control and the reduced-motion query both clear), and removed outright at the
+   foot of this section. */
 
-/* ---- A field row: label and what it decides, the control, the value in force ---- */
+/* ---- A field row: the shared Field's label and message, the control, the value in force ---- */
 .fc-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -671,47 +602,19 @@
 .fc-row-label {
   display: grid;
   gap: 2px;
-  color: var(--charcoal);
+}
+.fc-row-label > .ui-field__message {
   font-size: 14px;
-}
-.fc-row-label strong {
-  font-weight: 600;
-}
-.fc-row-label span {
   font-weight: 400;
   line-height: 1.5;
 }
 .fc-in-force {
   margin: 0;
   padding-top: var(--space-8);
-  border-top: 1px solid var(--stone);
-  color: var(--charcoal-muted-on-surface);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-muted-foreground);
   font-size: 13px;
   line-height: 1.5;
-}
-
-/* A chip's words break between words, and inside one only when a single word is wider than the chip: broken
-   anywhere, a phone's two-choice toggle read "The language' / s female voice". */
-.fc-chip > span {
-  overflow-wrap: break-word;
-}
-
-/* ---- A typed field and a select: the portal's shape, wherever the settings editor is drawn ---- */
-.fc-text {
-  min-height: 44px;
-  max-width: 100%;
-  padding: var(--space-8) var(--space-16);
-  border: 1px solid var(--stone);
-  border-radius: var(--r-control);
-  background: var(--surface);
-  color: var(--charcoal);
-  font-size: 15px;
-}
-textarea.fc-text {
-  resize: vertical;
-}
-.fc-select {
-  max-width: 100%;
 }
 
 /* ---- The save bar: at the foot of what it saves, and held in view while that scrolls ---- */
@@ -724,22 +627,31 @@ textarea.fc-text {
   gap: var(--space-8);
   margin-top: var(--space-16);
   padding: var(--space-16);
-  border: 1px solid var(--stone);
-  border-radius: var(--r-card);
-  background: var(--surface);
-  color: var(--charcoal);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  background: var(--color-surface);
+  color: var(--color-foreground);
   box-shadow: var(--shadow-raised);
 }
-.fc-savebar > label,
+.fc-savebar > label {
+  margin: 0;
+  color: var(--color-foreground);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.43;
+}
 .fc-savebar > .helper,
 .fc-savebar > p {
   margin: 0;
 }
 .fc-savebar textarea {
   width: 100%;
-  min-height: 64px;
+  min-height: calc(var(--space-32) * 2);
 }
 .fc-savebar .button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
   margin: 0;
 }
 /* On a phone the bar stays at the foot of what it saves and does not float: held in view, a reason field, its
@@ -763,12 +675,12 @@ textarea.fc-text {
 [data-decor="on"] .fc-chip:is(:hover, :has(input:focus-visible)):not(:has(input:disabled)) {
   translate: 0 -2px;
 }
-/* A two-choice toggle's pills sit in a recessed track; lifting one out of it would read as a third state. */
+/* A two-choice toggle's halves sit in a recessed track; lifting one out of it would read as a third state. */
 [data-decor="on"] .fc-chip-row:has(> .fc-chip:first-child:nth-last-child(2) > input[type="radio"]) > .fc-chip {
   translate: none;
 }
 
-/* A saved card: one flash of lime over it, and the card settling a few pixels into place. The two names are
+/* A saved card: one flash of aqua over it, and the card settling a few pixels into place. The two names are
    one keyframe written twice, so the card's data-saved parity, flipped by each confirmed change, restarts it
    without remounting the card and taking the reader's focus with it. */
 @keyframes fc-saved-odd {
@@ -777,7 +689,7 @@ textarea.fc-text {
     opacity: 0;
   }
   30% {
-    opacity: 0.55;
+    opacity: .5;
   }
 }
 @keyframes fc-saved-even {
@@ -786,7 +698,7 @@ textarea.fc-text {
     opacity: 0;
   }
   30% {
-    opacity: 0.55;
+    opacity: .5;
   }
 }
 @keyframes fc-settle-odd {
@@ -807,7 +719,7 @@ textarea.fc-text {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: var(--brand-lime);
+  background: color-mix(in oklab, var(--color-accent) 30%, transparent);
   opacity: 0;
   pointer-events: none;
 }

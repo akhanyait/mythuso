@@ -145,37 +145,9 @@
  .earn-legend{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 /* ---- Teleconsultation call --------------------------------------------------------------
-   The roster is the load-bearing element: a list of people, each with where they are standing and
-   what they can hear, and one of them possibly greyed out because the patient asked them to leave.
-   Everything else here is the same components the rest of the app uses. Nothing on this screen is a
-   video surface, because there is no video. */
-.tc-roster{display:grid;gap:10px}
-.tc-person{display:flex;gap:13px;align-items:flex-start;border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface);padding:15px 16px}
-.tc-person.is-out{background:var(--canvas);opacity:.72}
-.tc-person strong em{font-style:normal;font-size:13px;font-weight:600;color:var(--indigo);letter-spacing:.2px}
-.tc-person .pill.plain{align-self:center;white-space:nowrap}
-.tc-out-note{font-size:13px;line-height:1.6;color:var(--body);margin-top:8px}
-.tc-consent+.tc-consent{border-top:1px solid var(--line);padding-top:12px}
-.tc-identity+.tc-identity{margin-top:12px}
-.tc-ends{display:grid;gap:10px;margin-top:12px}
-.tc-media{display:flex;gap:12px;align-items:flex-start;background:var(--canvas);border:1px solid var(--line);border-radius:var(--r-card);padding:16px}
-.tc-recording{display:flex;gap:12px;align-items:flex-start;background:var(--mango-soft);color:var(--mango-ink);border-radius:var(--r-card);padding:16px}
-/* A dropped line is the most important state on the screen, so it gets the most space and a real
-   clock rather than a label that says "reconnecting". */
-.tc-dropped{display:flex;gap:14px;align-items:flex-start;background:var(--danger-soft);color:var(--danger);border-radius:var(--r-card);padding:17px;margin-top:12px}
-.tc-hold{display:grid;place-items:center;text-align:center;min-width:96px;padding:12px 10px;background:rgba(255,255,255,.55);border-radius:var(--r-tile)}
-.tc-limits{display:grid;gap:9px;margin-top:12px}
-.tc-limit{display:flex;gap:11px;align-items:flex-start;border-radius:var(--r-tile);padding:13px 15px}
-.tc-limit.ok{background:var(--indigo-soft)}
-.tc-limit.no{background:var(--canvas)}
-.tc-refusals{display:grid;gap:10px}
-.tc-sections td{white-space:nowrap}
-.tc-sections tr.negative td{color:var(--faint)}
-@media(min-width:700px){
- .tc-ends{grid-template-columns:repeat(2,minmax(0,1fr))}
- .tc-limits{grid-template-columns:repeat(2,minmax(0,1fr))}
- .tc-refusals{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
+   Drawn in features/consult-file.css since the identity of 28 September 2026 (wave 4c), beside the rest
+   of the call's layout, which had no rules anywhere until then. What is left here is the refusals' reading
+   measure below. */
 /* ---------------------------------------------------------------------------------------------
    Substitution, chronic authorisation, and programme administration.
 
@@ -921,7 +893,9 @@
 .clinical .cf-rules dt { color: var(--faint); }
 .clinical .cf-rules dd { margin: 0; color: var(--charcoal); }
 .clinical .cf-review { display: inline-flex; align-items: center; gap: var(--space-8); justify-self: start; font-size: 13px; }
-.clinical .cf-review.is-unreviewed { background: var(--mango-soft); border-color: var(--mango-ink); color: var(--mango-ink); }
+/* Not clinically reviewed: the handoff's warning badge — the warning ink on the lime tint (6.77), a shield
+   and the words, since the identity of 28 September 2026 (wave 4c). */
+.clinical .cf-review.is-unreviewed { padding: var(--space-4) calc(var(--space-20) / 2); border: 0; border-radius: var(--r-pill); background: color-mix(in srgb, var(--color-warning) 20%, var(--color-surface)); color: var(--ui-warning-ink, var(--mango-ink)); font-weight: 600; }
 .clinical .cf-history > summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--charcoal); }
 /* A details element is a grid item that grows to its widest child, so an opened history's table widened
    the whole setting and clipped its sentences at a phone's width. The fold may shrink, and the table
@@ -953,10 +927,10 @@
    only thing separating it from one still going up the rota. */
 .clinical .cl-board { display: grid; gap: var(--space-12); margin-bottom: var(--space-32); max-width: 1080px; min-width: 0; }
 .clinical .cl-board-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-4) var(--space-16); }
-.clinical .cl-board-head h2 { margin: 0; font-size: 20px; font-weight: 600; color: var(--charcoal); }
+.clinical .cl-board-head h2 { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 600; color: var(--charcoal); }
 .clinical .cl-board-head p, .clinical .cl-intro, .clinical .cl-empty, .clinical .cl-preview { margin: 0; font-size: 14px; color: var(--faint); }
 .clinical .cl-list { display: grid; gap: var(--space-8); margin: 0; padding: 0; list-style: none; }
-.clinical .cl-row { display: grid; gap: var(--space-4); min-width: 0; padding: var(--space-12) var(--space-16); border: 1px solid var(--line); border-left-width: 4px; border-radius: var(--r-control); background: var(--white, #fff); }
+.clinical .cl-row { display: grid; gap: var(--space-4); min-width: 0; padding: var(--space-12) var(--space-16); border: 1px solid var(--color-border); border-left-width: 4px; border-radius: var(--r-md); background: var(--surface); }
 .clinical .cl-row.is-exhausted { border-left-color: var(--charcoal); }
 .clinical .cl-row-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-4) var(--space-12); min-width: 0; }
 .clinical .cl-row-ref { font-weight: 600; color: var(--charcoal); overflow-wrap: anywhere; }
@@ -971,9 +945,10 @@
    the workspace for, and a setting waiting on her is read after them. Each value is one card with who,
    from, to and why above the reason she writes, drawn with the Configuration tab's own rules list. */
 .clinical .sr-panel { display: grid; gap: var(--space-12); padding: var(--space-16); margin-top: var(--space-24); min-width: 0; }
+.clinical .sr-panel .section-title h2 { font-family: var(--font-display); font-size: 20px; font-weight: 600; line-height: 1.3; }
 .clinical .sr-list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
 .clinical .sr-item { display: grid; gap: var(--space-8); padding: var(--space-16) 0; min-width: 0; }
-.clinical .sr-item + .sr-item { border-top: 1px solid var(--line); }
+.clinical .sr-item + .sr-item { border-top: 1px solid var(--color-border); }
 .clinical .sr-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-8); }
 .clinical .sr-confirmed { display: flex; align-items: center; gap: var(--space-8); margin: 0; font-weight: 600; color: var(--ink); }
 .clinical .sr-confirmed svg { flex: none; color: var(--teal-ink); }
@@ -1152,13 +1127,16 @@ html[data-motion='on'] .clinical main > .cl-chapter > .s-metrics > .s-metric:nth
 .clinical .fulfil-row.is-late { padding-left: var(--space-16); border-left: 4px solid var(--danger); }
 @media (prefers-reduced-motion: reduce) { .clinical .fulfil-row { transition: none !important; } }
 
-/* The handover pack on a doctor's review: a paper panel set on mint. The mint is the ground and carries
-   no word; everything read is on the paper, in the ink it always was. */
-.clinical .dr-pack { padding: var(--space-20); border-radius: var(--r-panel); background: var(--cl-tint-mint); }
-/* The chart is already a card; inside the paper it is the paper, with a hairline under it rather than a
+/* The handover pack on a doctor's review: what the nurse handed over, as one object. It stood on a mint
+   ground until the identity of 28 September 2026 (wave 4c); it is one white card now, the handoff's, with
+   an aqua rule down its leading edge that says "this arrived" — a mark, 3.64 — and a heading-sized line
+   saying who sent it, so the rule is never the only thing marking it. */
+.clinical .dr-pack { position: relative; overflow: hidden; padding: 0; border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); box-shadow: var(--shadow); }
+.clinical .dr-pack::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--color-accent); }
+/* The chart is already a card; inside the pack it is the pack, with a hairline under it rather than a
    second box inside the first. */
-.clinical .dr-pack-paper .chart-card { padding: 0 0 var(--space-12); border: 0; border-bottom: 1px solid var(--studio-line); border-radius: 0; background: none; box-shadow: none; }
-.clinical .dr-pack-paper { display: grid; gap: var(--space-12); padding: var(--space-20); border-radius: var(--r-card); background: var(--surface); color: var(--brand-ink); }
+.clinical .dr-pack-paper .chart-card { padding: 0 0 var(--space-12); border: 0; border-bottom: 1px solid var(--color-border); border-radius: 0; background: none; box-shadow: none; }
+.clinical .dr-pack-paper { display: grid; gap: var(--space-12); padding: var(--space-20); background: var(--surface); color: var(--charcoal); }
 .clinical .dr-pack-paper > .muted { margin: 0; }
 .clinical .dr-pack-paper .review-line:last-child { border-bottom: 0; padding-bottom: 0; }
-@media (max-width: 560px) { .clinical .dr-pack { padding: var(--space-8); border-radius: var(--r-card); } .clinical .dr-pack-paper { padding: var(--space-16); } }
+@media (max-width: 560px) { .clinical .dr-pack-paper { padding: var(--space-16); } }

@@ -38,6 +38,7 @@ import {
 import { capabilities, connectedCount } from "../lib/capabilities";
 import { capabilityById, roleById } from "../lib/vetting";
 import { MotionPause } from "../components/MotionPause";
+import { Wordmark } from "../components/Wordmark";
 import {
   useAmbientVisibility,
   useDecor,
@@ -55,6 +56,20 @@ import {
   type HeroDestination,
   type HeroIcon,
 } from "../lib/hero";
+/* The stage's own words — the badge, the guide, the kit and the impact band — are the hero contract's,
+   beside the banner's. Read by property, so the bundle carries the strings the page draws and none of
+   the notes beside them. The coverage sentence among them is geography.json's, copied into hero.json
+   and held to it by the build: importing the geography contract here put the whole of it on both
+   entries (see coverageWhy). */
+import heroContract from "../../../../packages/catalog/hero.json";
+const stage = heroContract.stage;
+/* The devices capability's own sentence, under the two photographs of instruments whose screens show a
+   photographer's numbers. */
+const kitNotice = capabilities.find((c) => c.id === "devices")?.notice ?? "";
+/* The trajectory's points by name — launch, the second city, the third — and nothing else from it: a
+   visit count or a revenue line from a funding proposal is not something a public page may quote as if
+   it had happened. Only the points that name a place or a stage are shown. */
+const openings = businessModel.trajectory.filter((t) => /\(/.test(t.point)).map((t) => t.point);
 /* Seven seconds. Long enough to read a sentence of banner copy, short enough that a reader who
    wants the next one does not reach for the arrow — and it only ever runs while the page's
    decorative-motion flag is up, so a reader who has stopped motion, or asked their system for
@@ -76,18 +91,6 @@ const sections = [
   ["nurses", "For nurses"],
   ["safety", "Safety"],
 ] as const;
-/* The four in the hero's dark bar, derived from the list above rather than restated: everything
-   except "How it works", which has its own control in the hero already. An icon per section is the
-   only thing typed here, and an icon is a picture of a word that is already on the row — it is
-   never the only thing saying which section this is. */
-const barIcons: Record<string, React.ReactNode> = {
-  services: <Stethoscope size={20} />,
-  plans: <Heart size={20} />,
-  nurses: <Users size={20} />,
-  safety: <ShieldCheck size={20} />,
-};
-const barSections = sections.filter(([id]) => id in barIcons);
-
 /* Not one figure on this page is typed. A marketing page is exactly where a price quietly drifts
    away from the price the app charges, so every number below is read out of packages/catalog at
    build time and rendered from there. The one deliberate exception is the nurse's per-visit range
@@ -302,157 +305,129 @@ function useOpening() {
   return { opening, onClick };
 }
 
-/* Editorial cover, since 28 September 2026: the banner's words on the left, and its people as a
-   cut-out standing on the brand's pale ground on the right — above them on a phone — with the two
-   contract cards drawn by the page beside them and nothing baked into a pixel. The founder called the
-   photographs it replaced "cut and low quality", and they were: narrow crops of compositions whose
-   right third is under baked cards, cropped again by object-fit and upscaled on a desk. The cut-out
-   is never cropped by the page; it is sized whole, at its own aspect, from width and height the build
-   holds to the file.
+/* The stage, since the Lovable identity of 28 September 2026 (packages/brand/lovable-handoff, its
+   theme.css `hero-*` rules). A white stage with two slanted planes behind it, the banner's words on the
+   left and its people on the right — above them on a phone — in a portrait panel cut on the slant at
+   its top corner, with the banner's two contract cards laid over it and a badge naming the one thing
+   on this page that answers back.
 
-   It stands on the first banner of packages/catalog/hero.json. On 27 September the founder asked for
-   the strip beneath it — the trust marks, the counter, the pause pill and the arrows — to go, and a
-   picture that rotates by itself with no control to stop it is what WCAG 2.2.2 refuses, so the
-   rotation went with the controls. The other three banners stay in the contract, unshown, and their
-   figures are published, for the day a rotation with a control comes back. The page's one pause
-   control sits in the top bar and stops the two ambient drifts.
+   The figure is still the first slide's of packages/catalog/hero.json, the founder's cut-out, drawn
+   whole at its own aspect from the width and height the build holds to the file; the panel is cut,
+   the person never is. The other three banners stay in the contract, unshown, as they have since the
+   27th: a picture that rotates by itself with no control to stop it is what WCAG 2.2.2 refuses.
 
-   The lime price panel that stood in the ledge went on the founder's word the next day: the price
-   stands under the headline, in the contract's sentence, and on every service card. What is left in
-   the ledge is the dark strip of sections, pulled up over the foot of the hero. */
+   Two things move here on their own and nothing else does: the three small particles drifting at the
+   stage's edge and the pulse beside the badge. Those are the page's whole ambient budget — the dark bar
+   of sections, the glow behind it and the drift on the photograph went to make room for them — both on
+   transform and opacity alone, both behind [data-decor="on"] so the pause control in the top bar stops
+   them, and both held still while the stage is off-screen (tests/motion.spec.ts). */
 function Hero() {
   const slide = slides[0];
   const figure = figureFor(slide);
   const { opening, onClick: opened } = useOpening();
   return (
     <section
-      className="landing-hero editorial-hero"
+      className="landing-hero hero-stage"
       aria-label="MyThuso"
       data-ambient="paused"
     >
-      <div className="hero-stage">
-        {/* The words come first in the document, so a screen reader meets the headline before a
-        picture it is told nothing about; on a phone the figure is drawn above them by the grid,
-        and it holds nothing focusable, so the tab order and the visual order still agree. */}
-        <div className="landing-hero-copy">
-          {[slide].map((slide) => (
-            <article key={slide.id} className="landing-hero-slide is-on">
-              <div className="editorial-heading">
-                <p className="landing-hero-eyebrow">
-                  <span /> {slide.eyebrow}
-                </p>
-                {/* Each half of the headline is a line inside a clipped box, so the entrance can lift it up
-          from under its own baseline. The nesting is what makes the mask possible; the space
-          between the two halves stays in the markup, so the accessible name is still one
-          sentence. */}
-                <h1>
-                  <span className="h1-line">
-                    <span>{slide.headline.lead}</span>
-                  </span>{" "}
-                  <span className="h1-line landing-h1-accent">
-                    <span>{slide.headline.accent}</span>
-                  </span>
-                </h1>
-              </div>
-              <div className="editorial-intro">
-                <p className="landing-hero-lede">{slide.body}</p>
-                <a
-                  className="primary m-press"
-                  href={heroHref(slide.action.goes)}
-                  onClick={opened}
-                >
-                  {opening ? "Opening…" : slide.action.label}
-                  <ArrowRight size={18} />
-                </a>
-              </div>
-            </article>
-          ))}
-          {/* The third standing line. Under whichever banner is showing, never rotated away, and the
-          only sentence on the first screen that says both who comes and what it costs. The words
-          are the contract's; the number is the catalogue's. */}
-          <p className="landing-hero-price">{priceLine(money(fromPrice))}</p>
-        </div>
+      <span className="hero-plane hero-plane--left" aria-hidden="true" />
+      <span className="hero-plane hero-plane--right" aria-hidden="true" />
+      {/* The words come first in the document, so a screen reader meets the headline before a picture
+        it is told nothing about. */}
+      <div className="landing-hero-copy">
+        <article key={slide.id} className="landing-hero-slide is-on">
+          <p className="landing-hero-eyebrow">
+            <span /> {slide.eyebrow}
+          </p>
+          {/* Each half of the headline is a line inside a clipped box, so the entrance can lift it up
+            from under its own baseline; the space between the halves stays in the markup, so the
+            accessible name is still one sentence. */}
+          <h1>
+            <span className="h1-line">
+              <span>{slide.headline.lead}</span>
+            </span>{" "}
+            <span className="h1-line landing-h1-accent">
+              <span>{slide.headline.accent}</span>
+            </span>
+          </h1>
+          <p className="landing-hero-lede">{slide.body}</p>
+          <a
+            className="primary m-press"
+            href={heroHref(slide.action.goes)}
+            onClick={opened}
+          >
+            {opening ? "Opening…" : slide.action.label}
+            <ArrowRight size={18} />
+          </a>
+        </article>
+        {/* The third standing line: the only sentence on the first screen that says both who comes and
+          what it costs. The words are the contract's; the number is the catalogue's. */}
+        <p className="landing-hero-price">{priceLine(money(fromPrice))}</p>
+      </div>
 
-        {/* The figure. A tinted panel behind the lower part of it, the cut-out standing in front
-        with its head above the panel's top edge, and its three cut edges — the sides and the foot,
-        where the supplied cut-outs meet the edge of their own frame — laid exactly on the panel's,
-        which is why the picture is always its own width and never cropped: a cut-out narrower than
-        its panel shows a shoulder ending in a straight line in mid-air. */}
-        <figure
-          className="landing-portrait"
-          data-figure={figure.cutout ? "cutout" : "photograph"}
-        >
-          <div className="landing-portrait-frame">
-            {[slide].map((slide) => (
-              <div key={slide.id} className="landing-slide is-on">
-                <div className="editorial-photo-visual">
-                  <picture>
-                    <source
-                      srcSet={figure.srcSet}
-                      sizes="(min-width: 900px) 528px, min(54vw, 260px)"
-                      type="image/webp"
-                    />
-                    <img
-                      src={figure.fallback}
-                      alt=""
-                      aria-hidden="true"
-                      width={figure.width}
-                      height={figure.height}
-                      loading="eager"
-                      fetchPriority="high"
-                      decoding="async"
-                    />
-                  </picture>
-                </div>
-                {slide.cards.map((card) => (
-                  <div
-                    key={card.title}
-                    className={`landing-hero-card at-${card.at}`}
-                  >
-                    <span className={`landing-hero-disc tint-${card.tint}`}>
-                      <HeroGlyph name={card.icon} size={20} />
-                    </span>
-                    <span>
-                      <i>{card.title}</i>
-                      {card.lines.map((line) => (
-                        <span key={line}>{line}</span>
-                      ))}
-                    </span>
-                  </div>
-                ))}
+      <figure
+        className="landing-portrait"
+        data-figure={figure.cutout ? "cutout" : "photograph"}
+      >
+        <div className="landing-portrait-frame">
+          <div key={slide.id} className="landing-slide is-on">
+            <div className="hero-portrait">
+              <picture>
+                <source
+                  srcSet={figure.srcSet}
+                  sizes="(min-width: 900px) 480px, min(86vw, 360px)"
+                  type="image/webp"
+                />
+                <img
+                  src={figure.fallback}
+                  alt=""
+                  aria-hidden="true"
+                  width={figure.width}
+                  height={figure.height}
+                  loading="eager"
+                  fetchPriority="high"
+                  decoding="async"
+                />
+              </picture>
+            </div>
+            {slide.cards.map((card) => (
+              <div
+                key={card.title}
+                className={`landing-hero-card at-${card.at}`}
+              >
+                <span className={`landing-hero-disc tint-${card.tint}`}>
+                  <HeroGlyph name={card.icon} size={18} />
+                </span>
+                <span>
+                  <i>{card.title}</i>
+                  {card.lines.map((line) => (
+                    <span key={line}>{line}</span>
+                  ))}
+                </span>
               </div>
             ))}
           </div>
-          {/* The figure's two standing lines, together at its foot: where the service is being
-          built, and that the people shown are illustrative. Neither belongs to a slide, and the
-          second is a refusal a rotation may never carry off the screen. */}
-          <p className="landing-portrait-place">
-            <MapPin size={15} aria-hidden="true" />
-            {standing.place}
-          </p>
-          <figcaption>{standing.photographNote}</figcaption>
-        </figure>
-      </div>
-
-      {/* The ledge: the dark strip of sections, lifted over the foot of the hero so the two read as
-      one piece, and the soft glow behind it that is one of the page's two ambient drifts. */}
-      <div className="hero-ledge">
-        <nav className="studio-bar-wrap" aria-label="Jump to a section">
-          <ul className="studio-bar">
-            {barSections.map(([id, label]) => (
-              <li key={id}>
-                <a href={`#${id}`}>
-                  {barIcons[id]}
-                  <span>{label}</span>
-                  <i aria-hidden="true">
-                    <ArrowRight size={17} />
-                  </i>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </div>
+        </div>
+        {/* The badge. Words first and the pulse beside them, so the pulse is never the only thing
+          saying what it means. The handoff calls this pulse its microphone state; here it names a
+          guide that takes typed questions, and the word for a hot microphone is refused on this page
+          (scripts/check-boundaries.mjs) — see hero.json's badgeWhy. */}
+        <p className="hero-badge">
+          <span className="hero-signal" aria-hidden="true" />
+          {stage.badge}
+        </p>
+        {/* The figure's two standing lines, together at its foot: where the service is being built, and
+          that the people shown are illustrative — a refusal no layout may carry off the screen. */}
+        <p className="landing-portrait-place">
+          <MapPin size={15} aria-hidden="true" />
+          {standing.place}
+        </p>
+        <figcaption>{standing.photographNote}</figcaption>
+        <span className="hero-particle hero-particle--lime" aria-hidden="true" />
+        <span className="hero-particle hero-particle--teal" aria-hidden="true" />
+        <span className="hero-particle hero-particle--orange" aria-hidden="true" />
+      </figure>
     </section>
   );
 }
@@ -548,7 +523,7 @@ export function Landing() {
 
       <header className={`landing-nav${y > 24 ? " is-condensed" : ""}`}>
         <a className="landing-brand" href={homeHref}>
-          <img src="/brand/mythuso-logo.svg" alt="MyThuso" />
+          <Wordmark />
         </a>
         <nav className={menu ? "is-open" : ""} aria-label="Sections">
           {sections.map(([id, label]) => (
@@ -735,6 +710,30 @@ export function Landing() {
             </button>
           </div>
         )}
+        {/* Two instruments from the kit a nurse brings, photographed. Their screens show a photographer's
+          numbers, so the devices capability's own notice stands under them rather than a caption that
+          would let a reading pass for data. */}
+        <div className="landing-kit" data-reveal>
+          <h3>{stage.kit.title}</h3>
+          <ul>
+            {stage.kit.devices.map((d) => (
+              <li key={d.id}>
+                <img
+                  src={`/lovable/${d.photo}-400.webp`}
+                  srcSet={`/lovable/${d.photo}-400.webp 400w, /lovable/${d.photo}-640.webp 640w`}
+                  sizes="(min-width: 860px) 200px, 40vw"
+                  alt=""
+                  width="400"
+                  height="400"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <span>{d.name}</span>
+              </li>
+            ))}
+          </ul>
+          <p>{kitNotice}</p>
+        </div>
         <p className="landing-note" data-reveal>
           Later-phase services — screening bundles, men&rsquo;s health,
           mental-health check-ins and allied health — appear in the app marked
@@ -967,12 +966,66 @@ export function Landing() {
         </div>
       </section>
 
+      {/* Where it starts. The handoff's network map of the country, and under it the geography contract's
+        own sentence saying how little of it is served — the map may be the whole of South Africa only
+        because the words beside it say the service is one city's. */}
+      <section className="landing-section landing-impact" aria-labelledby="impact-title">
+        <div className="reveal-stagger" data-reveal>
+          <p className="landing-eyebrow">
+            <i>06</i>
+            {stage.impact.eyebrow}
+          </p>
+          <h2 id="impact-title">{stage.impact.title}</h2>
+          <p className="landing-lede">{stage.impact.coverage}</p>
+          <p className="landing-impact-plan">{stage.impact.planNote}</p>
+          <ol className="landing-impact-points">
+            {openings.map((point) => (
+              <li key={point}>{point}</li>
+            ))}
+          </ol>
+        </div>
+        <figure className="landing-impact-map" data-reveal>
+          <img
+            src="/lovable/south-africa-network-640.webp"
+            srcSet="/lovable/south-africa-network-640.webp 640w, /lovable/south-africa-network-1024.webp 1024w"
+            sizes="(min-width: 860px) 560px, 92vw"
+            alt=""
+            width="1024"
+            height="768"
+            loading="lazy"
+            decoding="async"
+          />
+          <figcaption>{stage.impact.mapNote}</figcaption>
+        </figure>
+      </section>
+
       <section className="landing-section landing-questions">
-        <Head
-          index="06"
-          eyebrow="Questions"
-          title="The things people actually ask."
-        />
+        <div className="landing-questions-head">
+          <Head
+            index="07"
+            eyebrow="Questions"
+            title="The things people actually ask."
+          />
+          {/* GilbertOne is introduced here, where a reader with a question is, by its official logo: the
+            character and its name together, whole, on a light plate in either scheme — never recoloured,
+            cropped or separated. */}
+          <aside className="landing-guide" data-reveal>
+            <img
+              src="/lovable/gilbertone-logo-360.webp"
+              srcSet="/lovable/gilbertone-logo-360.webp 360w, /lovable/gilbertone-logo-720.webp 720w"
+              sizes="180px"
+              alt="GilbertOne"
+              width="360"
+              height="270"
+              loading="lazy"
+              decoding="async"
+            />
+            <div>
+              <h3>{stage.guide.title}</h3>
+              <p>{stage.guide.line}</p>
+            </div>
+          </aside>
+        </div>
         <div className="landing-faq" data-reveal>
           {questions.map(([q, a], i) => (
             <div key={q} className={open === i ? "is-open" : ""}>
@@ -1018,7 +1071,7 @@ export function Landing() {
       </Suspense>
       <footer className="landing-footer">
         <div>
-          <img src="/brand/mythuso-logo.svg" alt="MyThuso" />
+          <Wordmark />
           <p>
             MyThuso is a product of Akhanya IT Innovations (Pty) Ltd,
             Johannesburg. {services.length} services in the catalogue,{" "}

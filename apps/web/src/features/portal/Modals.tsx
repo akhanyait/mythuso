@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { Modal } from '../../components/UI';
+import { Button } from '../../ui/Button';
 import { IncidentDetail, NurseVetting } from '../Dispatch';
 import { VettingApplication } from '../Vetting';
 import { DoctorReview } from '../Clinical';
@@ -38,6 +39,6 @@ function bodyOf(modal: string, close: () => void, open: (m: string) => void) {
  if (modal === 'Device Lab') return <Suspense fallback={null}><DeviceLab/></Suspense>;
  return <div className="form-stack">
   <div className="staff-blank"><h2>{modal}</h2><p>This part of the Control Tower is in the roadmap and is not drawn yet. Nothing behind this name is connected to a record, a payment, a device or a party.</p></div>
-  <button className="primary" onClick={close}>Got it<ArrowRight size={16}/></button>
+  <Button variant="primary" onClick={close} trailingIcon={<ArrowRight aria-hidden="true"/>}>Got it</Button>
  </div>;
 }

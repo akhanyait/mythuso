@@ -1,11 +1,13 @@
 import { ClinicalWorkbench } from '../features/ClinicalWorkbench';
+import { Wordmark } from '../components/Wordmark';
 import framing from '../../../../packages/catalog/framing.json' with { type: 'json' };
 import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react';
 import { Activity, ArrowRight, ArrowUpRight, BarChart3, Bluetooth, BookOpen, CalendarDays, CalendarRange, ClipboardPlus, CreditCard, FileText, FlaskConical, LogOut, Package, Radar, Repeat, ShieldAlert, ShieldCheck, Siren, Truck, Video } from 'lucide-react';
 import { Modal, SectionTitle } from '../components/UI';
 import { ReadOnly } from '../components/ReadOnly';
 import { AssistantLauncher } from '../components/AssistantLauncher';
-import { Metric, Metrics, NavRow } from '../surface/Surface';
+import { Metric, Metrics } from '../surface/Surface';
+import { NavigationItem } from '../ui/NavigationItem';
 import '../surface/clinical.css';
 /* The clinical feature screens' own sheet. It used to be imported by the staff and admin entries,
    which no longer exist: this shell is reached by a dynamic import now, so both sheets travel in
@@ -208,7 +210,7 @@ export default function StaffWorkspace({ role, audience, legacy = false }: { rol
  return <div className="app-shell clinical aurora">
   <a href="#main" className="skip-link">{t('shell.skip', 'en-ZA')}</a>
   <aside className="sidebar">
-   <button className="brand" onClick={home}><img src="/brand/mythuso-logo.svg" alt="MyThuso"/></button>
+   <button className="brand" onClick={home}><Wordmark/></button>
    <div className="staff-id">
     <span className="avatar small">{who.initials}</span>
     <span><strong>{who.subject.name}</strong><small>{who.roleName} · {who.subject.reference}</small></span>
@@ -220,12 +222,12 @@ export default function StaffWorkspace({ role, audience, legacy = false }: { rol
        and the heading in the main column says it again. Three of the same word on one screen is
        what a label costs when it is chosen for symmetry rather than for a reader. */}
    <div className="nav-label">WORKSPACE</div>
-   {/* Pill rows, and the one you are on is a filled pill in the logo's ink with its trailing circle
-       in the logo's reversed green. A plain list of rows with a tinted active state told a reader which entry was
-       selected; the pill tells them where they are, which is the thing a workspace has to say
-       before anything else on the screen means anything. */}
+   {/* The handoff's NavigationItem, the same one the patient's sidebar uses: the section you are in on
+       the accent's tint, in the ink and a heavier weight, so where-you-are is never told by colour
+       alone. Lucide glyphs, because these are a clinician's sections and the MyThuso family draws the
+       patient's destinations. */}
    <nav className="s-nav" aria-label="Main navigation">{sections.map(({ id, icon: Icon }) =>
-    <NavRow key={id} icon={<Icon size={19} strokeWidth={1.8}/>} label={id} current={section === id} onClick={() => go(id)}/>)}</nav>
+    <NavigationItem key={id} icon={<Icon size={20} strokeWidth={1.8}/>} active={section === id} onClick={() => go(id)}>{id}</NavigationItem>)}</nav>
    <div className="sidebar-bottom">
     {/* No help card, no wallet, no language picker. The shell strings a picker would switch are the
         patient's navigation, and clinical wording is never translated at all — lib/i18n.ts is where

@@ -1,7 +1,7 @@
-import { useMemo, useState, type ReactNode } from 'react';
-import { ArrowLeft, ArrowRight, BadgeCheck, CalendarClock, Check, CircleAlert, ClipboardList, Clock3, FileText, RotateCcw, ScrollText, ShieldCheck, ShieldX, UserRoundCheck, UserRoundX, Users } from 'lucide-react';
-import { EmptyNote, Pill, SectionTitle } from '../components/UI';
-import { Metric, Metrics } from '../surface/Surface';
+import { useId, useMemo, useState } from 'react';
+import { ArrowLeft, ArrowRight, BadgeCheck, Check, CircleAlert, ClipboardList, RotateCcw, ScrollText, ShieldCheck, ShieldX, UserRoundCheck, UserRoundX, Users } from 'lucide-react';
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Checkbox, Field, Input, Select, Tab, TabsList, Textarea, type BadgeVariant } from '../ui';
+import { OfficeFacts, OfficeFigure, OfficeHead, OfficeNote, OfficeProgress, OfficeSection } from '../surface/Office';
 import { StepHead } from '../components/Steps';
 import { EmptyState } from '../components/States';
 import { NotConnected } from '../components/NotConnected';
@@ -12,10 +12,7 @@ import {
  type CheckRecord, type CheckState, type SubjectStatus, type VettingCheck, type VettingEvent, type VettingEventKind, type VettingSubject
 } from '../lib/vetting';
 import { seededLog, seededSubjects, subjectById } from '../lib/vetting-fixtures';
-import { ClinicalDeck, type DeckFigure } from './ClinicalDeck';
 import { ComplaintsQueue, ShiftStartsBoard, complaintsHeading } from './VerifyInService';
-import './nurse-kit.css';
-import './nurse-tools.css';
 
 /* Vetting is the gate the whole marketplace rests on, so this is a real queue with real refusals
    rather than a list of names. Every decision recomputes what the party may do, and is written to a
@@ -108,27 +105,17 @@ export function useVettingState() {
 export type VettingState = ReturnType<typeof useVettingState>;
 
 /* ---- Small shared pieces ----------------------------------------------------------------- */
-/* A figure in the dashboard language: the number set large and thin, what it is underneath it, and
-   — where the console has one — the sentence saying what it is measured against under that.
-   A vetting console cannot lose those sentences: "4" means nothing beside "Suspended or declined",
-   and everything about whether it is a problem is in "lapsed automatically, or declined with a
-   reason". They are too long to be the chip a Metric floats above the figure, so they sit below the
-   label, and the chip carries the one word that says whether the number is a problem.
-   The wrapper keeps `panel metric` as well as its own name: the console journeys assert against
-   `.panel.metric`, and a class is part of the contract with them as much as any export is. */
-function Figure({ label, value, note, flagged, visual, lead }: { label: string; value: string; note: string; flagged?: boolean; visual?: ReactNode; lead?: boolean }) {
- return <div className={`c-figure panel metric nt-instrument${visual ? ' nt-instrument-ring' : ''}${lead ? ' lead' : ''}`}>
-  <Metric label={label} value={value} chip={flagged ? 'Needs attention' : undefined} flagged={flagged} visual={visual}/>
-  <small>{note}</small>
- </div>;
-}
+/* A vetting figure is the office figure: the number, what it is, and the sentence saying what it is
+   measured against — "4" means nothing beside "Suspended or declined", and everything about whether it
+   is a problem is in "lapsed automatically, or declined with a reason". */
+const Figure = OfficeFigure;
 
 /* ---- One arc per party ---------------------------------------------------------------------
  *
  * The register, drawn from the register. Every arc on the ring below is one of the parties in the
  * list under it and the lit ones are the ones the figure counts, so a reader who distrusts the
  * drawing can count the rows and a reader who distrusts the numeral can count the arcs. Nothing
- * here introduces a number.
+ * here introduces a number. Lit is the progress colour, which is what aqua is for in this identity.
  *
  * Turns rather than degrees, clockwise from twelve, because every arc in here is "this many of that
  * many" and a fraction of a circle is what that means.
@@ -146,18 +133,17 @@ function Ring({ segments }: { segments: readonly boolean[] }) {
     parties must not dissolve into a dotted line. Butt caps, because a round cap grows half a stroke
     past each end of its arc and closes the gap it was drawn beside. */
  const gap = Math.min(0.02, step / 3);
- return <svg className="c-plot nt-plot nt-ring" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
-  <circle className="nt-ring-track" cx="50" cy="50" r="39"/>
-  {segments.map((on, i) => <path key={i} className={`c-mark nt-arc${on ? ' on' : ''}`} d={arc(39, i * step + gap / 2, (i + 1) * step - gap / 2)}/>)}
+ return <svg className="oi-ring" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+  <circle className="oi-ring__track" cx="50" cy="50" r="39"/>
+  {segments.map((on, i) => <path key={i} className={`oi-ring__arc${on ? ' is-on' : ''}`} d={arc(39, i * step + gap / 2, (i + 1) * step - gap / 2)}/>)}
  </svg>;
 }
-const stateTone = (state: CheckState) => state === 'verified' ? 'check-verified' : state === 'expiring' ? 'check-in-review'
- : state === 'lapsed' || state === 'declined' ? 'check-declined' : state === 'in-review' || state === 'submitted' ? 'check-in-review' : 'check-outstanding';
-const statusTone = (status: SubjectStatus) => status === 'cleared' ? 'teal' : status === 'suspended' || status === 'declined' ? 'danger' : 'amber';
+/* A state is a Badge in words. Verified is the success tint, lapsed and declined the danger one, and
+   everything still moving the warning tint — never colour alone, because the word is on the badge. */
+const stateBadge = (state: CheckState): BadgeVariant => state === 'verified' ? 'success' : state === 'lapsed' || state === 'declined' ? 'danger' : state === 'outstanding' ? 'neutral' : 'warning';
+const statusBadge = (status: SubjectStatus): BadgeVariant => status === 'cleared' ? 'success' : status === 'suspended' || status === 'declined' ? 'danger' : 'warning';
 function Progress({ passed, total }: { passed: number; total: number }) {
- return <div className="vetting-progress" role="img" aria-label={`${passed} of ${total} checks passing`}>
-  <div style={{ width: `${total ? (passed / total) * 100 : 0}%` }}/>
- </div>;
+ return <OfficeProgress part={passed} whole={total} label={`${passed} of ${total} checks passing`}/>;
 }
 /* A countdown, not a date somebody typed. This is the sentence that makes scheduled re-vetting
    true in the preview rather than a claim in a paragraph of copy. */
@@ -169,12 +155,12 @@ function expiryLine(check: VettingCheck, record: CheckRecord) {
 }
 function ReasonForm({ label, hint, confirm, onConfirm, onCancel }: { label: string; hint: string; confirm: string; onConfirm: (reason: string) => void; onCancel: () => void }) {
  const [reason, setReason] = useState('');
- return <div className="reason-form">
-  <label>{label}<textarea autoFocus value={reason} onChange={e => setReason(e.target.value.slice(0, 400))} placeholder="In your own words, for the party and for the record…"/></label>
-  <p className="helper">{hint}</p>
-  <div className="button-row">
-   <button className="secondary" onClick={onCancel}>Cancel</button>
-   <button className="primary" disabled={reason.trim().length < 10} onClick={() => onConfirm(reason.trim())}><Check size={15}/>{confirm}</button>
+ const id = useId();
+ return <div className="oi-stack reason-form">
+  <Field label={label} htmlFor={id} hint={hint}><Textarea id={id} autoFocus value={reason} onChange={e => setReason(e.target.value.slice(0, 400))} placeholder="In your own words, for the party and for the record…"/></Field>
+  <div className="oi-actions">
+   <Button variant="secondary" onClick={onCancel}>Cancel</Button>
+   <Button variant="primary" disabled={reason.trim().length < 10} onClick={() => onConfirm(reason.trim())} leadingIcon={<Check aria-hidden="true"/>}>{confirm}</Button>
   </div>
  </div>;
 }
@@ -195,9 +181,7 @@ export function VettingQueue({ open, vetting: shared }: { open: (s: string) => v
  const own = useVettingState();
  const vetting = shared ?? own;
  return <>
-  <div className="page-intro"><div><div className="eyebrow">CONTROL TOWER</div>
-   <h1>Vetting queue</h1>
-   <p>Every applicant, the state of each check, and the decision that either clears somebody for dispatch or refuses it in writing.</p></div></div>
+  <OfficeHead eyebrow="Control Tower" title="Vetting queue" lead="Every applicant, the state of each check, and the decision that either clears somebody for dispatch or refuses it in writing."/>
   <VettingConsole vetting={vetting} open={open}/>
   {/* Who started a shift today, and that nobody's face was matched. The desk reads it here beside the register. */}
   <ShiftStartsBoard/>
@@ -228,71 +212,58 @@ export function VettingConsole({ vetting, open }: { vetting: VettingState; open:
  /* One arc per party on the register, lit for the ones that are cleared today. It is the same list
     the column below draws, in the same order, so the ring cannot drift from the rows. */
  const clearedArcs = subjects.map(s => { const status = summarise(s).status; return status === 'cleared' || status === 'expiring'; });
- return <div className="nt-screen nt-console">
-  {/* ONE NIGHT GROUND, carrying the state of the register. Everything below it is the register
-      itself and the decision being taken on one party, which is paperwork and reads as paperwork. */}
-  <section className="nt-deck" aria-label="The register, and what it owes today">
-   <div className="nt-deck-head">
-    <span className="nt-eyebrow">The register</span>
-    <span className="nt-deck-note nt-deck-note-inline">{subjects.length} parties, {roles.length} roles. Every figure is a count of the rows below it.</span>
-   </div>
+ return <div className="oi-screen oi-vetting">
+  {/* The state of the register, on white. It used to be one night-coloured deck above paperwork; the
+      handoff draws a console as figures on cards, and the figures are the same counts of the same rows. */}
+  <section className="oi-section" aria-label="The register, and what it owes today">
+   <div className="oi-section-head"><p className="oi-eyebrow">The register</p>
+    <p className="oi-section-note">{subjects.length} parties, {roles.length} roles. Every figure is a count of the rows below it.</p></div>
    <NotConnected of="credential-verification"/>
-   <div className="nt-deck-figures c-figures">
-    <div className="nt-deck-lead">
-     <Figure lead label="Cleared" value={String((counts.cleared ?? 0) + (counts.expiring ?? 0))} note={`${counts.expiring ?? 0} of them with a renewal due`}
-      visual={<Ring segments={clearedArcs}/>}/>
-    </div>
-    <div className="nt-deck-rest">
-     <Figure label="In progress" value={String(counts['in-progress'] ?? 0)} note="Refused the work of the role until every check passes"/>
-     <Figure label="Awaiting a second reviewer" value={String(counts.awaiting ?? 0)} note="One reviewer is never enough on a high-risk check" flagged={!!(counts.awaiting)}/>
-     {/* Not flagged, and the one beside it is. A filled chip means "this one", so two of them on one
-         deck point at nothing: a party awaiting a second reviewer is work this console owes today,
-         and a suspension is a settled state that the register is already refusing on. */}
-     <Figure label="Suspended or declined" value={String((counts.suspended ?? 0) + (counts.declined ?? 0))} note="Lapsed automatically, or declined with a reason"/>
-    </div>
+   <div className="oi-figures">
+    <Figure lead label="Cleared" value={String((counts.cleared ?? 0) + (counts.expiring ?? 0))} note={`${counts.expiring ?? 0} of them with a renewal due`}
+     visual={<Ring segments={clearedArcs}/>}/>
+    <Figure label="In progress" value={String(counts['in-progress'] ?? 0)} note="Refused the work of the role until every check passes"/>
+    <Figure label="Awaiting a second reviewer" value={String(counts.awaiting ?? 0)} note="One reviewer is never enough on a high-risk check" flagged={!!(counts.awaiting)}/>
+    {/* Not flagged, and the one beside it is. A flag means "this one", so two of them on one row of
+        figures point at nothing: a party awaiting a second reviewer is work this console owes today,
+        and a suspension is a settled state that the register is already refusing on. */}
+    <Figure label="Suspended or declined" value={String((counts.suspended ?? 0) + (counts.declined ?? 0))} note="Lapsed automatically, or declined with a reason"/>
    </div>
   </section>
-  <div className="vetting-bar">
-   <div className="tabs" role="group" aria-label={t('vetting.views')}>
-    {views.map(([id, label]) => <button key={id} className={view === id ? 'selected' : ''} aria-pressed={view === id} onClick={() => setView(id)}>{label}</button>)}
-   </div>
-   <label className="inline-field">{t('vetting.reviewer')}
-    <select value={reviewer} onChange={e => setReviewer(e.target.value)}>{reviewers.map(r => <option key={r}>{r}</option>)}</select>
-   </label>
-   <button className="secondary" onClick={() => open('Vetting application')}><ClipboardList size={15}/>{t('vetting.apply')}</button>
+  <div className="oi-vetting-bar">
+   <TabsList aria-label={t('vetting.views')}>
+    {views.map(([id, label]) => <Tab key={id} active={view === id} onClick={() => setView(id)}>{label}</Tab>)}
+   </TabsList>
+   <Field label={t('vetting.reviewer')} htmlFor="vetting-reviewer" className="oi-inline-field">
+    <Select id="vetting-reviewer" value={reviewer} onChange={e => setReviewer(e.target.value)}>{reviewers.map(r => <option key={r}>{r}</option>)}</Select>
+   </Field>
+   <Button variant="secondary" onClick={() => open('Vetting application')} leadingIcon={<ClipboardList aria-hidden="true"/>}>{t('vetting.apply')}</Button>
   </div>
-  <p className="helper" role="status">Acting as {reviewer}. Decisions are attributed to this name, and a high-risk check needs a second one.</p>
+  <p className="oi-help" role="status">Acting as {reviewer}. Decisions are attributed to this name, and a high-risk check needs a second one.</p>
   {view === 'queue' ? <>
-   <div className="vetting-filters">
-    <label className="inline-field">{t('vetting.role')}
-     <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
-      <option value="all">{t('vetting.allRoles')}</option>
-      {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-     </select>
-    </label>
-    <label className="inline-field">{t('vetting.status')}
-     <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as 'all' | SubjectStatus)}>
-      <option value="all">{t('vetting.allStatuses')}</option>
-      {(Object.keys(subjectStatusLabels) as SubjectStatus[]).map(s => <option key={s} value={s}>{subjectStatusLabels[s]}</option>)}
-     </select>
-    </label>
+   <div className="oi-form-row">
+    <Field label={t('vetting.role')} htmlFor="vetting-role"><Select id="vetting-role" value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
+     <option value="all">{t('vetting.allRoles')}</option>
+     {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+    </Select></Field>
+    <Field label={t('vetting.status')} htmlFor="vetting-status"><Select id="vetting-status" value={statusFilter} onChange={e => setStatusFilter(e.target.value as 'all' | SubjectStatus)}>
+     <option value="all">{t('vetting.allStatuses')}</option>
+     {(Object.keys(subjectStatusLabels) as SubjectStatus[]).map(s => <option key={s} value={s}>{subjectStatusLabels[s]}</option>)}
+    </Select></Field>
    </div>
-   {rows.length ? <div className="vetting-grid">
-     <div className="panel">
-      <div className="section-title"><h2>{t('vetting.parties')}</h2><Pill tone="plain">{rows.length} of {subjects.length}</Pill></div>
-      {rows.map(({ subject, summary }) => <button className="record-row" key={subject.id} aria-pressed={shown?.subject.id === subject.id} onClick={() => setSelected(subject.id)}>
-       <span className={`service-icon ${summary.cleared ? 'check-verified' : summary.status === 'in-progress' ? 'check-in-review' : 'check-declined'}`}>
-        {summary.cleared ? <BadgeCheck size={20}/> : summary.status === 'in-progress' ? <ClipboardList size={20}/> : <ShieldX size={20}/>}
-       </span>
-       <span>
-        <strong>{subject.name}</strong>
-        <small>{roleById(subject.roleId)?.name} · {subject.reference}{subject.zone ? ` · ${subject.zone}` : ''}</small>
+   {rows.length ? <div className="oi-split vetting-grid">
+     <Card className="oi-register">
+      <CardHeader className="oi-card-head"><CardTitle>{t('vetting.parties')}</CardTitle><Badge>{rows.length} of {subjects.length}</Badge></CardHeader>
+      <div className="oi-rows">{rows.map(({ subject, summary }) => <button type="button" className="oi-row vetting-party" key={subject.id} aria-pressed={shown?.subject.id === subject.id} onClick={() => setSelected(subject.id)}>
+       <span className="oi-row__body">
+        <span className="oi-row__title">{subject.name}</span>
+        <span className="oi-row__meta">{roleById(subject.roleId)?.name} · {subject.reference}{subject.zone ? ` · ${subject.zone}` : ''}</span>
         <Progress passed={summary.passed} total={summary.total}/>
-        <small>{summary.passed} of {summary.total} checks passing{summary.nextDue ? ` · ${summary.nextDue.check.name} ${dueWording(summary.nextDue.days)}` : ''}</small>
+        <span className="oi-row__meta">{summary.passed} of {summary.total} checks passing{summary.nextDue ? ` · ${summary.nextDue.check.name} ${dueWording(summary.nextDue.days)}` : ''}</span>
        </span>
-       <Pill tone={statusTone(summary.status)}>{subjectStatusLabels[summary.status]}</Pill>
-      </button>)}
-     </div>
+       <span className="oi-row__aside"><Badge variant={statusBadge(summary.status)}>{subjectStatusLabels[summary.status]}</Badge></span>
+      </button>)}</div>
+     </Card>
      {shown && <SubjectDetail key={shown.subject.id} subject={shown.subject} vetting={vetting}/>}
     </div> : <EmptyState title="Nobody matches those filters" body="Widen the role or the status to see the rest of the queue. Nothing has been hidden from you."/>}
   </> : view === 'renewals' ? <RenewalsDue subjects={subjects} onOpen={id => { setSelected(id); setView('queue'); setRoleFilter('all'); setStatusFilter('all'); }}/> : view === 'complaints' ? <ComplaintsQueue/> : <AuditTrail log={log}/>}
@@ -311,83 +282,87 @@ function SubjectDetail({ subject, vetting }: { subject: VettingSubject; vetting:
     somebody may do and belongs in the record below, and a protected category is never a chip on
     anybody's header at all: it appears once, in the table of what the checks refuse, where it is a
     capability being decided rather than a label somebody reads first. */
- return <div className="panel">
-  <div className="nt-subject-head">
-   <div><div className="nt-eyebrow">{role.name}</div><h2>{subject.name}</h2></div>
-   <Pill tone={statusTone(summary.status)}>{subjectStatusLabels[summary.status]}</Pill>
-  </div>
-  <div className="nt-subject-meter">
-   <strong>{summary.passed} <small>of {summary.total} checks passing</small></strong>
-   <Progress passed={summary.passed} total={summary.total}/>
-  </div>
-  <dl className="nt-facts">
-   <div><dt>Credential</dt><dd>{subject.reference}</dd></div>
-   {subject.zone ? <div><dt>Area</dt><dd>{subject.zone}</dd></div> : null}
-   {subject.scope?.length ? <div><dt>Scope</dt><dd>{subject.scope.join(' · ')}</dd></div> : null}
-  </dl>
-  <p className="helper" role="status">
-   {summary.lapsed.length ? `${summary.lapsed.map(l => l.check.name).join(' and ')} lapsed. This party was removed from the work of the role automatically.`
-    : summary.awaitingSecond.length ? `${summary.awaitingSecond.map(a => a.check.name).join(' and ')} is waiting on a second reviewer.`
-     : summary.status === 'declined' ? subject.declinedReason ?? 'A check was declined with a reason.'
-      : summary.status === 'suspended' ? subject.suspendedReason ?? 'Suspended by a reviewer.'
-       : summary.blocking.length ? `${summary.blocking.length} check${summary.blocking.length === 1 ? '' : 's'} outstanding.`
-        : summary.expiring.length ? `Cleared, with ${summary.expiring.length} renewal${summary.expiring.length === 1 ? '' : 's'} due.` : 'Every check passed and in date.'}
-  </p>
-  {/* Where the party stands among the seven gates, computed from the checks below rather than
-      stored. A fail rule is shown in the contract's own words; a suspension or a decline is already
-      said in the line above and is not said twice. */}
-  <div className="review-line gate-progress" data-gate={progress.at.id}><span>Onboarding</span><strong className={progress.activated ? '' : 'flagged'}>{progress.status}</strong></div>
-  {(progress.outcome === 'stopped' || progress.outcome === 'failed' || progress.outcome === 'held') && <p className="helper flagged gate-rule">{progress.sentence}</p>}
-  <div className="admin-actions space-top">
-   {subject.suspended ? <button className="secondary" onClick={() => vetting.restore(subject)}><RotateCcw size={15}/>Lift the suspension</button>
-    : <button className="secondary" onClick={() => setAction(action === 'suspend' ? '' : 'suspend')}><ShieldX size={15}/>Suspend</button>}
-   <button className="secondary" onClick={() => setAction(action === 'appeal' ? '' : 'appeal')} disabled={subject.appealed}><ScrollText size={15}/>{subject.appealed ? 'Appeal recorded' : 'Record an appeal'}</button>
-  </div>
-  {action === 'suspend' && <ReasonForm label="Why this party is suspended" hint="A suspension without a written reason is not reviewable, and cannot be appealed. Ten characters at least." confirm="Suspend"
-   onConfirm={reason => { vetting.suspend(subject, reason); setAction(''); }} onCancel={() => setAction('')}/>}
-  {action === 'appeal' && <ReasonForm label="What the party says" hint="Recorded in their words, not yours. It changes nothing on its own — a check still has to be decided again." confirm="Record the appeal"
-   onConfirm={note => { vetting.appeal(subject, note); setAction(''); }} onCancel={() => setAction('')}/>}
-  <SectionTitle title="Checks"/>
-  {summary.states.map(({ check, state }) => {
+ return <Card className="oi-subject">
+  <CardHeader className="oi-card-head">
+   <div><p className="oi-eyebrow">{role.name}</p><h2 className="oi-title oi-subject__name">{subject.name}</h2></div>
+   <Badge variant={statusBadge(summary.status)}>{subjectStatusLabels[summary.status]}</Badge>
+  </CardHeader>
+  <CardContent className="oi-card-body">
+   <div className="oi-stack">
+    <p className="oi-meter"><strong>{summary.passed}</strong> of {summary.total} checks passing</p>
+    <Progress passed={summary.passed} total={summary.total}/>
+   </div>
+   <dl className="oi-facts">
+    <div><dt>Credential</dt><dd>{subject.reference}</dd></div>
+    {subject.zone ? <div><dt>Area</dt><dd>{subject.zone}</dd></div> : null}
+    {subject.scope?.length ? <div><dt>Scope</dt><dd>{subject.scope.join(' · ')}</dd></div> : null}
+    {/* Where the party stands among the seven gates, computed from the checks below rather than
+        stored. A fail rule is shown in the contract's own words; a suspension or a decline is already
+        said in the line under this and is not said twice. */}
+    <div className="gate-progress" data-gate={progress.at.id}><dt>Onboarding</dt><dd className={progress.activated ? '' : 'is-refused'}>{progress.status}</dd></div>
+   </dl>
+   <p className="oi-help" role="status">
+    {summary.lapsed.length ? `${summary.lapsed.map(l => l.check.name).join(' and ')} lapsed. This party was removed from the work of the role automatically.`
+     : summary.awaitingSecond.length ? `${summary.awaitingSecond.map(a => a.check.name).join(' and ')} is waiting on a second reviewer.`
+      : summary.status === 'declined' ? subject.declinedReason ?? 'A check was declined with a reason.'
+       : summary.status === 'suspended' ? subject.suspendedReason ?? 'Suspended by a reviewer.'
+        : summary.blocking.length ? `${summary.blocking.length} check${summary.blocking.length === 1 ? '' : 's'} outstanding.`
+         : summary.expiring.length ? `Cleared, with ${summary.expiring.length} renewal${summary.expiring.length === 1 ? '' : 's'} due.` : 'Every check passed and in date.'}
+   </p>
+   {(progress.outcome === 'stopped' || progress.outcome === 'failed' || progress.outcome === 'held') && <p className="oi-refusal gate-rule">{progress.sentence}</p>}
+   <div className="oi-actions">
+    {subject.suspended ? <Button variant="secondary" onClick={() => vetting.restore(subject)} leadingIcon={<RotateCcw aria-hidden="true"/>}>Lift the suspension</Button>
+     : <Button variant="secondary" onClick={() => setAction(action === 'suspend' ? '' : 'suspend')} leadingIcon={<ShieldX aria-hidden="true"/>}>Suspend</Button>}
+    <Button variant="secondary" onClick={() => setAction(action === 'appeal' ? '' : 'appeal')} disabled={subject.appealed} leadingIcon={<ScrollText aria-hidden="true"/>}>{subject.appealed ? 'Appeal recorded' : 'Record an appeal'}</Button>
+   </div>
+   {action === 'suspend' && <ReasonForm label="Why this party is suspended" hint="A suspension without a written reason is not reviewable, and cannot be appealed. Ten characters at least." confirm="Suspend"
+    onConfirm={reason => { vetting.suspend(subject, reason); setAction(''); }} onCancel={() => setAction('')}/>}
+   {action === 'appeal' && <ReasonForm label="What the party says" hint="Recorded in their words, not yours. It changes nothing on its own — a check still has to be decided again." confirm="Record the appeal"
+    onConfirm={note => { vetting.appeal(subject, note); setAction(''); }} onCancel={() => setAction('')}/>}
+   <h3 className="oi-subtitle">Checks</h3>
+  </CardContent>
+  <div className="oi-rows">{summary.states.map(({ check, state }) => {
    const record = recordFor(subject, check.id);
    const authority = authorityById(check.authority)!;
    const second = needsSecondReviewer(subject, check.id);
    const ownDecision = record.decidedBy === vetting.reviewer;
-   return <div className={`record-row static admin-row${anchor?.id === check.id ? ' is-anchor' : ''}`} key={check.id}>
-    <span className={`service-icon ${stateTone(state)}`}>{state === 'verified' ? <BadgeCheck size={20}/> : state === 'declined' || state === 'lapsed' ? <CircleAlert size={20}/> : <Clock3 size={20}/>}</span>
-    <span>
-     <strong>{check.name}{check.risk === 'high' && <span className="required-mark">High risk</span>}</strong>
-     <small>{check.detail}</small>
-     <small>{authority.name} ({authority.short}) · {check.evidence} · {check.renewMonths ? `renews every ${check.renewMonths} months` : 'does not renew'}</small>
-     <small>{record.decidedBy ? `Decided by ${record.decidedBy} on ${formatDate(record.decidedOn)}` : 'No decision recorded'}{record.secondedBy ? ` · seconded by ${record.secondedBy}` : ''}</small>
-     <small className={daysUntil(record.expiresOn) !== null && daysUntil(record.expiresOn)! < 0 ? 'flagged' : ''}>{expiryLine(check, record)}</small>
-     {second && <small className="flagged" role="status">Verified by {record.decidedBy}. It does not count until a different reviewer agrees.</small>}
-     {record.note && <small>“{record.note}”</small>}
-     {declining === check.id && <ReasonForm label={`Why ${check.name} is declined`} hint="The party is told this sentence. Write it for them, not for the file. Ten characters at least." confirm="Decline this check"
-      onConfirm={reason => { vetting.decline(subject, check.id, reason); setDeclining(''); }} onCancel={() => setDeclining('')}/>}
-    </span>
-    <Pill tone={state === 'verified' ? 'teal' : state === 'lapsed' || state === 'declined' ? 'danger' : 'amber'}>{second ? 'Awaiting a second reviewer' : checkStateLabels[state]}</Pill>
-    <div className="admin-actions">
-     {second ? <button className="primary" disabled={ownDecision} onClick={() => vetting.second(subject, check.id)} title={ownDecision ? 'You took the first decision on this check.' : undefined}>
-      <UserRoundCheck size={15}/>{ownDecision ? 'You decided this' : 'Second it'}</button>
-      : state === 'lapsed' || state === 'expiring' ? <button className="primary" onClick={() => vetting.renew(subject, check.id)}><RotateCcw size={15}/>Record a renewal</button>
-       : state !== 'verified' && <button className="primary" onClick={() => vetting.verify(subject, check.id)}><Check size={15}/>Verify</button>}
-     <button className="secondary" onClick={() => setDeclining(declining === check.id ? '' : check.id)}><UserRoundX size={15}/>Decline</button>
+   const lapsed = daysUntil(record.expiresOn) !== null && daysUntil(record.expiresOn)! < 0;
+   return <div className={`oi-row vetting-check${anchor?.id === check.id ? ' is-anchor' : ''}`} key={check.id}>
+    <div className="oi-row__body">
+     <p className="oi-row__title">{check.name}{check.risk === 'high' && <> <Badge size="sm" variant="neutral">High risk</Badge></>}</p>
+     <span className="oi-row__meta">{check.detail}</span>
+     <span className="oi-row__meta">{authority.name} ({authority.short}) · {check.evidence} · {check.renewMonths ? `renews every ${check.renewMonths} months` : 'does not renew'}</span>
+     <span className="oi-row__meta">{record.decidedBy ? `Decided by ${record.decidedBy} on ${formatDate(record.decidedOn)}` : 'No decision recorded'}{record.secondedBy ? ` · seconded by ${record.secondedBy}` : ''}</span>
+     <span className={`oi-row__meta${lapsed ? ' oi-row__meta--refusal' : ''}`}>{expiryLine(check, record)}</span>
+     {second && <span className="oi-row__meta oi-row__meta--refusal" role="status">Verified by {record.decidedBy}. It does not count until a different reviewer agrees.</span>}
+     {record.note && <span className="oi-row__meta">“{record.note}”</span>}
     </div>
+    <div className="oi-row__aside"><Badge variant={second ? 'warning' : stateBadge(state)}>{second ? 'Awaiting a second reviewer' : checkStateLabels[state]}</Badge></div>
+    <div className="oi-row__actions">
+     {second ? <Button variant="primary" disabled={ownDecision} onClick={() => vetting.second(subject, check.id)} title={ownDecision ? 'You took the first decision on this check.' : undefined} leadingIcon={<UserRoundCheck aria-hidden="true"/>}>
+      {ownDecision ? 'You decided this' : 'Second it'}</Button>
+      : state === 'lapsed' || state === 'expiring' ? <Button variant="primary" onClick={() => vetting.renew(subject, check.id)} leadingIcon={<RotateCcw aria-hidden="true"/>}>Record a renewal</Button>
+       : state !== 'verified' && <Button variant="primary" onClick={() => vetting.verify(subject, check.id)} leadingIcon={<Check aria-hidden="true"/>}>Verify</Button>}
+     <Button variant="ghost" onClick={() => setDeclining(declining === check.id ? '' : check.id)} leadingIcon={<UserRoundX aria-hidden="true"/>}>Decline</Button>
+    </div>
+    {declining === check.id && <div className="oi-row__actions"><ReasonForm label={`Why ${check.name} is declined`} hint="The party is told this sentence. Write it for them, not for the file. Ten characters at least." confirm="Decline this check"
+     onConfirm={reason => { vetting.decline(subject, check.id, reason); setDeclining(''); }} onCancel={() => setDeclining('')}/></div>}
    </div>;
-  })}
-  {summary.awaitingSecond.length > 0 && <div className="privacy-note space-top"><Users size={19}/>A high-risk check verified by one person is not verified. Switch the reviewer above and second it as somebody else — the console refuses to let one name do both.</div>}
-  <SectionTitle title="What this party is refused"/>
-  <div className="table-scroll"><table className="result-table">
+  })}</div>
+  <CardContent className="oi-card-body">
+   {summary.awaitingSecond.length > 0 && <OfficeNote icon={<Users aria-hidden="true"/>}>A high-risk check verified by one person is not verified. Switch the reviewer above and second it as somebody else — the console refuses to let one name do both.</OfficeNote>}
+   <h3 className="oi-subtitle">What this party is refused</h3>
+  </CardContent>
+  <div className="oi-table-wrap"><table className="oi-table">
    <caption>Driven by the checks above. Change a decision and this table changes with it.</caption>
    <thead><tr><th scope="col">Capability</th><th scope="col">Answer</th><th scope="col">Reason</th></tr></thead>
-   <tbody>{decisions(subject).map(d => <tr key={d.capability.id} className={d.decision.allowed ? '' : 'flagged-row'}>
+   <tbody>{decisions(subject).map(d => <tr key={d.capability.id} className={d.decision.allowed ? '' : 'is-flagged'}>
     <th scope="row">{d.capability.name}</th>
-    <td>{d.decision.allowed ? 'Allowed' : 'Refused'}</td>
+    <td className={d.decision.allowed ? '' : 'is-refused'}>{d.decision.allowed ? 'Allowed' : 'Refused'}</td>
     <td>{d.decision.allowed ? d.capability.detail : d.decision.reason}</td>
    </tr>)}</tbody>
   </table></div>
- </div>;
+ </Card>;
 }
 
 /* ---- Renewals ----------------------------------------------------------------------------- */
@@ -397,58 +372,60 @@ function RenewalsDue({ subjects, onOpen }: { subjects: VettingSubject[]; onOpen:
   .filter(r => r.summary.nextDue)
   .sort((a, b) => a.summary.nextDue!.days - b.summary.nextDue!.days);
  const lapsed = due.filter(r => r.summary.nextDue!.days < 0);
- return <>
-  <div className="c-figures"><Metrics>
+ return <div className="oi-screen">
+  <div className="oi-figures">
    <Figure label="Already lapsed" value={String(lapsed.length)} note="Suspended without anyone here having to notice" flagged={!!(lapsed.length)}/>
    <Figure label="Due within 45 days" value={String(due.filter(r => r.summary.nextDue!.days >= 0 && r.summary.nextDue!.days <= 45).length)} note="Still working today, and told about it"/>
    <Figure label="On the renewal schedule" value={String(due.length)} note="Every check with a renewal cadence"/>
-  </Metrics></div>
-  <SectionTitle title="Sorted by what expires first"/>
-  <div className="panel">
-   {due.map(({ subject, summary }) => <button className="record-row" key={subject.id} onClick={() => onOpen(subject.id)}>
-    <span className={`service-icon ${summary.nextDue!.days < 0 ? 'check-declined' : summary.nextDue!.days <= 45 ? 'check-in-review' : 'check-verified'}`}><CalendarClock size={20}/></span>
-    <span>
-     <strong>{subject.name}</strong>
-     <small>{roleById(subject.roleId)?.name} · {summary.nextDue!.check.name} · renews every {summary.nextDue!.check.renewMonths} months</small>
-     <small className="cap-first">{dueWording(summary.nextDue!.days)} · {formatDate(recordFor(subject, summary.nextDue!.check.id).expiresOn)}</small>
-    </span>
-    <Pill tone={summary.nextDue!.days < 0 ? 'danger' : summary.nextDue!.days <= 45 ? 'amber' : 'teal'}>{summary.nextDue!.days < 0 ? 'Lapsed' : `${summary.nextDue!.days} days`}</Pill>
-   </button>)}
-   {!due.length && <EmptyState title="Nothing on the renewal schedule" body="Every check held for these parties is one that does not expire."/>}
   </div>
-  <div className="privacy-note space-top"><ShieldCheck size={19}/>Re-vetting runs on a schedule, not once at sign-up. A lapsed SANC registration or police clearance removes a nurse from dispatch automatically, without anyone here having to notice. Nothing on this screen runs on a timer — a lapse is arithmetic against the expiry date, recomputed every time the screen is drawn, which is why it cannot be missed.</div>
- </>;
+  <OfficeSection title="Sorted by what expires first">
+   <Card>
+    {due.length ? <div className="oi-rows">{due.map(({ subject, summary }) => <button type="button" className="oi-row" key={subject.id} onClick={() => onOpen(subject.id)}>
+     <span className="oi-row__body">
+      <span className="oi-row__title">{subject.name}</span>
+      <span className="oi-row__meta">{roleById(subject.roleId)?.name} · {summary.nextDue!.check.name} · renews every {summary.nextDue!.check.renewMonths} months</span>
+      <span className="oi-row__meta cap-first">{dueWording(summary.nextDue!.days)} · {formatDate(recordFor(subject, summary.nextDue!.check.id).expiresOn)}</span>
+     </span>
+     <span className="oi-row__aside"><Badge variant={summary.nextDue!.days < 0 ? 'danger' : summary.nextDue!.days <= 45 ? 'warning' : 'success'}>{summary.nextDue!.days < 0 ? 'Lapsed' : `${summary.nextDue!.days} days`}</Badge></span>
+    </button>)}</div>
+    : <CardContent><EmptyState title="Nothing on the renewal schedule" body="Every check held for these parties is one that does not expire."/></CardContent>}
+   </Card>
+   <OfficeNote icon={<ShieldCheck aria-hidden="true"/>}>Re-vetting runs on a schedule, not once at sign-up. A lapsed SANC registration or police clearance removes a nurse from dispatch automatically, without anyone here having to notice. Nothing on this screen runs on a timer — a lapse is arithmetic against the expiry date, recomputed every time the screen is drawn, which is why it cannot be missed.</OfficeNote>
+  </OfficeSection>
+ </div>;
 }
 
 /* ---- The append-only audit ---------------------------------------------------------------- */
 function AuditTrail({ log }: { log: VettingEvent[] }) {
  const [kind, setKind] = useState<'all' | VettingEventKind>('all');
  const shown = log.filter(e => kind === 'all' || e.kind === kind);
- return <>
-  <div className="vetting-bar">
-   <label className="inline-field">Event
-    <select value={kind} onChange={e => setKind(e.target.value as 'all' | VettingEventKind)}>
+ return <div className="oi-screen">
+  <div className="oi-vetting-bar">
+   <Field label="Event" htmlFor="vetting-event-kind" className="oi-inline-field">
+    <Select id="vetting-event-kind" value={kind} onChange={e => setKind(e.target.value as 'all' | VettingEventKind)}>
      <option value="all">Every event</option>
      {(Object.keys(eventLabels) as VettingEventKind[]).map(k => <option key={k} value={k}>{eventLabels[k]}</option>)}
-    </select>
-   </label>
-   <Pill tone="plain">{log.length} entries</Pill>
+    </Select>
+   </Field>
+   <Badge>{log.length} entries</Badge>
   </div>
-  <div className="panel">
-   {shown.map(event => <div className="record-row static" key={event.id}>
-    <span className={`service-icon ${event.kind === 'verified' || event.kind === 'seconded' || event.kind === 'renewed' || event.kind === 'restored' ? 'check-verified' : event.kind === 'declined' || event.kind === 'suspended' || event.kind === 'lapsed' ? 'check-declined' : 'check-in-review'}`}><FileText size={20}/></span>
-    <span>
-     <strong>{eventLabels[event.kind]} · {event.subjectName}</strong>
-     <small>{event.id} · {formatEventTime(event.at)} · {roleById(event.roleId)?.name}{event.checkId ? ` · ${checkById(event.roleId, event.checkId)?.name}` : ''}</small>
-     <small>By {event.actor}{event.evidence ? ` · evidence: ${event.evidence}` : ''}</small>
-     {event.note && <small>“{event.note}”</small>}
-    </span>
-   </div>)}
-   {!shown.length && <EmptyState title="No entries of that kind" body="The log holds every decision taken in this console since it was opened, plus the history it started with."/>}
-  </div>
-  <div className="privacy-note space-top"><ScrollText size={19}/>Entries are only ever added to the top of this list. Nothing in this console edits one, deletes one or reorders them — there is no button for it, because a decision log you can tidy up is not a decision log. What is missing is the part that matters: a server-side record with integrity protection that a person with database access still cannot rewrite.</div>
- </>;
+  <Card>
+   {shown.length ? <ol className="oi-rows">{shown.map(event => <li key={event.id}><div className="oi-row vetting-event">
+    <div className="oi-row__body">
+     <p className="oi-row__title">{eventLabels[event.kind]} · {event.subjectName}</p>
+     <span className="oi-row__meta">{event.id} · {formatEventTime(event.at)} · {roleById(event.roleId)?.name}{event.checkId ? ` · ${checkById(event.roleId, event.checkId)?.name}` : ''}</span>
+     <span className="oi-row__meta">By {event.actor}{event.evidence ? ` · evidence: ${event.evidence}` : ''}</span>
+     {event.note && <span className="oi-row__meta">“{event.note}”</span>}
+    </div>
+    <div className="oi-row__aside"><Badge variant={eventBadge(event.kind)}>{eventLabels[event.kind]}</Badge></div>
+   </div></li>)}</ol>
+   : <CardContent><EmptyState title="No entries of that kind" body="The log holds every decision taken in this console since it was opened, plus the history it started with."/></CardContent>}
+  </Card>
+  <OfficeNote icon={<ScrollText aria-hidden="true"/>}>Entries are only ever added to the top of this list. Nothing in this console edits one, deletes one or reorders them — there is no button for it, because a decision log you can tidy up is not a decision log. What is missing is the part that matters: a server-side record with integrity protection that a person with database access still cannot rewrite.</OfficeNote>
+ </div>;
 }
+const eventBadge = (kind: VettingEventKind): BadgeVariant => kind === 'verified' || kind === 'seconded' || kind === 'renewed' || kind === 'restored' ? 'success'
+ : kind === 'declined' || kind === 'suspended' || kind === 'lapsed' ? 'danger' : 'neutral';
 
 /* ---- The applicant flow -------------------------------------------------------------------
    One flow for thirteen roles, because the checks, the issuing authorities and the renewal cadences
@@ -483,118 +460,109 @@ export function VettingApplication({ roleId, onClose }: { roleId?: string; onClo
     signed in as, so an applicant reading it recognises the record as hers rather than somebody
     else's; any other role falls back to the first party on that role's register. */
  const standingSubject = chosen === 'nurse' ? 'N-205' : seededSubjects.find(s => s.roleId === chosen)?.id ?? 'N-205';
- const back = () => step > 0 ? setStep(step - 1) : onClose();
- const next = () => setStep(step + 1);
  /* Submitting used to end here, on one sentence and a Close button, and coming back to this screen
     started the five steps again from the beginning — so an applicant had no way to find out where
     anything stood. The honesty stays exactly as it was; what follows it is the state of the same
     fictional applicant's checks, which the Control Tower could already see and she could not. */
- if (sent) return <div className="form-stack">
-  <div className="success-icon"><BadgeCheck size={30}/></div>
-  <h3>Nothing was submitted.</h3>
-  <p className="muted">The shape of the real thing: {role?.checks.length} checks, each with an issuing authority, an evidence requirement and a renewal date, decided by a named reviewer and — where the risk is high — a second one.</p>
+ if (sent) return <div className="oi-screen">
+  <div className="oi-stack">
+   <h3 className="oi-section-title oi-with-mark"><BadgeCheck aria-hidden="true"/>Nothing was submitted.</h3>
+   <p className="oi-help">The shape of the real thing: {role?.checks.length} checks, each with an issuing authority, an evidence requirement and a renewal date, decided by a named reviewer and — where the risk is high — a second one.</p>
+  </div>
   <ApplicationStanding subjectId={standingSubject}/>
-  <div className="button-row"><button className="secondary" onClick={() => { setSent(false); setStep(0); }}><ArrowLeft size={16}/>Walk it again</button>
-   <button className="primary" onClick={onClose}>Close<ArrowRight size={16}/></button></div>
+  <div className="oi-actions"><Button variant="secondary" onClick={() => { setSent(false); setStep(0); }} leadingIcon={<ArrowLeft aria-hidden="true"/>}>Walk it again</Button>
+   <Button variant="primary" onClick={onClose} trailingIcon={<ArrowRight aria-hidden="true"/>}>Close</Button></div>
  </div>;
  /* Three facts the contract already holds, and the applicant is the party with the most at stake and
     the least information — so they are the first thing on the screen rather than something found on
     step four. The ring has one arc per check and lights the ones she has marked a document ready
-    for, which is the only thing on this screen she can move; the dial is the high-risk share of
-    the same list. */
+    for, which is the only thing on this screen she can move. */
  const highRisk = role ? role.checks.filter(c => c.risk === 'high').length : 0;
- const deckFigures: DeckFigure[] = role ? [
-  { label: 'Checks to pass', value: String(role.checks.length), flagged: false,
-    chip: `${ready.length} of ${role.checks.length} documents marked ready`,
-    shape: { kind: 'ring', segments: role.checks.map(c => ready.includes(c.id)) } },
-  { label: 'Decided by two reviewers', value: String(highRisk), flagged: false, chip: 'Where one judgement is not enough',
-    shape: { kind: 'gauge', part: highRisk, whole: role.checks.length } },
-  { label: 'Refused until they pass', value: String(role.grants.length), flagged: false,
-    chip: `${role.grants.length === 1 ? 'One thing' : 'Things'} this role cannot do until every check is verified` }
- ] : [];
- return <div className="nt-screen nt-apply c-page">
-  <ClinicalDeck role={role ? `Applying as ${role.name}` : 'Applying'} title="Vetting" eyebrow={role?.name} figures={deckFigures}
-   headline={role
-    ? [`${role.checks.length} checks stand between this form`, { glyph: 'shield' }, 'and a patient’s front door.']
-    : ['Thirteen parties are vetted here,', { glyph: 'shield' }, 'and not one of them is only a nurse.']}
-   note={role ? role.summary : 'Each one is refused something specific until its own checks pass.'}>
-   <NotConnected of="credential-verification"/>
-   <p className="c-deck-aside">Nothing on this screen is submitted, uploaded or sent. Passing is not something you can do for yourself.</p>
-  </ClinicalDeck>
-  <div className="c-sheet form-stack">
+ const back = () => step > 0 ? setStep(step - 1) : onClose();
+ const next = () => setStep(step + 1);
+ const nav = (ready: boolean, last = false) => <div className="oi-actions">
+  <Button variant="secondary" onClick={back} leadingIcon={<ArrowLeft aria-hidden="true"/>}>Back</Button>
+  {/* `primary` is the name the applicant walk in tests/flow-closures.spec.ts finds the way on by; the office
+      sheet takes the legacy look it carries back off it. */}
+  {last ? <Button variant="primary" className="primary" disabled={!ready} onClick={() => setSent(true)} leadingIcon={<Check aria-hidden="true"/>}>Submit application</Button>
+   : <Button variant="primary" className="primary" disabled={!ready} onClick={next} trailingIcon={<ArrowRight aria-hidden="true"/>}>Continue</Button>}
+ </div>;
+ return <div className="oi-screen oi-apply">
+  <OfficeHead eyebrow={role ? `Applying as ${role.name}` : 'Applying'} title="Vetting"
+   lead={role ? `${role.checks.length} checks stand between this form and a patient’s front door. ${role.summary}` : 'Thirteen parties are vetted here, and not one of them is only a nurse. Each one is refused something specific until its own checks pass.'}/>
+  <NotConnected of="credential-verification"/>
+  {role && <div className="oi-figures">
+   <Figure label="Checks to pass" value={String(role.checks.length)} note={`${ready.length} of ${role.checks.length} documents marked ready`} visual={<Ring segments={role.checks.map(c => ready.includes(c.id))}/>}/>
+   <Figure label="Decided by two reviewers" value={String(highRisk)} note="Where one judgement is not enough"/>
+   <Figure label="Refused until they pass" value={String(role.grants.length)} note={`${role.grants.length === 1 ? 'One thing' : 'Things'} this role cannot do until every check is verified`}/>
+  </div>}
+  <p className="oi-help">Nothing on this screen is submitted, uploaded or sent. Passing is not something you can do for yourself.</p>
   {steps.length > 1 && <StepHead step={Math.min(step, steps.length - 1) + 1} total={steps.length} label={stepLabels[now]}/>}
-  <div className="nt-step-card">{now === 'role' ? <>
-   <h3>Who is applying?</h3>
-   <p className="muted">Thirteen parties are vetted, not only nurses. Each one is refused something specific until its checks pass.</p>
-   {roles.map(r => <button className="record-row" key={r.id} aria-pressed={chosen === r.id} onClick={() => { setChosen(r.id); setCredential(''); setTouched(false); setScope([]); setReady([]); setStep(1); }}>
-    <span className="service-icon"><Users size={20}/></span>
-    <span><strong>{r.name}</strong><small>{r.summary}</small><small>{r.checks.length} checks · {r.grants.length} thing{r.grants.length === 1 ? '' : 's'} it is refused until they pass</small></span>
-    <ArrowRight size={17}/>
-   </button>)}
-   <button className="secondary full" onClick={onClose}>Close</button>
+  <Card padding="md" className="oi-card-body">{now === 'role' ? <>
+   <h3 className="oi-section-title">Who is applying?</h3>
+   <p className="oi-help">Thirteen parties are vetted, not only nurses. Each one is refused something specific until its checks pass.</p>
+   <div className="oi-rows oi-rows--flush">{roles.map(r => <button type="button" className="oi-row" key={r.id} aria-pressed={chosen === r.id} onClick={() => { setChosen(r.id); setCredential(''); setTouched(false); setScope([]); setReady([]); setStep(1); }}>
+    <span className="oi-row__body"><span className="oi-row__title">{r.name}</span><span className="oi-row__meta">{r.summary}</span><span className="oi-row__meta">{r.checks.length} checks · {r.grants.length} thing{r.grants.length === 1 ? '' : 's'} it is refused until they pass</span></span>
+    <span className="oi-row__aside"><ArrowRight aria-hidden="true" className="oi-row__go"/></span>
+   </button>)}</div>
+   <Button variant="secondary" className="oi-full" onClick={onClose}>Close</Button>
   </> : now === 'credential' && role && anchor && authority ? <>
-   <h3>The credential this role hangs on.</h3>
-   <p className="muted">{anchor.detail}. It is checked here for shape only — the format the issuing body actually uses — and never sent anywhere.</p>
-   {authority.pattern ? <>
-    <label>{anchor.name} number
-     <input value={credential} onChange={e => { setCredential(e.target.value.toUpperCase()); setTouched(true); }} onBlur={() => setTouched(true)} placeholder={authority.format} aria-describedby="credential-help" aria-invalid={touched && !result.ok}/>
-    </label>
-    <p className="helper" id="credential-help" role="status">{touched && !result.ok ? result.reason : `${authority.name} · ${authority.format}. For example ${authority.example}.`}</p>
-   </> : <EmptyNote>{authority.hint} There is nothing for you to type at this step.</EmptyNote>}
-   <div className="privacy-note"><ShieldCheck size={19}/>{role.grants[0].refusal}</div>
-   <div className="button-row"><button className="secondary" onClick={back}><ArrowLeft size={16}/>Back</button>
-    <button className="primary" disabled={!!authority.pattern && !result.ok} onClick={next}>Continue<ArrowRight size={16}/></button></div>
+   <h3 className="oi-section-title">The credential this role hangs on.</h3>
+   <p className="oi-help">{anchor.detail}. It is checked here for shape only — the format the issuing body actually uses — and never sent anywhere.</p>
+   {authority.pattern
+    ? <Field label={`${anchor.name} number`} htmlFor="credential" hint={`${authority.name} · ${authority.format}. For example ${authority.example}.`} error={touched && !result.ok ? result.reason : undefined}>
+       <Input id="credential" value={credential} onChange={e => { setCredential(e.target.value.toUpperCase()); setTouched(true); }} onBlur={() => setTouched(true)} placeholder={authority.format}/>
+      </Field>
+    : <OfficeNote icon={<ClipboardList aria-hidden="true"/>}>{authority.hint} There is nothing for you to type at this step.</OfficeNote>}
+   <OfficeNote icon={<ShieldCheck aria-hidden="true"/>}>{role.grants[0].refusal}</OfficeNote>
+   {nav(!authority.pattern || result.ok)}
   </> : now === 'scope' && role ? <>
-   <h3>What are you applying to do?</h3>
-   <fieldset className="chip-set"><legend>{scopeFor(role.id)!.label} you are applying for</legend>{scopeFor(role.id)!.options.map(s =>
-    <label key={s} className={scope.includes(s) ? 'chip selected' : 'chip'}><input type="checkbox" checked={scope.includes(s)} onChange={e => setScope(e.target.checked ? [...scope, s] : scope.filter(x => x !== s))}/>{s}</label>)}</fieldset>
-   <div className="privacy-note"><ShieldCheck size={19}/>{scopeFor(role.id)!.note}</div>
-   <div className="button-row"><button className="secondary" onClick={back}><ArrowLeft size={16}/>Back</button>
-    <button className="primary" disabled={!scope.length} onClick={next}>Continue<ArrowRight size={16}/></button></div>
+   <h3 className="oi-section-title">What are you applying to do?</h3>
+   <fieldset className="oi-choices"><legend>{scopeFor(role.id)!.label} you are applying for</legend>{scopeFor(role.id)!.options.map(s =>
+    <Checkbox key={s} label={s} checked={scope.includes(s)} onChange={e => setScope(e.target.checked ? [...scope, s] : scope.filter(x => x !== s))}/>)}</fieldset>
+   <OfficeNote icon={<ShieldCheck aria-hidden="true"/>}>{scopeFor(role.id)!.note}</OfficeNote>
+   {nav(scope.length > 0)}
   </> : now === 'evidence' && role ? <>
-   <h3>What we will ask for.</h3>
+   <h3 className="oi-section-title">What we will ask for.</h3>
    <Progress passed={ready.length} total={role.checks.length}/>
-   <p className="helper" role="status">{ready.length} of {role.checks.length} documents marked ready. You cannot start until every check passes, and passing is not something you can do for yourself.</p>
-   {role.checks.map(check => {
+   <p className="oi-help" role="status">{ready.length} of {role.checks.length} documents marked ready. You cannot start until every check passes, and passing is not something you can do for yourself.</p>
+   <div className="oi-rows oi-rows--flush">{role.checks.map(check => {
     const issuer = authorityById(check.authority)!;
-    return <div className="record-row static" key={check.id}>
-     <span className={`service-icon ${ready.includes(check.id) ? 'check-verified' : 'check-outstanding'}`}><ClipboardList size={20}/></span>
-     <span>
-      <strong>{check.name}{check.risk === 'high' && <span className="required-mark">Two reviewers</span>}</strong>
-      <small>{check.detail}</small>
-      <small>Bring: {check.evidence} · verified with {issuer.name} · {check.renewMonths ? `renewed every ${check.renewMonths} months` : 'checked once'}</small>
-     </span>
-     <label className="checkbox"><input type="checkbox" checked={ready.includes(check.id)} onChange={e => setReady(e.target.checked ? [...ready, check.id] : ready.filter(x => x !== check.id))} aria-label={`I have ${check.evidence} to hand`}/><span/></label>
+    return <div className="oi-row" key={check.id}>
+     <div className="oi-row__body">
+      <p className="oi-row__title">{check.name}{check.risk === 'high' && <> <Badge size="sm">Two reviewers</Badge></>}</p>
+      <span className="oi-row__meta">{check.detail}</span>
+      <span className="oi-row__meta">Bring: {check.evidence} · verified with {issuer.name} · {check.renewMonths ? `renewed every ${check.renewMonths} months` : 'checked once'}</span>
+     </div>
+     <div className="oi-row__aside"><Checkbox checked={ready.includes(check.id)} onChange={e => setReady(e.target.checked ? [...ready, check.id] : ready.filter(x => x !== check.id))} aria-label={`I have ${check.evidence} to hand`}/></div>
     </div>;
-   })}
-   <div className="privacy-note"><CircleAlert size={19}/>Nothing is uploaded from this screen. A certified copy of your identity document is not something to leave sitting in a browser.</div>
-   <div className="button-row"><button className="secondary" onClick={back}><ArrowLeft size={16}/>Back</button>
-    <button className="primary" onClick={next}>Continue<ArrowRight size={16}/></button></div>
+   })}</div>
+   <OfficeNote icon={<CircleAlert aria-hidden="true"/>}>Nothing is uploaded from this screen. A certified copy of your identity document is not something to leave sitting in a browser.</OfficeNote>
+   {nav(true)}
   </> : now === 'declarations' && role ? <>
-   <h3>Three things to declare.</h3>
-   <p className="muted">A declaration is not a check. Each of these is verified independently, and a declaration that turns out to be untrue ends the application on its own.</p>
-   {declarations.map(d => <label className="checkbox" key={d}><input type="checkbox" checked={agreed.includes(d)} onChange={e => setAgreed(e.target.checked ? [...agreed, d] : agreed.filter(x => x !== d))}/><span>{d}</span></label>)}
-   <div className="button-row"><button className="secondary" onClick={back}><ArrowLeft size={16}/>Back</button>
-    <button className="primary" disabled={agreed.length < declarations.length} onClick={next}>Continue<ArrowRight size={16}/></button></div>
+   <h3 className="oi-section-title">Three things to declare.</h3>
+   <p className="oi-help">A declaration is not a check. Each of these is verified independently, and a declaration that turns out to be untrue ends the application on its own.</p>
+   <div className="oi-choices">{declarations.map(d => <Checkbox key={d} label={d} checked={agreed.includes(d)} onChange={e => setAgreed(e.target.checked ? [...agreed, d] : agreed.filter(x => x !== d))}/>)}</div>
+   {nav(agreed.length >= declarations.length)}
   </> : role ? <>
-   <h3>Before you send it.</h3>
-   <div className="review-line"><span>Applying as</span><strong>{role.name}</strong></div>
-   <div className="review-line"><span>{anchor?.name}</span><strong>{credential || 'Held by MyThuso'}</strong></div>
-   {scopeFor(role.id) && <div className="review-line"><span>Scope</span><strong>{scope.join(' · ')}</strong></div>}
-   <div className="review-line"><span>Checks to pass</span><strong>{role.checks.length}</strong></div>
-   <SectionTitle title="What you are refused until they do"/>
-   {role.grants.map(g => <div className="record-row static" key={g.capability}>
-    <span className="service-icon check-outstanding"><ShieldX size={20}/></span>
-    <span><strong>{capabilityById(g.capability)?.name}</strong><small>{g.refusal}</small></span>
-   </div>)}
-   <label className="checkbox"><input type="checkbox" checked={attested} onChange={e => setAttested(e.target.checked)}/><span>I confirm the information above is true and I will report any change to my registration, clearance or health status.</span></label>
-   <div className="privacy-note"><ShieldCheck size={19}/>{role.id === 'nurse' || role.id === 'locum'
+   <h3 className="oi-section-title">Before you send it.</h3>
+   <OfficeFacts facts={[
+    ['Applying as', role.name],
+    [anchor?.name, credential || 'Held by MyThuso'],
+    scopeFor(role.id) ? ['Scope', scope.join(' · ')] : null,
+    ['Checks to pass', role.checks.length]
+   ]}/>
+   <h4 className="oi-subtitle">What you are refused until they do</h4>
+   <div className="oi-rows oi-rows--flush">{role.grants.map(g => <div className="oi-row" key={g.capability}>
+    <div className="oi-row__body"><p className="oi-row__title">{capabilityById(g.capability)?.name}</p><span className="oi-row__meta">{g.refusal}</span></div>
+    <div className="oi-row__aside"><Badge variant="danger">Refused</Badge></div>
+   </div>)}</div>
+   <Checkbox checked={attested} onChange={e => setAttested(e.target.checked)} label="I confirm the information above is true and I will report any change to my registration, clearance or health status."/>
+   <OfficeNote icon={<ShieldCheck aria-hidden="true"/>}>{role.id === 'nurse' || role.id === 'locum'
     ? 'Re-vetting runs on a schedule, not once at sign-up. A lapsed SANC registration or police clearance removes a nurse from dispatch automatically, without anyone here having to notice.'
-    : 'Re-vetting runs on a schedule, not once at sign-up. A lapsed registration, licence or clearance withdraws this role’s permissions automatically, without anyone here having to notice.'}</div>
-   <div className="button-row"><button className="secondary" onClick={back}><ArrowLeft size={16}/>Back</button>
-    <button className="primary" disabled={!attested} onClick={() => setSent(true)}><Check size={16}/>Submit application</button></div>
-  </> : null}</div>
-  </div>
+    : 'Re-vetting runs on a schedule, not once at sign-up. A lapsed registration, licence or clearance withdraws this role’s permissions automatically, without anyone here having to notice.'}</OfficeNote>
+   {nav(attested, true)}
+  </> : null}</Card>
  </div>;
 }
 
@@ -615,33 +583,34 @@ export function ApplicationStanding({ subjectId = 'N-205', onClose }: { subjectI
  const role = roleById(subject.roleId)!;
  const summary = summarise(subject);
  const progress = gateProgress(subject);
- return <>
-  <SectionTitle title="Where this application stands"/>
+ return <OfficeSection title="Where this application stands">
   <NotConnected of="credential-verification"/>
-  <div className="panel">
-   <div className="review-line"><span>Applicant</span><strong>{subject.name} · {subject.reference}</strong></div>
-   <div className="review-line"><span>State</span><strong className={summary.cleared ? '' : 'flagged'}>{subjectStatusLabels[summary.status]}</strong></div>
-   <div className="review-line"><span>Checks passing</span><strong>{summary.passed} of {summary.total}</strong></div>
-   <div className="review-line gate-progress" data-gate={progress.at.id}><span>Onboarding</span><strong className={progress.activated ? '' : 'flagged'}>{progress.status}</strong></div>
-   {progress.sentence && <p className="helper flagged gate-rule">{progress.sentence}</p>}
-   {summary.nextDue && <div className="review-line"><span>Next renewal</span><strong>{summary.nextDue.check.name} · {dueWording(summary.nextDue.days)}</strong></div>}
-  </div>
+  <Card padding="md" className="oi-card-body">
+   <dl className="oi-facts">
+    <div><dt>Applicant</dt><dd>{subject.name} · {subject.reference}</dd></div>
+    <div><dt>State</dt><dd className={summary.cleared ? '' : 'is-refused'}>{subjectStatusLabels[summary.status]}</dd></div>
+    <div><dt>Checks passing</dt><dd>{summary.passed} of {summary.total}</dd></div>
+    <div className="gate-progress" data-gate={progress.at.id}><dt>Onboarding</dt><dd className={progress.activated ? '' : 'is-refused'}>{progress.status}</dd></div>
+    {summary.nextDue && <div><dt>Next renewal</dt><dd>{summary.nextDue.check.name} · {dueWording(summary.nextDue.days)}</dd></div>}
+   </dl>
+   {progress.sentence && <p className="oi-refusal gate-rule">{progress.sentence}</p>}
+  </Card>
 
   {/* Every check, in the order the role lists them, with the three things an applicant is owed
       about each: where it stands, who issues it, and who may move it. */}
-  <div className="panel">{summary.states.map(({ check, state }) => <div className="record-row static" key={check.id}>
-   <span className={`service-icon ${stateTone(state)}`}><ShieldCheck size={20}/></span>
-   <span><strong>{check.name}</strong>
-    <small>{checkStateLabels[state]} · issued by {authorityById(check.authority)?.name ?? check.authority}</small>
-    <small>{check.evidence}</small>
-    {check.risk === 'high' && <small>Decided by two reviewers, not one. A high-risk check is the kind where one person’s judgement is not enough.</small>}
-   </span>
-  </div>)}</div>
+  <Card><div className="oi-rows">{summary.states.map(({ check, state }) => <div className="oi-row" key={check.id}>
+   <div className="oi-row__body"><p className="oi-row__title">{check.name}</p>
+    <span className="oi-row__meta">Issued by {authorityById(check.authority)?.name ?? check.authority}</span>
+    <span className="oi-row__meta">{check.evidence}</span>
+    {check.risk === 'high' && <span className="oi-row__meta">Decided by two reviewers, not one. A high-risk check is the kind where one person’s judgement is not enough.</span>}
+   </div>
+   <div className="oi-row__aside"><Badge variant={stateBadge(state)}>{checkStateLabels[state]}</Badge></div>
+  </div>)}</div></Card>
 
   {/* And the refusal, which is the reason this screen is read-only. An applicant who could move a
       check is an applicant vetting themselves. */}
-  <div className="privacy-note alert"><ShieldX size={19}/>Nothing on this screen can be changed from here, and no button on it asks a reviewer to hurry. A check moves when a named reviewer decides it — and where the risk is high, when a second one agrees — which is the whole of what makes it worth anything to the patient whose door you will knock on.</div>
-  <div className="privacy-note"><ShieldCheck size={19}/>{role.grants[0].refusal}</div>
-  {onClose && <button className="secondary full" onClick={onClose}>Close<ArrowRight size={16}/></button>}
- </>;
+  <OfficeNote refusal icon={<ShieldX aria-hidden="true"/>}>Nothing on this screen can be changed from here, and no button on it asks a reviewer to hurry. A check moves when a named reviewer decides it — and where the risk is high, when a second one agrees — which is the whole of what makes it worth anything to the patient whose door you will knock on.</OfficeNote>
+  <OfficeNote icon={<ShieldCheck aria-hidden="true"/>}>{role.grants[0].refusal}</OfficeNote>
+  {onClose && <Button variant="secondary" className="oi-full" onClick={onClose} trailingIcon={<ArrowRight aria-hidden="true"/>}>Close</Button>}
+ </OfficeSection>;
 }

@@ -4,6 +4,7 @@ import { startVisit, visitSigned } from '../lib/field-safety';
 import { serviceIdFor } from './Workspaces';
 import { Activity, ArrowLeft, ArrowRight, BadgeCheck, Ban, Building2, CalendarClock, Check, CircleAlert, ClipboardList, CloudOff, FlaskConical, Inbox, KeyRound, Pill as PillIcon, Radio, Repeat, Sigma, Stethoscope, ShieldCheck, ShieldX, Undo2, UserCheck, Video, X } from 'lucide-react';
 import { SectionTitle } from '../components/UI';
+import { Button } from '../ui';
 import { NotConnected } from '../components/NotConnected';
 import { ClinicalChart } from '../components/Chart';
 import { CodeInput } from '../components/Steps';
@@ -169,7 +170,7 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
    <p className="helper" id="otp-help" role="status">{otpError || 'The code changes for every visit and expires when the visit ends.'}</p>
    <label className="checkbox"><input type="checkbox" checked={idSeen} onChange={e => setIdSeen(e.target.checked)}/><span>I have seen the patient’s identity document or a household member has confirmed identity.</span></label>
    <div className="privacy-note"><KeyRound size={19}/>If the code fails, the visit does not start. The nurse contacts the Control Tower instead of proceeding.</div>
-   <div className="button-row"><button className="secondary" onClick={onClose}><ArrowLeft size={16}/>Leave</button><button className="primary" disabled={otp.length < 6 || !idSeen} onClick={() => {
+   <div className="button-row"><Button variant="secondary" onClick={onClose}><ArrowLeft size={16}/>Leave</Button><button className="primary" disabled={otp.length < 6 || !idSeen} onClick={() => {
      if (otp !== demoVisitCode) { setOtpError('That code doesn’t match this visit. Call the Control Tower before continuing.'); return; }
      holdPart('identity', `Code confirmed at the door for ${patient.split(' ')[0]}`,
       [['Visit code', 'Six digits, matched'], ['Identity', 'Document seen, or a household member confirmed it']]);
@@ -187,7 +188,7 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
    <label className="checkbox"><input type="checkbox" checked={consent.assessment} onChange={e => setConsent({ ...consent, assessment: e.target.checked })}/><span>“May I check your blood pressure, pulse, temperature and other basic readings today?”</span></label>
    <label className="checkbox"><input type="checkbox" checked={consent.record} onChange={e => setConsent({ ...consent, record: e.target.checked })}/><span>“May I add today’s readings to your Health Passport, where a doctor can review them?”</span></label>
    <div className="privacy-note"><ShieldCheck size={19}/>Refusal is recorded as a valid outcome, not a failed visit. A guardian consents for a child or where authority is verified.</div>
-   <div className="button-row"><button className="secondary" onClick={() => setStage(0)}><ArrowLeft size={16}/>Back</button><button className="primary" disabled={!consent.assessment} onClick={() => {
+   <div className="button-row"><Button variant="secondary" onClick={() => setStage(0)}><ArrowLeft size={16}/>Back</Button><button className="primary" disabled={!consent.assessment} onClick={() => {
     holdPart('consent', consent.record ? 'Agreed to the assessment and to it reaching a doctor' : 'Agreed to the assessment; declined the Health Passport',
      [['Today’s readings', 'Agreed'], ['Into her Health Passport', consent.record ? 'Agreed' : 'Declined — recorded as a valid outcome']]);
     setStage(2);
@@ -238,7 +239,7 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
     onCapture={c => { setValues(current => ({ ...current, [c.observationId]: c.value })); setSources(current => ({ ...current, [c.observationId]: { provenance: 'device', serial: c.serial, calibration: c.calibration, context: c.context } })); }}/>}
    <div className={abnormal.length ? 'privacy-note alert' : 'privacy-note'}><CircleAlert size={19}/>{abnormal.length ? `${abnormal.length} reading${abnormal.length > 1 ? 's are' : ' is'} outside the indicative range. Flagging is a prompt for your judgement — it is not a validated early-warning score and it does not triage the patient.` : 'Readings are compared against indicative adult reference ranges only. Clinical judgement stays with you.'}</div>
    <div className="privacy-note"><CircleAlert size={19}/>{rules.provenanceIsRequired} A field you clear loses its origin along with its number, because there is nothing left to attribute.</div>
-   <div className="button-row"><button className="secondary" onClick={() => setStage(1)}><ArrowLeft size={16}/>Back</button><button className="primary" disabled={!captured.length || invalid} onClick={() => {
+   <div className="button-row"><Button variant="secondary" onClick={() => setStage(1)}><ArrowLeft size={16}/>Back</Button><button className="primary" disabled={!captured.length || invalid} onClick={() => {
     holdPart('observations', `${captured.length} ${captured.length === 1 ? 'reading' : 'readings'}, each with where it came from`,
      captured.map(o => [o.label, `${o.value} ${o.unit}`] as [string, string]), asCaptures());
     setStage(3);
@@ -257,7 +258,7 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
        read what it commits somebody to. */}
    {escalations.filter(([step]) => step === escalation).map(([step, meaning]) => <p className="cr-meaning" key={step}><ArrowRight size={15}/><span>{meaning}</span></p>)}
    {escalation.includes('Emergency') && <div className="privacy-note alert"><CircleAlert size={19}/>Choosing this opens the emergency pathway immediately and alerts the Control Tower before the form is finished. It never waits for the rest of the form.</div>}
-   <div className="button-row"><button className="secondary" onClick={() => setStage(2)}><ArrowLeft size={16}/>Back</button><button className="primary" onClick={() => {
+   <div className="button-row"><Button variant="secondary" onClick={() => setStage(2)}><ArrowLeft size={16}/>Back</Button><button className="primary" onClick={() => {
     holdPart('findings', symptoms.length ? `${symptoms.join(', ')} · ${escalation.toLowerCase()}` : escalation,
      [['Symptoms', symptoms.length ? symptoms.join(', ') : 'None recorded'], ['Next step', escalation],
       ['Visit notes', notes.trim() ? `${notes.trim().split(/\s+/).length} words` : 'None written']]);
@@ -283,9 +284,9 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
      setQueueOpen(true);
      document.querySelector('.vq-strip')?.scrollIntoView({ block: 'start' });
     }}><Inbox size={17}/>See what is waiting, and send it when you have signal</button>}
-    <button className="secondary full" onClick={() => setConsultation(true)}><ClipboardList size={17}/>Open the consultation record this produced</button>
+    <Button variant="secondary" className="full" onClick={() => setConsultation(true)}><ClipboardList size={17}/>Open the consultation record this produced</Button>
     <p className="helper">The readings, the symptoms and the next step are carried across as they were captured. The structure is the same one a doctor writes into, so nobody re-types a visit into a second shape.</p>
-    <button className="primary full" onClick={onClose}>Back to the workspace<ArrowRight size={17}/></button></> : <>
+    <Button variant="primary" className="full" onClick={onClose}>Back to the workspace<ArrowRight size={17}/></Button></> : <>
     <div className="cr-stage-head"><div><h3>{patient} · {reference}</h3>
      <p className="muted">Everything this visit produced, in the order a doctor reads it.</p></div>
      <p className="cr-tally"><strong>{captured.length}</strong><small>{captured.length === 1 ? 'reading' : 'readings'} carried{abnormal.length ? ` · ${abnormal.length} flagged` : ''}</small></p></div>
@@ -306,7 +307,7 @@ export function VisitAssessment({ reference = 'TH-2048', patient = 'Lerato Molef
     {/* Sealing is the contract's own word for the state she leaves it in: "the nurse has done
         everything they can do". Signing is what does it — one action, not a second button asking
         her to confirm that she has finished the thing she just finished. */}
-    <div className="button-row"><button className="secondary" onClick={() => setStage(3)}><ArrowLeft size={16}/>Back</button><button className="primary" onClick={() => {
+    <div className="button-row"><Button variant="secondary" onClick={() => setStage(3)}><ArrowLeft size={16}/>Back</Button><button className="primary" onClick={() => {
      holdPart('sign-off', `Signed by ${signingNurse.name}`,
       [['Recorded by', `${signingNurse.name} · ${signingNurse.reference}`], ['Readings carried', `${captured.length}`], ['Next step', escalation]]);
      seal(reference);
@@ -446,8 +447,8 @@ export function DoctorReview({ reference = 'TH-2048', open, onClose }: { referen
       {/* When it may be issued at all — the contract's sentence, not a paraphrase of it. */}
       {doc && <p><strong>When it may be issued: </strong>{doc.condition}</p>}</div>
      {next.action && (next.modal
-      ? open && <button className="primary" onClick={() => open(next.modal!)}>{next.action}<ArrowRight size={16}/></button>
-      : <button className="primary" onClick={() => next.returns ? setReturned(true) : setReferral(true)}>{next.action}<ArrowRight size={16}/></button>)}
+      ? open && <Button variant="primary" onClick={() => open(next.modal!)}>{next.action}<ArrowRight size={16}/></Button>
+      : <Button variant="primary" onClick={() => next.returns ? setReturned(true) : setReferral(true)}>{next.action}<ArrowRight size={16}/></Button>)}
     </div>
     {/* And the limit on it, which is the sharpest sentence in the module and is rendered word for
         word: a limit a screen paraphrases is a limit that drifts. */}
@@ -460,9 +461,9 @@ export function DoctorReview({ reference = 'TH-2048', open, onClose }: { referen
      <span><strong>{d.name}</strong><small>{d.condition}</small><small>{d.limit}</small></span>
     </div>)}
    </div>
-   <button className="secondary full" onClick={() => setConsultation(true)}><ClipboardList size={17}/>Write this up as a consultation</button>
-   <button className="secondary full" onClick={onClose}>Back to the queue<ArrowRight size={16}/></button></>
-   : <div className="button-row"><button className="secondary" onClick={onClose}>Close</button><button className="primary" disabled={!maySign.allowed || !decision || rationale.trim().length < 10} onClick={() => setDone(true)}><Check size={16}/>Sign decision</button></div>}
+   <Button variant="secondary" className="full" onClick={() => setConsultation(true)}><ClipboardList size={17}/>Write this up as a consultation</Button>
+   <Button variant="secondary" className="full" onClick={onClose}>Back to the queue<ArrowRight size={16}/></Button></>
+   : <div className="button-row"><Button variant="secondary" onClick={onClose}>Close</Button><Button variant="primary" disabled={!maySign.allowed || !decision || rationale.trim().length < 10} onClick={() => setDone(true)}><Check size={16}/>Sign decision</Button></div>}
  </div>;
 }
 
@@ -493,8 +494,8 @@ export function ReferralLetter({ reference, patient = 'Lerato Molefe', doctor, r
   <p className="muted">It is attributed to {doctor} · {registration}, it names the readings behind it, and it asks for {urgency.toLowerCase()}. It has not left this screen.</p>
   <div className="privacy-note"><ShieldCheck size={19}/>Nothing was transmitted. There is no facility directory to address it to, no secure channel to carry it and no consent recorded for sending clinical information to a third party — and a referral needs all three before it is anything but a document.</div>
   <div className="privacy-note"><UserCheck size={19}/>What the receiving clinician would get is this letter. The patient’s Health Passport does not travel with it: a referral is not a reason to hand over a record.</div>
-  {onBack && <button className="secondary full" onClick={onBack}><ArrowLeft size={16}/>Back to the decision</button>}
-  <button className="primary full" onClick={onClose}>Close<ArrowRight size={16}/></button>
+  {onBack && <Button variant="secondary" className="full" onClick={onBack}><ArrowLeft size={16}/>Back to the decision</Button>}
+  <Button variant="primary" className="full" onClick={onClose}>Close<ArrowRight size={16}/></Button>
  </div>;
  return <div className="form-stack">
   <h3>Referral · {reference} · {patient}</h3>
@@ -509,8 +510,8 @@ export function ReferralLetter({ reference, patient = 'Lerato Molefe', doctor, r
    <div className="review-line"><span>Referred by</span><strong>{doctor} · {registration}</strong></div>
   </div>
   <div className="privacy-note"><CircleAlert size={19}/>A referral does not discharge the patient from MyThuso and it does not close the visit. Somebody here still has to find out whether she went.</div>
-  <div className="button-row"><button className="secondary" onClick={onBack ?? onClose}><ArrowLeft size={16}/>Back</button>
-   <button className="primary" disabled={!unit || note.trim().length < 10} onClick={() => setWritten(true)}><Check size={16}/>Write the referral</button></div>
+  <div className="button-row"><Button variant="secondary" onClick={onBack ?? onClose}><ArrowLeft size={16}/>Back</Button>
+   <Button variant="primary" disabled={!unit || note.trim().length < 10} onClick={() => setWritten(true)}><Check size={16}/>Write the referral</Button></div>
  </div>;
 }
 
@@ -713,8 +714,8 @@ function ReturnToNurse({ reference, doctor, registration, onBack, onClose }:
   <div className="review-line"><span>What you asked</span><strong>{question}</strong></div>
   <div className="privacy-note"><ShieldCheck size={19}/>Nothing was sent. Messaging is not connected, so the nurse has not been told, and a question nobody can deliver is a question the queue is still holding.</div>
   <div className="privacy-note"><UserCheck size={19}/>A returned case is not a rejected one. Nothing about it is recorded against the nurse, and it is not a finding on her record — she was the only person in the room, and asking her is what a review is for.</div>
-  {onBack && <button className="secondary full" onClick={onBack}><ArrowLeft size={16}/>Back to the decision</button>}
-  <button className="primary full" onClick={onClose}>Close<ArrowRight size={16}/></button>
+  {onBack && <Button variant="secondary" className="full" onClick={onBack}><ArrowLeft size={16}/>Back to the decision</Button>}
+  <Button variant="primary" className="full" onClick={onClose}>Close<ArrowRight size={16}/></Button>
  </div>;
  return <div className="form-stack">
   <h3>Return {reference} to {signingNurse.name}</h3>
@@ -724,7 +725,7 @@ function ReturnToNurse({ reference, doctor, registration, onBack, onClose }:
   </select></label>
   <label>Anything else she should know<textarea value={note} onChange={e => setNote(e.target.value.slice(0, 600))} placeholder="Context for the question, not an instruction…"/></label>
   <div className="privacy-note"><CircleAlert size={19}/>A returned case stays in the queue and keeps its waiting time. It is not sent to the back of the line, and nothing here marks it as the nurse’s fault.</div>
-  <div className="button-row"><button className="secondary" onClick={onBack}><ArrowLeft size={16}/>Back</button>
-   <button className="primary" disabled={!question} onClick={() => setSent(true)}><Undo2 size={16}/>Return it with this question</button></div>
+  <div className="button-row"><Button variant="secondary" onClick={onBack}><ArrowLeft size={16}/>Back</Button>
+   <Button variant="primary" disabled={!question} onClick={() => setSent(true)}><Undo2 size={16}/>Return it with this question</Button></div>
  </div>;
 }

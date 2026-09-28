@@ -1,6 +1,8 @@
 import dispatchDemo from "../../../../../packages/catalog/dispatch-demo.json" with { type: "json" };
 import { useState } from "react";
-import { Region } from "./Parts";
+import { Region, toneOf } from "./Parts";
+import { Alert as AlertBox } from "../../ui/Alert";
+import { Badge } from "../../ui/Badge";
 
 /* ── DEMO DATA — for show and tell only ──────────────────────────────────────────────────────────
  * This entire component reads from packages/catalog/dispatch-demo.json, which holds invented
@@ -153,29 +155,22 @@ export function DispatchDemo() {
 
   const [activeMode, setActiveMode] = useState(mode.current);
 
-  const statusChipClass = (status: string) => {
-    if (status === "missed-check-in") return "pt-status is-degraded";
-    if (status === "off-duty") return "pt-status is-dark";
-    return "pt-status is-connected";
-  };
-
-  const alertClass = (severity: string) => {
-    if (severity === "escalation") return "pt-demo-alert is-escalation";
-    return "pt-demo-alert is-warning";
-  };
+  /* A roster status as the portal's own status word's badge: missed a check-in reads as degraded, off duty
+     as dark, anything else as connected. The words on the badge are the roster's own. */
+  const statusOf = (status: string) =>
+    status === "missed-check-in" ? "degraded" : status === "off-duty" ? "dark" : "connected";
 
   return (
     <>
       {/* ── DEMO DATA — for show and tell only ── */}
-      <div className="pt-demo-banner" role="note">
-        <strong>DEMO DATA — for show and tell only.</strong>
-        <span>
+      <AlertBox variant="warning" role="note" className="pt-demo-banner" title="DEMO DATA — for show and tell only.">
+        <p>
           The map, roster, alerts and risk trend below read invented figures
           from a demonstration file. No real crime feed, load-shedding API or
           roster is connected yet (gate G22 is open). Replace with the
           SAPS/Eskom feeds when they exist.
-        </span>
-      </div>
+        </p>
+      </AlertBox>
 
       <Region title="Schematic precinct map (demo)">
         <SchematicMap precincts={precincts} />
@@ -192,7 +187,7 @@ export function DispatchDemo() {
               <span className="pt-demo-roster-zone">
                 {precincts.find((p) => p.id === r.zone)?.label ?? r.zone}
               </span>
-              <span className={statusChipClass(r.status)}>{r.status}</span>
+              <Badge variant={toneOf(statusOf(r.status))} size="sm" dot className={`pt-status is-${statusOf(r.status)}`}>{r.status}</Badge>
             </div>
           ))}
         </div>
@@ -201,11 +196,10 @@ export function DispatchDemo() {
       <Region title="Alerts (demo)" count={alerts.length}>
         <div className="pt-demo-alerts">
           {alerts.map((a) => (
-            <div key={a.id} className={alertClass(a.severity)} role="alert">
-              <strong>{a.title}</strong>
-              <span>{a.detail}</span>
-              <span className="pt-demo-alert-time">{a.time}</span>
-            </div>
+            <AlertBox key={a.id} variant={a.severity === "escalation" ? "danger" : "warning"} role="alert" className="pt-demo-alert" title={a.title}>
+              <p>{a.detail}</p>
+              <p className="pt-demo-alert-time">{a.time}</p>
+            </AlertBox>
           ))}
         </div>
       </Region>

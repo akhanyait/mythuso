@@ -3,18 +3,21 @@ import { ClipboardList, Clock3, FileText, MapPin, Radio, Ruler, ShieldCheck, Use
 import { Metric } from '../surface/Surface';
 import { useDecor } from '../lib/motion';
 import { money } from '../lib/catalog';
+import { Card } from '../ui';
 import './clinical-deck.css';
 
 /* The instrument deck a nurse and a doctor open the workspace on.
  *
- * SINCE 28 SEPTEMBER 2026 IT IS A ROW OF TINTED CARDS, NOT A DARK BAND. The founder's brief that day
- * asked for the clinical day in the language the Control Tower already speaks — soft tinted cards, one
- * large light numeral each, one dark card for emphasis. The history below explains the composition
- * the deck grew out of and is kept because every rule it arrived at still holds: what a shape may be,
- * what moves, and which figure leads. Only the grounds changed — the canvas and the glass are gone, the
- * lead is the one dark card, and the rest stand on the tokens' mint, lavender and peach, each with its
- * ink set in the same rule (clinical-deck.css lists every measured pair). Where a paragraph below says
- * "dark glass" or "pale panel", read "the dark card" and "the mint card".
+ * SINCE THE IDENTITY OF 28 SEPTEMBER 2026 (the Lovable handoff, wave 4c) IT IS THE HANDOFF'S COMMAND VIEW.
+ * A hero that says what the screen is for, and under it one row of white metric cards on the shared
+ * Card: compact corners, one shadow, the figure in the display face. The pastel grounds that stood here
+ * for one afternoon — a dark lead card, lavender, peach and mint — are retired, because the handoff
+ * reserves colour for action, selection and progress and a tint per card had stopped meaning any of
+ * them. What still marks the lead is its place and an aqua rule along its top edge, and its lit marks
+ * are the only aqua on the row; a flagged figure says so in its chip, in words, in the warning ink.
+ * The history below explains the composition the deck grew out of and is kept because every rule it
+ * arrived at still holds: what a shape may be, what moves, and which figure leads. Where a paragraph
+ * below says "dark glass", "pale panel" or a tint, read "the lead card" and "the last card".
  *
  * WHAT WAS WRONG WITH THE STRIP IT REPLACES. Three figures in a row, one of them on a lime tile,
  * with nothing between them and the list underneath. Every figure the same size, the same weight and
@@ -300,24 +303,21 @@ export function ClinicalDeck({ role, figures, eyebrow, headline, note, title, le
    <Metric label={figure.label} value={figureValue(figure)} unit={figure.unit} prefix={figure.prefix}
            chip={figure.chip} flagged={figure.flagged} visual={draw(figure)}/>
   </div>;
- /* THE STRIP, AND WHICH TINT EACH CARD WEARS (28 September 2026, the founder's pastel brief).
-    The deck was one dark band with the lead on dark glass inside it and a pale panel beside it —
-    three grounds nested in each other. It is now the Control Tower's language: the sentence on the
-    page's own ground, and under it one row of cards, each a single figure on a tint. The place a
-    figure stands is still the strip's order and nothing else, and the tint follows the place rather
-    than the position in a rotation, so a card cannot change colour because a sibling was added:
-      lead   — the one dark card, and the only one. The figure the screen was opened for.
-      float  — lavender; peach when its own chip is the flagged one, which already says so in words
-               and fills the chip ink, so the warmth is never the only difference.
-      panel  — mint, the quiet summary: the weeks behind a total, the queue's waits, a visit's stages.
-    Every card sets its own ink in the same rule as its ground, in clinical-deck.css.
-    The cards are siblings in reading order — lead, floats, panel — so the order a screen reader
-    walks is the order the row is drawn in, left to right, and then top to bottom when it wraps.
+ /* THE ROW, AND WHICH PLACE EACH CARD STANDS IN. The place a figure stands is the strip's order and
+    nothing else, and every card is the same white Card; what differs is said in the markup rather than
+    in a colour:
+      lead   — the figure the screen was opened for: an aqua rule along its top, the larger numeral,
+               and the only aqua marks on the row.
+      float  — the middle; `is-flagged` when its own chip is the flagged one, which already says so in
+               words and in the warning ink, so nothing about the card is told by colour alone.
+      panel  — the quiet summary: the weeks behind a total, the queue's waits, a visit's stages.
+    The cards are siblings in reading order — lead, floats, panel — so the order a screen reader walks
+    is the order the row is drawn in, left to right, and then top to bottom when it wraps.
     `--c-i` is the card's place in that order, which is all the staggered entrance reads. */
  const hasPanel = !!(panel || panelNode);
  let order = 0;
- const card = (tint: string, className: string, body: ReactNode, key: string) =>
-  <div className={`c-card ${className}`} data-tint={tint} key={key} style={{ ['--c-i' as string]: order++ }}>{body}</div>;
+ const card = (place: 'lead' | 'float' | 'panel', flagged: boolean, className: string, body: ReactNode, key: string) =>
+  <Card className={`c-card ${className}${flagged ? ' is-flagged' : ''}`} data-place={place} key={key} style={{ ['--c-i' as string]: order++ }}>{body}</Card>;
  return <section className={`c-deck${hasPanel ? '' : ' is-say-only'}`} aria-label={`${role} — the shape of the work below`}>
   {/* The grid is one element in, because the deck is the container its own columns are decided
       against: a query cannot ask about the box it is written on. It is the width of the deck and not
@@ -347,18 +347,19 @@ export function ClinicalDeck({ role, figures, eyebrow, headline, note, title, le
    {children && <div className="c-deck-extra">{children}</div>}
   </div>
   {(lead || leadNode || floats.length > 0 || hasPanel) && <div className="c-deck-cards">
-   {lead && card('night', 'c-deck-lead', <>{instrument(lead, true)}{leadNote && <p className="c-card-note">{leadNote}</p>}</>, 'lead')}
-   {leadNode && card('night', 'c-deck-lead is-custom', leadNode, 'lead')}
-   {floats.map(figure => card(figure.flagged ? 'peach' : 'lavender', 'c-deck-float', instrument(figure, false), `float-${figure.label}`))}
-   {panel && card('mint', 'c-deck-panel', <div className="c-deck-panel-figure">{instrument(panel, false)}</div>, 'panel')}
-   {panelNode && card('mint', 'c-deck-panel', <div className="c-deck-panel-body">{panelNode}</div>, 'panel-body')}
+   {lead && card('lead', false, 'c-deck-lead', <>{instrument(lead, true)}{leadNote && <p className="c-card-note">{leadNote}</p>}</>, 'lead')}
+   {leadNode && card('lead', false, 'c-deck-lead is-custom', leadNode, 'lead')}
+   {floats.map(figure => card('float', figure.flagged, 'c-deck-float', instrument(figure, false), `float-${figure.label}`))}
+   {panel && card('panel', false, 'c-deck-panel', <div className="c-deck-panel-figure">{instrument(panel, false)}</div>, 'panel')}
+   {panelNode && card('panel', false, 'c-deck-panel', <div className="c-deck-panel-body">{panelNode}</div>, 'panel-body')}
   </div>}
   </div>
  </section>;
 }
 
-/** A circular badge set inside the headline where the reference sets one: pale indigo, because
-    indigo itself measures 1.45 on this ground and a disc nobody can see is not a badge. */
+/** A small badge set inside the headline: the icon in the foreground ink on an aqua tint, a compact
+    square rather than the lime disc it was, because the handoff keeps pill shapes for badges and
+    statuses and this is neither. Decorative, and hidden from a screen reader. */
 function Glyph({ of }: { of: DeckGlyph }) {
  const Icon = GLYPHS[of];
  return <span className="c-deck-glyph" aria-hidden="true"><Icon size={20} strokeWidth={2.1}/></span>;

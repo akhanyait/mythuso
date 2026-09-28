@@ -1,23 +1,13 @@
-/* Sentinel and safeguarding reports (Wave 5). Loaded with features/Sentinel.tsx, behind the staff shell's dynamic import. */
-.sn-patient { margin: 0; font-weight: 600; }
-.sn-evaluation { display: grid; gap: 8px; justify-items: start; }
-.sn-evaluation p { margin: 0; }
-.sn-baselines, .sn-raised { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-.sn-baseline { display: grid; gap: 6px; min-width: 0; }
+/* Sentinel and safeguarding reports, on the identity of 28 September 2026 (wave 4d). Loaded with features/Sentinel.tsx,
+   behind the staff shell's dynamic import. The cards, rows, radios and notes are the shared components and
+   surface/office-identity.css; what is left is the grid of baselines, each a small card with its state in words. */
+.sn-baselines { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: var(--space-12); margin: 0; padding: 0; list-style: none; }
+.sn-baseline { display: grid; align-content: start; gap: var(--space-8); min-width: 0; }
 .sn-baseline p { margin: 0; overflow-wrap: anywhere; }
-.sn-baseline-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
-.sn-state .helper, .sg-report .helper { display: flex; gap: 6px; align-items: flex-start; overflow-wrap: anywhere; }
-.sn-state .helper svg, .sg-report .helper svg { flex: none; margin-top: 3px; }
-.sn-rungs { display: grid; gap: 8px; border: 0; margin: 0; padding: 0; min-width: 0; }
-.sn-rung { display: flex; gap: 10px; align-items: flex-start; }
-.sn-rung span { display: grid; gap: 2px; min-width: 0; }
-.sn-rung small { overflow-wrap: anywhere; }
-.sn-refused-tier { display: grid; gap: 6px; }
-.sn-refused-tier h3, .sn-refused-tier p { margin: 0; }
-.sn-refused-tier ul { margin: 0; padding-left: 20px; }
-.sn-raised li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.sg-recorded p { margin: 0; overflow-wrap: anywhere; }
-.sg-not-sent { display: flex; gap: 6px; align-items: flex-start; font-weight: 600; }
-.sg-not-sent svg { flex: none; margin-top: 3px; }
-.sg-desk-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.sg-desk-row { min-width: 0; }
+.sn-count { font-size: 15px; font-weight: 600; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.sn-evaluation .oi-stack { gap: var(--space-8); }
+.sn-refused-tier p, .sn-refused-tier ul { margin: 0; }
+.sn-refused-tier ul { padding-left: var(--space-20); display: grid; gap: var(--space-4); }
+.sg-recorded p { margin: 0; overflow-wrap: anywhere; font-size: 14px; line-height: 1.55; }
+.sg-not-sent { font-weight: 600; }
+.sg-not-sent > svg { color: var(--ui-danger-ink, var(--danger)); }

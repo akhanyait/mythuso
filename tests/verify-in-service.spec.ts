@@ -131,7 +131,9 @@ test('a complaint about a past visit is refused until it says what it is about, 
 test('the reviewer\'s queue ages each complaint against its window, carries no account in a row, and decides nothing without a reason', async ({ page }) => {
   await openAdminConsole(page);
   await goConsole(page, 'Vetting');
-  await page.getByRole('button', { name: vis.complaints.reviewer.heading, exact: true }).click();
+  /* The console's views are the shared Tabs since the vetting screen's restyle; a tab or, before it, a button. */
+  await page.getByRole('tab', { name: vis.complaints.reviewer.heading, exact: true })
+    .or(page.getByRole('button', { name: vis.complaints.reviewer.heading, exact: true })).first().click();
   const queue = page.getByRole('region', { name: vis.complaints.reviewer.heading });
   await expect(queue).toContainText(vis.complaints.reviewer.noScore);
   /* The preview seeds one complaint six hours past its window and one three hours old, by running the engine then. */

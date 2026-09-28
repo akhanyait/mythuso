@@ -6,6 +6,7 @@ import {
 } from '../lib/settings';
 import { whoIs } from '../lib/roles';
 import { valueText } from './Configuration';
+import { Button } from '../ui';
 
 /* Settings waiting for clinical review, on the doctor's review queue.
  *
@@ -77,7 +78,7 @@ function ReviewItem({ item, onConfirmed }: { item: PendingReview; onConfirmed: (
    <p className="helper" id={id + '-help'}>Recorded against {doctorOnDuty() ? personOf(doctorOnDuty()!) : 'you'} and this version only.</p>
    {refused && <p className="fs-refused" role="alert">{refused}</p>}
    <div className="button-row">
-    <button type="submit" className="primary">Confirm the clinical review<span className="visually-hidden"> of {setting.label}</span></button>
+    <Button type="submit" variant="primary">Confirm the clinical review<span className="visually-hidden"> of {setting.label}</span></Button>
    </div>
   </form>
  </li>;

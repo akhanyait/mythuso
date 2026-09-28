@@ -66,6 +66,7 @@ enum ThusoTheme {
     static let brandOrange = Color(red: 0.973, green: 0.408, blue: 0.188)             // #F86830
     static let brandLime = Color(red: 0.847, green: 0.973, blue: 0.094)               // #D8F818
     static let brandMint = Color(red: 0.624, green: 0.882, blue: 0.796)               // #9FE1CB
+    static let brandCyan = Color(red: 0.318, green: 0.953, blue: 0.988)               // #51F3FC
 }
 /// Generation four, the Lovable handoff of 28 September 2026: nineteen roles, each in a light and a
 /// dark value, converted exactly from the handoff's oklch (kept in the trailing comment). Nothing

@@ -46,11 +46,14 @@ import { AssistantAttachments } from "../components/AssistantAttachments";
 import { AssistantVoiceButton } from "../components/AssistantVoiceButton";
 import {
   GilbertAvatar,
+  GilbertOneLogo,
   GilbertStill,
   growFrom,
   useGilbertRig,
 } from "./GilbertAvatar";
-import { GilbertOneWordmark } from "../components/GilbertOneWordmark";
+import { Badge } from "../ui/Badge";
+import { Button } from "../ui/Button";
+import { Card } from "../ui/Card";
 import { crisisLines, showsCrisisLines } from "../lib/crisis-lines";
 import {
   affect,
@@ -799,7 +802,9 @@ export default function Assistant({
               <h2 id="as-title" className="as-sr">
                 {identity.name}
               </h2>
-              {(!consented || asked) && (
+              {/* In a conversation the descriptor sits under the name in the head; over the gate and on
+                  the welcome it sits beside the official logo instead, so it is on the screen once. */}
+              {asked && (
                 <p className="as-descriptor">{identity.descriptorLine}</p>
               )}
               {/* The simulated label is the contract's sentence for this audience, not a string
@@ -830,14 +835,23 @@ export default function Assistant({
               </button>
             </div>
           </div>
-          {(!consented || asked) && portrait}
-          {/* The state caption belongs to a conversation. Over the gate it is left out: there is
-              nothing yet for "Ready" to be about, and the gate's own words are the consent section's. */}
-          {consented && asked && (
+          {/* The rig lives in the head in every state since 28 September 2026: it is the in-product
+              form of GilbertOne, and the official logo — the brand form — is what the gate and the
+              welcome introduce the name with. One character in the chrome, one mark in the body. */}
+          {portrait}
+          {/* The state caption belongs to an open conversation. Over the gate it is left out: there is
+              nothing yet for "Ready" to be about, and the gate's own words are the consent section's.
+              The state is a Badge, and its word is the state — the colour only repeats it. */}
+          {consented && (
             <div className="as-caption" data-pulse={pulse}>
-              <p className="as-state" data-pulse={pulse}>
+              <Badge
+                className="as-state"
+                data-pulse={pulse}
+                variant={pulse === "escalate" ? "danger" : "accent"}
+                dot
+              >
                 {stateSpec(pulse).cue}
-              </p>
+              </Badge>
               {asked && stage.name && <p className="as-name">{stage.name}</p>}
               {stage.figure && (
                 <p className="as-figure">
@@ -851,20 +865,22 @@ export default function Assistant({
 
         {consented ? (
           <div className="as-scroll" data-welcome={!asked || undefined}>
+            {/* The welcome introduces GilbertOne by its official logo, with the descriptor that must
+                stand beside the name. A lockup, so it is centred on the logo's own clear space. */}
             {!asked && (
-              <section className="as-welcome-hero" aria-label={identity.name}>
-                {portrait}
-                <div className="as-hero-copy">
-                  <p className="as-hello">{ui.hello}</p>
-                  <GilbertOneWordmark className="as-wordmark" />
-                  <p className="as-hero-descriptor">
-                    {identity.descriptorLine}
-                  </p>
-                  <p className="as-state" data-pulse={pulse}>
-                    {stateSpec(pulse).cue}
-                  </p>
-                </div>
-              </section>
+              <Card
+                className="as-welcome-hero"
+                role="region"
+                aria-label={identity.name}
+              >
+                <p className="as-hello">{ui.hello}</p>
+                <GilbertOneLogo
+                  className="as-wordmark"
+                  width={168}
+                  alt={identity.name}
+                />
+                <p className="as-hero-descriptor">{identity.descriptorLine}</p>
+              </Card>
             )}
             <div
               className="as-log"
@@ -1172,6 +1188,12 @@ export default function Assistant({
                 first; the disclosures inside it are sections of one document rather than cards
                 stacked inside a card, and nothing in it has an entrance of its own. */}
             <div className="as-gate-paper">
+            {/* The official logo at the head of what she is agreeing to, with the descriptor beside
+                it: the name and its correction, read together before anything else. */}
+            <div className="as-gate-brand">
+              <GilbertOneLogo width={120} alt={identity.name} />
+              <p className="as-descriptor">{identity.descriptorLine}</p>
+            </div>
             <div className="as-gate-intro">
               <h3>{consent.heading}</h3>
               <p>{ui.disclaimerIntro}</p>
@@ -1314,25 +1336,25 @@ export default function Assistant({
             {/* Accept opens only when both boxes are ticked, and Cancel is the same dismiss the
                 cross, the backdrop and Escape use — the gate has no fourth way out. */}
             <div className="as-gate-actions">
-              <button
-                type="button"
+              <Button
+                variant="secondary"
                 className="as-gate-cancel"
                 onClick={dismiss}
               >
                 {consent.cancel}
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="accent"
                 className="as-gate-accept"
                 disabled={!doctorBox || !emergencyBox}
                 onClick={() => {
                   setConsented(true);
                   requestAnimationFrame(() => field.current?.focus());
                 }}
+                trailingIcon={<ArrowRight size={16} aria-hidden="true" />}
               >
                 {consent.accept}
-                <ArrowRight size={16} aria-hidden="true" />
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -1712,20 +1734,20 @@ function ReplyBody({
             <p className="as-quiet">{w.answer.stop.sentence}</p>
             {onIntake && (
               <div className="as-intake-chips">
-                <button
-                  type="button"
+                <Button
+                  variant="primary"
                   className="as-option"
                   onClick={() => onIntake(w.answer.consent.yesLabel)}
                 >
                   {w.answer.consent.yesLabel}
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="secondary"
                   className="as-option"
                   onClick={() => onIntake(w.answer.consent.noLabel)}
                 >
                   {w.answer.consent.noLabel}
-                </button>
+                </Button>
               </div>
             )}
           </>
@@ -1738,14 +1760,14 @@ function ReplyBody({
             {q.kind === "chips" && q.options && onIntake ? (
               <div className="as-intake-chips" role="group" aria-label={q.ask}>
                 {q.options.map((option) => (
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
                     className="as-option"
                     key={option}
                     onClick={() => onIntake(option)}
                   >
                     {option}
-                  </button>
+                  </Button>
                 ))}
               </div>
             ) : (
@@ -1756,7 +1778,7 @@ function ReplyBody({
       }
       return (
         <>
-          <div className="as-tile as-listcard as-notes" data-tone="lime">
+          <Card className="as-notes" padding="sm">
             <p className="as-headline">{w.summary.title}</p>
             <p className="as-quiet">{reply.group.name}</p>
             <dl className="as-summary">
@@ -1767,16 +1789,20 @@ function ReplyBody({
                 </div>
               ))}
             </dl>
-          </div>
+          </Card>
           <p>{reply.state?.stopped ? w.answer.stop.stopped : w.answer.closing}</p>
           <p className="as-quiet as-provenance">{intakeReview()}</p>
           <p>{w.answer.arrangeCare}</p>
           <div className="as-actions">
             {typeof navigator !== "undefined" && navigator.clipboard && (
-              <button type="button" className="as-go" onClick={onCopy}>
-                <ClipboardList size={17} aria-hidden="true" />
+              <Button
+                variant="secondary"
+                className="as-go"
+                onClick={onCopy}
+                leadingIcon={<ClipboardList size={17} aria-hidden="true" />}
+              >
                 {copied ? w.summary.copiedLabel : w.summary.copyLabel}
-              </button>
+              </Button>
             )}
             {allowHandover && (
               <button type="button" className="as-go" onClick={handOver}>

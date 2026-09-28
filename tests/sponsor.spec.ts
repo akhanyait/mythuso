@@ -47,9 +47,9 @@ test('a sponsor can see what was set aside, what has been used and what is left'
   await expect(page.getByText(noticeFor('payments'))).toBeVisible();
 
   const lead = page.locator('.sponsor-lead');
-  await expect(lead.locator('.s-metric').filter({ hasText: 'You set aside' })).toContainText(rand(statement.setAside));
-  await expect(lead.locator('.s-metric').filter({ hasText: 'Used so far' })).toContainText(rand(spent));
-  await expect(lead.locator('.s-metric').filter({ hasText: 'Left to draw on' })).toContainText(rand(remaining));
+  await expect(lead.locator('.oi-figure').filter({ hasText: 'You set aside' })).toContainText(rand(statement.setAside));
+  await expect(lead.locator('.oi-figure').filter({ hasText: 'Used so far' })).toContainText(rand(spent));
+  await expect(lead.locator('.oi-figure').filter({ hasText: 'Left to draw on' })).toContainText(rand(remaining));
 
   /* One row per line, each carrying the price of the service it names. The screen has nowhere to
      type an amount, and neither has the contract. */

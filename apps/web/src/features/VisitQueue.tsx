@@ -1,6 +1,7 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
-import { Ban, Check, ChevronDown, CircleAlert, Cloud, CloudOff, GitMerge, History, Inbox, Send, ShieldX, Undo2 } from 'lucide-react';
-import { Pill } from '../components/UI';
+import { useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from 'react';
+import { Ban, Check, ChevronDown, CircleAlert, ClipboardList, Cloud, CloudOff, FileSignature, GitMerge, History, Inbox, KeyRound, Send, ShieldX, Undo2 } from 'lucide-react';
+import { Alert, Badge, Button, Card, Checkbox, MyThusoHealthIcon, MyThusoVisitIcon, type BadgeVariant } from '../ui';
+import '../surface/nurse-identity.css';
 import { useOffline } from '../components/States';
 import { ageText, captureStateById, conflictById, rules } from '../lib/capture';
 import {
@@ -55,24 +56,39 @@ export function useSignal(): Signal {
  return { online: acting && !reallyOffline, reallyOffline, acting, setActing };
 }
 
-const stateTone: Record<string, string> = { captured: 'sky', queued: 'sky', sending: 'sky', stored: '', conflicted: 'amber', refused: 'danger' };
+/* The six capture states as the shared Badge's variants. The words on the badge are the contract's
+   state name, so the tint is never the only thing telling two rows apart. */
+const stateBadge: Record<string, BadgeVariant> = { captured: 'neutral', queued: 'primary', sending: 'accent', stored: 'success', conflicted: 'warning', refused: 'danger' };
+/* A part's kind drawn with the family's own mark where the family has one — the readings are the
+   patient's health, the visit is a visit — and Lucide for the rest, which are paperwork rather than
+   healthcare destinations. One icon per concept, never both. */
+const kindIcon: Record<Part['kind'], ReactNode> = {
+ identity: <KeyRound aria-hidden="true"/>, consent: <FileSignature aria-hidden="true"/>, observations: <MyThusoHealthIcon/>,
+ findings: <ClipboardList aria-hidden="true"/>, 'sign-off': <MyThusoVisitIcon/>
+};
 
 /* ---- The strip ------------------------------------------------------------------------------
    One line, above the work, on every stage of the assessment. It is the answer to "has any of this
-   left the phone", which is a question a nurse asks by looking rather than by opening something. */
+   left the phone", which is a question a nurse asks by looking rather than by opening something.
+   Offline is said three ways — the word, the struck cloud and the solid edge — so no reader has to
+   tell it from connected by colour. */
 export function CaptureStanding({ online, waiting, open, onToggle }:
  { online: boolean; waiting: number; open: boolean; onToggle: () => void }) {
- return <button type="button" className={`vq-strip${online ? '' : ' offline'}`} aria-expanded={open} onClick={onToggle}>
-  {online ? <Cloud size={18}/> : <CloudOff size={18}/>}
-  <span><strong>{online ? 'Connected' : 'No signal'}</strong>
+ return <button type="button" className={`vq-strip nurse-strip${online ? '' : ' offline'}`} aria-expanded={open} onClick={onToggle}>
+  <span className="nurse-strip__disc" aria-hidden="true">{online ? <Cloud/> : <CloudOff/>}</span>
+  <span className="nurse-strip__say"><strong>{online ? 'Connected' : 'No signal'}</strong>
    <small>{waiting
     ? `${waiting} ${waiting === 1 ? 'piece' : 'pieces'} of work held on this phone`
     : 'Nothing is waiting. Everything you have done has reached the record.'}</small></span>
-  <i aria-hidden="true"><ChevronDown size={18}/></i>
+  <i aria-hidden="true"><ChevronDown/></i>
  </button>;
 }
 
-/* ---- The panel ------------------------------------------------------------------------------ */
+/* ---- The panel ------------------------------------------------------------------------------
+   The handoff's command view, drawn from this queue and nothing else: four workload bars, each a
+   count of the parts in one standing and scaled against the largest of the four, then the rows. A bar
+   is never the only rendering of its number — the numeral sits beside it — and an empty standing is
+   an empty track rather than a sliver pretending to be one. */
 export function WaitingToSend({ visit, signal, capturerId = 'N-205' }: { visit: string; signal: Signal; capturerId?: string }) {
  const parts = useVisitQueue();
  const { online, reallyOffline, acting, setActing } = signal;
@@ -103,53 +119,66 @@ export function WaitingToSend({ visit, signal, capturerId = 'N-205' }: { visit: 
   }, 1100);
  };
 
- return <div className="panel form-stack vq-panel">
-  <div className="kit-switches">
-   <button type="button" className={online ? 'secondary' : 'secondary offline'} onClick={() => setActing(!acting)} aria-pressed={online} disabled={reallyOffline}>
-    {online ? <><Cloud size={16}/>Connection: on</> : <><CloudOff size={16}/>Connection: off</>}
-   </button>
-   <label className="checkbox"><input type="checkbox" checked={signed} onChange={e => setSigned(e.target.checked)}/><span>A doctor has signed this visit</span></label>
-  </div>
-  <p className="helper">{reallyOffline
-   ? 'This device is genuinely offline. The switch is not asking you to pretend, so it is off.'
-   : online
-    ? 'A connection is available, so what has been sealed can be sent.'
-    : 'No connection. Sealed work goes nowhere, and you have done everything you can do about it.'}</p>
+ /* The count, and it is the whole count rather than this screen's share of it. */
+ const load: [string, number, string][] = [['Held, not sealed', held.length, 'held'], ['Waiting to send', sealed.length, 'waiting'], ['Needs a decision', conflicted.length, 'decision'], ['In the record', stored.length, 'stored']];
+ const most = Math.max(1, ...load.map(([, n]) => n));
+ const rows = (list: Part[]) => <ul className="nurse-queue-list">{list.map(part => <PartRow key={part.id} part={part} thisVisit={part.visit === visit}/>)}</ul>;
 
-  {/* The count, and it is the whole count rather than this screen's share of it. */}
-  <div className="vq-counts">
-   {[['Held, not sealed', held.length], ['Waiting to send', sealed.length], ['Needs a decision', conflicted.length], ['In the record', stored.length]].map(([label, n]) =>
-    <div key={label as string}><strong>{n}</strong><small>{label}</small></div>)}
+ return <Card className="vq-panel nurse-queue nurse-ui">
+  <div className="nurse-queue__head">
+   <div className="nurse-queue__say">
+    <p className="nurse-eyebrow">Waiting to send</p>
+    <p className="nurse-queue__standing">{reallyOffline
+     ? 'This device is genuinely offline. The switch is not asking you to pretend, so it is off.'
+     : online
+      ? 'A connection is available, so what has been sealed can be sent.'
+      : 'No connection. Sealed work goes nowhere, and you have done everything you can do about it.'}</p>
+   </div>
+   <div className="nurse-queue__controls">
+    <Button variant="secondary" className={online ? '' : 'offline'} onClick={() => setActing(!acting)} aria-pressed={online} disabled={reallyOffline}
+     leadingIcon={online ? <Cloud aria-hidden="true"/> : <CloudOff aria-hidden="true"/>}>{online ? 'Connection: on' : 'Connection: off'}</Button>
+    <Checkbox checked={signed} onChange={e => setSigned(e.target.checked)} label={<span>A doctor has signed this visit</span>}/>
+   </div>
   </div>
 
-  {held.length > 0 && <>
+  <ol className="vq-counts nurse-workload" aria-label="What this phone holds">
+   {load.map(([label, n, kind]) =>
+    <li key={label} className={`nurse-workload__row is-${kind}`}>
+     <span className="nurse-workload__label">{label}</span>
+     <span className="nurse-workload__track" aria-hidden="true"><i style={{ '--share': n / most } as CSSProperties}/></span>
+     <strong className="nurse-workload__count">{n}</strong>
+    </li>)}
+  </ol>
+
+  <div className="nurse-queue__body">
+  {held.length > 0 && <section className="nurse-queue__group">
    <h3>Held on this phone</h3>
    <p className="helper">Not sealed yet, because the visit is not finished. Signing the assessment seals everything it holds at once.</p>
-   {held.map(part => <PartRow key={part.id} part={part} thisVisit={part.visit === visit}/>)}
-  </>}
+   {rows(held)}
+  </section>}
 
-  {sealed.length > 0 ? <>
+  {sealed.length > 0 ? <section className="nurse-queue__group">
    <h3>Sealed, waiting for a connection</h3>
-   {sealed.map(part => <PartRow key={part.id} part={part} thisVisit={part.visit === visit}/>)}
+   {rows(sealed)}
    <div className="button-row">
     {sending
-     ? <button className="secondary" onClick={() => { interruptSend(); setSending(false); setNotice('The send was interrupted. Everything went back to the queue rather than anywhere else.'); }}><Undo2 size={16}/>Interrupt the send</button>
-     : <button className="primary" disabled={!online || !queued.length} onClick={send}><Send size={16}/>Send {queued.length} {queued.length === 1 ? 'piece' : 'pieces'}</button>}
+     ? <Button variant="secondary" leadingIcon={<Undo2 aria-hidden="true"/>} onClick={() => { interruptSend(); setSending(false); setNotice('The send was interrupted. Everything went back to the queue rather than anywhere else.'); }}>Interrupt the send</Button>
+     : <Button variant="primary" leadingIcon={<Send aria-hidden="true"/>} disabled={!online || !queued.length} onClick={send}>Send {queued.length} {queued.length === 1 ? 'piece' : 'pieces'}</Button>}
    </div>
    {!online && <p className="helper">Sending needs a connection. Nothing is dropped to make a send succeed and nothing is retried behind your back.</p>}
-  </> : held.length ? null : <p className="helper">Nothing is sealed. An empty queue means every piece of this visit has been answered for.</p>}
+  </section> : held.length ? null : <p className="helper nurse-queue__empty">Nothing is sealed. An empty queue means every piece of this visit has been answered for.</p>}
 
-  {conflicted.length > 0 && <>
+  {conflicted.length > 0 && <section className="nurse-queue__group">
    <h3>Needs a decision</h3>
-   <div className="privacy-note"><GitMerge size={19}/>{rules.conflictsAreNotMerged}</div>
-   {conflicted.map(part => <PartRow key={part.id} part={part} thisVisit={part.visit === visit}/>)}
+   <Alert variant="warning" title={rules.conflictsAreNotMerged} icon={<GitMerge aria-hidden="true"/>}/>
+   {rows(conflicted)}
    <p className="helper"><ShieldX size={13}/><span>Nothing here is filed and nothing is thrown away. A reading that two clinicians disagree about is settled on the Thuso Kit surface, where both versions can be put side by side; a whole assessment that arrives against a signed record goes to the Control Tower.</span></p>
-  </>}
+  </section>}
 
   {/* What she can still do, said beside what she cannot. A screen that only says "no connection"
       has told somebody standing in a kitchen that she is stuck, which is not true and is how people
       end up writing on paper. */}
-  {!online && <div className="vq-meanwhile">
+  {!online && <div className="vq-meanwhile nurse-meanwhile">
    <div>
     <h4><Check size={16}/>You can still</h4>
     <ul>
@@ -170,41 +199,45 @@ export function WaitingToSend({ visit, signal, capturerId = 'N-205' }: { visit: 
    </div>
   </div>}
 
-  {stored.length > 0 && <>
+  {stored.length > 0 && <section className="nurse-queue__group">
    <h3>This device’s copy of the record</h3>
-   {stored.map(part => <PartRow key={part.id} part={part} thisVisit={part.visit === visit}/>)}
-  </>}
+   {rows(stored)}
+  </section>}
 
   {/* Last, deliberately. The panel is opened to find out what is held, so the work comes first and
       the caveat about the mechanism comes after it — an amber block above the list was the loudest
       thing on a screen whose subject is underneath it. Written once in lib/visit-queue.ts and
       rendered here and on the Thuso Kit surface, because two screens each wording their own
       admission is how two admissions start disagreeing about what is being admitted. */}
-  <div className="privacy-note alert"><Inbox size={19}/><span><strong>{inMemoryAdmission.headline}</strong> {inMemoryAdmission.before} <code>{inMemoryAdmission.script}</code> {inMemoryAdmission.after} “{inMemoryAdmission.owed}” — {inMemoryAdmission.close}</span></div>
+  <Alert variant="warning" title={inMemoryAdmission.headline} icon={<Inbox aria-hidden="true"/>}>{inMemoryAdmission.before} <code>{inMemoryAdmission.script}</code> {inMemoryAdmission.after} “{inMemoryAdmission.owed}” — {inMemoryAdmission.close}</Alert>
   <p className="helper" role="status">{notice}</p>
- </div>;
+  </div>
+ </Card>;
 }
 
 /* ---- One part -------------------------------------------------------------------------------
    Two clocks, always both. The phone's is labelled as what the phone believed; the receipt is what
    everything is ordered by, and where there is none the row says nothing has ordered it yet rather
-   than showing the first time as if it were the second. */
+   than showing the first time as if it were the second. The detail is a real two-column list so the
+   values line up under one another, numbers under numbers. */
 function PartRow({ part, thisVisit }: { part: Part; thisVisit: boolean }) {
  const spec = captureStateById(part.state);
  const conflict = part.conflictId ? conflictById(part.conflictId) : undefined;
- return <div className="panel vq-part">
-  <div className="vq-part-head">
-   <div><strong>{partNames[part.kind]}</strong><small>{part.summary}</small></div>
-   <Pill tone={stateTone[part.state]}>{spec.name}</Pill>
+ return <li className="vq-part nurse-queue-row" data-state={part.state}>
+  <div className="nurse-queue-row__head">
+   <span className="nurse-queue-row__icon" aria-hidden="true">{kindIcon[part.kind]}</span>
+   <div className="nurse-queue-row__name"><strong>{partNames[part.kind]}</strong><small>{part.summary}</small></div>
+   <Badge variant={stateBadge[part.state]} size="sm">{spec.name}</Badge>
   </div>
   {!thisVisit && <p className="helper"><History size={13}/><span>From {part.visit} · {part.patient} — another visit, queued on its own.</span></p>}
-  {part.detail.map(([label, value]) => <div className="review-line" key={label}><span>{label}</span><strong>{value}</strong></div>)}
+  {(part.detail.length > 0 || part.receivedAt) && <dl className="nurse-facts">{part.detail.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+   {part.receivedAt && <div><dt>Server receipt · what this is ordered by</dt><dd>{new Date(part.receivedAt).toLocaleString('en-ZA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</dd></div>}
+  </dl>}
   <p className="helper"><History size={13}/><span>On this phone, {ageText(part.capturedAt)}.</span></p>
-  {isPending(part) && <p className="helper vq-while"><CircleAlert size={13}/><span>{partWhileHeld[part.kind]}</span></p>}
+  {isPending(part) && <p className="helper vq-while nurse-queue-row__while"><CircleAlert size={13}/><span>{partWhileHeld[part.kind]}</span></p>}
   {conflict && <p className="helper" role="status"><GitMerge size={13}/><span><strong>{conflict.name}.</strong> {conflict.detail}</span></p>}
   {part.note && <p className="helper" role="status">{part.note}</p>}
-  {part.receivedAt && <div className="review-line"><span>Server receipt · what this is ordered by</span><strong>{new Date(part.receivedAt).toLocaleString('en-ZA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</strong></div>}
- </div>;
+ </li>;
 }
 
 /** Seeded once, on first mount, so the count on opening is what a queue actually looks like at the

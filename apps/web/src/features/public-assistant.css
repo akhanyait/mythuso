@@ -1,15 +1,68 @@
+/* The signed-out GilbertOne sheet on the landing page — a separate lazy chunk, fetched when somebody
+   presses the robot, so none of this is on the landing page's first load.
+
+   On the identity since 28 September 2026: the Lovable handoff's compact white sheet, the patient
+   panel's arrangement and palette. It was four re-skins stacked in this file — an ink sheet, a light
+   one, the 23 September mint, the Life kit's cycling tints — each overriding the last with !important;
+   this is one layer. The head is light because the official logo is the heading, and the logo's
+   lettering is the brand ink: a recoloured logo is the one thing the handoff forbids, so the ground
+   moves instead. The actions are the shared Button; the corners are the tokens' (12 for the sheet and
+   its cards, 8 for controls); the shadow is one shadow.
+
+   Why fixed tokens rather than the handoff's --color-<role> variables: the roles change under the
+   system's dark scheme, and no screen is restyled for dark in this generation (tokens.json#semantic).
+   The grounds and words here are the light values by their fixed names, so the sheet stays one coherent
+   light surface; the Buttons inside it are coherent on their own either way. */
+.public-assistant,
+.public-assistant-launcher {
+  --pa-line: color-mix(in srgb, var(--brand-ink) 16%, var(--surface));
+  --pa-muted: color-mix(in srgb, var(--brand-ink) 4%, var(--surface));
+}
+.public-assistant {
+  --go-mint-2: var(--pa-muted);
+  --go-muted: var(--pa-muted);
+  --go-line: var(--pa-line);
+  /* The handoff's roles, pinned to their light values for everything inside this light-only surface,
+     so a shared component here is drawn as the surface is under the system's dark scheme too — without
+     this the state Badge set light words on a light tint, and Cancel was a dark key on the ink sheet.
+     Each is the light role by its fixed name, or the mix this layer already uses for it; the one role
+     with no light name here (accentForeground, near-black in both schemes) is left alone. */
+  --color-background: var(--go-mint-2);
+  --color-foreground: var(--brand-ink);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--go-muted);
+  --color-primary: var(--brand-ink);
+  --color-primary-foreground: var(--surface);
+  --color-accent: var(--brand-green);
+  --color-muted: var(--go-muted);
+  --color-muted-foreground: var(--body);
+  --color-success: var(--brand-green);
+  --color-warning: var(--brand-lime);
+  --color-danger: var(--brand-orange);
+  --color-border: var(--go-line);
+  --color-input: var(--go-line);
+  --color-ring: var(--brand-green);
+  --ui-danger-ink: var(--danger);
+  --ui-warning-ink: var(--mango-ink);
+  --ui-success-ink: var(--teal-ink);
+  --ui-primary-ink: var(--brand-ink);
+  --ui-press-mix: transparent;
+}
+
+/* The robot is the door: transparent, the rig standing on its own contact shadow. */
 .public-assistant-launcher {
   position: fixed;
   z-index: 45;
   right: 20px;
   bottom: 20px;
-  border: 1px solid var(--brand-mint);
-  border-radius: 18px;
-  background: var(--brand-ink);
   padding: 0;
+  border: 0;
+  border-radius: var(--r-card);
+  background: transparent;
+  box-shadow: none;
   cursor: pointer;
-  box-shadow: var(--shadow-raised);
 }
+
 .public-assistant {
   position: fixed;
   inset: auto 16px 16px auto;
@@ -19,10 +72,11 @@
   height: min(780px, calc(100dvh - 32px));
   max-height: none;
   max-width: none;
-  border: 1px solid var(--brand-mint);
-  border-radius: 20px;
-  background: var(--brand-ink);
-  color: var(--surface);
+  border: 1px solid var(--pa-line);
+  border-radius: var(--r-panel);
+  background: var(--surface);
+  color: var(--brand-ink);
+  box-shadow: var(--shadow-raised);
   overflow: hidden;
 }
 .public-assistant::backdrop {
@@ -34,52 +88,88 @@
   flex-direction: column;
   overflow-y: auto;
 }
+
+/* ---- The head: the logo level with the controls, the rig beside what it is ------------------------ */
 .public-assistant header {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) 44px;
-  align-items: center;
-  gap: 8px;
-  padding: 12px;
-  border-bottom: 1px solid var(--brand-mint);
+  gap: var(--space-4);
+  padding: var(--space-8) var(--space-12) var(--space-12) var(--space-16);
+  border-bottom: 1px solid var(--pa-line);
+  background: var(--pa-muted);
 }
-.public-assistant header .m-pause {
-  grid-column: 2 / -1;
-  justify-self: start;
+.public-assistant-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
 }
 .public-assistant h2 {
   margin: 0;
-  color: inherit;
-  font-size: 18px;
+  line-height: 0;
 }
-.public-assistant header p {
-  margin: 2px 0;
+/* The master's clear space is about an eighth of its height above and below the ink; half of it may
+   overlap the row beneath, so the head does not pay for the margin twice. */
+.public-assistant h2 .go-logo {
+  display: block;
+  width: 112px;
+  height: auto;
+  margin: calc(var(--space-8) * -1) 0 calc(var(--space-8) * -1) calc(var(--space-8) * -1);
+}
+.public-assistant-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+.public-assistant-caption {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-12);
+}
+.public-assistant-titles {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.public-assistant-titles p {
+  margin: 0;
   font-size: 13px;
-  color: var(--brand-mint);
+  line-height: 1.4;
+  color: var(--body);
 }
-.public-assistant button {
-  min-height: 44px;
-  padding: 8px 12px;
-  border: 1px solid var(--brand-mint);
-  border-radius: 12px;
-  background: var(--brand-ink);
-  color: var(--surface);
-  font: inherit;
-  cursor: pointer;
+.public-assistant-titles p:first-child {
+  color: var(--brand-ink);
+  font-weight: 600;
 }
+
+/* ---- The conversation ------------------------------------------------------------------------------ */
 .public-assistant-scroll {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 16px;
+  padding: var(--space-16);
   overflow-wrap: anywhere;
+  background: var(--surface);
 }
 .public-assistant p {
   line-height: 1.5;
 }
-.public-assistant-note {
+.public-assistant-greeting {
+  margin-bottom: var(--space-16);
+  padding: var(--space-12) var(--space-16);
+  border: 1px solid var(--pa-line);
+  border-radius: var(--r-card);
+  background: var(--pa-muted);
+}
+.public-assistant-greeting p {
+  margin: 0 0 var(--space-4);
+  color: var(--brand-ink);
+}
+.public-assistant-greeting .public-assistant-note {
+  margin: 0;
+  color: var(--body);
   font-size: 13px;
-  color: var(--brand-mint);
 }
 .public-assistant ol {
   list-style: none;
@@ -87,260 +177,119 @@
   margin: 0;
 }
 .public-assistant ol > li {
-  margin-block: 20px;
-  scroll-margin: 12px;
+  display: grid;
+  gap: var(--space-8);
+  margin-block: var(--space-16);
+  scroll-margin: var(--space-12);
 }
 .public-assistant-question {
-  padding: 12px;
-  background: var(--surface);
-  color: var(--brand-ink);
-  border-radius: 12px;
+  justify-self: end;
+  max-width: 85%;
+  margin: 0;
+  padding: var(--space-8) var(--space-12);
+  border-radius: var(--r-card) var(--r-card) var(--r-sm) var(--r-card);
+  background: var(--brand-ink);
+  color: var(--surface);
 }
 .public-assistant-answer {
-  border-left: 2px solid var(--brand-mint);
-  padding-left: 12px;
+  padding: var(--space-12);
+  border: 1px solid var(--pa-line);
+  border-radius: var(--r-card) var(--r-card) var(--r-card) var(--r-sm);
+  background: var(--surface);
+  color: var(--body);
 }
+.public-assistant-answer > strong {
+  display: block;
+  color: var(--brand-ink);
+  font-size: 13px;
+}
+.public-assistant-answer p {
+  margin: var(--space-4) 0 0;
+}
+.public-assistant-answer li strong {
+  color: var(--brand-ink);
+}
+/* The emergency answer's edge is the orange, never its words: danger ink is what carries a number. */
 .public-assistant [data-outcome="emergency"] .public-assistant-answer {
-  border-color: var(--brand-orange);
+  border-left: 3px solid var(--brand-orange);
+}
+.public-assistant [data-outcome="emergency"] .public-assistant-answer li strong {
+  color: var(--danger);
 }
 .public-assistant a {
-  color: var(--brand-mint);
+  color: var(--brand-ink);
+  font-weight: 600;
   text-decoration: underline;
+}
+.public-assistant-quick {
+  margin: var(--space-16) 0 var(--space-8);
+  color: var(--brand-ink);
+  font-weight: 700;
 }
 .public-assistant nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-block: 16px;
+  gap: var(--space-8);
+  margin-block: 0 var(--space-16);
 }
+/* A question is a Button that may need two lines on a 320-pixel phone rather than run off the sheet. */
+.public-assistant nav .ui-button {
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+
+/* ---- The composer ---------------------------------------------------------------------------------- */
 .public-assistant form {
   flex-shrink: 0;
-  padding: 12px 16px max(12px, env(safe-area-inset-bottom));
-  border-top: 1px solid var(--brand-mint);
+  padding: var(--space-12) var(--space-16) max(var(--space-12), env(safe-area-inset-bottom));
+  border-top: 1px solid var(--pa-line);
+  background: var(--pa-muted);
+}
+.public-assistant form label {
+  color: var(--brand-ink);
+  font-weight: 600;
 }
 .public-assistant form > div {
   display: flex;
-  gap: 8px;
-  margin-top: 6px;
+  gap: var(--space-8);
+  margin-top: var(--space-4);
 }
 .public-assistant input {
   width: 100%;
   min-width: 0;
   min-height: 44px;
-  border-radius: 12px;
-  border: 0;
-  padding: 8px;
-  font-size: 16px;
-  color: var(--brand-ink);
+  padding: var(--space-8) var(--space-12);
+  border: 1px solid var(--pa-line);
+  border-radius: var(--r-control);
   background: var(--surface);
+  color: var(--brand-ink);
+  font-size: 16px;
 }
-.public-assistant form p {
+/* The field's one calm ring, as the panel's composer wears it. */
+.public-assistant input:focus-visible {
+  outline: 2px solid var(--brand-green);
+  outline-offset: 2px;
+  box-shadow: none;
+  border-color: var(--brand-ink);
+}
+.public-assistant-emergency {
+  margin: var(--space-8) 0 0;
+  padding: var(--space-8) var(--space-12);
+  border-radius: var(--r-control);
+  background: var(--danger-soft);
+  color: var(--danger);
   font-size: 13px;
-  margin-bottom: 0;
-  color: var(--brand-mint);
+}
+.public-assistant-emergency a {
+  color: var(--danger);
+  font-weight: 700;
 }
 @media (max-height: 550px) {
   .public-assistant-scroll {
     flex: 1 0 50dvh;
   }
 }
-.public-assistant form label {
-  color: var(--surface);
-  font-weight: 600;
-}
-
-.public-assistant-launcher {
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-}
-.public-assistant {
-  background: var(--surface);
-  color: var(--brand-ink);
-  border-color: var(--stone);
-}
-.public-assistant header {
-  background: var(--brand-ink);
-  color: var(--surface);
-  border: 0;
-}
-.public-assistant-scroll {
-  background: color-mix(in srgb, var(--brand-mint) 9%, var(--surface));
-}
-.public-assistant-note {
-  color: var(--brand-ink);
-}
-.public-assistant-question {
-  background: var(--brand-ink);
-  color: var(--surface);
-}
-.public-assistant-answer {
-  background: var(--surface);
-  padding: 12px;
-  border-radius: 12px;
-}
-.public-assistant a {
-  color: var(--brand-ink);
-  font-weight: 600;
-}
-.public-assistant nav button {
-  background: var(--surface);
-  color: var(--brand-ink);
-  border-color: var(--brand-green);
-}
-.public-assistant form {
-  border-color: var(--stone);
-}
-.public-assistant form label,
-.public-assistant form p {
-  color: var(--brand-ink);
-}
-.public-assistant input {
-  border: 1px solid var(--brand-green);
-}
-
-/* At launcher size the chest lettering is illegible. The button's accessible name and
-   invitation bubble identify GilbertOne; keep the small character free of tiny text. */
-.public-assistant-launcher .go-rig text {
-  display: none;
-}
-
-/* ---- GilbertOne design language, founder-approved 23 September 2026 ----------------------------
-   The signed-out bottom sheet wears the same palette as the panel. It is a separate lazy chunk and
-   cannot see the panel's custom properties, so the brand board's colours are declared here on the
-   sheet's own root. Appended last so it re-skins the light theme above from one place. */
-.public-assistant {
-  /* Re-pointed at the design tokens on 28 September 2026, as the panel's are: the emergency footer
-     was #d6455b on #fbe9ea, 3.69:1, at 12px — the sentence that gives the ambulance number, below
-     both the AA floor and the type floor. danger on dangerSoft is a declared pair at 6.05:1. */
-  --go-teal: var(--brand-ink);
-  --go-green: var(--brand-green);
-  --go-orange: var(--brand-orange);
-  --go-mint: color-mix(in srgb, var(--brand-mint) 18%, var(--surface));
-  --go-mint-2: color-mix(in srgb, var(--brand-mint) 10%, var(--surface));
-  --go-icon-bg: color-mix(in srgb, var(--brand-mint) 35%, var(--surface));
-  --go-icon: var(--teal-ink);
-  --go-emergency-bg: var(--danger-soft);
-  --go-emergency: var(--danger);
-  --go-slate: var(--body);
-  --go-card: var(--surface);
-  --go-line: color-mix(in srgb, var(--go-teal) 12%, transparent);
-  --go-radius: var(--r-card);
-  --go-shadow: var(--shadow-raised);
-  background: var(--go-mint);
-  color: var(--go-slate);
-  border-color: var(--go-line);
-}
-.public-assistant header {
-  background: var(--go-teal);
-  color: var(--surface);
-}
-.public-assistant header p {
-  color: var(--brand-mint);
-}
-.public-assistant-titles {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-.public-assistant-mark {
-  width: 34px;
-  height: 30px;
-}
-.public-assistant-scroll {
-  background: var(--go-mint);
-}
-.public-assistant-greeting {
-  background: var(--go-card);
-  border-radius: var(--go-radius);
-  box-shadow: var(--go-shadow);
-  padding: 14px;
-  margin-bottom: 16px;
-}
-.public-assistant-greeting p {
-  margin: 0 0 4px;
-  color: var(--go-teal);
-}
-.public-assistant-note {
-  color: var(--go-slate) !important;
-  font-size: 13px;
-}
-.public-assistant-quick {
-  margin: 16px 0 8px;
-  color: var(--go-teal);
-  font-weight: 700;
-}
-.public-assistant-question {
-  background: var(--go-teal) !important;
-  color: var(--surface) !important;
-  border-radius: 14px;
-}
-.public-assistant-answer {
-  background: var(--go-card) !important;
-  border-radius: 14px;
-  box-shadow: var(--go-shadow);
-}
-.public-assistant-answer strong {
-  color: var(--go-green);
-}
-.public-assistant a {
-  color: var(--go-icon) !important;
-}
-.public-assistant nav button {
-  background: var(--go-card);
-  color: var(--go-teal);
-  border: 1px solid var(--go-line);
-  border-radius: 14px;
-  box-shadow: var(--go-shadow);
-}
-.public-assistant-again {
-  background: var(--go-card);
-  color: var(--go-teal);
-  border-color: var(--go-line);
-}
-.public-assistant form {
-  background: var(--go-mint-2);
-  border-color: var(--go-line);
-}
-.public-assistant form label {
-  color: var(--go-teal);
-}
-.public-assistant input {
-  border: 1px solid var(--go-line) !important;
-  border-radius: 14px;
-  color: var(--go-teal);
-}
-.public-assistant-send {
-  background: var(--go-teal);
-  color: var(--surface);
-  border: 0;
-  border-radius: 14px;
-  font-weight: 600;
-}
-.public-assistant-emergency {
-  margin: 10px 0 0;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: var(--go-emergency-bg);
-  color: var(--go-emergency) !important;
-  font-size: 13px;
-}
-.public-assistant-emergency a {
-  color: var(--go-emergency) !important;
-  font-weight: 700;
-}
-
-/* Match the approved conversation kit without changing the header or scroll budget. */
-.public-assistant { --go-mint: var(--surface); }
-.public-assistant-greeting { background: linear-gradient(115deg, var(--go-icon-bg), var(--go-card)); box-shadow: none; }
-.public-assistant nav button { box-shadow: none; }
-.public-assistant nav button:nth-child(3n + 1) { background: color-mix(in srgb, var(--brand-mint) 24%, var(--surface)); }
-.public-assistant nav button:nth-child(3n + 2) { background: color-mix(in srgb, var(--brand-orange) 13%, var(--surface)); }
-.public-assistant nav button:nth-child(3n) { background: color-mix(in srgb, var(--brand-lime) 18%, var(--surface)); }
-.public-assistant input, .public-assistant-send { border-radius: var(--r-pill); }
-.public-assistant .public-assistant-send { background: var(--go-teal); }
-.public-assistant-answer { box-shadow: none; border: 1px solid var(--go-line); }
-.public-assistant-answer strong { color: var(--go-teal); }
 
 /* ---- One motion, 28 September 2026 -------------------------------------------------------------
    The sheet grows out of the robot that opened it (growFrom, in GilbertAvatar.tsx) and shrinks back into him when
@@ -395,25 +344,4 @@
   .public-assistant li[data-arrived] {
     animation: none !important;
   }
-}
-/* The field's one calm ring, as the panel's composer wears it. */
-.public-assistant input:focus-visible {
-  outline: 2px solid var(--brand-green);
-  outline-offset: 2px;
-  box-shadow: none;
-  border-radius: var(--r-pill);
-}
-/* The G1 mark beside the name rather than on a row of its own above it, where it read as a stray
-   glyph floating over the title. */
-.public-assistant-titles {
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  column-gap: var(--space-8);
-}
-.public-assistant-titles > p {
-  grid-column: 1 / -1;
-}
-.public-assistant-titles .public-assistant-mark {
-  width: 24px;
-  height: 22px;
 }

@@ -1,5 +1,5 @@
 import { Suspense, lazy, useId, useState, type CSSProperties, type FormEvent } from 'react';
-import { ArrowRight, CircleAlert, Search, ShieldAlert, ShieldCheck, SlidersHorizontal } from 'lucide-react';
+import { ArrowRight, Search, ShieldAlert, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import vetting from '../../../../packages/catalog/vetting.json' with { type: 'json' };
 import {
  reviewStateOf, settingsContract, settingsScreen, snapshotOf,
@@ -14,6 +14,12 @@ import { useWideLayout } from '../lib/layout';
    nobody who does not open a settings screen downloads it. */
 const FounderGatePanel = lazy(() => import('./portal/gilbertone/founder/FounderAccess').then(m => ({ default: m.FounderGatePanel })));
 import { ChoiceChips, RangeSlider, SaveBar, Select, Switch } from './portal/Fields';
+/* The handoff's components, file by file (Lovable identity, 28 September 2026). This screen is also reached by
+   the clinical workspace through valueText, so it takes the few it draws rather than the barrel. */
+import { Alert } from '../ui/Alert';
+import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
 
 /* Configuration, on the back office: every setting every engine works to, in one place.
  *
@@ -203,7 +209,7 @@ function Editor({ limits, raw, onRaw, id, label, disabled, context }: { limits: 
      sentence as it always was. The slider cannot go outside the bounds; the field can, on purpose. */
   case 'minutes': case 'count': case 'percentage': case 'moneyCents': {
    const cents = limits.type === 'moneyCents';
-   const field = <input id={id} className="fc-number" inputMode={cents ? 'decimal' : 'numeric'} value={String(raw)} disabled={disabled} onChange={event => onRaw(event.target.value)}/>;
+   const field = <input id={id} className="fc-number ui-control ui-input" inputMode={cents ? 'decimal' : 'numeric'} value={String(raw)} disabled={disabled} onChange={event => onRaw(event.target.value)}/>;
    const bounds = limits.bounds;
    if (!bounds) return <><label htmlFor={id}>{label}</label>{field}</>;
    const scale = (value: number) => cents ? value / 100 : value;
@@ -231,12 +237,12 @@ function Editor({ limits, raw, onRaw, id, label, disabled, context }: { limits: 
   case 'list':
    return <>
     <label htmlFor={id}>{label}</label>
-    <input id={id} className="fc-text" inputMode="text" value={String(raw)} disabled={disabled} onChange={event => onRaw(event.target.value)}/>
+    <input id={id} className="ui-control ui-input" inputMode="text" value={String(raw)} disabled={disabled} onChange={event => onRaw(event.target.value)}/>
    </>;
   case 'text':
    return <>
     <label htmlFor={id}>{label}</label>
-    <textarea id={id} className="fc-text" rows={4} value={String(raw)} disabled={disabled} aria-describedby={id + '-limit'} onChange={event => onRaw(event.target.value)}/>
+    <textarea id={id} className="ui-control ui-textarea" rows={4} value={String(raw)} disabled={disabled} aria-describedby={id + '-limit'} onChange={event => onRaw(event.target.value)}/>
     <p className="helper" id={id + '-limit'}>{limitsText(limits)}</p>
    </>;
   /* A boolean with no words of its own is a switch. Every boolean the contracts hold today names its two
@@ -272,12 +278,12 @@ function Editor({ limits, raw, onRaw, id, label, disabled, context }: { limits: 
       chips={settingsContract.days.map(day => ({ key: day, label: dayName(day), checked: w.days.includes(day),
        onChange: checked => put(i, { days: checked ? settingsContract.days.filter(d => d === day || w.days.includes(d)) : w.days.filter(d => d !== day) }) }))}/>
      <div className="cf-hours">
-      <label>{say.editors.from}<input className="fc-text" inputMode="numeric" value={w.from} onChange={event => put(i, { from: event.target.value })}/></label>
-      <label>{say.editors.to}<input className="fc-text" inputMode="numeric" value={w.to} onChange={event => put(i, { to: event.target.value })}/></label>
+      <label>{say.editors.from}<input className="ui-control ui-input" inputMode="numeric" value={w.from} onChange={event => put(i, { from: event.target.value })}/></label>
+      <label>{say.editors.to}<input className="ui-control ui-input" inputMode="numeric" value={w.to} onChange={event => put(i, { to: event.target.value })}/></label>
      </div>
-     <button type="button" className="secondary" onClick={() => onRaw(windows.filter((_, j) => j !== i))}>{say.editors.removeWindow}</button>
+     <Button variant="secondary" onClick={() => onRaw(windows.filter((_, j) => j !== i))}>{say.editors.removeWindow}</Button>
     </div>)}
-    <button type="button" className="secondary" onClick={() => onRaw([...windows, { post: held[0]?.id ?? '', days: [...settingsContract.days], from: '', to: '' }])}>{say.editors.addWindow}</button>
+    <Button variant="secondary" onClick={() => onRaw([...windows, { post: held[0]?.id ?? '', days: [...settingsContract.days], from: '', to: '' }])}>{say.editors.addWindow}</Button>
    </fieldset>;
   }
   case 'record': {
@@ -349,13 +355,14 @@ export function Configuration({ engine, onEngine, fixed = false, saveBarLabel }:
   <div className="cf-work">
   <Suspense fallback={null}><FounderGatePanel sentence={gate.sentence} phase={gate.phase}/></Suspense>
   {/* One bar, two fields: what a setting is called and which engine owns it. Each keeps its own visible
-      label, and the bar is only how they sit together — so a phone stacks them without losing either. */}
+      label above its field, as the handoff's Field draws one, and the bar is only how they sit together — so
+      a phone stacks them without losing either. */}
   <div className="cf-tools" role="search">
    <div className="cf-bar">
     <div className="cf-bar-field cf-bar-query">
      <label htmlFor={id + '-query'}>{say.search}</label>
-     <span className="cf-bar-input"><Search size={18} aria-hidden="true"/>
-      <input id={id + '-query'} type="search" value={query} aria-describedby={id + '-query-help'} onChange={event => setQuery(event.target.value)}/>
+     <span className="cf-bar-input"><Search aria-hidden="true"/>
+      <Input id={id + '-query'} type="search" value={query} aria-describedby={id + '-query-help'} onChange={event => setQuery(event.target.value)}/>
      </span>
     </div>
     {!fixed && <div className="cf-bar-field cf-bar-engine">
@@ -369,9 +376,11 @@ export function Configuration({ engine, onEngine, fixed = false, saveBarLabel }:
    <p className="helper" id={id + '-query-help'}>{say.searchHelp}</p>
   </div>
   </div>
+  {/* What the screen is, as a line of helper text, and that it is a preview, as the handoff's warning Alert:
+      it is the one sentence here that must stay in view, and the Alert pairs it with its mark and its ink. */}
   <div className="cf-notes">
-   <div className="privacy-note"><SlidersHorizontal size={19}/>{say.intro}</div>
-   <div className="privacy-note alert"><CircleAlert size={19}/>{say.preview}</div>
+   <p className="cf-intro"><SlidersHorizontal aria-hidden="true"/><span>{say.intro}</span></p>
+   <Alert variant="warning" title={say.preview} className="cf-preview"/>
   </div>
   {/* The count's share of every setting is drawn as a bar under its words (--cf-share), so a search that
       narrows the list is seen narrowing it. The words say the same, so the bar is decoration beside them. */}
@@ -398,15 +407,17 @@ function EngineGroup({ block, items, history, locked, wide, saveBarLabel }: { bl
  </section>;
 }
 
-/* A card's ground says where the setting stands, never where it sits on the page: waiting on a clinical
-   review, changed from its default, or neither. The words say the same on every card — the review pill,
-   "Last changed by" or "Not changed from the default" — so the tint is never the only difference. */
+/* Where the setting stands, never where it sits on the page: waiting on a clinical review, changed from its
+   default, or neither. Since the Lovable identity every card is white, and the standing is a rule down the
+   card's leading edge — the warning ink while a review waits, the aqua once changed, none at its default —
+   beside the words that say the same on every card: the review badge, "Last changed by" or "Not changed
+   from the default". The rule is never the only difference. */
 const standingOf = (waitsOnReview: boolean, changed: boolean) => waitsOnReview ? 'review' : changed ? 'changed' : 'default';
 
 /* A card in two halves, on the founder's instruction of 28 September 2026 that what an administrator can
    change comes first. The first half is the setting as somebody deciding whether to change it reads it:
    its name, what it decides, the value in force, where it stands — the review pill and "Last changed by"
-   or "Not changed from the default", the words that say what the card's tint says — and the Change button,
+   or "Not changed from the default", the words that say what the card's edge says — and the Change button,
    or the form once it is open. The second half is what is merely in force around it: the default and who
    decided it, what an admin may set, what a change reaches and what no value may do, and the history.
 
@@ -414,9 +425,9 @@ const standingOf = (waitsOnReview: boolean, changed: boolean) => waitsOnReview ?
    is not; and on a narrow screen the default, the limits and the rules fold into a disclosure that starts
    closed, so a phone shows forty settings as forty short cards rather than forty long ones. Nothing is
    left out of either: a closed disclosure is one press from every word it holds, and the standing words
-   never fold, because a tint with its words folded away would be colour saying something alone. */
+   never fold, because an edge with its words folded away would be colour saying something alone. */
 /* `saved` is the settings version a change to this setting was just confirmed at, or null. The card settles with
-   a brief flash of its tint when it changes (fields.css, "One settings page"); its parity names the flash, so a
+   one brief flash when it changes (fields.css, "One settings page"); its parity names the flash, so a
    second change in a row replays it without remounting the card and losing the reader's focus. */
 function SettingItem({ engine, setting, snapshot, history, open, locked, wide, saved = null, saveBarLabel, onOpen, onClose, onApplied }: {
  engine: string; setting: Setting; snapshot: Snapshot; history: readonly Change[]; open: boolean; locked: boolean; wide: boolean; saved?: number | null; saveBarLabel?: string; onOpen: () => void; onClose: () => void; onApplied: (change: Change) => void;
@@ -441,15 +452,15 @@ function SettingItem({ engine, setting, snapshot, history, open, locked, wide, s
    </div>
    <div className="ss-standing">
     {review.required && (review.reviewed
-     ? <span className="pill cf-review"><ShieldCheck size={15}/>{fill(say.reviewed, { who: review.reviewed.byRef, on: review.reviewed.on ? dayOf(review.reviewed.on) : review.reviewed.at === null ? '' : whenOf(review.reviewed.at) })}</span>
-     : <span className="pill cf-review is-unreviewed"><ShieldAlert size={15}/>{say.notReviewed}</span>)}
+     ? <Badge variant="success" className="cf-review"><ShieldCheck aria-hidden="true"/>{fill(say.reviewed, { who: review.reviewed.byRef, on: review.reviewed.on ? dayOf(review.reviewed.on) : review.reviewed.at === null ? '' : whenOf(review.reviewed.at) })}</Badge>
+     : <Badge variant="warning" className="cf-review is-unreviewed"><ShieldAlert aria-hidden="true"/>{say.notReviewed}</Badge>)}
     <p className="ss-meta">{lastChangedText(history)}</p>
    </div>
    {/* While the founder's gate is shut there is no Change button at all: the gate's own panel at the top of
        the screen says why and carries the sign-in, so nothing here explains an absence twice. */}
    {locked ? null : open
     ? <ChangeForm engine={engine} setting={setting} expectedVersion={snapshot.settingsVersion} from={inForce} saveBarLabel={saveBarLabel} onClose={onClose} onApplied={onApplied}/>
-    : <button className="secondary m-press cf-open" onClick={onOpen}>{say.change}<span className="visually-hidden"> {setting.label}</span></button>}
+    : <Button variant="secondary" className="cf-open" onClick={onOpen}>{say.change}<span className="visually-hidden"> {setting.label}</span></Button>}
   </div>
   <div className="ss-timing-side">
    <details className="cf-about" open={wide}>
@@ -513,28 +524,28 @@ function ChangeForm({ engine, setting, expectedVersion, from, saveBarLabel, onCl
   {/* The reason, the refusal and the two steps' buttons are the save bar every settings page ends in. */}
   <SaveBar label={saveBarLabel}>
   <label htmlFor={id + '-reason'}>{say.reason}</label>
-  <textarea id={id + '-reason'} className="fc-text" value={reason} rows={3} disabled={!!review} aria-describedby={id + '-help'}
+  <textarea id={id + '-reason'} className="ui-control ui-textarea" value={reason} rows={3} disabled={!!review} aria-describedby={id + '-help'}
    onChange={event => { setReason(event.target.value); setRefused(null); }}/>
   <p className="helper" id={id + '-help'}>{say.reasonHelp}</p>
-  {refused && <p className="fs-refused" role="alert">{refused.statement}</p>}
+  {refused && <Alert variant="danger" title={refused.statement} className="fs-refused"/>}
   {review
    ? <div className="ss-confirm" role="group" aria-labelledby={id + '-confirm'}>
      <strong id={id + '-confirm'}>{fill(say.confirmQuestion, { setting: setting.label, from: valueText(setting, from), to: valueText(setting, review.to) })}</strong>
      <p>{setting.appliesTo}</p>
      {setting.reviewRequired && <p>{say.notReviewed}. {fill(say.reviewWaitsOn, { capability: capabilityName(setting.reviewRequired) })}</p>}
      <div className="button-row">
-      <button type="button" className="secondary m-press" onClick={() => setReview(null)}>{say.cancel}</button>
-      <button type="button" className="primary m-press" autoFocus onClick={confirm}>{say.confirm}<Go/></button>
+      <Button variant="secondary" onClick={() => setReview(null)}>{say.cancel}</Button>
+      <Button variant="primary" autoFocus onClick={confirm} trailingIcon={<Go/>}>{say.confirm}</Button>
      </div>
     </div>
    : <div className="button-row">
-     <button type="button" className="secondary m-press" onClick={onClose}>{say.cancel}</button>
-     <button type="submit" className="primary m-press">{say.review}<Go/></button>
+     <Button variant="secondary" onClick={onClose}>{say.cancel}</Button>
+     <Button variant="primary" type="submit" trailingIcon={<Go/>}>{say.review}</Button>
     </div>}
   </SaveBar>
  </form>;
 }
 
-/* The primary's arrow, the landing's: a mark in a disc beside the word, never a word itself, so it is
+/* The primary's arrow, the handoff's trailing icon: a mark beside the word, never a word itself, so it is
    hidden from a screen reader and the button's name stays exactly the contract's sentence. */
-const Go = () => <span className="cf-go" aria-hidden="true"><ArrowRight size={16} strokeWidth={2.25}/></span>;
+const Go = () => <ArrowRight aria-hidden="true"/>;

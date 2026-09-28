@@ -51,8 +51,7 @@
 .as-panel .as-scroll {
   background: var(--go-mint);
 }
-.as-panel .as-descriptor,
-.as-panel .as-hero-descriptor {
+.as-panel .as-descriptor {
   color: var(--go-slate);
 }
 .as-panel .as-simulated {
@@ -64,39 +63,8 @@
   color: var(--go-teal);
 }
 
-/* ---- The wordmark: the drawn logo needs an explicit box --------------------------------------- */
-.as-panel .as-wordmark {
-  display: inline-flex;
-  align-items: center;
-  margin: 2px 0;
-}
-.as-panel .as-wordmark svg {
-  display: block;
-  height: 30px;
-  width: auto;
-}
 
 /* ---- Welcome hero (screen 1) ------------------------------------------------------------------ */
-.as-panel .as-welcome-hero {
-  background: var(--go-card);
-  border-radius: var(--go-radius);
-  box-shadow: var(--go-shadow);
-  padding: var(--space-16);
-}
-.as-panel .as-hello {
-  color: var(--go-teal);
-  font-weight: 700;
-  letter-spacing: 0.01em;
-}
-.as-panel .as-state {
-  background: var(--go-icon-bg);
-  color: var(--go-teal);
-  border-radius: var(--r-pill);
-  font-weight: 600;
-}
-.as-panel .as-state::before {
-  background: var(--go-green);
-}
 
 /* ---- Conversation turns ----------------------------------------------------------------------- */
 .as-panel .as-said {
@@ -137,7 +105,7 @@
   background: var(--go-card);
   color: var(--go-teal);
   border: 1px solid var(--go-line);
-  border-radius: 16px;
+  border-radius: var(--r-tile);
   box-shadow: var(--go-shadow);
   text-align: left;
 }
@@ -168,7 +136,7 @@
   padding: var(--space-12);
   background: var(--go-card);
   border: 1px solid var(--go-line);
-  border-radius: 16px;
+  border-radius: var(--r-tile);
 }
 .as-panel .as-talkbar-icon {
   display: grid;
@@ -206,18 +174,18 @@
   background: var(--go-card);
   color: var(--go-teal);
   border: 1px solid var(--go-line);
-  border-radius: 14px;
+  border-radius: var(--r-control);
 }
 .as-panel .as-send {
   background: var(--go-teal);
   color: var(--surface);
   border: 0;
-  border-radius: 14px;
+  border-radius: var(--r-control);
 }
 .as-panel .as-silence {
   background: var(--go-emergency-bg);
   color: var(--go-emergency);
-  border-radius: 12px;
+  border-radius: var(--r-card);
 }
 .as-panel .as-keyboard {
   color: var(--go-slate);
@@ -290,29 +258,12 @@
 .as-panel .as-gate-check {
   background: var(--go-card);
   border: 1px solid var(--go-line);
-  border-radius: 14px;
+  border-radius: var(--r-control);
   color: var(--go-slate);
-}
-.as-panel .as-gate-cancel {
-  background: var(--go-card);
-  color: var(--go-teal);
-  border: 1px solid var(--go-line);
-  border-radius: 14px;
-}
-.as-panel .as-gate-accept {
-  background: var(--go-teal);
-  color: var(--surface);
-  border: 0;
-  border-radius: var(--r-pill);
 }
 /* Disabled is a truth about what was ticked, and still readable: assistant.css's section 6 pair
    (ink at 80% on ink at 8%, 5.7:1, with a hairline), restated here because the rule above ties it on
    specificity and wins on order — the ghost pill this skin used to draw was 1.6:1. */
-.as-panel .as-gate-accept:disabled {
-  background: color-mix(in srgb, var(--brand-ink) 8%, var(--surface));
-  color: color-mix(in srgb, var(--brand-ink) 80%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--brand-ink) 22%, var(--surface));
-}
 
 /* ---- The character's float moved to assistant-motion.css on 28 September 2026, where it stands
    still while the safety face holds — A16 stops decorative motion, and this float never knew. */
@@ -320,11 +271,6 @@
 /* Approved Life kit: colour belongs to the invitation; safety keeps its own register.
    Only surfaces change here so the phone conversation and voice disclosure keep their space. */
 .as-panel { --go-mint: var(--surface); --go-mint-2: color-mix(in srgb, var(--brand-mint) 12%, var(--surface)); }
-.as-panel .as-welcome-hero {
-  background: linear-gradient(115deg, var(--go-icon-bg), var(--go-card) 76%);
-  border: 1px solid var(--go-line);
-  box-shadow: none;
-}
 .as-panel .as-ask:not(.urgent):nth-child(3n + 1) { background: color-mix(in srgb, var(--brand-mint) 24%, var(--surface)); }
 .as-panel .as-ask:not(.urgent):nth-child(3n + 2) { background: color-mix(in srgb, var(--brand-orange) 13%, var(--surface)); }
 .as-panel .as-ask:not(.urgent):nth-child(3n) { background: color-mix(in srgb, var(--brand-lime) 18%, var(--surface)); }
@@ -405,24 +351,9 @@
 .as-panel[data-gate] .as-gate-check input {
   accent-color: var(--brand-green);
 }
-.as-panel[data-gate] .as-gate-cancel {
-  background: transparent;
-  border-color: color-mix(in srgb, var(--surface) 55%, var(--brand-ink));
-  color: var(--surface);
-  border-radius: var(--r-pill);
-}
 /* On the ink the primary turns over to the lime pill with the ink word, as the Configuration
    page's dark confirmation does (brandInk on brandLime, 10.47:1). Disabled, it is an outline in the
    mint with the word still readable (8.09:1): out of reach, and never a ghost. */
-.as-panel[data-gate] .as-gate-accept {
-  background: var(--brand-lime);
-  color: var(--brand-ink);
-}
-.as-panel[data-gate] .as-gate-accept:disabled {
-  background: transparent;
-  border: 1px solid color-mix(in srgb, var(--brand-mint) 45%, var(--brand-ink));
-  color: var(--brand-mint);
-}
 
 /* The three contract answers of 27 September as the pastel system's tinted tiles: lilac for a
    reading (studioInkDeep on studioLilac is the pair declared for health readings), lime for the
@@ -559,4 +490,349 @@
   box-shadow: none;
   border-color: var(--brand-ink);
   border-radius: var(--r-pill);
+}
+
+/* ---- On the identity, 28 September 2026 ---------------------------------------------------------
+   The Lovable handoff's look, on the panel: a compact white sheet, the brand ink for words and for the
+   one filled action, the handoff's green for what is live, and the tints that were cycling through
+   every tile gone — colour is kept for state (the Badge, the danger strip, the hands-free dot) so that
+   it still means something when it appears. The corners are the tokens' (a 12-pixel sheet and card,
+   8-pixel controls), the shadow is one shadow, and the actions are the shared Button, the state the
+   shared Badge and the welcome and the notes the shared Card (apps/web/src/ui).
+
+   Why fixed tokens here rather than the handoff's --color-<role> variables: the roles change under the
+   system's dark scheme, and tokens.json says no screen is restyled for dark in this generation. A panel
+   whose grounds were the flipping roles and whose older rules were not would put light words on white
+   for anybody whose phone is set to dark. So the grounds and inks below are the light values by their
+   fixed names — brandInk is light.primary, brandGreen light.accent, surface light.surface — and the
+   neutrals the handoff tints are mixes of those, which move with them. The shared components inside the
+   panel still follow the scheme, and each of them is coherent on its own (ground and words flip
+   together); a dark panel is the dark wave's to draw. */
+.as-panel {
+  --go-mint: var(--surface);
+  --go-mint-2: color-mix(in srgb, var(--brand-ink) 3%, var(--surface));
+  --go-muted: color-mix(in srgb, var(--brand-ink) 5%, var(--surface));
+  --go-icon-bg: color-mix(in srgb, var(--brand-green) 10%, var(--surface));
+  --go-icon: var(--brand-ink);
+  --go-line: color-mix(in srgb, var(--brand-ink) 16%, var(--surface));
+  --go-radius: var(--r-card);
+  --go-shadow: var(--shadow);
+  /* The handoff's roles, pinned to their light values for everything inside this light-only surface,
+     so a shared component here is drawn as the surface is under the system's dark scheme too — without
+     this the state Badge set light words on a light tint, and Cancel was a dark key on the ink sheet.
+     Each is the light role by its fixed name, or the mix this layer already uses for it; the one role
+     with no light name here (accentForeground, near-black in both schemes) is left alone. */
+  --color-background: var(--go-mint-2);
+  --color-foreground: var(--brand-ink);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--go-muted);
+  --color-primary: var(--brand-ink);
+  --color-primary-foreground: var(--surface);
+  --color-accent: var(--brand-green);
+  --color-muted: var(--go-muted);
+  --color-muted-foreground: var(--body);
+  --color-success: var(--brand-green);
+  --color-warning: var(--brand-lime);
+  --color-danger: var(--brand-orange);
+  --color-border: var(--go-line);
+  --color-input: var(--go-line);
+  --color-ring: var(--brand-green);
+  --ui-danger-ink: var(--danger);
+  --ui-warning-ink: var(--mango-ink);
+  --ui-success-ink: var(--teal-ink);
+  --ui-primary-ink: var(--brand-ink);
+  --ui-press-mix: transparent;
+}
+
+/* The head. The rig is the in-product character and lives here in every state; the state is a Badge
+   beside it. 64 pixels, the size the head already paid for: large enough to be a complete face, small
+   enough that the answer below keeps its room. */
+.as-panel .as-head .as-rig,
+.as-panel .as-head[data-asked] .as-rig {
+  --rig: 64px;
+}
+.as-panel .as-head[data-gate] .as-rig {
+  --rig: 64px;
+}
+.as-panel .as-head .as-caption {
+  display: grid;
+  align-content: center;
+  justify-self: stretch;
+  justify-items: start;
+  gap: var(--space-4);
+  text-align: left;
+}
+.as-panel .as-caption .as-state {
+  margin: 0;
+}
+
+/* The welcome: the official logo as a lockup — "Hello, I'm", the mark, the descriptor — centred on the
+   mark's own clear space, which is symmetric; left-aligned, the transparent margin the handoff asks to
+   keep would read as a stray indent. The master's clear space is about an eighth of its height above
+   and below the ink; half of it is allowed to overlap the lines around it, so the mark keeps its margin
+   without the card paying for it twice, and nothing touches the ink. */
+.as-panel .as-welcome-hero {
+  display: grid;
+  justify-items: center;
+  gap: 0;
+  margin: 0;
+  padding: var(--space-16) var(--space-16) var(--space-20);
+  text-align: center;
+}
+.as-panel .as-hello {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  color: var(--brand-ink);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.as-panel .as-wordmark {
+  display: block;
+  width: 168px;
+  height: auto;
+  margin: calc(var(--space-8) * -1) 0;
+}
+.as-panel .as-hero-descriptor {
+  position: relative;
+  z-index: 1;
+  max-width: 34ch;
+  margin: 0;
+  color: var(--body);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* The consent card: white paper on the ink sheet, opened by the official logo with the descriptor
+   beside it. The superseded studio paper and studio inks leave the gate: brandInk and body on surface
+   are the pairs tokens.json measures. The descriptor over the gate was mint on the ink head; inside the
+   card it is ink on white. */
+.as-panel .as-gate-paper {
+  background: var(--surface);
+  color: var(--brand-ink);
+}
+.as-panel .as-gate-paper :is(.as-gate-intro h3, .as-gate-card h3) {
+  color: var(--brand-ink);
+}
+.as-panel .as-gate-paper :is(.as-gate-intro p, .as-gate-card p, .as-gate-list li) {
+  color: var(--body);
+}
+.as-panel .as-gate-paper .as-gate-card {
+  border-top-color: var(--go-line);
+}
+.as-panel .as-gate-paper .as-gate-icon {
+  background: var(--go-icon-bg);
+  color: var(--brand-ink);
+}
+.as-gate-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  padding-bottom: var(--space-16);
+  border-bottom: 1px solid var(--go-line);
+}
+.as-gate-brand .go-logo {
+  flex: 0 0 auto;
+  width: 120px;
+  height: auto;
+  margin: calc(var(--space-12) * -1) 0 calc(var(--space-12) * -1) calc(var(--space-8) * -1);
+}
+.as-panel[data-gate] .as-gate-brand .as-descriptor {
+  margin: 0;
+  color: var(--brand-ink);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* The gate's two actions are the shared Button: secondary for Cancel, and the handoff's accent for the
+   agreement — its green on the ink is a 3.45:1 edge, and its words are accentForeground at 4.86:1.
+   Disabled, the Button's own fade would put the words at a guess; this keeps the outline in the mint
+   with the words still readable (8.09:1), because out of reach is not the same as gone. */
+.as-panel .as-gate-accept {
+  flex: 1 1 12rem;
+}
+.as-panel[data-gate] .as-gate-accept:disabled {
+  opacity: 1;
+  border-color: color-mix(in srgb, var(--brand-mint) 45%, var(--brand-ink));
+  background: transparent;
+  color: var(--brand-mint);
+}
+.as-panel[data-gate] .as-gate-check {
+  border-radius: var(--r-control);
+}
+
+/* Replies: a white card with a hairline, the tail a small corner. What she said is the ink. A reply's
+   headline is what it is for — "If this is a life threat, call an ambulance now", "Since when?" — so it
+   carries the ink and the sentences under it the body, never the other way round. */
+.as-panel .as-reply {
+  border-color: var(--go-line);
+  box-shadow: none;
+}
+.as-panel .as-reply .as-headline {
+  color: var(--brand-ink);
+}
+.as-panel .as-said {
+  background: var(--brand-ink);
+  color: var(--surface);
+}
+
+/* The three answer tiles of 27 September (a reading, the visit's list, the medicine list) were lilac,
+   lime and peach — three colours for one kind of thing, each a superseded studio colour. One muted
+   ground now: the headline says which it is. */
+.as-panel .as-tile,
+.as-panel .as-tile[data-tone] {
+  background: var(--go-muted);
+  color: var(--brand-ink);
+}
+.as-panel .as-tile .as-headline,
+.as-panel .as-stat-figure {
+  color: var(--brand-ink);
+}
+.as-panel .as-tile p,
+.as-panel .as-tile .as-list li > svg,
+.as-panel .as-stat-figure span {
+  color: var(--body);
+}
+.as-panel .as-tile .as-list li {
+  border-top-color: var(--go-line);
+  color: var(--brand-ink);
+}
+.as-panel .as-listcard[data-tone] .as-list li::before {
+  background: var(--brand-green);
+}
+
+/* The notes for the nurse: a Card, ink on white, the one object in the conversation she may carry
+   away — so it is the one reply with the card's shadow. */
+.as-panel .as-notes {
+  display: grid;
+  gap: var(--space-4);
+}
+.as-panel .as-notes .as-headline {
+  margin: 0;
+  color: var(--brand-ink);
+}
+
+/* Suggestions: the welcome's tiles are white cards with a hairline, the cycling tints gone; the icon
+   disc is the one tint. After a conversation starts they are the pill row the layer above draws. */
+.as-panel .as-ask:not(.urgent):nth-child(n) {
+  background: var(--surface);
+}
+.as-panel .as-chips .as-ask {
+  border-color: var(--go-line);
+  border-radius: var(--r-tile);
+}
+.as-panel .as-scroll:not([data-welcome]) .as-chips .as-ask {
+  border-radius: var(--r-pill);
+}
+.as-panel .as-chips .as-ask:hover {
+  border-color: var(--brand-green);
+}
+.as-panel .as-question-icon {
+  background: var(--go-icon-bg);
+  color: var(--brand-ink);
+}
+
+/* The composer: controls at the control radius, Send the one filled action. */
+.as-panel .as-compose {
+  border-top-color: var(--go-line);
+}
+.as-panel .as-compose .as-field input:not([type="file"]),
+.as-panel .as-compose .as-field input:not([type="file"]):focus-visible {
+  border-color: var(--go-line);
+  border-radius: var(--r-control);
+}
+.as-panel .as-compose .as-send {
+  border-radius: var(--r-control);
+  background: var(--brand-ink);
+}
+.as-panel .as-compose .as-voice,
+.as-panel .as-compose .as-media {
+  border-color: var(--go-line);
+  border-radius: var(--r-control);
+}
+.as-panel .as-compose .as-voice[aria-pressed="true"] {
+  border-color: var(--brand-ink);
+  background: var(--brand-ink);
+  color: var(--surface);
+}
+.as-panel .as-silence {
+  border-radius: var(--r-control);
+}
+
+/* The waiting dots: the handoff's green, a little smaller, in a bubble the size of the dots. */
+.as-panel .as-dots i {
+  width: var(--space-8);
+  height: var(--space-8);
+  background: var(--brand-green);
+}
+.as-panel .as-reply[data-waiting] {
+  padding: var(--space-12) var(--space-16);
+}
+
+/* The microphone-on line: the ink word with the orange dot beside it, on its own row. */
+.as-panel .as-mic-hot {
+  color: var(--brand-ink);
+}
+
+/* The services region opens with the official logo and the descriptor beside the region's heading. */
+.as-panel .gos-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  padding-bottom: var(--space-8);
+}
+.as-panel .gos-head .go-logo {
+  flex: 0 0 auto;
+  width: 96px;
+  height: auto;
+  margin: calc(var(--space-8) * -1) 0 calc(var(--space-8) * -1) calc(var(--space-4) * -1);
+}
+.as-panel .gos-head h3 {
+  margin: 0;
+  color: var(--brand-ink);
+  font-size: 15px;
+  line-height: 1.4;
+}
+.as-panel .gos-head p {
+  margin: 0;
+  color: var(--body);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* The region's disclosures: the panel's hairline between them, and the summary's icon in the green
+   rather than the mint, which on white was a shape nobody could make out (1.6:1). */
+.as-panel .gos-block {
+  border-top-color: var(--go-line);
+}
+.as-panel .gos-block > summary svg {
+  color: var(--brand-green);
+}
+
+/* The hands-free pill grew from 36 to the 44-pixel floor, and on the smallest phones the conversation
+   paid for it. It is paid back from the microphone and media row, which was 50 tall on every width
+   (a 40-pixel disc inside it): 44 is the floor there too, with a 36-pixel disc. */
+@media (max-width: 359px) {
+  .as-panel .as-compose .as-voice,
+  .as-panel .as-compose .as-media {
+    min-height: 44px;
+  }
+  .as-panel .as-compose .as-voice {
+    padding-block: 2px;
+  }
+  .as-panel .as-compose .as-mic-disc {
+    flex-basis: 36px;
+    height: 36px;
+  }
+}
+
+@media (max-width: 560px) {
+  .as-panel .as-wordmark {
+    width: 144px;
+  }
+  .as-gate-brand .go-logo {
+    width: 104px;
+  }
 }

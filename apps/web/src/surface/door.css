@@ -45,17 +45,19 @@
 }
 /* A card you are about to type into does not lift when the pointer crosses it. */
 .door-card:hover { transform: none; }
+/* The handoff's card, since 28 September 2026: white, one hairline, a 12 corner and the raised shadow,
+   on the handoff's pale ground — not the frosted panel on the aurora it was. Spelled from the fixed
+   brand values rather than the --color-* roles, because every word inside is the fixed ink ramp. */
+.door > .patient-ground.aurora { background: color-mix(in srgb, var(--brand-ink) 3%, var(--surface)); background-image: none; }
+.door-card { border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-raised); }
 
 /* ---- The aside: the brand, the promise, and what is true about this screen ---- */
-/* Sage with light in it rather than a flat rectangle. The column is as tall as the form beside it
-   and the form is the taller of the two, so on a wide screen there is green below the last word
-   whatever is done — a gradient makes that a surface instead of a hole. Both stops are palette
-   colours and every pair drawn on top of it is declared against *both* of them: charcoal clears
-   11.11 on paleSage and 8.94 on softSage, and the muted text below uses the softSage variant, which
-   is the darker of the two and therefore clears on the paler stop as well. Nothing is measured
-   against a colour that only exists halfway down. */
+/* A wash of the logo's green over white, flat — the handoff draws no gradients. It was a sage gradient
+   until the Lovable identity of 28 September 2026. It is spelled from the fixed brand values rather than
+   the --color-* roles because every word on it is written in the fixed ink ramp: charcoal and the body
+   ink clear 12.4 and 6.3 on it, and neither would survive the roles turning dark underneath them. */
 .door-aside {
- background: linear-gradient(180deg, var(--pale-sage) 0%, var(--soft-sage) 100%);
+ background: color-mix(in srgb, var(--brand-green) 8%, var(--surface));
  color: var(--charcoal);
  padding: var(--space-20);
  display: flex;
@@ -87,7 +89,7 @@
  border-top: 1px solid color-mix(in srgb, var(--charcoal) 14%, transparent);
  font-size: 13px;
  line-height: 1.55;
- color: var(--charcoal-muted-on-soft-sage);
+ color: var(--body);
 }
 .door-note > svg { color: var(--charcoal); margin-top: 1px; }
 
@@ -113,7 +115,7 @@
  padding: 0 10px 0 4px;
  border-radius: var(--r-pill);
  font-size: 14px;
- color: var(--charcoal-muted-on-soft-sage);
+ color: var(--body);
 }
 .door-steps b {
  display: grid;
@@ -127,7 +129,7 @@
  font-size: 13px;
  font-weight: 600;
 }
-.door-steps li.done b { background: var(--sage-slate); color: var(--charcoal); }
+.door-steps li.done b { background: var(--brand-mint); color: var(--brand-ink); }
 .door-steps li.current { background: var(--charcoal); color: var(--surface); }
 .door-steps li.current b { background: var(--surface); color: var(--charcoal); }
 @media (max-width: 899px) {
@@ -152,7 +154,7 @@
 .door-main > p.muted { color: var(--faint); }
 /* The status chip, above the line it belongs to. The reference's signature is a chip floating over
    the thing it describes, and this is the one screen that has a chip to float. */
-.door-main > .pill { background: var(--pale-sage); color: var(--charcoal); }
+.door-main > .pill { background: color-mix(in srgb, var(--brand-green) 12%, var(--surface)); color: var(--brand-ink); }
 /* The contract's notice, under the sentence that introduces the screen and above everything it is
    about to ask for. It is never removed, never shortened and never quieter for being simulated —
    see capabilities.json's own `a-simulation-says-so`. Only its position moved: first thing on the
@@ -203,8 +205,8 @@
 
 .door-main .primary:disabled {
  opacity: 1;
- background: var(--cloud);
- color: var(--charcoal-muted-on-cloud);
+ background: color-mix(in srgb, var(--brand-ink) 10%, var(--surface));
+ color: var(--body);
 }
 
 /* ---- Two columns, from 900px ----

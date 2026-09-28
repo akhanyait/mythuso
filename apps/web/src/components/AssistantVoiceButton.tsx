@@ -1,6 +1,7 @@
 import ui from "../../../../packages/catalog/assistant-chat-ui.json";
 import { useEffect, useRef, useState } from "react";
 import { Mic, MicOff } from "lucide-react";
+import { Button } from "../ui/Button";
 import { voice as voicePolicy } from "../../../../packages/catalog/assistant.json";
 import { disclosureFor, type VoiceAdapter } from "../lib/voice";
 import conversationMode from "../../../../packages/catalog/conversation-mode.json";
@@ -256,10 +257,11 @@ export function AssistantVoiceButton({
             consent as the microphone, so nothing opens on the first tap of either. It sits at the head
             of the footnote lines rather than on a row of the composer's grid, so neither of the
             composer's two layouts has to make room for it. */}
-        <button
-          type="button"
+        <Button
+          variant={convo.active ? "primary" : "secondary"}
           className="as-convo"
           aria-pressed={convo.active}
+          leadingIcon={<span className="as-convo-dot" aria-hidden="true" />}
           onClick={() => {
             if (convo.active) {
               convo.stop();
@@ -273,9 +275,8 @@ export function AssistantVoiceButton({
             startConversation();
           }}
         >
-          <span className="as-convo-dot" aria-hidden="true" />
           {convo.active ? chat.stopLabel : chat.startLabel}
-        </button>
+        </Button>
         {/* The sequence is explicit: capture never sends the draft on the person's behalf. */}
 
         {/* Before the first tap the disclosure below already says the microphone stays shut until she
@@ -328,8 +329,8 @@ export function AssistantVoiceButton({
               {consent.externalSpeechProcessing}
             </p>
             <div className="as-voice-actions">
-              <button
-                type="button"
+              <Button
+                variant="primary"
                 className="as-voice-agree"
                 onClick={() => {
                   dropped.current = false;
@@ -340,10 +341,10 @@ export function AssistantVoiceButton({
                 }}
               >
                 {consent.confirmLabel}
-              </button>
-              <button type="button" onClick={() => setAsking(false)}>
+              </Button>
+              <Button variant="secondary" onClick={() => setAsking(false)}>
                 {consent.notNowLabel}
-              </button>
+              </Button>
             </div>
           </div>
         ) : null}
@@ -354,22 +355,22 @@ export function AssistantVoiceButton({
         {(capturing || reading) && !convo.active ? (
           <div className="as-voice-actions">
             {capturing ? (
-              <button
-                type="button"
+              <Button
+                variant="secondary"
                 onClick={() => {
                   dropped.current = true;
                   voice.cancelCapture();
                 }}
               >
                 {labels.cancelCapture}
-              </button>
+              </Button>
             ) : (
-              <button type="button" onClick={() => voice.cancel()}>
+              <Button variant="secondary" onClick={() => voice.cancel()}>
                 {labels.stopVoice}
-              </button>
+              </Button>
             )}
-            <button
-              type="button"
+            <Button
+              variant="secondary"
               onClick={() => {
                 if (capturing) voice.stop();
                 voice.cancel();
@@ -377,22 +378,22 @@ export function AssistantVoiceButton({
               }}
             >
               {labels.typeInstead}
-            </button>
+            </Button>
           </div>
         ) : null}
         {/* While a conversation runs its only controls are Stop — the control above and every tap of
             the microphone — and the step down to typing, which is the same Stop and then the field. */}
         {convo.active ? (
           <div className="as-voice-actions">
-            <button
-              type="button"
+            <Button
+              variant="secondary"
               onClick={() => {
                 convo.stop();
                 onTypeInstead();
               }}
             >
               {labels.typeInstead}
-            </button>
+            </Button>
           </div>
         ) : null}
         {/* One footnote slot, not two. Before the first tap it carries the disclosure, which already says

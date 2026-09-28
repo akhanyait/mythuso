@@ -68,48 +68,50 @@ test.describe('the motion system', () => {
      does rather than what the last one did. */
   await expect(page.locator('html')).not.toHaveAttribute('data-decor', 'on');
   await expect(page.getByRole('button', { name: 'Play motion' })).toBeFocused();
-  expect(await running(page)).not.toContain('hero-ledge-glow-drift');
-  expect(await running(page)).not.toContain('hero-photo-drift');
+  expect(await running(page)).not.toContain('hero-particle-drift');
+  expect(await running(page)).not.toContain('hero-signal-pulse');
 
   await page.keyboard.press(' ');
   await expect(page.locator('html')).toHaveAttribute('data-decor', 'on');
  });
 
- /* The motion budget, held. Three things on the landing page move on their own once the entrance
-    has settled: the carousel's clock, which is finite, and the two endless drifts — the banner's
-    photograph and the glow behind the ledge. Nothing else. There were six on 25 September, and the
-    twenty-two orbit rings that made up three of them ran wherever the reader had scrolled to; a
-    seventh loop added for texture now fails here rather than in a review. And the two endless ones
-    hold still while the hero is off-screen, which the old pair never did. */
+ /* The motion budget, held. Two things on the landing page move on their own once the entrance has
+    settled, and both are the stage's (the Lovable identity, 28 September 2026): the three particles
+    drifting at the portrait's edge, on one keyframe, and the pulse beside the badge. They replaced the
+    photograph's drift and the glow behind the ledge rather than joining them — the budget is two loops,
+    and the handoff's floating cards were left still to keep it. There were six on 25 September, and
+    the twenty-two orbit rings that made up three of them ran wherever the reader had scrolled to; a
+    third loop added for texture now fails here rather than in a review. And both hold still while the
+    stage is off-screen. */
  test('the landing page runs exactly its budgeted motion, and none of it off-screen', async ({ page }) => {
   await page.goto('/');
   /* The hero's entrance cascade ends about 1.9 s after first paint (the ledge rises last, at
      1160 ms for 720), so "at rest" is measured after it — the budget is what keeps moving, not
      what arrived. */
   await page.waitForTimeout(ENTER_MS * 7);
-  const budget = ['slide-clock', 'hero-ledge-glow-drift', 'hero-photo-drift'];
+  const budget = ['hero-particle-drift', 'hero-signal-pulse'];
   const atRest = (await running(page)).filter(name => name !== 'unnamed' && /^[a-z-]+$/.test(name));
   expect(atRest.length).toBeGreaterThan(0);
   for (const name of atRest) expect(budget, `${name} is not in the motion budget`).toContain(name);
-  expect(atRest).toContain('hero-photo-drift');
-  expect(atRest).toContain('hero-ledge-glow-drift');
+  expect(atRest).toContain('hero-particle-drift');
+  expect(atRest).toContain('hero-signal-pulse');
   await page.locator('#safety').scrollIntoViewIfNeeded();
   await expect(page.locator('.landing-hero')).toHaveAttribute('data-ambient', 'paused');
-  await expect.poll(() => running(page)).not.toContain('hero-photo-drift');
-  await expect.poll(() => running(page)).not.toContain('hero-ledge-glow-drift');
+  await expect.poll(() => running(page)).not.toContain('hero-particle-drift');
+  await expect.poll(() => running(page)).not.toContain('hero-signal-pulse');
  });
 
  /* The shortlist of 28 September 2026 added motion further down the page — children rising in turn,
     the plans toggle's settle, the trace on the safety card — and none of it may join the budget above.
     So the page is walked to its foot, every one of them released, and once they have had their time
-    nothing is running that is not one of the two drifts. */
+    nothing is running that is not one of the stage's two loops. */
  test('everything the landing page reveals further down is finite', async ({ page }) => {
   await page.goto('/');
   for (const id of ['how', 'services', 'plans', 'nurses', 'safety']) await page.locator(`#${id}`).scrollIntoViewIfNeeded();
   await page.getByRole('button', { name: 'For Mom', exact: true }).click();
   await page.locator('.landing-final').scrollIntoViewIfNeeded();
   await page.waitForTimeout(ENTER_MS * 7);
-  const budget = ['hero-ledge-glow-drift', 'hero-photo-drift'];
+  const budget = ['hero-particle-drift', 'hero-signal-pulse'];
   for (const name of (await running(page)).filter(n => n !== 'unnamed' && /^[a-z-]+$/.test(n)))
    expect(budget, `${name} is still running at the foot of the page`).toContain(name);
  });

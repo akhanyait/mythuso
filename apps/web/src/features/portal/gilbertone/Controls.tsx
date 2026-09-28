@@ -1,6 +1,9 @@
 import { useId, type CSSProperties, type ReactNode } from 'react';
 import { Lock } from 'lucide-react';
 import { actionOf, cardStatusOf, gateIsOpen, gateOf, liveOf, refusalFor, type Action } from '../../../lib/gilbertone-admin';
+import { Badge } from '../../../ui/Badge';
+import { buttonVariants } from '../../../ui/Button';
+import { toneOf } from '../Parts';
 
 /* The only way a GilbertOne administration screen draws something that would change anything.
  *
@@ -24,7 +27,14 @@ import { actionOf, cardStatusOf, gateIsOpen, gateOf, liveOf, refusalFor, type Ac
  * disabled control: these are not locked settings, they are the plan's controls waiting on a gate, and
  * an administrator should see what will be here and what it waits on. The sentence is always drawn as
  * text, so a screen reader that skips the disabled button still reads why. Locked settings — push-to-
- * talk, captions, the clinical register, the clinical corpus — are <Locked/> below: text, no control. */
+ * talk, captions, the clinical register, the clinical corpus — are <Locked/> below: text, no control.
+ *
+ * THE LOOK (Lovable identity, 28 September 2026). Every control here is a native <button> or <input>, because
+ * that is what scripts/check-boundaries.mjs reads to prove each one disabled and described; they wear the
+ * shared components' classes instead of the components themselves — buttonVariants() for a button, the
+ * shared field's ui-control for an input — so the look is the handoff's and the markup the build holds is
+ * unchanged. The live button keeps its two old class names, which the build reads word for word, and
+ * portal.css gives it the handoff primary's face. */
 
 const assertOpen = (action: Action) => {
  if (action.gate === null)
@@ -56,7 +66,7 @@ export function GatedAction({ id, name }: { id: string; name?: string }) {
  const action = actionOf(id);
  assertOpen(action);
  return <div className="g1-action">
-  <button type="button" className="secondary g1-disabled" disabled aria-describedby={why}>{name ?? action.label}</button>
+  <button type="button" className={`${buttonVariants({ variant: 'secondary' })} g1-disabled`} disabled aria-describedby={why}>{name ?? action.label}</button>
   <p id={why} className="g1-refusal"><strong>{gateOf(action.gate).label}.</strong> {refusalFor(action)}</p>
  </div>;
 }
@@ -71,7 +81,7 @@ export function GatedActions({ ids, label }: { ids: readonly string[]; label: st
  if (gates.length !== 1) throw new Error(`The actions ${ids.join(', ')} are held by different gates and cannot share one refusal.`);
  return <div className="g1-actions" role="group" aria-label={label}>
   <div className="g1-action-row">{actions.map(a =>
-   <button key={a.id} type="button" className="secondary g1-disabled" disabled aria-describedby={why}>{a.label}</button>)}</div>
+   <button key={a.id} type="button" className={`${buttonVariants({ variant: 'secondary' })} g1-disabled`} disabled aria-describedby={why}>{a.label}</button>)}</div>
   <p id={why} className="g1-refusal"><strong>{gateOf(gates[0]!).label}.</strong> {refusalFor(actions[0]!)}</p>
  </div>;
 }
@@ -96,7 +106,7 @@ export function GatedSlider({ id, label, min, max, value, valueText, ticks }: {
  return <div className="g1-action">
   <div className="pt-slider" style={{ '--pt-ratio': ratio } as CSSProperties}>
    <div className="pt-slider-top">
-    <span className="g1-tag">{gateOf(action.gate).label}</span>
+    <Badge variant="primary" size="sm" className="g1-tag">{gateOf(action.gate).label}</Badge>
    </div>
    <div className="pt-slider-rail"><span className="pt-slider-chip">{valueText}</span></div>
    <div className="pt-range" role="slider" aria-label={label} aria-disabled="true"
@@ -121,7 +131,7 @@ export function ShapeField({ label, hint, kind = 'text' }: { label: string; hint
  const hintId = useId();
  return <label className="g1-field">
   <span>{label}</span>
-  <input type={kind} disabled autoComplete="off" className="fc-text" aria-describedby={hint ? hintId : undefined}/>
+  <input type={kind} disabled autoComplete="off" className="ui-control ui-input" aria-describedby={hint ? hintId : undefined}/>
   {hint && <small id={hintId}>{hint}</small>}
  </label>;
 }
@@ -140,7 +150,7 @@ export function Locked({ title, children }: { title: string; children: ReactNode
 export function CardStatusWord({ id, withSentence = false }: { id: string; withSentence?: boolean }) {
  const word = cardStatusOf(id);
  return <span className="pt-status-wrap">
-  <span className={`pt-status g1-card-status is-${word.id}`}>{word.id}</span>
+  <Badge variant={toneOf(word.id)} size="sm" dot className={`pt-status g1-card-status is-${word.id}`}>{word.id}</Badge>
   {withSentence && <span className="pt-status-sentence">{word.sentence}</span>}
  </span>;
 }

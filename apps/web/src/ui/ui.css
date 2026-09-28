@@ -131,12 +131,16 @@
 .ui-button:disabled { pointer-events: none; opacity: .45; }
 .ui-button svg { width: var(--space-16); height: var(--space-16); }
 
-.ui-button--sm { min-height: var(--space-32); border-radius: var(--r-sm); padding: 0 var(--space-12); font-size: 13px; }
+/* The compact faces still measure the target in their own box, 28 September 2026: the accessibility
+   audit (tests/audit.ts) and tokens.json#targets measure the element, not a pseudo hit layer, and the
+   build's target rule wins over the handoff's 32 px face. The face stays visually light through its
+   padding and type; the box is 44. */
+.ui-button--sm { min-height: var(--ui-target); border-radius: var(--r-sm); padding: 0 var(--space-12); font-size: 13px; }
 .ui-button--md { min-height: var(--ui-target); border-radius: var(--r-md); padding: 0 var(--space-16); font-size: 14px; }
 .ui-button--lg { min-height: calc(var(--space-24) * 2); border-radius: var(--r-md); padding: 0 var(--space-20); font-size: 16px; }
 .ui-button--icon { width: var(--ui-target); height: var(--ui-target); border-radius: var(--r-md); padding: 0; }
 .ui-button--icon svg { width: var(--space-20); height: var(--space-20); }
-.ui-button--icon.ui-button--icon-sm { width: var(--space-32); height: var(--space-32); }
+.ui-button--icon.ui-button--icon-sm { width: var(--ui-target); height: var(--ui-target); }
 .ui-button--icon.ui-button--icon-sm svg { width: var(--space-16); height: var(--space-16); }
 .ui-button--icon.ui-button--icon-lg { width: calc(var(--space-24) * 2); height: calc(var(--space-24) * 2); }
 
@@ -358,7 +362,7 @@
  background: var(--color-muted);
 }
 .ui-tab {
- min-height: calc(var(--space-32) + var(--space-4));
+ min-height: var(--ui-target);
  padding: 0 var(--space-12);
  border: 0;
  border-radius: var(--r-sm);

@@ -1,0 +1,302 @@
+/* The partner and back-office screens on the identity of 28 September 2026 (wave 4d).
+
+   The shared components (apps/web/src/ui) draw every control, card, badge and alert. What they do not
+   draw is the furniture a back office is made of and a patient screen is not: a register of compact
+   rows, a figure with the sentence that says what it is measured against, a list of facts, and the
+   honesty lines — "nothing above has been sent" — that sit under a board and must read as part of it
+   rather than as a banner shouting over it. Those are here, once, for every screen in this wave, so
+   the dispatch board, the vetting register, the claims, the groups and the SOS desk cannot drift into
+   five slightly different rows.
+
+   The rules the handoff sets and this sheet keeps: white surfaces on the handoff's pale ground, compact
+   corners (--r-sm / --r-md / --r-lg and nothing rounder), one shadow, aqua (--color-accent) for action,
+   selection and progress and for nothing decorative, and no pastel tint behind a row or an icon. A row
+   used to carry a tinted circle with an icon in it on every line of every list; when every row has a
+   coloured tile the colour has stopped saying anything, so a row now says its state in a Badge — in
+   words — and nothing else on it is coloured.
+
+   Every colour is a token variable, every size a step of the type scale, every gap the spacing scale.
+   The ink variables (--ui-danger-ink and the rest) are ui.css's, measured there against both grounds;
+   this sheet only ever writes words in --color-foreground, --color-muted-foreground or one of those.
+   Nothing here moves on its own, so there is nothing for reduced motion to stop except the one
+   colour change a pressed row makes, which the last block removes. */
+
+/* ---- Screen head ---------------------------------------------------------------------------------
+   The eyebrow is chrome and the heading is the page, as the back office settled long ago. */
+.oi-screen { display: grid; gap: var(--space-24); min-width: 0; color: var(--color-foreground); }
+.oi-screen > * { min-width: 0; }
+.oi-head { display: grid; gap: var(--space-8); min-width: 0; }
+.oi-eyebrow { margin: 0; color: var(--color-muted-foreground); font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.oi-title { margin: 0; font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1.2; color: var(--color-foreground); }
+.oi-lead { margin: 0; max-width: 68ch; color: var(--color-muted-foreground); font-size: 15px; line-height: 1.55; }
+.oi-head-line { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-8) var(--space-16); }
+
+/* A section inside a screen: its heading, and an optional count or sentence beside it. */
+.oi-section { display: grid; gap: var(--space-12); min-width: 0; }
+.oi-section-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-4) var(--space-12); }
+.oi-section-title { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; line-height: 1.3; color: var(--color-foreground); }
+.oi-section-note { margin: 0; color: var(--color-muted-foreground); font-size: 14px; line-height: 1.45; }
+.oi-subtitle { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.4; color: var(--color-foreground); }
+
+/* ---- Figures ---------------------------------------------------------------------------------------
+   The MetricCard's face (ui.css's ui-metric classes) with the sentence under the number that a console
+   cannot lose: "84" means nothing without "63% of the month-9 plan". The figure that needs attention
+   says so in a Badge; its card is not recoloured, because the words already carry it. */
+.oi-figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: var(--space-16); min-width: 0; }
+.oi-figure { display: grid; align-content: start; gap: var(--space-4); min-width: 0; }
+.oi-figure .ui-metric__head { margin-bottom: var(--space-8); align-items: flex-start; }
+.oi-figure .ui-metric__label { overflow-wrap: anywhere; }
+.oi-figure__body { display: flex; align-items: center; justify-content: space-between; gap: var(--space-12); }
+.oi-figure__note { margin: 0; color: var(--color-muted-foreground); font-size: 13px; line-height: 1.45; }
+.oi-figure--lead .ui-metric__value { font-size: 40px; }
+
+/* One arc per party on the register, lit in aqua for the ones cleared: progress, which is what aqua is for. */
+.oi-ring { flex: none; width: calc(var(--space-40) * 2); height: calc(var(--space-40) * 2); }
+.oi-ring__track { fill: none; stroke: var(--color-muted); stroke-width: 10; }
+.oi-ring__arc { fill: none; stroke: var(--color-border); stroke-width: 10; }
+.oi-ring__arc.is-on { stroke: var(--color-accent); }
+
+/* A bar of passing checks. The fill is the accent, a shape rather than words, on the muted track. */
+.oi-progress { position: relative; height: var(--space-8); border-radius: var(--r-pill); background: var(--color-muted); overflow: hidden; }
+.oi-progress > span { position: absolute; inset: 0 auto 0 0; border-radius: var(--r-pill); background: var(--color-accent); }
+
+/* ---- Rows ------------------------------------------------------------------------------------------
+   The handoff's compact row: a hairline between rows rather than a card around each, the name at 14,
+   what it is at 13 beneath, the state as a Badge and the action at the end. A row that is itself a
+   button is 44 tall at least and says it is the chosen one by its tint, its left rule and aria-pressed
+   — never by the tint alone. On a phone the state and the actions drop under the words. */
+.oi-rows { display: grid; margin: 0; padding: 0; list-style: none; min-width: 0; }
+.oi-row {
+ display: grid;
+ grid-template-columns: minmax(0, 1fr) auto;
+ align-items: start;
+ gap: var(--space-8) var(--space-16);
+ min-height: var(--ui-target, 44px);
+ padding: var(--space-12) var(--space-16);
+ border: 0;
+ border-top: 1px solid var(--color-border);
+ background: transparent;
+ color: var(--color-foreground);
+ font: inherit;
+ text-align: left;
+}
+.oi-rows > .oi-row:first-child, .oi-rows > li:first-child > .oi-row { border-top: 0; }
+.oi-rows > li { display: block; min-width: 0; }
+.oi-row__body { display: grid; gap: var(--space-4); min-width: 0; }
+.oi-row__title { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.4; color: var(--color-foreground); overflow-wrap: anywhere; }
+.oi-row__meta { display: block; margin: 0; color: var(--color-muted-foreground); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+.oi-row__meta--refusal { color: var(--ui-danger-ink); font-weight: 600; }
+.oi-row__meta--strong { color: var(--color-foreground); font-weight: 600; }
+.oi-row__aside { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-8); }
+.oi-row__actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.oi-row__figure { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 14px; white-space: nowrap; }
+button.oi-row { width: 100%; cursor: pointer; }
+button.oi-row:hover { background: var(--color-muted); }
+button.oi-row[aria-pressed="true"] { padding-left: calc(var(--space-16) - 3px); border-left: 3px solid var(--color-accent); background: color-mix(in oklab, var(--color-accent) 12%, transparent); }
+button.oi-row:focus-visible { outline: 2px solid var(--color-ring); outline-offset: -2px; }
+.oi-row.is-closed .oi-row__title { color: var(--color-muted-foreground); }
+@media (max-width: 599px) {
+ .oi-row { grid-template-columns: minmax(0, 1fr); }
+ .oi-row__aside { justify-content: flex-start; }
+}
+
+/* A row that is one sentence led by a mark — a refusal list, a "never" list. The mark is the danger ink
+   because every such list on these screens is a list of things refused, and says so in its heading. */
+.oi-row.oi-row--mark { grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+.oi-row--mark > svg { width: var(--space-16); height: var(--space-16); margin-top: var(--space-4); color: var(--ui-danger-ink); }
+.oi-row--mark .oi-row__title { font-weight: 500; }
+.oi-with-icon { display: flex; align-items: flex-start; gap: var(--space-8); }
+.oi-with-icon > svg { flex: none; width: var(--space-16); height: var(--space-16); margin-top: var(--space-4); }
+
+.oi-row.oi-row--plain { grid-template-columns: auto minmax(0, 1fr); }
+.oi-row--plain > svg { width: var(--space-20); height: var(--space-20); margin-top: calc(var(--space-4) / 2); color: var(--color-muted-foreground); }
+.ui-card > .oi-row:first-child { border-top: 0; }
+
+/* The person a sponsor pays for: her initials, her name, how she is related, and the one badge. */
+.sponsor-who { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-12) var(--space-16); }
+.sponsor-who > div { flex: 1 1 12rem; display: grid; gap: calc(var(--space-4) / 2); }
+
+.oi-lead--ink { color: var(--color-foreground); }
+.oi-row.oi-row--boxed { border: 1px solid var(--color-border); border-radius: var(--r-md); }
+.oi-badge-mark { width: var(--space-12); height: var(--space-12); }
+
+/* A radio the whole row of words selects, 44 tall at least, on the handoff's control edge. */
+.oi-radio { display: flex; align-items: flex-start; gap: var(--space-12); min-height: 44px; padding: var(--space-12); border: 1px solid var(--color-border); border-radius: var(--r-md); background: var(--color-surface); cursor: pointer; }
+.oi-radio:has(input:checked) { padding-left: calc(var(--space-12) - 2px); border-color: var(--color-accent); border-left-width: 3px; }
+.oi-radio input { flex: none; width: var(--space-16); height: var(--space-16); margin: var(--space-4) 0 0; accent-color: var(--color-primary); }
+.oi-radio span { display: grid; gap: var(--space-4); }
+.oi-radio strong { font-size: 14px; font-weight: 600; color: var(--color-foreground); }
+.oi-radio small { font-size: 13px; line-height: 1.45; color: var(--color-muted-foreground); }
+/* Recorded values, one to a block: the label, the value at weight, the help under it. */
+.oi-values { display: grid; gap: var(--space-12); margin: 0; }
+.oi-values > div { display: grid; gap: calc(var(--space-4) / 2); min-width: 0; padding: var(--space-8) var(--space-12); border-radius: var(--r-md); background: var(--color-muted); }
+.oi-values dt { color: var(--color-muted-foreground); font-size: 13px; }
+.oi-values dd { margin: 0; font-size: 15px; font-weight: 600; color: var(--color-foreground); overflow-wrap: anywhere; }
+.oi-values dd.is-blank { color: var(--color-muted-foreground); font-weight: 400; }
+.oi-paths { display: grid; gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+.oi-card-pad { padding: var(--space-16) var(--space-16) 0; }
+.oi-history > summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--color-foreground); }
+.oi-confirm p { margin: 0; }
+.oi-guardrail > svg { margin-top: var(--space-4); }
+.oi-guardrail .oi-lead { font-size: 15px; }
+
+/* ---- Facts -----------------------------------------------------------------------------------------
+   A label and its value on one line where there is room, the label above it where there is not. The
+   value is right-aligned on a wide screen so a column of them reads down. */
+.oi-facts { display: grid; margin: 0; min-width: 0; }
+.oi-facts > div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-4) var(--space-16); padding: var(--space-8) 0; border-top: 1px solid var(--color-border); min-width: 0; }
+.oi-facts > div:first-child { border-top: 0; }
+.oi-facts dt { color: var(--color-muted-foreground); font-size: 13px; line-height: 1.45; }
+.oi-facts dd { margin: 0; display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-4); font-size: 14px; font-weight: 600; line-height: 1.45; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.oi-facts dd svg { width: var(--space-16); height: var(--space-16); color: var(--color-muted-foreground); }
+.oi-facts dd.is-refused { color: var(--ui-danger-ink); }
+
+/* ---- Notes -----------------------------------------------------------------------------------------
+   The honesty lines. A quiet muted panel with a Lucide mark, the words in the foreground ink: they are
+   read, not skimmed past, and they are never styled smaller than the board they qualify. A note that
+   is a refusal carries the danger ink on its mark and a hairline of it on its edge, and says so in its
+   words; the colour repeats them. */
+.oi-note { display: flex; align-items: flex-start; gap: var(--space-12); margin: 0; padding: var(--space-12) var(--space-16); border: 1px solid transparent; border-radius: var(--r-md); background: var(--color-muted); color: var(--color-foreground); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.oi-note > svg { flex: none; width: var(--space-16); height: var(--space-16); margin-top: var(--space-4); color: var(--color-muted-foreground); }
+.oi-note--refusal { border-color: color-mix(in oklab, var(--color-danger) 35%, transparent); background: var(--color-surface); }
+.oi-note--refusal > svg { color: var(--ui-danger-ink); }
+.oi-notes { display: grid; gap: var(--space-8); }
+
+/* Words under a control or a list: 14 on the muted ink. */
+.oi-help { margin: 0; color: var(--color-muted-foreground); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.oi-refusal { margin: 0; color: var(--ui-danger-ink); font-size: 14px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.oi-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
+.oi-stack { display: grid; gap: var(--space-12); min-width: 0; }
+.oi-card-body { display: grid; gap: var(--space-16); min-width: 0; }
+/* A grid item's minimum is its content's by default, so a table in a details or a long path in a row would
+   widen the whole card past the screen. Every grid here lets its items shrink; the tables scroll in their
+   own boxes instead. */
+.oi-stack > *, .oi-card-body > *, .oi-section > *, .oi-head > * { min-width: 0; }
+.oi-history { min-width: 0; max-width: 100%; }
+
+/* ---- Segmented choice ------------------------------------------------------------------------------
+   A strip of buttons that pick which of several things the card below shows, drawn on the handoff's
+   tab face (ui.css's ui-tabs / ui-tab). They stay buttons with aria-pressed rather than tabs where the
+   thing chosen is an item on a board — a visit — rather than a view of the page. */
+.oi-segment .ui-tab { display: inline-flex; align-items: center; gap: var(--space-4); }
+.oi-segment .ui-tab svg { width: var(--space-16); height: var(--space-16); }
+
+/* ---- Tables ----------------------------------------------------------------------------------------
+   Compact, hairline-ruled, figures right-aligned and tabular. A table wider than its card scrolls
+   inside its own box, never the page. */
+.oi-table-wrap { overflow-x: auto; min-width: 0; }
+.oi-table { width: 100%; border-collapse: collapse; font-size: 14px; line-height: 1.45; color: var(--color-foreground); }
+.oi-table caption { padding: 0 var(--space-16) var(--space-12); caption-side: top; text-align: left; color: var(--color-muted-foreground); font-size: 13px; }
+.oi-table th, .oi-table td { padding: var(--space-8) var(--space-16); border-top: 1px solid var(--color-border); text-align: left; vertical-align: top; }
+.oi-table thead th { border-top: 0; color: var(--color-muted-foreground); font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.oi-table tbody th { font-weight: 600; }
+.oi-table .is-figure { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.oi-table tfoot th, .oi-table tfoot td { font-weight: 600; border-top: 2px solid var(--color-border); }
+.oi-table tr.is-flagged th:first-child { padding-left: calc(var(--space-16) - 3px); border-left: 3px solid var(--ui-danger-ink); }
+.oi-table .is-refused { color: var(--ui-danger-ink); font-weight: 600; }
+.oi-table code { font-size: 13px; overflow-wrap: anywhere; }
+.oi-table input { min-height: var(--ui-target, 44px); width: 7rem; }
+
+/* ---- Two columns -----------------------------------------------------------------------------------
+   The register beside the party it opens, the board beside the visit it sends: side by side from a
+   laptop up, one above the other below. */
+.oi-split { display: grid; gap: var(--space-16); align-items: start; min-width: 0; }
+.oi-split > * { min-width: 0; }
+@media (min-width: 1100px) {
+ .oi-split { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
+ .oi-split--even { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+.oi-pair { display: grid; gap: var(--space-16); min-width: 0; }
+@media (min-width: 800px) { .oi-pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+
+/* A form laid out in a row where there is room. */
+.oi-form-row { display: grid; gap: var(--space-16); align-items: end; min-width: 0; }
+@media (min-width: 700px) { .oi-form-row { grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); } }
+
+/* A card whose own header carries a Badge beside its title. */
+.oi-card-head, .ui-card__header.oi-card-head { display: flex; flex-direction: row; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-8) var(--space-12); }
+.oi-card-head > div { display: grid; gap: var(--space-4); min-width: 0; }
+
+/* ---- The dispatch board -------------------------------------------------------------------------- */
+/* The candidate rows keep `record-row static` as the name journeys find a nurse by. The legacy sheets
+   draw that class as a flex line with its own padding, radius and colours; this outranks them so the
+   row is the compact row and nothing else. */
+.oi-rows > li > .oi-row.record-row { display: grid; align-items: start; gap: var(--space-8) var(--space-16); padding: var(--space-12) var(--space-16); border-radius: 0; color: var(--color-foreground); }
+.oi-rows > li + li > .oi-row.record-row { border-top: 1px solid var(--color-border); }
+.oi-map-key { display: flex; flex-wrap: wrap; gap: var(--space-8) var(--space-16); margin: 0; padding: 0; list-style: none; color: var(--color-foreground); font-size: 13px; }
+.oi-map-key li { display: inline-flex; align-items: center; gap: var(--space-8); }
+.oi-map-key i { display: inline-block; width: var(--space-12); height: var(--space-12); border-radius: var(--r-pill); }
+.oi-alert-action { margin-top: var(--space-12); }
+.oi-full { width: 100%; }
+/* Full width is for a thumb. On a wide screen a button is as long as its words and starts where they start. */
+@media (min-width: 800px) { .oi-full { width: auto; justify-self: start; } }
+.oi-share { display: grid; grid-template-columns: 3.5rem minmax(4rem, 1fr); align-items: center; gap: var(--space-12); min-width: 9rem; }
+.oi-row__go { width: var(--space-16); height: var(--space-16); color: var(--color-muted-foreground); }
+.oi-map-card .livemap-heading span { background: var(--color-muted); }
+/* Below two columns the board is one, and the list comes first: a controller opens this to send a
+   nurse, and the map is a picture of the same list rather than the way into it. */
+@media (max-width: 1099px) { .oi-dispatch .oi-assign-card { order: -1; } }
+
+/* ---- The vetting register -------------------------------------------------------------------------- */
+.oi-vetting-bar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-12) var(--space-16); }
+.oi-inline-field { flex: 1 1 16rem; max-width: 26rem; }
+.oi-subject__name { font-size: 22px; }
+.oi-meter { margin: 0; color: var(--color-muted-foreground); font-size: 14px; }
+.oi-meter strong { margin-right: var(--space-4); color: var(--color-foreground); font-family: var(--font-display); font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.oi-row.vetting-check.is-anchor { padding-left: calc(var(--space-16) - 3px); border-left: 3px solid var(--color-primary); }
+.oi-register .oi-row .oi-progress { max-width: 16rem; }
+/* Thirty-two parties beside one party's file: the register scrolls inside its own card — on a phone too, where
+   it would otherwise put seven thousand pixels between a name and the file it opens —
+   so the file being decided starts beside the name it belongs to. The file itself is not pinned: it is
+   usually the taller of the two, and a pinned card slides its lower buttons under the shell's own header. Vertical only — every row wraps its words,
+   and overflow-x is closed explicitly so nothing can hide sideways inside the box. */
+.oi-register > .oi-rows { max-height: min(60vh, 40rem); overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
+@media (min-width: 1100px) { .oi-register > .oi-rows { max-height: min(70vh, 56rem); } }
+.oi-choices { display: grid; gap: 0; margin: 0; padding: 0; border: 0; min-width: 0; }
+.oi-choices legend { padding: 0 0 var(--space-4); font-size: 14px; font-weight: 600; }
+/* Rows inside a padded card run to the card's own padding rather than drawing a second inset. */
+.oi-rows--flush > .oi-row { padding-left: 0; padding-right: 0; }
+.oi-rows--flush > button.oi-row { padding-left: var(--space-8); padding-right: var(--space-8); }
+.oi-with-mark { display: flex; align-items: center; gap: var(--space-8); }
+.oi-with-mark svg { flex: none; width: var(--space-24); height: var(--space-24); color: var(--ui-success-ink); }
+
+/* ---- Steps of an order -------------------------------------------------------------------------------
+   A rail with a mark per step: filled with a tick when done, a heavy ring in the progress colour for the
+   step in hand, a hollow hairline ring for one still waiting. The shapes differ, not only the colours. */
+.oi-steps { display: grid; margin: 0; padding: 0; list-style: none; }
+.oi-step { position: relative; display: grid; grid-template-columns: var(--space-24) minmax(0, 1fr); gap: var(--space-12); padding-bottom: var(--space-16); }
+.oi-step:last-child { padding-bottom: 0; }
+.oi-step::before { content: ""; position: absolute; left: calc(var(--space-12) - 1px); top: var(--space-24); bottom: 0; width: 2px; background: var(--color-border); }
+.oi-step:last-child::before { display: none; }
+.oi-step.is-done::before { background: var(--color-accent); }
+.oi-step__mark { position: relative; display: grid; place-items: center; width: var(--space-24); height: var(--space-24); border: 2px solid var(--color-border); border-radius: var(--r-pill); background: var(--color-surface); color: var(--color-primary-foreground); }
+.oi-step__mark svg { width: var(--space-12); height: var(--space-12); }
+.oi-step.is-done .oi-step__mark { border-color: var(--color-primary); background: var(--color-primary); }
+.oi-step.is-active .oi-step__mark { border-width: 4px; border-color: var(--color-accent); }
+.oi-step__body { display: grid; gap: calc(var(--space-4) / 2); min-width: 0; padding-top: calc(var(--space-4) / 2); }
+.oi-step.is-waiting .oi-row__title { color: var(--color-muted-foreground); }
+.oi-with-icon.oi-eyebrow > svg { width: var(--space-16); height: var(--space-16); margin-top: 0; }
+
+/* ---- Targets on these screens ------------------------------------------------------------------------
+   The handoff's tab face is 36 with a 44 hit area drawn by a pseudo-element. The accessibility audit in
+   tests/accessibility.spec.ts measures a control's own box, which is also what a switch-access user's
+   highlight and a magnifier's focus follow, so on these screens a tab is 44 tall itself. Buttons here
+   are the md size for the same reason; nothing on them is the sm face. */
+.oi-screen .ui-tabs .ui-tab, .oi-dispatch .ui-tab { min-height: var(--ui-target); }
+
+/* The applicant's way on carries `primary` for the journey that walks it (Vetting.tsx says why). Two
+   legacy sheets draw that class — core.css as an indigo slab and clinical.css as a lime pill — and both
+   outrank a single class, so the handoff's primary button is restated here from its own tokens. */
+.oi-apply .ui-button.ui-button--primary.primary { min-height: var(--ui-target); padding: 0 var(--space-16); gap: var(--space-8); border-radius: var(--r-md); background: var(--color-primary); color: var(--color-primary-foreground); font-size: 14px; font-weight: 600; letter-spacing: normal; }
+.oi-apply .ui-button.ui-button--primary.primary:hover:not(:disabled) { background: color-mix(in oklab, var(--color-primary) 90%, var(--ui-press-mix)); color: var(--color-primary-foreground); }
+
+/* The order's state chip keeps `pill` as the name a journey reads it by, and inside the clinical shell
+   `.clinical .pill` outranks the Badge with a grey outline. The Badge's own faces, restated from ui.css. */
+.oi-order .order-head .ui-badge.pill { border: 0; font-weight: 600; }
+.oi-order .order-head .ui-badge--neutral.pill { background: var(--color-muted); color: var(--color-muted-foreground); }
+.oi-order .order-head .ui-badge--success.pill { background: color-mix(in oklab, var(--color-success) 15%, transparent); color: var(--color-foreground); }
+.oi-order .order-head .ui-badge--danger.pill { background: color-mix(in oklab, var(--color-danger) 12%, transparent); color: var(--ui-danger-ink); }
+
+@media (prefers-reduced-motion: reduce) {
+ button.oi-row { transition: none; }
+}

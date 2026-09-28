@@ -1,7 +1,7 @@
 import { ArrowRight, Ban, EyeOff, HandCoins, LockKeyhole, UserRoundCheck } from 'lucide-react';
-import { Pill, SectionTitle } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
-import { Metric, Metrics } from '../surface/Surface';
+import { Avatar, AvatarFallback, Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui';
+import { OfficeFacts, OfficeFigure, OfficeHead, OfficeNote, OfficeSection } from '../surface/Office';
 import { scopes } from './Guardian';
 import { money } from '../lib/catalog';
 import {
@@ -34,11 +34,6 @@ import { previewHousehold, sponsorWords } from '../lib/household';
  * services.json, because a sponsored visit is not a different visit and there is nowhere in the
  * contract to type a figure. Nothing is paid, no statement is issued, and no sponsorship exists. */
 
-/* The figure without its symbol, so a metric can set the R small and leading the way the design
-   language asks. Derived from money() rather than formatted again — the grouping and the rounding
-   stay the catalogue's. */
-const figure = (n: number) => money(n).replace(/^R\s*/, '');
-
 export function SponsoredCare({ person, relation, navigate, open }: {
  person: string; relation: string; navigate: (page: string) => void; open: (modal: string) => void;
 }) {
@@ -53,99 +48,103 @@ export function SponsoredCare({ person, relation, navigate, open }: {
  const link = sponsorshipLink(previewHousehold().householdRef);
  const shown = readableLines(link);
  const standing = sponsorshipStateOf(link.stateCode);
- return <>
-  <div className="page-intro"><div className="eyebrow">THUSO FAMILY</div>
-   <h1>Care you pay for.</h1>
-   <p>What has been used, what it cost, and what paying for it does and does not let you see.</p></div>
+ return <div className="oi-screen sponsor-screen">
+  <OfficeHead eyebrow="Thuso Family" title="Care you pay for." lead="What has been used, what it cost, and what paying for it does and does not let you see."/>
   <NotConnected of="payments"/>
 
-  {/* Who, and the three figures a person opening a statement is looking for. */}
-  <section className="panel glass lead sponsor-lead rise-2">
-   <div className="lead-head">
-    <div className="sponsor-who">
-     <span className="avatar peach">{person.split(' ').map(p => p[0]).slice(0, 2).join('')}</span>
-     <div><strong>{person}</strong><small>{relation}</small></div>
-    </div>
-    <Pill tone="teal">Sponsored care</Pill>
+  {/* Who, and the three figures a person opening a statement is looking for. The figures are the
+      handoff's metric cards on the ground rather than a tinted glass slab around them: three cards in
+      one frame would be cards inside a card. */}
+  <section className="oi-stack sponsor-lead" aria-label={`Care for ${person}`}>
+   <div className="sponsor-who">
+    <Avatar size="lg"><AvatarFallback initials={person.split(' ').map(p => p[0]).slice(0, 2).join('')}/></Avatar>
+    <div><p className="oi-subtitle">{person}</p><p className="oi-help">{relation}</p></div>
+    <Badge variant="accent">Sponsored care</Badge>
    </div>
-   <Metrics>
-    <Metric prefix="R" value={figure(setAside)} label="You set aside" chip="For her care"/>
-    <Metric prefix="R" value={figure(used)} label="Used so far" chip={`${visitsPaidFor} ${visitsPaidFor === 1 ? 'visit' : 'visits'}`}/>
-    <Metric prefix="R" value={figure(left)} label="Left to draw on" chip={left > 0 ? 'Available' : 'Nothing left'}/>
-   </Metrics>
+   <div className="oi-figures">
+    <OfficeFigure lead label="You set aside" value={money(setAside)} note="For her care"/>
+    <OfficeFigure label="Used so far" value={money(used)} note={`${visitsPaidFor} ${visitsPaidFor === 1 ? 'visit' : 'visits'}`}/>
+    <OfficeFigure label="Left to draw on" value={money(left)} note={left > 0 ? 'Available' : 'Nothing left'}/>
+   </div>
   </section>
 
   {/* An amount and a date on every line, and the service only because she has switched that on. */}
-  <SectionTitle title="What has been drawn"/>
-  <div className="panel">
-   <div className="table-scroll">
-    <table className="chart-table fact-table sponsor-statement">
-     <caption className="visually-hidden">Care paid for out of what you set aside, by date and amount.</caption>
-     <thead><tr><th scope="col">When</th><th scope="col">What</th><th scope="col">Amount</th></tr></thead>
-     <tbody>{shown.map(line => <tr key={line.paidOnDay + line.amountCents}>
-      <th scope="row">{day(line.paidOnDay)}</th>
-      <td>{serviceNameOf(line.serviceId) ?? 'Care was given'}</td>
-      <td>{money(line.amountCents / 100)}</td>
-     </tr>)}</tbody>
-     <tfoot><tr><th scope="row" colSpan={2}>Drawn from what you set aside</th><td>{money(used)}</td></tr></tfoot>
-    </table>
-   </div>
-   {/* Not a control. Which of the two settings is on belongs to her, and a switch here — even a
-       disabled one — implies it is a thing a sponsor could be given. */}
-   <div className="record-row static sponsor-switch">
-    <span className="service-icon"><EyeOff size={20}/></span>
-    <span><strong>{detail.name}</strong><small>{detail.detail}</small>
-     <small>{first} decides this, in her own account. It is not a setting on this screen and there is no way to ask for it.</small></span>
-   </div>
-   {named && <p className="helper">{namingNote}</p>}
-  </div>
+  <OfficeSection title="What has been drawn">
+   <Card>
+    <div className="oi-table-wrap">
+     <table className="oi-table sponsor-statement">
+      <caption className="visually-hidden">Care paid for out of what you set aside, by date and amount.</caption>
+      <thead><tr><th scope="col">When</th><th scope="col">What</th><th scope="col" className="is-figure">Amount</th></tr></thead>
+      <tbody>{shown.map(line => <tr key={line.paidOnDay + line.amountCents}>
+       <th scope="row">{day(line.paidOnDay)}</th>
+       <td>{serviceNameOf(line.serviceId) ?? 'Care was given'}</td>
+       <td className="is-figure">{money(line.amountCents / 100)}</td>
+      </tr>)}</tbody>
+      <tfoot><tr><th scope="row" colSpan={2}>Drawn from what you set aside</th><td className="is-figure">{money(used)}</td></tr></tfoot>
+     </table>
+    </div>
+    {/* Not a control. Which of the two settings is on belongs to her, and a switch here — even a
+        disabled one — implies it is a thing a sponsor could be given. */}
+    <div className="oi-row oi-row--plain sponsor-switch">
+     <EyeOff aria-hidden="true"/>
+     <div className="oi-row__body"><p className="oi-row__title">{detail.name}</p><span className="oi-row__meta">{detail.detail}</span>
+      <span className="oi-row__meta">{first} decides this, in her own account. It is not a setting on this screen and there is no way to ask for it.</span></div>
+    </div>
+    {named && <CardContent><p className="oi-help">{namingNote}</p></CardContent>}
+   </Card>
+  </OfficeSection>
 
   {/* The link itself, said plainly. A sponsorship names a member of a household rather than a person
       typed into a form, which is what version two of the sponsors route exists for. */}
-  <div className="panel">
-   <h3>{sponsorWords.heading}</h3>
-   <p className="muted">{sponsorWords.intro}</p>
-   <div className="review-line"><span>{sponsorWords.linkedTo.replace('{household}', link.householdRef)}</span><strong>{link.sponsoredSubjectRef}</strong></div>
-   <div className="review-line"><span>{sponsorWords.stateLabel}</span><strong>{standing.name}</strong></div>
-   <div className="review-line"><span>{sponsorWords.detailLabel}</span><strong>{detail.name}</strong></div>
-   <p className="helper">{sponsorWords.detailIsHers.replace('{who}', first)}</p>
-  </div>
+  <Card>
+   <CardHeader><CardTitle>{sponsorWords.heading}</CardTitle><CardDescription>{sponsorWords.intro}</CardDescription></CardHeader>
+   <CardContent className="oi-card-body">
+    <OfficeFacts facts={[
+     [sponsorWords.linkedTo.replace('{household}', link.householdRef), link.sponsoredSubjectRef],
+     [sponsorWords.stateLabel, standing.name],
+     [sponsorWords.detailLabel, detail.name]
+    ]}/>
+    <p className="oi-help">{sponsorWords.detailIsHers.replace('{who}', first)}</p>
+   </CardContent>
+  </Card>
 
   {/* The two lists, side by side and the same size. This is the screen. */}
-  <SectionTitle title="What a sponsor sees, and what a sponsor never sees"/>
-  <div className="sponsor-columns">
-   <div className="panel"><h3>What you see</h3>
-    <dl className="stated">{sponsorContract.sees.map(s =>
-     <div key={s.what}><dt>{s.what}</dt><dd>{s.why}</dd></div>)}</dl></div>
-   <div className="panel sponsor-never"><h3>What you never see</h3>
-    <dl className="stated">{sponsorContract.neverSees.map(s =>
-     <div key={s.what}><dt>{s.what}</dt><dd>{s.why}</dd></div>)}</dl></div>
-  </div>
-  <div className="privacy-note alert"><Ban size={19}/>{cannotRequireDetail.sentence}</div>
+  <OfficeSection title="What a sponsor sees, and what a sponsor never sees">
+   <div className="oi-pair sponsor-columns">
+    <Card><CardHeader><CardTitle>What you see</CardTitle></CardHeader>
+     <ul className="oi-rows">{sponsorContract.sees.map(s =>
+      <li key={s.what}><div className="oi-row"><div className="oi-row__body"><p className="oi-row__title">{s.what}</p><span className="oi-row__meta">{s.why}</span></div></div></li>)}</ul></Card>
+    <Card className="sponsor-never"><CardHeader><CardTitle>What you never see</CardTitle></CardHeader>
+     <ul className="oi-rows">{sponsorContract.neverSees.map(s =>
+      <li key={s.what}><div className="oi-row oi-row--mark"><Ban aria-hidden="true"/><div className="oi-row__body"><p className="oi-row__title">{s.what}</p><span className="oi-row__meta">{s.why}</span></div></div></li>)}</ul></Card>
+   </div>
+   <OfficeNote refusal icon={<Ban aria-hidden="true"/>}>{cannotRequireDetail.sentence}</OfficeNote>
+  </OfficeSection>
 
   {/* Where the line actually is, joined to the model that draws it. The least MyThuso can grant
       anybody is bookings and payments, and a sponsorship is not even that — it grants nothing, and
       what it would take to grant something is a decision made by her, on her side, with a scope and
       an end date on it. */}
-  <SectionTitle title="Paying for care is not access to it"/>
-  <div className="panel"><dl className="stated">
-   <div><dt>{payingIsNotPermission.title}</dt><dd>{payingIsNotPermission.sentence}</dd></div>
-   <div><dt>The least anybody can be given is more than this</dt>
-    <dd>{scopes[0].title} — {scopes[0].body}</dd>
-    <small>And that is granted by {first}, from her own account, with an end date on it. A sponsorship grants nothing at all, so there is nothing here to widen.</small></div>
-  </dl></div>
-  <button className="secondary full" onClick={() => navigate('My family')}><LockKeyhole size={16}/>See what you may see of {first}</button>
+  <OfficeSection title="Paying for care is not access to it">
+   <Card><ul className="oi-rows">
+    <li><div className="oi-row"><div className="oi-row__body"><p className="oi-row__title">{payingIsNotPermission.title}</p><span className="oi-row__meta">{payingIsNotPermission.sentence}</span></div></div></li>
+    <li><div className="oi-row"><div className="oi-row__body"><p className="oi-row__title">The least anybody can be given is more than this</p>
+     <span className="oi-row__meta">{scopes[0].title} — {scopes[0].body}</span>
+     <span className="oi-row__meta">And that is granted by {first}, from her own account, with an end date on it. A sponsorship grants nothing at all, so there is nothing here to widen.</span></div></div></li>
+   </ul></Card>
+   <Button variant="secondary" className="oi-full" onClick={() => navigate('My family')} leadingIcon={<LockKeyhole aria-hidden="true"/>}>See what you may see of {first}</Button>
+  </OfficeSection>
 
-  <SectionTitle title="How it starts, and how she stops it"/>
-  <div className="panel">
-   <div className="record-row static">
-    <span className="service-icon"><UserRoundCheck size={20}/></span>
-    <span><strong>{sponsorContract.consent.headline}</strong><small>{sponsorContract.consent.detail}</small></span>
-   </div>
-   <p className="helper">{sponsorContract.consent.withdrawal}</p>
+  <OfficeSection title="How it starts, and how she stops it">
+   <Card>
+    <div className="oi-row oi-row--plain"><UserRoundCheck aria-hidden="true"/><div className="oi-row__body"><p className="oi-row__title">{sponsorContract.consent.headline}</p><span className="oi-row__meta">{sponsorContract.consent.detail}</span></div></div>
+    <CardContent><p className="oi-help">{sponsorContract.consent.withdrawal}</p></CardContent>
+   </Card>
+  </OfficeSection>
+
+  <div className="oi-stack">
+   <Button variant="primary" size="lg" className="oi-full" onClick={() => open('Sponsor care')} leadingIcon={<HandCoins aria-hidden="true"/>}>Add to what you set aside</Button>
+   <Button variant="secondary" className="oi-full" onClick={() => navigate('Thuso Wallet')} trailingIcon={<ArrowRight aria-hidden="true"/>}>Open Thuso Wallet</Button>
   </div>
-
-  <button className="primary full" onClick={() => open('Sponsor care')}><HandCoins size={17}/>Add to what you set aside</button>
-  <button className="secondary full" onClick={() => navigate('Thuso Wallet')}>Open Thuso Wallet<ArrowRight size={17}/></button>
- </>;
+ </div>;
 }

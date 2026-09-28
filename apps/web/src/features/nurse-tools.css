@@ -259,133 +259,133 @@
 }
 
 /* ================================================================================================
-   EARNINGS & PAYOUTS
-   ================================================================================================ */
+   EARNINGS & PAYOUTS — on the identity since wave 4b (28 September 2026)
+   ================================================================================================
+   The Care Studio tints this section painted — sage behind a cleared nurse, peach behind a held one
+   and behind every refusal, lime and olive in the split — are retired. The sheet is one white Card
+   (clinical-deck.css's .c-sheet), so what sits on it is flat: white panels with a hairline, the raised
+   surface for a lead, and a state told by an edge, a glyph and a sentence, never by a tint alone.
+   Selected is the primary fill; progress and "yours" are the primary and the aqua. Every pair is one
+   ui.css or surface/nurse-identity.css already measures. Every rule is scoped :is(.clinical, body) .earnings.nurse-ui,
+   which outranks clinical.css's .clinical .earn-* rules inside the workspace and still applies when the screen
+   opens as a dialog outside it, so the older colours are outranked rather than fought with !important. */
+:is(.clinical, body) .earnings.nurse-ui.c-sheet > .panel { border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); box-shadow: none; }
+
 /* The standing, first and unmissable, because a nurse whose clearance has lapsed needs to read that
    before she reads a figure — and because the rule this screen exists to prove is that the two are
-   not connected. Two channels: the fill AND the glyph AND the sentence under it. */
-.earnings .earn-standing { border-radius: var(--r-card); padding: var(--space-16) var(--space-20); gap: var(--space-16); align-items: flex-start; }
-/* A wash of the accent rather than the accent itself: a banner the width of the column in full
-   strength is the loudest thing on the screen, and "nothing is wrong" should not be. Ink on it 10.06. */
-.earnings .earn-standing.ok { background: var(--pale-sage); color: var(--studio-ink); }
-.earnings .earn-standing.held { background: var(--studio-peach); color: var(--studio-ink); }
-.earnings .earn-standing strong { font-size: 16px; line-height: 1.35; color: var(--charcoal); }
-.earnings .earn-standing small { display: block; font-size: 14px; line-height: 1.55; margin-top: var(--space-4); color: var(--studio-ink); }
-.earnings .earn-standing .earn-rule { margin-top: var(--space-8); font-size: 13px; line-height: 1.6; color: var(--studio-ink); }
-.earnings .earn-standing > svg { flex: 0 0 auto; margin-top: 2px; }
+   not connected. Three channels: the edge AND the glyph AND the sentence under it. */
+:is(.clinical, body) .earnings.nurse-ui .earn-standing { border: 1px solid var(--color-border); border-left: 3px solid var(--color-accent); border-radius: var(--r-md); padding: var(--space-16) var(--space-20); gap: var(--space-16); align-items: flex-start; background: var(--color-surface); color: var(--color-foreground); }
+:is(.clinical, body) .earnings.nurse-ui .earn-standing.ok { border-left-color: var(--color-accent); }
+:is(.clinical, body) .earnings.nurse-ui .earn-standing.ok > svg { color: var(--ui-success-ink, var(--teal-ink)); }
+:is(.clinical, body) .earnings.nurse-ui .earn-standing.held { border-left-color: var(--mango-ink); }
+:is(.clinical, body) .earnings.nurse-ui .earn-standing.held > svg { color: var(--mango-ink); }
+:is(.clinical, body) .earnings.nurse-ui .earn-standing strong { font-size: 16px; line-height: 1.35; color: var(--color-foreground); }
+:is(.clinical, body) .earnings.nurse-ui .earn-standing small { display: block; font-size: 14px; line-height: 1.55; margin-top: var(--space-4); color: var(--color-foreground); }
+:is(.clinical, body) .earnings.nurse-ui .earn-standing .earn-rule { margin-top: var(--space-8); font-size: 13px; line-height: 1.6; color: var(--color-muted-foreground); }
+:is(.clinical, body) .earnings.nurse-ui .earn-standing > svg { flex: 0 0 auto; margin-top: 2px; }
 
-/* Whose earnings. A segmented control rather than two loose labels: the two are alternatives, and a
-   pair of radio buttons drawn as separate cards reads as two things you could have both of. */
-.earnings .earn-preview-switch { display: flex; flex-wrap: wrap; gap: 3px; padding: 5px; margin: 0; border: 1px solid var(--studio-line); border-radius: var(--r-panel); background: var(--studio-paper); }
-.earnings .earn-preview-switch > label { display: inline-flex; align-items: center; min-height: 44px; padding: var(--space-8) var(--space-16); border-radius: var(--r-pill); border: 1px solid transparent; background: transparent; color: var(--studio-ink); font-size: 14px; cursor: pointer; }
-.earnings .earn-preview-switch > label.selected { background: var(--studio-ink); border-color: var(--studio-ink); color: var(--surface); box-shadow: var(--shadow-raised); }
-/* core.css draws :focus-visible as an outline AND a ring at the lowest possible specificity, so a
-   resting box-shadow deletes half of the indicator. Restated in front of its own. */
-.earnings .earn-preview-switch > label.selected:focus-within { box-shadow: 0 0 0 7px var(--focus-edge), var(--shadow-raised); }
-.earnings .earn-preview-switch > .helper { flex-basis: 100%; margin: var(--space-8) var(--space-12) var(--space-4); }
+/* Whose earnings to show: the shared Tabs' segmented look on two native radios, so the keyboard and
+   the announced state stay the browser's. Selected is the white face with the shadow, as a Tab is. */
+:is(.clinical, body) .earnings.nurse-ui .earn-preview-switch { display: flex; flex-wrap: wrap; gap: var(--space-4); padding: var(--space-4); margin: 0; border: 0; border-radius: var(--r-md); background: var(--color-muted); }
+:is(.clinical, body) .earnings.nurse-ui .earn-preview-switch > label { display: inline-flex; align-items: center; min-height: 44px; padding: var(--space-8) var(--space-16); border-radius: var(--r-sm); border: 1px solid transparent; background: transparent; color: var(--color-muted-foreground); font-size: 14px; font-weight: 600; cursor: pointer; }
+:is(.clinical, body) .earnings.nurse-ui .earn-preview-switch > label.selected { background: var(--color-surface); color: var(--color-foreground); box-shadow: var(--shadow); }
+:is(.clinical, body) .earnings.nurse-ui .earn-preview-switch > label:focus-within { outline: 2px solid var(--color-ring); outline-offset: 2px; }
+:is(.clinical, body) .earnings.nurse-ui .earn-preview-switch > .helper { flex-basis: 100%; margin: var(--space-8) var(--space-12) var(--space-4); }
 
 /* Where the money goes. The bar is the figure; the legend under it is a real three-column table of
-   amounts with the keys aligned, not three sentences wearing dots. */
-.earnings .earn-split { padding: var(--space-20) var(--space-24) var(--space-24); }
-.earnings .earn-bar { height: 18px; border-radius: var(--r-pill); overflow: hidden; gap: 3px; background: transparent; margin: var(--space-16) 0 var(--space-16); }
-.earnings .earn-bar i { border-radius: var(--r-pill); }
-.earnings .earn-bar i.yours { background: var(--studio-ink); }
-.earnings .earn-bar i.fee { background: var(--studio-olive); }
-.earnings .earn-bar i.platform { background: var(--studio-lime); }
-.earnings .earn-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: var(--space-16); }
-.earnings .earn-legend > div { display: grid; grid-template-columns: 12px minmax(0, 1fr); column-gap: var(--space-8); row-gap: 2px; align-items: center; }
-.earnings .earn-legend .key { width: 12px; height: 12px; border-radius: 3px; grid-row: 1 / span 2; align-self: start; margin-top: 6px; }
-.earnings .earn-legend .key.yours { background: var(--studio-ink); }
-.earnings .earn-legend .key.fee { background: var(--studio-olive); }
-.earnings .earn-legend .key.platform { background: var(--studio-lime); }
-.earnings .earn-legend strong { font-size: 24px; line-height: 1.2; letter-spacing: -.6px; color: var(--charcoal); font-variant-numeric: tabular-nums; }
-.earnings .earn-legend small { font-size: 13px; line-height: 1.5; color: var(--studio-ink-muted); grid-column: 2; }
+   amounts with the keys aligned, not three sentences wearing dots. Yours is the primary, the card fee
+   the aqua, what MyThuso keeps the quiet ink — and each key carries its words beside it. */
+:is(.clinical, body) .earnings.nurse-ui .earn-split { padding: var(--space-20) var(--space-24) var(--space-24); }
+:is(.clinical, body) .earnings.nurse-ui .earn-pick { display: grid; gap: var(--space-8); max-width: 360px; font-size: 14px; font-weight: 600; color: var(--color-foreground); }
+:is(.clinical, body) .earnings.nurse-ui .earn-bar { height: var(--space-16); border-radius: var(--r-pill); overflow: hidden; gap: var(--space-4); background: transparent; margin: var(--space-16) 0 var(--space-16); }
+:is(.clinical, body) .earnings.nurse-ui .earn-bar i { border-radius: var(--r-pill); }
+:is(.clinical, body) .earnings.nurse-ui .earn-bar i.yours { background: var(--color-primary); }
+:is(.clinical, body) .earnings.nurse-ui .earn-bar i.fee { background: var(--color-accent); }
+:is(.clinical, body) .earnings.nurse-ui .earn-bar i.platform { background: var(--color-muted-foreground); }
+:is(.clinical, body) .earnings.nurse-ui .earn-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: var(--space-16); }
+:is(.clinical, body) .earnings.nurse-ui .earn-legend > div { display: grid; grid-template-columns: 12px minmax(0, 1fr); column-gap: var(--space-8); row-gap: 2px; align-items: center; }
+:is(.clinical, body) .earnings.nurse-ui .earn-legend .key { width: 12px; height: 12px; border-radius: var(--r-sm); grid-row: 1 / span 2; align-self: start; margin-top: 6px; }
+:is(.clinical, body) .earnings.nurse-ui .earn-legend .key.yours { background: var(--color-primary); }
+:is(.clinical, body) .earnings.nurse-ui .earn-legend .key.fee { background: var(--color-accent); }
+:is(.clinical, body) .earnings.nurse-ui .earn-legend .key.platform { background: var(--color-muted-foreground); }
+:is(.clinical, body) .earnings.nurse-ui .earn-legend strong { font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1.2; letter-spacing: 0; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+:is(.clinical, body) .earnings.nurse-ui .earn-legend small { font-size: 13px; line-height: 1.5; color: var(--color-muted-foreground); grid-column: 2; }
 
-/* ---- If you take a shift ------------------------------------------------------------------------
-   The one part of this screen that helps somebody decide something. Everything on it is a
-   difference and the difference is bounded rather than predicted, so nothing in here may be drawn
-   as a single confident number — the range is the instrument and the tick on it is where her own
-   mix falls between the two ends. */
-.earnings .fc { padding: var(--space-20) var(--space-24) var(--space-24); }
-.earnings .date-strip { display: flex; flex-wrap: wrap; gap: var(--space-8); }
-.earnings .date-chip { display: grid; justify-items: center; align-content: center; gap: 1px; min-width: 68px; min-height: 72px; padding: var(--space-8) var(--space-12); border-radius: var(--r-control); border: 1px solid color-mix(in srgb, var(--studio-ink-muted) 78%, var(--surface)); background: var(--surface); color: var(--studio-ink); cursor: pointer; }
-.earnings .date-chip span { font-size: 13px; line-height: 1.3; color: var(--studio-ink-muted); text-transform: uppercase; letter-spacing: .6px; }
-.earnings .date-chip strong { font-size: 20px; line-height: 1.2; font-variant-numeric: tabular-nums; color: var(--charcoal); }
-.earnings .date-chip.selected { background: var(--studio-ink); border-color: var(--studio-ink); color: var(--surface); }
-.earnings .date-chip.selected span,
-.earnings .date-chip.selected strong { color: var(--surface); }
-.earnings .time-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); gap: var(--space-8); }
-.earnings .time-chip { min-height: 44px; border-radius: var(--r-pill); border: 1px solid color-mix(in srgb, var(--studio-ink-muted) 78%, var(--surface)); background: var(--surface); color: var(--studio-ink); font-size: 14px; font-variant-numeric: tabular-nums; cursor: pointer; }
-/* An hour that is offered is filled AND holds a tick's worth of extra weight, so the set of chosen
-   hours is legible without separating two greens. */
-.earnings .time-chip.selected { background: var(--studio-ink); border-color: var(--studio-ink); color: var(--surface); font-weight: 600; }
+/* ---- If you take a shift -------------------------------------------------------------------------
+   A day and its hours are choices a nurse makes, so they are selectable tiles: the primary fill when
+   chosen, and aria-pressed says so in words. The forecast is a range, never a total: a track with the
+   aqua fill up to the highest, and her own mix marked on it. */
+:is(.clinical, body) .earnings.nurse-ui .fc { padding: var(--space-20) var(--space-24) var(--space-24); }
+:is(.clinical, body) .earnings.nurse-ui .date-strip { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+:is(.clinical, body) .earnings.nurse-ui .date-chip { display: grid; justify-items: center; align-content: center; gap: 1px; min-width: 68px; min-height: 72px; padding: var(--space-8) var(--space-12); border-radius: var(--r-md); border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-foreground); cursor: pointer; }
+:is(.clinical, body) .earnings.nurse-ui .date-chip span { font-size: 13px; line-height: 1.3; color: var(--color-muted-foreground); text-transform: uppercase; letter-spacing: .04em; }
+:is(.clinical, body) .earnings.nurse-ui .date-chip strong { font-family: var(--font-display); font-size: 20px; line-height: 1.2; font-variant-numeric: tabular-nums; color: var(--color-foreground); }
+:is(.clinical, body) .earnings.nurse-ui .date-chip.selected { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-primary-foreground); }
+:is(.clinical, body) .earnings.nurse-ui .date-chip.selected span,
+:is(.clinical, body) .earnings.nurse-ui .date-chip.selected strong { color: var(--color-primary-foreground); }
+:is(.clinical, body) .earnings.nurse-ui .time-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); gap: var(--space-8); }
+:is(.clinical, body) .earnings.nurse-ui .time-chip { min-height: 44px; border-radius: var(--r-md); border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-foreground); font-size: 14px; font-variant-numeric: tabular-nums; cursor: pointer; }
+:is(.clinical, body) .earnings.nurse-ui .time-chip.selected { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-primary-foreground); font-weight: 600; }
+:is(.clinical, body) .earnings.nurse-ui :is(.date-chip, .time-chip):focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; box-shadow: none; }
+:is(.clinical, body) .earnings.nurse-ui .fc-empty { display: flex; gap: var(--space-16); align-items: flex-start; padding: var(--space-20); border: 1px dashed var(--color-muted-foreground); border-radius: var(--r-lg); background: var(--color-surface); color: var(--color-foreground); }
+:is(.clinical, body) .earnings.nurse-ui .fc-empty > svg { flex: 0 0 auto; color: var(--color-primary); }
+:is(.clinical, body) .earnings.nurse-ui .fc-empty strong { font-size: 18px; line-height: 1.3; color: var(--color-foreground); }
+:is(.clinical, body) .earnings.nurse-ui .fc-empty p { font-size: 14px; line-height: 1.6; margin-top: var(--space-4); color: var(--color-muted-foreground); max-width: 62ch; }
+:is(.clinical, body) .earnings.nurse-ui .fc-lead { display: grid; gap: var(--space-20); padding: var(--space-20); border-radius: var(--r-lg); background: var(--color-surface-raised); }
+@media (min-width: 760px) { :is(.clinical, body) .earnings.nurse-ui .fc-lead { grid-template-columns: minmax(200px, auto) minmax(0, 1fr); gap: var(--space-32); align-items: center; } }
+:is(.clinical, body) .earnings.nurse-ui .fc-lead .s-metric-value { color: var(--color-foreground); }
+:is(.clinical, body) .earnings.nurse-ui .fc-lead .s-metric-label { color: var(--color-muted-foreground); }
+:is(.clinical, body) .earnings.nurse-ui .fc-lead .s-metric-chip { background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-foreground); white-space: normal; }
+:is(.clinical, body) .earnings.nurse-ui .fc-range { display: grid; gap: var(--space-12); min-width: 0; }
+:is(.clinical, body) .earnings.nurse-ui .fc-track { position: relative; height: 12px; border-radius: var(--r-pill); background: var(--color-muted); overflow: visible; }
+:is(.clinical, body) .earnings.nurse-ui .fc-track i { display: block; height: 100%; border-radius: var(--r-pill); background: var(--color-accent); transform-origin: left center; }
+:is(.clinical, body) .earnings.nurse-ui .fc-track b { position: absolute; top: -6px; bottom: -6px; width: 3px; margin-left: -1.5px; border-radius: var(--r-pill); background: var(--color-foreground); }
+:is(.clinical, body) .earnings.nurse-ui .fc-stops { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-12); }
+:is(.clinical, body) .earnings.nurse-ui .fc-stops > div { min-width: 0; }
+:is(.clinical, body) .earnings.nurse-ui .fc-stops > div:nth-child(2) { text-align: center; }
+:is(.clinical, body) .earnings.nurse-ui .fc-stops > div:nth-child(3) { text-align: right; }
+:is(.clinical, body) .earnings.nurse-ui .fc-stops strong { display: block; font-size: 18px; line-height: 1.25; color: var(--color-muted-foreground); font-variant-numeric: tabular-nums; }
+:is(.clinical, body) .earnings.nurse-ui .fc-stop-typical strong { font-family: var(--font-display); font-size: 22px; color: var(--color-foreground); }
+:is(.clinical, body) .earnings.nurse-ui .fc-stops small { display: block; font-size: 13px; line-height: 1.5; margin-top: 3px; color: var(--color-muted-foreground); }
+:is(.clinical, body) .earnings.nurse-ui .fc-week { padding: var(--space-16) var(--space-20); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); }
+:is(.clinical, body) .earnings.nurse-ui .fc-week .review-line { border-color: var(--color-border); }
 
-.earnings .fc-empty { display: flex; gap: var(--space-16); align-items: flex-start; padding: var(--space-20); border: 1px dashed color-mix(in srgb, var(--studio-ink-muted) 78%, var(--studio-paper)); border-radius: var(--r-card); background: var(--studio-paper); color: var(--studio-ink); }
-.earnings .fc-empty > svg { flex: 0 0 auto; color: var(--studio-olive); }
-.earnings .fc-empty strong { font-size: 18px; line-height: 1.3; color: var(--charcoal); }
-.earnings .fc-empty p { font-size: 14px; line-height: 1.6; margin-top: var(--space-4); color: var(--studio-ink); max-width: 62ch; }
-
-/* The added figure and the range it sits in, as one instrument on the paper ground: the difference
-   set large, the three stops under it as a real column each, and the tick where her own mix lands. */
-.earnings .fc-lead { display: grid; gap: var(--space-20); padding: var(--space-20); border-radius: var(--r-card); background: var(--studio-paper); }
-@media (min-width: 760px) { .earnings .fc-lead { grid-template-columns: minmax(200px, auto) minmax(0, 1fr); gap: var(--space-32); align-items: center; } }
-.earnings .fc-lead .s-metric-value { color: var(--charcoal); }
-.earnings .fc-lead .s-metric-label { color: var(--studio-ink-muted); }
-.earnings .fc-lead .s-metric-chip { background: var(--surface); border: 1px solid var(--studio-line); color: var(--studio-ink); white-space: normal; }
-.earnings .fc-range { display: grid; gap: var(--space-12); min-width: 0; }
-.earnings .fc-track { position: relative; height: 12px; border-radius: var(--r-pill); background: color-mix(in srgb, var(--studio-ink) 16%, var(--studio-paper)); overflow: visible; }
-.earnings .fc-track i { display: block; height: 100%; border-radius: var(--r-pill); background: var(--studio-olive); transform-origin: left center; }
-/* The tick carries no word: a marker with a label on it becomes a label that has to stay legible at
-   every width it can land at. It is a shape and a position, and the three stops under it say what
-   the positions mean. */
-.earnings .fc-track b { position: absolute; top: -6px; bottom: -6px; width: 3px; margin-left: -1.5px; border-radius: var(--r-pill); background: var(--charcoal); }
-.earnings .fc-stops { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-12); }
-.earnings .fc-stops > div { min-width: 0; }
-.earnings .fc-stops > div:nth-child(2) { text-align: center; }
-.earnings .fc-stops > div:nth-child(3) { text-align: right; }
-.earnings .fc-stops strong { display: block; font-size: 18px; line-height: 1.25; color: var(--studio-ink-muted); font-variant-numeric: tabular-nums; }
-/* Her own mix is the one of the three that is not a bound, so it is the one that is set in the ink
-   and carries the weight. The other two are the ends of the range and say so. */
-.earnings .fc-stop-typical strong { font-size: 22px; color: var(--charcoal); }
-.earnings .fc-stops small { display: block; font-size: 13px; line-height: 1.5; margin-top: 3px; color: var(--studio-ink-muted); }
-.earnings .fc-week { padding: var(--space-16) var(--space-20); border-radius: var(--r-card); background: var(--studio-paper); }
-.earnings .fc-week .review-line { border-color: color-mix(in srgb, var(--studio-ink) 16%, var(--studio-paper)); }
-
-/* A refusal is not an aside. It is the sentence the contract wrote and the reason this screen is
-   allowed to exist, so it is set at reading size with a mark that says what it is. */
-.earnings .earn-refusal { display: flex; gap: var(--space-12); align-items: flex-start; padding: var(--space-16) var(--space-20); border-radius: var(--r-card); background: var(--studio-peach); color: var(--studio-ink); }
-.earnings .earn-refusal > svg { flex: 0 0 auto; color: var(--danger); margin-top: 1px; }
-.earnings .earn-refusal p { font-size: 14px; line-height: 1.6; margin: 0; max-width: 68ch; }
-.earnings .earn-refusals { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: var(--space-12); }
-.earnings .earn-rule { display: flex; gap: var(--space-8); align-items: flex-start; font-size: 13px; line-height: 1.6; color: var(--studio-ink-muted); }
-.earnings .earn-rule > svg { flex: 0 0 auto; margin-top: 2px; color: var(--studio-olive); }
+/* A refusal is the Alert's shape: white, a danger-tinted edge, the stop glyph in the danger ink and the
+   sentence in the foreground, so the words are never set in a colour that cannot carry them. */
+:is(.clinical, body) .earnings.nurse-ui .earn-refusal { display: flex; gap: var(--space-12); align-items: flex-start; padding: var(--space-16) var(--space-20); border: 1px solid color-mix(in oklab, var(--color-danger) 35%, var(--color-border)); border-radius: var(--r-md); background: var(--color-surface); color: var(--color-foreground); }
+:is(.clinical, body) .earnings.nurse-ui .earn-refusal > svg { flex: 0 0 auto; color: var(--danger); margin-top: 1px; }
+:is(.clinical, body) .earnings.nurse-ui .earn-refusal p { font-size: 14px; line-height: 1.6; margin: 0; max-width: 68ch; }
+:is(.clinical, body) .earnings.nurse-ui .earn-refusals { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: var(--space-12); }
+:is(.clinical, body) .earnings.nurse-ui .earn-rule { display: flex; gap: var(--space-8); align-items: flex-start; font-size: 13px; line-height: 1.6; color: var(--color-muted-foreground); }
+:is(.clinical, body) .earnings.nurse-ui .earn-rule > svg { flex: 0 0 auto; margin-top: 2px; color: var(--color-primary); }
 
 /* ---- The weeks ---------------------------------------------------------------------------------
    Four weeks, and the one thing a row of four must do is let a reader compare them. The amount is
-   the first thing on every row, tabular, at one size; the state is a rail and a chip; and only the
+   the first thing on every row, tabular, at one size; the state is an edge and a chip; and only the
    open one carries its detail. */
-.earnings .earn-weeks { display: grid; gap: var(--space-12); }
-.earnings .earn-week { border: 1px solid var(--studio-line); border-radius: var(--r-card); background: var(--surface); overflow: hidden; position: relative; }
-.earnings .earn-week::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--studio-line); }
-.earnings .earn-week.is-open { box-shadow: var(--shadow-raised); border-color: transparent; }
-.earnings .earn-week.failed { border-color: var(--danger); }
-.earnings .earn-week.failed::before { background: var(--danger); }
-.earnings .earn-week > button { min-height: 72px; padding: var(--space-16) var(--space-20) var(--space-16) var(--space-24); gap: var(--space-16); }
-.earnings .earn-week-head strong { font-size: 26px; line-height: 1.15; letter-spacing: -.8px; color: var(--charcoal); font-variant-numeric: tabular-nums; }
-.earnings .earn-week-head small { font-size: 13px; line-height: 1.5; margin-top: 3px; color: var(--studio-ink-muted); }
-.earnings .earn-week-body > div { padding: 0 var(--space-20) var(--space-20) var(--space-24); }
-.earnings .earn-lines { font-variant-numeric: tabular-nums; }
-.earnings .earn-lines td.earn-amount,
-.earnings .earn-lines tfoot td { text-align: right; }
-.earnings .earn-failure { background: var(--studio-peach); color: var(--studio-ink); border-radius: var(--r-card); padding: var(--space-16) var(--space-20); }
-.earnings .earn-failure > svg { color: var(--danger); }
-.earnings .earn-failure p { font-size: 14px; line-height: 1.6; }
-.earnings .earn-advice { background: var(--studio-paper); border-radius: var(--r-card); padding: var(--space-12) var(--space-16); margin-top: var(--space-12); }
-.earnings .earn-tax { padding: var(--space-20) var(--space-24) var(--space-24); }
-.earnings .earn-account { padding: var(--space-20) var(--space-24) var(--space-24); }
-.earnings .earn-pending { background: var(--studio-peach); color: var(--studio-ink); border-radius: var(--r-card); padding: var(--space-16) var(--space-20); gap: var(--space-16); }
-.earnings .earn-pending strong { color: var(--charcoal); font-size: 16px; }
-.earnings .earn-pending p { font-size: 14px; line-height: 1.6; margin-top: var(--space-4); }
+:is(.clinical, body) .earnings.nurse-ui .earn-weeks { display: grid; gap: var(--space-8); }
+:is(.clinical, body) .earnings.nurse-ui .earn-week { border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); overflow: hidden; position: relative; }
+:is(.clinical, body) .earnings.nurse-ui .earn-week::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--color-border); }
+:is(.clinical, body) .earnings.nurse-ui .earn-week.is-open { box-shadow: var(--shadow-raised); border-color: color-mix(in oklab, var(--color-accent) 40%, var(--color-border)); }
+:is(.clinical, body) .earnings.nurse-ui .earn-week.is-open::before { background: var(--color-accent); }
+:is(.clinical, body) .earnings.nurse-ui .earn-week.failed { border-color: color-mix(in oklab, var(--color-danger) 45%, var(--color-border)); }
+:is(.clinical, body) .earnings.nurse-ui .earn-week.failed::before { background: var(--danger); }
+:is(.clinical, body) .earnings.nurse-ui .earn-week > button { min-height: 72px; padding: var(--space-16) var(--space-20) var(--space-16) var(--space-24); gap: var(--space-16); }
+:is(.clinical, body) .earnings.nurse-ui .earn-week-head strong { font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1.15; letter-spacing: 0; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+:is(.clinical, body) .earnings.nurse-ui .earn-week-head small { font-size: 13px; line-height: 1.5; margin-top: 3px; color: var(--color-muted-foreground); }
+:is(.clinical, body) .earnings.nurse-ui .earn-week-body > div { padding: 0 var(--space-20) var(--space-20) var(--space-24); }
+:is(.clinical, body) .earnings.nurse-ui .earn-lines { font-variant-numeric: tabular-nums; }
+:is(.clinical, body) .earnings.nurse-ui .earn-lines td.earn-amount,
+:is(.clinical, body) .earnings.nurse-ui .earn-lines tfoot td { text-align: right; }
+:is(.clinical, body) .earnings.nurse-ui .earn-failure { border: 1px solid color-mix(in oklab, var(--color-danger) 35%, var(--color-border)); border-left: 3px solid var(--danger); background: var(--color-surface); color: var(--color-foreground); border-radius: var(--r-md); padding: var(--space-16) var(--space-20); }
+:is(.clinical, body) .earnings.nurse-ui .earn-failure > svg { color: var(--danger); }
+:is(.clinical, body) .earnings.nurse-ui .earn-failure p { font-size: 14px; line-height: 1.6; }
+:is(.clinical, body) .earnings.nurse-ui .earn-advice { background: var(--color-surface-raised); border-radius: var(--r-md); padding: var(--space-12) var(--space-16); margin-top: var(--space-12); }
+:is(.clinical, body) .earnings.nurse-ui .earn-tax { padding: var(--space-20) var(--space-24) var(--space-24); }
+:is(.clinical, body) .earnings.nurse-ui .earn-account { padding: var(--space-20) var(--space-24) var(--space-24); }
+:is(.clinical, body) .earnings.nurse-ui .earn-pending { border: 1px solid color-mix(in oklab, var(--color-warning) 50%, var(--color-border)); border-left: 3px solid var(--mango-ink); background: var(--color-surface); color: var(--color-foreground); border-radius: var(--r-md); padding: var(--space-16) var(--space-20); gap: var(--space-16); }
+:is(.clinical, body) .earnings.nurse-ui .earn-pending strong { color: var(--color-foreground); font-size: 16px; }
+:is(.clinical, body) .earnings.nurse-ui .earn-pending p { font-size: 14px; line-height: 1.6; margin-top: var(--space-4); }
 
 /* ================================================================================================
    VETTING

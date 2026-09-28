@@ -1,5 +1,13 @@
 import { useLayoutEffect, type CSSProperties, type ReactNode } from 'react';
-import { Activity, Ambulance, ArrowRight, Bell, CalendarDays, ChevronDown, CircleHelp, CreditCard, Globe, HeartHandshake, House, Languages, LayoutGrid, MapPin, MessageCircle, NotebookPen, Settings2, Stethoscope, Users } from 'lucide-react';
+import { Wordmark } from '../components/Wordmark';
+import { Ambulance, ArrowRight, Bell, ChevronDown, CircleHelp, Compass, CreditCard, Ellipsis, Globe, Languages, MapPin, Repeat } from 'lucide-react';
+/* The shared component and the icon family, imported from their own modules rather than the barrel so
+   the patient's entry carries the one component it draws and not the seventeen it does not. */
+import { NavigationItem } from '../ui/NavigationItem';
+import {
+ MyThusoDashboardIcon, MyThusoFamilyIcon, MyThusoHealthIcon, MyThusoMindIcon, MyThusoQuickIcon,
+ MyThusoSettingsIcon, MyThusoVisitIcon
+} from '../ui/icons/MyThusoIcons.generated';
 import { DemoBar } from '../features/DemoLogin';
 import { locales, useT, type LocaleCode } from '../lib/i18n';
 import { reducedMotion } from '../lib/motion';
@@ -24,25 +32,31 @@ import { reducedMotion } from '../lib/motion';
 
    Explore MyThuso stays last. tests/deep-journeys.spec.ts reaches it by position, deliberately,
    because that journey has switched the shell into isiZulu and cannot name it. */
-/* The classes a dialog opened from this surface has to carry, in the one place that knows them.
-   A dialog is rendered into the browser's top layer rather than inside the shell that opened it, so
-   it cannot inherit the patient surface — it is told; `glass` gives it the same frosted material as
-   the sidebar and the top bar it opened from. Every caller passed them by hand, which was fine while
-   App.tsx was the only caller and stopped being fine when the demo login became a second. */
-export const PATIENT_SURFACE = 'patient-surface glass';
+/* The class a dialog opened from this surface has to carry, in the one place that knows it. A dialog
+   is rendered into the browser's top layer rather than inside the shell that opened it, so it cannot
+   inherit the patient surface — it is told. It carried `glass` as well until the Lovable identity of
+   28 September 2026, whose guidelines refuse frosted panels: a dialog is now the handoff's white card,
+   like the bars it opens from. */
+export const PATIENT_SURFACE = 'patient-surface';
 
+/* The MyThuso family for the destinations it draws — the overview, booking (the quick action: the thing a
+   patient does most), the visits, the passport, Live well and the family — and Lucide for the three it
+   does not: the plans (a repeat, because a plan is the visit that keeps coming), the wallet, and the
+   directory of everything else. One concept, one family: the Lucide glyphs are chosen from outside
+   every MyThuso icon's neverBeside list in packages/catalog/icons.json, so a heart, a grid or a house
+   never stands beside the family's own for the same idea. */
 const navigation = [
- ['Overview', House], ['Book a nurse', Stethoscope], ['My visits', CalendarDays], ['Health Passport', Activity],
- ['Live well', NotebookPen], ['My family', Users], ['Care plans', HeartHandshake], ['Thuso Wallet', CreditCard],
- ['Explore MyThuso', LayoutGrid]
+ ['Overview', MyThusoDashboardIcon], ['Book a nurse', MyThusoQuickIcon], ['My visits', MyThusoVisitIcon], ['Health Passport', MyThusoHealthIcon],
+ ['Live well', MyThusoMindIcon], ['My family', MyThusoFamilyIcon], ['Care plans', Repeat], ['Thuso Wallet', CreditCard],
+ ['Explore MyThuso', Compass]
 ] as const;
 /* The sections a link may open. `?open=` on the product's address is how the landing page's hero
    sends a reader to the screen its call to action named, and it is validated against this list
    rather than against a second copy of it — a slug nothing here answers to opens the overview. */
 export const patientSections = navigation.map(([page]) => page);
 const tabs = [
- ['Overview', 'Home', House], ['Book a nurse', 'Book care', Stethoscope], ['My visits', 'Visits', CalendarDays],
- ['Health Passport', 'Passport', Activity], ['More', 'More', LayoutGrid]
+ ['Overview', 'Home', MyThusoDashboardIcon], ['Book a nurse', 'Book care', MyThusoQuickIcon], ['My visits', 'Visits', MyThusoVisitIcon],
+ ['Health Passport', 'Passport', MyThusoHealthIcon], ['More', 'More', Ellipsis]
 ] as const;
 
 type Props = {
@@ -82,22 +96,20 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
       the ground and never lower it, which is what keeps --glass-floor true. */}
   <div className="patient-ground aurora m-light" aria-hidden="true"/>
   <a href="#main" className="skip-link">{t('shell.skip')}</a>
-  <aside className="sidebar glass">
-   <a className="brand" href="#" onClick={e => { e.preventDefault(); navigate('Overview'); }}><img src="/brand/mythuso-logo.svg" alt="MyThuso"/></a>
+  <aside className="sidebar">
+   <a className="brand" href="#" onClick={e => { e.preventDefault(); navigate('Overview'); }}><Wordmark/></a>
    <div className="nav-label">{t('nav.section')}</div>
-   {/* Icon, label, and a circular arrow at the trailing edge — the reference's own navigation shape.
-       The circle is decorative on an inactive row and inverts on the active one, which is what makes
-       where-you-are read as a place rather than as one more thing to press. */}
+   {/* The handoff's navigation item: the current destination in the accent's tint, its words in the
+       ink and a heavier weight, so where-you-are is never told by colour alone. The visits carry their
+       count in place of the chevron, as text, so it is read with the name. */}
    <nav aria-label="Main navigation">{navigation.map(([label, Icon]) =>
-    <button key={label} aria-current={page === label ? 'page' : undefined} className={page === label ? 'active' : ''} onClick={() => navigate(label)}>
-     <Icon size={19} strokeWidth={1.8}/><span>{t(`nav.${label}`)}</span>
-     {label === 'My visits' && <span className="nav-count">{visitCount}</span>}
-     {label === 'Care plans' && <span className="new-dot"/>}
-     <i aria-hidden="true"><ArrowRight size={16}/></i>
-    </button>)}</nav>
+    <NavigationItem key={label} active={page === label} icon={<Icon/>}
+     count={label === 'My visits' ? visitCount : undefined} onClick={() => navigate(label)}>
+     {t(`nav.${label}`)}
+    </NavigationItem>)}</nav>
    <div className="sidebar-bottom">
     <div className="help-card">
-     <span className="help-symbol"><MessageCircle size={19}/></span>
+     <span className="help-symbol"><CircleHelp size={19}/></span>
      {/* "Let's talk" opened a dialog with a search box and a sentence about live support. There
          is nobody to talk to — `messaging` is not connected — so the card offers what the screen
          behind it actually is: an account of what MyThuso can answer without anybody being
@@ -117,12 +129,12 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
     <button className="sos-link" onClick={() => open('Emergency & urgent care')}><Ambulance size={18}/>Emergency &amp; urgent care</button>
     <button className="settings-link" onClick={() => open('Language')}><Globe size={18}/>{t('shell.language')}: {locales.find(l => l.code === locale)?.native}</button>
     <button className="settings-link" onClick={() => navigate('Language & access')}><Languages size={18}/>{t('nav.Language & access')}</button>
-    <button className="settings-link" onClick={() => navigate('Privacy & settings')}><Settings2 size={18}/>{t('nav.Privacy & settings')}</button>
+    <button className="settings-link" onClick={() => navigate('Privacy & settings')}><MyThusoSettingsIcon/>{t('nav.Privacy & settings')}</button>
     <button className="profile" onClick={() => open('Your profile')}><span className="avatar small">LM</span><span><strong>Lerato Molefe</strong><small>{t('shell.personal')}</small></span><ChevronDown size={15}/></button>
    </div>
   </aside>
   <div className={`workspace ${page === 'Overview' ? 'is-home' : ''}`}>
-   <header className="topbar glass">
+   <header className="topbar">
     {/* The mark, not the lockup. The sidebar gives logo.svg 168 points of width and the wordmark
         reads there; this bar gives it about a hundred, and on a phone the tagline under it lands
         below two points — the same defect the iOS toolbar had and the sign-in door had, in its third
@@ -152,9 +164,9 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
     <button onClick={() => navigate('Help & support')}><CircleHelp size={14}/>{t('shell.help')}</button>
    </footer>
    {assistant}
-   <nav className="tabbar glass" aria-label="Primary" style={{ '--m-tab': tabs.findIndex(([target]) => target === page) } as CSSProperties}>{tabs.map(([target, label, Icon]) =>
+   <nav className="tabbar" aria-label="Primary" style={{ '--m-tab': tabs.findIndex(([target]) => target === page) } as CSSProperties}>{tabs.map(([target, label, Icon]) =>
     <button key={target} aria-current={page === target ? 'page' : undefined} className={page === target ? 'active' : ''} onClick={() => navigate(target)}>
-     <span className="tab-icon"><Icon size={21} strokeWidth={1.9}/>{target === 'My visits' && <span className="nav-count">{visitCount}</span>}</span>
+     <span className="tab-icon"><Icon/>{target === 'My visits' && <span className="nav-count">{visitCount}</span>}</span>
      {t(`tab.${label}`)}
     </button>)}</nav>
   </div>

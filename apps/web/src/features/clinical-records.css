@@ -62,12 +62,35 @@
    One scope, so nothing here reaches a screen that did not ask for it: every rule in this sheet is
    under .cr, which the three components put on their own root. */
 .cr {
- --cr-edge: color-mix(in srgb, var(--studio-ink-muted) 78%, var(--surface));
- --cr-groove: color-mix(in srgb, var(--studio-ink) 8%, var(--surface));
- --cr-on: var(--studio-paper);
- --cr-on-quiet: color-mix(in srgb, var(--studio-paper) 72%, var(--studio-night));
- --cr-on-mark: color-mix(in srgb, var(--studio-paper) 40%, var(--studio-night));
- --cr-on-edge: color-mix(in srgb, var(--studio-paper) 14%, var(--studio-night));
+ /* THE IDENTITY (28 September 2026, the Lovable handoff, wave 4c). Every rule below was written against
+    the studio palette the clinical shell remaps onto the logo's ink, peach, olive and paper. Inside
+    .cr those names are re-pointed at the identity's roles instead, once, here — so the whole sheet
+    speaks the handoff's white surfaces, border and muted inks without forty rules repeating the move,
+    and every word still stands on a ground from the same family in either theme. The pairs the old
+    table measured are replaced by these, light theme, sRGB relative luminance:
+      foreground on surface 16.37, on background 15.57, on muted 13.80
+      muted-foreground on surface 5.66, on background 5.43, on muted 4.77
+      warning ink (#92400e) on the warning tint (lime 20% over surface) 6.77; foreground on it 15.63
+      accent as a band, a rule or a filled mark 3.64 on surface, 3.07 on muted — marks only
+    The peach of a flagged field becomes the warning tint, the olive band the accent, the pale sage of
+    a sealed or signed state the aqua tint; a flagged reading is still a needle outside the band AND a
+    sentence naming the range AND the tinted field. */
+ --studio-ink: var(--color-foreground);
+ --studio-ink-deep: var(--color-foreground);
+ --studio-ink-muted: var(--color-muted-foreground);
+ --studio-paper: var(--color-background);
+ --studio-line: var(--color-border);
+ --studio-olive: var(--color-accent);
+ --studio-lime: var(--color-muted-foreground);
+ --studio-peach: color-mix(in srgb, var(--color-warning) 20%, var(--color-surface));
+ --mango-soft: color-mix(in srgb, var(--color-warning) 20%, var(--color-surface));
+ --pale-sage: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+ --charcoal-muted-on-pale-sage: var(--color-muted-foreground);
+ --charcoal: var(--color-foreground);
+ --surface: var(--color-surface);
+ --cr-edge: var(--color-muted-foreground);
+ --cr-groove: var(--color-muted);
+ color: var(--color-foreground);
 }
 /* Two classes, on purpose. Each of these roots also carries a shared class — .assessment on the
    visit, .form-stack on the record — and a single-class rule here would be at the same specificity
@@ -393,37 +416,29 @@
 .cr-views {
  display: flex;
  flex-wrap: wrap;
- gap: 3px;
- padding: 5px;
- border: 1px solid var(--studio-line);
- border-radius: var(--r-panel);
- background: var(--studio-paper);
+ gap: var(--space-4);
+ padding: var(--space-4);
+ border-radius: var(--r-md);
+ background: var(--color-muted);
  align-self: start;
+ justify-self: start;
 }
+/* The handoff's tabs on three pressed buttons: the chosen reading lifted onto the surface with the one
+   shadow and a heavier weight, and aria-pressed — never the colour alone. */
 .cr .cr-views button {
  min-height: 44px;
- padding: var(--space-8) var(--space-16);
- border: 1px solid transparent;
- border-radius: var(--r-pill);
+ padding: 0 var(--space-12);
+ border: 0;
+ border-radius: var(--r-sm);
  background: transparent;
- color: var(--studio-ink);
+ color: var(--color-muted-foreground);
  font-size: 14px;
- font-weight: 500;
- transition: background var(--t-settle) var(--ease-soft);
-}
-.cr .cr-views button:hover { background: color-mix(in srgb, var(--surface) 70%, transparent); }
-.cr .cr-views button.selected {
- background: var(--studio-ink);
- border-color: var(--studio-ink);
- color: var(--surface);
  font-weight: 600;
- box-shadow: var(--shadow-raised);
+ transition: background-color var(--t-quick) var(--ease-soft), color var(--t-quick) var(--ease-soft);
 }
-/* core.css draws :focus-visible as an outline AND a box-shadow ring at the lowest possible
-   specificity, so any rule here that sets a box-shadow on something focusable silently deletes half
-   the focus indicator. The one focusable element in this sheet with a resting shadow restates the
-   ring in front of its own. */
-.cr .cr-views button.selected:focus-visible { box-shadow: 0 0 0 7px var(--focus-edge), var(--shadow-raised); }
+.cr .cr-views button:hover { background: transparent; color: var(--color-foreground); }
+.cr .cr-views button.selected { background: var(--color-surface); color: var(--color-foreground); box-shadow: var(--shadow); }
+.cr .cr-views button:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; box-shadow: none; }
 
 .cr-panes { display: grid; }
 .cr-pane {
@@ -464,25 +479,27 @@
  position: relative;
  z-index: 1;
 }
-.cr-pane.written .cr-pane-mark { background: var(--studio-ink); border-color: var(--studio-ink); color: var(--surface); }
+.cr-pane.written .cr-pane-mark { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-accent-foreground); }
 .cr-pane.locked .cr-pane-mark { border-style: dashed; }
-.cr-pane-mark.letter { font-size: 16px; background: var(--studio-ink); border-color: var(--studio-ink); color: var(--surface); }
+.cr-pane-mark.letter { font-family: var(--font-display); font-size: 16px; background: var(--color-muted); border-color: var(--color-muted); color: var(--color-foreground); }
 /* Measured rather than full-width. A clinical note set across a thousand pixels is a line a reader
    loses their place in, and it is what left the Required chip stranded at the far edge of the screen
    from the heading it belongs to. */
 .cr-pane-body { min-width: 0; max-width: 780px; display: grid; gap: var(--space-12); align-content: start; padding-top: var(--space-4); }
 .cr-pane-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-8) var(--space-16); }
-.cr .cr-pane-head h4 { font-size: 18px; line-height: 1.3; color: var(--charcoal); }
+.cr .cr-pane-head h4 { font-family: var(--font-display); font-size: 18px; font-weight: 600; line-height: 1.3; color: var(--charcoal); }
 .cr-tag {
- font-size: 13px;
- line-height: 1.4;
- color: var(--studio-ink-muted);
- border: 1px solid var(--studio-line);
+ padding: 2px var(--space-8);
  border-radius: var(--r-pill);
- padding: 3px var(--space-12);
+ background: var(--color-muted);
+ color: var(--color-muted-foreground);
+ font-size: 13px;
+ font-weight: 600;
+ line-height: 1.4;
  white-space: nowrap;
 }
-.cr-tag.required { color: var(--studio-ink); border-color: var(--cr-edge); font-weight: 600; }
+/* Required is the handoff's primary badge: a word, on a tint, never the tint alone. */
+.cr-tag.required { background: color-mix(in oklab, var(--color-primary) 10%, transparent); color: var(--ui-primary-ink, var(--color-primary)); }
 .cr-pane label,
 .cr-sub label { display: grid; gap: var(--space-8); font-size: 14px; min-width: 0; max-width: none; }
 .cr-field-label { font-weight: 600; color: var(--studio-ink); }
@@ -760,12 +777,12 @@
  .cr-rail > li.now { font-size: 16px; }
 }
 
-/* ---- The visit's stages on the deck's mint card (28 September 2026) ----------------------------------
-   The deck is a row of tinted cards now, and the stages stand on the mint one, so the rail speaks the
-   card's palette: the shell's ink for every word and every filled mark (8.09 on mint), white for the
-   stage she is on, and the ink at 62% (3.26) for the outline of a stage still to come — three shapes
-   before three tones, as before. Above the list, the same stages as a segmented track that fills: solid
-   for done, an outlined segment for now, the card's own groove for what is left. */
+/* ---- The visit's stages on the deck's panel card ------------------------------------------------------
+   The deck's cards are white since the identity (wave 4c), and the stages stand on the last of them: the
+   foreground for every word, a done stage filled in the accent — progress, which is what the handoff
+   spends aqua on — the stage she is on outlined in the foreground, and the muted ink for the outline of a
+   stage still to come: three shapes before three tones. Above the list, the same stages as a segmented
+   track that fills. */
 .c-deck .cr-track { gap: 6px; margin: var(--space-4) 0 var(--space-8); }
 .c-deck .cr-track > i {
  flex: 1 1 0;
@@ -774,13 +791,73 @@
  background: var(--c-track);
  transform-origin: left center;
 }
-.c-deck .cr-track > i.done { background: var(--c-ink); }
+.c-deck .cr-track > i.done { background: var(--c-accent); }
 .c-deck .cr-track > i.now { background: var(--surface); box-shadow: inset 0 0 0 2px var(--c-ink); }
 .c-deck .cr-rail > li { color: var(--c-quiet); }
 .c-deck .cr-rail > li::before { background: var(--c-mark); }
 .c-deck .cr-rail > li.done::before { background: var(--c-ink); }
-.c-deck .cr-rail-mark { background: var(--c-ground, var(--surface)); border-color: var(--c-mark); color: var(--c-ink); }
+.c-deck .cr-rail-mark { background: var(--color-surface); border-color: var(--c-mark); color: var(--c-ink); }
 .c-deck .cr-rail > li.done,
 .c-deck .cr-rail > li.now { color: var(--c-ink); }
-.c-deck .cr-rail > li.done .cr-rail-mark { background: var(--c-ink); border-color: var(--c-ink); color: var(--surface); }
+.c-deck .cr-rail > li.done .cr-rail-mark { background: var(--c-accent); border-color: var(--c-accent); color: var(--color-accent-foreground); }
 .c-deck .cr-rail > li.now .cr-rail-mark { background: var(--surface); border-color: var(--c-ink); color: var(--c-ink); }
+
+/* ---- The consultation layout (the identity of 28 September 2026, the Lovable handoff, wave 4c) -------
+   The record is the main column and a rail stands beside it from the width where both fit; below that the
+   rail comes first, as it does in reading order. The rail's cards are the shared Card and arrive one after
+   another — the handoff's consultation-rail stagger, a sixth of --t-enter apart (its 70 ms), on
+   --ease-soft, opacity and transform only, once — and not at all under reduced motion. Nothing a clinician
+   types moves: the only thing that arrives is the rail, and it arrives before a word is written. */
+.consultation-layout { display: grid; gap: var(--space-16); align-items: start; min-width: 0; }
+.consultation-rail { display: grid; gap: var(--space-12); align-content: start; min-width: 0; }
+@media (min-width: 1100px) {
+ .consultation-layout { grid-template-columns: minmax(0, 1fr) 320px; grid-template-areas: 'main rail'; gap: var(--space-24); }
+ .consultation-layout > .consultation-main { grid-area: main; }
+ .consultation-layout > .consultation-rail { grid-area: rail; position: sticky; top: var(--space-16); }
+}
+/* In a dialog the column is narrow whatever the window is, so the rail stays above the record there. */
+.modal .consultation-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: none; }
+.modal .consultation-layout > * { grid-area: auto; position: static; }
+@keyframes cr-rail-in {
+ from { opacity: 0; transform: translate3d(0, var(--space-8), 0); }
+ to { opacity: 1; transform: none; }
+}
+.consultation-rail > * { animation: cr-rail-in var(--t-enter) var(--ease-soft) both; }
+.consultation-rail > :nth-child(2) { animation-delay: calc(var(--t-enter) / 6); }
+.consultation-rail > :nth-child(3) { animation-delay: calc(var(--t-enter) / 3); }
+.consultation-rail > :nth-child(4) { animation-delay: calc(var(--t-enter) / 2); }
+@media (prefers-reduced-motion: reduce) { .consultation-rail > * { animation: none; } }
+
+.cr .cr-rail-card { display: grid; gap: var(--space-8); padding: var(--space-16); min-width: 0; }
+.cr-rail-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-8); }
+.cr-rail-eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .04em; line-height: 1.4; text-transform: uppercase; color: var(--color-muted-foreground); }
+.cr-rail-name { display: block; font-family: var(--font-display); font-size: 22px; font-weight: 600; line-height: 1.25; color: var(--color-foreground); overflow-wrap: anywhere; }
+.cr .cr-rail-line { margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-muted-foreground); }
+.cr .cr-rail-card .cr-writer { max-width: none; margin-top: var(--space-4); }
+.cr .cr-rail-card .cr-writer select { min-height: 44px; padding: 0 var(--space-12); border-radius: var(--r-md); font-size: 14px; }
+
+/* How far through the record: the count in the display face, and one segment per field — lit in the
+   accent (a mark, 3.07 on the muted track) where the field is written, and the count says so in words. */
+.cr-progress-figure { display: flex; align-items: baseline; gap: var(--space-8); margin: 0; }
+.cr-progress-figure strong { font-family: var(--font-display); font-size: 32px; font-weight: 600; line-height: 1.1; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.cr-progress-figure small { font-size: 15px; font-weight: 500; color: var(--color-muted-foreground); }
+.cr-progress-track { display: flex; gap: 3px; }
+.cr-progress-track > i { flex: 1 1 0; height: 8px; border-radius: var(--r-pill); background: var(--color-muted); }
+.cr-progress-track > i.on { background: var(--color-accent); }
+
+/* The readings on record: the value, where it came from (the provenance tag) and how far it can be
+   relied on (the calibration tag and, where it applies, its sentence). Out of range is a badge's words
+   AND a rule in the warning ink, never the colour alone. */
+.cr-readings-list { display: grid; gap: var(--space-8); margin: 0; padding: 0; list-style: none; }
+.cr-readings-list > li { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-4) var(--space-8); align-items: baseline; padding: var(--space-8) 0 var(--space-8) var(--space-12); border-top: 1px solid var(--color-border); }
+.cr-readings-list > li:first-child { border-top: 0; }
+.cr-readings-list > li::before { content: ''; position: absolute; inset: var(--space-8) auto var(--space-8) 0; width: 3px; border-radius: var(--r-pill); background: var(--color-muted); }
+.cr-readings-list > li.is-flagged::before { background: var(--ui-warning-ink, var(--mango-ink)); }
+.cr-reading-name { font-size: 14px; font-weight: 600; color: var(--color-foreground); }
+.cr-reading-value { font-family: var(--font-display); font-size: 20px; font-weight: 600; color: var(--color-foreground); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cr-reading-value small { margin-left: var(--space-4); font-family: var(--font-body, inherit); font-size: 13px; font-weight: 500; color: var(--color-muted-foreground); }
+.cr-readings-list .cr-reading-flag { grid-column: 1 / -1; justify-self: start; }
+.cr-readings-list .prov-row { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--space-4); }
+.cr-readings-list .calib-line { grid-column: 1 / -1; margin: 0; }
+.cr .cr-line { padding: 0; overflow: hidden; }
+.cr .cr-close { justify-self: start; margin-top: var(--space-16); }

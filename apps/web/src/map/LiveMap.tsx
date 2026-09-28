@@ -143,7 +143,15 @@ export function LiveMap({ markers, summary, height = 340, link = null }: Props) 
 /* A nurse is a circle and a visit is a square. Colour is never the only difference between two
    marks on this board: a controller who cannot tell teal from amber reads the same map as everyone
    else. Selection is a control wherever it is offered, whether or not streets are drawn. */
-function Mark({ marker, x, y }: { marker: MapMarker; x: number; y: number }) {
+/* The shape is 4.4 units of a 100-unit square, which on a 340-pixel board is fifteen pixels — and the
+   shape was the whole of what a finger could land on. A pin that can be pressed carries a transparent
+   circle under it whose radius is half the product's minimum target (tokens.json#targets.minimum, 44)
+   in this square's units, measured from the drawn size exactly as the suburb labels are. The face
+   stays small so the board stays readable; the target does not. Where two pins sit closer than that,
+   the later one's circle wins the overlap, and both are still in the list beside the map and reachable
+   by keyboard. */
+const TARGET_PX = 44;
+function Mark({ marker, x, y, hit }: { marker: MapMarker; x: number; y: number; hit: number }) {
  const shape = marker.kind.startsWith('visit')
   ? <rect x={x - 2.2} y={y - 2.2} width="4.4" height="4.4" rx="1.2"/>
   : <circle cx={x} cy={y} r="2.4"/>;
@@ -152,6 +160,7 @@ function Mark({ marker, x, y }: { marker: MapMarker; x: number; y: number }) {
   <g role="button" tabIndex={0} aria-label={marker.label} aria-pressed={Boolean(marker.selected)}
      onClick={marker.onSelect}
      onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); marker.onSelect!(); } }}>
+   <circle cx={x} cy={y} r={hit} fill="transparent" className="map-hit"/>
    {shape}
   </g>
  );
@@ -166,7 +175,7 @@ function Mark({ marker, x, y }: { marker: MapMarker; x: number; y: number }) {
    coordinate space can be held to a scale expressed in pixels. */
 const FLOOR_PX = 13;
 
-function useLabelUnits(svg: React.RefObject<SVGSVGElement | null>) {
+function useLabelUnits(svg: React.RefObject<SVGSVGElement | null>, onSide?: (side: number) => void) {
  useEffect(() => {
   const element = svg.current;
   if (!element) return;
@@ -174,18 +183,21 @@ function useLabelUnits(svg: React.RefObject<SVGSVGElement | null>) {
    const box = element.getBoundingClientRect();
    /* preserveAspectRatio="meet" on a square viewBox: the drawn square is the smaller side. */
    const side = Math.min(box.width, box.height);
-   if (side > 0) element.style.setProperty('--label-units', String((FLOOR_PX * 100) / side));
+   if (side > 0) { element.style.setProperty('--label-units', String((FLOOR_PX * 100) / side)); onSide?.(side); }
   };
   measure();
   const observer = new ResizeObserver(measure);
   observer.observe(element);
   return () => observer.disconnect();
- }, [svg]);
+ }, [svg, onSide]);
 }
 
 function Schematic({ markers, summary, link }: { markers: MapMarker[]; summary: string; link: { from: LatLng; to: LatLng } | null }) {
  const svg = useRef<SVGSVGElement>(null);
- useLabelUnits(svg);
+ const [side, setSide] = useState(0);
+ useLabelUnits(svg, setSide);
+ /* Half a target, in the square's units; before the first measurement, the 340-pixel board's. */
+ const hit = ((TARGET_PX / 2) * 100) / (side || 340);
  return (
   <div className="livemap-canvas schematic">
    <svg ref={svg} viewBox="0 0 100 100" role="img" aria-label={summary} preserveAspectRatio="xMidYMid meet">
@@ -209,7 +221,7 @@ function Schematic({ markers, summary, link }: { markers: MapMarker[]; summary: 
      return (
       <g key={marker.id} className={`map-pin ${marker.kind}${marker.selected ? ' selected' : ''}`}>
        {marker.selected && <circle cx={p.x} cy={p.y} r="7" className="map-focus"/>}
-       <Mark marker={marker} x={p.x} y={p.y}/>
+       <Mark marker={marker} x={p.x} y={p.y} hit={hit}/>
       </g>
      );
     })}

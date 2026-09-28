@@ -3,6 +3,7 @@ import federation from '../../../../../../packages/catalog/knowledge/federation.
 import { g1 } from '../../../lib/gilbertone-admin';
 import { Empty, Region, RovingList } from '../Parts';
 import { Locked } from './Controls';
+import { Badge } from '../../../ui/Badge';
 
 /* GilbertOne · Knowledge (§7.6): the clinical and non-clinical corpora and the three external sources.
  *
@@ -25,7 +26,7 @@ export function KnowledgeScreen() {
   <Region title={words.tiersHeading} count={corpus.corpusTiers.length}>
    <RovingList label={`${corpus.corpusTiers.length} corpora`} rows={corpus.corpusTiers.map(t => ({
     key: t.id,
-    content: <><strong>{t.label}</strong><span className="g1-tag">{t.entryCount} of {corpus.corpusToday.entryCount}</span><span>{t.sentence} <em>{t.matches}</em></span></>
+    content: <><strong>{t.label}</strong><Badge size="sm" className="g1-tag">{t.entryCount} of {corpus.corpusToday.entryCount}</Badge><span>{t.sentence} <em>{t.matches}</em></span></>
    }))}/>
    <p className="helper">{corpus.theSeamAlreadyInTheData.whatThisFileProposes}</p>
   </Region>
@@ -40,7 +41,7 @@ export function KnowledgeScreen() {
    <RovingList label={`${federation.sources.length} external sources, none active`} className="g1-cards" rows={federation.sources.map(s => ({
     key: s.id,
     content: <article className="pt-card g1-card" aria-label={s.name}>
-     <h3>{s.name} {!s.active && <span className="g1-tag">{words.inactiveWord}</span>}</h3>
+     <h3>{s.name} {!s.active && <Badge size="sm" className="g1-tag">{words.inactiveWord}</Badge>}</h3>
      <dl className="pt-facts">
       <div className="g1-fact"><dt>Authority</dt><dd>{s.authority} · {s.jurisdiction}</dd></div>
       <div className="g1-fact"><dt>Licence</dt><dd>{s.licensing.licence}. {s.licensing.notes}</dd></div>

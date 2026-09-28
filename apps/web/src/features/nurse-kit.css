@@ -7,15 +7,17 @@
  * Earnings and Vetting import this file too, for the section heads and the column of facts; they are
  * already in the workspace chunk, so it costs them nothing.
  *
- * Pairs on this ground are measured in nurse-tools.css's note beside the same tokens: charcoal on
- * surface 17.04, studioInkMuted on surface 6.93 and on studioPaper 6.29, studioInk on studioLime 9.38,
- * charcoal on studioPeach 13.01, ink-muted at 78% over surface 4.04 for a boundary. */
+ * On the identity since wave 4b (28 September 2026): the Care Studio tints this sheet used to paint —
+ * peach, lime and paper behind a state, olive on a rail — are retired. Every surface here is white or
+ * the raised surface, every line the border token, every word the foreground or the muted foreground,
+ * and a state is told by an edge and by its name, never by a tinted tile alone. The token pairs are the
+ * ones ui.css and surface/nurse-identity.css already measure. */
 
 /* ---- Below the deck, everywhere ----------------------------------------------------------------
    A section head is an eyebrow over a hairline here too, so the paper half of the screen is
    recognisably the same family as the dark half rather than a second document. */
-.nt-screen .section-title { align-items: baseline; gap: var(--space-12); padding-bottom: var(--space-8); border-bottom: 1px solid var(--studio-line); margin-bottom: var(--space-16); }
-.nt-screen .section-title h2 { font-size: 20px; letter-spacing: -.3px; }
+.nt-screen .section-title { align-items: baseline; gap: var(--space-12); padding-bottom: var(--space-8); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-16); }
+.nt-screen .section-title h2 { font-family: var(--font-display); font-size: 20px; font-weight: 600; letter-spacing: 0; color: var(--color-foreground); }
 
 /* A pair of facts, as a real column rather than as two runs of text that happen to end near each
    other. The term wraps, the value does not move, and numbers line up under numbers. */
@@ -26,59 +28,97 @@
  gap: var(--space-8) var(--space-16);
  align-items: baseline;
  padding: var(--space-8) 0;
- border-top: 1px solid var(--studio-line);
+ border-top: 1px solid var(--color-border);
 }
-.nt-facts dt { font-size: 13px; line-height: 1.5; color: var(--studio-ink-muted); min-width: 0; }
-.nt-facts dd { margin: 0; font-size: 14px; line-height: 1.5; color: var(--studio-ink); text-align: right; font-weight: 500; }
+.nt-facts dt { font-size: 13px; line-height: 1.5; color: var(--color-muted-foreground); min-width: 0; }
+.nt-facts dd { margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-foreground); text-align: right; font-weight: 600; }
 .nt-facts .nt-clock { font-variant-numeric: tabular-nums; }
 
 /* ================================================================================================
    THUSO KIT
    ================================================================================================ */
-.kit-surface .nt-origins { padding: var(--space-20) var(--space-24); }
-.kit-surface .nt-capturer { padding: var(--space-20) var(--space-24); }
+/* The sheet under the command view is one white Card (clinical-deck.css's .c-sheet), so the sections
+   inside it are sections, not cards inside a card: a hairline and a heading separate them, and only the
+   reading rows — the things a nurse scans down — keep a border of their own. */
+.kit-surface.c-page .c-sheet > .panel { padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+.kit-surface .nt-origins, .kit-surface .nt-capturer { padding: 0; }
+
+/* Thuso Kit is on the patient's entry, so its sheet cannot import the shared components (KitDeck.tsx's
+   comment says why). Its older controls are dressed here in the components' own values instead — the
+   Button's corner, height and fills, the Badge's pill, the Alert's white ground and tinted edge — and
+   the words on each are unchanged. Written one class more specific than the older sheets so nothing is
+   fought with !important. */
+.kit-surface.c-page :is(.primary, .secondary) { min-height: 44px; padding: 0 var(--space-16); border-radius: var(--r-md); font-size: 14px; font-weight: 600; }
+.kit-surface.c-page .primary { border: 1px solid transparent; background: var(--color-primary); color: var(--color-primary-foreground); }
+.kit-surface.c-page .primary:hover:not(:disabled) { background: color-mix(in oklab, var(--color-primary) 90%, var(--ui-press-mix, transparent)); color: var(--color-primary-foreground); }
+.kit-surface.c-page .secondary { border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-foreground); }
+.kit-surface.c-page .secondary:hover:not(:disabled) { background: var(--color-muted); }
+.kit-surface.c-page :is(.primary, .secondary):disabled { opacity: .45; }
+.kit-surface.c-page .pill { padding: 2px var(--space-8); border-radius: var(--r-pill); background: var(--color-muted); color: var(--color-muted-foreground); font-size: 13px; font-weight: 600; }
+.kit-surface.c-page .pill.sky { background: color-mix(in oklab, var(--color-primary) 10%, transparent); color: var(--ui-primary-ink, var(--color-primary)); }
+.kit-surface.c-page .pill.amber { background: color-mix(in oklab, var(--color-warning) 20%, transparent); color: var(--color-foreground); }
+.kit-surface.c-page .pill.danger { background: color-mix(in oklab, var(--color-danger) 12%, transparent); color: var(--danger); }
+.kit-surface.c-page .pill.plain { background: var(--color-muted); color: var(--color-muted-foreground); text-transform: none; letter-spacing: 0; }
+.kit-surface.c-page .pill:not(.sky):not(.amber):not(.danger):not(.plain) { background: color-mix(in oklab, var(--color-success) 15%, transparent); color: var(--color-foreground); }
+.kit-surface.c-page .privacy-note { border: 1px solid var(--color-border); border-radius: var(--r-md); background: var(--color-surface); color: var(--color-foreground); font-size: 14px; line-height: 1.55; }
+.kit-surface.c-page .privacy-note > svg { color: var(--color-primary); }
+.kit-surface.c-page .privacy-note.alert { border-color: color-mix(in oklab, var(--color-warning) 50%, var(--color-border)); background: var(--color-surface); color: var(--color-foreground); }
+.kit-surface.c-page .privacy-note.alert > svg { color: var(--mango-ink); }
+.kit-surface.c-page .privacy-note.alert strong { color: var(--color-foreground); }
+.kit-surface.c-page .helper { color: var(--color-muted-foreground); }
+/* A serial is the thing a recall is matched against, so it is never cut off with an ellipsis: on a phone the
+   tag wraps instead. */
+.kit-surface.c-page .kit-tags .prov { white-space: normal; flex-wrap: wrap; border-radius: var(--r-md); }
+.kit-surface.c-page .kit-tags .prov em { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+.kit-surface.c-page .helper > svg { color: var(--color-primary); }
 
 /* One reading, as a record rather than as a row of labels. The value is the largest thing on it and
    the observation's name is the quiet line above — it was the other way round, which put twelve
-   identical bold captions down the screen with the one number on each set smaller than its label. */
-.kit-surface .nt-entry { position: relative; overflow: hidden; padding: var(--space-16) var(--space-20) var(--space-20) var(--space-24); }
-/* The rail: a state told in a shape and a position before it is told in a tone. */
-.kit-surface .nt-entry::before { content: ''; position: absolute; left: 0; top: var(--space-12); bottom: var(--space-12); width: 4px; border-radius: 0 var(--r-pill) var(--r-pill) 0; background: var(--studio-line); }
-.kit-surface .nt-entry.tone-sky::before { background: var(--studio-olive); }
-.kit-surface .nt-entry.tone-stored::before { background: var(--studio-ink); }
+   identical bold captions down the screen with the one number on each set smaller than its label.
+   The handoff's reading row: white, a hairline, the value in the display face. */
+.kit-surface .nt-entry { position: relative; overflow: hidden; padding: var(--space-16) var(--space-20) var(--space-16) var(--space-24); box-shadow: none; transition: border-color var(--t-quick) var(--ease-soft); }
+.kit-surface .nt-entry:hover { border-color: color-mix(in oklab, var(--color-accent) 40%, var(--color-border)); }
+/* The rail: a state told in a shape and a position before it is told in a tone, and always beside the
+   badge that names it. */
+.kit-surface .nt-entry::before { content: ''; position: absolute; left: 0; top: var(--space-12); bottom: var(--space-12); width: 3px; border-radius: 0 var(--r-pill) var(--r-pill) 0; background: var(--color-border); }
+.kit-surface .nt-entry.tone-sky::before { background: var(--color-primary); }
+.kit-surface .nt-entry.tone-stored::before { background: var(--color-accent); }
 .kit-surface .nt-entry.tone-amber::before { background: var(--mango-ink); }
 .kit-surface .nt-entry.tone-danger::before { background: var(--danger); }
 .kit-surface .nt-entry-head { align-items: flex-start; gap: var(--space-12); }
 .kit-surface .nt-entry-value { min-width: 0; }
-.kit-surface .nt-entry-value small { display: block; font-size: 13px; line-height: 1.4; color: var(--studio-ink-muted); }
-.kit-surface .nt-entry-value strong { display: flex; align-items: baseline; gap: 6px; font-size: 32px; line-height: 1.15; letter-spacing: -1px; color: var(--charcoal); font-variant-numeric: tabular-nums; margin-top: 2px; }
-.kit-surface .nt-entry-value strong i { font-style: normal; font-size: 15px; font-weight: 500; letter-spacing: 0; color: var(--studio-ink-muted); }
+.kit-surface .nt-entry-value small { display: block; font-size: 13px; line-height: 1.4; color: var(--color-muted-foreground); }
+.kit-surface .nt-entry-value strong { display: flex; align-items: baseline; gap: var(--space-4); font-family: var(--font-display); font-size: 32px; font-weight: 600; line-height: 1.15; letter-spacing: 0; color: var(--color-foreground); font-variant-numeric: tabular-nums; margin-top: 2px; }
+.kit-surface .nt-entry-value strong i { font-family: var(--font-text); font-style: normal; font-size: 15px; font-weight: 500; color: var(--color-muted-foreground); }
 /* A superseded reading is kept and is not hidden. It recedes and says so in words on the row. */
-.kit-surface .nt-entry.superseded .nt-entry-value strong { color: var(--studio-ink-muted); }
+.kit-surface .nt-entry.superseded { border-style: dashed; background: var(--color-surface); }
+.kit-surface .nt-entry.superseded .nt-entry-value strong { color: var(--color-muted-foreground); }
 
-/* The six states, as a board of six stations rather than six lines of the same grey. A station
-   holding nothing is drawn hollow and dashed: an empty state is a state that has not happened, and
-   filling all six the same way would put four false alarms on one screen. */
+/* The six states, as a board of six stations. A station holding something is a white tile with an edge
+   along its top and its count in the display face; a station holding nothing is drawn hollow and dashed:
+   an empty state is a state that has not happened, and filling all six the same way would put four
+   false alarms on one screen. The edge's colour is the second channel; the name is the first. */
 .kit-surface .nt-states { padding: var(--space-20) var(--space-24) var(--space-24); }
 .nt-state-board { list-style: none; margin: 0 0 var(--space-16); padding: 0; display: grid; gap: var(--space-12); grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr)); }
-.nt-state { border-radius: var(--r-tile); padding: var(--space-12) var(--space-16) var(--space-16); background: var(--studio-paper); color: var(--studio-ink); min-width: 0; }
-.nt-state.empty { background: transparent; border: 1px dashed color-mix(in srgb, var(--studio-ink-muted) 78%, var(--surface)); }
-.nt-state-count { display: block; font-size: 28px; line-height: 1.1; letter-spacing: -1px; color: var(--charcoal); font-variant-numeric: tabular-nums; }
-.nt-state.empty .nt-state-count { color: var(--studio-ink-muted); }
-.nt-state .kit-state-name { display: block; font-size: 15px; line-height: 1.35; margin-top: var(--space-4); color: var(--charcoal); }
-.nt-state small { display: block; font-size: 13px; line-height: 1.5; margin-top: var(--space-4); color: var(--studio-ink-muted); }
-/* Two channels again: the fill says which kind of state it is and the count says how many. */
-.nt-state.tone-amber { background: var(--studio-peach); }
-.nt-state.tone-danger { background: var(--danger-soft); }
-.nt-state.tone-stored { background: var(--studio-lime); }
+.nt-state { position: relative; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--r-md); padding: var(--space-12) var(--space-16) var(--space-16); background: var(--color-surface); color: var(--color-foreground); min-width: 0; }
+.nt-state.holds::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--color-primary); }
+.nt-state.empty { background: transparent; border: 1px dashed var(--color-muted-foreground); }
+.nt-state-count { display: block; font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1.1; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.nt-state.empty .nt-state-count { color: var(--color-muted-foreground); }
+.nt-state .kit-state-name { display: block; font-size: 15px; line-height: 1.35; margin-top: var(--space-4); color: var(--color-foreground); }
+.nt-state small { display: block; font-size: 13px; line-height: 1.5; margin-top: var(--space-4); color: var(--color-muted-foreground); }
+.nt-state.tone-amber::before { background: var(--mango-ink); }
+.nt-state.tone-danger::before { background: var(--danger); }
+.nt-state.tone-stored::before { background: var(--color-accent); }
 
 .kit-surface .nt-queue { padding: var(--space-20) var(--space-24) var(--space-24); }
 /* Two readings of the same observation, at the same size, with everything a clinician would use to
    choose between them — which is what makes it a decision rather than a prompt. */
 .kit-surface .kit-versus { gap: var(--space-16); }
-.kit-surface .kit-versus > .panel { padding: var(--space-16) var(--space-20) var(--space-20); background: var(--studio-paper); border: 0; box-shadow: none; }
-.kit-surface .kit-reading-value strong { font-size: 36px; letter-spacing: -1.2px; color: var(--charcoal); font-variant-numeric: tabular-nums; }
+.kit-surface .kit-versus > .panel { padding: var(--space-16) var(--space-20) var(--space-20); background: var(--color-surface-raised); border: 1px solid var(--color-border); box-shadow: none; }
+.kit-surface .kit-reading-value strong { font-family: var(--font-display); font-size: 36px; font-weight: 600; letter-spacing: 0; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
 
+@media (prefers-reduced-motion: reduce) { .kit-surface .nt-entry { transition: none !important; } }
 
 /* ---- Narrow ------------------------------------------------------------------------------------ */
 @media (max-width: 599px) {

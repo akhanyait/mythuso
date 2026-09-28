@@ -196,7 +196,7 @@ export function VoicePreview({ placement, cardId }: { placement: string; cardId?
    </div>
    <label className="g1-field wide" htmlFor={textField}>
     <span>{words.previewTextLabel}</span>
-    <textarea id={textField} className="fc-text" value={text} onChange={event => setText(event.target.value)}
+    <textarea id={textField} className="ui-control ui-textarea" value={text} onChange={event => setText(event.target.value)}
      aria-describedby={verdict} aria-invalid={refused || undefined} autoComplete="off" spellCheck={false}/>
     <small>{words.previewTextHint}</small>
    </label>
@@ -225,7 +225,7 @@ export function VoicePreview({ placement, cardId }: { placement: string; cardId?
    ? <div className="g1-save g1-action" role="group" aria-label={words.saveHeading}>
     <label className="g1-field" htmlFor={reasonField}>
      <span>{settingsScreen.reason}</span>
-     <textarea id={reasonField} className="fc-text" value={saving.reason} onChange={event => { saving.setReason(event.target.value); saving.clear(); }} aria-describedby={`${reasonField}-help`} autoComplete="off" spellCheck={false}/>
+     <textarea id={reasonField} className="ui-control ui-textarea" value={saving.reason} onChange={event => { saving.setReason(event.target.value); saving.clear(); }} aria-describedby={`${reasonField}-help`} autoComplete="off" spellCheck={false}/>
      <small id={`${reasonField}-help`}>{settingsScreen.reasonHelp}</small>
     </label>
     <LiveButton id="voice-save-as-default" describedBy={!source.canSave ? `${saveWhy}-gate` : asked === inForce ? `${saveWhy}-same` : saveWhy} disabled={asked === inForce || !source.canSave || saving.busy} onClick={() => { if (asked) void saving.save([{ setting: settingOfClass(classId).key, value: asked }]); }}/>

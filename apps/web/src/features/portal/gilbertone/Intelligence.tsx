@@ -2,6 +2,7 @@ import levels from '../../../../../../packages/catalog/intelligence-levels.json'
 import { g1 } from '../../../lib/gilbertone-admin';
 import { Empty, Region, RovingList } from '../Parts';
 import { GatedAction, GatedSlider, Locked } from './Controls';
+import { Badge } from '../../../ui/Badge';
 
 /* GilbertOne · Intelligence (§7.5): the five reasoning levels and which conversation may reach which,
  * from packages/catalog/intelligence-levels.json.
@@ -41,7 +42,7 @@ export function IntelligenceScreen() {
    <RovingList label={`${levels.levels.length} levels`} rows={levels.levels.map(l => ({
     key: String(l.id),
     content: <><strong>{levelName(l.id)}</strong>
-     <span className="g1-tag">{!l.modelCall ? words.noModel : l.requiresClinician ? `${words.clinicianRequired}${l.requiresRecordedPurpose ? ` ${words.purposeRequired}` : ''}` : l.clinicalBoundary}</span>
+     <Badge size="sm" className="g1-tag">{!l.modelCall ? words.noModel : l.requiresClinician ? `${words.clinicianRequired}${l.requiresRecordedPurpose ? ` ${words.purposeRequired}` : ''}` : l.clinicalBoundary}</Badge>
      <span>{l.changes} {l.clinicalBoundary}</span></>
    }))}/>
   </Region>

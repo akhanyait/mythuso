@@ -139,7 +139,7 @@ export function ThusoKit({ onClose }: { onClose?: () => void }) {
       without its styles for a moment. While it waits, the capability's sentence is already on the
       screen: a disclosure that appears after the thing it qualifies is, for that moment, none. */}
   <Suspense fallback={<NotConnected of="devices"/>}>
-  <KitDeck entries={entries} online={online} onToggle={() => setOnline(!online)} localCopyAt={localCopyAt}/>
+  <KitDeck entries={entries} online={online} onToggle={() => setOnline(!online)} localCopyAt={localCopyAt} capturerId={capturerId}/>
 
   <div className="c-sheet form-stack">
   <SectionTitle title="Four origins, and none of them a lesser version of another"/>
@@ -258,7 +258,7 @@ function QueueRow({ entry }: { entry: Capture }) {
   <div className="kit-tags">
    <ProvenanceTag source={{ provenance: entry.provenance, serial: entry.serial, by: entry.byName, saidBy: entry.saidBy, inputs: entry.inputs }}/>
    <CalibrationTag source={{ provenance: entry.provenance, serial: entry.serial, calibration: entry.calibration }}/>
-   {entry.provenance === 'device' && <CaptureSource serial={entry.serial} quality={entry.quality} simulated={false}/>}
+   {entry.provenance === 'device' && <CaptureSource serial={entry.serial} quality={entry.quality} simulated={false} takenAt={entry.deviceAt}/>}
   </div>
   <dl className="nt-facts">
    {entry.context && instrument && <div><dt>{deviceById(instrument.deviceId)!.name}</dt><dd>{entry.context}</dd></div>}

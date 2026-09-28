@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
  ArrowLeft, ArrowRight, BadgeCheck, Ban, Check, CircleAlert, CircleSlash, ClipboardList, DoorOpen,
- Hourglass, Info, KeyRound, Lock, MicOff, PhoneCall, PhoneOff, ShieldX, SignalLow, Users, VideoOff, WifiOff
+ Hourglass, Info, KeyRound, Lock, MicOff, PhoneCall, PhoneOff, ShieldX, Signal, Users, VideoOff, WifiOff
 } from 'lucide-react';
 import './consult-file.css';
-import { EmptyNote, Pill, SectionTitle } from '../components/UI';
+import { EmptyNote, SectionTitle } from '../components/UI';
+import { Badge, Button, StatusIndicator } from '../ui';
 import { NotConnected } from '../components/NotConnected';
 import { CodeInput, StepHead } from '../components/Steps';
 import { ConsultationComposer } from './Consultation';
@@ -146,7 +147,7 @@ function Roster({ present, consented, patient, doctor, onAsk }:
      {out && <p className="tc-out-note">Not in the room. {p.ifDeclined}</p>}
     </div>
     {onAsk && p.mayBeAskedToLeave && !out
-     ? <button className="secondary tc-person-act" onClick={() => onAsk(p.id)}><DoorOpen size={15}/>Ask to step out</button>
+     ? <Button variant="secondary" size="sm" className="tc-person-act" onClick={() => onAsk(p.id)}><DoorOpen size={15}/>Ask to step out</Button>
      : p.essential && p.id !== 'patient' ? <span className="tc-fixed"><Lock size={13}/>Cannot be asked to leave</span> : null}
    </div>;
   })}
@@ -182,7 +183,7 @@ function LineInstrument({ connectionId, allowed }: { connectionId: string; allow
  const lit = clinicalLimits.map(limit => allowed.some(a => a.id === limit.id));
  return <section className="cf-night tcx-line" aria-label="The line and what it allows">
   <div className="cf-night-head">
-   <span className="cf-eyebrow"><SignalLow size={15} aria-hidden="true"/>The line</span>
+   <span className="cf-eyebrow"><Signal size={15} aria-hidden="true"/>The line</span>
    <span className="cf-standing">{state.name}</span>
   </div>
   <div className="tcx-line-body">
@@ -208,6 +209,30 @@ function LineInstrument({ connectionId, allowed }: { connectionId: string; allow
   </div>
   <BothEnds connectionId={connectionId}/>
   <p className="tcx-line-note">{state.note}</p>
+ </section>;
+}
+
+/* The ladder alone, for the consultation record's rail: the rung the call ended on and every rung's
+   allowance to the same scale, so the record being written says what the line allowed while it is
+   written. The same arithmetic as the instrument above, drawn smaller and without the dial. */
+export function LineLadder({ connectionId, allowed }: { connectionId: string; allowed: { id: string }[] }) {
+ const state = connectionById(connectionId);
+ const rungs = [...connectionStates].sort((a, b) => b.fidelity - a.fidelity);
+ return <section className="tcx-ladder-card" aria-label="The line this consultation was held on">
+  <div className="tcx-ladder-head"><span className="cf-eyebrow"><Signal size={15} aria-hidden="true"/>The line</span>
+   <span className="tcx-ladder-now">{state.name} · {allowed.length} of {clinicalLimits.length}</span></div>
+  <ol className="tcx-ladder">
+   {rungs.map(rung => {
+    const now = rung.id === connectionId;
+    return <li key={rung.id} className={`tcx-rung${now ? ' is-now' : ''}`} aria-current={now ? 'true' : undefined}>
+     <span className="tcx-rung-name">{rung.name}{now && <em>Now</em>}</span>
+     <span className="c-bars tcx-rung-bar" aria-hidden="true">
+      {clinicalLimits.map(limit => <i key={limit.id} className={rung.permits.includes(limit.id) ? 'on' : ''}/>)}
+     </span>
+     <span className="tcx-rung-count">{rung.permits.length}<small>/{clinicalLimits.length}</small></span>
+    </li>;
+   })}
+  </ol>
  </section>;
 }
 
@@ -279,6 +304,7 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
      actually established. Not a parallel structure with the word "teleconsultation" on it. */
   const line = connectionById(connectionId);
   return <ConsultationComposer reference={reference} patient={patient} writer={doctorId} onClose={onClose}
+   line={<LineLadder connectionId={connectionId} allowed={allowedNow}/>}
    seed={{
     reason: `Teleconsultation · ${reference}`,
     history: `Held ${line.name.toLowerCase()}. In the room: ${participants.filter(p => p.essential || (present[p.id] && consented[p.id])).map(p => nameOf(p, p.id === 'doctor' ? doctor : subjectFor(p), patient)).join(', ')}.`
@@ -299,6 +325,10 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
     <span className="cf-eyebrow">Appointment {reference}</span>
     <strong>{patient}</strong>
    </div>
+   {/* The recording indicator, on every stage of the call, because the contract's design for a
+       recording is that it is unmistakable on every screen while it runs — and so, in a build with no
+       recording, is its absence. It is words with a hollow mark, not a control. */}
+   {stage < 4 && <StatusIndicator status="offline" label="Not recording" className="tcx-recording"/>}
    {stage < 4 && <StepHead step={stage + 1} total={stages.length} label={stages[stage]}/>}
   </div>
 
@@ -365,10 +395,10 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
    </section>
 
    <div className="button-row">
-    {onClose && <button className="secondary" onClick={onClose}><ArrowLeft size={16}/>Leave</button>}
+    {onClose && <Button variant="secondary" onClick={onClose}><ArrowLeft size={16}/>Leave</Button>}
     {consult.allowed
-     ? <button className="primary" disabled={!consented.doctor || !interpreterAgreed} onClick={() => setStage(1)}>Check identity<ArrowRight size={16}/></button>
-     : <button className="primary" onClick={() => { setClosed('clinician-refused'); setStage(4); }}>Rebook with a doctor whose registration is current<ArrowRight size={16}/></button>}
+     ? <Button variant="primary" disabled={!consented.doctor || !interpreterAgreed} onClick={() => setStage(1)}>Check identity<ArrowRight size={16}/></Button>
+     : <Button variant="primary" onClick={() => { setClosed('clinician-refused'); setStage(4); }}>Rebook with a doctor whose registration is current<ArrowRight size={16}/></Button>}
    </div>
   </div>
 
@@ -395,12 +425,12 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
     </section>
    </div>
    <div className="button-row">
-    <button className="secondary" onClick={() => setStage(0)}><ArrowLeft size={16}/>Back</button>
+    <Button variant="secondary" onClick={() => setStage(0)}><ArrowLeft size={16}/>Back</Button>
     {codeError
-     ? <button className="primary" onClick={() => { setClosed('identity-failed'); setStage(4); }}>Close the encounter<ArrowRight size={16}/></button>
-     : <button className="primary" disabled={code.length < 6} onClick={() => code === demoVisitCode
+     ? <Button variant="primary" onClick={() => { setClosed('identity-failed'); setStage(4); }}>Close the encounter<ArrowRight size={16}/></Button>
+     : <Button variant="primary" disabled={code.length < 6} onClick={() => code === demoVisitCode
         ? (setIdentityConfirmed(true), setStage(2))
-        : setCodeError(identity.failure)}>Confirm and continue<ArrowRight size={16}/></button>}
+        : setCodeError(identity.failure)}>Confirm and continue<ArrowRight size={16}/></Button>}
    </div>
   </div>
 
@@ -437,8 +467,8 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
     <li className="tc-refusal"><Ban size={18} aria-hidden="true"/><p>{refusalById('covert-recording').sentence}</p></li>
    </ul>
    <div className="button-row">
-    <button className="secondary" onClick={() => setStage(1)}><ArrowLeft size={16}/>Back</button>
-    <button className="primary" onClick={() => setStage(3)}>Open the call<ArrowRight size={16}/></button>
+    <Button variant="secondary" onClick={() => setStage(1)}><ArrowLeft size={16}/>Back</Button>
+    <Button variant="primary" onClick={() => setStage(3)}>Open the call<ArrowRight size={16}/></Button>
    </div>
   </div>
 
@@ -475,8 +505,8 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
    </section>
    <p className="tcx-hint" role="status">Step {waitingAt + 1} of {session.steps.length}. The line will open {session.connection.name.toLowerCase()}.</p>
    <div className="button-row">
-    <button className="secondary" onClick={() => setStage(2)}><ArrowLeft size={16}/>Back</button>
-    <button className="primary" onClick={() => setWaitingAt(-1)}>Skip the wait<ArrowRight size={16}/></button>
+    <Button variant="secondary" onClick={() => setStage(2)}><ArrowLeft size={16}/>Back</Button>
+    <Button variant="primary" onClick={() => setWaitingAt(-1)}>Skip the wait<ArrowRight size={16}/></Button>
    </div>
   </div>
 
@@ -566,13 +596,13 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
    </ul>
 
    <div className="button-row">
-    <button className="secondary" onClick={() => finish('ended')}><PhoneOff size={16}/>End without a decision</button>
+    <Button variant="secondary" onClick={() => finish('ended')}><PhoneOff size={16}/>End without a decision</Button>
     {/* Nothing here can close an encounter as finished while the line is down. That is the button
         this feature exists to not have. */}
-    <button className="primary" disabled={!mayConclude(connectionId, nursePresent) || !consented.doctor}
+    <Button variant="primary" disabled={!mayConclude(connectionId, nursePresent) || !consented.doctor} leadingIcon={<Check aria-hidden="true"/>}
      onClick={() => { setDecisionReached(true); finish('ended'); }}>
-     <Check size={16}/>Reach a decision and end the consultation
-    </button>
+     Reach a decision and end the consultation
+    </Button>
    </div>
    {!mayConclude(connectionId, nursePresent) && <p className="tc-cost" role="status"><WifiOff size={14}/>The line does not currently allow a decision to be reached, so there is no way to close this encounter as a completed consultation.</p>}
    {!consented.doctor && <p className="tc-cost" role="status"><ShieldX size={14}/>Consent to the consultation has been withdrawn. {consentItems.find(c => c.id === 'consult')!.revokedMidCall}</p>}
@@ -589,7 +619,7 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
      <p>{outcome.record}</p>
     </div>
     <div className="tcx-verdict-facts">
-     <Pill tone={outcome.countsAsConsultation ? 'teal' : 'amber'}>{outcome.countsAsConsultation ? 'Counts as a consultation' : 'Not a consultation'}</Pill>
+     <Badge variant={outcome.countsAsConsultation ? 'success' : 'warning'} dot>{outcome.countsAsConsultation ? 'Counts as a consultation' : 'Not a consultation'}</Badge>
      <div className="review-line"><span>Charged</span><strong>{outcome.charged ? 'Yes — a consultation was held' : 'No'}</strong></div>
     </div>
    </section>
@@ -614,7 +644,7 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
 
    {outcome.countsAsConsultation ? <>
     <p className="tcx-hint">{ruleById('dropped-is-not-finished').sentence}</p>
-    <button className="secondary full" onClick={() => setConsultation(true)}><ClipboardList size={17}/>Write it up in the consultation record</button>
+    <Button variant="secondary" onClick={() => setConsultation(true)}><ClipboardList size={17}/>Write it up in the consultation record</Button>
    </> : <>
     <div className="tcx-stop"><ShieldX size={19}/><p>{ruleById('dropped-is-not-finished').sentence} There is no button on this screen that closes this encounter as a completed consultation, for anybody, in any state.</p></div>
    </>}
@@ -635,8 +665,8 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
    </section>
    <EmptyNote>{ruleById('no-media-in-this-build').sentence} Nothing was transmitted, no encounter was written and no clinician was notified.</EmptyNote>
    <div className="button-row">
-    <button className="secondary" onClick={() => { setStage(0); setClosed(null); setDecisionReached(false); setResumed(false); setEverDropped(false); setConnectionId(session.connection.id); setWaitingAt(0); setCode(''); setCodeError(''); setIdentityConfirmed(false); setConsented({ doctor: false, nurse: false, guardian: false, interpreter: false }); setWithdrawnNote(null); setChosen({ nurse: true, guardian: false, interpreter: false }); }}><ArrowLeft size={16}/>Start again</button>
-    {onClose && <button className="primary" onClick={onClose}>Close<Check size={17}/></button>}
+    <Button variant="secondary" onClick={() => { setStage(0); setClosed(null); setDecisionReached(false); setResumed(false); setEverDropped(false); setConnectionId(session.connection.id); setWaitingAt(0); setCode(''); setCodeError(''); setIdentityConfirmed(false); setConsented({ doctor: false, nurse: false, guardian: false, interpreter: false }); setWithdrawnNote(null); setChosen({ nurse: true, guardian: false, interpreter: false }); }}><ArrowLeft size={16}/>Start again</Button>
+    {onClose && <Button variant="primary" onClick={onClose}>Close<Check size={17}/></Button>}
    </div>
   </div>}
  </div>;

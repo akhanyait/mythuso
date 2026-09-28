@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
+import { Wordmark } from '../components/Wordmark';
 import { Activity, ArrowRight, BarChart3, BookOpen, Landmark, LayoutGrid, LogOut, Radar, ScrollText, ShieldAlert, ShieldCheck, SlidersHorizontal, TrendingUp } from 'lucide-react';
 import { Modal } from '../components/UI';
 import { AssistantLauncher } from '../components/AssistantLauncher';
@@ -10,7 +11,7 @@ import { VettingApplication } from '../features/Vetting';
 import { t } from '../lib/i18n';
 import { endSession } from '../lib/auth';
 import { whoIs, type RoleId } from '../lib/roles';
-import { NavRow } from '../surface/Surface';
+import { NavigationItem } from '../ui/NavigationItem';
 import '../surface/clinical.css';
 import '../surface/clinical-screens.css';
 
@@ -67,7 +68,7 @@ export default function AdminWorkspace({ audience, legacy = false }: { audience:
  return <div className="app-shell clinical aurora">
   <a href="#main" className="skip-link">{t('shell.skip', 'en-ZA')}</a>
   <aside className="sidebar">
-   <span className="brand"><img src="/brand/mythuso-logo.svg" alt="MyThuso"/></span>
+   <span className="brand"><Wordmark/></span>
    <div className="staff-id">{who}</div>
    <p className={`staff-credential ${stopped ? 'stop' : state.status === 'expiring' ? 'due' : ''}`}>
     {stopped ? <ShieldAlert size={15}/> : <ShieldCheck size={15}/>}<span>{credential}</span>
@@ -79,7 +80,7 @@ export default function AdminWorkspace({ audience, legacy = false }: { audience:
        navigation. Below 1000px it is display:none and the strip inside the console takes over. */}
    <nav className="s-nav" aria-label="Console sections">{adminTabs.map(id => {
     const Icon = tabIcons[id];
-    return <NavRow key={id} icon={<Icon size={19} strokeWidth={1.8}/>} label={id} current={tab === id} onClick={() => setTab(id)}/>;
+    return <NavigationItem key={id} icon={<Icon size={20} strokeWidth={1.8}/>} active={tab === id} onClick={() => setTab(id)}>{id}</NavigationItem>;
    })}</nav>
    <div className="sidebar-bottom">
     <button className="settings-link" onClick={leave}><LogOut size={18}/>Leave the console</button>

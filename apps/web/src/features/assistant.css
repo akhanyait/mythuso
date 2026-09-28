@@ -155,9 +155,6 @@
   justify-items: start;
   text-align: left;
 }
-.as-head[data-asked] .as-state {
-  justify-self: start;
-}
 /* A figure's label is a whole clause — "days before it stops carrying anything" — and beside the sphere
    it has half the width it had centred, so it is allowed to fall under its number rather than push it. */
 .as-head[data-asked] .as-figure {
@@ -471,24 +468,11 @@
    decision — the patient's entry has none (audiences section, 19 September 2026). */
 .as-simulated {
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--brand-mint);
 }
 /* The state, said. A pill with a hairline rather than a coloured fill, so its colour is never the only
    thing that changed: the word is. Orange is the edge on Escalate, white text on ink throughout. */
-.as-state {
-  justify-self: center;
-  padding: 2px var(--space-12);
-  border-radius: var(--r-pill);
-  border: 1px solid color-mix(in srgb, var(--brand-mint) 62%, var(--brand-ink));
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--surface);
-}
-.as-state[data-pulse="escalate"] {
-  border-color: var(--brand-orange);
-  border-width: 2px;
-}
 
 /* The composer's air, since 20 September 2026, decided here once: 4px between its rows and 8px at
    its foot. The composer is fixed chrome and it is paid for twice — by the reading the scroll
@@ -805,7 +789,7 @@
   .as-voice-heard,
   .as-voice-browser,
   .as-voice-note {
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1.4;
   }
   .as-keyboard {
@@ -880,7 +864,7 @@
   .as-voice-heard,
   .as-voice-browser,
   .as-voice-note {
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1.4;
   }
   .as-keyboard {
@@ -917,9 +901,6 @@
   justify-items: start;
   text-align: left;
 }
-.as-head .as-state {
-  justify-self: start;
-}
 
 @media (max-height: 550px) {
   .as-scroll {
@@ -942,7 +923,7 @@
   width: 100%;
   background: var(--surface);
   border-color: var(--stone);
-  border-radius: 16px;
+  border-radius: var(--r-card);
   color: var(--brand-ink);
 }
 .as-who,
@@ -960,7 +941,7 @@
 .as-said {
   background: var(--brand-ink);
   color: var(--surface);
-  border-radius: 16px 16px 4px 16px;
+  border-radius: var(--r-card) var(--r-card) var(--r-sm) var(--r-card);
 }
 .as-asks {
   border-color: var(--stone);
@@ -999,14 +980,14 @@
   grid-column: 1;
   grid-row: 1;
   border-color: var(--brand-green);
-  border-radius: 14px;
+  border-radius: var(--r-control);
 }
 .as-send {
   grid-column: 2;
   grid-row: 1;
   background: var(--brand-ink);
   color: var(--surface);
-  border-radius: 14px;
+  border-radius: var(--r-control);
 }
 .as-voice {
   grid-column: 1 / -1;
@@ -1014,7 +995,7 @@
   width: 100%;
   gap: 8px;
   padding: 8px 12px;
-  border-radius: 14px;
+  border-radius: var(--r-control);
   background: color-mix(in srgb, var(--brand-mint) 25%, var(--surface));
   border-color: var(--brand-green);
   color: var(--brand-ink);
@@ -1044,7 +1025,7 @@
   gap: var(--space-8);
   padding: var(--space-12);
   border: 1px solid var(--brand-green);
-  border-radius: 14px;
+  border-radius: var(--r-control);
   background: color-mix(in srgb, var(--brand-mint) 16%, var(--surface));
 }
 .as-voice-consent-line {
@@ -1059,31 +1040,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-8);
-}
-.as-voice-actions button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 0 var(--space-16);
-  border: 1px solid var(--brand-green);
-  border-radius: var(--r-control);
-  background: var(--surface);
-  color: var(--brand-ink);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.as-voice-actions button:hover {
-  background: color-mix(in srgb, var(--brand-mint) 30%, var(--surface));
-}
-.as-voice-actions .as-voice-agree {
-  background: var(--brand-ink);
-  color: var(--surface);
-}
-.as-voice-actions .as-voice-agree:hover {
-  background: var(--brand-green);
 }
 .as-keyboard {
   border-color: var(--stone);
@@ -1175,32 +1131,13 @@
 }
 .as-subtitle {
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--brand-mint);
 }
 
 /* The state pill's dot, as the mockup draws it beside "Ready": a small filled circle that says the
    same word the text says, never instead of it. Idle is the brand's green because Ready is; the
    emergency keeps the orange edge the pill already carries. */
-.as-state {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-.as-state::before {
-  content: "";
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--brand-mint);
-  flex: 0 0 auto;
-}
-.as-state[data-pulse="idle"]::before {
-  background: var(--brand-green);
-}
-.as-state[data-pulse="escalate"]::before {
-  background: var(--brand-orange);
-}
 
 /* The mockup draws its suggested questions as a two-column grid on both screens, so the chips are
    one here too: minmax(0, 1fr) columns let a long question wrap inside its cell rather than widen
@@ -1248,7 +1185,7 @@
   gap: var(--space-12);
   padding: var(--space-16);
   border: 1px solid var(--stone);
-  border-radius: 16px;
+  border-radius: var(--r-card);
   background: var(--surface);
 }
 .as-gate-card-head {
@@ -1339,45 +1276,8 @@
   flex-wrap: wrap;
   gap: var(--space-8);
 }
-.as-gate-cancel,
-.as-gate-accept {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-8);
-  min-height: 48px;
-  padding: 0 var(--space-20);
-  border-radius: var(--r-pill);
-  font: inherit;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color var(--t-quick) var(--ease-soft);
-}
-.as-gate-cancel {
-  border: 1px solid var(--brand-ink);
-  background: var(--surface);
-  color: var(--brand-ink);
-}
-.as-gate-cancel:hover {
-  background: color-mix(in srgb, var(--brand-mint) 25%, var(--surface));
-}
-.as-gate-accept {
-  flex: 1 1 12rem;
-  border: 0;
-  background: var(--brand-ink);
-  color: var(--surface);
-}
-.as-gate-accept:hover:not(:disabled) {
-  background: var(--brand-green);
-}
 /* Disabled is a truth about what was ticked, so it is drawn as one: the same button, out of
    reach, rather than a warning that arrives after the press. */
-.as-gate-accept:disabled {
-  background: color-mix(in srgb, var(--brand-ink) 28%, var(--surface));
-  color: color-mix(in srgb, var(--surface) 75%, var(--brand-ink));
-  cursor: not-allowed;
-}
 
 /* The conversation's footer, as the mockup draws it: the lockup, what writes the sentences, and
    the product's own line. At the end of the scroll rather than in fixed chrome, because every
@@ -1398,7 +1298,7 @@
   align-items: center;
   gap: 6px;
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--brand-ink);
 }
@@ -1407,7 +1307,7 @@
 }
 .as-foot-note {
   margin: 0 0 0 auto;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--brand-ink);
 }
 
@@ -1432,7 +1332,7 @@
   align-items: flex-start;
   gap: var(--space-8);
   padding: var(--space-4) var(--space-12);
-  border-radius: 12px;
+  border-radius: var(--r-card);
   background: var(--mango-soft);
   color: var(--mango-ink);
 }
@@ -1574,11 +1474,6 @@
       consent screen. Disabled or not, a person has to be able to read what the button she needs is
       called. Ink at 80% on ink at 8%, which computes to 5.7:1, with a hairline so the shape is still
       legibly out of reach and the change is not carried by colour alone. */
-.as-gate-accept:disabled {
-  background: color-mix(in srgb, var(--brand-ink) 8%, var(--surface));
-  color: color-mix(in srgb, var(--brand-ink) 80%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--brand-ink) 22%, var(--surface));
-}
 
 /* 7. The composer on a phone, where the trade is hardest. The microphone's disclosure is 143px of
       contract text that may not be shortened, may not drop below the 12px this block already set it
@@ -1696,26 +1591,24 @@
 /* Founder reference, 21 September: an aqua welcome, clear question cards and one voice action.
    The large welcome scrolls away; the composer and safety strip remain in reach on a phone. */
 .as-panel {
-  border: 7px solid var(--surface);
-  border-radius: 32px;
+  border: 1px solid color-mix(in srgb, var(--brand-ink) 16%, var(--surface));
+  border-radius: var(--r-panel);
   background: var(--surface);
-  box-shadow:
-    0 18px 65px #07344930,
-    0 3px 12px #07344918;
+  box-shadow: var(--shadow-raised);
 }
 .as-panel::backdrop {
-  background: #07344935;
+  background: color-mix(in srgb, var(--brand-ink) 21%, transparent);
   backdrop-filter: blur(5px);
 }
 .as-frame {
-  border: 1px solid #b7dfe3;
-  border-radius: 25px;
+  border: 0;
+  border-radius: calc(var(--r-panel) - 1px);
   overflow: hidden;
-  background: #f6fcfd;
+  background: color-mix(in srgb, var(--brand-ink) 3%, var(--surface));
 }
 .as-head,
 .as-head[data-asked] {
-  background: #f9fdfe;
+  background: color-mix(in srgb, var(--brand-ink) 3%, var(--surface));
   color: var(--brand-ink);
   border: 0;
   box-shadow: none;
@@ -1751,15 +1644,15 @@
 }
 .as-head .as-close,
 .as-head .as-pause {
-  border: 1px solid #dbe9ed;
-  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--brand-ink) 16%, var(--surface));
+  background: var(--surface);
   color: var(--brand-ink);
   border-radius: 50%;
   width: 44px;
   height: 44px;
   min-width: 44px;
   padding: 0;
-  box-shadow: 0 2px 6px #07344909;
+  box-shadow: none;
 }
 .as-head .as-rig,
 .as-head[data-asked] .as-rig {
@@ -1772,97 +1665,13 @@
 .as-caption {
   color: var(--brand-ink);
 }
-.as-state,
-.as-head .as-state {
-  display: inline-flex;
-  min-height: 24px;
-  align-items: center;
-  width: fit-content;
-  border: 0;
-  padding: 3px 8px;
-  background: #e1f7f2;
-  color: var(--brand-ink);
-  font-size: 12px;
-  line-height: 1.4;
-}
-.as-state[data-pulse="escalate"] {
-  background: #fff0dc;
-}
 .as-caption .as-name,
 .as-caption .as-figure {
   color: var(--brand-ink);
 }
 .as-scroll {
   padding: 8px 22px 20px;
-  background: #f6fcfd;
-}
-.as-welcome-hero {
-  position: relative;
-  isolation: isolate;
-  display: grid;
-  grid-template-columns: 170px minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
-  margin: 0 -22px 16px;
-  padding: 22px 22px 18px;
-  overflow: hidden;
-}
-.as-welcome-hero::before,
-.as-welcome-hero::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  width: 115%;
-  height: 130px;
-  background: linear-gradient(105deg, #bceef0b3, #def6f280);
-  border-radius: 50%;
-  left: -28%;
-  top: 8px;
-  transform: rotate(10deg);
-}
-.as-welcome-hero::after {
-  left: 32%;
-  top: 28px;
-  transform: rotate(-18deg);
-  opacity: 0.6;
-}
-.as-welcome-hero .as-rig {
-  --rig: 152px;
-}
-.as-welcome-hero .as-rig text {
-  display: none;
-}
-.as-hero-copy p {
-  margin: 0;
-}
-.as-hello {
-  font-size: 21px;
-  line-height: 1.3;
-}
-.as-wordmark {
-  font-size: clamp(30px, 3vw, 41px);
-  font-weight: 800;
-  letter-spacing: -1.7px;
-  line-height: 1.2;
-  background: linear-gradient(90deg, var(--brand-ink) 0 63%, #009c89 63%);
-  background-clip: text;
-  color: transparent;
-  width: fit-content;
-}
-.as-hero-copy .as-hero-descriptor {
-  margin-top: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.5;
-}
-.as-hero-copy .as-hero-lead {
-  margin-top: 10px;
-  color: #42627a;
-  font-size: 14px;
-  line-height: 1.5;
-}
-.as-hero-copy .as-state {
-  margin-top: 12px;
+  background: color-mix(in srgb, var(--brand-ink) 3%, var(--surface));
 }
 .as-log[data-welcome] .as-reply {
   padding: 0;
@@ -1890,7 +1699,7 @@
   margin-top: 22px;
 }
 .as-asks h3 {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 650;
   margin: 0 0 10px;
 }
@@ -1903,9 +1712,9 @@
 }
 .as-asks section > p {
   margin: 0 0 12px;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.45;
-  color: #42627a;
+  color: var(--body);
 }
 .as-chips {
   display: grid;
@@ -1918,21 +1727,21 @@
   align-items: center;
   min-height: 78px;
   padding: 13px 12px;
-  border: 1px solid #dfebef;
-  border-radius: 19px;
-  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--brand-ink) 16%, var(--surface));
+  border-radius: var(--r-tile);
+  background: var(--surface);
   color: var(--brand-ink);
-  box-shadow: 0 3px 12px #07344906;
+  box-shadow: none;
   font-size: 14px;
   line-height: 1.45;
   text-align: left;
 }
 .as-chips .as-ask:hover {
-  border-color: #4fcbbd;
-  background: #f0fcfa;
+  border-color: var(--brand-green);
+  background: color-mix(in srgb, var(--brand-green) 10%, var(--surface));
 }
 .as-chips .as-ask.urgent {
-  border-color: #eddac4;
+  border-color: color-mix(in srgb, var(--brand-ink) 16%, var(--surface));
 }
 .as-question-icon {
   display: grid;
@@ -1940,24 +1749,24 @@
   flex: 0 0 38px;
   height: 38px;
   border-radius: 50%;
-  background: #eefaf8;
-  color: #008e8e;
+  background: color-mix(in srgb, var(--brand-green) 10%, var(--surface));
+  color: var(--brand-ink);
 }
 .as-ask.urgent .as-question-icon {
   color: var(--brand-ink);
-  background: #fff0dc;
+  background: var(--mango-soft);
 }
 .as-reply {
-  border: 1px solid #dce9ed;
-  border-radius: 19px 19px 19px 5px;
-  box-shadow: 0 3px 12px #07344905;
+  border: 1px solid color-mix(in srgb, var(--brand-ink) 16%, var(--surface));
+  border-radius: var(--r-card) var(--r-card) var(--r-card) var(--r-sm);
+  box-shadow: none;
 }
 .as-said {
-  background: #007e7c;
+  background: var(--brand-ink);
 }
 .as-voice-details {
   margin-top: 16px;
-  color: #42627a;
+  color: var(--body);
 }
 .as-voice-details > summary {
   font-weight: 400;
@@ -1967,17 +1776,17 @@
   border: 0;
   margin-top: 8px;
   padding: 0;
-  color: #42627a;
+  color: var(--body);
 }
 .as-compose {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 5px;
-  border-top: 1px solid #d6e9eb;
-  border-radius: 24px 24px 0 0;
+  border-top: 1px solid color-mix(in srgb, var(--brand-ink) 16%, var(--surface));
+  border-radius: 0;
   padding: 12px 16px max(10px, env(safe-area-inset-bottom));
-  background: #fcfefe;
-  box-shadow: 0 -5px 20px #07344905;
+  background: color-mix(in srgb, var(--brand-ink) 3%, var(--surface));
+  box-shadow: none;
 }
 .as-compose > label {
   grid-column: 1;
@@ -1994,9 +1803,9 @@
   grid-column: 1;
   grid-row: 1;
   min-height: 50px;
-  border-radius: 20px;
-  border-color: #b8d9df;
-  background: #fff;
+  border-radius: var(--r-control);
+  border-color: color-mix(in srgb, var(--brand-ink) 16%, var(--surface));
+  background: var(--surface);
   font-size: 16px;
   padding-inline: 14px;
 }
@@ -2005,9 +1814,9 @@
   grid-row: 1;
   min-height: 50px;
   padding-inline: 15px;
-  border-radius: 20px;
-  background: #009b8b;
-  color: #fff;
+  border-radius: var(--r-control);
+  background: var(--brand-ink);
+  color: var(--surface);
 }
 .as-compose .as-voice {
   grid-column: 1 / -1;
@@ -2015,15 +1824,15 @@
   min-height: 44px;
   width: 100%;
   justify-content: center;
-  border-radius: 24px;
-  border-color: #a8dbdf;
-  background: linear-gradient(100deg, #d4f7f3, #f7fdfd 70%);
+  border-radius: var(--r-control);
+  border-color: color-mix(in srgb, var(--brand-ink) 16%, var(--surface));
+  background: color-mix(in srgb, var(--brand-green) 10%, var(--surface));
   color: var(--brand-ink);
 }
 .as-compose .as-voice[aria-pressed="true"] {
-  background: #073449;
-  color: #fff;
-  border-color: #009b8b;
+  background: var(--brand-ink);
+  color: var(--surface);
+  border-color: var(--brand-ink);
 }
 .as-compose .as-voice-lines {
   grid-column: 1 / -1;
@@ -2033,12 +1842,12 @@
 .as-compose .as-keyboard {
   margin: 0;
   padding-top: 4px;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.35;
   border: 0;
 }
 .as-compose .as-voice-note {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.4;
   text-align: center;
 }
@@ -2047,10 +1856,10 @@
   grid-row: auto;
   margin: 2px 0 0;
   border: 0;
-  border-radius: 12px;
-  background: #e4f7ef;
+  border-radius: var(--r-card);
+  background: color-mix(in srgb, var(--brand-green) 10%, var(--surface));
   color: var(--brand-ink);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.4;
 }
 .as-gate {
@@ -2060,15 +1869,11 @@
   font-size: 24px;
 }
 .as-gate-foot {
-  background: #fcfefe;
-  border-top: 1px solid #d6e9eb;
-}
-.as-gate-accept {
-  background: #007f78;
-  border-radius: 24px;
+  background: color-mix(in srgb, var(--brand-ink) 3%, var(--surface));
+  border-top: 1px solid color-mix(in srgb, var(--brand-ink) 16%, var(--surface));
 }
 .as-gate-check input {
-  accent-color: #008f84;
+  accent-color: var(--brand-green);
 }
 @media (min-width: 1000px) {
   .as-panel {
@@ -2078,12 +1883,11 @@
 }
 @media (max-width: 560px) {
   .as-panel {
-    border-width: 4px;
     border-bottom-width: 0;
-    border-radius: 27px 27px 0 0;
+    border-radius: var(--r-panel) var(--r-panel) 0 0;
   }
   .as-frame {
-    border-radius: 23px 23px 0 0;
+    border-radius: calc(var(--r-panel) - 1px) calc(var(--r-panel) - 1px) 0 0;
   }
   .as-head,
   .as-head[data-asked] {
@@ -2098,29 +1902,6 @@
   .as-scroll {
     padding-inline: 14px;
   }
-  .as-welcome-hero {
-    grid-template-columns: 110px minmax(0, 1fr);
-    gap: 8px;
-    margin-inline: -14px;
-    padding: 14px;
-  }
-  .as-welcome-hero .as-rig {
-    --rig: 104px;
-  }
-  .as-hello {
-    font-size: 17px;
-  }
-  .as-wordmark {
-    font-size: 29px;
-    letter-spacing: -1.3px;
-  }
-  .as-hero-copy .as-hero-descriptor,
-  .as-hero-copy .as-hero-lead {
-    font-size: 13px;
-  }
-  .as-hero-copy .as-hero-lead {
-    margin-top: 6px;
-  }
   .as-chips {
     gap: 8px;
   }
@@ -2129,7 +1910,7 @@
     padding: 10px;
     min-height: 82px;
     font-size: 13px;
-    border-radius: 16px;
+    border-radius: var(--r-card);
   }
   .as-question-icon {
     flex-basis: 28px;
@@ -2146,15 +1927,6 @@
   }
   .as-head .as-controls {
     gap: 2px;
-  }
-  .as-welcome-hero {
-    grid-template-columns: 92px minmax(0, 1fr);
-  }
-  .as-welcome-hero .as-rig {
-    --rig: 96px;
-  }
-  .as-wordmark {
-    font-size: 26px;
   }
   .as-chips .as-ask {
     flex-direction: column;
@@ -2213,8 +1985,8 @@
   gap: 10px;
   min-height: 52px;
   padding: 4px 14px 4px 5px;
-  background: linear-gradient(115deg, #e6faf7, #fff);
-  box-shadow: 0 2px 8px #07344908;
+  background: color-mix(in srgb, var(--brand-green) 10%, var(--surface));
+  box-shadow: none;
   font-size: 15px;
 }
 .as-mic-disc {
@@ -2223,17 +1995,17 @@
   flex: 0 0 40px;
   height: 40px;
   border-radius: 50%;
-  background: #bdf1e9;
-  color: #006e70;
+  background: color-mix(in srgb, var(--brand-green) 22%, var(--surface));
+  color: var(--brand-ink);
 }
 .as-voice[aria-pressed="true"] .as-mic-disc {
-  background: #fff;
-  color: #006e70;
+  background: var(--surface);
+  color: var(--brand-ink);
 }
 .as-compose .as-mic-details {
   margin: 0;
-  color: #42627a;
-  font-size: 12px;
+  color: var(--body);
+  font-size: 13px;
 }
 .as-mic-details summary {
   cursor: pointer;
@@ -2274,10 +2046,10 @@
   place-items: center;
   grid-row: 2;
   min-height: 52px;
-  border: 1px solid #cce2e7;
-  border-radius: 24px;
-  background: #fff;
-  color: #073449;
+  border: 1px solid color-mix(in srgb, var(--brand-ink) 16%, var(--surface));
+  border-radius: var(--r-control);
+  background: var(--surface);
+  color: var(--brand-ink);
 }
 .as-compose .as-camera {
   grid-column: 3;
@@ -2286,8 +2058,8 @@
   grid-column: 4;
 }
 .as-compose .as-media:hover {
-  background: #e6faf7;
-  border-color: #009b8b;
+  background: color-mix(in srgb, var(--brand-green) 10%, var(--surface));
+  border-color: var(--brand-ink);
 }
 .as-compose .as-field input[type="file"] {
   display: none;
@@ -2300,8 +2072,8 @@
   grid-row: 3;
   max-height: 130px;
   overflow-y: auto;
-  font-size: 12px;
-  color: #42627a;
+  font-size: 13px;
+  color: var(--body);
 }
 .as-attachment-preview p {
   margin: 2px 0 6px;
@@ -2311,15 +2083,15 @@
   align-items: center;
   gap: 8px;
   padding: 6px;
-  border: 1px solid #cce2e7;
-  border-radius: 12px;
-  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--brand-ink) 16%, var(--surface));
+  border-radius: var(--r-card);
+  background: var(--surface);
 }
 .as-attachment-file img {
   width: 44px;
   height: 44px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: var(--r-md);
 }
 .as-attachment-file span {
   flex: 1;
@@ -2335,31 +2107,9 @@
 
 /* Keep the initial choices in view on everyday phone screens; small screens and larger text
    retain scrolling rather than clipping choices or reducing touch targets. */
-.as-wordmark-i {
-  background: linear-gradient(
-    to bottom,
-    var(--brand-orange) 0 0.34em,
-    var(--brand-ink) 0.34em
-  );
-  background-clip: text;
-  color: transparent;
-}
 .as-scroll[data-welcome] {
   gap: 4px;
   padding-bottom: 8px;
-}
-.as-scroll[data-welcome] .as-welcome-hero {
-  margin-bottom: 0;
-  padding-block: 6px;
-}
-.as-scroll[data-welcome] .as-welcome-hero .as-rig {
-  --rig: 118px;
-}
-.as-scroll[data-welcome] .as-hero-copy .as-state {
-  margin-top: 5px;
-}
-.as-scroll[data-welcome] .as-hero-descriptor {
-  margin-top: 4px;
 }
 .as-scroll[data-welcome] .as-asks {
   margin-top: 0;
@@ -2386,15 +2136,6 @@
   margin-top: 0;
 }
 @media (max-width: 560px) {
-  .as-scroll[data-welcome] .as-welcome-hero {
-    grid-template-columns: 90px minmax(0, 1fr);
-  }
-  .as-scroll[data-welcome] .as-welcome-hero .as-rig {
-    --rig: 94px;
-  }
-  .as-scroll[data-welcome] .as-hello {
-    font-size: 15px;
-  }
   .as-scroll[data-welcome] .as-chips .as-ask {
     flex-direction: row;
     align-items: center;
@@ -2485,34 +2226,11 @@
   flex-wrap: wrap;
   gap: var(--space-8);
 }
+/* The region's actions are the shared Button since 28 September 2026; a long label may wrap. */
 .gos-button {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-8);
-  padding: 0 var(--space-16);
-  border: 0;
-  border-radius: 999px;
-  background: var(--brand-ink);
-  color: #fff;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-.gos-button:hover {
-  background: color-mix(in srgb, var(--brand-ink) 88%, #fff);
-}
-.gos-button:disabled {
-  opacity: 0.6;
-  cursor: progress;
-}
-.gos-button.subtle {
-  background: transparent;
-  color: var(--brand-ink);
-  border: 1px solid var(--stone);
-}
-.gos-button.subtle:hover {
-  background: color-mix(in srgb, var(--stone) 40%, #fff);
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
 }
 .gos-refusal {
   display: flex;
@@ -2520,8 +2238,8 @@
   margin: var(--space-8) 0 0;
   padding: var(--space-12);
   border-left: 3px solid var(--brand-orange);
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--brand-orange) 8%, #fff);
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--brand-orange) 8%, var(--surface));
   font-size: 14px;
   line-height: 1.5;
 }
@@ -2598,8 +2316,8 @@
 .gos-device {
   margin-top: var(--space-12);
   padding: var(--space-12);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--brand-mint) 8%, #fff);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--brand-mint) 8%, var(--surface));
 }
 .gos-device-static {
   margin-top: var(--space-12);
@@ -2699,21 +2417,14 @@
   gap: var(--space-8);
   margin-top: var(--space-8);
 }
+/* The chips are the shared Button since 28 September 2026 — its face, its focus ring, its press. What
+   stays here is what a chip needs that a button does not: the 44-pixel floor held by the build, and
+   room for an option to wrap onto a second line on a 320-pixel phone rather than run off the card. */
 .as-intake-chips .as-option {
   min-height: 44px;
-  padding: var(--space-8) var(--space-16);
-  border: 1px solid color-mix(in srgb, var(--brand-mint) 45%, #fff);
-  border-radius: var(--r-pill);
-  background: #fff;
-  color: var(--brand-ink);
-  font-size: 15px;
-  line-height: 1.3;
+  max-width: 100%;
+  white-space: normal;
   text-align: left;
-}
-.as-intake-chips .as-option:hover,
-.as-intake-chips .as-option:focus-visible {
-  border-color: var(--brand-mint);
-  background: color-mix(in srgb, var(--brand-mint) 10%, #fff);
 }
 .as-intake-not {
   margin: 0;
@@ -2725,8 +2436,7 @@
 .as-notes .as-summary {
   margin-top: var(--space-8);
 }
-/* The handover's question labels are mint on an ink tile; on the lime tile they would be mint on
-   lime, which nobody can read. Ink here, and the rule beneath each row in the same ink, faded. */
+/* The notes are a Card since 28 September 2026: ink labels on white, a faded ink rule under each row. */
 .as-notes .as-summary dt {
   color: var(--brand-ink);
 }
@@ -2739,39 +2449,23 @@
    a conversation and the same control ends it, so the composer gains a pill and no second microphone:
    the recogniser is the same one, and its ring and its words say when it is open. The words beside
    the ring are the amendment's indicator for a reader who asked for stillness and gets no pulse. */
+/* The pill is the shared Button: secondary at rest, primary (ink) while a conversation runs. It was
+   36 pixels tall, under the 44-pixel floor, and its running state set white words on the brand green
+   at 3.64:1; on the ink they measure 12.2:1. The dot is the state's second signal beside the words —
+   green at rest, lime while the conversation runs, which reads on the ink where orange did not need
+   to. Never the only signal: the label itself changes from start to stop. */
 .as-convo {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
   width: 100%;
-  min-height: 36px;
-  padding: 4px 12px;
-  border: 1px solid var(--brand-green);
-  border-radius: 14px;
-  background: var(--surface);
-  color: var(--brand-ink);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.as-convo:hover {
-  background: color-mix(in srgb, var(--brand-mint) 30%, var(--surface));
-}
-.as-convo[aria-pressed="true"] {
-  background: var(--brand-green);
-  border-color: var(--brand-green);
-  color: var(--surface);
+  min-height: 44px;
 }
 .as-convo-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--r-pill);
   background: var(--brand-green);
 }
 .as-convo[aria-pressed="true"] .as-convo-dot {
-  background: var(--brand-orange);
+  background: var(--brand-lime);
 }
 .as-mic-hot {
   display: inline-flex;

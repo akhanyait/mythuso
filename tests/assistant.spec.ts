@@ -543,13 +543,18 @@ test("the orb floats on every patient page, and GilbertOne is fetched only when 
   );
   await expect(panel(page).locator(".as-state")).toHaveText(cue("idle"));
   await expect(panel(page).locator(".as-welcome-hero")).toBeVisible();
-  await expect(panel(page).locator(".as-wordmark")).toHaveText(
+  /* The welcome's mark is the official GilbertOne logo since 28 September 2026 — the handoff's master,
+     served as a WebP derivative and named by its alt — where a hand-drawn svg wordmark stood. The
+     welcome also carries the "Tap to talk" line, which is text rather than a second control that
+     offers to hear. */
+  await expect(panel(page).locator(".as-wordmark")).toHaveAttribute(
+    "alt",
     gilbert.identity.name,
   );
-  /* The wordmark is the drawn GilbertOne logo — an svg, not a line of text — and its accessible name
-     still reads once, from the visually-hidden text beside the drawing. The welcome also carries the
-     "Tap to talk" line, which is text rather than a second control that offers to hear. */
-  await expect(panel(page).locator(".as-wordmark svg")).toHaveCount(1);
+  await expect(panel(page).locator(".as-wordmark")).toHaveAttribute(
+    "src",
+    /\/lovable\/gilbertone\/gilbertone-logo-320\.webp$/,
+  );
   await expect(panel(page).locator(".as-talkbar")).toBeVisible();
   /* And said once, which is the fix of 21 September 2026. The patient's conversation used to
      repeat the gate's prohibitions and its ThusoIQ paragraph between the answers and the composer,
@@ -933,7 +938,8 @@ test("the consent gate stands before the conversation, and only both boxes and A
   await accept.click();
   await expect(panel(page).locator(".as-compose")).toBeVisible();
   await expect(panel(page).locator(".as-welcome-hero")).toBeVisible();
-  await expect(panel(page).locator(".as-wordmark")).toHaveText(
+  await expect(panel(page).locator(".as-wordmark")).toHaveAttribute(
+    "alt",
     gilbert.identity.name,
   );
   await expect(panel(page).locator(".as-gate-card")).toHaveCount(0);

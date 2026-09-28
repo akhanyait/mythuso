@@ -1,6 +1,8 @@
 import { useId, useState } from 'react';
 import { Clock3, LogOut, MapPin, ShieldCheck, Siren, TimerReset } from 'lucide-react';
 import { NotConnected } from '../components/NotConnected';
+import { Button, Select } from '../ui';
+import '../surface/nurse-identity.css';
 import { MINUTE, clockOf, fieldSafety, fill, positionDecimals, refusal, whatPanicDoesNotDo, type Refusal } from '../../../../packages/engines/src/safety/domain/rules.ts';
 import { extensionLeft, minutesLeft, standingOf, stepsOffered } from '../../../../packages/engines/src/safety/domain/checkins.ts';
 import { isSharing, sharingEndsAt, standingOf as panicStandingOf } from '../../../../packages/engines/src/safety/domain/panics.ts';
@@ -23,6 +25,12 @@ import { panicWindowNow, useSettingsHistories } from '../lib/settings';
  * the sentence that a person at the desk decides whether anybody is sent — with the real numbers from
  * sos.json in it. Every word is packages/catalog/field-safety.json's, and every refusal is rendered as
  * the engine returned it.
+ *
+ * ON THE IDENTITY (wave 4b). The strip is a white bar with a hairline and one edge that changes with the
+ * timer — the foreground while it runs, the danger ink once it is overdue, the border once it is closed —
+ * beside the words that say which. Its three presses are the shared secondary Button; panic is the one
+ * control drawn in the danger ink, outlined on the strip and filled only on the confirmation, so a pocket
+ * cannot press the filled one. Nothing here moves.
  *
  * THE DESK SEES A NURSE AND A SUBURB. Never the service, never the person being visited: the queue is
  * worked with other people standing behind the operator. A position is drawn only while its window is
@@ -60,59 +68,62 @@ export function VisitSafety({ reference }: { reference: string }) {
  const saidSafeAt = timer.checkIns.at(-1);
  const answered = episode?.answeredAt ? ' ' + fill(say.answered, { at: clockOf(episode.answeredAt) })
   : saidSafeAt !== undefined ? ' ' + fill(say.saidSafe, { at: clockOf(saidSafeAt) }) : '';
- return <section className={'fs-visit is-' + standing + (sharing ? ' is-sharing' : '')} aria-labelledby={id + '-head'}>
-  <div className="fs-visit-bar">
-   <span className="fs-rule" aria-hidden="true"/>
-   <div className="fs-visit-say">
-    <span className="fs-kicker" id={id + '-head'}>{say.heading} · {labelOf(fieldSafety.states.timer, standing)}</span>
+ return <section className={'fs-visit nurse-safety nurse-ui is-' + standing + (sharing ? ' is-sharing' : '')} aria-labelledby={id + '-head'}>
+  <div className="nurse-safety__bar">
+   <span className="nurse-safety__disc" aria-hidden="true">{standing === 'overdue' ? <Clock3/> : <ShieldCheck/>}</span>
+   <div className="nurse-safety__say">
+    <span className="nurse-eyebrow nurse-safety__kicker" id={id + '-head'}>{say.heading} · {labelOf(fieldSafety.states.timer, standing)}</span>
     <strong role="status">{standing === 'closed'
      ? fill(timer.closedBy === 'visit-completed' ? say.closedBySigning : say.closedByNurse, { at: clockOf(timer.closedAt!) })
      : fill(say.due, { due: clockOf(timer.dueAt) })}</strong>
     {standing !== 'closed' && <small>{detail}{answered}</small>}
    </div>
-   <div className="fs-visit-actions">
+   <div className="nurse-safety__actions">
     {standing !== 'closed' && <>
-     <button className="secondary" onClick={() => act(checkInSafe(reference))}><ShieldCheck size={16} aria-hidden="true"/>{say.checkIn}</button>
-     <button className="secondary" aria-expanded={extending} aria-controls={id + '-extend'} onClick={() => { setExtending(!extending); setRefused(null); }}><TimerReset size={16} aria-hidden="true"/>{say.extend}</button>
-     <button className="secondary" onClick={() => act(checkOut(reference), () => setExtending(false))}><LogOut size={16} aria-hidden="true"/>{say.checkOut}</button>
+     <Button variant="secondary" leadingIcon={<ShieldCheck aria-hidden="true"/>} onClick={() => act(checkInSafe(reference))}>{say.checkIn}</Button>
+     <Button variant="secondary" leadingIcon={<TimerReset aria-hidden="true"/>} aria-expanded={extending} aria-controls={id + '-extend'} onClick={() => { setExtending(!extending); setRefused(null); }}>{say.extend}</Button>
+     <Button variant="secondary" leadingIcon={<LogOut aria-hidden="true"/>} onClick={() => act(checkOut(reference), () => setExtending(false))}>{say.checkOut}</Button>
     </>}
-    <button className="fs-panic" aria-expanded={confirming} aria-controls={id + '-panic'} onClick={() => { setConfirming(true); setRefused(null); }}><Siren size={17} aria-hidden="true"/>{panicSay.press}</button>
+    <Button variant="secondary" className="nurse-panic" leadingIcon={<Siren aria-hidden="true"/>} aria-expanded={confirming} aria-controls={id + '-panic'} onClick={() => { setConfirming(true); setRefused(null); }}>{panicSay.press}</Button>
    </div>
   </div>
 
-  {extending && standing !== 'closed' && <fieldset className="fs-extend" id={id + '-extend'}>
+  {extending && standing !== 'closed' && <fieldset className="nurse-safety__extend" id={id + '-extend'}>
    <legend>{say.extendQuestion}</legend>
-   <div className="fs-reasons">{fieldSafety.extensionReasons.map(reason =>
-    <label key={reason.id} className="fs-choice">
+   <div className="nurse-safety__reasons">{fieldSafety.extensionReasons.map(reason =>
+    <label key={reason.id} className="nurse-choice">
      <input type="radio" name={id + '-reason'} value={reason.id} checked={reasonId === reason.id} onChange={() => setReasonId(reason.id)}/>
      <span>{reason.label}</span>
     </label>)}</div>
-   {offered.length ? <div className="fs-steps">{offered.map(step =>
-    <button key={step} className="secondary" onClick={() => act(extendVisit(reference, step, reasonId), () => { setExtending(false); setReasonId(''); })}>{fill(say.extendStep, { minutes: String(step) })}</button>)}</div>
+   {offered.length ? <div className="nurse-actions nurse-safety__steps">{offered.map(step =>
+    <Button key={step} variant="secondary" onClick={() => act(extendVisit(reference, step, reasonId), () => { setExtending(false); setReasonId(''); })}>{fill(say.extendStep, { minutes: String(step) })}</Button>)}</div>
     : null}
    {/* When nothing is left to offer, the ceiling says so in the sentence on the route rather than
        as three greyed-out buttons a nurse has to work out the meaning of. */}
    <p className="helper">{offered.length ? fill(say.extendLeft, { minutes: String(extensionLeft(timer)) }) : refusal('extension-limit').statement}</p>
   </fieldset>}
 
-  {confirming && <div className="fs-confirm" id={id + '-panic'} role="group" aria-labelledby={id + '-confirm'}>
+  {confirming && <div className="nurse-safety__confirm" id={id + '-panic'} role="group" aria-labelledby={id + '-confirm'}>
    <strong id={id + '-confirm'}>{panicSay.confirmQuestion}</strong>
    <p>{fill(panicSay.whatHappens, { ends: clockOf(s.now + panicWindowNow().minutes * MINUTE) })}</p>
    <p>{whatPanicDoesNotDo()}</p>
    <NotConnected of="emergency" tone="inline"/>
-   <div className="fs-confirm-actions">
-    <button className="secondary" onClick={() => setConfirming(false)}>{panicSay.cancel}</button>
-    <button className="fs-panic is-solid" autoFocus onClick={() => act(pressPanic(reference), () => setConfirming(false))}><Siren size={17} aria-hidden="true"/>{panicSay.confirm}</button>
+   <div className="nurse-actions">
+    <Button variant="secondary" onClick={() => setConfirming(false)}>{panicSay.cancel}</Button>
+    <Button variant="destructive" leadingIcon={<Siren aria-hidden="true"/>} autoFocus onClick={() => act(pressPanic(reference), () => setConfirming(false))}>{panicSay.confirm}</Button>
    </div>
   </div>}
 
-  {panic && !confirming && <div className="fs-pressed" role="status">
-   <strong>{labelOf(fieldSafety.states.panic, panicStandingOf(panic))} · {fill(panicSay.pressedAt, { at: clockOf(panic.raisedAt) })}</strong>
-   <p>{sharing ? fill(panicSay.sharingUntil, { ends: clockOf(sharingEndsAt(panic)) }) : fill(panicSay.sharingStopped, { ended: clockOf(sharingEndsAt(panic)) })}</p>
-   {!sharing && !panic.resolved && <p>{panicSay.pressAgain}</p>}
+  {panic && !confirming && <div className="fs-pressed nurse-safety__pressed" role="status">
+   <Siren aria-hidden="true"/>
+   <div>
+    <strong>{labelOf(fieldSafety.states.panic, panicStandingOf(panic))} · {fill(panicSay.pressedAt, { at: clockOf(panic.raisedAt) })}</strong>
+    <p>{sharing ? fill(panicSay.sharingUntil, { ends: clockOf(sharingEndsAt(panic)) }) : fill(panicSay.sharingStopped, { ended: clockOf(sharingEndsAt(panic)) })}</p>
+    {!sharing && !panic.resolved && <p>{panicSay.pressAgain}</p>}
+   </div>
   </div>}
 
-  {refused && <p className="fs-refused" role="alert">{refused.statement}</p>}
+  {refused && <p className="nurse-refusal-line" role="alert">{refused.statement}</p>}
  </section>;
 }
 
@@ -120,7 +131,7 @@ export function SafetyDesk() {
  const s = useFieldSafety();
  const rows = deskRows(s);
  const counts = deskCounts(rows);
- return <section className="fs-desk" aria-labelledby="fs-desk-title">
+ return <section className="fs-desk nurse-ui" aria-labelledby="fs-desk-title">
   <div className="fs-desk-head">
    <h2 id="fs-desk-title">{deskSay.heading}</h2>
    <p>{fill(deskSay.waiting, { waiting: String(counts.waiting), open: String(counts.open) })}</p>
@@ -174,16 +185,16 @@ function DeskRow({ row }: { row: DeskItem }) {
   {/* Close and resolve stay on the row before anybody picks it up, quieter than Pick up, so that trying one first
       is answered in the route's own sentence — pick-up comes first — rather than by a button that is not there. */}
   {row.open && <div className="fs-row-act">
-   {!row.acknowledgement && <button className="primary" onClick={() => setRefused(pickUp(row))}>{deskSay.pickUp}</button>}
+   {!row.acknowledgement && <Button variant="primary" onClick={() => setRefused(pickUp(row))}>{deskSay.pickUp}</Button>}
    <label className="fs-row-choose" htmlFor={id + '-choice'}>{row.kind === 'panic' ? deskSay.outcomeQuestion : deskSay.reasonQuestion}</label>
-   <select id={id + '-choice'} value={choice} onChange={event => { setChoice(event.target.value); setRefused(null); }}>
+   <Select id={id + '-choice'} className="nurse-desk__choose" value={choice} onChange={event => { setChoice(event.target.value); setRefused(null); }}>
     <option value="">{deskSay.choose}</option>
     {options.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
-   </select>
-   <button className={row.acknowledgement ? 'primary' : 'secondary'} onClick={() => setRefused(row.kind === 'panic' ? resolvePanic(row.reference, choice) : closeOverdue(row.reference, choice))}>
+   </Select>
+   <Button variant={row.acknowledgement ? 'primary' : 'secondary'} onClick={() => setRefused(row.kind === 'panic' ? resolvePanic(row.reference, choice) : closeOverdue(row.reference, choice))}>
     {row.kind === 'panic' ? deskSay.resolve : deskSay.close}
-   </button>
+   </Button>
   </div>}
-  {refused && <p className="fs-refused" role="alert">{refused.statement}</p>}
+  {refused && <p className="nurse-refusal-line" role="alert">{refused.statement}</p>}
  </li>;
 }

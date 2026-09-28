@@ -15,7 +15,8 @@ function expectedDays(count = 5, firstOffset = 1) {
     const parts = inZa.formatToParts(date);
     days.push({
       weekday: parts.find(p => p.type === 'weekday')!.value.toUpperCase(),
-      day: parts.find(p => p.type === 'day')!.value,
+      /* Node's ICU pads en-ZA days ("01"); Chromium's does not. The screen writes what Chromium writes. */
+      day: String(Number(parts.find(p => p.type === 'day')!.value)),
       /* The month and year the review writes beside the day — read from the same clock, never typed,
          because a journey that says "September" fails on the first of October. */
       month: parts.find(p => p.type === 'month')!.value,
@@ -196,6 +197,8 @@ test('a clinical workspace navigates as itself, not as the patient shop', async 
        the patient's *account* coming with the workspace: the signed-in identity belongs to the
        clinician, not to somebody they are treating. Before the split it was Lerato Molefe's "LM"
        sitting over every clinical screen. */
-    await expect(page.locator('.topbar .avatar')).not.toHaveText('LM');
+    /* The bar's avatar is the shared Avatar since the identity restyle of 28 September 2026 (ui-avatar); the
+       older shells still draw .avatar. Either way the initials in the bar are the clinician's. */
+    await expect(page.locator('.topbar :is(.avatar, .ui-avatar)').first()).not.toHaveText('LM');
   }
 });

@@ -1,9 +1,11 @@
 /* GilbertOne's rig. Loaded with features/GilbertAvatar.tsx, which is only ever reached through a
    dynamic import, so none of this is on a patient's first load.
 
-   The founder requested the sphere palette on 19 September: a mint/green/ink shell, the brand
-   ink for the visor, the soft teal mint for the eyes, one small orange accent on the forehead and a
-   single lime dot. Nothing here paints a background. The character sits on whatever it is put on,
+   The palette is the official GilbertOne character's, from the Lovable handoff of 28 September 2026:
+   a white shell, a dark-navy visor, cyan eyes and smile, teal ear pods and a lime antenna ball. It
+   replaced the 19 September sphere palette (a deep-teal head with an orange antenna), because the
+   logo now carries the character above the lettering and the rig must be the same creature in motion.
+   Nothing here paints a background. The character sits on whatever it is put on,
    because §02 asks for a genuine alpha canvas — no panel, no haze, no orbit ring, no glow cloud —
    and the only mark beneath it is a contact shadow.
 
@@ -49,34 +51,44 @@
 }
 
 .go-shadow {
-  fill: color-mix(in srgb, var(--ink) 16%, transparent);
+  fill: color-mix(in srgb, var(--color-foreground) 16%, transparent);
 }
-.go-shell {
-  fill: var(--surface);
-  stroke: var(--stone);
+/* The shell is the logo's off-white (mist, #F0F0F0, the master's own shell colour), with a hairline in
+   the handoff's border colour: on the panel's white ground a white head with no edge is a floating
+   face, and the logo master is only ever seen on transparency, where it needs none. */
+.go-helmet {
+  fill: var(--mist);
+  stroke: var(--color-border);
   stroke-width: 1.2;
 }
 .go-ear {
   fill: var(--brand-green);
 }
-.go-neck rect {
-  fill: var(--brand-green);
+.go-antenna-ball {
+  fill: var(--brand-lime);
 }
-.go-collar {
-  fill: var(--brand-mint);
-}
-.go-visor,
-.go-lid,
-.go-mouth-open {
+.go-antenna-stem,
+.go-plate,
+.go-lid {
   fill: var(--brand-ink);
 }
-.go-eye {
-  fill: var(--brand-mint);
+/* The face is lit on the visor: cyan eyes, brows and mouth, and an open mouth that is the same light
+   rather than a hole, because on a dark visor a dark mouth is no mouth at all. brandCyan is the one
+   token this recolour added (tokens.json, color_gilbertNote). */
+.go-eye,
+.go-mouth-open {
+  fill: var(--brand-cyan);
+}
+.go-eye-arc {
+  fill: none;
+  stroke: var(--brand-cyan);
+  stroke-width: 4;
+  stroke-linecap: round;
 }
 .go-brow,
 .go-mouth-line {
   fill: none;
-  stroke: var(--brand-mint);
+  stroke: var(--brand-cyan);
   stroke-linecap: round;
 }
 .go-brow {
@@ -84,12 +96,6 @@
 }
 .go-mouth-line {
   stroke-width: 4;
-}
-.go-accent {
-  fill: var(--brand-orange);
-}
-.go-lime {
-  fill: var(--brand-lime);
 }
 
 /* A blink is faster than a blend and must not be slowed by one: 75 ms shut, 75 ms open, which is the
@@ -108,36 +114,4 @@
   .go-rig rect {
     transition: none;
   }
-}
-
-/* The character is drawn on a genuine alpha canvas in GilbertAvatar.tsx: a deep-teal head, a light
-   visor plate, green ear pods and one orange antenna, each an explicit fill in the shell group, so
-   nothing here paints a background or a tile. What lives here is the face's own palette, chosen to
-   read against that light plate — deep-teal eyes, brows and mouth, and a lid the colour of the plate
-   so a closed eye is the visor rather than a shutter. The pose controller still owns every transform
-   and every blink; only the colours are stated here. */
-.go-shell {
-  stroke: none;
-}
-.go-visor {
-  fill: var(--brand-ink);
-}
-.go-lid {
-  fill: var(--teal-soft);
-}
-.go-mouth-open {
-  fill: var(--brand-ink);
-}
-.go-eye {
-  fill: var(--brand-ink);
-}
-.go-eye-arc {
-  fill: none;
-  stroke: var(--brand-ink);
-  stroke-width: 4;
-  stroke-linecap: round;
-}
-.go-brow,
-.go-mouth-line {
-  stroke: var(--brand-ink);
 }

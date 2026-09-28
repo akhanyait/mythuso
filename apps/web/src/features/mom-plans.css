@@ -21,9 +21,9 @@
    is what a person comparing three amounts is doing. It is also how both native apps draw it. */
 .mom-tiers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-8)}
 .mom-tier{display:grid;align-content:start;gap:var(--space-4);min-height:44px;padding:var(--space-12);text-align:left;background:var(--surface);color:var(--charcoal);border:1px solid var(--line);border-radius:var(--r-control);cursor:pointer}
-.mom-tier[aria-pressed="true"]{background:var(--pale-sage);border-color:var(--charcoal)}
+.mom-tier[aria-pressed="true"]{background:color-mix(in srgb,var(--brand-green) 10%,var(--surface));border-color:var(--brand-green);box-shadow:inset 0 0 0 1px var(--brand-green);color:var(--charcoal)}
 .mom-tier-name{font-size:14px;font-weight:600}
-.mom-tier-price{font-size:22px;font-weight:300;letter-spacing:-.5px;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mom-tier-price{font-family:var(--font-display);font-size:22px;font-weight:600;letter-spacing:0;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap}
 .mom-tier-price small{display:block;font-size:13px;font-weight:400;letter-spacing:0;color:var(--body)}
 .mom-tier-cadence{font-size:13px;line-height:1.4;color:var(--body)}
 .mom-tier[aria-pressed="true"] .mom-tier-price small,

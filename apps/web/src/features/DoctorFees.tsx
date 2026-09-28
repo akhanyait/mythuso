@@ -5,6 +5,7 @@ import { SectionTitle } from '../components/UI';
 import { doctorFeesFor, randCents } from '../lib/money';
 import { doctorFeeNow, useSettingsHistories } from '../lib/settings';
 import './nurse-kit.css';
+import { Button } from '../ui';
 
 /* What a doctor is paid for reviewing a case, and whether it may be paid yet.
  *
@@ -53,7 +54,7 @@ export function DoctorFees({ doctorRef = 'D-401' }: { doctorRef?: string }) {
   <SectionTitle title="Payout"/>
   <div className="panel">
    <div className="review-line"><span>Owed for {view.cases.length} {view.cases.length === 1 ? 'case' : 'cases'}</span><strong>{view.owedCents === null ? 'Not worked out' : randCents(view.owedCents)}</strong></div>
-   {!answer ? <button className="secondary" onClick={() => setAnswer(view.schedule())}><CalendarClock size={16}/>Schedule this week’s payout</button> : null}
+   {!answer ? <Button variant="secondary" leadingIcon={<CalendarClock aria-hidden="true"/>} onClick={() => setAnswer(view.schedule())}>Schedule this week’s payout</Button> : null}
    {answer?.refused !== undefined ? <div className="earn-refusal" role="status"><Ban size={19}/><p>{answer.refused}</p></div> : null}
    {answer && answer.refused === undefined ? <div className="review-line" role="status"><span>Scheduled</span><strong>{randCents(answer.amountCents)}</strong></div> : null}
   </div>

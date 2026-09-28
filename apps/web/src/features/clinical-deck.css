@@ -1,279 +1,249 @@
-/* The clinical deck, in the pastel system (28 September 2026).
+/* The clinical deck, on the identity of 28 September 2026 (the Lovable handoff, wave 4c).
  *
- * It was a dark band — a near-black canvas with the lead figure on dark glass inside it and a pale
- * panel beside that, three grounds nested one inside another. The founder's brief of 28 September
- * asked for the nurse's and the doctor's day in the language the Control Tower already speaks: the
- * sentence on the page's own ground, and under it one row of soft tinted cards, each carrying one
- * large light numeral with a small label, a ring or a rounded bar that draws itself once, and exactly
- * one dark card for emphasis. ClinicalDeck.tsx decides which card wears which tint and says why; this
- * sheet draws them.
+ * It was a row of pastel cards for one afternoon — a dark lead, lavender, peach and mint — and before
+ * that a dark band with glass inside it. It is now the handoff's command view: the sentence the screen
+ * exists to answer on a white hero, and under it one row of white metric cards on the shared Card
+ * (apps/web/src/ui), compact corners, one shadow. ClinicalDeck.tsx says which card stands in which place
+ * and why; this sheet draws them.
  *
  * WHAT DID NOT MOVE. Every figure, every drawing and every sentence is the one the deck already had:
  * the numerals are counted in StaffShell's metricsOf and the screens' own figure lists, the ring has
  * one arc per row and the bars one bar per row, and the class names tests/workspace-counts.spec.ts and
- * components/ChartMotion.tsx find them by (.c-deck .c-ring .c-mark, .c-waits > i, .c-day > i) are
- * unchanged. The not-connected notice inside the deck is no longer restyled here at all: it draws as it
- * does everywhere else in the product, in the place it always stood.
+ * components/ChartMotion.tsx find them by (.c-deck .c-ring .c-mark, .c-waits > i, .c-day > i, .s-metric)
+ * are unchanged.
  *
- * THE TINTS ARE THE TOKENS', resolved on :root. The clinical shell remaps the studio palette onto the
- * logo's (shells/shells.css) — its lilac becomes a six per cent ink wash and its lime becomes mint — so
- * a card painted with --studio-lilac inside the shell would be grey. The portal met the same problem and
- * solved it the same way (features/portal/portal.css): the tint is read on :root, above the shell, where
- * each variable is still the token's own value, and inherited as a value. These are this chunk's own
- * names so neither sheet depends on the other having loaded. They are declared in surface/clinical.css,
- * the shell's own sheet, because the workbench and the kit read them as well as this deck.
- *
- * EVERY PAIR IS COMPUTED, with scripts/check-boundaries.mjs's relative-luminance formula, on what the
- * shell's ink (brandInk — #0F3B4A when these figures were taken; #083848 since 28 September 2026, which is
- * darker, so every figure below rises) resolves to. Ink on the four tints and the quiet words at 78%:
- *     mint (brandMint)      ink 8.09   quiet 4.72   — ink on mint is declared in tokens.json#contrast
- *     lavender (studioLilac) ink 9.41  quiet 5.27
- *     peach (studioPeach)   ink 9.19   quiet 5.25
- *     lime (studioLime)     ink 9.67   quiet 5.42
- * An unlit mark on a tint is the ink at 62%: 3.26 on mint, 3.53 on lavender, 3.50 on peach — SC 1.4.11
- * holds a mark to 3 against the ground it is drawn on. A lit mark is the full ink AND the thicker stroke,
- * so a reader who cannot separate two tones of one hue still reads which arcs are lit.
- * On the dark card, the shell's ink: paper 12.04, paper at 72% 7.03 for the quiet words, mint 8.09 for
- * the lit mark and the chip, paper at 40% 3.25 for an unlit mark.
- * The badge inside the headline is the logo's lime with the ink icon in it, 10.47.
- * THESE ARE COMPUTED AND ARE NOT YET ROWS IN tokens.json#contrast, which this change may not edit. They
- * should be: ink on studioLilac, studioPeach and studioLime as the shell resolves ink.
+ * COLOUR. Every value is a role from tokens.json#semantic (--color-*), or one of ui.css's measured inks,
+ * so the deck turns with the theme as the shared components do; and every word set here stands on a
+ * ground set here from the same roles, so no theme can leave a word on a ground it was not measured on.
+ * Pairs, sRGB relative luminance, the formula scripts/check-boundaries.mjs runs, light theme:
+ *     foreground on surface 16.37       muted-foreground on surface 5.66, on muted 4.77
+ *     accent on surface 3.64 — a MARK only (SC 1.4.11 holds a mark to 3), never a word
+ *     muted-foreground as an unlit mark on surface 5.66, and it is the thinner stroke as well
+ *     foreground on the aqua tint (accent 12% over surface) 14.28 — the headline's badge
+ *     warning ink (#92400e) on the lime tint (warning 20% over surface) 6.77 — a flagged chip
+ * Aqua is spent on one thing here: the marks and the rule of the figure the screen was opened for.
  *
  * MOTION. The cards arrive once, staggered by their place in the row (--c-i, set by the component), on
  * --t-enter and --ease-soft: opacity and a small rise, nothing else. It runs only while the document
  * carries data-motion="on", which lib/motion.ts's useReveal sets from the clinical shell and never sets
  * for a reader who asked for less motion — and the reduced-motion block at the foot of this sheet removes
- * it again with !important, because this sheet loads after motion.css. A page whose script never ran has
- * no data-motion and so no entrance: the cards are simply there. The marks inside the cards are drawn by
- * ChartMotion, as before. */
+ * it again with !important, because this sheet loads after motion.css. The marks inside the cards are
+ * drawn by ChartMotion, as before. */
 
 .c-deck {
- /* The deck's own ground is the page's, so its sentence is the shell's ink on it. */
- --c-ink: var(--brand-ink);
- --c-quiet: color-mix(in srgb, var(--brand-ink) 78%, var(--studio-paper));
+ --c-ink: var(--color-foreground);
+ --c-quiet: var(--color-muted-foreground);
+ --c-accent: var(--color-accent);
+ --c-mark: var(--color-muted-foreground);
+ --c-track: var(--color-muted);
  container: deck / inline-size;
  position: relative;
  margin: 0 0 var(--space-24);
  color: var(--c-ink);
 }
-.c-deck-grid { display: grid; gap: var(--space-24); align-content: start; min-width: 0; }
+.c-deck-grid { display: grid; gap: var(--space-16); align-content: start; min-width: 0; }
 
-/* ---- What the deck says ------------------------------------------------------------------------ */
-.c-deck-say { display: grid; align-content: start; gap: var(--space-16); min-width: 0; }
-.c-deck-eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 1.4px; line-height: 1.5; text-transform: uppercase; color: var(--c-quiet); }
+/* ---- The hero: what the deck says ----------------------------------------------------------------
+   A surface of its own, so its words are measured on a ground this sheet sets. The handoff's hero is
+   the one place the display face is set large; nothing else on a clinical screen outranks it. */
+.c-deck-say {
+ display: grid;
+ align-content: start;
+ gap: var(--space-12);
+ min-width: 0;
+ padding: var(--space-24);
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-lg);
+ background: var(--color-surface);
+ box-shadow: var(--shadow);
+}
+.c-deck-eyebrow,
+.c-deck-eyebrow-aside { font-size: 13px; font-weight: 600; letter-spacing: .06em; line-height: 1.5; text-transform: uppercase; color: var(--c-quiet); }
 .c-deck-eyebrows { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-4) var(--space-12); min-width: 0; }
 .clinical .c-deck .c-deck-title,
-.c-deck .c-deck-eyebrows .c-deck-title { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: 1.4px; line-height: 1.5; text-transform: uppercase; color: var(--c-ink); }
-.c-deck-eyebrow-aside { font-size: 13px; font-weight: 600; letter-spacing: 1.4px; line-height: 1.5; text-transform: uppercase; color: var(--c-quiet); }
+.c-deck .c-deck-eyebrows .c-deck-title { margin: 0; font-family: var(--font-body, inherit); font-size: 13px; font-weight: 600; letter-spacing: .06em; line-height: 1.5; text-transform: uppercase; color: var(--c-ink); }
 .c-deck-headline {
- font-size: clamp(28px, 4cqi, 42px);
- font-weight: 400;
- line-height: 1.14;
- letter-spacing: -1.2px;
  margin: 0;
- max-width: 22ch;
+ max-width: 26ch;
+ font-family: var(--font-display);
+ font-size: 24px;
+ font-weight: 600;
+ line-height: 1.2;
+ letter-spacing: -.01em;
  color: var(--c-ink);
  text-wrap: balance;
 }
-.c-deck.is-say-only .c-deck-headline { max-width: 26ch; }
+.c-deck.is-say-only .c-deck-headline { max-width: 30ch; }
+/* Steps of the type scale rather than a fluid size, so the headline is always a size the scale has. */
+@container deck (min-width: 600px) { .c-deck-headline { font-size: 28px; } }
+@container deck (min-width: 900px) { .c-deck-headline { font-size: 32px; } }
 .c-deck-tail {
  display: block;
- margin-top: var(--space-12);
+ margin-top: var(--space-8);
+ max-width: 60ch;
+ font-family: var(--font-body, inherit);
  font-size: 15px;
  font-weight: 400;
  line-height: 1.55;
  letter-spacing: 0;
  color: var(--c-quiet);
- max-width: 52ch;
  text-wrap: pretty;
 }
-/* The badge. Sized in em so it grows with the headline. The logo's lime, the dot, spent once per deck. */
+/* The badge inside the sentence: a compact square, aqua tint, the icon in the foreground ink (14.28). */
 .c-deck-glyph {
  display: inline-grid;
  place-items: center;
- width: .92em;
- height: .92em;
- margin: 0 .1em;
- border-radius: 50%;
- background: var(--brand-lime);
- color: var(--brand-ink);
- vertical-align: -.12em;
+ width: 1.05em;
+ height: 1.05em;
+ margin: 0 .08em;
+ border-radius: var(--r-sm);
+ background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+ color: var(--c-ink);
+ vertical-align: -.16em;
 }
-.c-deck-glyph svg { width: 54%; height: 54%; }
+.c-deck-glyph svg { width: 60%; height: 60%; }
 
 /* ---- Under the sentence: the notice, an aside and the controls that change what is counted ------- */
 .c-deck-extra { display: grid; gap: var(--space-12); min-width: 0; }
 .c-deck .c-deck-extra .not-connected { margin: 0; max-width: none; }
-.c-deck .c-deck-extra .c-deck-aside { margin: 0; font-size: 15px; line-height: 1.55; color: var(--c-quiet); max-width: 62ch; }
+.c-deck .c-deck-extra .c-deck-aside { margin: 0; max-width: 62ch; font-size: 15px; line-height: 1.55; color: var(--c-quiet); }
 .c-deck-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-8) var(--space-12); min-width: 0; }
 .c-deck .c-deck-controls > p { margin: 0; flex: 1 1 240px; min-width: 0; align-self: center; font-size: 14px; line-height: 1.55; color: var(--c-quiet); }
-/* A pill, as the portal's controls are: outlined in the ink (11.20 on paper, far past the 3 an outline
-   owes), filled with it when pressed. Pressed is also aria-pressed, which a screen reader announces. */
+/* A choice that changes what the deck counts, drawn as the handoff's secondary button; pressed is the
+   selected face — the aqua tint and the foreground ink (14.28) — and aria-pressed, which a screen
+   reader announces, so pressed is never told by colour alone. */
 .c-deck .c-pill {
  display: inline-flex;
  align-items: center;
  gap: var(--space-8);
  min-height: 44px;
- padding: var(--space-8) var(--space-16);
- border-radius: var(--r-pill);
- border: 1px solid var(--c-ink);
- background: var(--surface);
+ padding: 0 var(--space-16);
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-md);
+ background: var(--color-surface);
  color: var(--c-ink);
  font: inherit;
  font-size: 14px;
- font-weight: 500;
- line-height: 1.4;
+ font-weight: 600;
+ line-height: 1.2;
  cursor: pointer;
- transition: background-color var(--t-quick) var(--ease-soft), color var(--t-quick) var(--ease-soft), transform var(--t-quick) var(--ease-soft);
+ transition: background-color var(--t-quick) var(--ease-soft), border-color var(--t-quick) var(--ease-soft);
 }
-.c-deck .c-pill:hover { background: var(--cl-tint-mint); }
-.c-deck .c-pill:active { transform: scale(.98); }
-.c-deck .c-pill[aria-pressed='true'] { background: var(--c-ink); border-color: var(--c-ink); color: var(--surface); }
-.c-deck .c-field { display: grid; gap: var(--space-4); min-width: 0; flex: 1 1 260px; font-size: 13px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; line-height: 1.5; color: var(--c-quiet); }
+.c-deck .c-pill:hover { background: var(--color-muted); }
+.c-deck .c-pill[aria-pressed='true'] { border-color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface)); }
+.c-deck .c-field { display: grid; gap: var(--space-4); flex: 1 1 260px; min-width: 0; font-size: 14px; font-weight: 600; line-height: 1.43; color: var(--c-ink); }
 .c-deck .c-field select {
  width: 100%;
  min-width: 0;
  min-height: 44px;
- border-radius: var(--r-pill);
- border: 1px solid var(--c-ink);
- background-color: var(--surface);
+ padding: 0 var(--space-12);
+ border: 1px solid var(--color-muted-foreground);
+ border-radius: var(--r-md);
+ background-color: var(--color-surface);
  color: var(--c-ink);
- padding: var(--space-8) var(--space-16);
  font: inherit;
- font-size: 15px;
- font-weight: 500;
- letter-spacing: 0;
- text-transform: none;
+ font-size: 14px;
+ font-weight: 400;
 }
 
 /* ---- The row of cards ------------------------------------------------------------------------------
    A wrapping row rather than a fixed grid: three cards on a wide column, the lead a little wider than
    the others because it is the subject; two and one as the column narrows; one each on a phone. Every
-   card stretches to the tallest in its line, so the numerals and the labels sit on the same lines. */
+   card stretches to the tallest in its line, so the numerals and the labels sit on the same lines.
+   The card itself is ui.css's .ui-card — surface, border, the one shadow, the 12-pixel corner. */
 .c-deck-cards { display: flex; flex-wrap: wrap; gap: var(--space-16); min-width: 0; }
 .c-card {
+ position: relative;
  flex: 1 1 15rem;
  min-width: 0;
  container: card / inline-size;
  display: flex;
  flex-direction: column;
  gap: var(--space-12);
- padding: var(--space-24);
- border-radius: var(--r-panel);
+ padding: var(--space-20);
+ overflow: hidden;
 }
 .c-card.c-deck-lead { flex: 1.35 1 18rem; }
 .c-card.c-deck-panel { flex: 1.15 1 16rem; }
+/* The lead's rule: a mark, 3.64 on the surface. */
+.c-card[data-place='lead']::before { content: ''; position: absolute; inset: 0 0 auto; height: 3px; background: var(--color-accent); }
+/* A flagged figure's card says so in its chip; the card's edge is the warning ink as well, 7.09. */
+.c-card.is-flagged { border-color: var(--ui-warning-ink, var(--mango-ink)); }
 
-/* Each ground sets the ink it carries in the same rule, and the marks drawn on it. */
-.c-card[data-tint='night'] {
- --c-ink: var(--surface);
- --c-quiet: color-mix(in srgb, var(--surface) 72%, var(--brand-ink));
- --c-accent: var(--brand-mint);
- --c-mark: color-mix(in srgb, var(--surface) 40%, var(--brand-ink));
- --c-track: color-mix(in srgb, var(--surface) 18%, var(--brand-ink));
- --c-chip: transparent;
- --c-chip-ink: var(--c-quiet);
- --c-chip-edge: var(--c-mark);
- --c-flag: var(--brand-mint);
- --c-flag-ink: var(--brand-ink);
- /* What consult-file.css's patient identity reads on the dark card. */
- --c-glass-edge: color-mix(in srgb, var(--surface) 22%, var(--brand-ink));
- --c-control: color-mix(in srgb, var(--surface) 52%, var(--brand-ink));
- background: radial-gradient(120% 120% at 0% 0%, color-mix(in srgb, var(--brand-green) 22%, var(--brand-ink)) 0%, transparent 60%), var(--brand-ink);
- color: var(--c-ink);
-}
-.c-card[data-tint='mint'],
-.c-card[data-tint='lavender'],
-.c-card[data-tint='peach'],
-.c-card[data-tint='lime'] {
- --c-ink: var(--brand-ink);
- --c-quiet: color-mix(in srgb, var(--brand-ink) 78%, var(--c-ground));
- --c-accent: var(--brand-ink);
- --c-mark: color-mix(in srgb, var(--brand-ink) 62%, var(--c-ground));
- --c-track: color-mix(in srgb, var(--surface) 62%, var(--c-ground));
- --c-chip: var(--surface);
- --c-chip-ink: var(--brand-ink);
- --c-chip-edge: var(--surface);
- --c-flag: var(--brand-ink);
- --c-flag-ink: var(--surface);
- background: var(--c-ground);
- color: var(--c-ink);
-}
-.c-card[data-tint='mint'] { --c-ground: var(--cl-tint-mint); }
-.c-card[data-tint='lavender'] { --c-ground: var(--cl-tint-lavender); }
-.c-card[data-tint='peach'] { --c-ground: var(--cl-tint-peach); }
-.c-card[data-tint='lime'] { --c-ground: var(--cl-tint-lime); }
-
-/* ---- One figure in a card ------------------------------------------------------------------------ */
-.c-instrument { min-width: 0; display: flex; flex: 1; }
-.c-instrument .s-metric { gap: var(--space-8); width: 100%; align-items: stretch; flex: 1; }
+/* ---- One figure in a card ------------------------------------------------------------------------
+   The handoff's MetricCard: the label first, small and uppercase; the figure in the display face; the
+   chip under it where the handoff puts its trend. The Metric's own markup is kept (the journeys read
+   .s-metric-label and .s-metric-value), and only the order it is drawn in changes. */
+.c-instrument { display: flex; flex: 1; min-width: 0; }
+.c-instrument .s-metric { display: flex; flex-direction: column; flex: 1; align-items: stretch; gap: var(--space-8); width: 100%; }
+.c-instrument .s-metric-label { order: -1; margin: 0; padding: 0; font-size: 13px; font-weight: 600; letter-spacing: .04em; line-height: 1.4; text-transform: uppercase; color: var(--c-quiet); }
+.c-instrument .s-metric-figure,
+.c-instrument .s-metric > .s-metric-value { order: 0; }
 .c-instrument .s-metric-value {
+ display: flex;
+ align-items: baseline;
+ font-family: var(--font-display);
+ font-size: 32px;
+ font-weight: 600;
+ line-height: 1.1;
+ letter-spacing: -.01em;
  color: var(--c-ink);
- font-size: 40px;
- font-weight: 300;
- line-height: 1;
- letter-spacing: -1.5px;
  font-variant-numeric: tabular-nums;
 }
-.c-instrument .s-metric-value small { color: var(--c-quiet); font-size: 18px; font-weight: 400; letter-spacing: 0; margin: 0 4px; }
-.c-instrument .s-metric-label { margin-top: auto; padding-top: var(--space-4); font-size: 15px; font-weight: 600; line-height: 1.35; color: var(--c-ink); }
-.clinical .c-deck .c-instrument .s-metric-chip-line { order: 0; min-height: 28px; }
+.c-instrument .s-metric-value small { margin: 0 4px; font-family: var(--font-body, inherit); font-size: 15px; font-weight: 500; letter-spacing: 0; color: var(--c-quiet); }
+.clinical .c-deck .c-instrument .s-metric-chip-line,
+.c-deck .c-instrument .s-metric-chip-line { order: 1; min-height: 0; }
 .c-deck .c-instrument .s-metric-chip {
- padding: 3px 12px;
- border: 1px solid var(--c-chip-edge);
+ display: inline-flex;
+ align-items: center;
+ padding: 2px var(--space-8);
+ border: 0;
  border-radius: var(--r-pill);
- background: var(--c-chip);
- color: var(--c-chip-ink);
+ background: var(--color-muted);
+ color: var(--c-quiet);
  font-size: 13px;
- font-weight: 500;
+ font-weight: 600;
  line-height: 1.4;
  white-space: normal;
 }
-.c-deck .c-instrument .s-metric-chip.flagged { background: var(--c-flag); border-color: var(--c-flag); color: var(--c-flag-ink); font-weight: 600; }
+.c-deck .c-instrument .s-metric-chip.flagged { background: color-mix(in srgb, var(--color-warning) 20%, var(--color-surface)); color: var(--ui-warning-ink, var(--mango-ink)); }
 @container card (min-width: 400px) {
- .c-deck-lead .s-metric-value { font-size: 64px; letter-spacing: -2.5px; }
- .c-deck-lead .s-metric-value small { font-size: 20px; }
+ .c-deck-lead .s-metric-value { font-size: 40px; }
+ .c-deck-lead .s-metric-value small { font-size: 16px; }
 }
 
-.s-metric-figure { display: block; position: relative; min-width: 0; }
+.s-metric-figure { position: relative; display: block; min-width: 0; }
 
-/* A ring or a dial with its numeral inside it; beside it, once the card has the room, the chip and the
-   label — the reference's figure-and-words pairing. */
+/* A ring or a dial with its numeral inside it; beside it, once the card has the room, the chip. */
 .c-instrument-ring .s-metric-figure,
-.c-instrument-gauge .s-metric-figure {
- width: 128px;
- max-width: 100%;
- aspect-ratio: 1;
- display: grid;
- place-items: center;
-}
+.c-instrument-gauge .s-metric-figure { display: grid; place-items: center; width: 112px; max-width: 100%; aspect-ratio: 1; }
 .c-instrument-ring .s-metric-figure > .c-plot,
 .c-instrument-gauge .s-metric-figure > .c-plot { position: absolute; inset: 0; width: 100%; height: 100%; }
 .c-instrument-ring .s-metric-value,
-.c-instrument-gauge .s-metric-value { position: relative; justify-content: center; font-size: 36px; }
+.c-instrument-gauge .s-metric-value { position: relative; justify-content: center; font-size: 32px; }
 .c-instrument-gauge .s-metric-value { transform: translateY(-4px); }
 @container card (min-width: 290px) {
  .c-instrument-ring .s-metric,
  .c-instrument-gauge .s-metric {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  grid-template-areas: 'figure chip' 'figure label';
-  align-content: center;
+  grid-template-areas: 'label label' 'figure chip';
+  align-content: start;
   column-gap: var(--space-20);
-  row-gap: var(--space-4);
+  row-gap: var(--space-12);
  }
+ .c-instrument-ring .s-metric-label,
+ .c-instrument-gauge .s-metric-label { grid-area: label; }
  .c-instrument-ring .s-metric-figure,
  .c-instrument-gauge .s-metric-figure { grid-area: figure; align-self: center; }
  .c-instrument-ring .s-metric-chip-line,
- .c-instrument-gauge .s-metric-chip-line { grid-area: chip; align-self: end; }
- .c-instrument-ring .s-metric-label,
- .c-instrument-gauge .s-metric-label { grid-area: label; align-self: start; margin-top: 0; }
+ .c-instrument-gauge .s-metric-chip-line { grid-area: chip; align-self: center; }
 }
 @container card (min-width: 400px) {
  .c-deck-lead .c-instrument-ring .s-metric-figure,
- .c-deck-lead .c-instrument-gauge .s-metric-figure { width: 168px; }
+ .c-deck-lead .c-instrument-gauge .s-metric-figure { width: 136px; }
  .c-deck-lead .c-instrument-ring .s-metric-value,
- .c-deck-lead .c-instrument-gauge .s-metric-value { font-size: 56px; }
+ .c-deck-lead .c-instrument-gauge .s-metric-value { font-size: 40px; }
 }
 
 .c-instrument-bars .s-metric-figure,
@@ -284,45 +254,52 @@
 .c-instrument-spark .s-metric-figure > .c-plot { order: 1; }
 
 .c-plot { display: block; width: 100%; overflow: hidden; }
-.c-ring-track { fill: none; stroke: var(--c-track); stroke-width: 12; stroke-linecap: round; }
-.c-mark { fill: none; stroke: var(--c-mark); stroke-width: 9; stroke-linecap: round; }
-.c-mark.on { stroke: var(--c-accent); stroke-width: 15; }
+.c-ring-track { fill: none; stroke: var(--c-track); stroke-width: 10; stroke-linecap: round; }
+.c-mark { fill: none; stroke: var(--c-mark); stroke-width: 7; stroke-linecap: round; }
+.c-mark.on { stroke: var(--c-mark); stroke-width: 12; }
+/* Aqua is the lead's alone: its lit marks are the one colour on the row. Everywhere else a lit mark is
+   the heavier stroke of the same ink, so a lit arc is never told by colour alone in either place. */
+.c-card[data-place='lead'] .c-mark.on { stroke: var(--c-accent); }
 .c-ring .c-mark { stroke-linecap: butt; }
 
 .c-spark { height: 64px; }
-.c-area { fill: var(--c-accent); stroke: none; opacity: .16; mask-image: linear-gradient(to bottom, #000, transparent); -webkit-mask-image: linear-gradient(to bottom, #000, transparent); }
+.c-area { fill: var(--c-accent); stroke: none; opacity: .14; mask-image: linear-gradient(to bottom, var(--c-ink), transparent); -webkit-mask-image: linear-gradient(to bottom, var(--c-ink), transparent); }
 .c-spark .c-mark,
 .c-spark .c-mark.on { stroke: var(--c-accent); stroke-width: 2.5; stroke-linejoin: round; }
+/* Off the lead a line is the foreground ink, so aqua stays the lead's one colour on the row. */
+.c-card:not([data-place='lead']) .c-spark .c-mark { stroke: var(--c-ink); }
+.c-card:not([data-place='lead']) .c-area { fill: var(--c-ink); }
 
-/* The queue's waits: one rounded bar per row, the row the figure names solid and the rest hatched —
-   solid AND taller, so tone is never the only difference. */
+/* The queue's waits: one bar per row, the row the figure names solid and taller, the rest the track
+   with the mark's edge — solid AND taller, so tone is never the only difference. */
 .c-bars { display: flex; min-width: 0; }
-.c-deck .c-waits { flex-direction: column; gap: 8px; }
+.c-deck .c-waits { flex-direction: column; gap: var(--space-8); }
 .c-deck .c-waits i {
  display: block;
- height: 14px;
+ height: 10px;
  border-radius: var(--r-pill);
- background: repeating-linear-gradient(-45deg, var(--c-mark) 0 2px, transparent 2px 6px), var(--c-track);
+ background: var(--c-track);
  box-shadow: inset 0 0 0 1px var(--c-mark);
  transform-origin: left center;
 }
-.c-deck .c-waits i.on { height: 20px; background: var(--c-accent); box-shadow: none; }
-.c-deck .c-waits:has(em) { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px var(--space-12); }
-.c-deck .c-waits em { font-style: normal; font-size: 13px; line-height: 1.3; letter-spacing: .4px; font-variant-numeric: tabular-nums; color: var(--c-quiet); white-space: nowrap; }
+.c-deck .c-waits i.on { height: 16px; background: var(--c-ink); box-shadow: none; }
+.c-deck .c-card[data-place='lead'] .c-waits i.on { background: var(--c-accent); }
+.c-deck .c-waits:has(em) { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--space-8) var(--space-12); }
+.c-deck .c-waits em { font-style: normal; font-size: 13px; line-height: 1.3; font-variant-numeric: tabular-nums; color: var(--c-quiet); white-space: nowrap; }
 
-/* The working day to scale: a rounded track, each visit a pill on it, the one she is heading to lit
-   and a signed one filled in the card's own ink. */
-.c-deck .c-day { position: relative; display: block; height: 36px; border-radius: var(--r-pill); background: var(--c-track); overflow: hidden; }
-.c-deck .c-day i { position: absolute; top: 7px; bottom: 7px; border-radius: var(--r-pill); background: var(--c-mark); transform-origin: left center; }
-.c-deck .c-day i.on { background: var(--c-accent); top: 5px; bottom: 5px; }
+/* The working day to scale: a track, each visit a block on it, the next one taller and in the ink,
+   a signed one filled, and a line for now. */
+.c-deck .c-day { position: relative; display: block; height: 32px; border-radius: var(--r-sm); background: var(--c-track); overflow: hidden; }
+.c-deck .c-day i { position: absolute; top: 8px; bottom: 8px; border-radius: var(--r-sm); background: var(--c-mark); transform-origin: left center; }
+.c-deck .c-day i.on { top: 5px; bottom: 5px; background: var(--c-accent); }
 .c-deck .c-day i.done { background: var(--c-ink); }
-.c-deck .c-day .c-now { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--c-ink); border-radius: var(--r-pill); }
+.c-deck .c-day .c-now { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--c-ink); }
 .c-day-scale {
  order: 2;
  display: flex;
  justify-content: space-between;
  gap: var(--space-8);
- margin-top: -4px;
+ margin-top: calc(var(--space-4) * -1);
  font-size: 13px;
  line-height: 1.4;
  color: var(--c-quiet);
@@ -331,51 +308,56 @@
 .c-day-scale .c-day-now { color: var(--c-ink); font-weight: 600; }
 
 /* ---- A card that is not a figure --------------------------------------------------------------------
-   The person a file is about, on the dark card; the stages of a visit or whose record it is, on mint. */
+   The person a file is about, in the lead's place; the stages of a visit or whose record it is, in the
+   panel's. Both are white cards like the rest; the lead keeps its rule. */
 .c-deck-lead.is-custom { display: grid; gap: var(--space-16); align-content: start; }
 .c-deck-panel-body { display: grid; gap: var(--space-12); align-content: start; min-width: 0; color: var(--c-ink); }
-.c-panel-eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 1.4px; line-height: 1.5; text-transform: uppercase; color: var(--c-quiet); }
-.c-panel-name { display: block; font-size: 32px; font-weight: 400; line-height: 1.15; letter-spacing: -1px; color: var(--c-ink); overflow-wrap: anywhere; }
+.c-panel-eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .06em; line-height: 1.5; text-transform: uppercase; color: var(--c-quiet); }
+.c-panel-name { display: block; font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1.2; letter-spacing: -.01em; color: var(--c-ink); overflow-wrap: anywhere; }
 .c-deck .c-panel-line { margin: 0; font-size: 15px; line-height: 1.55; color: var(--c-quiet); }
-@container card (min-width: 420px) { .c-panel-name { font-size: 40px; letter-spacing: -1.2px; } }
+@container card (min-width: 420px) { .c-panel-name { font-size: 32px; } }
 
 /* ---- The page a deck heads ------------------------------------------------------------------------
-   Everything under the deck is a record, and a record is paper: one panel on the page's ground with a
-   hairline rather than a shadow, the pastel system's separation. */
+   Everything under the deck is a record, and a record is one white sheet: the Card's surface, border,
+   corner and one shadow, painted here because the sheet is a <div> several screens already draw. */
 .c-page { display: block; min-width: 0; }
 .c-sheet {
  position: relative;
  min-width: 0;
- border: 1px solid var(--studio-line);
- border-radius: var(--r-panel);
- padding: var(--space-24) var(--space-32) var(--space-32);
- background: var(--surface);
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-lg);
+ padding: var(--space-24);
+ background: var(--color-surface);
+ color: var(--color-foreground);
+ box-shadow: var(--shadow);
 }
 @media (max-width: 999px) {
- .c-sheet { padding: var(--space-20) var(--space-16) var(--space-24); border-radius: var(--r-card); }
+ .c-sheet { padding: var(--space-20) var(--space-16); }
 }
-.modal .c-sheet { border: 0; padding: 0; background: none; }
+.modal .c-sheet { border: 0; padding: 0; background: none; box-shadow: none; }
 
 @container deck (max-width: 599px) {
- .c-card { padding: var(--space-20); border-radius: var(--r-card); }
- .c-deck-headline { letter-spacing: -.8px; }
+ .c-deck-say { padding: var(--space-20); }
+ .c-card { padding: var(--space-16); }
 }
 
 /* ---- The entrance ------------------------------------------------------------------------------------
-   Three steps and no more, the rule motion.css keeps: a fourth card waits on the third's delay. */
+   The handoff's stagger — a rise and a fade, one card after another — on the tokens: --t-enter on
+   --ease-soft, each card a sixth of --t-enter behind the one before it (the handoff's 70 ms, derived
+   rather than typed). Three steps and no more, the rule motion.css keeps: a fourth card waits on the
+   third's delay. Opacity and transform, and it runs once. */
 @keyframes c-card-in {
- from { opacity: 0; transform: translate3d(0, 12px, 0); }
+ from { opacity: 0; transform: translate3d(0, var(--space-8), 0); }
  to { opacity: 1; transform: none; }
 }
 html[data-motion='on'] .c-card {
  animation: c-card-in var(--t-enter) var(--ease-soft) both;
- animation-delay: calc(min(var(--c-i, 0), 2) * 70ms);
+ animation-delay: calc(min(var(--c-i, 0), 2) * var(--t-enter) / 6);
 }
 @media (prefers-reduced-motion: reduce) {
  html[data-motion='on'] .c-card { animation: none !important; }
  .c-deck .c-pill { transition: none !important; }
- .c-deck .c-pill:active { transform: none !important; }
 }
 
-/* The sentence at the foot of the dark card, above a hairline: paper at 72% over the ink, 7.03. */
-.c-card-note { margin: 0; padding-top: var(--space-12); border-top: 1px solid var(--c-glass-edge, var(--c-mark)); font-size: 14px; line-height: 1.55; color: var(--c-quiet); max-width: 46ch; }
+/* The sentence at the foot of the lead card, above a hairline. */
+.c-card-note { margin: 0; padding-top: var(--space-12); border-top: 1px solid var(--color-border); font-size: 14px; line-height: 1.55; color: var(--c-quiet); max-width: 46ch; }

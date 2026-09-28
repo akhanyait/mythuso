@@ -92,7 +92,9 @@ test('work that arrives against a signed record is never applied behind the sign
   await d.locator('.vq-strip').click();
   const queue = d.locator('.vq-panel');
   await queue.getByRole('button', { name: 'Connection: off' }).click();
-  await queue.locator('.checkbox').filter({ hasText: 'A doctor has signed this visit' }).click();
+  /* By its accessible name: the queue's switch is the shared Checkbox since wave 4b, and the name is what a
+     nurse's screen reader says, which the old .checkbox class never was. */
+  await queue.getByRole('checkbox', { name: 'A doctor has signed this visit' }).check();
   await queue.getByRole('button', { name: /^Send/ }).click();
   await expect(queue.getByText('Needs a decision', { exact: true }).first()).toBeVisible({ timeout: 8000 });
   await expect(queue.getByText(/The record moved on/)).toBeVisible();

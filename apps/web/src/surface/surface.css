@@ -63,7 +63,7 @@
     declared and `font-synthesis:none` refuses to fake anything lighter — so a 300 written here
     would have been drawn as a 400 and nobody would have seen a bug. The declaration now opens at
     300 and this is the one place that asks for it. */
- font-weight: 300;
+ font-weight: 400;
  letter-spacing: -1.5px;
  line-height: 1.05;
  font-variant-numeric: tabular-nums;
@@ -126,7 +126,7 @@
    each child to remember. faint on paleSage is 3.75 and fails; charcoal is 11.11. Nothing computed
    that pair, because the ground and the colour are set by two different rules and the failure only
    exists where they meet — which is the shape of every contrast bug in this project so far. */
-.s-panel.lead { background: var(--pale-sage); border-color: transparent; color: var(--charcoal); }
+.s-panel.lead { background: color-mix(in srgb, var(--brand-green) 8%, var(--surface)); border-color: color-mix(in srgb, var(--brand-green) 30%, var(--surface)); color: var(--charcoal); }
 .s-panel.lead p, .s-panel.lead small, .s-panel.lead .s-metric-label { color: var(--charcoal); }
 
 .s-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-12); }
@@ -158,8 +158,8 @@
  border-radius: 6px;
  background: var(--cloud);
 }
-.s-segments i.on { background: var(--soft-sage);color:var(--charcoal)}
-.s-segments i.now { background: var(--sage-slate);color:var(--charcoal)}
+.s-segments i.on { background: color-mix(in srgb, var(--brand-green) 18%, var(--surface));color:var(--charcoal)}
+.s-segments i.now { background: var(--brand-mint);color:var(--brand-ink)}
 
 /* ---- A search field: a pill, with the button as its own circle ---- */
 .s-search { display: flex; align-items: center; gap: var(--space-8); }

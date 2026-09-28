@@ -34,15 +34,18 @@ test('clinical marks animate without moving the reference range or changing read
  expect(await chart.locator('.chart-value').innerText()).toBe(text);
 });
 
-test('dashboard mini bars animate and settle when reduced motion is enabled', async ({ page }) => {
- const bars = page.locator('.reading-plot').first();
- await bars.scrollIntoViewIfNeeded();
- await expect.poll(() => bars.evaluate(el => el.getAnimations({ subtree: true }).length)).toBeGreaterThan(0);
- const values = await page.locator('.health-overview').innerText();
+test('dashboard trends animate and settle when reduced motion is enabled', async ({ page }) => {
+ /* The home's mini bars became the trend tabs of the identity restyle (28 September 2026): a line drawn once
+    on reveal from the readings on record. The promise is the same — it moves once, the figures never do, and
+    a reader who asked for stillness gets the finished line. */
+ const chart = page.locator('.pd-trend').first();
+ await chart.scrollIntoViewIfNeeded();
+ await expect.poll(() => chart.evaluate(el => el.getAnimations({ subtree: true }).length)).toBeGreaterThan(0);
+ const values = await page.locator('.pd-metric').allInnerTexts();
  await page.emulateMedia({ reducedMotion: 'reduce' });
- await expect.poll(() => bars.evaluate(el => el.getAnimations({ subtree: true }).length)).toBe(0);
- expect(await page.locator('.health-overview').innerText()).toBe(values);
- await expect(bars.locator('i').first()).toHaveCSS('transform', 'none');
+ await expect.poll(() => chart.evaluate(el => el.getAnimations({ subtree: true }).length)).toBe(0);
+ expect(await page.locator('.pd-metric').allInnerTexts()).toEqual(values);
+ await expect(chart.locator('.pd-trend__line').first()).toHaveCSS('stroke-dashoffset', '0px');
 });
 
 test('charts added after navigation stay complete under reduced motion', async ({ page }) => {

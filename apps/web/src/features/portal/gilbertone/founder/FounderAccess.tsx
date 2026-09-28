@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useState, type FormEvent } from 'react';
 import { Copy, Eye, EyeOff } from 'lucide-react';
+import { buttonVariants } from '../../../../ui/Button';
 import registry from '../../../../../../../packages/catalog/api-registry.json' with { type: 'json' };
 import {
  codeDigits, founderContract, founderKeys, founderWords as words, masked, probe, reveal, sessionEnded, sessionMinutes,
@@ -25,7 +26,11 @@ import {
  *   field in an address.
  *
  * Every other control on the GilbertOne screens stays disabled behind its gate; these are the only live
- * inputs and buttons, and scripts/check-boundaries.mjs names this file as the only exception. */
+ * inputs and buttons, and scripts/check-boundaries.mjs names this file as the only exception.
+ *
+ * The fields and buttons are native elements wearing the shared components' classes (ui-control, and
+ * buttonVariants()) rather than the components: the build counts this file's <input> and <form> elements
+ * attribute by attribute, and a component would hide them from it. The look is the handoff's either way. */
 
 export function FounderAccessPanel({ cardId }: { cardId?: string }) {
  const state = useFounderState();
@@ -39,7 +44,7 @@ export function FounderAccessPanel({ cardId }: { cardId?: string }) {
   {state.phase === 'signed-in' && <>
    <div className="g1-founder-session">
     <p>{words.signedIn.replace('{minutes}', String(sessionMinutes))}</p>
-    <button type="button" className="secondary g1-founder-button" onClick={() => void signOut()}>{words.signOut}</button>
+    <button type="button" className={`${buttonVariants({ variant: 'secondary' })} g1-founder-button`} onClick={() => void signOut()}>{words.signOut}</button>
    </div>
    <ul className="g1-founder-keys">{entries.map(k =>
     <li key={k.name}><RevealKey label={k.label} name={k.name} meta={state.keys.find(m => m.name === k.name) ?? null}/></li>)}</ul>
@@ -56,7 +61,7 @@ export function FounderGatePanel({ sentence, phase }: { sentence: string; phase:
   {phase === 'signed-out' && <p className="pt-label">{founderContract.gate.words.lockedHeading}</p>}
   <p className={phase === 'refused' ? 'g1-founder-refusal' : 'helper'} role={phase === 'checking' ? 'status' : undefined}>{sentence}</p>
   {phase === 'signed-out' && <SignIn message={null}/>}
-  {phase === 'signed-in' && <button type="button" className="secondary g1-founder-button" onClick={() => void signOut()}>{words.signOut}</button>}
+  {phase === 'signed-in' && <button type="button" className={`${buttonVariants({ variant: 'secondary' })} g1-founder-button`} onClick={() => void signOut()}>{words.signOut}</button>}
  </div>;
 }
 
@@ -86,14 +91,14 @@ export function SignIn({ message }: { message: string | null }) {
   <p className="pt-label">{words.signInHeading}</p>
   <input type="text" className="visually-hidden" name="username" autoComplete="username" value="founder" readOnly tabIndex={-1} aria-hidden="true"/>
   <label className="g1-field"><span>{words.passwordLabel}</span>
-   <input type="password" name="password" autoComplete="current-password" required spellCheck={false}
+   <input type="password" className="ui-control ui-input" name="password" autoComplete="current-password" required spellCheck={false}
     value={password} onChange={e => setPassword(e.target.value)} disabled={busy}/></label>
   <label className="g1-field"><span>{words.codeLabel}</span>
-   <input type="text" name="one-time-code" inputMode="numeric" autoComplete="one-time-code" required spellCheck={false}
+   <input type="text" className="ui-control ui-input" name="one-time-code" inputMode="numeric" autoComplete="one-time-code" required spellCheck={false}
     pattern={`\\d{${codeDigits}}`} maxLength={codeDigits} aria-describedby={hint}
     value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} disabled={busy}/></label>
   <p id={hint} className="helper">{words.codeHint}</p>
-  <button type="submit" className="primary g1-founder-button" disabled={busy}>{busy ? words.signingIn : words.signIn}</button>
+  <button type="submit" className={`${buttonVariants({ variant: 'primary' })} g1-founder-button`} disabled={busy}>{busy ? words.signingIn : words.signIn}</button>
   {said && <p className="g1-founder-refusal" role="alert">{said}</p>}
  </form>;
 }
@@ -167,18 +172,18 @@ function RevealKey({ label, name, meta }: { label: string; name: string; meta: K
   </dl>
   {meta?.present && !shown && <form className="g1-form g1-founder-form" method="post" onSubmit={submit} aria-label={`${words.revealHeading} ${label}`}>
    <label className="g1-field"><span>{words.revealCodeLabel}</span>
-    <input type="text" name="one-time-code" inputMode="numeric" autoComplete="one-time-code" required spellCheck={false}
+    <input type="text" className="ui-control ui-input" name="one-time-code" inputMode="numeric" autoComplete="one-time-code" required spellCheck={false}
      pattern={`\\d{${codeDigits}}`} maxLength={codeDigits} aria-describedby={hint}
      value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} disabled={busy}/></label>
    <p id={hint} className="helper">{words.revealCodeHint}</p>
-   <button type="submit" className="primary g1-founder-button" disabled={busy}>{busy ? words.revealing : words.reveal}</button>
+   <button type="submit" className={`${buttonVariants({ variant: 'primary' })} g1-founder-button`} disabled={busy}>{busy ? words.revealing : words.reveal}</button>
   </form>}
   {shown && <div className="g1-founder-revealed">
    <code className="g1-founder-secret" aria-label={label}>{visible ? shown.revealedKey : masked(registry.keyMetadata.maskedDisplay, shown.lastFour)}</code>
    <div className="g1-action-row">
-    <button type="button" className="secondary g1-founder-button" aria-pressed={visible} onClick={() => setVisible(v => !v)}>
+    <button type="button" className={`${buttonVariants({ variant: 'secondary' })} g1-founder-button`} aria-pressed={visible} onClick={() => setVisible(v => !v)}>
      {visible ? <EyeOff aria-hidden="true"/> : <Eye aria-hidden="true"/>} {visible ? words.hide : words.show}</button>
-    <button type="button" className="secondary g1-founder-button" onClick={() => void copy()}><Copy aria-hidden="true"/> {words.copy}</button>
+    <button type="button" className={`${buttonVariants({ variant: 'secondary' })} g1-founder-button`} onClick={() => void copy()}><Copy aria-hidden="true"/> {words.copy}</button>
    </div>
    <p className="helper">{words.wipes.replace('{seconds}', String(founderContract.reveal.wipeAfterSeconds))}</p>
   </div>}

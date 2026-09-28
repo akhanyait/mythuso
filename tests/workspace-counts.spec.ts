@@ -31,12 +31,14 @@ import { goSection, openWorkspace } from './nav';
  * alone — which is worth saying plainly rather than leaving a reader to assume all three are covered.
  */
 
+/* A figure is the office identity's MetricCard since 28 September 2026 (oi-figure, ui-metric__label and
+   ui-metric__value); the older strips still draw s-metric. The property read is the same either way. */
 const strip = (page: Page, label: string): Locator =>
-  page.locator('.s-metric').filter({ has: page.locator('.s-metric-label', { hasText: new RegExp(`^${label}$`) }) }).first();
+  page.locator(':is(.s-metric, .oi-figure)').filter({ has: page.locator(':is(.s-metric-label, .ui-metric__label)', { hasText: new RegExp(`^${label}$`) }) }).first();
 
 /** The figure itself, without the R or the unit the surface draws beside it. */
 async function figure(page: Page, label: string): Promise<number> {
-  const value = strip(page, label).locator('.s-metric-value');
+  const value = strip(page, label).locator(':is(.s-metric-value, .ui-metric__value)');
   await expect(value).toBeVisible();
   const text = (await value.textContent()) ?? '';
   const digits = text.replace(/[^\d]/g, '');
@@ -46,7 +48,7 @@ async function figure(page: Page, label: string): Promise<number> {
 
 /** The chip above it — "2 critical", "4 off duty" — as the number it leads with. */
 async function chipFigure(page: Page, label: string): Promise<number> {
-  const chip = strip(page, label).locator('.s-metric-chip');
+  const chip = strip(page, label).locator(':is(.s-metric-chip, .oi-figure__note)');
   await expect(chip).toBeVisible();
   const text = (await chip.textContent()) ?? '';
   const match = text.match(/\d+/);
@@ -104,7 +106,8 @@ test.describe('a workspace figure agrees with the rows beneath it', () => {
     await openWorkspace(page, 'Control Tower');
     await goSection(page, 'Incidents');
 
-    const incidents = page.locator('.incident-row').filter({ hasText: /INC-\d+/ });
+    /* Incident rows are the office identity's rows since 28 September 2026 (oi-incident). */
+    const incidents = page.locator('.oi-incident').filter({ hasText: /INC-\d+/ });
     await expect(incidents.first()).toBeVisible();
     const open = await incidents.count();
     expect(open).toBeGreaterThan(1);
@@ -113,13 +116,14 @@ test.describe('a workspace figure agrees with the rows beneath it', () => {
     /* The chip is where the fourth lie lived: "1 severity high" over a list whose worst entry was
        Critical. So the chip is read as well as the figure, and the board is asked how many of its
        rows carry the severity the chip names. */
-    const chip = (await strip(page, 'Open incidents').locator('.s-metric-chip').textContent()) ?? '';
+    const chip = (await strip(page, 'Open incidents').locator(':is(.s-metric-chip, .oi-figure__note)').textContent()) ?? '';
     const severity = chip.replace(/[\d\s]/g, '');
     /* The severity is a column of its own on the row now, rather than the first word of a run-on
        sentence, so it is read out of that column. Matching it inside the row's whole accessible text
        was always fragile — a board that happened to mention "critical" in a title would have counted
        itself — and it stopped matching at all when the row stopped writing "Critical ·". */
-    const matching = incidents.filter({ has: page.locator('.incident-sev', { hasText: new RegExp(`^${severity}$`, 'i') }) });
+    /* On the office identity's rows the severity is the Badge in the row's aside (28 September 2026). */
+    const matching = incidents.filter({ has: page.locator(':is(.incident-sev, .oi-row__aside)', { hasText: new RegExp(`^\\s*${severity}\\s*$`, 'i') }) });
     expect(await chipFigure(page, 'Open incidents'), `the chip says "${chip}" over a board with a different number of ${severity} incidents`)
       .toBe(await matching.count());
   });

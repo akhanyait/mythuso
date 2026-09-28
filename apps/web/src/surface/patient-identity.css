@@ -1,0 +1,233 @@
+/* The patient's screens on the design handoff of 28 September 2026.
+ *
+ * The handoff's patient dashboard — theme.css's patient-*, health-* and status-* rules — translated onto the
+ * token pipeline: white cards on the handoff's ground, compact corners (--r-md for a control, --r-lg for a
+ * card), one shadow, the accent spent only on an action, a selection or progress. Every colour is a
+ * --color-* role from tokens.json#semantic, so a screen drawn here follows the dark ground with the shared
+ * components in apps/web/src/ui rather than leaving a white card on a dark page.
+ *
+ * WHY THE SELECTORS CARRY .pd. patient.css and core.css dress the older classes (.shortcut-row,
+ * .visit-card) at two and three classes deep, and the bundler decides which sheet comes first. A rule that
+ * wins on order wins in the dev server and loses in the build, so every rule here that meets one of those
+ * wins on specificity instead.
+ *
+ * MOTION. The handoff's arrivals are here as the product's own: the whole home rises in through motion.css's
+ * .m-stagger, and a trend's line draws once, on the tokens, when its tab is shown. Nothing here runs for
+ * ever — the handoff's halo pulse and breathing status dot are not carried over — and all of it waits for
+ * [data-motion='on'], which PatientShell never raises under reduced motion; the media query at the end says
+ * the same thing a second time for a page whose script has not run. */
+
+/* ---- The home: its frame ---------------------------------------------------------------------- */
+.pd { display: grid; gap: var(--space-24); max-width: 1440px; margin-inline: auto; color: var(--color-foreground); }
+.pd h1, .pd h2 { color: var(--color-foreground); }
+.pd .pd-eyebrow { margin: 0 0 var(--space-8); color: var(--color-muted-foreground); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.pd .pd-card-title, .pd .pd-section-head h2 { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; letter-spacing: 0; line-height: 1.3; }
+.pd .pd-card-lead { margin: var(--space-4) 0 0; color: var(--color-muted-foreground); font-size: 14px; line-height: 1.45; }
+.pd .pd-card-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-12) var(--space-16); margin-bottom: var(--space-12); }
+.pd .pd-muted { color: var(--color-muted-foreground); font-size: 13px; }
+.pd svg:not(.pd-spark):not(.pd-trend svg) { flex: none; }
+
+/* A tile is a recess, not a colour: the muted role behind an icon, the same on every row, so a tile that is
+   tinted means something — only the emergency row's is, in the mango the product uses for "due". */
+.pd .pd-tile { display: grid; place-items: center; flex: none; width: var(--space-40); height: var(--space-40); border-radius: var(--r-md); background: var(--color-muted); color: var(--color-primary); }
+.pd .pd-tile svg { width: var(--space-20); height: var(--space-20); }
+.pd .pd-tile--due { background: var(--mango-soft); color: var(--mango-ink); }
+.pd .pd-initials { display: grid; place-items: center; flex: none; width: var(--space-40); height: var(--space-40); margin: 0; border-radius: var(--r-pill); background: color-mix(in oklab, var(--color-primary) 10%, transparent); color: var(--ui-primary-ink); font-size: 13px; font-weight: 700; }
+
+/* ---- The welcome ----------------------------------------------------------------------------------
+   The handoff's header: a white card with two mountains standing in its lower edge at seven per cent of the
+   accent. They are a clip-path on a flat fill, so they cost no image and no request. */
+.pd .pd-welcome {
+ position: relative; isolation: isolate; overflow: hidden;
+ display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-16) var(--space-24);
+ padding: var(--space-32); border: 1px solid var(--color-border); border-radius: var(--r-lg);
+ background: var(--color-surface); box-shadow: var(--shadow);
+}
+.pd .pd-welcome__mountain {
+ position: absolute; bottom: 0; z-index: -1; height: 58%; pointer-events: none;
+ background: color-mix(in oklab, var(--color-accent) 7%, transparent);
+ clip-path: polygon(0 100%, 18% 52%, 32% 72%, 49% 22%, 64% 68%, 78% 42%, 100% 100%);
+}
+.pd .pd-welcome__mountain--one { left: 24%; width: 52%; }
+.pd .pd-welcome__mountain--two { right: 0; width: 42%; opacity: .55; transform: scaleY(.72); transform-origin: bottom; }
+.pd .pd-welcome h1 { margin: 0; font-family: var(--font-display); font-size: 32px; font-weight: 600; letter-spacing: -.5px; line-height: 1.15; }
+.pd .pd-welcome__sub { margin: var(--space-8) 0 0; color: var(--color-muted-foreground); font-size: 15px; }
+.pd .pd-welcome__context { display: flex; flex-wrap: wrap; justify-content: flex-end; align-content: flex-start; gap: var(--space-8); min-width: 0; }
+.pd .pd-chip {
+ display: inline-flex; align-items: center; gap: var(--space-8); max-width: 100%; min-height: var(--ui-target, 44px);
+ padding: 0 var(--space-12); border: 1px solid var(--color-border); border-radius: var(--r-md);
+ background: var(--color-surface); color: var(--color-foreground); font-size: 14px; font-weight: 500;
+}
+.pd .pd-chip:hover { background: var(--color-muted); }
+.pd .pd-chip > span:not(.pd-initials) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pd .pd-chip svg { width: var(--space-16); height: var(--space-16); color: var(--color-muted-foreground); }
+.pd .pd-chip .pd-initials { width: var(--space-24); height: var(--space-24); }
+.pd .pd-next {
+ grid-column: 1 / -1; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-16);
+ padding: var(--space-16) var(--space-20); border: 1px solid var(--color-border); border-radius: var(--r-md);
+ background: color-mix(in oklab, var(--color-surface) 80%, transparent);
+}
+.pd .pd-next h2 { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 600; letter-spacing: 0; line-height: 1.3; }
+.pd .pd-next p { margin: var(--space-4) 0 0; color: var(--color-muted-foreground); font-size: 14px; line-height: 1.45; }
+
+/* ---- The figures -------------------------------------------------------------------------------- */
+.pd .pd-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-16); }
+.pd .pd-metric { display: flex; flex-direction: column; min-width: 0; text-align: left; }
+.pd .pd-metric .ui-metric__head { margin-bottom: var(--space-12); }
+.pd .pd-metric .ui-metric__value { display: block; overflow-wrap: anywhere; }
+.pd .pd-metric .ui-metric__value small { color: var(--color-muted-foreground); font-family: var(--font-text, inherit); font-size: 14px; font-weight: 500; }
+/* A fact, not a trend: MetricCard paints its line in the in-range ink, which here would say something
+   about the next visit that nobody measured. */
+.pd .pd-metric .ui-metric__trend { color: var(--color-muted-foreground); }
+.pd .pd-metric__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-8); margin-top: auto; padding-top: var(--space-12); }
+.pd .pd-metric--action { font: inherit; color: var(--color-foreground); cursor: pointer; transition: transform var(--t-settle) var(--ease-soft), border-color var(--t-settle) var(--ease-soft); }
+.pd .pd-metric--action:hover { transform: translateY(-2px); border-color: color-mix(in oklab, var(--color-accent) 35%, var(--color-border)); }
+.pd .pd-spark { width: calc(var(--space-32) * 2); height: var(--space-24); overflow: visible; color: var(--color-accent); }
+.pd .pd-spark polyline { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+
+/* ---- Two columns at a desk, one at a phone ------------------------------------------------------
+   At a phone the two columns dissolve (display: contents) and their cards are put in the order a person
+   needs them: the visit, what to book, the readings, what happened, and the rest. */
+.pd .pd-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); align-items: start; gap: var(--space-24); }
+.pd .pd-main, .pd .pd-aside { display: grid; gap: var(--space-24); min-width: 0; }
+
+/* ---- What can be booked -------------------------------------------------------------------------- */
+.pd .pd-book { display: grid; gap: var(--space-12); min-width: 0; }
+.pd .pd-search { position: relative; display: flex; gap: var(--space-8); }
+.pd .pd-search .ui-control { padding-left: var(--space-40); }
+.pd .pd-search__icon { position: absolute; top: 50%; left: var(--space-12); width: var(--space-20); height: var(--space-20); transform: translateY(-50%); color: var(--color-muted-foreground); pointer-events: none; }
+.pd .pd-services { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-12); }
+.patient-surface .pd .shortcut-row.pd-service {
+ position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-8);
+ min-height: 148px; margin: 0; padding: var(--space-16); border: 1px solid var(--color-border); border-radius: var(--r-lg);
+ background: var(--color-surface); color: var(--color-foreground); box-shadow: var(--shadow); text-align: left;
+}
+.patient-surface .pd .shortcut-row.pd-service:hover { transform: translateY(-2px); border-color: var(--color-accent); }
+.patient-surface .pd .pd-service > strong { padding-right: var(--space-20); font-size: 15px; font-weight: 600; line-height: 1.3; }
+.pd .pd-service__meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-4) var(--space-8); margin-top: auto; }
+.patient-surface .pd .pd-service__meta strong { font-family: var(--font-display); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pd .pd-service__meta small { color: var(--color-muted-foreground); font-size: 13px; }
+.pd .pd-service__go { position: absolute; top: var(--space-16); right: var(--space-12); width: var(--space-16); height: var(--space-16); color: var(--color-muted-foreground); }
+
+/* ---- The readings, as tabs of trends -----------------------------------------------------------
+   The handoff's chart: dashed grid, a lane for the reference range in its highlight, the line drawn once,
+   the points arriving after it. A point is a zero-length line with a round cap rather than a circle, so it
+   stays round however the plot is stretched to its box; a reading outside its range is the larger, hollow,
+   amber point the passport's chart draws, so the chart and the badge beside it say one thing. */
+.pd .pd-health__panel { display: grid; grid-template-columns: minmax(180px, 240px) minmax(0, 1fr); align-items: center; gap: var(--space-24); padding: var(--space-8) 0 var(--space-12); }
+.pd .pd-health__latest { display: grid; gap: var(--space-20); margin: 0; }
+.pd .pd-health__latest > div { display: grid; gap: var(--space-4); }
+.pd .pd-health__latest dt { color: var(--color-muted-foreground); font-size: 14px; font-weight: 500; }
+.pd .pd-health__latest dd { margin: 0; }
+.pd .pd-health__latest strong { font-family: var(--font-display); font-size: 32px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.pd .pd-health__latest dd > span { color: var(--color-muted-foreground); font-size: 14px; }
+.pd .pd-card-foot { display: flex; justify-content: flex-end; border-top: 1px solid var(--color-border); padding-top: var(--space-8); }
+.pd .pd-trend { margin: 0; min-width: 0; color: var(--color-primary); }
+.pd .pd-trend svg { display: block; width: 100%; height: 168px; overflow: visible; }
+.pd .pd-trend__grid { stroke: var(--color-border); stroke-width: 1; stroke-dasharray: 2 4; vector-effect: non-scaling-stroke; }
+.pd .pd-trend__band { fill: color-mix(in oklab, var(--color-highlight) 22%, transparent); }
+.pd .pd-trend__series--second { color: var(--color-accent); }
+.pd .pd-trend__limit { stroke: var(--color-primary); stroke-width: 1; stroke-dasharray: 6 4; opacity: .5; vector-effect: non-scaling-stroke; }
+.pd .pd-trend__limit--second { stroke: var(--color-accent); }
+.pd .pd-trend__area { fill: currentColor; opacity: .1; }
+.pd .pd-trend__line { fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.pd .pd-trend__series--second .pd-trend__line { stroke-width: 1.75; }
+.pd .pd-trend__point line { stroke: currentColor; stroke-width: 9; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.pd .pd-trend__point .pd-trend__hole { stroke: var(--color-surface); stroke-width: 5; }
+.pd .pd-trend__point.is-outside line { stroke: var(--ui-warning-ink); stroke-width: 13; }
+.pd .pd-trend__point.is-outside .pd-trend__hole { stroke: var(--color-surface); stroke-width: 7; }
+.pd .pd-trend__axis { display: flex; justify-content: space-between; margin-top: var(--space-8); color: var(--color-muted-foreground); font-size: 13px; }
+/* Drawn by uncovering it from the left rather than by a dash offset: a dash is measured along the path in
+   the stretched plot's units and stopped short of the last point once the stroke stopped scaling with it. */
+@keyframes pd-draw { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes pd-fade { from { opacity: 0; } }
+[data-motion='on'] .pd .pd-draw { animation: pd-draw calc(var(--t-enter) * 2.5) var(--ease-soft) var(--t-quick) both; }
+[data-motion='on'] .pd .pd-trend__area { animation: pd-fade var(--t-enter) var(--ease-soft) var(--t-settle) both; }
+[data-motion='on'] .pd .pd-trend__point { animation: pd-fade var(--t-settle) var(--ease-soft) calc(var(--t-enter) * 2) both; }
+
+/* ---- Rows: history, family, the check-in ------------------------------------------------------- */
+.pd .pd-history__list { display: grid; margin: 0; padding: 0; list-style: none; }
+.pd .pd-history__item + .pd-history__item { border-top: 1px solid var(--color-border); }
+.pd .pd-history__item > button,
+.pd .pd-row {
+ display: flex; align-items: center; gap: var(--space-12); width: 100%; min-height: calc(var(--space-24) + var(--space-32));
+ margin: 0; padding: var(--space-8) var(--space-4); border: 0; border-radius: var(--r-md);
+ background: transparent; color: var(--color-foreground); font: inherit; text-align: left;
+}
+.pd .pd-history__item > button:hover, .pd .pd-row:hover { background: var(--color-muted); }
+.pd .pd-history__item time { flex: 0 0 calc(var(--space-32) * 2); color: var(--color-muted-foreground); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pd .pd-history__item > button > span:nth-child(2), .pd .pd-row > span:nth-child(2) { flex: 1; min-width: 0; }
+.pd :is(.pd-history__item, .pd-row, .pd-journey li) strong { display: block; font-size: 15px; font-weight: 500; line-height: 1.35; }
+.pd :is(.pd-history__item, .pd-row, .pd-journey li) small { display: block; margin-top: 2px; color: var(--color-muted-foreground); font-size: 13px; line-height: 1.45; }
+.pd .pd-row > svg:last-child { width: var(--space-16); height: var(--space-16); color: var(--color-muted-foreground); }
+.pd .pd-row + .pd-row, .pd .pd-visit .pd-row { border-top: 1px solid var(--color-border); border-radius: 0; }
+.pd .pd-row__figure { display: flex; align-items: baseline; gap: var(--space-4); min-width: var(--space-40); font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.pd .pd-row__figure small { font-family: var(--font-text, inherit); font-size: 13px; font-weight: 500; color: var(--color-muted-foreground); }
+.pd .pd-note { display: flex; gap: var(--space-8); margin: var(--space-12) 0 0; color: var(--color-muted-foreground); font-size: 13px; line-height: 1.5; }
+.pd .pd-note svg { width: var(--space-16); height: var(--space-16); margin-top: 2px; }
+
+/* ---- The next visit ------------------------------------------------------------------------------ */
+.patient-surface .pd .visit-card.pd-visit__card {
+ display: grid; gap: var(--space-12); width: 100%; margin: 0 0 var(--space-12); padding: 0;
+ border: 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--color-foreground); text-align: left; transform: none;
+}
+.pd .pd-visit__top, .pd .pd-visit__nurse { display: flex; align-items: center; gap: var(--space-12); }
+.pd .pd-visit__top > span:nth-child(2), .pd .pd-visit__nurse > span:nth-child(2) { flex: 1; min-width: 0; }
+.pd .pd-visit__top strong { display: block; font-size: 15px; font-weight: 600; }
+.pd .pd-visit__top small { display: block; margin-top: 2px; color: var(--color-muted-foreground); font-size: 13px; }
+.pd .pd-visit__meta { display: flex; flex-wrap: wrap; gap: var(--space-8) var(--space-16); color: var(--color-muted-foreground); font-size: 13px; }
+.pd .pd-visit__meta > span { display: inline-flex; align-items: center; gap: var(--space-4); }
+.pd .pd-visit__meta svg { width: var(--space-16); height: var(--space-16); }
+.pd .pd-visit__nurse { padding-top: var(--space-12); border-top: 1px solid var(--color-border); }
+.pd .pd-visit__nurse strong { display: block; font-size: 14px; font-weight: 600; }
+.pd .pd-visit__nurse span > span { display: block; color: var(--color-muted-foreground); font-size: 13px; }
+.pd .pd-visit__nurse > svg { width: var(--space-16); height: var(--space-16); color: var(--color-muted-foreground); }
+.pd .pd-visit__hint { color: var(--ui-primary-ink); font-size: 13px; font-weight: 600; }
+.pd .pd-empty { display: grid; justify-items: start; gap: var(--space-8); margin-bottom: var(--space-12); }
+.pd .pd-empty strong { font-size: 16px; font-weight: 600; }
+.pd .pd-empty p { margin: 0 0 var(--space-4); color: var(--color-muted-foreground); font-size: 14px; line-height: 1.5; }
+
+.pd .pd-wellbeing { display: grid; justify-items: start; gap: var(--space-12); }
+.pd .pd-wellbeing p { margin: 0; color: var(--color-muted-foreground); font-size: 14px; line-height: 1.5; }
+.pd .pd-urgent .pd-card-title { margin-bottom: var(--space-4); }
+.pd .pd-journey ol { display: grid; margin: var(--space-12) 0 0; padding: 0; list-style: none; }
+.pd .pd-journey li { display: flex; align-items: center; gap: var(--space-12); padding: var(--space-8) 0; }
+.pd .pd-journey li + li { border-top: 1px solid var(--color-border); }
+
+/* ---- Narrower ------------------------------------------------------------------------------------ */
+@media (max-width: 1280px) {
+ .pd .pd-services { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+ .pd .pd-health__panel { grid-template-columns: minmax(0, 1fr); gap: var(--space-16); }
+ .pd .pd-health__latest { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+}
+@media (max-width: 1100px) { .pd .pd-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 999px) {
+ .pd .pd-columns { display: flex; flex-direction: column; gap: var(--space-20); }
+ .pd .pd-main, .pd .pd-aside { display: contents; }
+ .pd .pd-visit { order: 1; } .pd .pd-book { order: 2; } .pd .pd-health { order: 3; } .pd .pd-history { order: 4; }
+ .pd .pd-wellbeing { order: 5; } .pd .pd-family { order: 6; } .pd .pd-urgent { order: 7; } .pd .pd-journey { order: 8; }
+}
+@media (max-width: 700px) {
+ .pd { gap: var(--space-16); }
+ .pd .pd-welcome { grid-template-columns: minmax(0, 1fr); padding: var(--space-20); }
+ .pd .pd-welcome__context { justify-content: flex-start; }
+ .pd .pd-welcome h1 { font-size: 28px; }
+ .pd .pd-next { grid-template-columns: auto minmax(0, 1fr); padding: var(--space-16); }
+ .pd .pd-next h2 { font-size: 18px; }
+ .pd .pd-next > .ui-button { grid-column: 1 / -1; width: 100%; }
+ .pd .pd-metrics { gap: var(--space-12); }
+ .pd .pd-metric { padding: var(--space-16); }
+ .pd .pd-metric .ui-metric__value { font-size: 28px; }
+ .pd .pd-metric .ui-metric__label { font-size: 13px; letter-spacing: .02em; }
+ .pd .pd-metric__foot { flex-wrap: wrap; }
+ .patient-surface .pd .shortcut-row.pd-service { min-height: 132px; }
+ .pd .pd-trend svg { height: 144px; }
+ .pd .pd-history__item > button { display: grid; grid-template-columns: minmax(0, 1fr) auto; row-gap: var(--space-4); }
+ .pd .pd-history__item time { grid-column: 1 / -1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+ .pd .pd-draw, .pd .pd-trend__area, .pd .pd-trend__point { animation: none !important; }
+ .pd .pd-metric--action, .patient-surface .pd .shortcut-row.pd-service { transition: none; }
+ .pd .pd-metric--action:hover, .patient-surface .pd .shortcut-row.pd-service:hover { transform: none; }
+}

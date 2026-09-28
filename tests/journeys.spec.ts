@@ -134,8 +134,10 @@ for (const { app, enter, destinations } of applications) {
 
       /* 1. It draws something. The threshold is deliberately low — this is the dead-link test, not
          a judgement about how much a screen should say. */
+      /* Polled rather than read once: since the identity restyle several patient destinations are doors on a
+         dynamic import, and for a moment the screen is the one-line status saying what it is opening. */
+      await expect.poll(async () => screenText(await main.innerText()).length, { message: `${app} → ${name} renders almost nothing` }).toBeGreaterThan(80);
       const text = screenText(await main.innerText());
-      expect(text.length, `${app} → ${name} renders almost nothing`).toBeGreaterThan(80);
       await expect(main.locator('h1, h2, h3').first(), `${app} → ${name} draws no heading at all`).toBeVisible();
 
       /* allTextContents rather than first().textContent(): a section with no <h1> at all is

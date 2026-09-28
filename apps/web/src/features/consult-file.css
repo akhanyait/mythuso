@@ -1,76 +1,79 @@
-/* THE PATIENT FILE, AND THE TELECONSULTATION'S NIGHT BAND.
+/* THE PATIENT FILE AND THE TELECONSULTATION, on the identity of 28 September 2026 (the Lovable handoff,
+ * wave 4c).
  *
- * Both screens imported this sheet and it did not exist, so the doctor's whole workspace failed to
- * load, and the patient file — the screen a clinician opens about somebody else — was a column of
- * unstyled text once it did. What it draws now is the sheet under the clinical deck
- * (features/ClinicalDeck.tsx): the person is on the deck's glass, and everything here is the record
- * read up close — the facts, the withheld notice, the eight sections, and the body of whichever one
- * is open.
+ * The patient file is the sheet under the clinical deck (features/ClinicalDeck.tsx): the person is on the
+ * deck's lead card, and everything here is the record read up close — the facts, the withheld notice, the
+ * eight sections, and the body of whichever one is open. The teleconsultation's layout is at the foot.
+ * Both were drawn on the studio palette and a night band; both are white cards, compact corners and the one
+ * shadow now, with aqua spent on progress, selection and the rung a call is on.
  *
- * THE ONE THING THIS SHEET MUST NEVER DO is make a refused section look like an empty one. A refusal
- * is a dashed edge AND a lock AND the vetting contract's sentence; an empty section is a sentence
- * saying it is empty. And a reading outside its range is a hollow, taller mark AND a triangle AND the
- * words "Outside range" — never a colour on its own, and never a verdict: nothing on a gauge moves,
- * because a reference range that slid into place is the one animation this product forbids.
+ * THE ONE THING THIS SHEET MUST NEVER DO is make a refused section look like an empty one. A refusal is a
+ * dashed edge AND a lock AND the vetting contract's sentence; an empty section is a sentence saying it is
+ * empty. And a reading outside its range is a hollow, taller mark AND a triangle AND the words "Outside
+ * range" — never a colour on its own, and never a verdict: nothing on a gauge moves, because a reference
+ * range that slid into place is the one animation this product forbids.
  *
- * Every rule is under `.clinical .pfx`, three classes, because the older patient-file rules in
- * surface/core.css, app.css, clinical-screens.css and clinical.css are one and two, and a sheet that
- * wins on source order wins until somebody moves an import.
- *
- * PAIRS, sRGB relative luminance, the formula scripts/check-boundaries.mjs runs:
- *   ON THE GLASS (paper at 8% over studioNight)
- *     studioPaper 10.81      paper at 72% over night 6.15      studioNight on studioPaper 13.59
- *     studioInk on studioPeach 8.91 — the allergy chip, the one chip on the glass that is filled
- *     paper at 44% over night 3.24 — the edge of an anonymous disc and of a status chip
- *   ON THE SHEET
- *     charcoal (studioInk) on surface 11.66      on studioPaper 10.59      on studioPeach 8.91
- *     studioInkMuted on surface 6.93      on studioPaper 6.29      on studioPeach 5.29
- *     surface on studioInk 11.66 — the chosen section pill
- *     studioInk on indigoSoft 10.25 — every other section pill, on the rail
- *     studioOlive band on the gauge's groove 5.60; charcoal mark 14.78 on the groove, with a 2px
- *     surface halo because charcoal on olive is 2.64
- *     ink-muted at 78% over surface 4.04 — the boundary of a refused card, which is a boundary
- *     SC 1.4.11 holds to 3:1; --studio-line is 1.31 and is only ever a divider
- *   ON THE NIGHT BAND (teleconsultation): the deck's own, studioPaper 13.59, studioLime 12.03,
- *     paper at 72% 7.73, paper at 40% 3.42 for an unlit mark.
- */
+ * Every patient-file rule is under `.clinical .pfx`, three classes, because the older patient-file rules in
+ * surface/core.css, app.css, clinical-screens.css and clinical.css are one and two. The pairs each part
+ * stands on are listed beside the part. */
 
 .clinical .pfx {
- --pf-edge: color-mix(in srgb, var(--studio-ink-muted) 78%, var(--surface));
- --pf-groove: color-mix(in srgb, var(--studio-ink) 10%, var(--surface));
+ /* THE IDENTITY (28 September 2026, the Lovable handoff, wave 4c). The rules below were written against
+    the studio palette — night, paper, peach, olive, the indigo wash — and inside .pfx those names are
+    re-pointed at the identity's roles here, once: the night card becomes a white card with the lead's
+    aqua rule, paper the page background, peach the warning tint, olive the accent, the indigo wash the
+    muted ground. Every word then stands on a ground from the same family in either theme. Light-theme
+    pairs: foreground on surface 16.37, on muted 13.80, on the warning tint 15.63; muted-foreground on
+    surface 5.66, on background 5.43; a refused card's dashed edge is the muted-foreground (5.66), a
+    boundary SC 1.4.11 holds to 3; the range band on the gauge is the accent, a mark at 3.07 on its
+    groove, with the reading's needle in the foreground and a surface halo. */
+ --studio-ink: var(--color-foreground);
+ --studio-ink-muted: var(--color-muted-foreground);
+ --studio-paper: var(--color-background);
+ --studio-line: var(--color-border);
+ --studio-peach: color-mix(in srgb, var(--color-warning) 20%, var(--color-surface));
+ --studio-olive: var(--color-accent);
+ --studio-night: var(--color-foreground);
+ --studio-lime: var(--color-accent);
+ --indigo-soft: var(--color-muted);
+ --charcoal: var(--color-foreground);
+ --surface: var(--color-surface);
+ --pf-edge: var(--color-muted-foreground);
+ --pf-groove: var(--color-muted);
+ color: var(--color-foreground);
 }
 .clinical .pfx h2, .clinical .pfx h3 { margin: 0; }
 
 /* ---- The person, on the glass ------------------------------------------------------------------- */
 .clinical .pfx .pfx-identity { display: flex; align-items: center; gap: var(--space-16); min-width: 0; }
 .clinical .pfx .pfx-disc {
- width: 64px;
- height: 64px;
- flex: 0 0 64px;
- border-radius: 50%;
+ width: 56px;
+ height: 56px;
+ flex: 0 0 56px;
+ border-radius: var(--r-pill);
  display: grid;
  place-items: center;
- background: var(--studio-paper);
- color: var(--studio-night);
- font-size: 20px;
- font-weight: 600;
- letter-spacing: .5px;
+ background: var(--color-muted);
+ color: var(--color-foreground);
+ font-size: 18px;
+ font-weight: 700;
+ letter-spacing: .02em;
 }
 /* Nobody's initials, because this viewer may not see whose file it is: a dashed ring and a figure
    rather than a disc that looks like a person waiting to load. */
-.clinical .pfx .pfx-disc.is-anonymous { background: transparent; border: 2px dashed var(--c-control); color: var(--c-quiet); }
+.clinical .pfx .pfx-disc.is-anonymous { background: transparent; border: 2px dashed var(--color-muted-foreground); color: var(--color-muted-foreground); }
 .clinical .pfx .pfx-identity-say { min-width: 0; }
-.clinical .c-deck .pfx-identity h2 { font-size: 32px; font-weight: 500; line-height: 1.15; letter-spacing: -1px; color: var(--c-ink); overflow-wrap: anywhere; }
+.clinical .c-deck .pfx-identity h2 { font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1.2; color: var(--c-ink); overflow-wrap: anywhere; }
 .clinical .c-deck .pfx-identity p { margin: var(--space-4) 0 0; font-size: 15px; line-height: 1.5; color: var(--c-quiet); font-variant-numeric: tabular-nums; }
 .clinical .c-deck .pf-chips { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: var(--space-8); }
-.clinical .c-deck .pf-chip { background: transparent; border: 1px solid var(--c-glass-edge); border-radius: var(--r-control); padding: var(--space-8) var(--space-12) var(--space-12); min-width: 0; }
+.clinical .c-deck .pf-chip { background: var(--color-background); border: 1px solid var(--color-border); border-radius: var(--r-md); padding: var(--space-8) var(--space-12) var(--space-12); min-width: 0; }
 .clinical .c-deck .pf-chip > span { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; color: var(--c-quiet); opacity: 1; }
 .clinical .c-deck .pf-chip > strong { display: block; margin-top: var(--space-4); font-size: 15px; font-weight: 500; line-height: 1.45; color: var(--c-ink); overflow-wrap: anywhere; }
 /* An allergy is the one chip that is filled: peach, a triangle, and the substance in words. */
-.clinical .c-deck .pf-chip.danger { background: var(--studio-peach); border-color: var(--studio-peach); }
-.clinical .c-deck .pf-chip.danger > span,
-.clinical .c-deck .pf-chip.danger > strong { color: var(--studio-ink); }
-.clinical .c-deck .pf-chip.amber { border-color: var(--c-control); }
+.clinical .c-deck .pf-chip.danger { background: color-mix(in srgb, var(--color-warning) 20%, var(--color-surface)); border-color: var(--ui-warning-ink, var(--mango-ink)); }
+.clinical .c-deck .pf-chip.danger > span { color: var(--ui-warning-ink, var(--mango-ink)); }
+.clinical .c-deck .pf-chip.danger > strong { color: var(--color-foreground); }
+.clinical .c-deck .pf-chip.amber { border-color: var(--color-muted-foreground); }
 
 /* ---- The sheet ---------------------------------------------------------------------------------- */
 .clinical .pfx .c-sheet { display: grid; gap: var(--space-20); align-content: start; }
@@ -102,36 +105,36 @@
 .clinical .pfx .pfx-rail {
  display: flex;
  flex-wrap: wrap;
- gap: 3px;
- padding: 5px;
- border: 1px solid color-mix(in srgb, var(--studio-ink) 12%, var(--indigo-soft));
- border-radius: var(--r-panel);
- background: var(--indigo-soft);
+ gap: var(--space-4);
+ padding: var(--space-4);
+ border: 0;
+ border-radius: var(--r-md);
+ background: var(--color-muted);
 }
+/* The handoff's tabs on pressed buttons: the open section lifted onto the surface, heavier, with the one
+   shadow, and aria-pressed; a refused section keeps its place and its lock. */
 .clinical .pfx .pfx-tabs button,
 .clinical .pfx .pfx-rail button {
  display: inline-flex;
  align-items: center;
- gap: 6px;
+ gap: calc(var(--space-12) / 2);
  min-height: 44px;
- padding: var(--space-8) var(--space-16);
- border: 1px solid transparent;
- border-radius: var(--r-pill);
+ padding: 0 var(--space-12);
+ border: 0;
+ border-radius: var(--r-sm);
  background: transparent;
- color: var(--studio-ink);
+ color: var(--color-muted-foreground);
  font-size: 14px;
- font-weight: 500;
- transition: background var(--t-settle) var(--ease-soft);
+ font-weight: 600;
+ transition: background-color var(--t-quick) var(--ease-soft), color var(--t-quick) var(--ease-soft);
 }
 .clinical .pfx .pfx-tabs button:hover,
-.clinical .pfx .pfx-rail button:hover { background: color-mix(in srgb, var(--surface) 80%, transparent); }
+.clinical .pfx .pfx-rail button:hover { background: transparent; color: var(--color-foreground); }
 .clinical .pfx .pfx-tabs button.selected,
-.clinical .pfx .pfx-rail button.selected { background: var(--studio-ink); border-color: var(--studio-ink); color: var(--surface); box-shadow: var(--shadow-raised); }
-/* core.css draws :focus-visible as an outline and a box-shadow ring, so the chosen pill's resting
-   shadow would delete half of it. The ring is restated in front of the shadow. */
-.clinical .pfx .pfx-tabs button.selected:focus-visible,
-.clinical .pfx .pfx-rail button.selected:focus-visible { box-shadow: 0 0 0 7px var(--focus-edge), var(--shadow-raised); }
-.clinical .pfx .pfx-rail { border-radius: var(--r-card); align-self: start; }
+.clinical .pfx .pfx-rail button.selected { background: var(--color-surface); color: var(--color-foreground); box-shadow: var(--shadow); }
+.clinical .pfx .pfx-tabs button:focus-visible,
+.clinical .pfx .pfx-rail button:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; box-shadow: none; }
+.clinical .pfx .pfx-rail { align-self: start; }
 .clinical .pfx .pfx-rail button { font-size: 13px; }
 .clinical .pfx .pf-holds { margin: 0; font-size: 15px; line-height: 1.6; color: var(--studio-ink); max-width: 76ch; }
 .clinical .pfx .pf-not-built { margin: 0; }
@@ -139,26 +142,21 @@
 /* A block of the open section: a heading and the count of what is under it, over a hairline. */
 .clinical .pfx .pfx-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: var(--space-8) var(--space-12); padding: var(--space-8) 0 var(--space-12); border-bottom: 1px solid var(--studio-line); }
 .clinical .pfx .pfx-head h2,
-.clinical .pfx .pfx-head h3 { font-size: 20px; line-height: 1.3; letter-spacing: -.3px; color: var(--charcoal); }
+.clinical .pfx .pfx-head h3 { font-family: var(--font-display); font-size: 20px; font-weight: 600; line-height: 1.3; color: var(--charcoal); }
 .clinical .pfx .pfx-head > span { font-size: 13px; color: var(--studio-ink-muted); }
 .clinical .pfx .pfx-table-wrap { overflow-x: auto; min-width: 0; }
 
 /* ---- Overview ----------------------------------------------------------------------------------
-   Three cards, and the next appointment is the one on the night: it is the only one of the three
-   that is about what happens next rather than what already happened. */
+   Three cards, and the next appointment leads with the aqua rule: it is the only one of the three that
+   is about what happens next rather than what already happened. */
 .clinical .pfx .pf-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: var(--space-16); margin: 0; }
 .clinical .pfx .pf-card { display: flex; flex-direction: column; gap: 6px; padding: var(--space-16) var(--space-20) var(--space-20); border: 1px solid var(--studio-line); border-radius: var(--r-card); background: var(--surface); min-width: 0; }
-.clinical .pfx .pf-card > strong { font-size: 24px; font-weight: 500; line-height: 1.2; letter-spacing: -.6px; color: var(--charcoal); }
+.clinical .pfx .pf-card > strong { font-family: var(--font-display); font-size: 22px; font-weight: 600; line-height: 1.25; color: var(--charcoal); }
 .clinical .pfx .pf-card > p { font-size: 15px; color: var(--charcoal); margin: 0; }
 .clinical .pfx .pf-card > small { font-size: 13px; line-height: 1.55; color: var(--studio-ink-muted); }
 .clinical .pfx .pf-card-key { color: var(--studio-ink-muted); }
-.clinical .pfx .pf-card.is-lead { background: var(--studio-night); border-color: var(--studio-night); box-shadow: var(--shadow-raised); }
-.clinical .pfx .pf-card.is-lead .pf-card-key,
-.clinical .pfx .pf-card.is-lead .pf-card-key svg { color: var(--studio-lime); }
-.clinical .pfx .pf-card.is-lead > strong,
-.clinical .pfx .pf-card.is-lead > p { color: var(--studio-paper); }
-.clinical .pfx .pf-card.is-lead > small { color: color-mix(in srgb, var(--studio-paper) 72%, var(--studio-night)); }
-.clinical .pfx .pf-card.is-lead .empty-note { background: transparent; color: var(--studio-paper); border-color: color-mix(in srgb, var(--studio-paper) 44%, var(--studio-night)); }
+.clinical .pfx .pf-card.is-lead { position: relative; overflow: hidden; box-shadow: var(--shadow); }
+.clinical .pfx .pf-card.is-lead::before { content: ''; position: absolute; inset: 0 0 auto; height: 3px; background: var(--color-accent); }
 
 .clinical .pfx .pf-obs { display: grid; gap: var(--space-16); padding: var(--space-20) var(--space-24); border: 1px solid var(--studio-line); border-radius: var(--r-card); background: var(--surface); min-width: 0; }
 .clinical .pfx .pf-vitals { margin: 0; }
@@ -186,7 +184,7 @@
 .clinical .pfx .pf-action.refused { background: transparent; border: 1px dashed var(--pf-edge); }
 .clinical .pfx .pf-action strong { font-size: 15px; color: var(--charcoal); }
 .clinical .pfx .pf-action small { color: var(--studio-ink-muted); }
-.clinical .pfx .pf-action-mark { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--indigo-soft); color: var(--studio-ink); }
+.clinical .pfx .pf-action-mark { width: 40px; height: 40px; border-radius: var(--r-pill); display: grid; place-items: center; background: var(--indigo-soft); color: var(--studio-ink); }
 .clinical .pfx .pf-action-mark svg { color: inherit; }
 .clinical .pfx .pf-action.refused .pf-action-mark { background: transparent; border: 1px dashed var(--pf-edge); }
 
@@ -272,37 +270,255 @@
  .clinical .pfx .pf-report-head > .pill { grid-column: 2; justify-self: start; }
 }
 
-/* ---- The teleconsultation's night band ------------------------------------------------------------
-   The same ground and the same marks as the clinical deck, so the line a call is on reads as one of
-   the deck's instruments rather than a third dark rectangle. The deck's mark colours are custom
-   properties declared on .c-deck; this band declares the same ones, because the ring inside it is
-   the deck's own `.c-ring` and must not depend on sitting inside a deck to be visible. */
-.cf-night {
- --c-ink: var(--studio-paper);
- --c-quiet: color-mix(in srgb, var(--studio-paper) 72%, var(--studio-night));
- --c-accent: var(--studio-lime);
- --c-mark: color-mix(in srgb, var(--studio-paper) 40%, var(--studio-night));
- --c-track: color-mix(in srgb, var(--studio-paper) 24%, var(--studio-night));
+/* ---- The teleconsultation (the identity of 28 September 2026, the Lovable handoff, wave 4c) -------------
+   Its layout had no rules anywhere — the sheet it was written against never landed — so the call drew as a
+   column of unstyled text with one dark band in it. It is drawn here now, on the handoff's white cards,
+   under .clinical .tcx so nothing reaches a screen that did not ask for it and every rule is one class more
+   specific than the older teleconsult rules in surface/app.css and core.css, which it answers.
+   Every colour is a role from tokens.json#semantic or one of ui.css's measured inks, and every word stands
+   on a ground set here from the same roles. Light-theme pairs, sRGB relative luminance:
+     foreground on surface 16.37, on muted 13.80, on the aqua tint 14.28, on the danger tint (12%) 14.9
+     muted-foreground on surface 5.66, on muted 4.77
+     danger ink (#b42318) on surface 6.57, on the danger tint 5.78 — the dropped line's words and clock
+     accent 3.64 on surface, 3.07 on muted — the lit segments of the rung the call is on, a mark only
+   The ladder's lit segments are the foreground on every rung but the current one, and the accent on that
+   one: the rung is also named "Now" and carries aria-current, so it is never told by colour alone. A
+   dropped line is the danger ink AND a clock AND its sentences; a withheld conclusion is a Ban mark AND a
+   dashed edge AND the reason in words. */
+.clinical .tcx { display: grid; gap: var(--space-20); min-width: 0; color: var(--color-foreground); }
+.clinical .tcx p { margin: 0; }
+.clinical .tcx h2, .clinical .tcx h3 { margin: 0; color: var(--color-foreground); }
+.clinical .tcx .form-stack { display: grid; gap: var(--space-16); }
+
+/* The appointment and where in the call this reader is. */
+.clinical .tcx-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-12) var(--space-16); padding: var(--space-16) var(--space-20); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); box-shadow: var(--shadow); }
+.clinical .tcx-bar-disc { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; border-radius: var(--r-pill); background: var(--color-muted); color: var(--color-foreground); font-size: 14px; font-weight: 700; }
+.clinical .tcx-bar-say { display: grid; gap: 2px; flex: 1 1 200px; min-width: 0; }
+.clinical .tcx-bar-say strong { font-family: var(--font-display); font-size: 20px; font-weight: 600; color: var(--color-foreground); }
+.clinical .tcx-bar .step-head { flex: 1 1 100%; margin: 0; }
+.clinical .tcx-recording { padding: var(--space-4) var(--space-12); border: 1px solid var(--color-border); border-radius: var(--r-pill); background: var(--color-surface); font-size: 13px; font-weight: 600; }
+@media (min-width: 900px) { .clinical .tcx-bar .step-head { flex: 0 1 320px; } }
+
+.clinical .tcx-lede { display: grid; gap: var(--space-8); }
+.clinical .tcx-lede h2 { font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1.25; }
+.clinical .tcx-lede p { max-width: 72ch; font-size: 15px; line-height: 1.6; color: var(--color-muted-foreground); }
+
+/* A card: one question about the call. */
+.clinical .tcx-card, .clinical .tcx-refuse { display: grid; gap: var(--space-12); min-width: 0; padding: var(--space-20); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); box-shadow: var(--shadow); }
+.clinical .tcx-refuse { box-shadow: none; border-style: dashed; border-color: var(--color-muted-foreground); }
+.clinical .tcx-card-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-4) var(--space-12); }
+.clinical .tcx-card-head h3 { font-family: var(--font-display); font-size: 18px; font-weight: 600; line-height: 1.3; }
+.clinical .tcx-card-head > span { display: inline-flex; align-items: center; gap: var(--space-4); font-size: 13px; font-weight: 600; color: var(--color-muted-foreground); }
+.clinical .tcx-hint { font-size: 14px; line-height: 1.55; color: var(--color-muted-foreground); max-width: 76ch; }
+.clinical .tcx-hint.is-error { color: var(--ui-danger-ink, var(--danger)); font-weight: 600; }
+.clinical .tcx-field { display: grid; gap: calc(var(--space-12) / 2); max-width: 480px; font-size: 14px; font-weight: 600; color: var(--color-foreground); }
+.clinical .tcx-field select { min-height: 44px; padding: 0 var(--space-12); border: 1px solid var(--color-muted-foreground); border-radius: var(--r-md); background-color: var(--color-surface); color: var(--color-foreground); font: inherit; font-weight: 400; }
+.clinical .tcx .button-row { max-width: none; }
+
+/* A stop and a note: the handoff's Alert, drawn on the sentences the call already renders. */
+.clinical .tcx-stop, .clinical .tcx-note { display: flex; align-items: flex-start; gap: var(--space-12); padding: var(--space-16); border: 1px solid color-mix(in srgb, var(--color-info) 35%, transparent); border-radius: var(--r-md); background: var(--color-surface); }
+.clinical .tcx-stop { border-color: color-mix(in srgb, var(--color-danger) 35%, transparent); }
+.clinical .tcx-note > svg { flex: none; color: var(--color-info); }
+.clinical .tcx-stop > svg { flex: none; color: var(--ui-danger-ink, var(--danger)); }
+.clinical .tcx-stop p, .clinical .tcx-note p { font-size: 14px; line-height: 1.55; color: var(--color-foreground); }
+
+/* The roster: people, each with where they stand and what they can see and hear. */
+.clinical .tcx .chip-set { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.clinical .tcx .chip { min-height: 44px; padding: 0 var(--space-16); border: 1px solid var(--color-border); border-radius: var(--r-md); background: var(--color-surface); color: var(--color-foreground); font-size: 14px; font-weight: 600; }
+.clinical .tcx .chip input { accent-color: var(--color-accent); }
+.clinical .tcx .chip.selected { border-color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface)); color: var(--color-foreground); }
+.clinical .tcx .tc-roster { display: grid; gap: var(--space-8); }
+.clinical .tcx .tc-person { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--space-12) var(--space-16); padding: var(--space-16); border: 1px solid var(--color-border); border-radius: var(--r-md); background: var(--color-surface); }
+.clinical .tcx .tc-person.is-out { border-style: dashed; border-color: var(--color-muted-foreground); background: var(--color-background); opacity: 1; }
+.clinical .tcx .tc-avatar { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border-radius: var(--r-pill); background: var(--color-muted); color: var(--color-foreground); font-size: 13px; font-weight: 700; }
+.clinical .tcx .tc-person-say { flex: 1 1 260px; min-width: 0; display: grid; gap: var(--space-8); }
+.clinical .tcx .tc-person strong { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-4) var(--space-8); font-size: 15px; font-weight: 600; color: var(--color-foreground); }
+.clinical .tcx .tc-person strong em { font-style: normal; font-size: 13px; font-weight: 600; color: var(--color-muted-foreground); }
+.clinical .tcx .tc-person-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: var(--space-8) var(--space-16); margin: 0; }
+.clinical .tcx .tc-person-facts dt { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--color-muted-foreground); }
+.clinical .tcx .tc-person-facts dd { margin: 2px 0 0; font-size: 14px; line-height: 1.5; color: var(--color-foreground); }
+.clinical .tcx .tc-out-note { font-size: 14px; line-height: 1.55; color: var(--color-foreground); }
+.clinical .tcx .tc-fixed { display: inline-flex; align-items: center; gap: calc(var(--space-12) / 2); align-self: center; padding: var(--space-4) calc(var(--space-20) / 2); border-radius: var(--r-pill); background: var(--color-muted); color: var(--color-muted-foreground); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.clinical .tcx .tc-person-act { align-self: center; }
+
+/* Consent, asked one at a time: a 44-pixel checkbox row and what saying no costs, said first. */
+.clinical .tcx .tc-consent { display: grid; gap: var(--space-8); padding-top: var(--space-12); border-top: 1px solid var(--color-border); }
+.clinical .tcx .tc-consent:first-of-type { padding-top: 0; border-top: 0; }
+.clinical .tcx .tc-consent + .tc-consent { padding-top: var(--space-12); border-top: 1px solid var(--color-border); }
+.clinical .tcx .tc-consent label.checkbox { display: flex; align-items: flex-start; gap: var(--space-12); min-height: 44px; padding: var(--space-8) 0; font-size: 15px; line-height: 1.5; color: var(--color-foreground); cursor: pointer; }
+.clinical .tcx .tc-consent label.checkbox input { flex: none; width: 20px; height: 20px; min-height: 0; margin-top: 2px; accent-color: var(--color-accent); }
+.clinical .tcx .tc-cost { display: flex; align-items: flex-start; gap: var(--space-8); padding: var(--space-8) var(--space-12); border-radius: var(--r-md); background: color-mix(in srgb, var(--color-warning) 20%, var(--color-surface)); color: var(--ui-warning-ink, var(--mango-ink)); font-size: 14px; font-weight: 600; line-height: 1.5; }
+.clinical .tcx .tc-cost.is-agreed { background: var(--color-muted); color: var(--color-foreground); font-weight: 500; }
+.clinical .tcx .tc-cost > svg { flex: none; margin-top: 3px; }
+
+/* What the screen will not do: a Ban mark in the danger ink before each sentence. */
+.clinical .tcx .tc-refusals { display: grid; gap: var(--space-8); margin: 0; padding: 0; list-style: none; }
+@media (min-width: 800px) { .clinical .tcx .tc-refusals { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.clinical .tcx .tc-refusal { display: flex; align-items: flex-start; gap: var(--space-12); padding: var(--space-12); border-radius: var(--r-md); background: var(--color-background); }
+.clinical .tcx .tc-refusal > svg { flex: none; margin-top: 2px; color: var(--ui-danger-ink, var(--danger)); }
+.clinical .tcx .tc-refusal p { font-size: 14px; line-height: 1.55; color: var(--color-foreground); }
+
+/* Identity: both ends side by side from the width where two fit; the doctor's check leads. */
+.clinical .tcx-pair { display: grid; gap: var(--space-16); }
+@media (min-width: 800px) { .clinical .tcx-pair { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.clinical .tcx .tc-identity { position: relative; overflow: hidden; align-content: start; }
+.clinical .tcx .tc-identity.is-lead::before { content: ''; position: absolute; inset: 0 0 auto; height: 3px; background: var(--color-accent); }
+.clinical .tcx-facts { display: grid; gap: var(--space-12); margin: 0; }
+.clinical .tcx-facts dt { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--color-muted-foreground); }
+.clinical .tcx-facts dd { margin: 2px 0 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--color-foreground); }
+.clinical .tcx-code-label { font-size: 14px; font-weight: 600; color: var(--color-foreground); }
+
+/* Recording: the decision, with no control anywhere near it. */
+.clinical .tcx .tc-recording { display: flex; align-items: flex-start; gap: var(--space-16); padding: var(--space-20); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); color: var(--color-foreground); box-shadow: var(--shadow); }
+.clinical .tcx .tc-recording-mark { display: grid; place-items: center; flex: 0 0 52px; width: 52px; height: 52px; border-radius: var(--r-pill); background: var(--color-muted); color: var(--color-foreground); }
+.clinical .tcx .tc-recording strong { display: block; font-family: var(--font-display); font-size: 18px; font-weight: 600; line-height: 1.35; }
+.clinical .tcx .tc-recording p { margin-top: var(--space-8); font-size: 14px; line-height: 1.6; color: var(--color-muted-foreground); }
+.clinical .tcx-list { display: grid; gap: var(--space-8); margin: 0; padding: 0; list-style: none; }
+.clinical .tcx-list > li { display: flex; align-items: flex-start; gap: var(--space-8); font-size: 14px; line-height: 1.55; color: var(--color-foreground); }
+.clinical .tcx-list > li > svg { flex: none; margin-top: 3px; color: var(--color-muted-foreground); }
+.clinical .tcx-list.tight { margin-top: var(--space-8); }
+.clinical .tcx-spec { display: grid; gap: 0; margin: 0; }
+.clinical .tcx-spec > div { display: grid; gap: var(--space-4); padding: var(--space-12) 0; border-top: 1px solid var(--color-border); }
+.clinical .tcx-spec > div:first-child { border-top: 0; padding-top: 0; }
+@media (min-width: 800px) { .clinical .tcx-spec > div { grid-template-columns: 180px minmax(0, 1fr); gap: var(--space-16); } }
+.clinical .tcx-spec dt { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--color-muted-foreground); }
+.clinical .tcx-spec dd { display: grid; gap: var(--space-4); margin: 0; }
+.clinical .tcx-spec dd strong { font-size: 15px; color: var(--color-foreground); }
+.clinical .tcx-spec dd span { font-size: 14px; line-height: 1.55; color: var(--color-muted-foreground); }
+
+/* ---- The line, as an instrument: a white card, the dial, the ladder and both ends --------------------- */
+.clinical .cf-night {
+ --c-ink: var(--color-foreground);
+ --c-quiet: var(--color-muted-foreground);
+ --c-accent: var(--color-accent);
+ --c-mark: var(--color-muted-foreground);
+ --c-track: var(--color-muted);
  display: grid;
- gap: var(--space-20);
- padding: var(--space-24);
- border-radius: var(--r-panel);
- color: var(--c-ink);
- background: radial-gradient(120% 110% at 3% -18%, color-mix(in srgb, var(--studio-paper) 7%, var(--studio-night)) 0%, transparent 58%), var(--studio-night);
- box-shadow: var(--shadow-raised);
+ gap: var(--space-16);
  min-width: 0;
+ padding: var(--space-20);
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-lg);
+ background: var(--color-surface);
+ color: var(--c-ink);
+ box-shadow: var(--shadow);
 }
-.cf-night-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-8) var(--space-16); padding-bottom: var(--space-16); border-bottom: 1px solid color-mix(in srgb, var(--studio-paper) 14%, var(--studio-night)); }
-/* On the light ground this is a quiet label; on the night it is the band's lime eyebrow. Lime on a
-   light ground is 1.05 and is never a word there. */
-.cf-eyebrow { display: inline-flex; align-items: center; gap: var(--space-8); font-size: 13px; font-weight: 600; letter-spacing: 1.4px; line-height: 1.5; text-transform: uppercase; color: var(--studio-ink-muted); }
-.cf-night .cf-eyebrow { color: var(--c-accent); }
-.cf-standing { font-size: 13px; line-height: 1.4; padding: 6px 12px; border-radius: var(--r-pill); border: 1px solid color-mix(in srgb, var(--studio-paper) 44%, var(--studio-night)); color: var(--c-ink); }
-.clinical .cf-night h2, .clinical .cf-night h3 { color: var(--c-ink); }
+.clinical .cf-night-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-8) var(--space-16); padding-bottom: var(--space-12); border-bottom: 1px solid var(--color-border); }
+.cf-eyebrow { display: inline-flex; align-items: center; gap: var(--space-8); font-size: 13px; font-weight: 600; letter-spacing: .06em; line-height: 1.5; text-transform: uppercase; color: var(--color-muted-foreground); }
+.clinical .cf-standing { padding: var(--space-4) calc(var(--space-20) / 2); border-radius: var(--r-pill); background: var(--color-muted); color: var(--color-foreground); font-size: 13px; font-weight: 600; line-height: 1.4; }
 .clinical .cf-night p { color: var(--c-quiet); }
 .cf-figure { display: grid; gap: var(--space-8); justify-items: start; align-content: start; min-width: 0; }
-.cf-dial { position: relative; width: 132px; max-width: 100%; aspect-ratio: 1; display: grid; place-items: center; }
+.cf-dial { position: relative; display: grid; place-items: center; width: 128px; max-width: 100%; aspect-ratio: 1; }
 .cf-dial > .c-plot { position: absolute; inset: 0; width: 100%; height: 100%; }
-.cf-dial-value { position: relative; font-size: 40px; font-weight: 500; line-height: 1; letter-spacing: -1px; color: var(--c-ink); font-variant-numeric: tabular-nums; }
-.cf-dial-value small { font-size: 15px; font-weight: 400; letter-spacing: 0; margin-left: 4px; color: var(--c-quiet); }
-.clinical .cf-night .cf-figure-label { margin: 0; font-size: 13px; line-height: 1.5; color: var(--c-quiet); max-width: 22ch; }
+.cf-dial .c-mark { fill: none; stroke: var(--c-mark); stroke-width: 6; stroke-linecap: butt; }
+.cf-dial .c-mark.on { stroke: var(--c-accent); stroke-width: 14; }
+.cf-dial-value { position: relative; font-family: var(--font-display); font-size: 36px; font-weight: 600; line-height: 1; color: var(--c-ink); font-variant-numeric: tabular-nums; }
+.cf-dial-value small { margin-left: var(--space-4); font-family: var(--font-body, inherit); font-size: 15px; font-weight: 500; color: var(--c-quiet); }
+.clinical .cf-night .cf-figure-label { max-width: 24ch; font-size: 13px; line-height: 1.5; color: var(--c-quiet); }
+.cf-figure-value { font-family: var(--font-display); font-size: 40px; font-weight: 600; line-height: 1; color: var(--c-ink); font-variant-numeric: tabular-nums; }
+.cf-figure-value small { margin-left: var(--space-4); font-family: var(--font-body, inherit); font-size: 16px; font-weight: 500; color: var(--c-quiet); }
+.clinical .tcx-line-body, .clinical .tcx-wait-body { display: grid; gap: var(--space-20); align-items: start; }
+@media (min-width: 760px) { .clinical .tcx-line-body, .clinical .tcx-wait-body { grid-template-columns: auto minmax(0, 1fr); gap: var(--space-32); } }
+
+/* The ladder: every rung's allowance to the same scale, highest fidelity first. */
+.tcx-ladder { display: grid; gap: var(--space-8); margin: 0; padding: 0; list-style: none; }
+.tcx-rung { display: grid; grid-template-columns: minmax(0, 1fr) minmax(96px, 168px) 44px; align-items: center; gap: var(--space-12); min-height: 44px; padding: var(--space-4) var(--space-12); border: 1px solid transparent; border-radius: var(--r-md); }
+.tcx-rung.is-now { border-color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface)); }
+.tcx-rung-name { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); font-size: 14px; font-weight: 600; color: var(--color-foreground); }
+.tcx-rung-name em { padding: 0 var(--space-8); border-radius: var(--r-pill); background: var(--color-foreground); color: var(--color-surface); font-size: 13px; font-style: normal; font-weight: 600; line-height: 1.5; }
+.tcx-rung-bar { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; }
+.tcx-rung-bar > i { display: block; height: 10px; border-radius: var(--r-sm); background: var(--color-muted); box-shadow: inset 0 0 0 1px var(--color-border); transform-origin: left center; }
+.tcx-rung-bar > i.on { background: var(--color-foreground); box-shadow: none; }
+.tcx-rung.is-now .tcx-rung-bar > i.on { background: var(--color-accent); }
+.tcx-rung-count { font-family: var(--font-display); font-size: 16px; font-weight: 600; color: var(--color-foreground); text-align: right; font-variant-numeric: tabular-nums; }
+.tcx-rung-count small { font-family: var(--font-body, inherit); font-size: 13px; font-weight: 500; color: var(--color-muted-foreground); }
+.clinical .tc-ends { display: grid; gap: var(--space-12); margin: 0; }
+@media (min-width: 700px) { .clinical .tc-ends { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.clinical .tcx .tc-end { display: grid; gap: var(--space-4); padding: var(--space-12) var(--space-16); border-radius: var(--r-md); background: var(--color-background); }
+.clinical .tcx .tc-end p { font-size: 14px; line-height: 1.55; color: var(--color-foreground); }
+.clinical .tcx-line-note { font-size: 14px; line-height: 1.6; color: var(--color-muted-foreground); max-width: 80ch; }
+
+/* The ladder alone, in the consultation record's rail. */
+.tcx-ladder-card { display: grid; gap: var(--space-12); padding: var(--space-16); }
+.tcx-ladder-head { display: grid; gap: var(--space-4); }
+.tcx-ladder-now { font-size: 14px; font-weight: 600; color: var(--color-foreground); }
+.tcx-ladder-card .tcx-rung { grid-template-columns: minmax(0, 1fr) 36px; padding: var(--space-4) var(--space-8); }
+.tcx-ladder-card .tcx-rung-bar { grid-column: 1 / -1; grid-row: 2; }
+
+/* The waiting room: three states down a spine, the one being stood in outlined, the ones behind ticked. */
+.tcx-queue { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.tcx-queue > li { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: var(--space-12); padding-bottom: var(--space-16); }
+.tcx-queue > li:not(:last-child)::after { content: ''; position: absolute; top: 34px; bottom: 2px; left: 15px; width: 2px; background: var(--color-border); }
+.tcx-queue > li.is-done:not(:last-child)::after { background: var(--color-accent); }
+.tcx-queue-mark { display: grid; place-items: center; width: 32px; height: 32px; border: 2px solid var(--color-muted-foreground); border-radius: var(--r-pill); background: var(--color-surface); color: var(--color-foreground); font-size: 14px; font-weight: 700; }
+.tcx-queue > li.is-done .tcx-queue-mark { border-color: var(--color-accent); background: var(--color-accent); color: var(--color-accent-foreground); }
+.tcx-queue > li.is-now .tcx-queue-mark { border-width: 3px; border-color: var(--color-foreground); }
+.tcx-queue strong { font-size: 15px; color: var(--color-foreground); }
+.tcx-queue p { margin-top: 2px; font-size: 14px; line-height: 1.55; color: var(--color-muted-foreground); }
+
+/* Setting the line for review, and what this device may use: the handoff's segmented tabs on radio
+   labels — the chosen one lifted onto the surface, heavier, and checked. */
+.clinical .tcx .tc-switch { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); margin: 0; padding: var(--space-4); border: 0; border-radius: var(--r-md); background: var(--color-muted); }
+.clinical .tcx .tc-switch legend { float: left; width: 100%; margin: 0 0 var(--space-4); padding: var(--space-4) var(--space-8) 0; font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--color-muted-foreground); }
+.clinical .tcx .tc-switch label { position: relative; display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--space-12); border: 0; border-radius: var(--r-sm); background: transparent; color: var(--color-muted-foreground); font-size: 14px; font-weight: 600; cursor: pointer; }
+.clinical .tcx .tc-switch label.selected { background: var(--color-surface); color: var(--color-foreground); box-shadow: var(--shadow); }
+.clinical .tcx .tc-switch label:has(:focus-visible) { outline: 2px solid var(--color-ring); outline-offset: 2px; box-shadow: none; }
+.clinical .tcx .tc-switch .tcx-hint { flex-basis: 100%; padding: var(--space-4) var(--space-8) var(--space-8); }
+
+/* A dropped line: the danger ink, a clock driven by the same second as its numeral, and the sentences. */
+.clinical .tcx .tc-dropped { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--space-16) var(--space-20); margin: 0; padding: var(--space-20); border: 1px solid color-mix(in srgb, var(--color-danger) 35%, transparent); border-radius: var(--r-lg); background: color-mix(in srgb, var(--color-danger) 8%, var(--color-surface)); color: var(--color-foreground); }
+.clinical .tcx .tc-hold { position: relative; display: grid; place-items: center; align-content: center; width: 128px; height: 128px; padding: 0; border-radius: var(--r-pill); background: var(--color-surface); text-align: center; }
+.clinical .tcx .tc-hold-plot { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.clinical .tcx .tc-hold-track { fill: none; stroke: var(--color-muted); stroke-width: 8; }
+.clinical .tcx .tc-hold-arc { fill: none; stroke: var(--ui-danger-ink, var(--danger)); stroke-width: 8; }
+.clinical .tcx .tc-hold strong { position: relative; font-family: var(--font-display); font-size: 28px; font-weight: 600; color: var(--ui-danger-ink, var(--danger)); font-variant-numeric: tabular-nums; }
+.clinical .tcx .tc-hold small { position: relative; max-width: 11ch; font-size: 13px; line-height: 1.3; color: var(--color-muted-foreground); }
+.clinical .tcx .tc-dropped-say { flex: 1 1 280px; display: grid; gap: var(--space-8); min-width: 0; }
+/* Who calls whom is a paragraph, not a heading: the clock, the danger edge and the tint already say this is the
+   state that matters, so the words are the foreground at a reading size. */
+.clinical .tcx .tc-dropped-say strong { font-size: 16px; font-weight: 600; line-height: 1.5; color: var(--color-foreground); }
+.clinical .tcx .tc-dropped-say p { font-size: 14px; line-height: 1.6; color: var(--color-foreground); }
+
+.clinical .tcx .tc-media { display: flex; align-items: flex-start; gap: var(--space-12); padding: var(--space-16); border-radius: var(--r-md); background: var(--color-background); }
+.clinical .tcx .tc-media-mark { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border-radius: var(--r-pill); background: var(--color-muted); color: var(--color-foreground); }
+.clinical .tcx .tc-media strong { display: block; font-size: 15px; color: var(--color-foreground); }
+.clinical .tcx .tc-media p { margin-top: var(--space-4); font-size: 14px; line-height: 1.55; color: var(--color-muted-foreground); }
+
+/* What the doctor may conclude now: allowed has a tick on the success tint; withheld a Ban, a dashed
+   edge and its reason in words. */
+.clinical .tcx .tc-limits { display: grid; gap: var(--space-8); margin: 0; }
+@media (min-width: 700px) { .clinical .tcx .tc-limits { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.clinical .tcx .tc-limit { display: flex; align-items: flex-start; gap: var(--space-12); padding: var(--space-12) var(--space-16); border: 1px solid var(--color-border); border-radius: var(--r-md); background: var(--color-surface); }
+.clinical .tcx .tc-limit.ok { border-color: color-mix(in srgb, var(--color-success) 35%, transparent); background: color-mix(in srgb, var(--color-success) 8%, var(--color-surface)); }
+.clinical .tcx .tc-limit.no { border-style: dashed; border-color: var(--color-muted-foreground); background: var(--color-background); }
+.clinical .tcx .tc-limit-mark { display: grid; place-items: center; flex: 0 0 28px; width: 28px; height: 28px; border-radius: var(--r-pill); background: var(--color-surface); color: var(--color-foreground); }
+.clinical .tcx .tc-limit.ok .tc-limit-mark { background: var(--color-accent); color: var(--color-accent-foreground); }
+.clinical .tcx .tc-limit.no .tc-limit-mark { color: var(--ui-danger-ink, var(--danger)); }
+.clinical .tcx .tc-limit strong { display: block; font-size: 14px; font-weight: 600; color: var(--color-foreground); }
+.clinical .tcx .tc-limit small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.5; color: var(--color-muted-foreground); }
+
+/* The verdict, as one statement: whether it counts, whether it is charged, and the record's sentence. */
+.clinical .tcx-verdict { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-12) var(--space-16); overflow: hidden; padding: var(--space-20); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); box-shadow: var(--shadow); }
+.clinical .tcx-verdict::before { content: ''; position: absolute; inset: 0 0 auto; height: 3px; background: var(--ui-warning-ink, var(--mango-ink)); }
+.clinical .tcx-verdict.is-consultation::before { background: var(--color-accent); }
+.clinical .tcx-verdict-mark { display: grid; place-items: center; width: 52px; height: 52px; border-radius: var(--r-pill); background: var(--color-muted); color: var(--color-foreground); }
+.clinical .tcx-verdict-say { display: grid; gap: var(--space-8); min-width: 0; }
+.clinical .tcx-verdict-say h2 { font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1.25; }
+.clinical .tcx-verdict-say p { font-size: 15px; line-height: 1.6; color: var(--color-muted-foreground); }
+.clinical .tcx-verdict-facts { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-12) var(--space-24); padding-top: var(--space-12); border-top: 1px solid var(--color-border); }
+.clinical .tcx-verdict-facts .review-line { display: flex; gap: var(--space-8); padding: 0; border: 0; font-size: 14px; color: var(--color-muted-foreground); }
+.clinical .tcx-verdict-facts .review-line strong { color: var(--color-foreground); }
+.clinical .tcx-table-wrap { overflow-x: auto; min-width: 0; }
+.clinical .tcx .tc-sections { width: 100%; border-collapse: collapse; }
+.clinical .tcx .tc-sections th, .clinical .tcx .tc-sections td { padding: var(--space-8) var(--space-12); border-bottom: 1px solid var(--color-border); font-size: 14px; text-align: left; color: var(--color-foreground); }
+.clinical .tcx .tc-sections thead th { font-size: 13px; font-weight: 600; color: var(--color-muted-foreground); }
+.clinical .tcx .tc-sections tr.negative td, .clinical .tcx .tc-sections tr.negative th { color: var(--color-muted-foreground); }
+
+@media (max-width: 599px) {
+ .clinical .tcx-card, .clinical .tcx-refuse, .clinical .cf-night, .clinical .tcx-verdict { padding: var(--space-16); }
+ .clinical .tcx-lede h2, .clinical .tcx-verdict-say h2 { font-size: 22px; }
+ .tcx-rung { grid-template-columns: minmax(0, 1fr) 44px; }
+ .tcx-rung-bar { grid-column: 1 / -1; grid-row: 2; }
+ .clinical .tcx .button-row { flex-direction: column; align-items: stretch; }
+ .clinical .tcx .button-row > .ui-button { justify-content: center; text-align: center; }
+}

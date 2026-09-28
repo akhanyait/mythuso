@@ -10,6 +10,7 @@ import { closeConcern, useConcerns, type Skipped } from '../lib/closed-loop';
 import { roleOf } from '../lib/roles';
 import { escalationRotaNow } from '../lib/settings';
 import { subjectById } from '../lib/vetting-fixtures';
+import { Button } from '../ui';
 
 /* The Control Tower's concerns on the escalation rota: who holds each post of the rota in force, and for each
  * open concern who holds it now, which rung of the rota it has reached, when it moves up if nobody takes it
@@ -107,7 +108,7 @@ function ConcernRow({ loop, skipped, byRole }: { loop: Loop; skipped: readonly S
    {skip.because === 'off-duty' ? fill(say.skippedOffDuty, { post: postLabel(loop, skip.post), at: clockOf(skip.at) }) : fill(say.skippedNoRole, { post: postLabel(loop, skip.post) })}
   </p>)}
   <p className="cl-row-version">{fill(say.rotaVersion, { version: String(loop.rota.settingsVersion) })}</p>
-  {byRole && !closing && <button type="button" className="secondary cl-close" onClick={() => setClosing(true)}>{say.close}</button>}
+  {byRole && !closing && <Button variant="secondary" className="cl-close" onClick={() => setClosing(true)}>{say.close}</Button>}
   {byRole && closing && <div className="cl-close-form">
    <fieldset className="cf-choices">
     <legend>{legend}</legend>
@@ -117,8 +118,8 @@ function ConcernRow({ loop, skipped, byRole }: { loop: Loop; skipped: readonly S
    </fieldset>
    {refusal && <p className="cl-refusal" role="alert">{refusal}</p>}
    <div className="cl-close-actions">
-    <button type="button" onClick={confirm}>{say.confirmClose}</button>
-    <button type="button" className="secondary" onClick={() => { setClosing(false); setChosen(''); setRefusal(null); }}>{say.cancelClose}</button>
+    <Button variant="primary" onClick={confirm}>{say.confirmClose}</Button>
+    <Button variant="secondary" onClick={() => { setClosing(false); setChosen(''); setRefusal(null); }}>{say.cancelClose}</Button>
    </div>
   </div>}
  </li>;

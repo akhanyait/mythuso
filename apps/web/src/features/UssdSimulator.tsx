@@ -5,6 +5,7 @@ import { MAX_CHARACTERS, reply, startSession, ussdContract, type Session } from 
 import type { Ledger } from '../../../../packages/engines/src/access/domain/booking.ts';
 import { accessSettingsNow } from '../lib/settings';
 import { subjectRefOf } from '../lib/names';
+import { Button, Card, Field, Input } from '../ui';
 import './ussd.css';
 
 /* Booking by USSD, drawn because nothing dialled on a phone reaches MyThuso.
@@ -57,38 +58,40 @@ export function UssdSimulator() {
  const end = () => { setSession(null); setScreen(''); setTyped(''); };
  const ended = session?.ended != null;
 
- return <section className="panel ussd" aria-labelledby="ussd-title">
-  <header className="ussd-head">
-   <h2 id="ussd-title">{words.heading}</h2>
-   <p>{words.intro}</p>
-  </header>
-  <NotConnected of={ussdContract.capability} tone="inline"/>
-  <p className="ussd-code">{words.noCode}</p>
+ return <section className="ussd" aria-labelledby="ussd-title">
+  <Card padding="lg" className="ussd-card">
+   <header className="ussd-head">
+    <h2 id="ussd-title">{words.heading}</h2>
+    <p>{words.intro}</p>
+   </header>
+   <NotConnected of={ussdContract.capability} tone="inline"/>
+   <p className="ussd-code">{words.noCode}</p>
 
-  <div className="ussd-body">
-   <div className="ussd-handset">
-    {session ? <>
-     <p className="ussd-screen" role="status" aria-live="polite" data-testid="ussd-screen">{screen}</p>
-     <p className="ussd-count">{words.counter.replace('{count}', String(screen.length)).replace('{max}', String(MAX_CHARACTERS))}</p>
-    </> : <p className="ussd-idle">{words.waits.replace('{seconds}', String(inForce.ussdSessionSeconds))}</p>}
+   <div className="ussd-body">
+    <div className="ussd-handset">
+     {session ? <>
+      <p className="ussd-screen" role="status" aria-live="polite" data-testid="ussd-screen">{screen}</p>
+      <p className="ussd-count">{words.counter.replace('{count}', String(screen.length)).replace('{max}', String(MAX_CHARACTERS))}</p>
+     </> : <p className="ussd-idle">{words.waits.replace('{seconds}', String(inForce.ussdSessionSeconds))}</p>}
+    </div>
+
+    <form className="ussd-reply" onSubmit={e => { e.preventDefault(); send(); }}>
+     <Field label={words.replyLabel} htmlFor="ussd-reply-input" hint={words.notKept}>
+      <Input id="ussd-reply-input" ref={replyRef} value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" disabled={!session || ended}/>
+     </Field>
+     {/* Keyed apart. Without keys React reuses the pressed "Start a session" element as "Send", turning it into a
+         submit button while the press is still being handled, and the browser then submits an empty reply — so the
+         first screen a person saw was "That is not one of the choices". A new element for each is never pressed twice. */}
+     <div className="ussd-actions">
+      {session && !ended ? <>
+       <Button key="send" variant="primary" type="submit">{words.send}</Button>
+       <Button key="end" variant="secondary" type="button" onClick={end}>{words.cancel}</Button>
+      </> : <Button key="dial" variant="primary" type="button" onClick={dial}>{words.dial}</Button>}
+     </div>
+    </form>
    </div>
 
-   <form className="ussd-reply" onSubmit={e => { e.preventDefault(); send(); }}>
-    <label htmlFor="ussd-reply-input">{words.replyLabel}</label>
-    <input id="ussd-reply-input" ref={replyRef} value={typed} onChange={e => setTyped(e.target.value)} autoComplete="off" disabled={!session || ended}/>
-    <p className="ussd-note">{words.notKept}</p>
-    {/* Keyed apart. Without keys React reuses the pressed "Start a session" element as "Send", turning it into a
-        submit button while the press is still being handled, and the browser then submits an empty reply — so the
-        first screen a person saw was "That is not one of the choices". A new element for each is never pressed twice. */}
-    <div className="ussd-actions">
-     {session && !ended ? <>
-      <button key="send" className="primary" type="submit">{words.send}</button>
-      <button key="end" className="secondary" type="button" onClick={end}>{words.cancel}</button>
-     </> : <button key="dial" className="primary" type="button" onClick={dial}>{words.dial}</button>}
-    </div>
-   </form>
-  </div>
-
-  {booked && <p className="ussd-booked" role="status">{stateWords('requested').patientWords}</p>}
+   {booked && <p className="ussd-booked" role="status">{stateWords('requested').patientWords}</p>}
+  </Card>
  </section>;
 }

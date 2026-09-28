@@ -1,55 +1,612 @@
-/* Scoped to the lazy portal; restrained entrances respect the system preference. */
-.pt-widget-kicker{font-size:var(--type-caption,13px);font-weight:650;letter-spacing:.1em}.pt-weekly{border:1px solid var(--stone);border-radius:28px;overflow:hidden;background:var(--surface);margin-block:24px}.pt-weekly>header{padding:32px;background:linear-gradient(120deg,var(--pale-sage),var(--teal-soft) 65%,var(--studio-peach));color:var(--brand-ink)}.pt-weekly h2,.pt-province h2{font-size:28px;letter-spacing:-.045em;margin:12px 0}.pt-weekly-charts{display:grid;grid-template-columns:1.6fr 1fr;gap:24px;padding:0 24px 24px}.pt-weekly-charts>section{padding:24px;border:1px solid var(--stone);border-radius:24px;min-width:0}.pt-week-bars{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;height:220px;margin-top:16px}.pt-week-bars>div{display:flex;flex-direction:column;align-items:center;gap:10px;flex:1;font-size:13px}.pt-week-bars i{display:block;width:100%;max-width:38px;background:linear-gradient(var(--brand-mint),var(--teal-ink));border-radius:9px 9px 3px 3px;transform-origin:bottom;animation:none}.pt-week-donut{width:180px;height:180px;border-radius:50%;margin:20px auto;display:grid;place-items:center}.pt-week-donut>div{width:136px;height:136px;border-radius:50%;background:var(--surface);display:grid;align-content:center;text-align:center;gap:4px}.pt-week-donut strong{font-size:36px;font-weight:500}.pt-week-donut span{font-size:13px}.pt-week-share dl{display:flex;justify-content:space-around;gap:12px}.pt-week-share dl>div{display:grid;gap:4px;font-size:13px}.pt-week-share dd{margin:0;font-weight:700}.pt-week-values{padding:0 24px 24px}.pt-week-values summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600}
-.pt-province{background:var(--brand-ink);color:var(--surface);border-radius:28px;padding:28px;margin-block:24px;overflow:hidden}.pt-province>header{display:flex;align-items:center;justify-content:space-between;gap:20px}.pt-province p{color:var(--glow);font-size:13px;line-height:1.6}.pt-province-badge{padding:10px 16px;border:1px solid var(--sage-slate);border-radius:30px;font-size:13px}.pt-province-layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(250px,1fr);gap:24px;margin-top:20px}.pt-province-map{min-width:0}.pt-province-map svg{display:block;width:100%;height:auto;max-height:620px}.pt-map-name{fill:var(--glow);font-size:16px;letter-spacing:2px}.pt-map-route{color:var(--brand-mint);opacity:.7}.pt-map-route.is-amber{color:var(--mango)}.pt-map-route.is-lilac{color:var(--studio-lilac)}.pt-map-route.is-selected{opacity:1}.pt-map-route path{stroke:currentColor;stroke-width:3;stroke-dasharray:7 5}.pt-map-route circle{fill:currentColor}.pt-map-route text{fill:var(--surface);font-size:15px;paint-order:stroke;stroke:var(--brand-ink);stroke-width:4px;stroke-linejoin:round}.pt-province-queue{border:1px solid var(--sage-slate);background:var(--glass-floor);color:var(--brand-ink);border-radius:24px;padding:20px;align-self:center}.pt-map-filters{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.pt-map-filters button{background:var(--aurora-sage);color:var(--brand-ink);border:1px solid var(--soft-sage);border-radius:24px;padding:10px 14px;min-height:44px;font-size:13px}.pt-map-filters button[aria-pressed=true]{background:var(--brand-ink);color:var(--surface)}.pt-map-sample{width:100%;text-align:left;display:grid;gap:8px;background:var(--teal-soft);color:var(--brand-ink);border:2px solid transparent;border-radius:16px;padding:16px;margin:10px 0;min-height:44px}.pt-map-sample.is-amber{background:var(--mango-soft)}.pt-map-sample.is-lilac{background:var(--studio-lilac)}.pt-map-sample[aria-pressed=true]{border-color:var(--brand-ink)}.pt-map-sample span,.pt-map-sample small{font-size:13px}.pt-map-detail{border-top:1px solid var(--studio-line);padding-top:16px;margin-top:16px}.pt-map-detail p{color:var(--studio-ink-muted)}.pt-map-toggle{display:flex;gap:10px;align-items:center;min-height:44px;font-size:13px}.pt-map-playback{display:flex;align-items:center;gap:16px;background:var(--glass-floor);color:var(--brand-ink);border-radius:18px;padding:12px 16px;margin-top:20px;font-size:13px}.pt-map-playback .fc-range{flex:1;min-width:60px;min-height:44px;accent-color:var(--brand-green)}.pt-map-playback output{min-width:40px}.pt-map-playback button{min-height:44px;padding:10px 16px;border-radius:14px;background:var(--brand-ink);color:var(--surface)}.pt-province footer{margin-top:16px;font-size:13px;color:var(--glow);line-height:1.6}.pt-province footer a{color:var(--studio-lime);text-decoration:underline}.pt-province :focus-visible{outline:3px solid var(--studio-lime);outline-offset:3px}.pt-province-queue :focus-visible{outline-color:var(--brand-ink)}@keyframes pt-bar-in{from{transform:scaleY(0)}to{transform:scaleY(1)}}
-@media(max-width:1000px){.pt-province-layout{grid-template-columns:1fr}.pt-weekly-charts{grid-template-columns:1fr}.pt-province-map svg{max-height:520px}}@media(max-width:600px){.pt-weekly>header,.pt-province{padding:20px}.pt-weekly-charts{padding:0 16px 16px;gap:16px}.pt-weekly-charts>section{padding:16px}.pt-week-bars{gap:6px}.pt-province>header{display:block}.pt-province-badge{display:inline-flex;margin-top:12px}.pt-province-queue{padding:16px}.pt-map-playback{display:grid;grid-template-columns:1fr auto;gap:8px}.pt-map-playback .fc-range{grid-column:1;grid-row:2;width:100%}.pt-map-playback output{grid-column:2;grid-row:2}.pt-map-playback button{grid-column:1/-1}.pt-province-layout{gap:16px}.pt-map-route text{font-size:17px}}
-@media(prefers-reduced-motion:reduce){.pt-week-bars i{animation:none}}
+/* The Overview's sample week and Dispatch's province walkthrough: two demonstrations inside the lazy portal,
+   each reading invented figures from its own demo file and saying so on its face.
 
-/* A single map canvas with floating information, matching the approved province composition. */
-[data-decor="on"] .pt-week-bars i{animation:pt-bar-in var(--t-enter) var(--ease-soft,ease-out) both}
-[data-decor="off"] .pt-week-bars i{animation:none}
-.pt-province-layout{position:relative;display:block;min-height:700px;background:radial-gradient(ellipse at 60% 40%,var(--teal-ink),transparent 65%)}
-.pt-province-map{width:100%;min-height:700px;padding:0 12% 0 24%;box-sizing:border-box}
-.pt-province-map svg{height:660px;max-height:none;width:100%;overflow:visible}
-.pt-province-map>p{position:absolute;bottom:4px;left:32%;right:24%;font-size:13px}
-.pt-province-queue{position:absolute;left:0;top:24px;width:260px;box-sizing:border-box;box-shadow:0 18px 44px color-mix(in srgb,var(--brand-ink) 20%,transparent)}
-.pt-map-detail{position:absolute;right:0;bottom:70px;width:230px;padding:20px;box-sizing:border-box;border:1px solid var(--sage-slate);border-radius:22px;background:var(--glass-floor);color:var(--brand-ink);box-shadow:0 18px 44px color-mix(in srgb,var(--brand-ink) 20%,transparent)}
-.pt-map-detail h3{font-size:20px;margin:12px 0}.pt-map-detail p{color:var(--studio-ink-muted)}
+   On the Lovable identity (28 September 2026, wave 4e) both are the handoff's Card on the page's ground —
+   white, a hairline, one shadow, a compact corner — rather than the pastel panel and the ink-dark map
+   ground they had. What is drawn inside a card sits on the raised ground; aqua is spent on the one series
+   a chart is about, the primary ink on the other, and no colour is the only way two things differ: every
+   bar has its day under it and its count over it, the ring's two halves are named in the legend, and every
+   route is a sample button with its words. The province's outline and routes are an SVG whose fills are
+   given here, in the tokens, over the presentation attributes the drawing carries. Nothing here is a hex.
 
-.pt-map-playback button:disabled{opacity:.6;cursor:not-allowed}
-@media(max-width:1200px){.pt-province-layout{display:grid;grid-template-columns:1fr 1fr;min-height:0}.pt-province-map{grid-column:1/-1;min-height:0;padding:0}.pt-province-map svg{height:auto;max-height:600px;overflow:hidden}.pt-province-map>p{position:static}.pt-province-queue,.pt-map-detail{position:static;width:auto;margin:0;align-self:start}.pt-map-playback{flex-wrap:wrap}}
-@media(max-width:600px){.pt-province-layout{grid-template-columns:1fr}.pt-province-map{grid-column:1}.pt-province-map svg{max-height:none}.pt-province-queue,.pt-map-detail{grid-column:1}.pt-map-playback{grid-template-columns:1fr auto}.pt-map-playback>button:first-child{grid-column:1/-1;grid-row:1}.pt-map-playback>label{grid-column:1/-1;grid-row:2}.pt-map-playback .fc-range{grid-row:3}.pt-map-playback output{grid-row:3}}
-@media(prefers-reduced-motion:reduce){[data-decor="on"] .pt-week-bars i{animation:none}}
+   Motion: a bar rises once as the week arrives, only under [data-decor="on"], and not at all under reduced
+   motion. The replay of the province is the component's own requestAnimationFrame, which it already stops
+   for the pause control and for reduced motion. */
 
-/* The week, in the pastel system (27 September 2026). The panel is paper-white with no border; its three
-   figures are the portal's figure cards (Parts.tsx), so they are styled in portal.css with every other
-   figure. The bars are pills in a paper track, the full height of the chart, and the day's own bar rises
-   in it once when the panel arrives. The colour of a bar is the half of the week it belongs to — mint
-   for a weekday and peach for the weekend, the ring's own two — and never its position: the rotation by
-   nth-child that was here coloured Tuesday like Friday for no reason a reader could find. */
-.pt-weekly{border:0;background:var(--surface);color:var(--charcoal)}
-.pt-weekly>header{padding:32px 32px 8px;background:var(--surface);color:var(--charcoal)}
-.pt-weekly>header p{color:var(--faint)}
-.pt-weekly .pt-figures{padding:16px 24px 0;margin:0}
-.pt-weekly-charts{padding:24px}
-.pt-weekly-charts>section{border:0;border-radius:var(--r-panel);background:var(--studio-paper);color:var(--studio-ink)}
-.pt-weekly-charts h3{font-size:18px;font-weight:500}
-.pt-week-bars{height:240px;gap:12px}
-.pt-week-bars>div{height:100%;gap:8px;color:var(--studio-ink)}
-.pt-week-bars strong{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
-.pt-bar-track{flex:1 1 auto;display:flex;align-items:flex-end;width:100%;max-width:44px;border-radius:var(--r-pill);background:var(--surface);overflow:hidden}
-.pt-bar-track i{max-width:none;border-radius:var(--r-pill);background:var(--brand-mint)}
-.pt-week-bars>div.is-weekend .pt-bar-track i{background:var(--pt-tint-peach)}
-.pt-week-donut{position:relative;width:200px;height:200px;background:none}
-.pt-week-donut>svg{position:absolute;inset:0}
-.pt-week-donut>div{position:relative;width:auto;height:auto;background:none;color:var(--studio-ink)}
-.pt-week-donut strong{font-size:42px;font-weight:300;letter-spacing:-1.5px}
-.pt-week-donut .pt-ring-track{stroke:var(--pt-tint-peach)}
-.pt-week-donut .pt-ring-fill{stroke:var(--brand-mint)}
-.pt-week-donut .pt-ring circle{stroke-width:4}
-.pt-week-share dl>div{display:grid;grid-template-columns:auto auto;align-items:center;column-gap:8px;color:var(--studio-ink)}
-.pt-week-share dl>div::before{content:"";grid-row:1/3;width:12px;height:12px;border-radius:50%;background:var(--brand-mint)}
-.pt-week-share dl>div.is-weekend::before{background:var(--pt-tint-peach)}
-.pt-week-share dd{font-size:20px;font-weight:500}
-.pt-week-values summary{padding-inline:4px}
-@media(max-width:600px){.pt-weekly>header{padding:20px 20px 4px}.pt-weekly .pt-figures{padding:12px 16px 0}.pt-weekly-charts{padding:16px}.pt-week-bars{height:200px;gap:6px}}
-@media(min-width:1000px){.pt-weekly h2,.pt-province h2{font-size:32px}}
+.pt-widget-kicker {
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+/* ---- The sample week ------------------------------------------------------------------------------ */
+.pt-weekly {
+  overflow: hidden;
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+  color: var(--color-foreground);
+}
+.pt-weekly > header {
+  padding: var(--space-24) var(--space-24) var(--space-8);
+  color: var(--color-foreground);
+}
+.pt-weekly h2,
+.pt-province h2 {
+  margin: var(--space-8) 0;
+  color: var(--color-foreground);
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  line-height: 1.25;
+}
+.pt-weekly > header p {
+  margin: 0;
+  color: var(--color-muted-foreground);
+  font-size: 14px;
+}
+.pt-weekly .pt-figures {
+  margin: 0;
+  padding: var(--space-16) var(--space-24) 0;
+}
+/* Inside the week's card its three figures are tiles on the raised ground, not cards of their own: a card
+   inside a card is the one nesting the handoff refuses. */
+.portal .pt-weekly .pt-figure > .ui-card {
+  border: 0;
+  background: var(--color-surface-raised);
+  box-shadow: none;
+}
+.pt-weekly-charts {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: var(--space-16);
+  padding: var(--space-24);
+}
+.pt-weekly-charts > section {
+  min-width: 0;
+  padding: var(--space-20);
+  border-radius: var(--r-md);
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
+}
+.pt-weekly-charts h3 {
+  margin: 0;
+  color: var(--color-foreground);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+}
+.pt-weekly-charts .helper {
+  margin: var(--space-4) 0 0;
+}
+.pt-week-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-12);
+  height: 240px;
+  margin-top: var(--space-16);
+}
+.pt-week-bars > div {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-8);
+  height: 100%;
+  color: var(--color-foreground);
+  font-size: 13px;
+}
+.pt-week-bars strong {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.pt-bar-track {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: flex-end;
+  width: 100%;
+  max-width: 40px;
+  overflow: hidden;
+  border-radius: var(--r-sm);
+  background: var(--color-surface);
+}
+.pt-bar-track i {
+  display: block;
+  width: 100%;
+  border-radius: var(--r-sm);
+  background: var(--color-accent);
+  transform-origin: bottom;
+}
+/* The weekend is the primary ink: the half of the week a bar belongs to, never its position. */
+.pt-week-bars > div.is-weekend .pt-bar-track i {
+  background: var(--color-primary);
+}
+.pt-week-share {
+  display: grid;
+  justify-items: center;
+}
+.pt-week-share > h3 {
+  justify-self: start;
+}
+.pt-week-donut {
+  position: relative;
+  display: grid;
+  width: 200px;
+  height: 200px;
+  margin: var(--space-20) auto;
+  place-items: center;
+}
+.pt-week-donut > svg {
+  position: absolute;
+  inset: 0;
+}
+.pt-week-donut > div {
+  position: relative;
+  display: grid;
+  gap: var(--space-4);
+  align-content: center;
+  color: var(--color-foreground);
+  text-align: center;
+}
+.pt-week-donut strong {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.pt-week-donut span {
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+}
+.pt-week-donut .pt-ring circle {
+  stroke-width: 4;
+}
+.pt-week-donut .pt-ring-track {
+  stroke: var(--color-primary);
+}
+.pt-week-donut .pt-ring-fill {
+  stroke: var(--color-accent);
+}
+.pt-week-share dl {
+  display: flex;
+  justify-content: space-around;
+  gap: var(--space-12);
+  width: 100%;
+  margin: 0;
+}
+.pt-week-share dl > div {
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: var(--space-8);
+  align-items: center;
+  color: var(--color-foreground);
+  font-size: 13px;
+}
+.pt-week-share dl > div::before {
+  content: "";
+  grid-row: 1 / 3;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+.pt-week-share dl > div.is-weekend::before {
+  background: var(--color-primary);
+}
+.pt-week-share dt {
+  color: var(--color-muted-foreground);
+}
+.pt-week-share dd {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.pt-week-values {
+  padding: 0 var(--space-24) var(--space-24);
+}
+
+/* ---- The province walkthrough ---------------------------------------------------------------------- */
+.pt-province {
+  overflow: hidden;
+  margin: 0;
+  padding: var(--space-24);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+  color: var(--color-foreground);
+}
+.pt-province > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-20);
+}
+.pt-province p {
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.pt-province-badge {
+  flex: none;
+  padding: var(--space-4) calc(var(--space-20) / 2);
+  border-radius: var(--r-pill);
+  background: color-mix(in oklab, var(--color-warning) 20%, transparent);
+  color: var(--color-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+.pt-province-layout {
+  position: relative;
+  display: block;
+  min-height: 700px;
+  margin-top: var(--space-20);
+  border-radius: var(--r-md);
+  background: var(--color-surface-raised);
+}
+.pt-province-map {
+  width: 100%;
+  min-width: 0;
+  min-height: 700px;
+  padding: 0 12% 0 24%;
+  box-sizing: border-box;
+}
+.pt-province-map svg {
+  display: block;
+  width: 100%;
+  height: 660px;
+  max-height: none;
+  overflow: visible;
+}
+/* The outline: a tint of the aqua with the aqua as its edge, over the drawing's own gradient. */
+.pt-province-map svg > path {
+  fill: color-mix(in oklab, var(--color-accent) 12%, var(--color-surface));
+  stroke: var(--color-accent);
+}
+.pt-province-map > p {
+  position: absolute;
+  right: 24%;
+  bottom: var(--space-4);
+  left: 32%;
+  font-size: 13px;
+}
+.pt-map-name {
+  fill: var(--color-muted-foreground);
+  font-size: 16px;
+  letter-spacing: 2px;
+}
+/* A route is a mark, so its colour is a custom property the stroke and the dot read, never the text colour:
+   the route's words are the foreground ink with a white halo, below. */
+.pt-map-route {
+  --pt-route: var(--color-accent);
+  opacity: .75;
+}
+.pt-map-route.is-amber {
+  --pt-route: var(--ui-warning-ink);
+}
+.pt-map-route.is-lilac {
+  --pt-route: var(--color-primary);
+}
+.pt-map-route.is-selected {
+  opacity: 1;
+}
+.pt-map-route path {
+  stroke: var(--pt-route);
+  stroke-width: 3;
+  stroke-dasharray: 7 5;
+}
+.pt-map-route circle {
+  fill: var(--pt-route);
+}
+.pt-map-route text {
+  fill: var(--color-foreground);
+  font-size: 15px;
+  paint-order: stroke;
+  stroke: var(--color-surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+/* The queue and the selected sample float over the map: white cards with the one raised shadow. */
+.pt-province-queue,
+.pt-map-detail {
+  box-sizing: border-box;
+  padding: var(--space-20);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-raised);
+  color: var(--color-foreground);
+}
+.pt-province-queue {
+  position: absolute;
+  top: var(--space-24);
+  left: var(--space-16);
+  width: 260px;
+}
+.pt-province-queue h3,
+.pt-map-detail h3 {
+  margin: 0;
+  color: var(--color-foreground);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+}
+.pt-map-detail {
+  position: absolute;
+  right: var(--space-16);
+  bottom: 70px;
+  width: 240px;
+}
+.pt-map-detail h3 {
+  margin: var(--space-12) 0;
+}
+.pt-map-detail p {
+  color: var(--color-muted-foreground);
+}
+/* The filter: the handoff's segmented Tabs. */
+/* The filter: the handoff's segmented Tabs, drawn as portal.css draws a category's tabs — a 44-pixel button
+   whose face is inset on the track. */
+.pt-map-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin: var(--space-12) 0;
+  padding: 0 var(--space-4);
+  border-radius: var(--r-md);
+  background: var(--color-muted);
+}
+.pt-map-filters button {
+  padding: 0 var(--space-12);
+  border: 0;
+  border-radius: var(--r-sm);
+  color: var(--color-muted-foreground);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pt-map-filters button[aria-pressed="true"] {
+  color: var(--color-foreground);
+}
+/* A sample: a tile on the raised ground, its kind a rule down its edge in the route's own colour, and the
+   chosen one the handoff's selection — the aqua edge and tint — as well as aria-pressed. */
+.pt-map-sample {
+  display: grid;
+  gap: var(--space-4);
+  width: 100%;
+  min-height: 44px;
+  margin: var(--space-8) 0;
+  padding: var(--space-12) var(--space-16);
+  border: 1px solid transparent;
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--r-md);
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.pt-map-sample.is-amber {
+  border-left-color: var(--ui-warning-ink);
+}
+.pt-map-sample.is-lilac {
+  border-left-color: var(--color-primary);
+}
+.pt-map-sample[aria-pressed="true"] {
+  border-color: var(--color-accent);
+  background: color-mix(in oklab, var(--color-accent) 12%, var(--color-surface));
+}
+.pt-map-sample span,
+.pt-map-sample small {
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+}
+.pt-map-sample strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.pt-map-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: 44px;
+  font-size: 13px;
+}
+/* The replay: a raised bar under the map, Play as the handoff's primary and Reset as its secondary. */
+.pt-map-playback {
+  display: flex;
+  align-items: center;
+  gap: var(--space-16);
+  margin-top: var(--space-16);
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--r-md);
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
+  font-size: 13px;
+}
+.pt-map-playback .fc-range {
+  flex: 1;
+  min-width: 60px;
+  min-height: 44px;
+}
+.pt-map-playback output {
+  min-width: 40px;
+  font-variant-numeric: tabular-nums;
+}
+.pt-map-playback button {
+  min-height: 44px;
+  padding: 0 var(--space-16);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pt-map-playback button:last-child {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+}
+.pt-map-playback button:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+.pt-province footer {
+  margin-top: var(--space-16);
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.pt-province footer a {
+  color: var(--ui-primary-ink);
+  text-decoration: underline;
+}
+
+/* ---- Narrower screens ---- */
+@media (max-width: 1200px) {
+  .pt-province-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-16);
+    min-height: 0;
+    padding: var(--space-16);
+  }
+  .pt-province-map {
+    grid-column: 1 / -1;
+    min-height: 0;
+    padding: 0;
+  }
+  .pt-province-map svg {
+    height: auto;
+    max-height: 600px;
+    overflow: hidden;
+  }
+  .pt-province-map > p {
+    position: static;
+  }
+  .pt-province-queue,
+  .pt-map-detail {
+    position: static;
+    width: auto;
+    margin: 0;
+    align-self: start;
+  }
+  .pt-map-playback {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 1000px) {
+  .pt-weekly-charts {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .pt-weekly > header,
+  .pt-province {
+    padding: var(--space-16);
+  }
+  .pt-weekly .pt-figures {
+    padding: var(--space-12) var(--space-16) 0;
+  }
+  .pt-weekly-charts {
+    gap: var(--space-12);
+    padding: var(--space-16);
+  }
+  .pt-weekly-charts > section {
+    padding: var(--space-16);
+  }
+  .pt-week-bars {
+    gap: var(--space-4);
+    height: 200px;
+  }
+  .pt-week-values {
+    padding: 0 var(--space-16) var(--space-16);
+  }
+  .pt-province > header {
+    display: block;
+  }
+  .pt-province-badge {
+    display: inline-flex;
+    margin-top: var(--space-12);
+  }
+  .pt-province-layout {
+    grid-template-columns: 1fr;
+    padding: var(--space-12);
+  }
+  .pt-province-map,
+  .pt-province-queue,
+  .pt-map-detail {
+    grid-column: 1;
+  }
+  .pt-province-map svg {
+    max-height: none;
+  }
+  .pt-province-queue,
+  .pt-map-detail {
+    padding: var(--space-16);
+  }
+  .pt-map-playback {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--space-8);
+  }
+  .pt-map-playback > button:first-child {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+  .pt-map-playback > label {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .pt-map-playback .fc-range {
+    grid-row: 3;
+    grid-column: 1;
+    width: 100%;
+  }
+  .pt-map-playback output {
+    grid-row: 3;
+    grid-column: 2;
+  }
+  .pt-map-playback > button:last-child {
+    grid-column: 1 / -1;
+  }
+  .pt-map-route text {
+    font-size: 18px;
+  }
+}
+@media (min-width: 1000px) {
+  .pt-weekly h2,
+  .pt-province h2 {
+    font-size: 28px;
+  }
+}
+
+/* ---- Motion: a bar rises once as the week arrives ---- */
+@keyframes pt-bar-in {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+[data-decor="on"] .pt-week-bars i {
+  animation: pt-bar-in var(--t-enter) var(--ease-soft) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pt-week-bars i,
+  [data-decor="on"] .pt-week-bars i {
+    animation: none !important;
+  }
+}

@@ -1,13 +1,28 @@
-/* The HL7 v2 quarantine (Wave 5), in Medicines & Labs' vocabulary: a panel that says what it is, rows read down,
- * and under each row the refusal as a sentence. Three short facts sit side by side where there is room and stack on a
- * phone. Nothing here is loud: the list is a record of what was turned away, not an alarm. Every value is a token. */
+/* The HL7 v2 bridge's screens — the development quarantine (Wave 5) and the parts of the doctor's lab results
+ * a message arrives through — on the identity of 28 September 2026 (the Lovable handoff, wave 4c).
+ *
+ * The quarantine is a list of what was turned away, not an alarm: white rows on the handoff's border, three
+ * short facts side by side where there is room and stacked on a phone, and under each row the refusal as a
+ * sentence with its label in the foreground. The results parts are the info note, the line saying who sent
+ * a result, and "not complete" in the warning ink. Every colour is a role from tokens.json#semantic or one
+ * of ui.css's measured inks; every word stands on a ground from the same family. Light-theme pairs:
+ * foreground on surface 16.37, muted-foreground on surface 5.66, on background 5.43, warning ink on the
+ * lime tint 6.77. */
 
-.hq-retention, .hq-no-release { margin: 0; max-width: 68ch; font-size: 14px; line-height: 1.5; color: var(--body); }
-.hq-rows { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: var(--r-control); min-width: 0; }
+.hq-retention, .hq-no-release { margin: 0; max-width: 68ch; font-size: 14px; line-height: 1.55; color: var(--color-muted-foreground); }
+.hq-no-release { padding: var(--space-12) var(--space-16); border: 1px dashed var(--color-muted-foreground); border-radius: var(--r-md); color: var(--color-foreground); }
+.hq-rows { display: grid; gap: var(--space-8); min-width: 0; margin: 0; padding: 0; list-style: none; border: 0; }
+.hq-rows > .hq-row { display: grid; gap: var(--space-8); padding: var(--space-16); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); color: var(--color-foreground); }
 .hq-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-8) var(--space-16); margin: 0; min-width: 0; }
 .hq-facts > div { display: grid; gap: 2px; min-width: 0; }
-.hq-facts dt { font-size: 12px; font-weight: 500; color: var(--faint); }
-.hq-facts dd { margin: 0; font-size: 14px; color: var(--charcoal); overflow-wrap: anywhere; }
-.hq-reason { margin: 0; font-size: 14px; line-height: 1.5; color: var(--body); }
-.hq-reason > span { font-weight: 600; color: var(--charcoal); }
-.hq-deleted { font-size: 13px; color: var(--faint); }
+.hq-facts dt { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--color-muted-foreground); }
+.hq-facts dd { margin: 0; font-size: 14px; font-weight: 600; color: var(--color-foreground); overflow-wrap: anywhere; }
+.hq-reason { margin: 0; padding-left: var(--space-12); border-left: 3px solid var(--color-border); font-size: 14px; line-height: 1.55; color: var(--color-foreground); }
+.hq-reason > span { font-weight: 600; }
+.hq-deleted { font-size: 13px; color: var(--color-muted-foreground); }
+
+/* The doctor's results: the preview as the handoff's info note, and who sent a result on its own line. */
+.hl7-note { display: flex; align-items: flex-start; gap: var(--space-8); }
+.hl7-note > svg { flex: none; margin-top: 3px; }
+.hl7-arrived { font-size: 13px; line-height: 1.5; color: var(--color-muted-foreground); }
+.hl7-incomplete { padding: var(--space-8) var(--space-12); border-radius: var(--r-md); background: color-mix(in srgb, var(--color-warning) 20%, var(--color-surface)); color: var(--ui-warning-ink, var(--mango-ink)); font-weight: 600; }

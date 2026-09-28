@@ -176,3 +176,210 @@ a.primary { text-decoration: none }
  --shadow: 0 1px 2px color-mix(in srgb, var(--studio-ink) 7%, transparent);
  --shadow-raised: 0 4px 16px color-mix(in srgb, var(--studio-ink) 11%, transparent);
 }
+
+/* ---- The shell on the identity (28 September 2026) -------------------------------------------------
+
+   The Lovable handoff's chrome (packages/brand/lovable-handoff): a white sidebar with a hairline at its
+   edge, the handoff's NavigationItem for every destination with the accent's tint on the one you are
+   on, a white top bar and tab bar, compact corners — 8 on a control, 12 on a card, a pill only for a
+   badge — and the page ground the handoff's blue-white. It replaces three generations drawn over one
+   another: the glass sidebar floating on the aurora (glass.css, patient.css), the rounded studio card
+   on cream (revamp.css) and the pill rows with a trailing circle (clinical.css).
+
+   Every colour is a --color-* role in the pair it was drawn for, so the chrome reads in the dark scheme
+   too: the roles change underneath it. What the chrome holds in both schemes is the emergency row,
+   which keeps the warning pair (--mango-soft under --mango-ink, 7.9:1, fixed in both) because the one
+   control in the shell that is about care rather than about the account must look the same wherever it
+   is read.
+
+   WHY THE SELECTORS ARE HEAVY. This sheet is in the entry before patient.css and before the clinical
+   chunk's clinical.css, and both of those restyle the same chrome at two and three classes. The rules
+   here start from `.app-shell.patient-surface` or `.app-shell.clinical` so they outrank both without an
+   !important, and the older rules they outrank are left to the owners of those sheets to retire. */
+
+.app-shell.patient-surface > .patient-ground { background: var(--color-background); }
+html .app-shell.clinical { background: var(--color-background); background-image: none; }
+.app-shell :is(.workspace, main) { color: var(--color-foreground); }
+
+/* The bars. White, one hairline, no frost and no floating corners. */
+.app-shell.app-shell :is(.sidebar, .topbar, .tabbar) {
+ background: var(--color-surface);
+ backdrop-filter: none;
+ -webkit-backdrop-filter: none;
+ box-shadow: none;
+}
+.app-shell.app-shell .topbar { border: 0; border-bottom: 1px solid var(--color-border); border-radius: 0; }
+.app-shell.app-shell .breadcrumb { color: var(--color-muted-foreground); }
+.app-shell.app-shell .breadcrumb strong { color: var(--color-foreground); }
+.app-shell.app-shell .topbar :is(.icon-button, .location-button) {
+ min-height: 44px;
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-md);
+ background: var(--color-surface);
+ box-shadow: none;
+ color: var(--color-foreground);
+}
+.app-shell.app-shell .topbar .icon-button { width: 44px; height: 44px; }
+.app-shell.app-shell .topbar .location-button { padding: 0 var(--space-12); }
+.app-shell.app-shell .topbar .location-button > svg:first-child { color: var(--color-muted-foreground); }
+.app-shell.app-shell .topbar :is(.icon-button, .location-button):hover { background: var(--color-muted); filter: none; }
+.app-shell.app-shell .topbar .avatar.small {
+ border: 1px solid var(--color-border);
+ background: var(--color-muted);
+ box-shadow: none;
+ color: var(--color-foreground);
+}
+.app-shell.app-shell .topbar-divider { background: var(--color-border); }
+.app-shell.app-shell .app-footer { color: var(--color-muted-foreground); }
+.app-shell.app-shell .app-footer button { color: var(--color-foreground); }
+
+/* The tab bar on a phone: the handoff's surface along the foot, the current tab's icon on the accent's
+   tint (motion.css slides it between tabs) and its word in the ink at a heavier weight. */
+.app-shell.app-shell .tabbar {
+ inset-inline: 0;
+ width: auto;
+ margin: 0;
+ border: 0;
+ border-top: 1px solid var(--color-border);
+ border-radius: 0;
+ padding-bottom: max(var(--space-8), env(safe-area-inset-bottom));
+}
+.app-shell.app-shell .tabbar button { border-radius: var(--r-md); color: var(--color-muted-foreground); font-weight: 500; }
+.app-shell.app-shell .tabbar button.active { color: var(--color-foreground); font-weight: 700; }
+.app-shell.app-shell .tabbar button.active .tab-icon { background: none; color: var(--color-foreground); }
+.app-shell.clinical .tabbar button.active .tab-icon { background: color-mix(in oklab, var(--color-accent) 16%, transparent); }
+.app-shell.app-shell .tabbar .nav-count { background: var(--color-primary); color: var(--color-primary-foreground); }
+
+@media (min-width: 1000px) {
+ /* One column at the edge rather than a card floating on the ground. */
+ .app-shell.app-shell:is(.patient-surface, .clinical) { padding-left: 264px; }
+ .app-shell.app-shell .sidebar {
+  inset: 0 auto 0 0;
+  width: 264px;
+  gap: 0;
+  padding: var(--space-20) var(--space-12) var(--space-16);
+  border: 0;
+  border-right: 1px solid var(--color-border);
+  border-radius: 0;
+ }
+ .app-shell.app-shell .sidebar .brand { height: 44px; margin: 0 var(--space-8) var(--space-16); }
+ .app-shell.app-shell .sidebar .brand img { width: 132px; height: auto; }
+ .app-shell.app-shell .nav-label {
+  margin: var(--space-16) var(--space-12) var(--space-8);
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .12em;
+ }
+ .app-shell.app-shell .sidebar nav { display: flex; flex-direction: column; gap: 2px; }
+ /* The handoff's NavigationItem, as ui.css draws it, with what patient.css and clinical.css put on
+    every sidebar button taken back off: their pill, their tint and their charcoal. */
+ .app-shell.app-shell .sidebar nav .ui-nav-item {
+  min-height: 44px;
+  padding: 0 var(--space-12);
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--color-muted-foreground);
+  font-size: 14px;
+  font-weight: 500;
+  animation: none;
+ }
+ .app-shell.app-shell .sidebar nav .ui-nav-item:hover { background: var(--color-muted); color: var(--color-foreground); }
+ .app-shell.app-shell .sidebar nav .ui-nav-item[aria-current='page'] {
+  background: color-mix(in oklab, var(--color-accent) 15%, transparent);
+  color: var(--color-foreground);
+  font-weight: 600;
+ }
+ .app-shell.app-shell .sidebar nav .ui-nav-item__count { flex: none; min-width: 24px; background: var(--color-muted); color: var(--color-foreground); font-weight: 600; text-align: center; }
+ .app-shell.app-shell .sidebar nav .ui-nav-item[aria-current='page'] .ui-nav-item__count { background: var(--color-surface); }
+ .app-shell.app-shell .sidebar-bottom { padding-top: var(--space-20); }
+ .app-shell.app-shell .settings-link {
+  min-height: 44px;
+  padding: 0 var(--space-12);
+  border-radius: var(--r-md);
+  color: var(--color-muted-foreground);
+  font-size: 14px;
+  font-weight: 500;
+ }
+ .app-shell.app-shell .settings-link:hover { background: var(--color-muted); color: var(--color-foreground); }
+ .app-shell.app-shell .settings-link > svg { width: 18px; height: 18px; }
+ .app-shell.app-shell .sos-link {
+  min-height: 44px;
+  margin-bottom: var(--space-4);
+  padding: 0 var(--space-12);
+  border: 1px solid color-mix(in srgb, var(--mango-ink) 24%, var(--mango-soft));
+  border-radius: var(--r-md);
+  background: var(--mango-soft);
+  color: var(--mango-ink);
+ }
+ .app-shell.app-shell .help-card {
+  margin-bottom: var(--space-12);
+  padding: var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
+ }
+ .app-shell.app-shell .help-card h3 { color: var(--color-foreground); font-size: 14px; }
+ .app-shell.app-shell .help-card p { color: var(--color-muted-foreground); }
+ .app-shell.app-shell .help-card button { color: var(--color-foreground); }
+ .app-shell.app-shell .help-symbol { border-radius: var(--r-md); background: var(--color-surface); color: var(--color-foreground); }
+ .app-shell.app-shell .sidebar .profile { border-top: 1px solid var(--color-border); color: var(--color-foreground); }
+ .app-shell.app-shell .sidebar .profile small { color: var(--color-muted-foreground); }
+ .app-shell.app-shell .sidebar .avatar { border: 1px solid var(--color-border); background: var(--color-muted); color: var(--color-foreground); box-shadow: none; }
+
+ /* Who is signed in, in the staff sidebar: a statement, not a control, so it is a plain block on the
+    raised surface with no pointer affordance. */
+ .app-shell.clinical .staff-id {
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  background: var(--color-surface-raised);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+ }
+ .app-shell.clinical .staff-id strong { color: var(--color-foreground); }
+ .app-shell.clinical :is(.staff-id, .staff-who) small { color: var(--color-muted-foreground); }
+ .app-shell.clinical .staff-credential { color: var(--color-muted-foreground); }
+ .app-shell.clinical .staff-credential.stop { color: var(--danger); }
+}
+
+/* ---- The disclosure and the door beside it ------------------------------------------------------------
+   The preview pill says what this is, in its own element and its own words; the demo login beside it is
+   the handoff's segmented control — a muted track, the role you are in a surface with the one shadow and
+   the heavier weight, so where you are is never told by colour alone. The band is the page ground, so
+   in the dark scheme it goes dark with the bars around it. */
+.app-shell.app-shell .demo-bar { margin-top: var(--space-12); }
+.app-shell.app-shell .demo-pill {
+ min-height: 36px;
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-pill);
+ background: var(--color-surface);
+ box-shadow: none;
+ color: var(--color-foreground);
+ font-weight: 600;
+}
+.app-shell.app-shell .demo-pill > .status-dot { background: var(--color-coral); }
+.app-shell.app-shell .demo-login-label { color: var(--color-muted-foreground); }
+.app-shell.app-shell .demo-login-roles { gap: var(--space-4); padding: var(--space-4); border-radius: var(--r-md); background: var(--color-muted); }
+.app-shell.app-shell :is(.demo-login-roles > button, .demo-login-all) {
+ min-height: 44px;
+ padding: 0 var(--space-12);
+ border: 0;
+ border-radius: var(--r-sm);
+ background: transparent;
+ color: var(--color-muted-foreground);
+ font-size: 14px;
+ font-weight: 500;
+}
+.app-shell.app-shell .demo-login-all { border: 1px solid var(--color-border); border-radius: var(--r-md); background: var(--color-surface); color: var(--color-foreground); }
+.app-shell.app-shell :is(.demo-login-roles > button, .demo-login-all):hover { color: var(--color-foreground); filter: none; }
+.app-shell.app-shell :is(.demo-login-roles > button.is-current, .demo-login-all.is-current) {
+ background: var(--color-surface);
+ box-shadow: var(--shadow);
+ color: var(--color-foreground);
+ font-weight: 700;
+}
+.app-shell.app-shell .demo-login-all.is-current { border-color: var(--color-accent); }
+.app-shell.app-shell .demo-login-all-narrow { color: var(--color-muted-foreground); }
+.app-shell.app-shell .demo-login-all-narrow > b { color: var(--color-foreground); }

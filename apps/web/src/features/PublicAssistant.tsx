@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { GilbertAvatar, growFrom, useGilbertRig } from './GilbertAvatar';
+import { X } from 'lucide-react';
+import { GilbertAvatar, GilbertOneLogo, growFrom, useGilbertRig } from './GilbertAvatar';
 import { AssistantGreeting } from '../components/AssistantGreeting';
 import { MotionPause } from '../components/MotionPause';
-import { G1Mark } from '../components/G1Mark';
+import { Button } from '../ui/Button';
 import { useDecor } from '../lib/motion';
 import { affect, conversation, emergencyAnswer, identity, lines, screens, silenceIsNotSafety } from '../lib/assistant';
 import { crisisLines, showsCrisisLines } from '../lib/crisis-lines';
@@ -79,11 +80,21 @@ export default function PublicAssistant() {
   </button>
   <dialog ref={dialog} className="public-assistant" aria-labelledby="public-assistant-title" onCancel={() => setOpen(false)} onClose={() => setOpen(false)} onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}>
    <div className="public-assistant-frame">
+    {/* The head is the patient panel's arrangement: the official logo as the heading — its alt is the
+        dialog's name — level with the controls, and beneath it the rig beside the guide's label and the
+        descriptor, which must stand wherever the name does. */}
     <header>
-     <GilbertAvatar pose={rig.pose} size={64} blend={rig.blend} friendly={turns.length === 0}/>
-     <div className="public-assistant-titles"><G1Mark className="public-assistant-mark"/><h2 id="public-assistant-title">{identity.name}</h2><p>{copy.label}</p><p>{identity.descriptorLine}</p></div>
-     <button type="button" aria-label="Close GilbertOne" onClick={() => setOpen(false)}>×</button>
-     <MotionPause/>
+     <div className="public-assistant-bar">
+      <h2 id="public-assistant-title"><GilbertOneLogo width={112} alt={identity.name}/></h2>
+      <div className="public-assistant-controls">
+       <MotionPause/>
+       <Button variant="secondary" size="icon" className="public-assistant-close" aria-label="Close GilbertOne" onClick={() => setOpen(false)}><X aria-hidden="true"/></Button>
+      </div>
+     </div>
+     <div className="public-assistant-caption">
+      <GilbertAvatar pose={rig.pose} size={56} blend={rig.blend} friendly={turns.length === 0}/>
+      <div className="public-assistant-titles"><p>{copy.label}</p><p>{identity.descriptorLine}</p></div>
+     </div>
     </header>
     <div className="public-assistant-scroll">
      <div className="public-assistant-greeting"><p>{copy.welcome}</p><p className="public-assistant-note">{copy.privacy}</p></div>
@@ -98,12 +109,12 @@ export default function PublicAssistant() {
       </li>)}
      </ol></div>
      <p className="public-assistant-quick">{screens.publicSheet.quickHeading}</p>
-     <nav aria-label="MyThuso questions">{copy.questions.map(q => <button type="button" key={q.id} onClick={() => ask(q.question)}>{q.question}</button>)}</nav>
-     {turns.length > 0 && <button type="button" className="public-assistant-again" onClick={() => { setTurns([]); setDraft(''); setArrived(null); rig.rest(); }}>{conversation.startAgainLabel}</button>}
+     <nav aria-label="MyThuso questions">{copy.questions.map(q => <Button variant="secondary" key={q.id} onClick={() => ask(q.question)}>{q.question}</Button>)}</nav>
+     {turns.length > 0 && <Button variant="ghost" className="public-assistant-again" onClick={() => { setTurns([]); setDraft(''); setArrived(null); rig.rest(); }}>{conversation.startAgainLabel}</Button>}
     </div>
     <form onSubmit={submit}>
      <label htmlFor="public-assistant-input">{copy.inputLabel}</label>
-     <div><input id="public-assistant-input" value={draft} onChange={e => setDraft(e.target.value)} placeholder={copy.inputHint} maxLength={500} autoComplete="off"/><button type="submit" className="public-assistant-send">{conversation.sendLabel}</button></div>
+     <div><input id="public-assistant-input" value={draft} onChange={e => setDraft(e.target.value)} placeholder={copy.inputHint} maxLength={500} autoComplete="off"/><Button type="submit" className="public-assistant-send">{conversation.sendLabel}</Button></div>
      <EmergencyFooter/>
     </form>
    </div>

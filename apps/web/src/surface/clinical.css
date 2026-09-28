@@ -36,40 +36,23 @@
  * charcoal on them measures 11.11.
  */
 
-/* ---- The frosted recipe, declared once -----------------------------------------------------
+/* ---- The panel recipe, declared once -----------------------------------------------------------
  *
- * glass.css owns `.glass` and is shared with a parallel session, so it cannot grow a selector list
- * of this product's legacy class names. What it can be is *read*: the two states a frosted surface
- * has — the opaque floor, and the tinted blur where a browser and a reader both allow one — are
- * declared here as two custom properties, and every clinical card below is those two properties.
- * The colours are glass.css's own tokens, so a change to the palette moves both. The 72% and the
- * 20px are the one duplication, and they are in this block alone rather than on forty selectors. */
+ * It was frosted glass: a translucent floor, a blur where the handset could afford one, and a light-
+ * catching top edge. The identity of 28 September 2026 (the Lovable handoff, wave 4c) retires glass —
+ * its guidelines name glass effects among the things this product does not do — so a panel is the
+ * handoff's Card: a solid surface, a one-pixel border, the 12-pixel corner and the one shadow. The
+ * recipe is still two custom properties so every clinical card below reads it, and the blur property
+ * is kept, as none, for the sheets outside this one that still name it. A solid surface also costs the
+ * mid-range handset nothing, where every backdrop-filter was a compositor pass.
+ * The surface is the light-only --surface rather than the theme's --color-surface: the words on these
+ * panels are the older inks (--charcoal, --faint) and have been measured on white only. */
 .clinical {
- --pane: var(--glass-floor);
+ --pane: var(--surface);
  --pane-blur: none;
- --pane-line: color-mix(in srgb, var(--charcoal) 7%, transparent);
- --pane-shadow: 0 1px 2px color-mix(in srgb, var(--charcoal) 4%, transparent),
-                0 12px 32px -12px color-mix(in srgb, var(--charcoal) 12%, transparent);
- /* --r-panel is a real token now — it was added to tokens.json once two agents had asked for the
-    same missing value an hour apart. Nothing to restate here. */
-}
-/* THE BLUR BUDGET. A backdrop-filter is a separate compositor pass over everything behind the
-   element, and glass.css says plainly that it is expensive on the mid-range Android handsets this
-   product is for. So the tint and the blur are two properties rather than one: `--pane` is what a
-   surface is filled with and every glassy thing takes it, and `--pane-blur` is applied by hand to
-   the six surfaces large enough for a blur to show anything — the panel, the two lists, the sidebar
-   identity, the tab bar and the sign-in rows. A chip thirty pixels tall refracts nothing; what it
-   costs is a compositor layer, and a screen carrying forty of them costs forty. */
-@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
- @media (prefers-reduced-transparency: no-preference) {
-  .clinical {
-   --pane: color-mix(in srgb, var(--surface) 72%, transparent);
-   --pane-blur: blur(20px) saturate(140%);
-   /* Quieter: a panel inside a panel is context rather than subject, and recedes towards the
-      ground instead of drawing a second frosted box on a frosted box. */
-   --pane-quiet: color-mix(in srgb, var(--surface) 55%, transparent);
-  }
- }
+ --pane-quiet: var(--surface);
+ --pane-line: var(--color-border);
+ --pane-shadow: var(--shadow);
 }
 
 /* ---- The luminous ground ---------------------------------------------------------------------
@@ -263,10 +246,10 @@
 .clinical .workspace > .demo-pill { align-self: flex-start; margin: 0 var(--space-16) var(--space-16); }
 @media (min-width: 1000px) { .clinical .workspace > .demo-pill { margin: 0 var(--space-32) var(--space-20); } }
 
-/* ---- Cards: frosted, hairlined, one whisper of a shadow ---------------------------------------
-   The whole product was white rounded boxes with one shadow each, which is the defect the design
-   brief names: a screen where every card looks the same has no hierarchy. Glass gives it back —
-   the ground moves under a panel, so a panel is visibly a layer rather than a box. */
+/* ---- Cards: the handoff's Card ------------------------------------------------------------------
+   A screen where every card looks the same has no hierarchy, and glass was how this sheet once tried
+   to give it back. The identity gives it back instead with type and with aqua spent once: the panel
+   is plain, and what a screen is about is said by its heading and its one accented thing. */
 .clinical .panel,
 .clinical .staff-blank,
 .clinical .earn-account,
@@ -275,33 +258,19 @@
  backdrop-filter: var(--pane-blur);
  -webkit-backdrop-filter: var(--pane-blur);
  border: 1px solid var(--pane-line);
- border-radius: var(--r-panel);
+ border-radius: var(--r-lg);
  box-shadow: var(--pane-shadow);
  padding: var(--space-16);
  position: relative;
-}
-/* The highlight along the top edge — the one line that makes a panel read as glass rather than as a
-   pale card. It is light catching an edge; it carries no text and takes no clicks. */
-.clinical .panel::before,
-.clinical .staff-blank::before {
- content: '';
- position: absolute;
- inset: 0 0 auto;
- height: 1px;
- border-radius: inherit;
- background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--glass-edge) 70%, transparent) 22%, color-mix(in srgb, var(--glass-edge) 70%, transparent) 78%, transparent);
- pointer-events: none;
 }
 /* Air is what makes this language read as considered, but not at 320px: a row inside a card there
    has about 250 pixels to hold an icon, a name, a reason and a button, and every pixel of padding
    comes out of the reason. Generous from the width where there is room to be generous. */
 @media (min-width: 700px) { .clinical .panel { padding: var(--space-24); } }
 
-/* A panel nested inside a panel is context, not a second subject: it recedes rather than drawing a
-   second frosted box on a frosted box, and it loses the edge highlight, which only ever belongs to
-   the topmost layer. */
-.clinical .panel .panel { background: var(--pane-quiet, color-mix(in srgb, var(--surface) 40%, transparent)); border-color: transparent; box-shadow: none; }
-.clinical .panel .panel::before { display: none; }
+/* A panel nested inside a panel is context, not a second subject: no second shadow, and its border
+   stays so the two are still told apart. */
+.clinical .panel .panel { background: var(--pane-quiet); box-shadow: none; }
 
 .clinical .staff-blank h2 { color: var(--charcoal); font-weight: 500; font-size: 20px; }
 .clinical .staff-blank p { color: var(--faint); }
@@ -315,9 +284,8 @@
    of the two rings core.css draws round a focused control. surface/app.css keeps a copy of the same
    selector that cannot be deleted from here, and is answered at the foot of this sheet. A
    superseded rule left in place because something later wins anyway is a rule waiting to win. */
-.clinical .day-row strong, .clinical .review-row strong, .clinical .review-ref { color: var(--charcoal); }
+.clinical .day-row strong { color: var(--charcoal); }
 .clinical .day-time strong { font-weight: 500; }
-.clinical .review-routine, .clinical .review-waited { color: var(--faint); }
 /* The next visit is the one card on the schedule that is the screen's subject; a duty toggle beside
    the date is a control on the whole day and reads as a chip rather than a button. */
 .clinical .duty-toggle { border-radius: var(--r-pill); }
@@ -606,6 +574,12 @@
    was drawing two 550-pixel buttons, which is the widest thing on the screen sitting under the
    narrowest column of text on it. */
 .clinical .button-row { max-width: 520px; gap: var(--space-12); }
+/* The shared Button (apps/web/src/ui) in a clinical row: as wide as its words and no wider, the row
+   wrapping rather than stretching two long labels into two half-width slabs, and a label that is longer
+   than a phone is wide wraps inside its own face instead of spilling out of it. core.css's
+   `.button-row > * { flex: 1 }` is older than the component and is answered here, for it alone. */
+.clinical .button-row:has(> .ui-button) { flex-wrap: wrap; max-width: none; }
+.clinical .button-row > .ui-button { flex: 0 1 auto; max-width: 100%; white-space: normal; text-align: left; padding-block: var(--space-8); }
 .clinical .form-stack > .primary.full, .clinical .form-stack > .secondary.full { max-width: 520px; }
 
 /* Steps. The counter and the dots were the indigo that used to carry the interface; the dot you are
@@ -747,14 +721,9 @@
 .clinical button.pf-action:hover { border-color: var(--pane-line); background: color-mix(in srgb, var(--surface) 90%, transparent); }
 .clinical .pf-sections li.filled:before { background: var(--charcoal); }
 
-/* Teleconsultation and interpreting. A matched interpreter is a good outcome and takes the sage
-   ground; held and unknown keep the warning and the refusal they already had. */
-.clinical .tc-avatar { background: color-mix(in srgb, var(--charcoal) 6%, transparent); color: var(--charcoal); border-radius: var(--r-pill); }
-.clinical .tc-person strong em { color: var(--faint); }
-.clinical .tc-switch label { border-color: var(--pane-line); color: var(--charcoal); }
-.clinical .tc-switch label.selected { background: var(--charcoal); border-color: var(--charcoal); color: var(--surface); }
-.clinical .tc-limit.ok { background: color-mix(in srgb, var(--charcoal) 4%, transparent); }
-.clinical .tc-limit.ok svg { color: var(--charcoal); }
+/* Interpreting. A matched interpreter is a good outcome and takes the sage ground; held and unknown
+   keep the warning and the refusal they already had. The teleconsultation's own furniture moved to
+   features/consult-file.css with the identity (wave 4c). */
 .clinical .interp-outcome { border-color: var(--pane-line); border-radius: var(--r-panel); }
 .clinical .interp-outcome.matched { background: var(--pale-sage); border-color: transparent; color: var(--charcoal);}
 .clinical .interp-outcome strong { color: var(--charcoal); }
@@ -1371,7 +1340,7 @@ html[data-motion='on'] .clinical main > .cl-chapter > *:nth-child(n+4) { animati
 .clinical .day-meta { display: flex; align-items: center; gap: var(--space-12); }
 /* The affordance. A chevron floating in white space says a row might be pressable; a chevron in a
    disc that fills when the row is under a pointer says it opens something. */
-.clinical .day-go, .clinical .review-go {
+.clinical .day-go {
  display: grid;
  place-items: center;
  width: 34px;
@@ -1432,157 +1401,187 @@ html[data-motion='on'] .clinical main > .cl-chapter > *:nth-child(n+4) { animati
 .clinical .day-total-money small { font-size: 13px; color: var(--faint); max-width: 24ch; }
 .clinical .day-total-money strong { font-size: 22px; font-weight: 400; letter-spacing: -.6px; color: var(--charcoal); font-variant-numeric: tabular-nums; }
 
-/* ---- The doctor's queue -----------------------------------------------------------------------
-   The pane the list used to be moves onto the rows: each case is its own card, and what was one box
-   of running text is three objects down a column — a disc, a case, a chip and a wait, each aligned
-   with the one above it. */
+/* ---- The doctor's queue, on the identity (28 September 2026, the Lovable handoff, wave 4c) ------
+   The handoff's doctor-queue-row: each case a white row with a one-pixel border and the Card's corner,
+   the person at the head, the case and its reference, what the nurse found as a neutral badge, the
+   priority as a badge and the wait set as the figure the queue is ordered by. The mint first row and
+   the peach priority of the pastel afternoon are retired; what marks the case to open first is an aqua
+   rule down its leading edge AND its place at the top of a longest-first list, and what marks a case
+   out of range is its badge's words in the warning ink AND that ink's rule — never a tint alone.
+   Every colour is a role from tokens.json#semantic (or ui.css's measured warning ink) and every word
+   stands on a ground set here from the same roles. Light-theme pairs: foreground on surface 16.37,
+   muted-foreground on surface 5.66, warning ink (#92400e) on the lime tint 6.77, accent rule 3.64 and
+   warning rule 7.09 as marks. */
 .clinical .review-list {
+ display: grid;
+ gap: var(--space-8);
+ padding: 0;
+ border: 0;
  background: none;
+ box-shadow: none;
  backdrop-filter: none;
  -webkit-backdrop-filter: none;
- border: 0;
- box-shadow: none;
- padding: 0;
- display: grid;
- gap: var(--space-12);
 }
-/* surface/app.css hairlines every row after the first, three classes deep. They are separate cards
-   now, so what that selector carries here is the card's own shadow. */
-.clinical .review-list > li + li > .review-row { box-shadow: var(--pane-shadow); }
-/* The row at the top of a list ordered longest-first is the case to open, so it is the solid one.
-   It is a rule about the order rather than about a particular case: narrow the queue to Flagged and
-   whatever is longest then becomes the solid row, because that is what the ordering now says. */
-.clinical .review-list > li:first-child > .review-row { background: var(--surface); box-shadow: var(--shadow-raised); }
+/* surface/app.css hairlines every row after the first, three classes deep; the rows are separate
+   cards here, so that selector is answered with no second edge. */
+.clinical .review-list > li + li > .review-row { box-shadow: none; }
 .clinical .review-row {
  position: relative;
- box-shadow: var(--pane-shadow);
  display: grid;
  grid-template-columns: auto minmax(0, 1fr) auto;
  grid-template-areas: none;
  align-items: center;
  gap: var(--space-16);
  padding: var(--space-16) var(--space-20);
- border-radius: var(--r-card);
- background: var(--pane);
- backdrop-filter: var(--pane-blur);
- -webkit-backdrop-filter: var(--pane-blur);
- border: 1px solid var(--pane-line);
- color: var(--faint);
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-lg);
+ background: var(--color-surface);
+ color: var(--color-muted-foreground);
+ box-shadow: none;
+ backdrop-filter: none;
+ -webkit-backdrop-filter: none;
  overflow: hidden;
- transition: box-shadow var(--t-settle) var(--ease-soft), background var(--t-settle) var(--ease-soft);
+ text-align: left;
+ transition: border-color var(--t-quick) var(--ease-soft), background-color var(--t-quick) var(--ease-soft);
 }
-/* The person the case is about, at the head of the row. Charcoal on a 6% tint: 14.81 on the card
-   this actually sits on, and 12.87 on the darkest ground the aurora is permitted to reach. */
+/* The row at the top of a list ordered longest-first is the case to open: its rule and the one shadow.
+   It is a rule about the order rather than about a particular case — narrow the queue to Flagged and
+   whatever is longest then carries it, because that is what the ordering now says. */
+.clinical .review-list > li:first-child > .review-row { box-shadow: var(--shadow); }
+.clinical .review-list > li:first-child > .review-row::after { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--color-accent); }
+/* The person the case is about: initials on the muted ground, 13.80. */
 .clinical .review-face {
  display: grid;
  place-items: center;
  width: 44px;
  height: 44px;
- border-radius: 50%;
- background: color-mix(in srgb, var(--charcoal) 6%, transparent);
- color: var(--charcoal);
- font-size: 15px;
- font-weight: 600;
+ border-radius: var(--r-pill);
+ background: var(--color-muted);
+ color: var(--color-foreground);
+ font-size: 14px;
+ font-weight: 700;
  letter-spacing: .02em;
- transition: background var(--t-settle) var(--ease-soft);
 }
-/* surface/app.css folds this row into named grid areas below 640 — "ref waited" / "what what" /
-   "flag chev" — and those names do not exist in the template above. A `grid-area: what` pointing at
-   a line nobody declared does not fall back to auto; it invents an implicit track and puts the row
-   back together in an order nobody chose, which is exactly what it did: the wait, the badge and the
-   chevron stacked into a narrow column above the patient's name. Every child this row places is
-   placed here, explicitly, at both widths. */
+/* surface/app.css folds this row into named grid areas below 640 and those names do not exist in the
+   template above; every child this row places is placed here, explicitly, at both widths. */
 .clinical .review-row .review-what,
 .clinical .review-row .review-waited,
 .clinical .review-row .review-routine,
 .clinical .review-row .review-ref { grid-area: auto; }
 .clinical .review-what { display: grid; gap: 2px; min-width: 0; }
-.clinical .review-ref { font-size: 13px; font-weight: 600; letter-spacing: .06em; color: var(--faint); }
-.clinical .review-what > strong { font-size: 16px; font-weight: 500; color: var(--charcoal); }
-.clinical .review-what > small { font-size: 13px; color: var(--faint); }
-/* What the nurse found, as a chip rather than as the second half of a sentence. Charcoal on a 4%
-   tint, which is 15.35 on the card and 13.45 on the darkest ground the aurora may reach. */
+.clinical .review-ref { font-size: 13px; font-weight: 600; letter-spacing: .06em; color: var(--color-muted-foreground); font-variant-numeric: tabular-nums; }
+.clinical .review-what > strong { font-size: 16px; font-weight: 600; color: var(--color-foreground); }
+.clinical .review-what > small { font-size: 13px; color: var(--color-muted-foreground); }
+/* What the nurse found: the handoff's neutral badge. */
 .clinical .review-found {
  justify-self: start;
  margin-top: var(--space-8);
- padding: 4px 10px;
+ padding: 2px var(--space-8);
  border-radius: var(--r-pill);
- background: color-mix(in srgb, var(--charcoal) 4%, transparent);
- color: var(--charcoal);
+ background: var(--color-muted);
+ color: var(--color-foreground);
  font-size: 13px;
- line-height: 1.5;
+ font-weight: 600;
+ line-height: 1.4;
 }
-.clinical .review-meta { display: flex; align-items: center; gap: var(--space-20); }
+.clinical .review-meta { display: flex; align-items: center; gap: var(--space-16); }
 .clinical .review-flag { display: flex; }
-.clinical .review-routine { font-size: 13px; color: var(--faint); }
-/* The column the queue is ordered by, set as a small instrument: the figure, the word, and the bar
-   under it at the same scale the deck's wait bars are drawn at. */
-.clinical .review-wait { display: grid; justify-items: end; gap: 3px; min-width: 92px; }
-.clinical .review-waited { font-size: 20px; font-weight: 400; letter-spacing: -.4px; color: var(--charcoal); font-variant-numeric: tabular-nums; }
-.clinical .review-wait > small { font-size: 13px; color: var(--faint); }
-/* A groove, and the wait in it. Without the groove a case that arrived twenty minutes ago drew a
-   nine-pixel stub floating in white space, which reads as nothing rather than as a short wait — the
-   deck's own rings run in a track for the same reason. */
+.clinical .review-routine { font-size: 13px; color: var(--color-muted-foreground); }
+/* The column the queue is ordered by: the figure in the display face, the word, and a bar under it
+   drawn to the same scale as the deck's wait bars. */
+.clinical .review-wait { display: grid; justify-items: end; gap: 2px; min-width: 92px; }
+.clinical .review-waited { font-family: var(--font-display); font-size: 20px; font-weight: 600; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.clinical .review-wait > small { font-size: 13px; color: var(--color-muted-foreground); }
 .clinical .review-pressure {
  position: static;
  width: 100%;
- height: 5px;
- pointer-events: none;
+ height: 4px;
  margin-top: var(--space-4);
  border-radius: var(--r-pill);
- background: color-mix(in srgb, var(--charcoal) 8%, transparent);
+ background: var(--color-muted);
+ pointer-events: none;
 }
 .clinical .review-pressure i {
  display: block;
  height: 100%;
  border-radius: var(--r-pill);
- background: color-mix(in srgb, var(--charcoal) 26%, transparent);
- /* From the left, like the deck's own wait bars and like the scaleX the chart observer plays on
-    them. A bar that rests right-aligned and animates from the left is two drawings of one fact. */
+ background: var(--color-muted-foreground);
+ /* From the left, like the deck's own wait bars and like the scaleX the chart observer plays on them. */
  transform-origin: left center;
 }
-/* Out of range, told twice: the pill, and a rail down the edge of the row. Inset from the corners
-   rather than run into them — a straight band clipped by a 20px radius tapers away at both ends and
-   reads as two slivers rather than as one mark. */
+/* Out of range, told twice: the badge's words, and a rule down the leading edge in the warning ink. */
 .clinical .review-row.is-flagged::before {
  content: '';
  position: absolute;
- left: 0;
- top: var(--space-12);
- bottom: var(--space-12);
- width: 5px;
+ inset: var(--space-12) auto var(--space-12) 0;
+ width: 3px;
  border-radius: 0 var(--r-pill) var(--r-pill) 0;
- background: var(--mango);
+ background: var(--ui-warning-ink, var(--mango-ink));
 }
-.clinical .review-row.is-flagged .review-pressure i { background: color-mix(in srgb, var(--mango-ink) 45%, transparent); }
+.clinical .review-list > li:first-child > .review-row.is-flagged::before { inset: 0 auto 0 3px; border-radius: 0; }
+.clinical .review-row.is-flagged .review-pressure i { background: var(--ui-warning-ink, var(--mango-ink)); }
+/* The chevron: a compact square that answers the row. */
+.clinical .review-go { display: grid; place-items: center; flex: 0 0 32px; width: 32px; height: 32px; border-radius: var(--r-md); color: var(--color-muted-foreground); transition: background-color var(--t-quick) var(--ease-soft), color var(--t-quick) var(--ease-soft); }
+
+/* The priority, as the handoff's badge: a dot and a word. Both states are the same shape so the column
+   reads as one scale; out of range is the warning ink on the lime tint (6.77), routine the neutral. */
+.clinical .review-priority {
+ display: inline-flex;
+ align-items: center;
+ gap: calc(var(--space-12) / 2);
+ padding: var(--space-4) calc(var(--space-20) / 2);
+ border: 0;
+ border-radius: var(--r-pill);
+ background: var(--color-muted);
+ color: var(--color-muted-foreground);
+ font-size: 13px;
+ font-weight: 600;
+ line-height: 1.3;
+ white-space: nowrap;
+}
+.clinical .review-priority > i { width: calc(var(--space-12) / 2); height: calc(var(--space-12) / 2); border-radius: var(--r-pill); background: currentColor; }
+.clinical .review-priority .review-routine { color: inherit; font-size: inherit; }
+.clinical .review-priority.is-flagged { background: color-mix(in srgb, var(--color-warning) 20%, var(--color-surface)); color: var(--ui-warning-ink, var(--mango-ink)); }
+
+/* The arrival: the handoff's doctor-queue-row stagger, a sixth of --t-enter between rows (its 70 ms),
+   capped at the fifth, once, opacity and transform only. */
+@keyframes cl-queue-in {
+ from { opacity: 0; transform: translate3d(0, var(--space-8), 0); }
+ to { opacity: 1; transform: none; }
+}
+.clinical .review-list > li { animation: cl-queue-in var(--t-enter) var(--ease-soft) both; }
+.clinical .review-list > li:nth-child(2) { animation-delay: calc(var(--t-enter) / 6); }
+.clinical .review-list > li:nth-child(3) { animation-delay: calc(var(--t-enter) / 3); }
+.clinical .review-list > li:nth-child(4) { animation-delay: calc(var(--t-enter) / 2); }
+.clinical .review-list > li:nth-child(n+5) { animation-delay: calc(var(--t-enter) * 2 / 3); }
 
 /* ---- The filter above the queue --------------------------------------------------------------
-   The same control as the workbench's tool row — a small set of exclusive choices — so it is drawn
-   the same way: one recessed rail with the chosen option lifted out of it. Two loose pills at the
-   top of a screen and five inside the card below it is the dialect change this whole pass is about,
-   in miniature. The buttons keep their 44px height; the rail's padding is added around them rather
-   than taken out of them, because a target that shrinks to fit a decoration is not a target. */
+   The handoff's TabsList face on the buttons Workspaces.tsx draws (aria-pressed in a group, which is
+   what they are): a muted track, the chosen option lifted onto the surface with the one shadow and a
+   heavier weight, so the choice is never told by colour alone. Each keeps its 44-pixel target. */
 .clinical .queue-filter {
  gap: var(--space-4);
  padding: var(--space-4);
- border-radius: var(--r-pill);
- background: color-mix(in srgb, var(--charcoal) 5%, transparent);
- border: 1px solid var(--pane-line);
+ border: 0;
+ border-radius: var(--r-md);
+ background: var(--color-muted);
 }
-.clinical .queue-filter > button { border-color: transparent; background: transparent; }
-.clinical .queue-filter > button:hover { background: color-mix(in srgb, var(--surface) 70%, transparent); }
-.clinical .queue-filter > button.selected { background: var(--charcoal); border-color: var(--charcoal); color: var(--surface); box-shadow: var(--shadow-raised); }
+.clinical .queue-filter > button { min-height: 44px; border: 0; border-radius: var(--r-sm); background: transparent; color: var(--color-muted-foreground); font-weight: 600; box-shadow: none; }
+.clinical .queue-filter > button:hover { background: transparent; color: var(--color-foreground); }
+.clinical .queue-filter > button.selected { background: var(--color-surface); color: var(--color-foreground); box-shadow: var(--shadow); }
 
 /* ---- Hover, focus and the sense that the screen is live ---------------------------------------
    A row lifts, and the disc and the chevron answer with it. The lift is a shadow and a ground, never
    a translation: a row that moves under a pointer travelling towards it is a row that gets clicked
    somewhere else, and these lists are twelve controls deep — it is also what Playwright waits for
    before it will press anything. Every transition here is removed for a reader who asked for less. */
-.clinical .nday .day-list > li > .day-row:hover,
-.clinical .review-list > li > .review-row:hover {
+.clinical .nday .day-list > li > .day-row:hover {
  background: var(--surface);
  box-shadow: var(--shadow-raised);
 }
+/* A queue row answers a pointer with its border in the accent, the handoff's interactive card, and
+   never with a second shadow or a movement. */
+.clinical .review-list > li > .review-row:hover { border-color: var(--color-accent); }
 /* THE SECOND RING, PUT BACK. core.css draws its focus indicator as two — an outline and a
    box-shadow — on a bare `:focus-visible`, which is one specificity point below every class rule in
    this sheet and two below surface/app.css's row hairline. On a list whose rows are cards with
@@ -1590,15 +1589,17 @@ html[data-motion='on'] .clinical main > .cl-chapter > *:nth-child(n+4) { animati
    value in this sheet copied out of another file: if the focus indicator ever changes, core.css is
    the first place to change it and this is the second, which is written down here so that the next
    person finds the copy rather than the bug. */
-.clinical .nday .day-list > li > .day-row:focus-visible,
-.clinical .review-list > li > .review-row:focus-visible { box-shadow: 0 0 0 7px var(--focus-edge); }
-.clinical .nday .day-row:hover .day-go, .clinical .review-row:hover .review-go,
-.clinical .nday .day-row:focus-visible .day-go, .clinical .review-row:focus-visible .review-go {
+.clinical .nday .day-list > li > .day-row:focus-visible { box-shadow: 0 0 0 7px var(--focus-edge); }
+/* The queue row wears the handoff's one focus outline, the ring colour two pixels out, as every shared
+   component does. */
+.clinical .review-list > li > .review-row:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; box-shadow: none; }
+.clinical .nday .day-row:hover .day-go,
+.clinical .nday .day-row:focus-visible .day-go {
  background: var(--charcoal);
  color: var(--surface);
 }
-.clinical .review-row:hover .review-face,
-.clinical .review-row:focus-visible .review-face { background: color-mix(in srgb, var(--charcoal) 12%, transparent); }
+.clinical .review-row:hover .review-go,
+.clinical .review-row:focus-visible .review-go { background: var(--color-muted); color: var(--color-foreground); }
 
 /* ---- The arrival ------------------------------------------------------------------------------
    The shell already rises its own children in order; the work inside the workbench's board did not
@@ -1610,6 +1611,7 @@ html[data-motion='on'] .clinical main > .cl-chapter > *:nth-child(n+4) { animati
 .clinical .iq-worklist > *:nth-child(n+3) { animation-delay: 80ms; }
 @media (prefers-reduced-motion: reduce) {
  .clinical .iq-worklist > * { animation: none; }
+ .clinical .review-list > li { animation: none; }
  .clinical .nday .day-row, .clinical .review-row,
  .clinical .day-go, .clinical .review-go, .clinical .review-face { transition: none; }
 }
@@ -1676,6 +1678,10 @@ html[data-motion='on'] .clinical main > .cl-chapter > *:nth-child(n+4) { animati
 .clinical .legacy-notice a { display: inline-flex; align-items: center; gap: var(--space-4); min-height: 44px; color: var(--ink); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 
 /* ---- The pastel tints (28 September 2026) -------------------------------------------------------------
+   Retired from every doctor screen by the identity of the same evening (wave 4c): nothing in the doctor's
+   workspace reads these any more. They stay declared for the sheets outside it that still do —
+   features/devices.css, and the partner's and Control Tower's strips in surface/clinical-screens.css —
+   until those screens are restyled; delete them with the last reader.
    The Control Tower's four card grounds, for the clinical workspaces. Resolved on :root rather than on
    the shell, because the shell re-points --studio-lilac at a six per cent ink wash and --studio-lime at
    mint (shells/shells.css): read here, above it, each is still the token's own value, and it is inherited
@@ -1688,59 +1694,22 @@ html[data-motion='on'] .clinical main > .cl-chapter > *:nth-child(n+4) { animati
  --cl-tint-lime: var(--studio-lime);
 }
 
-/* ---- The doctor's queue in the pastel system (28 September 2026) ------------------------------------
-   Each case is already its own soft card. What changes is the priority: it was an amber badge on the
-   flagged rows and a grey word on the others, two different objects in one column. Both are the same
-   pill now — a dot and a word — so the column reads as one scale. The flagged pill is peach with the
-   warning ink it always carried (mangoInk on studioPeach 5.41) and a brand-orange dot; a routine one is
-   an outlined pill in the quiet ink. The word is the state; the tint is warmth beside it. */
-.clinical .review-priority {
- display: inline-flex;
- align-items: center;
- gap: var(--space-8);
- min-height: 30px;
- padding: 4px 12px;
- border-radius: var(--r-pill);
- border: 1px solid color-mix(in srgb, var(--brand-ink) 30%, var(--surface));
- background: var(--surface);
- color: var(--brand-ink);
- font-size: 13px;
- font-weight: 500;
- line-height: 1.4;
- white-space: nowrap;
-}
-.clinical .review-priority > i { width: 8px; height: 8px; border-radius: 50%; background: color-mix(in srgb, var(--brand-ink) 45%, var(--surface)); }
-.clinical .review-priority .review-routine { color: inherit; font-size: inherit; }
-.clinical .review-priority.is-flagged { background: var(--cl-tint-peach); border-color: var(--cl-tint-peach); color: var(--mango-ink); font-weight: 600; }
-.clinical .review-priority.is-flagged > i { background: var(--brand-orange); }
-/* The case at the head of a longest-first queue is the one to open, and it is the one row on a tint:
-   mint, the colour the deck gives its quiet summary, with the shell's ink on it (8.09). */
-.clinical .review-list > li:first-child > .review-row { background: var(--cl-tint-mint); border-color: var(--cl-tint-mint); color: var(--brand-ink); }
-.clinical .review-list > li:first-child > .review-row .review-ref,
-.clinical .review-list > li:first-child > .review-row .review-what > small,
-.clinical .review-list > li:first-child > .review-row .review-wait > small { color: color-mix(in srgb, var(--brand-ink) 78%, var(--cl-tint-mint)); }
-.clinical .review-list > li:first-child > .review-row .review-found,
-.clinical .review-list > li:first-child > .review-row .review-face { background: var(--surface); }
-.clinical .review-list > li:first-child > .review-row .review-pressure { background: color-mix(in srgb, var(--surface) 62%, var(--cl-tint-mint)); }
-.clinical .review-list > li:first-child > .review-row .review-pressure i { background: var(--brand-ink); }
-.clinical .review-list > li:first-child > .review-row:hover { background: var(--cl-tint-mint); }
-
-/* ---- More tools, as pills ------------------------------------------------------------------------
-   The links at the foot of every clinical board are a row of pills on the ground, outlined in the ink
-   and filled with mint under a pointer; the press is --t-quick, a scale and nothing else. */
+/* ---- More tools ------------------------------------------------------------------------------------
+   The links at the foot of every clinical board, as the handoff's secondary button: the surface, the
+   border, the medium corner, the muted fill under a pointer. The edge is decoration here — the words
+   (16.37) and the 44-pixel target are what make it a control — and the one focus outline is the ring. */
 .clinical .tool-link {
  min-height: 44px;
- padding: var(--space-8) var(--space-16);
- border-radius: var(--r-pill);
- /* The edge is a control's boundary, so it is held to 3: ink at 62% over white is 3.91. */
- border: 1px solid color-mix(in srgb, var(--brand-ink) 62%, var(--surface));
- background: var(--surface);
- color: var(--brand-ink);
- transition: background-color var(--t-quick) var(--ease-soft), border-color var(--t-quick) var(--ease-soft), transform var(--t-quick) var(--ease-soft);
+ padding: 0 var(--space-16);
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-md);
+ background: var(--color-surface);
+ color: var(--color-foreground);
+ font-weight: 600;
+ transition: background-color var(--t-quick) var(--ease-soft), border-color var(--t-quick) var(--ease-soft);
 }
-.clinical .tool-link:hover { background: var(--cl-tint-mint); border-color: var(--cl-tint-mint); color: var(--brand-ink); }
-.clinical .tool-link:active { transform: scale(.98); }
+.clinical .tool-link:hover { background: var(--color-muted); border-color: var(--color-border); color: var(--color-foreground); }
+.clinical .tool-link:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) {
  .clinical .tool-link { transition: none !important; }
- .clinical .tool-link:active { transform: none !important; }
 }

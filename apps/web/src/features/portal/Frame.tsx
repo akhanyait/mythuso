@@ -6,6 +6,7 @@ import { categoryById, headingOf, tabOf, tabsOf } from '../../lib/portal';
 import { roleOf } from '../../lib/roles';
 import { usePortal } from './context';
 import { PageHead, Tablist } from './Parts';
+import { buttonVariants } from '../../ui/Button';
 
 /* Every category screen, framed the same way: the category as the eyebrow, the tab as the one <h1>
    with a sentence saying what it is for, the tabs as one tab list, and the category's More tools as
@@ -36,10 +37,12 @@ export function Frame({ blurb, status, children }: { blurb?: string; status?: Re
       figures or a list of rows inside it does the same card by card (portal.css, "Every screen arrives"). */}
   <div className="pt-panel pt-stagger" id="pt-subpanel" role={tabs.length > 1 ? 'tabpanel' : undefined}
    aria-labelledby={tabs.length > 1 ? `pt-sub-${tab.id}` : undefined}>{children}</div>
+  {/* The category's More tools are the handoff's secondary buttons: each opens a dialog, which is an action
+      rather than a destination, and the arrow says it leaves the page. */}
   {tools.length > 0 && <>
    <SectionTitle title="More tools"/>
    <div className="tool-links">{tools.map(tool =>
-    <button className="tool-link" key={tool} onClick={() => open(tool)}>{tool}<ArrowUpRight size={16}/></button>)}</div>
+    <button type="button" className={`${buttonVariants({ variant: 'secondary' })} tool-link`} key={tool} onClick={() => open(tool)}>{tool}<ArrowUpRight aria-hidden="true"/></button>)}</div>
   </>}
  </>;
 }

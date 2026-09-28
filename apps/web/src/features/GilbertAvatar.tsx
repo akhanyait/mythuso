@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useReducer,
   useRef,
@@ -21,7 +22,6 @@ import {
   type RigState,
 } from "../lib/gilbertone";
 import "./gilbert-avatar.css";
-import assistantUI from "../../../../packages/catalog/assistant-ui.json";
 
 /* GilbertOne's rig and its motion controller — §08's GilbertAvatar.tsx.
  *
@@ -78,6 +78,33 @@ export function growFrom(door: Element | null, sheet: HTMLElement, still: boolea
   [{ transform: `scale(${scale})`, opacity: 0 }, { opacity: 1, offset: 0.35 }, { transform: 'none', opacity: 1 }],
   { duration, easing }
  );
+}
+
+/* The official GilbertOne logo — the Lovable handoff's master, the seated character above the name —
+   wherever GilbertOne is named as a product: the consent card, the welcome, the signed-out sheet's head
+   and the services region. It is the brand form; the rig below is the in-product form, and the two are
+   never merged, which is the handoff's own rule.
+
+   Two WebP derivatives of packages/brand/lovable-handoff/handoff/src/assets/logos/gilbert-one-logo.png,
+   resized whole and nothing else: the master's transparent clear space is part of the mark, so the file
+   is never cropped to the ink, never recoloured and never split into character and lettering. The master
+   is 524 kB and is never served; the derivatives are 18 and 42 kB. The alt is the name, because on every
+   screen that carries it the logo is where the name is read. It sits only on a light ground: the
+   lettering is the brand ink, and a recoloured "reversed" logo is the one thing the handoff forbids. */
+const LOGO = "/lovable/gilbertone/gilbertone-logo";
+export function GilbertOneLogo({ width, alt, className }: { width: number; alt: string; className?: string }) {
+  return (
+    <img
+      className={className ? `go-logo ${className}` : "go-logo"}
+      src={`${LOGO}-320.webp`}
+      srcSet={`${LOGO}-320.webp 320w, ${LOGO}-640.webp 640w`}
+      sizes={`${width}px`}
+      width={width}
+      height={Math.round((width * 3) / 4)}
+      alt={alt}
+      decoding="async"
+    />
+  );
 }
 
 export type Rig = ReturnType<typeof useGilbertRig>;
@@ -332,6 +359,8 @@ export function GilbertAvatar({
   fail = false,
   friendly = false,
 }: AvatarProps) {
+  /* The visor's clip, one per drawing: the launcher and the panel can both have a rig on the page. */
+  const visor = `go-visor-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   /* AT12 asks what happens when the avatar fails. The honest way to test it is to be able to make it
     fail on purpose, so the demonstrator can, and the boundary in GilbertWidget.tsx catches it. */
   if (fail)
@@ -365,37 +394,31 @@ export function GilbertAvatar({
           transform: `translate(${yaw * 0.55}px, ${-lift + pitch * 0.35}px) rotate(${tilt * 0.6}deg)`,
         }}
       >
-        {/* The shell is drawn, not downloaded: a transparent vector head on the rig's own alpha canvas,
-        in the brand palette — a deep-teal body, a light visor plate the face reads against, green ear
-        pods and one orange antenna. Every fill is explicit, so the .go-shell group paints no tile of
-        its own and the character floats on nothing but its contact shadow below. It replaced an
-        opaque full-bleed raster that arrived as a green square; the face groups underneath are
-        untouched, so every animation the rig already had is exactly the animation it still has. */}
+        {/* The official character, 28 September 2026: the Lovable handoff's GilbertOne, drawn on the rig's
+        own paths so every pose, blink and mouth shape it already had is the one it still has. A white
+        shell, a dark-navy visor the face glows on, cyan eyes and smile, teal ear pods and a lime ball on
+        a short navy stem — each colour sampled from the logo master and each a token, so the character
+        in the conversation and the character above the lettering are one creature. The fills are
+        classes in gilbert-avatar.css rather than inline, so the build can read what they are. The head
+        carries no lettering: the name belongs to the logo, which is set beside the rig wherever
+        GilbertOne is named, and a word printed on a moving face is a word nobody can read. */}
         <g className="go-shell">
-          {/* The antenna: one orange accent, the only mark above the head. */}
-          <circle cx="100" cy="20" r="8" style={{ fill: "var(--brand-orange)" }} />
-          <rect x="96.5" y="24" width="7" height="18" rx="3.5" style={{ fill: "var(--brand-ink)" }} />
-          {/* The ear pods, either side, in the accent green — drawn before the head so only the tabs that
-         stand proud of it show, the way an ear sits behind the jaw. */}
-          <rect x="42" y="78" width="14" height="40" rx="7" style={{ fill: "var(--brand-green)" }} />
-          <rect x="144" y="78" width="14" height="40" rx="7" style={{ fill: "var(--brand-green)" }} />
-          {/* The head itself: deep teal, rounded, floating clear of the shadow. */}
-          <rect x="50" y="38" width="100" height="112" rx="44" style={{ fill: "var(--brand-ink)" }} />
-          {/* The visor plate the face is drawn on: light, so the teal articulation reads against it and a
-         closed lid is the plate rather than a shutter. */}
-          <rect x="64" y="54" width="72" height="62" rx="30" style={{ fill: "var(--teal-soft)" }} />
+          <circle className="go-antenna-ball" cx="100" cy="24" r="8" />
+          <rect className="go-antenna-stem" x="96.5" y="30" width="7" height="12" rx="3.5" />
+          {/* The ear pods sit behind the head, so only the tabs that stand proud of it show. */}
+          <rect className="go-ear" x="42" y="78" width="14" height="40" rx="7" />
+          <rect className="go-ear" x="144" y="78" width="14" height="40" rx="7" />
+          <rect className="go-helmet" x="50" y="38" width="100" height="112" rx="44" />
+          {/* The visor: the dark ground the face is lit on, and the colour a shut lid becomes. */}
+          <rect className="go-plate" x="64" y="54" width="72" height="62" rx="30" />
         </g>
-        <text
-          x="100"
-          y="133"
-          textAnchor="middle"
-          style={{ fill: "var(--brand-mint)" }}
-          fontSize="10"
-          fontWeight="750"
-          fontFamily="system-ui, sans-serif"
-        >
-          {assistantUI.robotName}
-        </text>
+        {/* The face is lit on the visor and nowhere else, as on the logo: the same rect as the plate
+            clips it, so a raised brow or a turned face stays on the screen rather than glowing on the
+            white shell. */}
+        <clipPath id={visor}>
+          <rect x="64" y="54" width="72" height="62" rx="30" />
+        </clipPath>
+        <g clipPath={`url(#${visor})`}>
         <g transform="translate(30, 8) scale(.7)">
           <g
             className="go-face go-visor"
@@ -467,6 +490,7 @@ export function GilbertAvatar({
               />
             </g>
           </g>
+        </g>
         </g>
       </g>
     </svg>

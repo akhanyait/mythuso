@@ -1,82 +1,245 @@
 /* The merged Control Tower's own sheet, loaded with the portal's chunk and never on a patient's page.
  *
- * It sits on top of surface/clinical.css, which both old surfaces already wore, so the portal is the
- * same glass on the same aurora rather than a third look. What is here is only what the portal adds:
- * the category list as a tab list (a column from 1000px, a strip below it), the context bar, the
- * status words, the written empty states and the loading state.
+ * THE LOOK IS THE HANDOFF'S (the Lovable identity, 28 September 2026 — the founder: "you will also align
+ * the control tower with the similar look and feel and forms"). Until that day this sheet was four layers
+ * — the glass of surface/clinical.css, the pastel system of 27 September, Configuration's "fresh form
+ * styling" and the one settings page — each overruling the one before. It is one layer now, written on the
+ * shared components of apps/web/src/ui and the tokens they read:
  *
- * Every colour is a token from packages/design-tokens/tokens.json through tokens.generated.css, and
- * every text-on-ground pair below is a row in tokens.json#contrast: charcoal and faint on the aurora
- * and on the glass floor, surface on charcoal, and each status word on its own soft ground. No hex and
- * no outline: none anywhere — the focus ring is core.css's two rings.
+ *   - THE GROUND is the handoff's calm --color-background under every screen, with no aurora, gradient or
+ *     wash. A section is the shared Card on it (Parts.tsx#Region); the pastel tints that rotated behind the
+ *     sections and the figures are retired, and where a block inside a card needs separating from the card
+ *     it sits on the handoff's --color-surface-raised, which is the only second ground on these screens.
+ *   - TYPE is Outfit for a page's title and a card's title, Figtree for everything else, on the product's
+ *     one scale (13 to 64) and nothing below 13.
+ *   - COLOUR is the --color-* roles of tokens.json#semantic. Aqua (--color-accent) is spent on a selection,
+ *     a progress bar and the active navigation item and nothing else; the primary ink is the one dark;
+ *     the orange and lime never carry words on white — where one would, ui.css's measured inks do
+ *     (--ui-danger-ink, --ui-warning-ink, --ui-primary-ink). No hex, no studio or pastel variable.
+ *   - CORNERS are compact: --r-lg (12) for a card, --r-md (8) for a field, a tile or a row, --r-sm (6)
+ *     for a small mark, and a pill only for a badge or a compact control.
+ *   - ELEVATION is one shadow on anything, never two: --shadow for a card, --shadow-raised for the one
+ *     thing a screen lifts.
+ *   - FOCUS is the shared components' ring on everything focusable in the portal: 2 pixels of the ring
+ *     colour, 2 pixels out, and no halo. The ring clears 3:1 on white, on the background and on the raised
+ *     ground; a control inside a strip that scrolls is ringed inside itself, because a ring drawn outside
+ *     it is clipped by the strip's own box.
  *
- * Indigo, once banned here, is a token accent since the founder's CI ruling of 24 September 2026
- * (docs/ROADMAP.md, docs/design-review/CONTROL-TOWER-REDESIGN.md): the shipped teal-navy-lime palette
- * governs, and GilbertOne's brand is an accent within it, never a replacement for it.
- *
- * Motion runs through the one system in surface/motion.css and never starts a second: token durations
- * (--t-quick/--t-settle/--t-enter) and --ease-soft only, no curve typed here, transform and opacity
- * only, decorative motion gated on [data-decor='on'], and reduced motion REMOVES rather than shortens.
- * This sheet loads after motion.css, so every transition it adds carries its own !important removal at
- * the foot of the file — a reduced-motion block a later sheet can overrule is a suggestion, not a
- * removal. This sheet is not in check-boundaries.mjs's cubic-bezier or sage-fill scope, so those two
- * rules are self-enforced here: no cubic-bezier literal, and charcoal on every sage fill. */
+ * WHAT DID NOT CHANGE. Every class the build and the journeys read keeps its name. Motion runs through the
+ * one system: token durations (--t-quick/--t-settle/--t-enter) and --ease-soft only, transform and opacity
+ * (and a colour, a stroke offset or a background size) only, decorative motion gated on [data-decor='on'],
+ * and reduced motion REMOVES rather than shortens — with !important, because this sheet loads after
+ * motion.css. No cubic-bezier literal is typed here. */
 
-/* ---- The category list ------------------------------------------------------------------------ */
+/* ---- The ground and the chrome ---------------------------------------------------------------- */
+.portal.app-shell,
+.portal.clinical.app-shell {
+  background: var(--color-background);
+  background-image: none;
+  color: var(--color-foreground);
+  font-family: var(--font-text);
+}
+.portal .workspace,
+.portal .workspace.surface,
+.portal main {
+  background: none;
+}
+.portal .sidebar {
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.portal .sidebar .brand img {
+  display: block;
+  width: 136px;
+  height: auto;
+}
+/* Who is signed in, the nav label and the sidebar's foot are the staff shells' own (shells/shells.css), so
+   the portal's sidebar is the same column as the doctor's and the nurse's. */
+.portal .staff-id > span:last-child,
+.portal .staff-who > span:last-child {
+  display: grid;
+  min-width: 0;
+}
+.portal .sidebar-bottom .settings-link {
+  justify-content: flex-start;
+  width: 100%;
+}
+.portal .pt-top {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.portal .breadcrumb {
+  color: var(--color-muted-foreground);
+  font-size: 14px;
+}
+.portal .breadcrumb strong,
+.portal .pt-name {
+  color: var(--color-foreground);
+  font-weight: 600;
+}
+.portal .app-footer {
+  color: var(--color-muted-foreground);
+}
+/* width:100% is the fix for eleven mobile journeys: main is a column flexbox, and auto inline margins
+   switch off the cross-axis stretch, so without a width the body sized itself to its widest child — the
+   14-item category strip — and every Control Tower page scrolled sideways. */
+.portal .pt-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  width: 100%;
+  max-width: 1600px;
+  min-width: 0;
+  margin-inline: auto;
+}
+.portal .pt-body > * {
+  min-width: 0;
+}
+.portal .helper {
+  color: var(--color-muted-foreground);
+  font-size: 14px;
+  line-height: 1.5;
+}
+/* The clinical shell's sheets paint fields, labels and a page intro's words in the older palette, whose
+   variables do not change with the scheme; under a dark scheme that left a white field and ink labels on
+   the dark ground. The shared components' own inks win inside the portal, by one class more. */
+.portal.app-shell :is(.ui-control, .fc-select) {
+  background-color: var(--color-surface);
+  color: var(--color-foreground);
+}
+.portal.app-shell :is(.ui-field__label, .cf-bar-field > label, .ss-form > label, .g1-field > span, .fc-savebar > label, .cf-hours label, .cf-window > label) {
+  color: var(--color-foreground);
+}
+
+/* The preview picker's sentence (not an access control), the old address's notice and the parallel run's
+   notice: the handoff's Alert shape — a white card with a tinted edge and a mark — which pairs each with
+   its icon and its words, so none is told apart by colour. Their sentences are the contract's, drawn
+   whole. */
+.portal .pt-preview,
+.portal .pt-notice,
+.portal .legacy-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-12);
+  margin: 0;
+  padding: var(--space-12) var(--space-16);
+  border: 1px solid color-mix(in oklab, var(--color-info) 35%, transparent);
+  border-radius: var(--r-md);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.portal .pt-preview svg,
+.portal .legacy-notice svg {
+  flex: 0 0 auto;
+  width: var(--space-20);
+  height: var(--space-20);
+  margin-top: 1px;
+  color: var(--color-info);
+}
+.portal .pt-preview span,
+.portal .pt-notice span,
+.portal .legacy-notice span {
+  flex: 1 1 16rem;
+}
+.portal .pt-notice {
+  align-items: center;
+  border-color: color-mix(in oklab, var(--color-warning) 50%, transparent);
+  border-left: 3px solid var(--ui-warning-ink);
+}
+
+/* Where the reader is: three of the handoff's Fields in a white card. */
+.portal .pt-context {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: var(--space-16) var(--space-24);
+  margin: 0;
+  padding: var(--space-16) var(--space-20);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+}
+.portal .pt-context-field {
+  align-content: start;
+  min-width: 0;
+}
+.portal .pt-context-field .ui-field__message {
+  line-height: 1.45;
+}
+.portal .pt-context-value {
+  color: var(--color-foreground);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* ---- The category navigation: the handoff's NavigationItem -------------------------------------
+   A column of navigation items on a wide screen, a strip of them on a phone, the strip scrolling inside
+   itself. The one you are in is the handoff's aqua tint with its word heavier (ui.css), so it is never
+   told apart by colour alone. The strip's items are as wide as their words and are ringed inside
+   themselves, because a ring outside an item is clipped by the strip's scrolling box. */
 .portal .pt-side-nav {
   display: none;
 }
 .portal .pt-strip-nav {
   display: block;
-  margin: 0 calc(-1 * var(--space-16)) var(--space-16);
+  margin: 0 calc(-1 * var(--space-16));
 }
-.portal .pt-tablist {
+.portal .pt-navlist {
   display: flex;
-  gap: var(--space-8);
+  gap: 2px;
 }
-.portal .pt-tablist.horizontal {
-  overflow-x: auto;
-  scrollbar-width: thin;
-  padding: var(--space-4) var(--space-16) var(--space-8);
+/* The staff shells mark the item you are on by aria-current; the portal's categories are tabs and say it
+   with aria-selected, so the same face is given to that attribute here, above the shells' own rule. */
+.portal.app-shell .sidebar nav .pt-navlist .ui-nav-item[aria-selected="true"],
+.portal.app-shell .pt-navlist .ui-nav-item[aria-selected="true"] {
+  background: color-mix(in oklab, var(--color-accent) 15%, var(--color-surface));
+  color: var(--color-foreground);
+  font-weight: 600;
 }
-.portal .pt-tablist.vertical {
+.portal .pt-navlist.vertical .ui-nav-item__label {
+  white-space: normal;
+}
+.portal .pt-navlist.vertical {
   flex-direction: column;
 }
-.portal .pt-tab {
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-  min-height: 44px;
-  padding: var(--space-8) var(--space-16);
-  border-radius: var(--r-pill);
-  border: 1px solid var(--pane-line);
-  background: var(--pane);
-  color: var(--charcoal);
-  font-size: 15px;
-  font-weight: 500;
-  white-space: nowrap;
-  text-align: left;
+.portal .pt-navlist.horizontal {
+  gap: var(--space-4);
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding: var(--space-4) var(--space-16);
 }
-.portal .pt-tab:hover {
-  background: var(--surface);
-}
-.portal .pt-tab[aria-selected="true"] {
-  background: var(--charcoal);
-  border-color: var(--charcoal);
-  color: var(--surface);
-}
-.portal .pt-tab svg {
+.portal .pt-navlist.horizontal .ui-nav-item {
   flex: 0 0 auto;
+  width: auto;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
-.portal .pt-tab-g1 {
+.portal .pt-navlist.horizontal .ui-nav-item.ui-nav-item--active {
+  border-color: var(--color-accent);
+  background: color-mix(in oklab, var(--color-accent) 15%, var(--color-surface));
+}
+.portal .pt-navlist.horizontal .ui-nav-item__label {
+  overflow: visible;
+}
+.portal .pt-navlist.horizontal .ui-nav-item:focus-visible {
+  outline-offset: -3px;
+}
+.portal .pt-navlist .pt-tab-icon {
+  width: var(--space-20);
+  height: var(--space-20);
+}
+.portal .pt-navlist .pt-tab-g1 {
+  flex: 0 0 auto;
   width: 22px;
   height: 20px;
-  flex: 0 0 auto;
-}
-.portal .pt-tab[aria-selected="true"] .pt-tab-g1 {
-  background: var(--surface);
-  border-radius: var(--r-pill);
-  padding: 1px 2px;
 }
 @media (min-width: 1000px) {
   .portal .pt-side-nav {
@@ -85,158 +248,200 @@
   .portal .pt-strip-nav {
     display: none;
   }
-  .portal .pt-tablist.vertical .pt-tab {
-    width: 100%;
-    white-space: normal;
+}
+
+/* ---- The head: the one every screen wears (Parts.tsx#PageHead) --------------------------------- */
+.portal .pt-head {
+  margin: 0 0 var(--space-20);
+}
+.portal .pt-head-eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4) var(--space-8);
+  margin: 0 0 var(--space-8);
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.portal .pt-g1 {
+  width: 24px;
+  height: 22px;
+}
+.portal .pt-head h1 {
+  margin: 0;
+  color: var(--color-foreground);
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+}
+@media (min-width: 1000px) {
+  .portal .pt-head h1 {
+    font-size: 32px;
+  }
+}
+.portal .pt-head .pt-head-lead {
+  max-width: 68ch;
+  margin: var(--space-8) 0 0;
+  color: var(--color-muted-foreground);
+  font-size: 15px;
+  line-height: 1.55;
+}
+/* A category's own tabs: the handoff's Tabs, a muted track that wraps rather than scrolls, so no tab is
+   ever hidden off the edge of a phone.
+
+   The handoff's tab is a 36-pixel face inside the track's 4-pixel inset, and ui.css reaches the 44-pixel
+   target with a transparent layer the pointer lands on. The build's audit measures the element, not the
+   layer, and a tab measured at 36 is a tab reported under the floor — so in the portal the tab itself is
+   44 tall and its face is that same layer made visible: inset 4 pixels top and bottom, white and raised
+   when chosen. What a reader sees is the handoff's segmented track; what a finger and the audit meet is 44.
+   The same shape serves the two segmented demonstrations, Dispatch's deployment mode and the province's
+   filter. */
+.portal .pt-head > .pt-subtabs {
+  margin-top: var(--space-16);
+}
+.portal .pt-subtabs.ui-tabs {
+  gap: var(--space-4);
+  padding: 0 var(--space-4);
+}
+.portal .pt-subtabs .ui-tab,
+.portal .pt-demo-seg-button,
+.pt-map-filters button {
+  position: relative;
+  isolation: isolate;
+  min-height: 44px;
+  background: transparent;
+  box-shadow: none;
+}
+.portal .pt-subtabs .ui-tab::before,
+.portal .pt-demo-seg-button::before,
+.pt-map-filters button::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: var(--space-4);
+  bottom: var(--space-4);
+  left: 0;
+  right: 0;
+  border-radius: var(--r-sm);
+}
+.portal .pt-subtabs .ui-tab--active,
+.portal .pt-demo-seg-button.is-active,
+.pt-map-filters button[aria-pressed="true"] {
+  background: transparent;
+  box-shadow: none;
+}
+.portal .pt-subtabs .ui-tab--active::before,
+.portal .pt-demo-seg-button.is-active::before,
+.pt-map-filters button[aria-pressed="true"]::before {
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+}
+.portal .pt-subtabs .pt-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  white-space: nowrap;
+}
+.portal .pt-head-status {
+  margin-top: var(--space-16);
+}
+/* GilbertOne's build word, its sentence and its refusal: the one status line a category carries, on the
+   raised ground so it reads as the category's standing rather than as a section of the screen. */
+.portal .pt-g1-state {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-16);
+  align-items: start;
+  max-width: 72rem;
+  margin: 0;
+  padding: var(--space-16) var(--space-20);
+  border-radius: var(--r-lg);
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
+}
+.portal .pt-g1-large {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 36px;
+}
+.portal .pt-g1-state p {
+  max-width: none;
+  margin: var(--space-8) 0 0;
+  color: var(--color-foreground);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.portal .pt-g1-state p.helper {
+  color: var(--color-muted-foreground);
+}
+@media (max-width: 599px) {
+  .portal .pt-g1-state {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--space-16);
   }
 }
 
-/* ---- The chrome above a category ------------------------------------------------------------- */
-.portal .pt-body {
+/* The panel under the head. The Control Tower's boards head themselves with a shift-head the old
+   workspace floated above its figures; the same order here, so the heading still comes before the
+   numbers under it. */
+.portal .pt-panel {
   display: flex;
   flex-direction: column;
   gap: var(--space-16);
   min-width: 0;
 }
-.portal .pt-body > * {
-  min-width: 0;
-}
-.portal .pt-name {
-  color: var(--charcoal);
-  font-weight: 600;
-}
-.portal .pt-preview,
-.portal .pt-notice {
-  display: flex;
-  gap: var(--space-12);
-  align-items: flex-start;
-  flex-wrap: wrap;
-  margin: 0;
-  padding: var(--space-12) var(--space-16);
-  border-radius: var(--r-card);
-  border: 1px solid var(--pane-line);
-  background: var(--pane);
-  color: var(--charcoal);
-  font-size: 14px;
-  line-height: 1.5;
-}
-.portal .pt-preview svg {
-  flex: 0 0 auto;
-  margin-top: 2px;
-}
-.portal .pt-preview span {
-  flex: 1 1 16rem;
-}
-.portal .pt-notice {
-  background: var(--mango-soft);
-  color: var(--ink);
-  border-color: var(--mango-soft);
-}
-.portal .pt-notice span {
-  flex: 1 1 16rem;
-}
-.portal .pt-notice .text-button {
-  color: var(--ink);
-  min-height: 44px;
-}
-
-.portal .pt-context {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-12) var(--space-24);
-}
-.portal .pt-context-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  flex: 1 1 14rem;
-  min-width: 0;
-  color: var(--charcoal);
-}
-.portal .pt-context-field > span {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--faint);
-  letter-spacing: 0.4px;
-}
-.portal .pt-context-field select {
-  min-height: 44px;
-  max-width: 100%;
-  border-radius: var(--r-control);
-  border: 1px solid var(--faint);
-  background: var(--surface);
-  color: var(--charcoal);
-  padding: 0 var(--space-12);
-  font-size: 15px;
-}
-.portal .pt-context-field small {
-  color: var(--faint);
-  font-size: 13px;
-  line-height: 1.45;
-}
-.portal .pt-context-value {
-  font-size: 15px;
-  font-weight: 500;
-}
-
-/* ---- A category's own frame ------------------------------------------------------------------ */
-.portal .pt-intro .eyebrow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-}
-.portal .pt-g1 {
-  width: 28px;
-  height: 25px;
-}
-.portal .pt-subtabs {
-  margin: 0 calc(-1 * var(--space-16)) var(--space-16);
-}
-@media (min-width: 1000px) {
-  .portal .pt-subtabs {
-    margin-left: 0;
-    margin-right: 0;
-    padding-left: 0;
-  }
-}
-/* The Control Tower's boards head themselves with a shift-head the old workspace floated above its
-   figures; the same order here, so the heading still comes before the numbers under it. */
-.portal .pt-panel {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
 .portal .pt-panel > * {
   flex: 0 0 auto;
   min-width: 0;
+  margin-block: 0;
 }
 .portal .pt-panel > .shift-head,
 .portal .pt-panel > .page-intro {
   order: -1;
 }
+.portal .pt-category .page-header {
+  margin-bottom: var(--space-16);
+}
+/* The handoff's small button and small icon button keep a 32-pixel face over a 44-pixel layer (ui.css). The
+   Control Tower's journeys measure every control's own box against the floor, on every screen the portal
+   draws — including the workspace screens it carries in from other shells — so inside the portal the small
+   sizes are 44 by their own box, their face and words unchanged. */
+.portal :is(.ui-button--sm, .ui-button--icon.ui-button--icon-sm) {
+  min-height: var(--ui-target, 44px);
+  min-width: var(--ui-target, 44px);
+}
+/* More tools: the handoff's secondary buttons in a wrapping row under the screen. */
+.portal .tool-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+.portal .tool-link svg {
+  width: var(--space-16);
+  height: var(--space-16);
+}
 
-/* ---- Regions, lists, the tree ---------------------------------------------------------------- */
-.portal .pt-region {
-  margin: var(--space-24) 0 0;
-}
-.portal .pt-region > h2 {
-  font-size: 18px;
-  font-weight: 500;
-  letter-spacing: -0.3px;
-  color: var(--charcoal);
-  margin: 0 0 var(--space-12);
-}
+/* ---- Inside a section: rows, facts, lists, steps ----------------------------------------------
+   A section is the shared Card (One settings page, below). What sits inside it and needs separating from
+   it — a row of a list, a provider's card, a register, a group of knobs, a step — is a tile on the raised
+   ground: no border and no shadow of its own, because a card inside a card is the one nesting the handoff
+   refuses. */
 .portal .pt-count {
-  color: var(--faint);
+  color: var(--color-muted-foreground);
   font-weight: 400;
 }
 .portal .pt-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 .portal .pt-row {
   display: flex;
@@ -245,98 +450,105 @@
   gap: var(--space-8) var(--space-12);
   min-height: 44px;
   padding: var(--space-12) var(--space-16);
-  border-radius: var(--r-card);
-  border: 1px solid var(--pane-line);
-  background: var(--pane);
-  color: var(--charcoal);
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
+  font-size: 14px;
 }
 .portal .pt-row > strong {
   font-weight: 600;
 }
-.portal .pt-row > span:not(.pt-status-wrap):not(.pt-build):not(.pt-checking):not(.g1-tag) {
+.portal .pt-row > span:not(.pt-status-wrap):not(.ui-badge) {
   flex: 1 1 100%;
-  color: var(--charcoal);
+  color: var(--color-foreground);
   font-size: 14px;
   line-height: 1.5;
 }
-.portal .pt-row code,
-.portal .pt-card code,
-.portal .pt-bullets code,
-.portal .pt-table code {
+.portal .pt-row > .ui-badge {
+  flex: 0 1 auto;
+  max-width: 100%;
+  white-space: normal;
+}
+.portal :is(.pt-row, .pt-card, .pt-bullets, .pt-table, .g1-fact) code {
   font-size: 13px;
   overflow-wrap: anywhere;
 }
 .portal .pt-card h3 {
   margin: 0 0 var(--space-8);
+  color: var(--color-foreground);
+  font-family: var(--font-display);
   font-size: 16px;
   font-weight: 600;
-  color: var(--charcoal);
+  line-height: 1.4;
 }
 .portal .pt-card p {
   margin: 0 0 var(--space-8);
-  color: var(--charcoal);
+  color: var(--color-foreground);
   font-size: 14px;
   line-height: 1.5;
 }
 .portal .pt-label {
+  margin: 0 0 var(--space-4);
+  color: var(--color-muted-foreground) !important;
   font-size: 13px !important;
   font-weight: 600;
-  color: var(--faint) !important;
-  letter-spacing: 0.3px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
 }
-.portal .pt-bullets,
-.portal .pt-fields {
-  margin: 0 0 var(--space-8);
+.portal .pt-bullets {
+  margin: 0;
   padding-left: var(--space-20);
-  color: var(--charcoal);
+  color: var(--color-foreground);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 .portal .pt-fields {
-  list-style: none;
-  padding: 0;
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 .portal .pt-fields li {
+  display: inline-flex;
+  gap: var(--space-8);
   padding: var(--space-4) var(--space-8);
-  border-radius: var(--r-control);
-  background: var(--cloud);
-  color: var(--charcoal);
+  border-radius: var(--r-sm);
+  background: var(--color-muted);
+  color: var(--color-foreground);
+  font-size: 13px;
 }
 .portal .pt-refusals {
-  margin: 0;
-  padding-left: var(--space-20);
-  color: var(--charcoal);
-  font-size: 14px;
-  line-height: 1.55;
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
+  margin: 0;
+  padding-left: var(--space-20);
+  color: var(--color-foreground);
+  font-size: 14px;
+  line-height: 1.55;
 }
 .portal .pt-refusals strong {
   font-weight: 600;
 }
 .portal .pt-refusals span {
-  color: var(--faint);
+  color: var(--color-muted-foreground);
 }
-.portal .pt-table caption {
-  text-align: left;
-  color: var(--faint);
-  font-size: 13px;
-  padding-bottom: var(--space-8);
-}
-.portal .pt-table .text-button {
-  min-height: 44px;
-  text-align: left;
+/* A contract path in a refusal or a discrepancy has nowhere a browser will break it; on a phone it was the
+   one line on the Overview that widened main. */
+.portal .pt-refusals strong,
+.portal .pt-refusals span {
+  overflow-wrap: anywhere;
 }
 .portal .pt-facts {
   display: grid;
   grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
   gap: var(--space-8) var(--space-16);
-  margin: 0 0 var(--space-12);
-  color: var(--charcoal);
+  margin: 0;
+  color: var(--color-foreground);
+  font-size: 14px;
 }
 .portal .pt-facts dt {
   font-weight: 600;
@@ -344,28 +556,38 @@
 .portal .pt-facts dd {
   margin: 0;
 }
+@media (max-width: 599px) {
+  .portal .pt-facts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+  .portal .pt-facts dd + dt {
+    margin-top: var(--space-8);
+  }
+}
 .portal .pt-steps {
-  list-style: none;
-  margin: 0;
-  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-12);
+  gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 .portal .pt-step {
   display: flex;
   gap: var(--space-16);
   padding: var(--space-16);
-  border-radius: var(--r-card);
-  border: 1px solid var(--pane-line);
-  background: var(--pane);
-  color: var(--charcoal);
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
 }
 .portal .pt-step > div {
   min-width: 0;
 }
 .portal .pt-step h3 {
   margin: 0 0 var(--space-4);
+  font-family: var(--font-display);
   font-size: 16px;
   font-weight: 600;
 }
@@ -374,21 +596,446 @@
   font-size: 14px;
   line-height: 1.5;
 }
+/* The step's number: the primary ink, the one filled mark in a step. */
 .portal .pt-step-n {
-  flex: 0 0 32px;
-  height: 32px;
-  border-radius: var(--r-pill);
-  background: var(--charcoal);
-  color: var(--surface);
   display: grid;
+  flex: 0 0 var(--space-32);
+  height: var(--space-32);
   place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  font-size: 14px;
   font-weight: 600;
 }
+.portal .pt-legend {
+  color: var(--color-foreground);
+}
+.portal .pt-legend dl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  margin: 0;
+}
+.portal .pt-legend dl > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-12);
+}
+.portal .pt-legend dd {
+  margin: 0;
+  color: var(--color-foreground);
+  font-size: 14px;
+}
 
+/* Every disclosure on these screens shares one summary: a 44px row, the words, and a drawn chevron that
+   turns when it opens. display:flex drops the browser's own triangle; the chevron is a border in the
+   words' own colour. */
+.portal :is(.pt-legend, .cf-about, .cf-history, .g1-details, .g1-founder-details, .pt-week-values) > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  width: fit-content;
+  max-width: 100%;
+  min-height: 44px;
+  padding-inline: var(--space-4);
+  border-radius: var(--r-md);
+  color: var(--color-foreground);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+  list-style: none;
+}
+.portal :is(.pt-legend, .cf-about, .cf-history, .g1-details, .g1-founder-details, .g1-fold, .pt-week-values) > summary::-webkit-details-marker {
+  display: none;
+}
+.portal :is(.pt-legend, .cf-about, .cf-history, .g1-details, .g1-founder-details, .pt-week-values) > summary::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  margin: -3px var(--space-4) 0;
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.portal :is(.pt-legend, .cf-about, .cf-history, .g1-details, .g1-founder-details, .pt-week-values)[open] > summary::after {
+  margin-top: 3px;
+  transform: rotate(-135deg);
+}
+
+/* ---- Tables: the handoff's plain table. A header of small capitals over a hairline, rows divided by
+   hairlines; they scroll inside .table-scroll on a phone, never the page. */
+.portal .table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.portal :is(.pt-table, .admin-table) {
+  width: 100%;
+  margin: 0;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: var(--color-foreground);
+  font-size: 14px;
+}
+.portal :is(.pt-table, .admin-table) caption {
+  padding: 0 0 var(--space-8);
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: left;
+}
+.portal :is(.pt-table, .admin-table) thead th {
+  padding: var(--space-8) var(--space-12);
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.portal :is(.pt-table, .admin-table) tbody :is(th, td) {
+  padding: var(--space-12);
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-foreground);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: left;
+  vertical-align: top;
+}
+.portal :is(.pt-table, .admin-table) tbody th {
+  font-weight: 600;
+}
+.portal :is(.pt-table, .admin-table) tbody tr:last-child > * {
+  border-bottom: 0;
+}
+.portal .text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 0;
+  background: none;
+  color: var(--ui-primary-ink);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* ---- The status words: the handoff's Badge (Parts.tsx#Status, #BuildWord) --------------------------
+   The word is the state; the badge's variant is a second channel, never the only one. */
+.portal .pt-status-wrap {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+}
+.portal .pt-status-sentence {
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.portal .pt-checking {
+  color: var(--color-muted-foreground);
+  font-size: 14px;
+}
+/* A tag whose words are a sentence may wrap, and takes a control's radius when it does. */
+.portal .g1-tag {
+  max-width: 100%;
+  white-space: normal;
+}
+
+/* ---- Empty and loading ------------------------------------------------------------------------
+   A written empty state (Parts.tsx#Empty) is a block with its mark and its sentence, never a dashed
+   outline round a line of grey. "Nothing yet" is the raised ground with the information mark; a refusal,
+   which leads with the contract's heading, is a warm wash with the stop mark in the warning ink. The mark
+   and the heading say which it is, so the ground is never the only difference. The warm wash is the
+   handoff's lime at a seventh over white: foreground ink on it measures above its row on white less a
+   hair, far past 4.5. */
+.portal .pt-empty {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-12);
+  align-items: start;
+  margin: 0;
+  padding: var(--space-16) var(--space-20);
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
+}
+.portal .pt-empty:has(> div > strong) {
+  background: color-mix(in oklab, var(--color-warning) 14%, var(--color-surface));
+}
+.portal .pt-empty-mark {
+  width: var(--space-20);
+  height: var(--space-20);
+  margin-top: 2px;
+  color: var(--color-info);
+}
+.portal .pt-empty:has(> div > strong) .pt-empty-mark {
+  color: var(--ui-warning-ink);
+}
+.portal .pt-empty strong {
+  display: block;
+  margin: 0 0 var(--space-4);
+  color: var(--color-foreground);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.portal .pt-empty p {
+  max-width: 76ch;
+  margin: 0;
+  color: var(--color-foreground);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.portal .pt-loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  padding: var(--space-24) 0;
+  color: var(--color-foreground);
+}
+.portal .pt-loading p {
+  margin: 0;
+  color: var(--color-muted-foreground);
+  font-size: 14px;
+}
+/* A skeleton that stands still: a pulse is motion a reader did not ask for, and a still block says
+   "something goes here" just as well. */
+.portal .pt-skeleton {
+  display: block;
+  width: min(28rem, 100%);
+  height: var(--space-20);
+  border-radius: var(--r-sm);
+  background: var(--color-muted);
+}
+.portal .pt-skeleton.short {
+  width: min(16rem, 70%);
+}
+
+/* ---- Figures: the handoff's MetricCard (Parts.tsx#Figures) -------------------------------------
+   A strip of white MetricCards; the one the screen is about is the elevated card with a rule of the
+   primary ink along its top. A figure that is a share carries a ring laid in its card's lower corner. A
+   note is set in the muted ink: MetricCard's trend line is the success ink, which would say "up" about a
+   count that went nowhere. */
+.portal .pt-figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: var(--space-16);
+  align-items: stretch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.portal .pt-figure {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+.portal .pt-figure > .ui-card {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.portal .pt-figure.is-lead > .ui-card {
+  border-top: 3px solid var(--color-primary);
+}
+.portal .pt-figure .ui-metric__head {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  row-gap: var(--space-4);
+}
+.portal .pt-figure .ui-metric__label {
+  flex: 1 1 8rem;
+  min-width: 0;
+  color: var(--color-muted-foreground);
+}
+.portal .pt-figure-chip {
+  max-width: 100%;
+  white-space: normal;
+}
+.portal .pt-figure .ui-metric__trend {
+  color: var(--color-muted-foreground);
+}
+.portal .pt-figure.has-ring .ui-metric__value {
+  padding-right: calc(56px + var(--space-8));
+}
+.portal .pt-figure > .pt-ring {
+  position: absolute;
+  right: var(--space-20);
+  bottom: var(--space-20);
+}
+@media (max-width: 599px) {
+  .portal .pt-figures {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-12);
+  }
+  .portal .pt-figure.is-lead {
+    grid-column: 1 / -1;
+  }
+  .portal .pt-figure .ui-card--pad-md {
+    padding: var(--space-16);
+  }
+  .portal .pt-figure .ui-metric__value {
+    font-size: 28px;
+  }
+  .portal .pt-figure > .pt-ring {
+    right: var(--space-16);
+    bottom: var(--space-16);
+  }
+  /* A strip whose count left one card alone at the foot left half a row empty beside it; that card takes
+     the row. Counted from the lead when there is one. */
+  .portal .pt-figure.is-lead:first-child ~ .pt-figure:last-child:nth-child(even),
+  .portal .pt-figure:not(.is-lead):first-child ~ .pt-figure:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* The workspace strip the Control Tower carries (Operations.tsx#TowerStrip): each figure is the handoff's
+   Card around the workspace's own Metric, set in MetricCard's order and type — the label in small capitals
+   above, the numeral in Outfit, the chip under it as a neutral badge. */
+.portal .s-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: var(--space-16);
+  align-items: stretch;
+  padding: 0;
+}
+.portal .pt-strip-figure {
+  min-width: 0;
+}
+.portal .pt-strip-figure.is-lead {
+  border-top: 3px solid var(--color-primary);
+}
+.portal .pt-strip-figure > .s-metric,
+.portal .pt-strip-figure > .s-metric.lead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-foreground);
+}
+.portal .pt-strip-figure .s-metric-label {
+  order: -1;
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.portal .pt-strip-figure .s-metric-value {
+  color: var(--color-foreground);
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.portal .pt-strip-figure .s-metric-chip-line {
+  order: 2;
+  display: flex;
+  min-height: 0;
+}
+.portal .pt-strip-figure .s-metric-chip {
+  padding: 2px var(--space-8);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: var(--color-muted);
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: normal;
+}
+.portal .pt-strip-figure .s-metric-chip.flagged {
+  background: color-mix(in oklab, var(--color-danger) 12%, transparent);
+  color: var(--ui-danger-ink);
+}
+.portal .pt-strip-figure .s-metric-figure {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-16);
+  width: 100%;
+}
+.portal .pt-strip-figure .s-metric-figure > .pt-ring {
+  order: 1;
+}
+.portal .s-metrics > .s-metric + .s-metric,
+.portal .pt-strip-figure + .pt-strip-figure > .s-metric {
+  margin-left: 0;
+  padding-left: 0;
+  border-left: 0;
+}
+@media (max-width: 599px) {
+  .portal .s-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-12);
+  }
+  .portal .pt-strip-figure {
+    padding: var(--space-16);
+  }
+  .portal .pt-strip-figure.is-lead {
+    grid-column: 1 / -1;
+  }
+  .portal .pt-strip-figure .s-metric-value {
+    font-size: 28px;
+  }
+}
+/* The back office's console figures, carried into the portal: cards like every other figure. */
+.portal .c-figures .c-figure {
+  padding: var(--space-20);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+}
+
+/* ---- The ring ----------------------------------------------------------------------------------
+   A share drawn as progress: the aqua over the muted track. Presentation only — the numeral and the chip
+   beside it say the same arithmetic in words. */
+.portal .pt-ring {
+  display: block;
+  flex: 0 0 auto;
+  transform: rotate(-90deg);
+}
+.portal .pt-ring circle {
+  fill: none;
+  stroke-width: 5;
+}
+.portal .pt-ring-track {
+  stroke: var(--color-muted);
+}
+.portal .pt-ring-fill {
+  stroke: var(--color-accent);
+  stroke-dasharray: 100;
+  stroke-linecap: round;
+}
+
+/* ---- Configuration: the tree, and the node's screen ------------------------------------------- */
 .portal .pt-config {
   display: grid;
-  gap: var(--space-24);
   grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-24);
 }
 @media (min-width: 1000px) {
   .portal .pt-config {
@@ -397,233 +1044,663 @@
   }
 }
 .portal .pt-config-node > h2 {
-  font-size: 20px;
-  font-weight: 500;
-  color: var(--charcoal);
-  margin: 0 0 var(--space-12);
+  margin: 0 0 var(--space-16);
+  color: var(--color-foreground);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -.01em;
 }
-.portal .pt-tree {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.portal .pt-config-node {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-16);
+  min-width: 0;
+}
+.portal .pt-config-node > * {
+  margin-block: 0;
+}
+/* The tree: navigation items in a white card, the selected node in the handoff's aqua with its word
+   heavier. */
+.portal .pt-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: var(--space-8);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+  list-style: none;
 }
 .portal .pt-node {
   display: flex;
   align-items: center;
   min-height: 44px;
-  padding: 0 var(--space-16);
-  border-radius: var(--r-pill);
-  color: var(--charcoal);
+  padding: 0 var(--space-12);
+  border: 0;
+  border-radius: var(--r-md);
+  color: var(--color-muted-foreground);
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  border: 1px solid transparent;
 }
 .portal .pt-node.level-2 {
-  margin-left: var(--space-20);
+  margin-left: var(--space-16);
 }
 .portal .pt-node.level-3 {
-  margin-left: var(--space-40);
+  margin-left: var(--space-32);
 }
-.portal .pt-node:hover {
-  background: var(--pane);
-  border-color: var(--pane-line);
+@media (hover: hover) {
+  .portal .pt-node:hover {
+    background: var(--color-muted);
+    color: var(--color-foreground);
+  }
 }
-.portal .pt-node[aria-selected="true"] {
-  background: var(--charcoal);
-  color: var(--surface);
+.portal .pt-node[aria-selected="true"],
+.portal .pt-node[aria-selected="true"]:hover {
+  background: color-mix(in oklab, var(--color-accent) 15%, transparent);
+  color: var(--color-foreground);
+  font-weight: 600;
 }
 
-/* ---- The status words ------------------------------------------------------------------------
-   The word is the state; the ground behind it is a second channel, never the only one. */
-.portal .pt-status-wrap {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: baseline;
+/* The engine settings screen (features/Configuration.tsx), wherever the portal draws it. */
+.portal .cf-area {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  min-width: 0;
+  container: cf-area / inline-size;
+}
+.portal .cf-work,
+.portal .cf-notes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-16);
+  min-width: 0;
+}
+@container cf-area (min-width: 720px) {
+  .portal .cf-notes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+/* The search and the engine: two of the handoff's fields side by side, each with its label above it; the
+   search wears the handoff's magnifier inside its edge. */
+.portal .cf-tools {
+  display: grid;
   gap: var(--space-8);
 }
-.portal .pt-status,
-.portal .pt-build {
-  display: inline-block;
-  padding: 2px var(--space-8);
+.portal .cf-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--space-16);
+  align-items: start;
+}
+.portal .cf-bar-field {
+  display: grid;
+  gap: calc(var(--space-12) / 2);
+  min-width: 0;
+}
+.portal .cf-bar-field > label {
+  margin: 0;
+  color: var(--color-foreground);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.43;
+}
+.portal .cf-bar-input {
+  position: relative;
+  display: block;
+}
+.portal .cf-bar-input > svg {
+  position: absolute;
+  top: 50%;
+  left: var(--space-12);
+  width: var(--space-16);
+  height: var(--space-16);
+  translate: 0 -50%;
+  color: var(--color-muted-foreground);
+  pointer-events: none;
+}
+.portal .cf-bar-input > .ui-input {
+  padding-left: calc(var(--space-32) + var(--space-4));
+}
+.portal .cf-tools > .helper {
+  margin: 0;
+  font-size: 13px;
+}
+@media (max-width: 640px) {
+  .portal .cf-bar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.portal .cf-intro {
+  display: flex;
+  gap: var(--space-12);
+  align-items: flex-start;
+  margin: 0;
+  color: var(--color-muted-foreground);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.portal .cf-intro svg {
+  flex: 0 0 auto;
+  width: var(--space-20);
+  height: var(--space-20);
+  margin-top: 1px;
+}
+/* The count of settings shown, and its share of every setting as a progress bar under it: aqua on the
+   muted track, filled by background-size so a search narrowing the list is seen narrowing it. */
+.portal .cf-area > .ss-version {
+  display: grid;
+  gap: var(--space-8);
+  max-width: 20rem;
+  margin: 0;
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+}
+.portal .cf-area > .ss-version::after {
+  content: "";
+  height: 6px;
   border-radius: var(--r-pill);
+  background:
+    linear-gradient(var(--color-accent), var(--color-accent)) 0 0 / calc(var(--cf-share, 1) * 100%) 100% no-repeat,
+    var(--color-muted);
+}
+.portal .cf-link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  font-size: 14px;
+}
+.portal .cf-link > span {
+  flex: 1 1 16rem;
+}
+
+/* An engine's group: its heading and what it decides, then its settings. The group is not a card — each
+   setting is — so no card sits inside another. */
+.portal .ss-panel {
+  display: grid;
+  gap: var(--space-12);
+  margin: var(--space-16) 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+.portal .ss-panel > .section-title {
+  margin: 0;
+}
+.portal .ss-panel > .section-title h2 {
+  margin: 0;
+  color: var(--color-foreground);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+.portal .ss-panel > .helper,
+.portal .ss-panel > .ss-version {
+  margin: 0;
+}
+.portal .ss-version {
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+}
+.portal ol.panel.ss-timings {
+  display: grid;
+  gap: var(--space-12);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  list-style: none;
+  container: cf-cards / inline-size;
+}
+.portal ol.panel.ss-timings::before {
+  display: none;
+}
+
+/* ---- The setting card: the handoff's Card, in two halves -----------------------------------------
+   Where the setting stands is a rule down its leading edge — the warning ink while a clinical review waits,
+   the aqua once changed, the card's own border at its default — beside the words that say the same. */
+.portal .ss-timing {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-16);
+  margin: 0;
+  padding: var(--space-20);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+  color: var(--color-foreground);
+}
+.portal .ss-timing + .ss-timing {
+  border-top: 1px solid var(--color-border);
+}
+.portal .ss-timing[data-standing="changed"] {
+  border-left: 3px solid var(--color-accent);
+}
+.portal .ss-timing[data-standing="review"] {
+  border-left: 3px solid var(--ui-warning-ink);
+}
+.portal .ss-timing-main,
+.portal .ss-timing-side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-12);
+  align-content: start;
+  min-width: 0;
+}
+.portal .ss-timing-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-12) var(--space-32);
+  align-items: start;
+}
+.portal .ss-timing[data-figure="words"] .ss-timing-head {
+  grid-template-columns: minmax(0, 1fr);
+}
+.portal .ss-timing-name {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.portal .ss-timing-head strong {
+  color: var(--color-foreground);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.portal .ss-help {
+  max-width: 64ch;
+  margin: 0;
+  color: var(--color-muted-foreground);
+  font-size: 14px;
+  line-height: 1.55;
+}
+/* The value in force: MetricCard's label over MetricCard's numeral. */
+.portal .ss-in-force {
+  display: grid;
+  justify-items: end;
+  align-content: start;
+  gap: var(--space-4);
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--color-foreground);
+}
+.portal .ss-timing[data-figure="words"] .ss-in-force {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: var(--space-4) var(--space-12);
+}
+.portal .ss-in-force small {
+  padding: 0;
+  background: none;
+  color: var(--color-muted-foreground);
   font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.2px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.portal .ss-figure {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding: 0;
+  background: none;
+  color: var(--color-foreground);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.portal .pt-status.is-connected,
-.portal .pt-build.is-built {
-  background: var(--teal-soft);
-  color: var(--teal-ink);
+.portal .ss-figure-n {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.15;
 }
-.portal .pt-status.is-degraded {
-  background: var(--mango-soft);
-  color: var(--mango-ink);
-}
-.portal .pt-status.is-disconnected,
-.portal .pt-build.is-named-but-absent {
-  background: var(--danger-soft);
-  color: var(--danger);
-}
-.portal .pt-status.is-dark,
-.portal .pt-build.is-dark {
-  background: var(--charcoal);
-  color: var(--surface);
-}
-.portal .pt-status.is-not-configured,
-.portal .pt-build.is-proposed {
-  background: var(--cloud);
-  color: var(--charcoal);
-}
-.portal .pt-status.is-gated,
-.portal .pt-build.is-gated {
-  background: var(--pale-sage);
-  color: var(--charcoal);
-}
-.portal .pt-status-sentence {
-  color: var(--faint);
-  font-size: 13px;
-}
-.portal .pt-checking {
-  color: var(--faint);
+.portal .ss-figure-unit {
+  color: var(--color-muted-foreground);
   font-size: 14px;
-}
-.portal .pt-legend {
-  margin-top: var(--space-12);
-  color: var(--charcoal);
-}
-.portal .pt-legend summary {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
   font-weight: 500;
 }
-.portal .pt-legend dl {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
+.portal .ss-figure.is-words {
+  display: inline;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.45;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
-.portal .pt-legend dl > div {
+.portal .ss-standing {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-12);
-  align-items: baseline;
+  align-items: center;
+  gap: var(--space-8) var(--space-12);
 }
-.portal .pt-legend dd {
+.portal .ss-standing .cf-review {
+  white-space: normal;
+}
+.portal .ss-standing .cf-review svg {
+  flex: 0 0 auto;
+  width: var(--space-16);
+  height: var(--space-16);
+}
+.portal .ss-meta {
   margin: 0;
-  color: var(--charcoal);
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.portal .ss-timing-main > .cf-open {
+  justify-self: start;
+}
+.portal .cf-about {
+  display: grid;
+  gap: var(--space-8);
+  min-width: 0;
+}
+.portal .cf-rules {
+  display: grid;
+  gap: var(--space-8);
+  margin: var(--space-4) 0 0;
+  padding-top: var(--space-12);
+  border-top: 1px solid var(--color-border);
+}
+.portal .cf-rules > div {
+  display: grid;
+  grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+  gap: var(--space-4) var(--space-16);
   font-size: 14px;
 }
-
-/* ---- Empty and loading ------------------------------------------------------------------------- */
-.portal .pt-empty {
-  padding: var(--space-16);
-  border-radius: var(--r-card);
-  border: 1px dashed var(--faint);
-  background: var(--pane);
-  color: var(--charcoal);
-}
-.portal .pt-empty strong {
-  display: block;
-  margin-bottom: var(--space-8);
+.portal .cf-rules dt {
+  color: var(--color-muted-foreground);
+  font-size: 13px;
   font-weight: 600;
+  letter-spacing: .04em;
+  line-height: 1.6;
+  text-transform: uppercase;
 }
-.portal .pt-empty p {
+.portal .cf-rules dd {
   margin: 0;
+  color: var(--color-foreground);
   line-height: 1.55;
-  color: var(--charcoal);
 }
-.portal .pt-loading {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-12);
-  padding: var(--space-24) 0;
-  color: var(--charcoal);
+@media (max-width: 640px) {
+  .portal .cf-rules > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
-.portal .pt-loading p {
-  margin: 0;
-  color: var(--faint);
-}
-/* A skeleton that stands still. The pulse most skeletons carry is motion a reader did not ask for, and
-   a still block says "something goes here" just as well. */
-.portal .pt-skeleton {
-  display: block;
-  height: 20px;
-  width: min(28rem, 100%);
-  border-radius: var(--r-control);
-  background: var(--cloud);
-}
-.portal .pt-skeleton.short {
-  width: min(16rem, 70%);
+@container cf-cards (min-width: 760px) {
+  .portal .ss-timing {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    align-items: start;
+    gap: var(--space-24) var(--space-32);
+  }
+  .portal .ss-timing-side {
+    padding-left: var(--space-24);
+    border-left: 1px solid var(--color-border);
+  }
+  .portal .ss-timing-side .cf-rules > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
 }
 
-/* ---- GilbertOne, not built ------------------------------------------------------------------- */
-.portal .pt-g1-state {
-  display: flex;
-  gap: var(--space-16);
-  align-items: center;
-  padding: var(--space-16);
-  border-radius: var(--r-card);
-  background: var(--pane);
-  border: 1px solid var(--pane-line);
-  margin-bottom: var(--space-16);
-  color: var(--charcoal);
+/* The history as a timeline: a rail down the first column with an aqua dot at each change, and the table
+   underneath it still a table — the header cells, the order and every word are what they were. */
+.portal .cf-history > .table-scroll {
+  margin-top: var(--space-8);
 }
-.portal .pt-g1-state p {
-  margin: var(--space-8) 0 0;
+.portal .cf-timeline tbody td {
+  padding: var(--space-8) var(--space-12);
+}
+.portal .cf-timeline thead th:first-child {
+  padding-left: var(--space-32);
+}
+.portal .cf-timeline tbody td:is(:nth-child(3), :nth-child(4)) {
+  min-width: 6rem;
+}
+.portal .cf-timeline tbody td:first-child {
+  position: relative;
+  padding-left: var(--space-32);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.portal .cf-timeline tbody td:first-child::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 11px;
+  width: 2px;
+  background: var(--color-border);
+}
+.portal .cf-timeline tbody td:first-child::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: 6px;
+  width: 12px;
+  height: 12px;
+  box-sizing: border-box;
+  border: 2px solid var(--color-surface);
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+.portal .cf-timeline tbody tr:first-child td:first-child::before {
+  top: 14px;
+}
+.portal .cf-timeline tbody tr:last-child td:first-child::before {
+  bottom: calc(100% - 20px);
+}
+
+/* ---- The change form: a raised panel inside the card, its fields white on it ---------------------- */
+.portal .ss-form {
+  display: grid;
+  gap: var(--space-12);
+  max-width: none;
+  margin: 0;
+  padding: var(--space-20);
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
+}
+.portal .ss-form > * {
+  max-width: 44rem;
+  margin-block: 0;
+}
+.portal .ss-form > label,
+.portal .ss-form :is(.fc-chips, .cf-choices) > legend {
+  color: var(--color-foreground);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.43;
+}
+.portal .ss-form > .helper {
+  color: var(--color-muted-foreground);
+}
+.portal .ss-form .button-row,
+.portal .ss-confirm .button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  margin: var(--space-4) 0 0;
+}
+.portal .ss-form .fc-savebar {
+  max-width: none;
+}
+/* The confirmation: the moment a change is about to reach every desk it names. The handoff's Alert shape
+   with the primary ink as its edge, so it stands out of the form without a second colour. */
+.portal .ss-confirm {
+  display: grid;
+  gap: var(--space-8);
+  padding: var(--space-16);
+  border: 1px solid color-mix(in oklab, var(--color-primary) 35%, transparent);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--r-md);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+}
+.portal .ss-confirm strong {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.portal .ss-confirm p {
+  margin: 0;
+  color: var(--color-foreground);
+  font-size: 14px;
   line-height: 1.5;
 }
-.portal .pt-g1-large {
-  width: 64px;
-  height: 57px;
-  flex: 0 0 auto;
+/* The two steps as two segments of a progress bar: the second fills when the review is asked for. */
+.portal .cf-steps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 12rem;
+}
+.portal .cf-steps > i {
+  position: relative;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--r-pill);
+  background: var(--color-muted);
+}
+.portal .cf-steps > i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--color-accent);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+.portal .cf-steps > i:first-child::after,
+.portal .cf-steps[data-step="confirm"] > i:last-child::after {
+  transform: none;
+}
+.portal .cf-choices {
+  display: grid;
+  gap: var(--space-12);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.portal .cf-choices > legend {
+  margin: 0 0 var(--space-8);
+  padding: 0;
+}
+.portal .cf-window {
+  display: grid;
+  gap: var(--space-12);
+  padding: var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-md);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+}
+.portal .cf-window > label,
+.portal .cf-hours label {
+  color: var(--color-foreground);
+  font-size: 14px;
+  font-weight: 600;
+}
+.portal .cf-hours {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-12);
+}
+.portal .cf-hours label {
+  display: grid;
+  gap: calc(var(--space-12) / 2);
+}
+.portal .cf-area .ui-button svg {
+  width: var(--space-16);
+  height: var(--space-16);
+}
+@media (max-width: 599px) {
+  .portal .ss-timing {
+    padding: var(--space-16);
+  }
+  .portal .ss-timing-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .portal .ss-in-force {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: flex-start;
+    gap: var(--space-4) var(--space-12);
+  }
+  .portal .ss-figure-n {
+    font-size: 28px;
+  }
+  .portal .ss-form {
+    padding: var(--space-16);
+  }
 }
 
-/* ---- GilbertOne API Administration, Phase 4 ----------------------------------------------------
-   The seven sub-screens (features/portal/gilbertone/). What is new is the disabled action and the
-   sentence that holds it, the locked setting, the provider card and the preview panel. A disabled
-   control is clinical.css's flat cloud wash with faint on it, a pair the token file measures, never a
-   translucent grey; a locked setting is text on the soft teal, with a lock icon that is decoration. The
-   registry's card states reuse the portal's status grounds where the word means the same thing, and
-   the one word the registry adds — configured — takes the gated ground: present, and not checked.
-   Motion here is the shared system's settle, added once at the foot of this sheet. */
+/* ---- GilbertOne API Administration --------------------------------------------------------------
+   The seven sub-screens (features/portal/gilbertone/). A provider's card, a register, a group of knobs, a
+   founder key: tiles on the raised ground inside their section's card. A disabled action is the handoff's
+   secondary Button, disabled, with the gate's sentence as text beside it; a locked setting is text with a
+   lock mark, never a control; a notice a capability contract writes is drawn whole in the warning shape. */
 .portal .g1-grid {
   display: grid;
-  gap: var(--space-16);
   grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-12);
 }
 @media (min-width: 1000px) {
   .portal .g1-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-.portal .g1-card {
-  padding: var(--space-16);
-  border-radius: var(--r-card);
-  border: 1px solid var(--pane-line);
-  background: var(--pane);
-  color: var(--charcoal);
+.portal .g1-card,
+.portal .g1-founder-key {
   min-width: 0;
+  margin: 0;
+  padding: var(--space-16) var(--space-20);
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
 }
 .portal .g1-card h3 {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-8);
 }
-.portal .g1-card .pt-facts {
+.portal .g1-card .pt-facts,
+.portal .pt-facts.g1-facts,
+.portal .g1-founder-meta {
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
+  margin: var(--space-8) 0 0;
 }
 .portal .g1-fact {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-4);
+  gap: 2px;
 }
 @media (min-width: 700px) {
   .portal .g1-fact {
@@ -632,15 +1709,16 @@
   }
 }
 .portal .g1-fact dt {
+  color: var(--color-muted-foreground);
+  font-size: 13px;
   font-weight: 600;
-  color: var(--charcoal);
-  font-size: 14px;
+  line-height: 1.55;
 }
 .portal .g1-fact dd {
   margin: 0;
-  color: var(--charcoal);
+  color: var(--color-foreground);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
   overflow-wrap: anywhere;
 }
 .portal .g1-cards .pt-row {
@@ -649,33 +1727,37 @@
   border: 0;
   background: none;
 }
-.portal .g1-cards .pt-row > .g1-card {
-  margin: 0;
-}
 .portal .g1-inline {
   display: inline-block;
   margin-right: var(--space-8);
 }
-.portal .g1-tag {
-  display: inline-block;
-  padding: 2px var(--space-8);
-  border-radius: var(--r-pill);
-  background: var(--cloud);
-  color: var(--charcoal);
-  font-size: 13px;
-  font-weight: 600;
-}
-.portal .pt-row > .g1-tag {
-  flex: 0 0 auto;
+.portal .g1-subregion {
+  display: grid;
+  gap: var(--space-8);
 }
 .portal .g1-subregion + .g1-subregion {
-  margin-top: var(--space-16);
+  margin-top: var(--space-8);
 }
 .portal .g1-subregion h3 {
-  margin: 0 0 var(--space-8);
+  margin: 0;
+  color: var(--color-foreground);
+  font-family: var(--font-display);
   font-size: 16px;
   font-weight: 600;
-  color: var(--charcoal);
+}
+.portal .g1-param .g1-param-who {
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.portal .g1-param .g1-param-range {
+  padding: var(--space-8) var(--space-12);
+  border-left: 3px solid var(--ui-warning-ink);
+  border-radius: var(--r-sm);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .portal .g1-action,
@@ -690,47 +1772,47 @@
   flex-wrap: wrap;
   gap: var(--space-8);
 }
-.portal .g1-disabled {
-  min-height: 44px;
-  min-width: 44px;
-  padding: var(--space-8) var(--space-16);
-  border: 1px solid var(--stone);
+.portal .g1-disabled:disabled {
   cursor: not-allowed;
-  font-size: 15px;
 }
 .portal .g1-refusal {
   margin: 0;
-  color: var(--charcoal);
+  color: var(--color-foreground);
   font-size: 14px;
   line-height: 1.5;
 }
-.portal .g1-check {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-8);
-  min-height: 44px;
-  color: var(--charcoal);
-  cursor: not-allowed;
+.portal .g1-refusal strong {
+  font-weight: 600;
 }
-.portal .g1-check input {
-  width: 20px;
-  height: 20px;
+.portal .g1-live-why {
+  margin: 0;
+  color: var(--color-foreground);
+  font-size: 14px;
+  line-height: 1.5;
 }
+/* A locked setting: the handoff's Alert shape in its neutral voice — a white block with the lock as its
+   mark — because it is a fact about the platform, not a warning. */
 .portal .g1-locked {
   display: flex;
   gap: var(--space-12);
   align-items: flex-start;
+  margin: 0;
   padding: var(--space-16);
-  margin: 0 0 var(--space-12);
-  border-radius: var(--r-card);
-  background: var(--teal-soft);
-  color: var(--teal-ink);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-md);
+  background: var(--color-surface);
+  color: var(--color-foreground);
 }
 .portal .g1-locked svg {
   flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
-  margin-top: 2px;
+  width: var(--space-20);
+  height: var(--space-20);
+  margin-top: 1px;
+  color: var(--color-muted-foreground);
+}
+.portal .g1-locked > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .portal .g1-locked strong {
   display: block;
@@ -739,35 +1821,29 @@
 }
 .portal .g1-locked p {
   margin: 0;
+  color: var(--color-foreground);
+  font-size: 14px;
   line-height: 1.55;
-  color: var(--teal-ink);
 }
 .portal .g1-locked-cell {
-  color: var(--charcoal);
+  color: var(--color-muted-foreground);
   font-size: 14px;
 }
+/* A capability's own not-connected sentence (capabilities.json): drawn whole, in the warning shape. */
 .portal .g1-notice {
+  margin: 0 0 var(--space-8);
   padding: var(--space-8) var(--space-12);
-  border-radius: var(--r-control);
-  background: var(--mango-soft);
-  color: var(--ink);
+  border: 1px solid color-mix(in oklab, var(--color-warning) 50%, transparent);
+  border-left: 3px solid var(--ui-warning-ink);
+  border-radius: var(--r-md);
+  background: var(--color-surface);
+  color: var(--color-foreground);
   font-size: 14px;
+  line-height: 1.5;
 }
 
-.portal .pt-status.g1-card-status.is-configured {
-  background: var(--pale-sage);
-  color: var(--charcoal);
-}
-.portal .pt-status.g1-card-status.is-error,
-.portal .pt-status.g1-card-status.is-rate-limited {
-  background: var(--danger-soft);
-  color: var(--danger);
-}
-.portal .pt-status.g1-card-status.is-key-expiring {
-  background: var(--mango-soft);
-  color: var(--mango-ink);
-}
-
+/* Fields drawn by a GilbertOne screen itself: the shared field's classes on native elements (Controls.tsx
+   says why), laid out here. */
 .portal .g1-form {
   display: flex;
   flex-direction: column;
@@ -777,80 +1853,88 @@
 .portal .g1-field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: calc(var(--space-12) / 2);
   min-width: 0;
-  color: var(--charcoal);
+  color: var(--color-foreground);
 }
 .portal .g1-field > span {
   font-size: 14px;
   font-weight: 600;
-}
-.portal .g1-field input,
-.portal .g1-field select,
-.portal .g1-field textarea {
-  min-height: 44px;
-  max-width: 100%;
-  padding: var(--space-8) var(--space-12);
-  font-size: 15px;
-}
-.portal .g1-field input:disabled {
-  background: var(--cloud);
-  border-color: var(--stone);
-  color: var(--faint);
-  cursor: not-allowed;
-}
-.portal .g1-field textarea {
-  min-height: 88px;
-  resize: vertical;
+  line-height: 1.43;
 }
 .portal .g1-field small {
-  color: var(--faint);
+  color: var(--color-muted-foreground);
   font-size: 13px;
   line-height: 1.45;
 }
+.portal .g1-field textarea {
+  min-height: calc(var(--space-32) * 3);
+}
+.portal .g1-source {
+  margin: 0;
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--r-md);
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
+  font-size: 14px;
+  line-height: 1.5;
+}
 
+/* The voice preview: questions, three fields and the sentence, the cost, then Play. */
 .portal .g1-preview {
   display: flex;
   flex-direction: column;
   gap: var(--space-12);
+  min-width: 0;
+  color: var(--color-foreground);
+}
+.portal .g1-details .g1-preview {
+  margin-top: var(--space-8);
   padding: var(--space-16);
-  border-radius: var(--r-card);
-  border: 1px solid var(--pane-line);
-  background: var(--pane);
-  color: var(--charcoal);
+  border-radius: var(--r-md);
+  background: var(--color-surface);
 }
 .portal .g1-questions {
   margin: 0;
   padding-left: var(--space-20);
+  color: var(--color-foreground);
   font-size: 14px;
   line-height: 1.55;
-  color: var(--charcoal);
 }
 .portal .g1-preview-fields {
   display: grid;
-  gap: var(--space-12);
   grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-12);
 }
 @media (min-width: 1000px) {
   .portal .g1-preview-fields {
-    grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 14rem));
+  }
+  .portal .g1-preview-fields .wide {
+    grid-column: 1 / -1;
   }
 }
 .portal .g1-verdict,
 .portal .g1-rejected {
-  margin: 0;
   min-height: 1.5em;
+  margin: 0;
   font-size: 14px;
   line-height: 1.5;
 }
 .portal .g1-verdict {
-  color: var(--charcoal);
+  color: var(--color-foreground);
 }
+.portal .g1-verdict:empty {
+  min-height: 0;
+}
+/* A rejection is the handoff's danger Alert in shape: its tinted edge and its measured ink. */
 .portal .g1-rejected {
   padding: var(--space-8) var(--space-12);
-  border-radius: var(--r-control);
-  background: var(--danger-soft);
-  color: var(--danger);
+  border: 1px solid color-mix(in oklab, var(--color-danger) 35%, transparent);
+  border-left: 3px solid var(--ui-danger-ink);
+  border-radius: var(--r-md);
+  background: var(--color-surface);
+  color: var(--ui-danger-ink);
   font-weight: 600;
 }
 .portal .g1-cost {
@@ -859,26 +1943,224 @@
   gap: var(--space-8);
   margin: 0;
 }
-.portal .g1-details {
+.portal .g1-save {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  max-width: 36rem;
   margin-top: var(--space-12);
 }
-.portal .g1-details > summary {
-  min-height: 44px;
-  display: flex;
+
+/* The live action: the handoff's primary Button. The button keeps the two class names the build reads
+   word for word (Controls.tsx#LiveButton), so its face is given here with the primary's own values. */
+.portal .g1-live {
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  min-height: var(--ui-target, 44px);
+  padding: 0 var(--space-16);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
-  font-weight: 500;
-  color: var(--charcoal);
+  filter: none;
+}
+.portal .g1-live:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--color-primary) 90%, var(--ui-press-mix, transparent));
+}
+.portal .g1-live:active:not(:disabled) {
+  background: color-mix(in oklab, var(--color-primary) 80%, var(--ui-press-mix, transparent));
+}
+.portal .g1-live:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+/* ---- Speech settings: the change fields on top ---------------------------------------------------
+   Inside its section's card: the intro, a register tile per presentation register, the knob groups, and
+   the save bar at the foot. A tile is the raised ground; the chips and sliders on it are white fields,
+   measured on white, and their ring clears 3:1 on the raised ground too. */
+.portal .g1-change {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-16);
+  min-width: 0;
+}
+.portal .g1-change-intro {
+  margin: 0;
+  color: var(--color-foreground);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.portal .g1-change-heading {
+  margin: var(--space-8) 0 0;
+  color: var(--color-foreground);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+}
+.portal .g1-registers {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-12);
+}
+@media (min-width: 900px) {
+  .portal .g1-registers {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.portal .g1-register,
+.portal .g1-knob-group {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-12);
+  align-content: start;
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-16);
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
+}
+.portal .g1-register h4,
+.portal .g1-knob-group h4 {
+  margin: 0;
+  color: var(--color-foreground);
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+}
+.portal .g1-register-why,
+.portal .g1-register-inforce {
+  margin: 0;
+  color: var(--color-muted-foreground);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.portal .g1-knob-groups {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-12);
+  align-items: start;
+}
+@media (min-width: 1200px) {
+  .portal .g1-knob-groups {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+/* A knob inside its group: a white row, so the slider's track and the chips sit on white. */
+.portal .g1-knob {
+  margin: 0;
+  padding: var(--space-12);
+  border-radius: var(--r-md);
+  background: var(--color-surface);
+}
+.portal .g1-knob-chips > legend span,
+.portal .g1-knob .fc-switch-label span:not(.fc-switch-state) {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-muted-foreground);
+  font-weight: 400;
+}
+.portal .g1-knob-chips > legend strong {
+  display: block;
+}
+.portal .g1-register .g1-live,
+.portal .g1-knob-group .g1-live {
+  justify-self: start;
+}
+.portal .g1-change > .g1-savebar {
+  margin-top: var(--space-8);
+}
+.portal .g1-savebar .g1-reason {
+  max-width: none;
+}
+/* The fold: one closed disclosure under the preview, the handoff's Card, its summary a heading and a line. */
+.portal .g1-fold {
+  margin: var(--space-8) 0 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+  color: var(--color-foreground);
+}
+.portal .g1-fold > summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-4) var(--space-16);
+  align-items: center;
+  min-height: 56px;
+  padding: var(--space-16) var(--space-20);
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  list-style: none;
+}
+.portal .g1-fold > summary > h2 {
+  grid-column: 1;
+  margin: 0;
+  color: var(--color-foreground);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+}
+.portal .g1-fold > summary > span {
+  grid-column: 1;
+  color: var(--color-muted-foreground);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.portal .g1-fold > summary::after {
+  content: "";
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  width: 8px;
+  height: 8px;
+  margin-right: var(--space-4);
+  border: solid var(--color-muted-foreground);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.portal .g1-fold[open] > summary::after {
+  transform: rotate(-135deg);
+}
+.portal .g1-fold-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-16);
+  padding: 0 var(--space-20) var(--space-20);
+  overflow-wrap: anywhere;
+}
+/* A section inside the fold is not a second card: it is divided from the one before by a hairline. */
+.portal .g1-fold-body > .pt-section {
+  margin: 0;
+  padding: var(--space-16) 0 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  border-radius: 0;
+  box-shadow: none;
+}
+@media (max-width: 599px) {
+  .portal .g1-register,
+  .portal .g1-knob-group {
+    padding: var(--space-12);
+  }
+  .portal .g1-fold > summary,
+  .portal .g1-fold-body {
+    padding-inline: var(--space-16);
+  }
 }
 
 /* ---- The gated level selector (GilbertOne · Intelligence) ---------------------------------------
-   A slider whose ends are the contract's, drawn aria-disabled beside G31. It is a role="slider" div,
-   not an <input>: a range with no value would rest at its midpoint and read as a level nobody set, and
-   the boundary check rightly forbids a value on any field these screens draw. The component hands this
-   sheet a --pt-ratio of the contract's own numbers and the calc below turns it into the thumb's place,
-   every colour is a token, the chip reuses the mango-soft-on-ink pair the notices already use, and the
-   44px row meets the target floor even though it moves nothing. No transition: a control that cannot
-   be moved has nothing to settle, and the panel's own rise is the only motion this region carries. */
+   The same slider as Fields.tsx's, held: aria-disabled beside its gate and moving nothing, placed by the
+   contract's own ratio (--pt-ratio). No hover and no transition: a control that cannot be moved has
+   nothing to settle. */
 .portal .pt-slider {
   display: flex;
   flex-direction: column;
@@ -891,14 +2173,23 @@
   align-items: center;
   gap: var(--space-8);
 }
+.portal .pt-slider-rail {
+  position: relative;
+  height: 28px;
+  margin: 0 14px;
+}
 .portal .pt-slider-chip {
-  display: inline-block;
-  padding: var(--space-4) var(--space-12);
-  border-radius: var(--r-pill);
-  background: var(--mango-soft);
-  color: var(--ink);
-  font-size: 14px;
+  position: absolute;
+  top: 0;
+  left: calc(var(--pt-ratio, 0) * 100%);
+  transform: translateX(calc(var(--pt-ratio, 0) * -100%));
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--r-sm);
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
 }
 .portal .pt-range {
   display: flex;
@@ -912,27 +2203,27 @@
   flex: 1 1 auto;
   height: 6px;
   border-radius: var(--r-pill);
-  background: var(--stone);
+  background: var(--color-muted);
 }
 .portal .pt-range-fill {
   position: absolute;
-  left: 0;
   top: 0;
+  left: 0;
+  width: calc(var(--pt-ratio, 0) * 100%);
   height: 6px;
   border-radius: var(--r-pill);
-  background: var(--pale-sage);
-  width: calc(var(--pt-ratio, 0) * 100%);
+  background: var(--color-muted-foreground);
 }
 .portal .pt-range-thumb {
   position: absolute;
   top: 50%;
   left: calc(var(--pt-ratio, 0) * 100%);
-  width: 28px;
-  height: 28px;
-  margin: -14px 0 0 -14px;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid var(--color-muted-foreground);
   border-radius: var(--r-pill);
-  background: var(--charcoal);
-  border: 2px solid var(--surface);
+  background: var(--color-surface);
 }
 .portal .pt-slider-ticks {
   display: flex;
@@ -940,40 +2231,35 @@
   padding: 0 var(--space-4);
 }
 .portal .pt-slider-tick {
-  color: var(--faint);
+  color: var(--color-muted-foreground);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 
-/* The Voice screen's parameters, as gated cards: who may set each, and — where user-preferences.json
-   holds no range — the axis's own "not decided" reason in a mango notice. Every colour is a token and
-   both pairs (charcoal on the card, ink on mango) are rows the notices and cards already use. */
-.portal .g1-card .g1-param-who {
-  color: var(--charcoal);
-  font-size: 13px;
-  /* A "from" line is a contract path — packages/catalog/assistant.json#voice.languages[].recognitionLocales
-     — with nothing in it a browser will break at, and on a 390 px phone it was the one thing on the
-     Voice screen that widened main and scrolled the whole page sideways. */
-  overflow-wrap: anywhere;
-}
-.portal .g1-card .g1-param-range {
-  margin: 0 0 var(--space-8);
-  padding: var(--space-8) var(--space-12);
-  border-radius: var(--r-control);
-  background: var(--mango-soft);
-  color: var(--ink);
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-/* ---- Founder access (packages/catalog/founder-access.json) -------------------------------------
-   The one live form on the GilbertOne screens. Every colour is a token; the revealed key breaks
-   anywhere so a long key never scrolls a phone sideways; every control is at least 44px. */
+/* ---- Founder access and the founder's controls ----------------------------------------------------
+   The one live form on the GilbertOne screens (founder/FounderAccess.tsx) and the founder's controls on a
+   card (founder/FounderActions.tsx). The settings gate's panel is a white card of its own, since it stands
+   where an editor would; the controls on a card are a white block on the card's raised tile. */
 .portal .g1-founder {
   display: flex;
   flex-direction: column;
   gap: var(--space-12);
   min-width: 0;
+}
+.portal .g1-founder-gate {
+  padding: var(--space-20);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+}
+.portal .g1-founder > .helper,
+.portal .g1-founder > p {
+  margin: 0;
+}
+.portal .g1-founder > .ui-button,
+.portal .g1-founder-form > .ui-button {
+  align-self: flex-start;
 }
 .portal .g1-founder-session {
   display: flex;
@@ -983,46 +2269,30 @@
 }
 .portal .g1-founder-session p {
   margin: 0;
-  color: var(--charcoal);
+  color: var(--color-foreground);
+  font-size: 14px;
 }
 .portal .g1-founder-keys {
-  list-style: none;
-  margin: 0;
-  padding: 0;
   display: grid;
   gap: var(--space-12);
-}
-.portal .g1-founder-key {
-  padding: var(--space-16);
-  border-radius: var(--r-card);
-  border: 1px solid var(--pane-line);
-  background: var(--pane);
-  color: var(--charcoal);
-  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 .portal .g1-founder-key-name {
-  margin: 0 0 var(--space-8);
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-8);
   align-items: baseline;
+  gap: var(--space-8);
+  margin: 0 0 var(--space-8);
 }
 .portal .g1-founder-form {
   margin-top: var(--space-12);
 }
-.portal .g1-founder-button {
-  min-height: 44px;
-  min-width: 44px;
-  padding: var(--space-8) var(--space-16);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-8);
-  font-size: 15px;
-}
 .portal .g1-founder-button svg {
-  width: 18px;
-  height: 18px;
   flex: 0 0 auto;
+  width: var(--space-16);
+  height: var(--space-16);
 }
 .portal .g1-founder-revealed {
   display: flex;
@@ -1033,187 +2303,83 @@
 .portal .g1-founder-secret {
   display: block;
   padding: var(--space-8) var(--space-12);
-  border-radius: var(--r-control);
-  background: var(--cloud);
-  color: var(--ink);
-  font-size: 15px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-md);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  font-size: 14px;
   overflow-wrap: anywhere;
   word-break: break-all;
 }
 .portal .g1-founder-refusal {
   margin: 0;
   padding: var(--space-8) var(--space-12);
-  border-radius: var(--r-control);
-  background: var(--mango-soft);
-  color: var(--ink);
+  border: 1px solid color-mix(in oklab, var(--color-warning) 50%, transparent);
+  border-left: 3px solid var(--ui-warning-ink);
+  border-radius: var(--r-md);
+  background: var(--color-surface);
+  color: var(--color-foreground);
   font-size: 14px;
   line-height: 1.5;
 }
 .portal .g1-founder-note {
   margin: var(--space-8) 0 0;
-  color: var(--charcoal);
+  color: var(--color-foreground);
   font-size: 14px;
 }
-.portal .g1-founder-details {
+.portal .g1-founder-details,
+.portal .g1-details {
   margin-top: var(--space-12);
 }
-.portal .g1-founder-details > summary {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  font-weight: 500;
-  color: var(--charcoal);
+.portal .g1-founder-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-12);
+  margin-top: var(--space-12);
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--r-md);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+}
+.portal .g1-founder-live:disabled {
+  cursor: not-allowed;
+}
+.portal .g1-founder-code {
+  max-width: 20rem;
+}
+.portal .g1-founder-logs .pt-label {
+  margin: 0 0 var(--space-8);
+}
+
+/* ---- Focus: the shared components' ring, on everything the portal draws -------------------------
+   core.css draws two rings — a mango inner ring and a 7-pixel ink halo — on anything that has not adopted
+   the shared components. In the portal every focusable thing wears the components' one ring instead, so a
+   field, a button, a tab, a row and a summary are ringed the same way, whichever drew them: 2 pixels of
+   the ring colour, 2 pixels out, no halo. Specific rules above move the ring inside a control where the
+   control's own box would clip it. */
+.portal :focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+.portal :is(input, textarea, select):not([type="range"], [type="checkbox"], [type="radio"]):focus-visible {
+  border-color: var(--color-ring);
 }
 
 /* ---- DEMO DATA — for show and tell only ──────────────────────────────────────────────────────
-   The metric cards, area chart and demo banner on the Overview screen read invented figures from
-   packages/catalog/control-tower-overview-demo.json. Every style below is a token pair; the banner
-   uses the mango-soft ground the notices already use, the cards reuse the pane/charcoal pair, and
-   the chart's area and line are pale-sage and charcoal — the same two the clinical charts draw.
-   The .pt-sr-table is visually hidden but present for screen readers. When a real data source
-   replaces the demo file, this whole block comes out with it. */
-.portal .pt-demo-banner {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-8) var(--space-16);
-  align-items: baseline;
-  padding: var(--space-12) var(--space-16);
-  border-radius: var(--r-card);
-  background: var(--mango-soft);
-  color: var(--ink);
-  font-size: 14px;
-  line-height: 1.5;
+   The Overview's, the Founder dashboard's and Dispatch's demonstrations read invented figures from their
+   demo files. Each opens with the handoff's warning Alert saying so (.pt-demo-banner) in its own words;
+   what is here lays out the rest on the same tokens. When a real source replaces a demo file, its block
+   comes out with it. */
+.portal .pt-demo-banner .ui-alert__text p {
+  margin: 0;
 }
-.portal .pt-demo-banner strong {
-  font-weight: 700;
-}
-.portal .pt-demo-banner span {
-  flex: 1 1 18rem;
-}
-
-.portal .pt-metric-row {
-  display: grid;
-  gap: var(--space-16);
-  grid-template-columns: minmax(0, 1fr);
-  padding: var(--space-24);
-  border-radius: var(--r-panel);
-  background: var(--aurora-warm);
-}
-@media (min-width: 600px) {
-  .portal .pt-metric-row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-.portal .pt-metric-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-  align-items: flex-start;
-  padding: var(--space-20);
-  border-radius: var(--r-card);
-  border: 1px solid var(--pane-line);
-  min-width: 0;
-  box-shadow: var(--shadow);
-}
-.portal .pt-metric-card.is-teal {
-  background: var(--teal-soft);
-  border-color: var(--teal-light);
-}
-.portal .pt-metric-card.is-info {
-  background: var(--accent-soft);
-  border-color: var(--line);
-}
-.portal .pt-metric-card.is-sage {
-  background: var(--pale-sage);
-  border-color: var(--soft-sage);
-}
-.portal .pt-metric-chip {
-  align-self: flex-end;
-  padding: 2px var(--space-8);
-  border-radius: var(--r-pill);
-  background: var(--mango-soft);
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-}
-.portal .pt-metric-value {
-  font-size: 40px;
-  font-weight: 700;
-  line-height: 1.05;
-  color: var(--charcoal);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.5px;
-}
-.portal .pt-metric-label {
-  font-size: 14px;
-  color: var(--charcoal);
-  font-weight: 500;
-}
-.portal .pt-metric-card:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-raised);
-}
-
-.portal .pt-demo-chart {
-  margin-top: var(--space-20);
-  padding: var(--space-16);
-  border-radius: var(--r-card);
-  border: 1px solid var(--pane-line);
-  background: var(--pane);
-  box-shadow: var(--shadow);
-}
-.portal .pt-demo-chart svg {
-  display: block;
-  width: 100%;
-  height: 180px;
-}
-.portal .pt-demo-area {
-  fill: url(#pt-chart-grad);
-}
-.portal .pt-demo-line {
-  stroke: var(--teal-ink);
-  stroke-width: 2.5;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-.portal .pt-demo-dot {
-  fill: var(--teal-ink);
-  stroke: var(--surface);
-  stroke-width: 2;
-}
-.portal .pt-demo-chart-labels {
-  display: flex;
-  justify-content: space-between;
-  padding: var(--space-8) var(--space-4) 0;
-  color: var(--faint);
-  font-size: 13px;
-  font-weight: 500;
-}
-/* Visually hidden but accessible — the table a screen reader hears instead of the SVG. */
-.portal .pt-sr-table {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-/* ---- DEMO: Founder dashboard (Phase 7) — for show and tell only ──────────────────────────────
-   Progress rings, vault panel, break-glass toggle, system-health rows and deploy sparkline.
-   Every figure reads from packages/catalog/founder-dashboard-demo.json. All token pairs. */
 .portal .pt-demo-rings-row {
   display: flex;
   flex-wrap: wrap;
+  justify-content: space-around;
   gap: var(--space-24);
-  justify-content: center;
-  padding: var(--space-16) 0;
+  padding: var(--space-8) 0;
 }
 .portal .pt-demo-ring {
   display: flex;
@@ -1222,157 +2388,94 @@
   gap: var(--space-4);
 }
 .portal .pt-demo-ring-track {
-  stroke: var(--stone);
+  stroke: var(--color-muted);
 }
 .portal .pt-demo-ring-fill {
-  stroke: var(--charcoal);
+  stroke: var(--color-accent);
 }
 .portal .pt-demo-ring-num {
-  fill: var(--charcoal);
+  fill: var(--color-foreground);
+  font-family: var(--font-display);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .portal .pt-demo-ring-label {
+  color: var(--color-foreground);
   font-size: 14px;
   font-weight: 600;
-  color: var(--charcoal);
 }
 .portal .pt-demo-ring-unit {
+  color: var(--color-muted-foreground);
   font-size: 13px;
-  color: var(--faint);
 }
-.portal .pt-demo-vault {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-  padding: var(--space-16);
-  border-radius: var(--r-card);
-  background: var(--charcoal);
-  color: var(--surface);
-}
-.portal .pt-demo-vault-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-8) var(--space-16);
-  padding: var(--space-8) 0;
-  border-bottom: 1px solid var(--stone);
-}
-.portal .pt-demo-vault-row:last-of-type {
-  border-bottom: none;
-}
-.portal .pt-demo-vault-row strong {
-  color: var(--surface);
-  flex: 0 0 auto;
-}
-.portal .pt-demo-vault-masked {
-  flex: 1 1 auto;
-  overflow-wrap: anywhere;
-  word-break: break-all;
-  padding: var(--space-4) var(--space-8);
-  border-radius: var(--r-control);
-  background: rgba(255 255 255 / 0.08);
-  color: var(--surface);
-  font-size: 14px;
-}
-.portal .pt-demo-vault-note {
-  margin: var(--space-8) 0 0;
-  color: var(--stone);
-  font-size: 13px;
-  line-height: 1.5;
-}
-.portal .pt-demo-breakglass {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-12);
-  padding: var(--space-16);
-  border-radius: var(--r-card);
-  border: 1px solid var(--pane-line);
-  background: var(--pane);
-}
-.portal .pt-demo-toggle-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-16);
-  justify-content: space-between;
-}
-.portal .pt-demo-toggle-label {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  flex: 1 1 auto;
-}
-.portal .pt-demo-toggle-label strong {
-  font-weight: 600;
-  color: var(--charcoal);
-}
-.portal .pt-demo-toggle-label span {
-  font-size: 14px;
-  color: var(--faint);
-  line-height: 1.5;
-}
-.portal .pt-demo-toggle {
-  position: relative;
-  width: 52px;
-  height: 44px;
-  border-radius: var(--r-pill);
-  border: 2px solid var(--stone);
-  cursor: pointer;
-  flex: 0 0 auto;
-  padding: 0;
-}
-.portal .pt-demo-toggle.is-off {
-  background: var(--stone);
-}
-.portal .pt-demo-toggle.is-on {
-  background: var(--brand-green);
-  border-color: var(--brand-green);
-}
-.portal .pt-demo-toggle-thumb {
-  position: absolute;
-  top: 9px;
-  left: 2px;
-  width: 22px;
-  height: 22px;
-  border-radius: var(--r-pill);
-  background: var(--surface);
-  transition: transform var(--t-settle) var(--ease-soft);
-}
-.portal .pt-demo-toggle.is-on .pt-demo-toggle-thumb {
-  transform: translateX(22px);
-}
-.portal .pt-demo-audit-chip {
-  align-self: flex-start;
-  padding: 2px var(--space-8);
-  border-radius: var(--r-pill);
-  background: var(--danger-soft);
-  color: var(--danger);
-  font-size: 13px;
-  font-weight: 600;
-}
-.portal .pt-demo-health-rows {
+.portal .pt-demo-vault,
+.portal .pt-demo-breakglass,
+.portal .pt-demo-health-rows,
+.portal .pt-demo-roster,
+.portal .pt-demo-alerts {
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
 }
-.portal .pt-demo-health-row {
+.portal .pt-demo-vault-row,
+.portal .pt-demo-health-row,
+.portal .pt-demo-roster-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-8) var(--space-16);
   padding: var(--space-12) var(--space-16);
-  border-radius: var(--r-card);
-  border: 1px solid var(--pane-line);
-  background: var(--pane);
+  border-radius: var(--r-md);
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
+  font-size: 14px;
 }
-.portal .pt-demo-health-row strong {
+.portal .pt-demo-vault-row strong,
+.portal .pt-demo-health-row strong,
+.portal .pt-demo-roster-row strong {
   flex: 1 1 auto;
   font-weight: 600;
-  color: var(--charcoal);
 }
-.portal .pt-demo-health-uptime {
-  color: var(--faint);
+.portal .pt-demo-vault-masked {
+  flex: 1 1 auto;
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--r-sm);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+.portal .pt-demo-vault-note {
+  margin: var(--space-4) 0 0;
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.portal .pt-demo-breakglass {
+  padding: var(--space-16);
+  border-radius: var(--r-md);
+  background: var(--color-surface-raised);
+}
+.portal .pt-demo-toggle-label {
+  display: grid;
+  gap: var(--space-4);
+}
+.portal .pt-demo-toggle-label strong {
+  color: var(--color-foreground);
+  font-weight: 600;
+}
+.portal .pt-demo-toggle-label span {
+  color: var(--color-muted-foreground);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.portal .pt-demo-audit-chip {
+  align-self: flex-start;
+}
+.portal .pt-demo-health-uptime,
+.portal .pt-demo-roster-zone {
+  color: var(--color-muted-foreground);
   font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
@@ -1387,1727 +2490,110 @@
   height: auto;
 }
 .portal .pt-demo-spark-bar {
-  fill: var(--charcoal);
+  fill: var(--color-primary);
 }
 .portal .pt-demo-spark-target {
   align-self: flex-end;
   padding: 2px var(--space-8);
   border-radius: var(--r-pill);
-  background: var(--teal-soft);
-  color: var(--teal-ink);
+  background: color-mix(in oklab, var(--color-success) 15%, transparent);
+  color: var(--color-foreground);
   font-size: 13px;
   font-weight: 600;
 }
-
-/* ---- DEMO: Dispatch & Incidents (Phase 4) — for show and tell only ───────────────────────────
-   Schematic map, roster, alerts, segmented mode switcher and risk-trend sparkline.
-   Every figure reads from packages/catalog/dispatch-demo.json. All token pairs. */
+.portal .pt-demo-chart-labels {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-8) var(--space-4) 0;
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+  font-weight: 500;
+}
 .portal .pt-demo-map {
-  border-radius: var(--r-card);
-  border: 1px solid var(--pane-line);
   overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-md);
+  background: var(--color-surface-raised);
 }
 .portal .pt-demo-map-svg {
   display: block;
   width: 100%;
   height: auto;
 }
-.portal .pt-demo-roster {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-}
-.portal .pt-demo-roster-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-8) var(--space-16);
-  padding: var(--space-12) var(--space-16);
-  border-radius: var(--r-card);
-  border: 1px solid var(--pane-line);
-  background: var(--pane);
-}
-.portal .pt-demo-roster-row strong {
-  font-weight: 600;
-  color: var(--charcoal);
-}
-.portal .pt-demo-roster-zone {
-  color: var(--faint);
-  font-size: 14px;
-}
-.portal .pt-demo-alerts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-12);
-}
-.portal .pt-demo-alert {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-16);
-  border-radius: var(--r-card);
-}
-.portal .pt-demo-alert strong {
-  font-weight: 600;
-}
-.portal .pt-demo-alert span {
-  font-size: 14px;
-  line-height: 1.5;
-}
-.portal .pt-demo-alert.is-warning {
-  background: var(--mango-soft);
-  color: var(--ink);
-}
-.portal .pt-demo-alert.is-escalation {
-  background: var(--danger-soft);
-  color: var(--danger);
+.portal .pt-demo-alert .ui-alert__text p {
+  margin: 0;
 }
 .portal .pt-demo-alert-time {
-  color: var(--faint);
+  color: var(--color-muted-foreground);
   font-size: 13px;
 }
+/* The deployment mode: a radio group drawn as the handoff's segmented Tabs. */
 .portal .pt-demo-segmented {
   display: inline-flex;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--pane-line);
-  overflow: hidden;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  max-width: 100%;
+  padding: 0 var(--space-4);
+  border-radius: var(--r-md);
+  background: var(--color-muted);
 }
 .portal .pt-demo-seg-button {
-  min-height: 44px;
-  padding: var(--space-8) var(--space-16);
-  border: none;
-  background: var(--pane);
-  color: var(--charcoal);
-  font-size: 15px;
-  font-weight: 500;
+  padding: 0 var(--space-12);
+  border: 0;
+  border-radius: var(--r-sm);
+  color: var(--color-muted-foreground);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  border-right: 1px solid var(--pane-line);
-}
-.portal .pt-demo-seg-button:last-child {
-  border-right: none;
 }
 .portal .pt-demo-seg-button.is-active {
-  background: var(--charcoal);
-  color: var(--surface);
+  color: var(--color-foreground);
 }
-
-/* ---- The motion this sheet adds ------------------------------------------------------------------
-   One settle, written once, on the controls that change ground, border or ink when a reader moves
-   over them or selects them. Token duration and token curve, no cubic-bezier typed here; only
-   compositor-friendly properties plus the two a selection repaints. Removed, not shortened, below. */
-.portal .pt-tab,
-.portal .pt-node,
-.portal .pt-row,
-.portal .g1-card,
-.portal .pt-metric-card {
-  transition:
-    background-color var(--t-settle) var(--ease-soft),
-    border-color var(--t-settle) var(--ease-soft),
-    color var(--t-settle) var(--ease-soft),
-    transform var(--t-quick) var(--ease-soft),
-    box-shadow var(--t-settle) var(--ease-soft);
-}
-
-/* ---- Removal -------------------------------------------------------------------------------------
-   This sheet loads after motion.css, whose own reduced-motion block cannot reach selectors written
-   here. So the removal is repeated, with !important, for everything above that moves: reduced motion
-   REMOVES the settle rather than shortening it. */
-@media (prefers-reduced-motion: reduce) {
-  .portal .pt-tab,
-  .portal .pt-node,
-  .portal .pt-row,
-  .portal .g1-card,
-  .portal .pt-metric-card {
-    transition: none !important;
-  }
-}
-
-/* Approved Life, considered shell: the work starts below a compact, truthful context strip. */
-.portal{--aurora-cool:var(--studio-paper);--aurora-sage:var(--studio-paper);--aurora-warm:var(--studio-paper)}
-.portal .sidebar{background:var(--surface);border-right:1px solid var(--stone);backdrop-filter:none}
-.portal .sidebar .pt-tab{border-radius:var(--r-pill);min-height:44px}
-.portal .sidebar .pt-tab[aria-selected=true]{background:var(--brand-ink);color:var(--surface)}
-.portal .pt-top{background:var(--surface);backdrop-filter:none;border-bottom:1px solid var(--stone)}
-/* width:100% is the fix for eleven mobile journeys: main is a column flexbox, and auto inline
-   margins switch off the cross-axis stretch, so without a width the body sized itself to its widest
-   child — the 14-tab category strip, 1632 px on a 390 px phone — and every Control Tower page
-   scrolled sideways. The strip scrolls inside itself again once the body is the viewport's width. */
-.portal .pt-body{width:100%;max-width:1600px;margin-inline:auto}
-.portal .pt-preview{padding:var(--space-12) var(--space-16);background:var(--mango-soft);border:0;border-radius:var(--r-control);font-size:13px;line-height:1.45;margin-block:0 var(--space-12)}
-.portal .pt-context{padding:var(--space-12) var(--space-16);border-radius:var(--r-control);background:var(--surface);margin-bottom:var(--space-16);gap:var(--space-16)}
-.portal .pt-context-field small{font-size:13px;line-height:1.4}
-.portal .pt-category .page-header{margin-bottom:var(--space-16)}
-.portal .pt-notice{background:var(--teal-soft);border-radius:var(--r-control);padding:var(--space-8) var(--space-16)}
-
-/* ---- The live voice controls (GilbertOne · Voice, 27 September 2026) ------------------------------
-   The two live actions the founder decided: a select and a Save as default on each presentation row of
-   the mapping table, and the preview's Play. A live button is the portal's primary button; a disabled
-   live button is described by the reason it waits. The row's cell wraps on a phone so the table never
-   widens the page: the select and the button stack, and the table-scroll around it does the rest. */
-.portal .g1-live {
-  min-height: 44px;
-  padding: var(--space-8) var(--space-16);
-  font-size: 15px;
-}
-.portal .g1-live:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-.portal .g1-live-why {
-  margin: 0;
-  color: var(--charcoal);
-  font-size: 14px;
-  line-height: 1.5;
-}
-.portal .g1-voice-cell {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-8);
-  min-width: 16rem;
-}
-.portal .g1-voice-cell select {
-  min-height: 44px;
-  max-width: 100%;
-  padding: var(--space-8) var(--space-12);
-  font-size: 15px;
-}
-.portal .g1-voice-cell small {
-  flex: 1 0 100%;
-  color: var(--faint);
-  font-size: 13px;
-}
-.portal .g1-save {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-  max-width: 36rem;
-  margin-top: var(--space-12);
-}
-.portal .g1-field select:disabled {
-  background: var(--cloud);
-  border-color: var(--stone);
-  color: var(--faint);
-  cursor: not-allowed;
-}
-@media (min-width: 1000px) {
-  .portal .g1-preview-fields {
-    grid-template-columns: repeat(3, minmax(0, 14rem));
-  }
-  .portal .g1-preview-fields .wide {
-    grid-column: 1 / -1;
-  }
-}
-
-/* ==== The pastel system (27 September 2026) ==========================================================
-   The founder's brief of 27 September: soft tinted cards with one large numeral each, rings and pill
-   bars that arrive once, pill controls and tab bars, generous space, ink on tint, and one dark card for
-   emphasis. It is written here, against the shared parts — Figures and Ring in Parts.tsx, the tab list,
-   the roving list, the region, the tables, the empty state, the controls in Fields.tsx and
-   gilbertone/Controls.tsx — so all fourteen categories inherit it, rather than three screens being
-   polished by hand and eleven left as they were.
-
-   The rules this section keeps, because the build does not read this sheet for all of them:
-   - Every tinted ground sets its own ink in the same rule. The four card tints — mint, lavender, peach,
-     pale green — carry the token inks resolved on :root ("The card tints" below); the lime pill and the
-     paper panels carry the shell's studio ink; the night card carries studio paper, with studio lime as
-     its one accent word and --focus as its inner ring. No word is ever set in a tint.
-   - Tints belong to a figure's name (Parts.tsx#tintsFor), never to its position.
-   - Radii are the tokens': --r-panel (28) for a card that holds a figure, --r-card (20) for a row or a
-     note, --r-control (16) for a field, --r-pill for anything pressed.
-   - Motion is the shared system's tokens and curve only, finite, on transform, opacity and
-     stroke-dashoffset, started only under [data-decor='on'] (which the portal's pause control and the
-     reduced-motion query both clear) and removed with !important at the foot of this section. */
-
-/* ---- Ground and headings ---------------------------------------------------------------------- */
-.portal .pt-intro h1 {
-  font-size: 28px;
-  font-weight: 500;
-  letter-spacing: -0.6px;
-  line-height: 1.15;
-  color: var(--charcoal);
-}
-@media (min-width: 1000px) {
-  .portal .pt-intro h1 {
-    font-size: 36px;
-    letter-spacing: -1px;
-  }
-}
-.portal .pt-intro p {
-  max-width: 62ch;
-  font-size: 15px;
-}
-.portal .pt-region {
-  margin: var(--space-40) 0 0;
-}
-.portal .pt-region > h2 {
-  font-size: 20px;
-  font-weight: 500;
-  letter-spacing: -0.4px;
-  margin: 0 0 var(--space-16);
-}
-
-/* ---- Tabs: pills. The categories are a column of pills on a wide screen and a strip of them on a
-   phone, the strip scrolling inside itself; a category's own tabs are a segmented track whose chosen
-   tab is ink on paper. Inside a strip that scrolls, the two-ring focus indicator is drawn inside the
-   pill, because a ring drawn outside it is clipped by the strip's own scrolling box. */
-.portal .sidebar .pt-tablist.vertical {
-  gap: var(--space-4);
-}
-.portal .sidebar .pt-tab {
-  background: transparent;
-  border-color: transparent;
-  color: var(--charcoal);
-}
-.portal .sidebar .pt-tab:hover {
-  background: var(--cloud);
-  color: var(--charcoal);
-}
-.portal .sidebar .pt-tab[aria-selected="true"] {
-  background: var(--studio-night);
-  border-color: var(--studio-night);
-  color: var(--studio-paper);
-}
-.portal .pt-tab:focus-visible {
-  border-radius: var(--r-pill);
-}
-.portal .pt-tablist.horizontal .pt-tab:focus-visible {
-  outline-offset: -3px;
-  box-shadow: inset 0 0 0 6px var(--focus-edge);
-}
-.portal .pt-strip-nav .pt-tab {
-  background: var(--surface);
-  border-color: var(--stone);
-  color: var(--charcoal);
-}
-.portal .pt-strip-nav .pt-tab[aria-selected="true"] {
-  background: var(--studio-night);
-  border-color: var(--studio-night);
-  color: var(--studio-paper);
-}
-.portal .pt-tablist.pt-subtabs {
-  width: fit-content;
-  max-width: 100%;
-  box-sizing: border-box;
-  margin: 0 0 var(--space-24);
-  padding: var(--space-4);
-  gap: var(--space-4);
-  border-radius: var(--r-pill);
-  background: var(--cloud);
-  color: var(--charcoal);
-}
-.portal .pt-subtabs .pt-tab {
-  background: transparent;
-  border-color: transparent;
-  color: var(--charcoal);
-}
-.portal .pt-subtabs .pt-tab:hover {
-  background: var(--surface);
-}
-.portal .pt-subtabs .pt-tab[aria-selected="true"] {
-  background: var(--surface);
-  border-color: var(--surface);
-  color: var(--charcoal);
-  box-shadow: var(--shadow-raised);
-}
-.portal .pt-subtabs .pt-tab[aria-selected="true"]:focus-visible {
-  box-shadow: inset 0 0 0 6px var(--focus-edge);
-}
-
-/* ---- Notes above the work. The preview sentence is a quiet paper note on every category; the one
-   dark card is kept for what a reader must not miss — the old-address notice, and on Configuration the
-   sentence saying a change reaches nobody and a reload undoes it. */
-.portal .pt-preview {
-  background: var(--surface);
-  color: var(--charcoal);
-  border-radius: var(--r-card);
-  padding: var(--space-12) var(--space-20);
-}
-.portal .pt-notice,
-.portal .cf-notes > .privacy-note.alert {
-  padding: var(--space-20) var(--space-24);
-  border: 0;
-  border-radius: var(--r-panel);
-  background: var(--studio-night);
-  color: var(--studio-paper);
-  font-size: 15px;
-  line-height: 1.55;
-}
-.portal .pt-notice .text-button {
-  color: var(--studio-lime);
-  text-decoration: underline;
-  font-weight: 600;
-}
-.portal .cf-notes > .privacy-note.alert > svg {
-  color: var(--studio-lime);
-}
-.portal .pt-context {
-  border-radius: var(--r-card);
-  padding: var(--space-16) var(--space-20);
-}
-
-/* ---- Figure cards ----------------------------------------------------------------------------- */
-.portal .pt-figures {
-  list-style: none;
-  margin: 0 0 var(--space-24);
-  padding: 0;
-  display: grid;
-  gap: var(--space-16);
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
-}
-.portal .pt-figure,
-.portal .s-metrics > .s-metric,
-.portal .pt-strip-figure {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-  min-width: 0;
-  padding: var(--space-24);
-  border-radius: var(--r-panel);
-  background: var(--surface);
-  color: var(--charcoal);
-}
-/* The card tints. The clinical shell remaps the studio palette onto the brand's (shells/shells.css): its
-   lilac becomes a six per cent ink wash and its lime becomes mint, so a card painted with --studio-lilac
-   inside the portal was grey, and two of four cards were the same green. The reference has lavender,
-   peach and a pale green beside the mint, and the design tokens have all three. So the portal's tints
-   are resolved on :root — above the shell, where each studio variable is still the token's own value —
-   and inherited as values rather than names. Every pair is a row in tokens.json#contrast: studio ink on
-   studio lilac (9.04), on studio peach (8.92) and on studio lime (11.46); brand ink on brand mint (8.09,
-   declared as mint on ink). The ink is resolved on :root for the same reason. */
-:root {
-  --pt-tint-mint: var(--brand-mint);
-  --pt-tint-lavender: var(--studio-lilac);
-  --pt-tint-peach: var(--studio-peach);
-  --pt-tint-lime: var(--studio-lime);
-  --pt-tint-ink: var(--studio-ink);
-  --pt-tint-ink-muted: var(--studio-ink-muted);
-}
-.portal .pt-figure[data-tint="mint"],
-.portal .pt-strip-figure[data-tint="mint"] {
-  background: var(--pt-tint-mint);
-  color: var(--brand-ink);
-}
-.portal .pt-figure[data-tint="lavender"],
-.portal .pt-strip-figure[data-tint="lavender"] {
-  background: var(--pt-tint-lavender);
-  color: var(--pt-tint-ink);
-}
-.portal .pt-figure[data-tint="peach"],
-.portal .pt-strip-figure[data-tint="peach"] {
-  background: var(--pt-tint-peach);
-  color: var(--pt-tint-ink);
-}
-.portal .pt-figure[data-tint="lime"],
-.portal .pt-strip-figure[data-tint="lime"] {
-  background: var(--pt-tint-lime);
-  color: var(--pt-tint-ink);
-}
-.portal .pt-figure[data-tint="night"],
-.portal .pt-strip-figure[data-tint="night"] {
-  background: var(--studio-night);
-  color: var(--studio-paper);
-}
-.portal .pt-figure-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  min-height: 28px;
-}
-/* A small dot in the card's own ink, the reference's status mark. Decoration: the chip beside it and the
-   name under the numeral are the words. */
-.portal .pt-dot {
-  flex: 0 0 auto;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: currentColor;
-}
-.portal .pt-figure-chip {
-  padding: 3px 10px;
-  border-radius: var(--r-pill);
-  background: var(--surface);
-  color: var(--studio-ink);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.35;
-  text-align: right;
-}
-.portal .pt-figure[data-tint="night"] .pt-figure-chip {
-  background: var(--studio-lime);
-  color: var(--studio-ink);
-}
-.portal .pt-figure-body {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-16);
-  min-height: 64px;
-}
-.portal .pt-figure-value,
-.portal .pt-strip-figure .s-metric-value,
-.portal .s-metrics > .s-metric .s-metric-value {
-  font-size: 42px;
-  font-weight: 300;
-  line-height: 1;
-  letter-spacing: -1.5px;
-  font-variant-numeric: tabular-nums;
-  color: inherit;
-}
-@media (min-width: 1000px) {
-  .portal .pt-figure-value,
-  .portal .pt-strip-figure .s-metric-value {
-    font-size: 64px;
-    letter-spacing: -2.5px;
-  }
-}
-.portal .pt-figure[data-tint="night"] .pt-figure-value,
-.portal .pt-strip-figure[data-tint="night"] .s-metric-value {
-  color: var(--studio-lime);
-}
-.portal .pt-figure-name,
-.portal .pt-strip-figure .s-metric-label {
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.35;
-  color: inherit;
-}
-.portal .pt-figure-note {
-  font-size: 13px;
-  line-height: 1.45;
-  color: inherit;
-}
-/* The strip the workspace shares: its metric keeps its own markup (tests and the workspace read it),
-   and sits in a tinted card; the card, not the metric, is the grid item. */
-.portal .s-metrics {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
-  gap: var(--space-16);
-  padding: var(--space-8) 0 var(--space-24);
-}
-.portal .pt-strip-figure > .s-metric {
-  padding: 0;
-  gap: var(--space-8);
-  background: none;
-  color: inherit;
-}
-.portal .pt-strip-figure .s-metric-chip {
-  background: var(--surface);
-  border-color: var(--surface);
-  color: var(--charcoal);
-  white-space: normal;
-}
-.portal .pt-strip-figure .s-metric-chip.flagged {
-  background: var(--charcoal);
-  border-color: var(--charcoal);
-  color: var(--surface);
-}
-.portal .pt-strip-figure[data-tint="night"] .s-metric-chip {
-  background: var(--studio-lime);
-  border-color: var(--studio-lime);
-  color: var(--studio-ink);
-}
-.portal .pt-strip-figure[data-tint="night"] .s-metric-chip.flagged {
-  background: var(--surface);
-  border-color: var(--surface);
-  color: var(--charcoal);
-}
-.portal .pt-strip-figure .s-metric-figure {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-16);
-  width: 100%;
-}
-.portal .pt-strip-figure .s-metric-figure > .pt-ring {
-  order: 1;
-}
-
-/* ---- The ring ----------------------------------------------------------------------------------- */
-.portal .pt-ring {
-  flex: 0 0 auto;
-  display: block;
-  transform: rotate(-90deg);
-}
-.portal .pt-ring circle {
-  fill: none;
-  stroke-width: 5;
-}
-.portal .pt-ring-track {
-  stroke: var(--surface);
-}
-.portal .pt-ring-fill {
-  stroke: var(--studio-ink);
-  stroke-linecap: round;
-  stroke-dasharray: 100;
-}
-.portal [data-tint="night"] .pt-ring-track {
-  stroke: var(--sage-slate);
-}
-.portal [data-tint="night"] .pt-ring-fill {
-  stroke: var(--studio-lime);
-}
-/* Rises once from empty to its share when the card arrives, and never again until the panel is opened
-   anew; the end state is the inline offset, so there is no second copy of the share in this sheet. */
-[data-decor="on"] .portal .pt-ring-fill {
-  animation: pt-ring-in var(--t-enter) var(--ease-soft) both;
-}
-@keyframes pt-ring-in {
-  from {
-    stroke-dashoffset: 100;
-  }
-}
-
-/* ---- Rows, regions, notes ------------------------------------------------------------------------ */
-.portal .pt-row {
-  padding: var(--space-16) var(--space-20);
-  border-radius: var(--r-card);
-  border-color: transparent;
-  background: var(--surface);
-}
-.portal .pt-row:hover {
-  border-color: var(--stone);
-}
-.portal .pt-empty {
-  padding: var(--space-20) var(--space-24);
-  border-radius: var(--r-card);
-  border: 1px dashed var(--stone);
-  background: var(--surface);
-  color: var(--charcoal);
-}
-.portal .pt-empty strong {
-  font-size: 16px;
-}
-.portal .pt-step {
-  padding: var(--space-20);
-  border-radius: var(--r-card);
-  border-color: transparent;
-  background: var(--surface);
-}
-.portal .pt-step-n {
-  flex: 0 0 36px;
-  height: 36px;
-  background: var(--studio-lime);
-  color: var(--studio-ink);
-}
-.portal .pt-status,
-.portal .pt-build,
-.portal .g1-tag {
-  padding: 3px 10px;
-}
-.portal .pt-tree {
-  padding: var(--space-8);
-  border-radius: var(--r-panel);
-  background: var(--surface);
-  color: var(--charcoal);
-}
-.portal .pt-node[aria-selected="true"] {
-  background: var(--studio-night);
-  color: var(--studio-paper);
-}
-.portal .pt-node:focus-visible {
-  border-radius: var(--r-pill);
-}
-
-/* ---- Tables: a header of small capitals, and each row a soft card on the ground. They still scroll
-   inside .table-scroll on a phone, never the page. */
-.portal .pt-table,
-.portal .admin-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 var(--space-8);
-  margin-top: 0;
-}
-.portal .pt-table thead th,
-.portal .admin-table thead th {
-  padding: var(--space-4) var(--space-16);
-  border: 0;
-  background: transparent;
-  color: var(--studio-ink-muted);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.portal .pt-table tbody th,
-.portal .pt-table tbody td,
-.portal .admin-table tbody th,
-.portal .admin-table tbody td {
-  padding: var(--space-16);
-  border: 0;
-  background: var(--surface);
-  color: var(--charcoal);
-  font-size: 14px;
-  line-height: 1.5;
-  vertical-align: top;
-}
-.portal .pt-table tbody th,
-.portal .admin-table tbody th {
-  font-weight: 600;
-}
-.portal .pt-table tbody tr > :first-child,
-.portal .admin-table tbody tr > :first-child {
-  border-radius: var(--r-control) 0 0 var(--r-control);
-}
-.portal .pt-table tbody tr > :last-child,
-.portal .admin-table tbody tr > :last-child {
-  border-radius: 0 var(--r-control) var(--r-control) 0;
-}
-.portal .pt-table caption,
-.portal .admin-table caption {
-  padding: 0 0 var(--space-4);
-  color: var(--studio-ink-muted);
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-/* ---- Fields: pill selects with a drawn chevron, rounded text fields, pill buttons ------------------ */
-.portal select:not([multiple]) {
-  -webkit-appearance: none;
-  appearance: none;
-  min-height: 44px;
-  max-width: 100%;
-  padding: 0 44px 0 var(--space-16);
-  border: 1px solid var(--stone);
-  border-radius: var(--r-pill);
-  background-color: var(--surface);
-  background-image:
-    linear-gradient(45deg, transparent 50%, var(--charcoal) 50%),
-    linear-gradient(135deg, var(--charcoal) 50%, transparent 50%);
-  background-position:
-    calc(100% - 22px) 50%,
-    calc(100% - 16px) 50%;
-  background-size: 6px 6px;
-  background-repeat: no-repeat;
-  color: var(--charcoal);
-  font-size: 15px;
-  cursor: pointer;
-}
-.portal select:not([multiple]):hover {
-  border-color: var(--charcoal);
-}
-.portal select:focus-visible {
-  border-radius: var(--r-pill);
-}
-.portal select:not([multiple]):disabled {
-  background-color: var(--cloud);
-  border-color: var(--stone);
-  color: var(--charcoal);
-  cursor: not-allowed;
-}
-.portal input:is([type="text"], [type="search"], [inputmode]),
-.portal textarea {
-  min-height: 44px;
-  padding: var(--space-8) var(--space-16);
-  border: 1px solid var(--stone);
-  border-radius: var(--r-control);
-  background: var(--surface);
-  color: var(--charcoal);
-  font-size: 15px;
-}
-.portal input:is([type="text"], [type="search"], [inputmode]):focus-visible,
-.portal textarea:focus-visible {
-  border-radius: var(--r-control);
-}
-
-/* ---- Focus, in the brand's green (28 September 2026) ----------------------------------------------
-   The founder: "there is this orange border that comes up when you click settings". A text field matches
-   :focus-visible on every click — it takes the keyboard whichever way it was reached — so core.css's
-   keyboard ring, amber with a 7px ink halo, was drawn round the search field the moment anybody clicked
-   it. The rules above only rounded that ring; none of them recoloured it or took the halo away, so the
-   amber and the halo won on order.
-
-   So the portal draws two rings of its own, both from the tokens:
-   - A FIELD — anything that takes typing, a select, a slider, a chip, a switch — gets one calm ring:
-     2px of brand green, 2px out, no halo. A field is reached by clicking as often as by Tab, and a ring
-     that shouts on every click is the one the founder saw. Brand green clears 3:1 (SC 1.4.11) on white
-     (3.39) and on paper (3.08), both rows in tokens.json#contrast, and every portal field sits on one of
-     those two: Configuration's editor is a paper panel precisely so no field sits on a tint, where green
-     clears nothing. Its border turns ink as well, so the ring is not the only thing that changes.
-   - EVERYTHING ELSE — a button, a tab, a tree node, a row, a summary — keeps core.css's two rings, with
-     the portal's green as the inner ring in place of amber. That is --focus, redefined here and read by
-     every sheet that draws the two rings (core.css, clinical.css, surface.css, motion.css), so no copy of
-     the ring is repeated. It still clears 3:1 on every ground the portal paints: on a light ground the
-     outer ring, --focus-edge, carries it (17.85 on white, 16.21 on paper, 11.99 or more on every tint);
-     on the dark cards, where the outer ring is lost, the green does — 3.55 on brand ink and 4.42 on
-     studio night. Those two are computed, not yet rows in tokens.json#contrast, and should be. */
-.portal {
-  --focus: var(--brand-green);
-}
-.portal input:not([type="range"], [type="checkbox"], [type="radio"], [type="button"], [type="submit"], [type="reset"]):focus-visible,
-.portal textarea:focus-visible,
-.portal select:focus-visible,
-.portal input:is([type="range"], [type="checkbox"], [type="radio"]):focus-visible {
-  outline: 2px solid var(--brand-green);
-  outline-offset: 2px;
-  box-shadow: none;
-}
-.portal input:not([type="range"], [type="checkbox"], [type="radio"], [type="button"], [type="submit"], [type="reset"]):focus-visible,
-.portal textarea:focus-visible,
-.portal select:not([multiple]):focus-visible {
-  border-color: var(--brand-ink);
-}
-.portal .primary,
-.portal .secondary {
-  min-height: 44px;
-  padding-inline: var(--space-20);
-  border-radius: var(--r-pill);
-}
-.portal .primary:focus-visible,
-.portal .secondary:focus-visible {
-  border-radius: var(--r-pill);
-}
-
-/* ---- Configuration (28 September 2026): the founder's "fresh form styling" --------------------------
-   Each setting is a tinted card whose hero is the value in force, set as one light numeral with its unit
-   small beside it, under a small lime "In force" chip. The card's tint is where the setting stands —
-   lavender at its default, mint once changed, peach while it waits on a clinical review
-   (Configuration.tsx#standingOf) — and each of those is also said in words on the card. The editor is a
-   paper panel inside the card, so every field and its focus ring sit on paper and never on a tint: the
-   field ring is brand green, and brand green clears 3:1 on paper and on white but on no tint.
-
-   The pairs this section relies on, all rows in tokens.json#contrast unless marked: studio ink on studio
-   lilac (9.12) and on studio peach (8.91) — the lavender and peach cards' every word; brand ink on brand
-   mint (8.09, declared as mint on ink) — the mint card's; brand ink on brand lime (10.47) — the "In
-   force" chip and the confirmation's primary; surface on brand ink (12.04) — the primary's word; brand
-   lime on brand ink (10.47) — the primary's arrow disc on the dark confirmation; brand green on surface
-   (3.39) and on studio paper (3.08) — the field ring (SC 1.4.11). Brand orange is only ever the small
-   edge mark beside the guardrail's words: at 2.84:1 on white it is a mark and never a word. */
-.portal .cf-area {
-  gap: var(--space-16);
-}
-.portal .cf-area > .ss-version {
-  font-size: 13px;
-  color: var(--charcoal);
-}
-
-/* The search and the engine, one pill bar. Each field is the whole of its half of the bar — its label
-   sits inside it, over the value — so the field's own ring is the half's ring, and nothing draws a ring
-   round a box the reader did not click. */
-.portal .cf-tools {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-8);
-  padding: 0;
-  border-radius: 0;
-  background: none;
-}
-.portal .cf-bar {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  gap: var(--space-4);
-  padding: var(--space-4);
-  border: 1px solid var(--stone);
-  border-radius: var(--r-pill);
-  background: var(--surface);
-  color: var(--charcoal);
-}
-.portal .cf-bar-field {
-  position: relative;
-  min-width: 0;
-}
-.portal .cf-bar-field + .cf-bar-field::before {
-  content: "";
+.portal .pt-sr-table {
   position: absolute;
-  left: calc(-1 * var(--space-4) / 2);
-  top: var(--space-16);
-  bottom: var(--space-16);
   width: 1px;
-  background: var(--stone);
-}
-.portal .cf-bar-field > label {
-  position: absolute;
-  z-index: 1;
-  top: var(--space-8);
-  left: var(--space-24);
-  margin: 0;
-  color: var(--charcoal);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  pointer-events: none;
-}
-.portal .cf-bar-query > label {
-  left: 52px;
-}
-.portal .cf-bar-input {
-  position: relative;
-  display: block;
-}
-.portal .cf-bar-input > svg {
-  position: absolute;
-  left: var(--space-20);
-  top: 50%;
-  translate: 0 -50%;
-  color: var(--charcoal);
-  pointer-events: none;
-}
-.portal .cf-bar input[type="search"],
-.portal .cf-bar select:not([multiple]) {
-  width: 100%;
-  min-height: 60px;
-  margin: 0;
-  padding: 26px var(--space-24) var(--space-8);
-  border: 0;
-  border-radius: var(--r-pill);
-  background-color: transparent;
-  color: var(--charcoal);
-  font-size: 15px;
-}
-.portal .cf-bar input[type="search"] {
-  padding-left: 52px;
-}
-.portal .cf-bar select:not([multiple]) {
-  padding-right: 44px;
-}
-@media (hover: hover) {
-  .portal .cf-bar input[type="search"]:hover,
-  .portal .cf-bar select:not([multiple]):hover {
-    background-color: var(--studio-paper);
-  }
-}
-.portal .cf-tools > .helper {
-  margin: 0;
-  padding-inline: var(--space-24);
-  color: var(--charcoal);
-}
-@media (max-width: 640px) {
-  .portal .cf-bar {
-    grid-template-columns: minmax(0, 1fr);
-    border-radius: var(--r-panel);
-  }
-  .portal .cf-bar-field + .cf-bar-field::before {
-    left: var(--space-24);
-    right: var(--space-24);
-    top: calc(-1 * var(--space-4) / 2);
-    bottom: auto;
-    width: auto;
-    height: 1px;
-  }
-  .portal .cf-tools > .helper {
-    padding-inline: var(--space-16);
-  }
-}
-
-.portal .ss-panel > .section-title h2 {
-  font-size: 22px;
-  font-weight: 500;
-  letter-spacing: -0.4px;
-}
-.portal ol.panel.ss-timings {
-  gap: var(--space-16);
+  height: 1px;
+  margin: -1px;
   padding: 0;
-  border: 0;
-  background: none;
-  box-shadow: none;
-}
-.portal ol.panel.ss-timings::before {
-  display: none;
-}
-
-/* ---- The setting card ---- */
-.portal .ss-timing {
-  gap: var(--space-16);
-  padding: var(--space-24);
-  border-radius: var(--r-panel);
-  background: var(--pt-tint-lavender);
-  color: var(--pt-tint-ink);
-}
-.portal .ss-timing[data-standing="changed"] {
-  background: var(--pt-tint-mint);
-  color: var(--brand-ink);
-}
-.portal .ss-timing[data-standing="review"] {
-  background: var(--pt-tint-peach);
-  color: var(--pt-tint-ink);
-}
-.portal .ss-timing + .ss-timing {
-  border-top: 0;
-}
-/* Every word on a tint is the tint's own ink, so the grey the clinical sheet gives a meta line or a term
-   never lands on a tint it was not measured on. */
-.portal .ss-timing :is(.ss-timing-head strong, .ss-help, .ss-meta, .cf-rules dt, .cf-rules dd, .cf-history > summary, .cf-history > .helper) {
-  color: inherit;
-}
-.portal .ss-timing-head {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: var(--space-12) var(--space-32);
-}
-.portal .ss-timing[data-figure="words"] .ss-timing-head {
-  grid-template-columns: minmax(0, 1fr);
-}
-.portal .ss-timing-name {
-  display: grid;
-  gap: var(--space-8);
-  min-width: 0;
-}
-.portal .ss-timing-head strong {
-  font-size: 20px;
-  font-weight: 500;
-  letter-spacing: -0.3px;
-  line-height: 1.3;
-}
-.portal .ss-help {
-  max-width: 62ch;
-  font-size: 15px;
-  line-height: 1.55;
-}
-.portal .ss-in-force {
-  display: grid;
-  justify-items: end;
-  align-content: start;
-  gap: var(--space-8);
-  padding: 0;
-  border-radius: 0;
-  background: none;
-  color: inherit;
-}
-.portal .ss-timing[data-figure="words"] .ss-in-force {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-start;
-  gap: var(--space-8) var(--space-12);
-}
-.portal .ss-in-force small {
-  padding: 3px var(--space-12);
-  border-radius: var(--r-pill);
-  background: var(--brand-lime);
-  color: var(--brand-ink);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  line-height: 1.4;
-  text-transform: uppercase;
-}
-.portal .ss-figure {
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--space-4);
-  padding: 0;
-  background: none;
-  color: inherit;
-  font-weight: 300;
-  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
   white-space: nowrap;
-}
-.portal .ss-figure-n {
-  font-size: 42px;
-  line-height: 1;
-  letter-spacing: -1.5px;
-}
-.portal .ss-figure-unit {
-  font-size: 16px;
-  font-weight: 500;
-}
-.portal .ss-figure.is-words {
-  display: inline;
-  font-size: 18px;
-  font-weight: 500;
-  line-height: 1.4;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-.portal .ss-meta {
-  font-size: 13px;
-  line-height: 1.55;
-}
-.portal .cf-rules {
-  gap: var(--space-8);
-  padding-top: var(--space-16);
-  border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent);
-}
-.portal .cf-rules > div {
-  grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
-  font-size: 14px;
-}
-@media (max-width: 640px) {
-  .portal .cf-rules > div {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-.portal .cf-rules dt {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  line-height: 1.6;
-  text-transform: uppercase;
-}
-.portal .ss-timing .cf-review {
-  background: var(--surface);
-  border-color: var(--surface);
-  color: var(--charcoal);
-}
-.portal .ss-timing .cf-review.is-unreviewed {
-  background: var(--surface);
-  border-color: var(--surface);
-  color: var(--mango-ink);
-}
-
-/* The history as a timeline: a rail down the first column with a dot at each change, and the table
-   underneath it still a table — the header cells, the order and every word are what they were. */
-.portal .cf-history > summary {
-  width: fit-content;
-  padding-inline: var(--space-4);
-  font-weight: 600;
-}
-.portal .cf-history > .table-scroll {
-  margin-top: var(--space-8);
-}
-.portal .cf-timeline {
-  border-spacing: 0;
-}
-.portal .cf-timeline caption {
-  color: inherit;
-  text-align: left;
-}
-.portal .cf-timeline thead th {
-  padding: var(--space-4) var(--space-12);
-  color: inherit;
-}
-.portal .cf-timeline thead th:first-child {
-  padding-left: 32px;
-}
-.portal .cf-timeline tbody td {
-  padding: var(--space-8) var(--space-12);
-  border-radius: 0;
-  background: transparent;
-  color: inherit;
-  font-size: 14px;
-}
-.portal .cf-timeline tbody tr > :first-child,
-.portal .cf-timeline tbody tr > :last-child {
-  border-radius: 0;
-}
-/* A value is read whole: "60 min" broken over two lines reads as two values. A rota's long value still
-   wraps, and the table scrolls inside its card before the card ever widens. */
-.portal .cf-timeline tbody td:is(:nth-child(3), :nth-child(4)) {
-  min-width: 6rem;
-}
-.portal .cf-timeline tbody td:first-child {
-  position: relative;
-  padding-left: 32px;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-.portal .cf-timeline tbody td:first-child::before {
-  content: "";
-  position: absolute;
-  left: 11px;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: color-mix(in srgb, currentColor 22%, transparent);
-}
-.portal .cf-timeline tbody td:first-child::after {
-  content: "";
-  position: absolute;
-  left: 6px;
-  top: 14px;
-  width: 12px;
-  height: 12px;
-  box-sizing: border-box;
-  border: 2px solid var(--surface);
-  border-radius: 50%;
-  background: var(--brand-green);
-}
-.portal .cf-timeline tbody tr:first-child td:first-child::before {
-  top: 14px;
-}
-.portal .cf-timeline tbody tr:last-child td:first-child::before {
-  bottom: calc(100% - 20px);
-}
-
-/* ---- The editor: a paper panel inside the card ---- */
-.portal .ss-form {
-  gap: var(--space-12);
-  max-width: none;
-  padding: var(--space-24);
   border: 0;
-  border-radius: var(--r-card);
-  background: var(--studio-paper);
-  color: var(--studio-ink);
-}
-.portal .ss-form > * {
-  max-width: 44rem;
-}
-.portal .ss-form > label,
-.portal .ss-form .fc-chips > legend,
-.portal .ss-form .cf-choices > legend {
-  color: var(--studio-ink);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  line-height: 1.5;
-  text-transform: uppercase;
-}
-.portal .ss-form > label:not(:first-child) {
-  margin-top: var(--space-8);
-}
-.portal .ss-form textarea {
-  min-height: 104px;
-  padding: var(--space-12) var(--space-16);
-  border-radius: var(--r-card);
-  line-height: 1.55;
-}
-.portal .ss-form > .helper {
-  color: var(--studio-ink);
-}
-.portal .ss-form .button-row,
-.portal .ss-confirm .button-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-12);
-  margin-top: var(--space-4);
-}
-.portal .ss-form .button-row > button,
-.portal .ss-confirm .button-row > button {
-  flex: 0 0 auto;
 }
 
-/* ---- Buttons: the primary is the landing's — an ink pill with the lime arrow in a disc beside its
-   word; the secondary is an outlined pill in whatever ink it stands on; both press through .m-press. */
-.portal .cf-area .primary,
-.portal .cf-area .secondary {
-  min-height: 48px;
-  border-radius: var(--r-pill);
-  font-size: 15px;
-  font-weight: 600;
-  transition:
-    transform var(--t-quick) var(--ease-soft),
-    background-color var(--t-quick) var(--ease-soft),
-    border-color var(--t-quick) var(--ease-soft);
-}
-.portal .cf-area .primary {
-  gap: var(--space-12);
-  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-24);
-  border: 0;
-  background: var(--brand-ink);
-  color: var(--surface);
-}
-.portal .cf-area .primary:hover:not(:disabled) {
-  background: var(--brand-ink);
-}
-.portal .cf-go {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--brand-lime);
-  color: var(--brand-ink);
-  transition: transform var(--t-quick) var(--ease-soft);
-}
-.portal .cf-area .primary:hover:not(:disabled) .cf-go {
-  transform: translateX(3px);
-}
-/* Disabled still reads: the word stays charcoal on the recessed ground, and the arrow loses its lime, so
-   the button says it cannot act by more than being paler. */
-.portal .cf-area .primary:disabled {
-  background: var(--cloud);
-  color: var(--charcoal);
-  cursor: not-allowed;
-}
-.portal .cf-area .primary:disabled .cf-go {
-  background: transparent;
-  color: var(--charcoal);
-}
-.portal .cf-area .secondary {
-  padding: var(--space-8) var(--space-24);
-  border: 1.5px solid currentColor;
-  background: transparent;
-  color: inherit;
-}
-.portal .cf-area .secondary:hover:not(:disabled) {
-  border-color: currentColor;
-  background: var(--surface);
-  color: var(--charcoal);
-}
-.portal .ss-timing-main > .cf-open {
-  justify-self: start;
-}
-
-/* The confirmation is the dark card: the moment a change is about to reach every desk it names. Its
-   primary turns over — a lime pill with the ink word and the arrow ink — and its secondary is paper. */
-.portal .ss-confirm {
-  gap: var(--space-12);
-  padding: var(--space-24);
-  border: 0;
-  border-radius: var(--r-card);
-  background: var(--brand-ink);
-  color: var(--surface);
-}
-.portal .ss-confirm strong {
-  font-size: 18px;
-  font-weight: 500;
-  line-height: 1.4;
-}
-.portal .ss-confirm strong,
-.portal .ss-confirm p {
-  color: var(--surface);
-}
-.portal .cf-area .ss-confirm .secondary {
-  border-color: var(--surface);
-  background: transparent;
-  color: var(--surface);
-}
-.portal .cf-area .ss-confirm .secondary:hover:not(:disabled) {
-  background: transparent;
-  color: var(--surface);
-  text-decoration: underline;
-}
-.portal .cf-area .ss-confirm .primary {
-  background: var(--brand-lime);
-  color: var(--brand-ink);
-}
-.portal .cf-area .ss-confirm .primary .cf-go {
-  background: var(--brand-ink);
-  color: var(--brand-lime);
-}
-.portal .cf-window {
-  display: grid;
-  gap: var(--space-12);
-  padding: var(--space-16);
-  border: 0;
-  border-radius: var(--r-card);
-  background: var(--surface);
-  color: var(--charcoal);
-}
-
-/* A phone: the figure moves under the name, chip and numeral on one line, and the card's padding comes in. */
-@media (max-width: 599px) {
-  .portal .ss-timing {
-    padding: var(--space-20) var(--space-16);
-    border-radius: var(--r-card);
-  }
-  .portal .ss-timing-head {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .portal .ss-in-force {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .portal .ss-figure-n {
-    font-size: 40px;
-  }
-  .portal .ss-form {
-    padding: var(--space-16);
-  }
-}
-
-/* ---- GilbertOne ---------------------------------------------------------------------------------- */
-.portal .g1-card,
-.portal .g1-preview,
-.portal .g1-founder-key {
-  padding: var(--space-24);
-  border-radius: var(--r-panel);
-  border-color: transparent;
-  background: var(--surface);
-}
-.portal .pt-g1-state {
-  padding: var(--space-20) var(--space-24);
-  border-radius: var(--r-panel);
-  border-color: transparent;
-  background: var(--surface);
-}
-.portal .g1-locked {
-  padding: var(--space-20);
-  border-radius: var(--r-card);
-}
-/* The gated level selector: the same slider as Fields.tsx's, held. A 12px pill track, the share of the
-   way filled in soft sage, a white knob ringed in charcoal, and the value's chip riding above the thumb
-   on the same ratio. It is aria-disabled and moves nothing, so it has no hover and no transition. */
-.portal .pt-slider-rail {
-  position: relative;
-  height: 30px;
-  margin: 0 14px;
-}
-.portal .pt-slider-chip {
-  position: absolute;
-  top: 0;
-  left: calc(var(--pt-ratio, 0) * 100%);
-  transform: translateX(calc(var(--pt-ratio, 0) * -100%));
-  padding: var(--space-4) var(--space-12);
-  background: var(--studio-night);
-  color: var(--studio-paper);
-  font-size: 13px;
-  white-space: nowrap;
-}
-.portal .pt-range-track {
-  height: 12px;
-  background: var(--stone);
-}
-.portal .pt-range-fill {
-  height: 12px;
-  background: var(--soft-sage);
-}
-.portal .pt-range-thumb {
-  background: var(--surface);
-  border: 5px solid var(--charcoal);
-  box-shadow: var(--shadow-raised);
-}
-/* The Show metadata checkbox, disabled beside its gate: a drawn box rather than the browser's, so it
-   reads as the same family as the chips. */
-.portal .g1-check input {
-  -webkit-appearance: none;
-  appearance: none;
-  flex: 0 0 auto;
-  width: 24px;
-  height: 24px;
-  min-height: 0;
-  margin: 0;
-  padding: 0;
-  border: 2px solid var(--faint);
-  border-radius: 8px;
-  background: var(--cloud);
-  cursor: not-allowed;
-}
-.portal .g1-check input:focus-visible {
-  border-radius: 8px;
-}
-.portal .g1-voice-cell {
-  gap: var(--space-12);
-}
-
-/* ---- Removal -------------------------------------------------------------------------------------- */
+/* ---- Removal -----------------------------------------------------------------------------------------
+   Everything this sheet moves — the arrivals and the feedback in the section below — removed rather than
+   shortened, and with !important because a reduced-motion block a later sheet can overrule is a suggestion.
+   Written ahead of the section it removes, because the build reads that section for motion that is not
+   gated on the pause flag and a removal is not an arrival. Wider than the list below on purpose: anything
+   under the settings screens and the panel that moves stops, including whatever the next change adds
+   without listing it here. */
 @media (prefers-reduced-motion: reduce) {
-  .portal .pt-ring-fill,
-  [data-decor="on"] .portal .pt-ring-fill {
+  .portal :is(.cf-area, .g1-speech, #pt-subpanel),
+  .portal :is(.cf-area, .g1-speech, #pt-subpanel) *,
+  .portal :is(.cf-area, .g1-speech, #pt-subpanel) *::before,
+  .portal :is(.cf-area, .g1-speech, #pt-subpanel) *::after {
     animation: none !important;
-  }
-  .portal .cf-area .primary,
-  .portal .cf-area .secondary,
-  .portal .cf-go {
     transition: none !important;
   }
-  .portal .cf-area .primary:hover .cf-go {
-    transform: none !important;
-  }
-}
-/* A contract path in a refusal or a discrepancy has nowhere a browser will break it; on a phone it was
-   the one line on the Overview that widened main. */
-.portal .pt-refusals strong,
-.portal .pt-refusals span {
-  overflow-wrap: anywhere;
-}
-
-/* On a phone the figures sit two to a row, as the reference's tiles do, and the one the screen is about
-   takes the whole row as the dark card; a chip wraps under the dot rather than squeezing the numeral. */
-@media (max-width: 599px) {
-  .portal .pt-figures,
-  .portal .s-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-12);
-  }
-  .portal .pt-figure,
-  .portal .pt-strip-figure,
-  .portal .s-metrics > .s-metric {
-    padding: var(--space-16);
-    border-radius: var(--r-card);
-  }
-  .portal .pt-figure[data-tint="night"],
-  .portal .pt-strip-figure[data-tint="night"] {
-    grid-column: 1 / -1;
-  }
-  .portal .pt-figure-top {
-    flex-wrap: wrap;
-    align-items: flex-start;
-    justify-content: flex-start;
-  }
-  .portal .pt-figure-chip {
-    text-align: left;
-  }
-  .portal .pt-figure-body {
-    min-height: 0;
-    flex-wrap: wrap;
-    gap: var(--space-8);
-  }
-  .portal .pt-figure-value,
-  .portal .pt-strip-figure .s-metric-value {
-    font-size: 40px;
-  }
-  .portal .pt-figure-name,
-  .portal .pt-strip-figure .s-metric-label {
-    font-size: 14px;
+  .portal .pt-ring-fill,
+  .portal :is(.pt-node, .pt-row, .pt-demo-seg-button),
+  .portal :is(.pt-legend, .cf-about, .cf-history, .g1-details, .g1-founder-details, .pt-week-values) > summary::after {
+    animation: none !important;
+    transition: none !important;
   }
 }
 
-/* The clinical sheet turns a wide strip into a flex row divided by hairlines; in the portal each figure
-   is its own card, so the strip stays a grid and the hairlines and their margins go. */
-.portal .s-metrics {
-  display: grid;
-}
-.portal .s-metrics > .s-metric + .s-metric,
-.portal .pt-strip-figure + .pt-strip-figure > .s-metric {
-  margin-left: 0;
-  padding-left: 0;
-  border-left: 0;
-}
-.portal .s-metrics > .s-metric + .s-metric {
-  padding-left: var(--space-24);
-}
-.portal .pt-strip-figure .s-metric-chip {
-  padding: 3px 10px;
-  font-size: 13px;
-  line-height: 1.35;
-}
-.portal .s-metrics,
-.portal .pt-figures {
-  align-items: stretch;
-}
-/* A chip that wraps to a second line keeps a control's radius rather than a pill's, which on two lines
-   reads as a lozenge. One line at this size is round-ended either way. */
-.portal .pt-figure-chip,
-.portal .pt-strip-figure .s-metric-chip {
-  border-radius: var(--r-control);
-}
-
-/* Numerals line up across a strip. Each card takes its rows from the strip's grid (subgrid), so a chip
-   that wraps to three lines on one card moves every card's numeral down together rather than only its
-   own, and a row of figures stays a row of figures. */
-.portal .pt-figure {
-  display: grid;
-  grid-row: span 4;
-  grid-template-rows: subgrid;
-  row-gap: var(--space-8);
-  align-content: start;
-}
-.portal .pt-strip-figure {
-  display: grid;
-  grid-row: span 3;
-  grid-template-rows: subgrid;
-  row-gap: var(--space-8);
-}
-.portal .pt-strip-figure > .s-metric {
-  display: contents;
-}
-.portal .pt-strip-figure .s-metric-chip-line {
-  align-items: flex-start;
-}
-.portal .pt-figure-body,
-.portal .pt-strip-figure .s-metric-value,
-.portal .pt-strip-figure .s-metric-figure {
-  align-self: end;
-}
-
-/* ==== Change first, and the settings that move (28 September 2026) =================================
-   The founder, of the Configuration tab and GilbertOne's Speech settings: what an administrator can change
-   at the top, what is merely in force to the side on a wide screen and folded on a phone, and the forms
-   given the life of the Jitter UI-element templates — toggles that slide, buttons that glow, a progress
-   bar that fills, cards that arrive. What this section keeps, because the build does not read this sheet
-   for all of it:
-
-   - The second column is keyed off data-layout="wide", written by lib/layout.ts, the same answer that
-     opens or closes the disclosures, so a column and a fold can never disagree about the screen. A card's
-     own two halves are a container query instead, because a card is wide or narrow by the column it sits
-     in — the Configuration tab's, or the narrower one beside the Speech settings' state.
-   - No new text pair. Every word sits on a ground it already sat on: charcoal on surface, the card tints'
-     own inks, surface on charcoal and on brand ink. The two translucent grounds a hover lays down are said
-     where they are laid, with their arithmetic, because a mix is not a token and cannot be a row in
-     tokens.json#contrast.
-   - One shadow on anything, never two, and never on a control while it holds focus: core.css draws the
-     focus ring's outer ring as a box-shadow, so every glow here is :not(:focus-visible).
-   - Motion is the token durations and --ease-soft, finite, on transform, opacity and background-size,
-     started only under [data-decor='on'] — which the portal's pause control and the reduced-motion query
-     both clear — and removed with !important at the foot of this section. Nothing here is the only way
-     anything becomes visible: every entrance ends where the element already is. */
-
-/* ---- Configuration: the work, then the notes ------------------------------------------------------ */
-.portal .cf-area {
-  container: cf-area / inline-size;
-}
-.portal .cf-work,
-.portal .cf-notes {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-16);
-  min-width: 0;
-}
-.portal .cf-notes > .privacy-note {
-  margin: 0;
-  max-width: none;
-}
-.portal .cf-notes > .privacy-note:not(.alert) {
-  padding: var(--space-16) var(--space-20);
-  border: 0;
-  border-radius: var(--r-panel);
-  background: var(--surface);
-  color: var(--charcoal);
-  font-size: 14px;
-  line-height: 1.55;
-}
-.portal .cf-notes > .privacy-note:not(.alert) > svg {
-  color: var(--charcoal);
-}
-.portal .cf-notes > .privacy-note.alert {
-  padding: var(--space-16) var(--space-20);
-}
-@container cf-area (min-width: 720px) {
-  .portal .cf-notes {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/* The count, and its share of every setting as a bar under it: brand green on stone, filled by
-   background-size so a search narrowing the list is seen narrowing it. The words say the same. */
-.portal .cf-area > .ss-version {
-  display: grid;
-  gap: var(--space-8);
-  max-width: 20rem;
-}
-.portal .cf-area > .ss-version::after {
-  content: "";
-  height: 6px;
-  border-radius: var(--r-pill);
-  background:
-    linear-gradient(var(--brand-green), var(--brand-green)) 0 0 / calc(var(--cf-share, 1) * 100%) 100% no-repeat,
-    var(--stone);
-}
-[data-decor="on"] .portal .cf-area > .ss-version::after {
-  transition: background-size var(--t-settle) var(--ease-soft);
-}
-
-/* ---- The setting card, in two halves ---------------------------------------------------------------- */
-.portal ol.panel.ss-timings {
-  container: cf-cards / inline-size;
-}
-.portal .ss-timing-main,
-.portal .ss-timing-side {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-12);
-  align-content: start;
-  min-width: 0;
-}
-.portal .ss-timing-main {
-  gap: var(--space-16);
-}
-.portal .ss-standing {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-8) var(--space-12);
-}
-.portal .ss-standing > .ss-meta {
-  margin: 0;
-}
-.portal .ss-timing :is(.cf-about > summary, .cf-about > .ss-meta) {
-  color: inherit;
-}
-@container cf-cards (min-width: 760px) {
-  .portal .ss-timing {
-    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-    align-items: start;
-    gap: var(--space-24) var(--space-32);
-  }
-  /* A hairline in the card's own ink, a seventh of it: a divider, never a word. */
-  .portal .ss-timing-side {
-    padding-left: var(--space-24);
-    border-left: 1px solid color-mix(in srgb, currentColor 14%, transparent);
-  }
-  .portal .ss-timing-side .cf-rules > div {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
-  }
-}
-.portal .cf-about {
-  display: grid;
-  gap: var(--space-8);
-  min-width: 0;
-}
-.portal .cf-about > .ss-meta {
-  margin: 0;
-}
-.portal .cf-about > .cf-rules {
-  margin-top: var(--space-4);
-}
-
-/* Both disclosures on the card, and the Speech settings' blocks below, share one summary: a 44px row, the
-   words, and a drawn chevron that turns when it opens. display:flex drops the browser's own triangle, which
-   is why the history's summary had no mark at all until this; the chevron is a border, so it is the
-   text's own colour on whatever ground it sits. */
-.portal :is(.cf-about, .cf-history) > summary {
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-  width: fit-content;
-  max-width: 100%;
-  min-height: 44px;
-  padding-inline: var(--space-4);
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.4;
-  cursor: pointer;
-  list-style: none;
-}
-.portal :is(.cf-about, .cf-history, .g1-side > details) > summary::-webkit-details-marker {
-  display: none;
-}
-.portal :is(.cf-about, .cf-history, .g1-side > details) > summary::after {
-  content: "";
-  flex: 0 0 auto;
-  width: 7px;
-  height: 7px;
-  margin: -3px var(--space-4) 0;
-  border: solid currentColor;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-}
-.portal :is(.cf-about, .cf-history, .g1-side > details)[open] > summary::after {
-  margin-top: 3px;
-  transform: rotate(-135deg);
-}
-.portal :is(.cf-about, .cf-history) > summary:focus-visible {
-  border-radius: var(--r-control);
-}
-
-/* ---- The form: two steps, a refusal that is felt, a figure that lands ------------------------------ */
-.portal .cf-steps {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4);
-  width: 100%;
-  max-width: 12rem;
-}
-.portal .cf-steps > i {
-  position: relative;
-  height: 6px;
-  overflow: hidden;
-  border-radius: var(--r-pill);
-  background: var(--stone);
-}
-.portal .cf-steps > i::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--brand-green);
-  transform: scaleX(0);
-  transform-origin: left center;
-}
-.portal .cf-steps > i:first-child::after,
-.portal .cf-steps[data-step="confirm"] > i:last-child::after {
-  transform: none;
-}
-@keyframes cf-fill {
-  from {
-    transform: scaleX(0);
-  }
-}
-[data-decor="on"] .portal .cf-steps > i:first-child::after {
-  animation: cf-fill var(--t-enter) var(--ease-soft) both;
-}
-[data-decor="on"] .portal .cf-steps > i:last-child::after {
-  transition: transform var(--t-settle) var(--ease-soft);
-}
-
+/* ---- Every screen arrives, and says what is empty (28 September 2026) ----------------------------
+   The founder: the portal's screens "feel empty". A screen arrives: whatever the Frame's panel draws — a
+   strip of figures, a card, a note — comes in three short steps when the screen opens, and a strip of
+   figures or a list of rows inside it does the same card by card. Eight pixels and a fade over an
+   entrance, a third of a quick apart and three steps at most, so the last card is never waiting. A
+   backwards fill, so nothing is held once it lands and a card's own hover is never overruled. Gated on
+   [data-decor='on'] as every other portal motion is, and inside #pt-subpanel, so the removal above takes
+   all of it under reduced motion. A strip is not moved as a slab and then again card by card: the strip
+   itself stays put and only its cards arrive. */
 @keyframes cf-arrive {
   from {
     opacity: 0;
@@ -3123,7 +2609,7 @@
 @keyframes cf-land {
   from {
     opacity: 0;
-    transform: translate3d(0, 6px, 0) scale(0.96);
+    transform: translate3d(0, 6px, 0) scale(.96);
   }
 }
 /* A refusal is nudged sideways once, four pixels and back inside a settle, so a sentence that replaced
@@ -3139,555 +2625,16 @@
     transform: translate3d(-2px, 0, 0);
   }
 }
-/* The cards arrive in three steps and no more, as the patient's home does (motion.css, m-stagger): the
-   first at once, the second a third of a quick later, every other two thirds — so the last is never
-   waiting behind ninety others. */
-[data-decor="on"] .portal .ss-timing {
-  animation: cf-arrive var(--t-enter) var(--ease-soft) both;
-}
-[data-decor="on"] .portal .ss-timing:nth-child(2) {
-  animation-delay: calc(var(--t-quick) / 3);
-}
-[data-decor="on"] .portal .ss-timing:nth-child(n + 3) {
-  animation-delay: calc(var(--t-quick) * 2 / 3);
-}
-[data-decor="on"] .portal .ss-figure {
-  animation: cf-land var(--t-settle) var(--ease-soft) both;
-}
-[data-decor="on"] .portal :is(.ss-form, .ss-confirm, .cf-about[open] > .ss-meta, .cf-about[open] > .cf-rules, .cf-history[open] > :not(summary)) {
-  animation: cf-unfold var(--t-settle) var(--ease-soft) both;
-}
-[data-decor="on"] .portal .ss-form .fs-refused {
-  animation: cf-refused var(--t-settle) var(--ease-soft) both;
-}
-[data-decor="on"] .portal .cf-history[open] .cf-timeline tbody tr {
-  animation: cf-arrive var(--t-settle) var(--ease-soft) both;
-}
-
-/* ---- Buttons that answer a pointer ---------------------------------------------------------------
-   The primary — Configuration's and the live GilbertOne action's — lifts a pixel on a soft green glow and
-   a band of light crosses it once. The band is a pseudo-element under the word (isolation puts it above
-   the button's ground and below its text), lime at a fifth over brand ink at its brightest: white on that
-   mix is 6.4:1, and the band is gone inside an entrance. On the dark confirmation's lime primary the band
-   is white, which only raises brand ink's contrast on it.
-
-   The secondary is glass: the ground under it lightens to a translucent white with a blur. Its word keeps
-   the card's own ink, and a mix of a tint with white is lighter than the tint and darker than white, so
-   the ink's contrast on it lies between its measured rows on the tint and on surface. On the dark
-   confirmation the glass is an eighth of white over brand ink — white on that is 8.2:1 — and the word
-   keeps its underline. */
-.portal :is(.cf-area .primary, .g1-live) {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  --cf-sheen: color-mix(in srgb, var(--brand-lime) 22%, transparent);
-}
-.portal .cf-area .ss-confirm .primary {
-  --cf-sheen: color-mix(in srgb, var(--surface) 40%, transparent);
-}
-.portal :is(.cf-area .primary, .g1-live)::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: linear-gradient(105deg, transparent 30%, var(--cf-sheen) 50%, transparent 70%);
-  transform: translate3d(-110%, 0, 0);
-  pointer-events: none;
-}
-@media (hover: hover) {
-  .portal :is(.cf-area .primary, .g1-live):hover:not(:disabled):not(:focus-visible) {
-    box-shadow: 0 10px 24px -12px color-mix(in srgb, var(--brand-green) 85%, transparent);
-  }
-  .portal :is(.cf-area .primary, .g1-live):hover:not(:disabled)::before {
-    transform: translate3d(110%, 0, 0);
-  }
-  .portal .cf-area .secondary:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--surface) 62%, transparent);
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-    color: inherit;
-  }
-  .portal .cf-area .ss-confirm .secondary:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--surface) 12%, transparent);
-    color: var(--surface);
-  }
-  [data-decor="on"] .portal :is(.cf-area .primary, .g1-live):hover:not(:disabled) {
-    transform: translate3d(0, -1px, 0);
+@keyframes cf-fill {
+  from {
+    transform: scaleX(0);
   }
 }
-[data-decor="on"] .portal :is(.cf-area .primary, .g1-live) {
-  transition:
-    transform var(--t-quick) var(--ease-soft),
-    box-shadow var(--t-settle) var(--ease-soft),
-    background-color var(--t-quick) var(--ease-soft);
-}
-[data-decor="on"] .portal :is(.cf-area .primary, .g1-live):hover:not(:disabled)::before {
-  transition: transform var(--t-enter) var(--ease-soft);
-}
-[data-decor="on"] .portal :is(.cf-area .primary, .g1-live):active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-/* ---- GilbertOne · Speech settings: the editor, and what is in force beside it -------------------- */
-.portal .g1-speech {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-32);
-  align-items: start;
-  margin-top: var(--space-40);
-}
-.portal .g1-speech[data-layout="wide"] {
-  grid-template-columns: minmax(0, 8fr) minmax(0, 5fr);
-}
-.portal .g1-speech-editor > .pt-region {
-  margin: 0;
-}
-.portal .g1-speech-state {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-12);
-  align-content: start;
-  min-width: 0;
-}
-.portal .g1-speech-state > .g1-side {
-  min-width: 0;
-  margin: 0;
-  border-radius: var(--r-panel);
-  background: var(--surface);
-  color: var(--charcoal);
-}
-.portal .g1-side > details > summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-12);
-  min-height: 56px;
-  padding: var(--space-12) var(--space-20);
-  border-radius: var(--r-panel);
-  cursor: pointer;
-  list-style: none;
-}
-.portal .g1-side > details > summary:focus-visible {
-  border-radius: var(--r-panel);
-}
-.portal .g1-side > details > summary > h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 500;
-  letter-spacing: -0.3px;
-  line-height: 1.35;
-  color: var(--charcoal);
-}
-@media (hover: hover) {
-  .portal .g1-side > details > summary:hover {
-    background: var(--studio-paper);
+@keyframes pt-ring-in {
+  from {
+    stroke-dashoffset: 100;
   }
 }
-.portal .g1-side-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-12);
-  min-width: 0;
-  padding: 0 var(--space-20) var(--space-20);
-  /* A card inside a block inside a column is three paddings in from the screen's edge, and the words name
-     environment variables and contract paths no browser breaks on its own. */
-  overflow-wrap: anywhere;
-}
-@media (max-width: 599px) {
-  .portal .g1-side-body {
-    padding: 0 var(--space-12) var(--space-16);
-  }
-  .portal .g1-side > details > summary {
-    padding-inline: var(--space-16);
-  }
-}
-.portal .g1-side-body > .helper,
-.portal .g1-side-body > p {
-  margin: 0;
-}
-/* Inside a white block the rows and cards are drawn by a stone line rather than a second white ground,
-   so the words keep charcoal on surface and nothing new is measured. */
-.portal .g1-side-body .pt-row,
-.portal .g1-side-body .g1-card {
-  border: 1px solid var(--stone);
-  background: var(--surface);
-}
-.portal .g1-side-body .g1-card {
-  padding: var(--space-16);
-  border-radius: var(--r-card);
-}
-.portal .g1-speech-state .g1-grid {
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-12);
-}
-.portal .g1-speech-state .g1-fact {
-  grid-template-columns: minmax(0, 1fr);
-  gap: 2px;
-}
-.portal .g1-side-body .g1-locked {
-  margin: 0;
-}
-/* A locked item's words name contract paths — packages/catalog/assistant.json#voice — that a browser will
-   not break, and at 320px the words' column is narrower than the path. */
-.portal .g1-locked > div {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-/* The own-voice facts were a two-column grid of two-column rows, which on a wide screen left "In force"
-   one letter wide. A list of facts is a column of rows. */
-.portal .pt-facts.g1-facts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-  margin: 0;
-}
-
-/* On a phone the category's state card put a 64px mark beside its words, which left the words a column a
-   third of the screen wide and the card six hundred pixels tall above every sub-screen. The mark goes
-   above the words, smaller, and the words take the width. */
-@media (max-width: 599px) {
-  .portal .pt-g1-state {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-12);
-    padding: var(--space-16) var(--space-20);
-  }
-  .portal .pt-g1-large {
-    width: 40px;
-    height: 36px;
-  }
-}
-
-/* ---- GilbertOne: sub-screens and cards that arrive ------------------------------------------------
-   Everything a sub-screen draws under the category's state card arrives once when its tab is opened (the
-   screen is keyed by its tab), in the same three steps; a provider card, a row of a list and a block's
-   body arrive as they are unfolded. */
-[data-decor="on"] .portal #pt-subpanel > .pt-g1-state ~ * {
-  animation: cf-arrive var(--t-enter) var(--ease-soft) both;
-}
-[data-decor="on"] .portal #pt-subpanel > .pt-g1-state ~ * ~ * {
-  animation-delay: calc(var(--t-quick) / 3);
-}
-[data-decor="on"] .portal #pt-subpanel > .pt-g1-state ~ * ~ * ~ * {
-  animation-delay: calc(var(--t-quick) * 2 / 3);
-}
-[data-decor="on"] .portal .g1-speech-state > .g1-side {
-  animation: cf-arrive var(--t-enter) var(--ease-soft) both;
-}
-[data-decor="on"] .portal .g1-speech-state > .g1-side + .g1-side {
-  animation-delay: calc(var(--t-quick) / 3);
-}
-[data-decor="on"] .portal .g1-speech-state > .g1-side + .g1-side + .g1-side {
-  animation-delay: calc(var(--t-quick) * 2 / 3);
-}
-[data-decor="on"] .portal :is(.g1-side > details[open] > .g1-side-body, .g1-details[open] > :not(summary)) {
-  animation: cf-unfold var(--t-settle) var(--ease-soft) both;
-}
-[data-decor="on"] .portal #pt-subpanel :is(.g1-grid > .g1-card, .pt-list > .pt-row) {
-  animation: cf-arrive var(--t-enter) var(--ease-soft) both;
-}
-[data-decor="on"] .portal #pt-subpanel :is(.g1-grid > .g1-card, .pt-list > .pt-row):nth-child(2) {
-  animation-delay: calc(var(--t-quick) / 3);
-}
-[data-decor="on"] .portal #pt-subpanel :is(.g1-grid > .g1-card, .pt-list > .pt-row):nth-child(n + 3) {
-  animation-delay: calc(var(--t-quick) * 2 / 3);
-}
-[data-decor="on"] .portal :is(.cf-about, .cf-history, .g1-side > details, .g1-details) > summary::after {
-  transition: transform var(--t-quick) var(--ease-soft), margin var(--t-quick) var(--ease-soft);
-}
-
-/* ---- Removal ---------------------------------------------------------------------------------------
-   Everything above that moves, removed rather than shortened, and with !important because a reduced-motion
-   block a later sheet can overrule is a suggestion. Wider than the list above on purpose: anything under
-   the two screens that moves stops, including whatever the next change adds without listing it here. */
-@media (prefers-reduced-motion: reduce) {
-  .portal :is(.cf-area, .g1-speech, #pt-subpanel),
-  .portal :is(.cf-area, .g1-speech, #pt-subpanel) *,
-  .portal :is(.cf-area, .g1-speech, #pt-subpanel) *::before,
-  .portal :is(.cf-area, .g1-speech, #pt-subpanel) *::after {
-    animation: none !important;
-    transition: none !important;
-  }
-  .portal :is(.cf-area .primary, .g1-live):hover::before {
-    transform: translate3d(-110%, 0, 0) !important;
-  }
-  .portal :is(.cf-area .primary, .g1-live):is(:hover, :active) {
-    transform: none !important;
-  }
-}
-
-/* ---- GilbertOne · Speech settings, merged (28 September 2026): the change fields on top -------------
-   The founder: "put the change fields on top; they are too at the bottom. Voice and Speech settings are
-   duplicated; collapse them into one place, Speech settings." So the screen is the founder's gate, one line
-   saying where the values came from, then a paper panel of change fields — a tinted card per presentation
-   register with its chips, then the knob groups — then the preview, then one closed fold holding everything
-   read-only. The same pastel system as the Configuration page: the panel is paper so every field and its
-   brand-green ring sit on paper and never on a tint (the ring clears 3:1 on paper and on white, on no tint);
-   the register cards take the four card tints by name (Parts.tsx#tintsFor), each with its own ink in the same
-   rule, and no word on a tint is grey. Every pair here is one already measured for the Configuration cards
-   and the figure cards above. Motion is the shared system's, and the removal at the foot of this sheet
-   covers #pt-subpanel, so nothing here needs its own. */
-.portal .g1-source {
-  margin: 0 0 var(--space-16);
-  padding: var(--space-12) var(--space-16);
-  border-radius: var(--r-control);
-  background: var(--surface);
-  color: var(--charcoal);
-  font-size: 14px;
-  line-height: 1.5;
-}
-.portal .g1-change {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-16);
-  padding: var(--space-20);
-  border-radius: var(--r-panel);
-  background: var(--studio-paper);
-  color: var(--charcoal);
-}
-.portal .g1-change-intro {
-  margin: 0;
-  color: var(--charcoal);
-  line-height: 1.55;
-}
-.portal .g1-change .g1-reason {
-  max-width: 44rem;
-}
-.portal .g1-change-heading {
-  margin: var(--space-8) 0 0;
-  font-size: 18px;
-  font-weight: 500;
-  letter-spacing: -0.3px;
-  color: var(--charcoal);
-}
-.portal .g1-registers {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-16);
-}
-@media (min-width: 900px) {
-  .portal .g1-registers {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-.portal .g1-register {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-12);
-  min-width: 0;
-  padding: var(--space-20);
-  border-radius: var(--r-panel);
-  background: var(--pt-tint-lavender);
-  color: var(--pt-tint-ink);
-}
-.portal .g1-register[data-tint="mint"] { background: var(--pt-tint-mint); color: var(--brand-ink); }
-.portal .g1-register[data-tint="peach"] { background: var(--pt-tint-peach); color: var(--pt-tint-ink); }
-.portal .g1-register[data-tint="lime"] { background: var(--pt-tint-lime); color: var(--pt-tint-ink); }
-.portal .g1-register h4 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 500;
-  letter-spacing: -0.3px;
-  color: inherit;
-}
-.portal .g1-register-why,
-.portal .g1-register-inforce {
-  margin: 0;
-  color: inherit;
-  font-size: 14px;
-  line-height: 1.5;
-}
-/* The chips on a tinted card sit on a paper strip, as the Configuration editor does, so the chosen pill's
-   ink and the ring stay on the grounds they were measured on. */
-.portal .g1-register .fc-chips,
-.portal .g1-knob {
-  margin: 0;
-  padding: var(--space-12) var(--space-16);
-  border: 0;
-  border-radius: var(--r-card);
-  background: var(--surface);
-  color: var(--charcoal);
-}
-.portal .g1-register .fc-chips > legend,
-.portal .g1-knob-chips > legend,
-.portal .g1-knob > label {
-  display: block;
-  padding: 0 0 var(--space-8);
-  color: var(--charcoal);
-  font-size: 14px;
-  font-weight: 600;
-}
-.portal .g1-knob > label span,
-.portal .g1-knob-chips > legend span,
-.portal .g1-knob .fc-switch-label span {
-  display: block;
-  margin-top: 2px;
-  font-weight: 400;
-  color: var(--charcoal);
-}
-.portal .g1-knob .fc-chips {
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-.portal .g1-knob .fc-switch-label strong {
-  display: block;
-}
-.portal .g1-knob-groups {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-16);
-  align-items: start;
-}
-@media (min-width: 1200px) {
-  .portal .g1-knob-groups {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-.portal .g1-knob-group {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-12);
-  align-content: start;
-  min-width: 0;
-  padding: var(--space-16);
-  border: 1px solid var(--stone);
-  border-radius: var(--r-panel);
-  background: var(--surface);
-}
-.portal .g1-knob-group h4 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--charcoal);
-}
-.portal .g1-register .g1-live,
-.portal .g1-knob-group .g1-live {
-  justify-self: start;
-}
-/* The fold: one closed disclosure under the preview, drawn as the side blocks of the old screen were, and
-   the blocks inside it as the regions they always were. */
-.portal .g1-fold {
-  margin-top: var(--space-24);
-  border-radius: var(--r-panel);
-  background: var(--surface);
-  color: var(--charcoal);
-}
-.portal .g1-fold > summary {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-4);
-  min-height: 56px;
-  padding: var(--space-16) var(--space-20);
-  border-radius: var(--r-panel);
-  cursor: pointer;
-  list-style: none;
-}
-.portal .g1-fold > summary::-webkit-details-marker {
-  display: none;
-}
-.portal .g1-fold > summary > h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 500;
-  letter-spacing: -0.3px;
-  color: var(--charcoal);
-}
-.portal .g1-fold > summary > span {
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--charcoal);
-}
-.portal .g1-fold > summary:focus-visible {
-  border-radius: var(--r-panel);
-}
-@media (hover: hover) {
-  .portal .g1-fold > summary:hover {
-    background: var(--studio-paper);
-  }
-}
-.portal .g1-fold-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-16);
-  padding: 0 var(--space-20) var(--space-20);
-  overflow-wrap: anywhere;
-}
-.portal .g1-fold-body > .pt-region {
-  margin: 0;
-}
-@media (max-width: 599px) {
-  .portal .g1-change {
-    padding: var(--space-16);
-  }
-  .portal .g1-register {
-    padding: var(--space-16);
-  }
-  .portal .g1-fold > summary,
-  .portal .g1-fold-body {
-    padding-inline: var(--space-16);
-  }
-}
-
-/* ---- The founder's controls on a provider card (28 September 2026) -------------------------------
-   A founder button is the secondary pill; open — the founder signed in — it takes the brand ink like the
-   chosen navigation pill, so the difference between a control that acts and one that waits is shape and
-   word, never colour alone: a waiting one is disabled and described by the sentence beside it. */
-.portal .g1-founder-controls {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-12);
-  margin-top: var(--space-12);
-  padding: var(--space-12) var(--space-16);
-  border-radius: var(--r-card);
-  background: var(--studio-paper);
-  color: var(--charcoal);
-}
-.portal .g1-founder-live {
-  min-height: 44px;
-  min-width: 44px;
-  padding: var(--space-8) var(--space-16);
-  font-size: 15px;
-}
-.portal .g1-founder-live:disabled {
-  border: 1px solid var(--stone);
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-.portal .g1-founder-live.is-open:not(:disabled) {
-  background: var(--brand-ink);
-  border-color: var(--brand-ink);
-  color: var(--surface);
-}
-.portal .g1-founder-live[aria-pressed="true"]:not(:disabled) {
-  background: var(--brand-lime);
-  border-color: var(--brand-lime);
-  color: var(--brand-ink);
-}
-.portal .g1-founder-meta {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-  margin: 0;
-}
-.portal .g1-founder-code {
-  max-width: 20rem;
-}
-.portal .g1-founder-logs .pt-label {
-  margin: 0 0 var(--space-8);
-}
-
-/* ---- Every screen arrives, and says what is empty (28 September 2026) ----------------------------
-   The founder: the portal's screens "feel empty". Three answers, and none of them is decoration.
-
-   A screen arrives. Whatever the Frame's panel draws — a strip of figures, a region, a note — comes in
-   three short steps when the screen opens, and a strip of figures or a list of rows inside it does the
-   same card by card: the GilbertOne screens' rhythm, now every category's. Eight pixels and a fade over
-   an entrance, a third of a quick apart and three steps at most, so the last card is never waiting. A
-   backwards fill, so nothing is held once it lands and a card's own hover is never overruled. Gated on
-   [data-decor='on'] as every other portal motion is, and inside #pt-subpanel, so the removal above takes
-   all of it under reduced motion. A strip is not moved as a slab and then again card by card: the strip
-   itself stays put and only its cards arrive. */
 [data-decor="on"] .portal .pt-stagger > :not(.pt-figures, .s-metrics, .c-figures),
 [data-decor="on"] .portal .pt-stagger :is(.pt-figures, .s-metrics, .pt-list) > * {
   animation: cf-arrive var(--t-enter) var(--ease-soft) backwards;
@@ -3700,264 +2647,111 @@
 [data-decor="on"] .portal .pt-stagger :is(.pt-figures, .s-metrics, .pt-list) > :nth-child(n + 3) {
   animation-delay: calc(var(--t-quick) * 2 / 3);
 }
-
-/* On a phone the figures sit two to a row under the full-width dark card, and a strip whose count left
-   one card alone at the foot left half a row empty beside it — the most literal kind of "empty". That
-   card takes the row. Counted from the card the screen is about, when there is one. */
-@media (max-width: 599px) {
-  .portal .pt-figure[data-tint="night"]:first-child ~ .pt-figure:last-child:nth-child(even),
-  .portal .pt-figure:not([data-tint="night"]):first-child ~ .pt-figure:last-child:nth-child(odd),
-  .portal .c-figures .s-metrics > .c-figure:last-child:nth-child(odd):not(:first-child) {
-    grid-column: 1 / -1;
-  }
+/* A share's ring rises once from empty to its share when its card arrives; the end state is the inline
+   offset, so there is no second copy of the share in this sheet. */
+[data-decor="on"] .portal .pt-ring-fill {
+  animation: pt-ring-in var(--t-enter) var(--ease-soft) both;
 }
-
-/* The console's own figures, carried into the portal from the back office. clinical.css takes the card
-   off them on purpose — in the console a figure sits on the ground beside the others — and inside the
-   portal that left three bare numerals floating above a white table, which is most of what "empty"
-   meant. Here they are cards like every other figure in the portal: white, because a tint is chosen
-   from a figure's name (Parts.tsx#tintsFor) and these are drawn by a screen this sheet cannot name; the
-   one the console is about keeps its lime tile. */
-.portal .c-figures .c-figure:not(.lead) {
-  padding: var(--space-24);
-  border-radius: var(--r-panel);
-  background: var(--surface);
+/* The Configuration cards arrive in the same three steps; a new value lands where the old one stood; a
+   disclosure's body unfolds; a refusal is nudged once; the second step of a change fills. */
+[data-decor="on"] .portal .ss-timing {
+  animation: cf-arrive var(--t-enter) var(--ease-soft) both;
 }
-.portal .c-figures .c-figure.lead {
-  padding: var(--space-24);
+[data-decor="on"] .portal .ss-timing:nth-child(2) {
+  animation-delay: calc(var(--t-quick) / 3);
 }
-
-/* A written empty state is a card, not a dashed outline around a line of grey. A wash of the portal's
-   lavender when it says there is nothing yet, and of its peach when it leads with a refusal — the heading
-   is what makes it one, so the tint is never the only difference. Each wash is the tint mixed toward
-   white, so the ink on it measures above the tint's own row: studio ink computes 10.26 on the lavender
-   wash and 10.06 on the peach, against 9.04 and 8.92 on the full tints.
-   The mark at its head is the figure cards' dot, drawn as a ring: a status with no status to report. */
-.portal .pt-empty {
-  position: relative;
-  display: grid;
-  gap: var(--space-8);
-  padding: var(--space-20) var(--space-24) var(--space-20) calc(var(--space-24) + var(--space-24));
-  border: 0;
-  border-radius: var(--r-card);
-  background: color-mix(in srgb, var(--pt-tint-lavender) 55%, var(--surface));
-  color: var(--pt-tint-ink);
+[data-decor="on"] .portal .ss-timing:nth-child(n + 3) {
+  animation-delay: calc(var(--t-quick) * 2 / 3);
 }
-.portal .pt-empty:has(> strong) {
-  background: color-mix(in srgb, var(--pt-tint-peach) 55%, var(--surface));
+[data-decor="on"] .portal .ss-figure {
+  animation: cf-land var(--t-settle) var(--ease-soft) both;
 }
-.portal .pt-empty::before {
-  content: "";
-  position: absolute;
-  top: calc(var(--space-20) + 5px);
-  left: var(--space-24);
-  width: 10px;
-  height: 10px;
-  border: 2px solid currentColor;
-  border-radius: 50%;
+[data-decor="on"] .portal :is(.ss-form, .ss-confirm, .cf-about[open] > .ss-meta, .cf-about[open] > .cf-rules, .cf-history[open] > :not(summary), .g1-details[open] > :not(summary), .g1-fold[open] > .g1-fold-body) {
+  animation: cf-unfold var(--t-settle) var(--ease-soft) both;
 }
-.portal .pt-empty strong {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: inherit;
+[data-decor="on"] .portal .ss-form .fs-refused {
+  animation: cf-refused var(--t-settle) var(--ease-soft) both;
 }
-.portal .pt-empty p {
-  max-width: 72ch;
-  font-size: 15px;
-  line-height: 1.55;
-  color: inherit;
+[data-decor="on"] .portal .cf-history[open] .cf-timeline tbody tr {
+  animation: cf-arrive var(--t-settle) var(--ease-soft) both;
 }
-
+[data-decor="on"] .portal .cf-steps > i:first-child::after {
+  animation: cf-fill var(--t-enter) var(--ease-soft) both;
+}
+[data-decor="on"] .portal .cf-steps > i:last-child::after {
+  transition: transform var(--t-settle) var(--ease-soft);
+}
+[data-decor="on"] .portal .cf-area > .ss-version::after {
+  transition: background-size var(--t-settle) var(--ease-soft);
+}
+/* A provider's card, a register, a row of a list: in the same three steps as they are drawn. */
+[data-decor="on"] .portal #pt-subpanel :is(.g1-grid > .g1-card, .pt-list > .pt-row) {
+  animation: cf-arrive var(--t-enter) var(--ease-soft) both;
+}
+[data-decor="on"] .portal #pt-subpanel :is(.g1-grid > .g1-card, .pt-list > .pt-row):nth-child(2) {
+  animation-delay: calc(var(--t-quick) / 3);
+}
+[data-decor="on"] .portal #pt-subpanel :is(.g1-grid > .g1-card, .pt-list > .pt-row):nth-child(n + 3) {
+  animation-delay: calc(var(--t-quick) * 2 / 3);
+}
+[data-decor="on"] .portal :is(.pt-legend, .cf-about, .cf-history, .g1-details, .g1-founder-details, .pt-week-values) > summary::after {
+  transition: transform var(--t-quick) var(--ease-soft), margin var(--t-quick) var(--ease-soft);
+}
+[data-decor="on"] .portal :is(.pt-node, .pt-row, .pt-demo-seg-button) {
+  transition:
+    background-color var(--t-quick) var(--ease-soft),
+    color var(--t-quick) var(--ease-soft);
+}
 
 /* ==== One settings page (28 September 2026) =========================================================
    The founder, before sleeping: "do another check on all the setting pages — not all of them are looking
    the same. Do a global change on all to look the same. Don't forget animations." So every Control Tower
-   screen is built from the same four parts, and this section is where they look the same:
+   screen is built from the same four parts, and this section is where they look the same — since the
+   Lovable identity of the same day, on the handoff's components:
 
-   - THE HEAD. Parts.tsx#PageHead, worn by Frame (every category) and by the founder's door: the eyebrow,
-     the one <h1>, one lead sentence and, where a screen has one, its status line — GilbertOne's build word
-     sits there now rather than in a card of its own above every sub-screen.
-   - THE SECTION CARD. Parts.tsx#Region is a tinted card with its title in it. The tints rotate mint,
-     lavender, peach, pale green in the order the sections are drawn, so no two neighbours share one. That
-     is a position choosing a colour, which the figure cards refuse (Parts.tsx#tintsFor) because a figure's
-     tint stands for the figure. A section's tint stands for nothing — its title says what it is — and the
-     founder's reference is a page of differently tinted cards, so here the rotation is the honest rule.
-     A section is a wash of its tint — the tint mixed toward white, as the empty-state cards are — so the
-     full tints stay the figure cards' and a figure still reads above the section it sits in. Everything
-     written directly on a wash is the tint's own ink, which measures higher on the wash than on the full
-     tint's row in tokens.json#contrast: studio ink on lavender (9.04), peach (8.92) and pale green
-     (11.46), brand ink on mint (8.09), each a floor the lighter wash only raises. Every block
-     inside — a row, a card, a table row, a form, an empty state — sits on white, the ground its words and
-     the portal's green focus ring were measured on (the ring clears 3:1 on white and paper, on no tint).
+   - THE HEAD. Parts.tsx#PageHead, worn by Frame (every category) and by the founder's door, drawn above.
+   - THE SECTION CARD. Parts.tsx#Region is the shared Card on the page's ground: white, its hairline, its
+     one shadow, its title in Outfit. The pastel tints that rotated behind the sections until this day are
+     retired — a section's title says what it is, and a colour that stood for nothing was decoration in the
+     shape of meaning. Neighbouring cards are told apart by the gap between them and their titles, as every
+     card in the handoff is. Inside a card, a block that needs separating sits on the raised ground.
    - THE FIELD ROW AND THE SAVE BAR, in fields.css, beside the controls they hold.
    - THE MOTION: the arrival every screen already has (pt-stagger above), and the feedback in fields.css.
-     Nothing here moves, so nothing here needs a removal; the removal above takes #pt-subpanel whole. */
-
-/* ---- The head ---- */
-.portal .pt-head {
-  margin-bottom: var(--space-16);
-}
-/* The eyebrow's parts wrap whole — "Control Tower", the mark, the category — rather than each breaking
-   inside itself into a column of half-words on a phone. */
-.portal .pt-head-eyebrow {
-  flex-wrap: wrap;
-  row-gap: var(--space-4);
-}
-.portal .pt-head > .pt-subtabs {
-  margin-top: var(--space-16);
-  margin-bottom: 0;
-}
-.portal .pt-head-status {
-  margin-top: var(--space-16);
-}
-.portal .pt-head-status .pt-g1-state {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--space-16);
-  align-items: start;
-  max-width: 72rem;
-  margin: 0;
-  padding: var(--space-16) var(--space-20);
-  border-radius: var(--r-card);
-  background: var(--surface);
-  color: var(--charcoal);
-}
-.portal .pt-head-status .pt-g1-large {
-  width: 40px;
-  height: 36px;
-}
-.portal .pt-head-status .pt-g1-state p {
-  max-width: none;
-  margin: var(--space-8) 0 0;
-  font-size: 14px;
-  line-height: 1.55;
-  color: var(--charcoal);
-}
-
-/* ---- The section card ---- */
+     Nothing in this section moves, so nothing here needs a removal of its own. */
 .portal .pt-section {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-16);
-  margin: var(--space-24) 0 0;
-  padding: var(--space-24);
-  border-radius: var(--r-panel);
-  background: color-mix(in srgb, var(--pt-tint-mint) 55%, var(--surface));
-  color: var(--brand-ink);
-}
-.portal section.pt-section:nth-of-type(4n + 2) {
-  background: color-mix(in srgb, var(--pt-tint-lavender) 55%, var(--surface));
-  color: var(--pt-tint-ink);
-}
-.portal section.pt-section:nth-of-type(4n + 3) {
-  background: color-mix(in srgb, var(--pt-tint-peach) 55%, var(--surface));
-  color: var(--pt-tint-ink);
-}
-.portal section.pt-section:nth-of-type(4n + 4) {
-  background: color-mix(in srgb, var(--pt-tint-lime) 55%, var(--surface));
-  color: var(--pt-tint-ink);
+  min-width: 0;
+  margin: 0;
+  color: var(--color-foreground);
 }
 .portal .pt-section > * {
   margin: 0;
 }
 .portal .pt-section > h2 {
-  font-size: 20px;
-  font-weight: 500;
-  letter-spacing: -0.4px;
-  color: inherit;
-}
-.portal .pt-section > h2 .pt-count,
-.portal .pt-section-why {
-  color: inherit;
+  color: var(--color-foreground);
 }
 .portal .pt-section-why {
   max-width: 72ch;
-  font-size: 15px;
+  color: var(--color-muted-foreground);
+  font-size: 14px;
   line-height: 1.55;
-}
-/* Words the portal elsewhere sets in grey, when they sit on the tint itself: the tint's ink instead. Inside
-   a white block the same words take the block's ink, which is darker than their grey, never lighter. */
-.portal .pt-section :is(.helper, .pt-table caption, .pt-table thead th, .admin-table thead th, .pt-refusals span, .pt-label, .g1-refusal, .g1-live-why) {
-  color: inherit;
 }
 .portal .pt-section > p {
   max-width: 80ch;
+  font-size: 14px;
   line-height: 1.55;
 }
-/* Every block that holds a field, a list or a fact sits on white. */
-.portal .pt-section > :is(.g1-founder, .g1-form, .pt-refusals, .pt-bullets, .pt-facts, .pt-fields, .g1-action, .g1-actions, .g1-subregion, .g1-founder-details, .g1-details) {
-  padding: var(--space-16) var(--space-20);
-  border-radius: var(--r-card);
-  background: var(--surface);
-  color: var(--charcoal);
-}
-.portal .pt-section > .pt-refusals {
-  padding-left: calc(var(--space-20) + var(--space-16));
-}
-.portal .pt-section > .g1-form {
-  max-width: none;
-}
-.portal .pt-section > .pt-list {
-  background: transparent;
-}
-/* An empty state inside a section is white with its ring mark: the section's tint is already the wash. What
-   tells "nothing yet" from a refusal there is the refusal's heading, which is words, as it always was. */
-.portal .pt-section .pt-empty,
-.portal .pt-section .pt-empty:has(> strong) {
-  background: var(--surface);
-  color: var(--charcoal);
-}
-/* The Speech settings change panel is already the card the founder chose — paper, holding its own tinted
-   register cards — so its section takes no tint of its own, and the panel is the card. The same for the
-   preview panel, which carries its own ground. */
-.portal .pt-section:has(> .g1-change),
-.portal .pt-section:has(> .g1-preview) {
-  padding: 0;
-  background: transparent;
-  color: var(--charcoal);
-}
-.portal .pt-section:has(> .g1-change) > h2,
-.portal .pt-section:has(> .g1-preview) > h2 {
-  padding-inline: var(--space-4);
-}
-/* A section inside the fold or a Configuration node keeps the rotation, a step tighter. */
 .portal :is(.g1-fold-body, .pt-config-node) .pt-section {
   margin-top: 0;
-  padding: var(--space-20);
 }
 @media (max-width: 599px) {
-  .portal .pt-section {
-    margin-top: var(--space-16);
-    padding: var(--space-16);
-    border-radius: var(--r-card);
-  }
-  .portal .pt-section > :is(.g1-founder, .g1-form, .pt-refusals, .pt-bullets, .pt-facts, .pt-fields, .g1-action, .g1-actions, .g1-subregion, .g1-founder-details, .g1-details) {
-    padding: var(--space-12) var(--space-16);
-  }
-  .portal .pt-section > .pt-refusals {
-    padding-left: calc(var(--space-16) + var(--space-16));
-  }
-  .portal .pt-head-status .pt-g1-state {
-    grid-template-columns: minmax(0, 1fr);
+  .portal .pt-section.ui-card--pad-md {
     padding: var(--space-16);
   }
 }
-
-/* ---- The Speech settings save bar sits inside the paper panel, so it takes the paper's edge ---- */
-.portal .g1-change > .g1-savebar {
+/* The Speech settings save bar sits inside its section's card. */
+.portal .g1-change > .fc-savebar {
   margin-top: var(--space-8);
-}
-.portal .g1-savebar .g1-reason {
-  max-width: none;
-}
-/* A row's tag inside a section card may wrap: the card's padding takes 32px from a phone's row, and "Needs a
-   clinician signed in and a purpose recorded" held on one line pushed the row 3px past main's edge. Wrapped,
-   it takes a control's radius rather than a pill's, as the figure chips do. */
-.portal .pt-section .pt-row > .g1-tag {
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: 100%;
-  border-radius: var(--r-control);
 }

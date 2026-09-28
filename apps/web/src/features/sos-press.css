@@ -1,20 +1,22 @@
-/* Pressing SOS and next of kin, on the patient surface. Imported by the two components that draw them, both of which
-   arrive on a dynamic import, so none of this is on the patient's first load. The press sits under the emergency block
-   and never competes with it: a solid danger button the size of an ordinary control, not a second siren. */
-.sos-press{display:grid;gap:var(--space-8)}
-.sos-press-button{display:inline-flex;align-items:center;gap:var(--space-8);justify-self:start;min-height:44px;padding:0 var(--space-16);border:0;border-radius:var(--r-card);background:var(--danger);color:var(--surface);font-size:15px;font-weight:600;cursor:pointer}
-.sos-press-button:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
-.sos-raised{display:grid;gap:var(--space-8);min-width:0}
-.sos-raised h3{margin:0;font-size:17px;font-weight:600}
-.sos-raised p{margin:0;overflow-wrap:anywhere}
-.sos-partner{display:flex;gap:var(--space-8);align-items:flex-start;font-weight:600;color:var(--danger)}
-.sos-partner svg,.sos-stood svg{flex-shrink:0;margin-top:2px}
-.sos-raised .sos-nok{display:grid;gap:var(--space-4);min-width:0}
-.sos-raised .sos-nok p{margin:0;overflow-wrap:anywhere}
-.sos-nok-name{font-weight:600}
-.sos-press-reasons{display:flex;flex-wrap:wrap;gap:var(--space-8);align-items:center}
-.sos-stood{display:flex;gap:var(--space-8);align-items:flex-start}
-.sos-press .fs-refused,.sos-raised .fs-refused,.nok-settings .fs-refused{margin:0;font-size:14px;font-weight:500;color:var(--danger)}
+/* Pressing SOS, on the patient surface, on the identity of 28 September 2026 (wave 4d). Imported by the component that
+   draws it, which arrives on a dynamic import, so none of this is on the patient's first load. The press sits under the
+   emergency block and never competes with it: the handoff's destructive button at the size of an ordinary control, not
+   a second siren, in a white card. What the press did and did not do is set in the foreground ink; the one line that
+   says no ambulance partner is connected leads with the danger mark and is set heavier, because it is the refusal a
+   frightened reader most needs to see. */
+.sos-press, .sos-raised { display: grid; gap: var(--space-12); min-width: 0; }
+.sos-help { margin: 0; color: var(--color-muted-foreground); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.sos-raised h3 { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--color-foreground); }
+.sos-raised p { margin: 0; font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; }
+.sos-partner { display: flex; gap: var(--space-8); align-items: flex-start; padding: var(--space-12) var(--space-16); border: 1px solid color-mix(in oklab, var(--color-danger) 35%, transparent); border-radius: var(--r-md); font-weight: 600; color: var(--color-foreground); }
+.sos-partner svg, .sos-stood svg { flex-shrink: 0; width: var(--space-16); height: var(--space-16); margin-top: var(--space-4); }
+.sos-partner svg { color: var(--ui-danger-ink, var(--danger)); }
+.sos-raised .sos-nok { display: grid; gap: var(--space-4); padding-top: var(--space-12); border-top: 1px solid var(--color-border); min-width: 0; }
+.sos-nok-name { font-weight: 600; }
+.sos-press-reasons { display: flex; flex-wrap: wrap; gap: var(--space-8); align-items: center; }
+.sos-stood { display: flex; gap: var(--space-8); align-items: flex-start; }
+.sos-press .fs-refused, .sos-raised .fs-refused { margin: 0; font-size: 14px; font-weight: 600; color: var(--ui-danger-ink, var(--danger)); }
+/* Next of kin's own settings screen (NextOfKin.tsx) reads the rules below from this sheet; they are its, and unchanged. */
 .nok-settings{display:grid;gap:var(--space-12);min-width:0}
 .nok-wording{margin:0;padding:var(--space-12) var(--space-16);border-left:3px solid var(--danger);background:var(--danger-soft);font-size:14px;line-height:1.6;overflow-wrap:anywhere}
 .nok-consent{display:flex;gap:var(--space-8);align-items:flex-start}

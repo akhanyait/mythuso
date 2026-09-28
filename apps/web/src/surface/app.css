@@ -1144,7 +1144,7 @@ button.secondary.offline{border-style:dashed;color:var(--faint)}
    avatar belongs at the top of them rather than halfway down the paragraph. */
 .role-panel .staff-signin-roles .record-row { align-items: flex-start; text-align: left; }
 .role-panel .staff-signin-roles .record-row > .avatar { align-self: flex-start; }
-.role-panel .record-row[aria-current] { border-color: var(--charcoal); }
+.role-panel .record-row[aria-current] { border-color: var(--brand-green); box-shadow: inset 0 0 0 1px var(--brand-green); }
 .role-panel .record-row > svg:last-child { align-self: center; }
 .role-panel .role-opens { color: var(--charcoal); }
 .role-panel .role-credential { display: inline-flex; align-items: center; gap: 6px; color: var(--faint); }

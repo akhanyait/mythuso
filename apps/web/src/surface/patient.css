@@ -46,8 +46,8 @@
  --canvas: var(--cloud);
  --indigo: var(--charcoal);
  --indigo-deep: var(--charcoal);
- --indigo-soft: var(--pale-sage);
- --accent-soft: var(--pale-sage);
+ --indigo-soft: var(--glass-floor-ground);
+ --accent-soft: var(--glass-floor-ground);
  --indigo-wash: transparent;
  color: var(--charcoal);
 }
@@ -130,14 +130,15 @@
 .patient-surface .context-chip,
 .patient-surface .search-field,
 .patient-surface .search-box {
- background: var(--glass-floor);
+ background: var(--surface);
  border: 1px solid var(--stone);
- border-radius: var(--r-panel, 18px);
- box-shadow: none;
+ border-radius: var(--r-lg);
+ box-shadow: var(--shadow);
 }
+/* A control is compact, never a pill: the handoff keeps the pill for badges and statuses. */
 .patient-surface .context-chip,
 .patient-surface .search-field,
-.patient-surface .search-box { border-radius: var(--r-pill); }
+.patient-surface .search-box { border-radius: var(--r-md); box-shadow: none; }
 .patient-surface .state-block { border-style: dashed; }
 /* The notice keeps the accent down its leading edge, and a smaller radius so the 3px edge reads as a
    rule rather than as a bracket around the sentence. */
@@ -159,26 +160,26 @@
 .patient-surface .visit-card:hover,
 .patient-surface .profile-row:hover {
  transform: translate3d(0, -2px, 0);
- border-color: var(--sage-slate);
+ border-color: var(--brand-green);
  box-shadow: none;
  translate: none;
 }
-.patient-surface .result-row:hover { background: var(--pale-sage);color:var(--charcoal)}
+.patient-surface .result-row:hover { background: var(--glass-floor-ground); color: var(--charcoal); }
 /* Three actions on a visit, and at 320px they wrap rather than squeezing under the 44px floor. */
 .patient-surface .visit-actions { flex-wrap: wrap; }
 .patient-surface .visit-actions > * { flex: 1 1 120px; }
-.patient-surface .choice-row.selected { border-color: var(--charcoal); background: var(--pale-sage);color:var(--charcoal)}
-.patient-surface .add-member { background: transparent; border-style: dashed; border-color: var(--sage-slate); }
+.patient-surface .choice-row.selected { border-color: var(--brand-green); background: color-mix(in srgb, var(--brand-green) 10%, var(--surface)); box-shadow: inset 0 0 0 1px var(--brand-green); color: var(--charcoal); }
+.patient-surface .add-member { background: transparent; border-style: dashed; border-color: var(--faint); }
 /* The one plan a screen leads with keeps its sage ground. The card recipe above is deliberately
    greedy — it has to reach thirty call sites — so the two cards that are meant to be tinted say so
    after it. */
-.patient-surface .module-card.highlight { background: var(--pale-sage); border-color: transparent; color: var(--charcoal); }
+.patient-surface .module-card.highlight { background: var(--surface); border-color: var(--brand-green); box-shadow: inset 0 0 0 1px var(--brand-green); color: var(--charcoal); }
 
 /* ---- The one panel a screen is about ----
    Frosted and more opaque than the ground, with a soft luminance behind whatever the screen is
    actually about. The instinct with glass is to make the important thing more transparent; the
    opposite is right — the thing you are meant to read first should be the most solid thing there. */
-.patient-surface .glass.lead { border-radius: var(--r-panel, 18px); }
+.patient-surface .glass.lead { border-radius: var(--r-lg); }
 .patient-surface .lead-head { display: flex; align-items: center; gap: var(--space-12); }
 .patient-surface .lead-head > div { flex: 1; min-width: 0; }
 /* The glow sits behind the icon, never behind a word: a glow under text is a background nobody can
@@ -244,7 +245,7 @@
  .patient-surface .settings-link { border-radius: var(--r-pill); padding-left: 16px; }
  .patient-surface .settings-link:hover { background: color-mix(in srgb, var(--surface) 70%, transparent); }
  .patient-surface .help-card {
-  background: var(--pale-sage);
+  background: var(--glass-floor-ground);
   border-radius: var(--r-panel, 18px); color: var(--charcoal);}
  .patient-surface .help-symbol { background: color-mix(in srgb, var(--surface) 70%, transparent); color: var(--charcoal); }
  .patient-surface .sidebar .profile { border-top-color: var(--stone); }
@@ -308,31 +309,30 @@
 .patient-surface .chart-flag.watch { background: var(--mango-soft); border-color: var(--mango-ink); color: var(--mango-ink); }
 
 /* ---- Chips, tiles and fills: where sage lives ---- */
-.patient-surface .service-icon,
-.patient-surface .tile-icon { background: var(--pale-sage); color: var(--charcoal); }
-.patient-surface .pill { background: var(--pale-sage); color: var(--charcoal); }
+.patient-surface .pill { background: var(--glass-floor-ground); color: var(--charcoal); }
 .patient-surface .pill.plain { background: none; color: var(--faint); }
 /* On the charcoal panels a pill's word is white. Sage is a fill and never a label, and that rule
    does not stop applying because the ground got darker. */
 .patient-surface .pill.light { color: var(--surface); }
-.patient-surface .avatar { background: var(--pale-sage); color: var(--charcoal); }
-.patient-surface .date-block { background: var(--cloud); border-color: var(--stone); }
-.patient-surface .date-chip { background: var(--glass-floor); border-color: var(--stone); }
-.patient-surface .date-chip.selected { background: var(--charcoal); border-color: var(--charcoal); color: var(--surface); }
+.patient-surface .avatar { background: color-mix(in srgb, var(--brand-ink) 10%, var(--surface)); color: var(--brand-ink); }
+.patient-surface .date-block { background: var(--glass-floor); border-color: var(--stone); border-radius: var(--r-md); }
+.patient-surface .date-chip { background: var(--surface); border-color: var(--stone); border-radius: var(--r-md); }
+/* Selection is the accent, as the handoff spends it: a green edge drawn twice as thick and a tint behind the
+   same charcoal words, so a chosen chip differs by its edge as well as its colour. */
+.patient-surface :is(.date-chip, .time-chip).selected,
+.patient-surface .tabs > button.selected { background: color-mix(in srgb, var(--brand-green) 10%, var(--surface)); border-color: var(--brand-green); box-shadow: inset 0 0 0 1px var(--brand-green); color: var(--charcoal); }
 .patient-surface .date-chip.selected strong,
-.patient-surface .date-chip.selected span { color: var(--surface); }
-.patient-surface .time-chip { background: var(--glass-floor); border-color: var(--stone); border-radius: var(--r-pill); }
-.patient-surface .time-chip.selected { background: var(--charcoal); border-color: var(--charcoal); color: var(--surface); }
-.patient-surface .tabs > button { background: var(--glass-floor); border-color: var(--stone); }
-.patient-surface .tabs > button.selected { background: var(--charcoal); border-color: var(--charcoal); color: var(--surface); }
-.patient-surface .stepper b { background: var(--cloud); color: var(--charcoal); }
-.patient-surface .stepper .current b { background: var(--charcoal); color: var(--surface); }
+.patient-surface .date-chip.selected span { color: var(--charcoal); }
+.patient-surface .time-chip { background: var(--surface); border-color: var(--stone); border-radius: var(--r-md); }
+.patient-surface .tabs > button { background: var(--surface); border-color: var(--stone); border-radius: var(--r-md); }
+.patient-surface .stepper b { background: var(--glass-floor-ground); color: var(--charcoal); }
+.patient-surface .stepper .current b { background: var(--brand-ink); color: var(--surface); }
 /* Off is the lighter track and on is charcoal, and the knob moves — a switch told apart by two dark
    greys is a switch half the readers of this app cannot read. */
 .patient-surface .switch::before { background: var(--stone); }
-.patient-surface .switch.on::before { background: var(--charcoal); }
-.patient-surface .empty-note { background: var(--cloud); color: var(--charcoal); }
-.patient-surface .not-connected { background: var(--cloud); border-color: var(--stone); border-left-color: var(--charcoal); color: var(--faint); }
+.patient-surface .switch.on::before { background: var(--brand-green); }
+.patient-surface .empty-note { background: var(--glass-floor); color: var(--charcoal); }
+.patient-surface .not-connected { background: var(--surface); border-color: var(--stone); border-left-color: var(--brand-ink); color: var(--faint); }
 .patient-surface .not-connected > svg { color: var(--charcoal); }
 
 /* ---- Buttons ----
@@ -342,29 +342,32 @@
    at two weights. */
 .patient-surface .primary,
 .patient-surface .secondary,
-.patient-surface a.primary { border-radius: var(--r-pill); }
-.patient-surface .primary { background: var(--studio-lime); color: var(--studio-ink-deep); }
-.patient-surface .primary:hover:not(:disabled) { background: color-mix(in srgb, var(--studio-lime) 84%, var(--studio-ink)); color: var(--studio-ink-deep); }
+.patient-surface a.primary { border-radius: var(--r-md); }
+.patient-surface .primary { background: var(--brand-ink); border-color: var(--brand-ink); color: var(--surface); }
+.patient-surface .primary:hover:not(:disabled) { background: color-mix(in srgb, var(--brand-ink) 90%, var(--surface)); color: var(--surface); }
 /* The one exception, and the reason is the rule rather than an escape from it. The submit inside the
    search field is a control belonging to the field beside it, not the thing this screen is for — and
    the home has "Book a nurse" three rows below it in the same lime. Two lime pills stacked is a
    screen with two primary actions, which is a screen with none. It takes the ink, paper on it at
    12.02, and stays the same size and shape. */
-.patient-surface .search-field .search-go { background: var(--studio-ink); color: var(--studio-paper); }
-.patient-surface .search-field .search-go:hover:not(:disabled) { background: var(--studio-ink-deep); }
+.patient-surface .search-field .search-go { background: var(--surface); border-color: var(--stone); color: var(--charcoal); }
+.patient-surface .search-field .search-go:hover:not(:disabled) { background: var(--glass-floor); }
 .patient-surface .secondary {
- background: color-mix(in srgb, var(--surface) 70%, transparent);
+ background: var(--surface);
  border-color: var(--stone);
  color: var(--charcoal);
 }
-.patient-surface .secondary:hover:not(:disabled) { background: var(--surface); border-color: var(--sage-slate); }
+.patient-surface .secondary:hover:not(:disabled) { background: var(--glass-floor); border-color: var(--faint); }
 .patient-surface .text-button { color: var(--charcoal); }
 .patient-surface .eyebrow { color: var(--faint); }
 /* A screen's own sections as one segmented pill track, the catalogue's and the Control Tower's shape:
    the chosen one is paper-white ink on the brand ink. The track scrolls inside itself on a phone. */
-.patient-surface .underline-tabs { gap: var(--space-4); padding: var(--space-4); border: 0; border-radius: var(--r-pill); background: var(--surface); width: fit-content; max-width: 100%; }
-.patient-surface .underline-tabs > button { padding: 0 var(--space-16); border-radius: var(--r-pill); color: var(--studio-ink); }
-.patient-surface .underline-tabs > button.selected { background: var(--brand-ink); color: var(--surface); }
+/* A screen's own sections as the handoff's tabs: a muted track, the chosen one raised on white. */
+/* It wraps rather than scrolling inside itself, as the handoff's tabs do: a tab cut off at a phone's edge is a
+   section nobody finds. */
+.patient-surface .underline-tabs { flex-wrap: wrap; overflow: visible; gap: var(--space-4); padding: var(--space-4); border: 0; border-radius: var(--r-md); background: var(--glass-floor-ground); width: fit-content; max-width: 100%; }
+.patient-surface .underline-tabs > button { padding: 0 var(--space-16); border-radius: var(--r-sm); color: var(--faint); }
+.patient-surface .underline-tabs > button.selected { background: var(--surface); box-shadow: var(--shadow); color: var(--charcoal); }
 .patient-surface .underline-tabs > button.selected:after { display: none; }
 .patient-surface .sign-out { color: var(--danger); border-color: var(--danger); }
 
@@ -374,8 +377,8 @@
 .patient-surface .promo-dark,
 .patient-surface .passport-hero,
 .patient-surface .wallet-hero {
- background: linear-gradient(140deg, var(--charcoal), color-mix(in srgb, var(--charcoal) 78%, var(--sage-slate)));
- border-radius: var(--r-panel, 18px);
+ background: var(--brand-ink);
+ border-radius: var(--r-lg);
 }
 .patient-surface .promo-dark p,
 .patient-surface .passport-hero p,
@@ -397,7 +400,7 @@
  width: 26px;
  height: 26px;
  border-radius: var(--r-pill);
- background: var(--pale-sage);
+ background: var(--glass-floor-ground);
  color: var(--charcoal);
  font-size: 13px;
  font-weight: 600;
@@ -413,8 +416,8 @@
    number that wraps is not a number anybody can read. */
 .patient-surface .s-metrics { padding: var(--space-8) 0 var(--space-16); grid-template-columns: repeat(auto-fit, minmax(152px, 1fr)); }
 @media (max-width: 600px) { .patient-surface .s-metric-value { font-size: 32px; } }
-.patient-surface .s-metric-chip { background: var(--glass-floor); border-color: var(--stone); }
-.patient-surface .s-metric-value { color: var(--charcoal); }
+.patient-surface .s-metric-chip { background: var(--surface); border-color: var(--stone); }
+.patient-surface .s-metric-value { color: var(--charcoal); font-family: var(--font-display); font-weight: 600; letter-spacing: -.5px; }
 .patient-surface .s-metric-label { color: var(--faint); }
 
 /* A balance, on the dark panel, in the same shape. It is money rather than a reading, so the amount
@@ -436,45 +439,44 @@
    It sits outside the shell in the DOM, so it carries `patient-surface` itself rather than
    inheriting it, and `.glass` gives it the same material as the chrome it opened from. */
 .modal.patient-surface {
- border-radius: var(--r-panel, 18px) var(--r-panel, 18px) 0 0;
+ border-radius: var(--r-lg) var(--r-lg) 0 0;
  border: 1px solid var(--stone);
+ /* White, not frosted: the handoff has no glass, and a dialog is read, not looked through. */
+ background: var(--surface);
+ backdrop-filter: none;
+ -webkit-backdrop-filter: none;
  color: var(--charcoal);
 }
 .modal.patient-surface::backdrop { background: color-mix(in srgb, var(--charcoal) 34%, transparent); }
 @media (min-width: 700px) {
- .modal.patient-surface { border-radius: var(--r-panel, 18px); margin: auto; }
+ .modal.patient-surface { border-radius: var(--r-lg); margin: auto; }
 }
 
 /* ---- The way in ----
    The door itself is surface/door.css: it stopped being a full-bleed page with a tinted rail and
    became one card on this ground, so the rules that dressed `.onboard-panel` for the patient went
    with it. What is left here is what the door borrows from the rest of the surface. */
-.patient-surface .locale-choice label.selected { border-color: var(--charcoal); background: var(--pale-sage); color: var(--charcoal);}
-.patient-surface .success-icon { background: var(--pale-sage); color: var(--charcoal); }
+.patient-surface .locale-choice label.selected { border-color: var(--brand-green); background: color-mix(in srgb, var(--brand-green) 10%, var(--surface)); box-shadow: inset 0 0 0 1px var(--brand-green); color: var(--charcoal); }
+.patient-surface .success-icon { background: color-mix(in srgb, var(--brand-green) 12%, var(--surface)); color: var(--teal-ink); }
 
 /* ---- Charts: a soft sage fill fading to nothing ----
    No gridlines shouting and no axis furniture. The band that marks a reference range is the palest
    of the four sages, the curve is charcoal, and the value that matters is a filled dot. */
-.patient-surface .chart-area { fill: var(--soft-sage); opacity: .55; }
-.patient-surface .chart-line { stroke: var(--charcoal); }
-.patient-surface .chart-band { fill: var(--pale-sage); opacity: .5; }
+.patient-surface .chart-area { fill: var(--brand-ink); opacity: .1; }
+.patient-surface .chart-line { stroke: var(--brand-ink); }
+.patient-surface .chart-band { fill: var(--brand-lime); opacity: .22; }
 /* The passport's readings are stat tiles on lavender, the ground tokens.json#contrast names for health
    readings (studio ink deep on studio lilac). Everything in the tile inherits that ink, the reference band
    is paper so the range reads as a lighter lane, and the chip keeps its own paper and its own word — the
    classification is the reading's, never a grade composed here. */
-.patient-surface .passport-hero .pill.light { background: var(--studio-lime); color: var(--studio-ink); }
-.patient-surface .chart-grid .chart-card:not(.glass) { padding: var(--space-24); border: 0; border-radius: var(--r-card); background: var(--studio-lilac); color: var(--studio-ink-deep); }
-.patient-surface .chart-grid .chart-card :not(.chart-flag) { color: inherit; }
-.patient-surface .chart-grid .chart-value strong { font-size: 42px; letter-spacing: -1.6px; }
-.patient-surface .chart-grid .chart-band { fill: var(--surface); opacity: .7; }
-.patient-surface .chart-grid .chart-area { fill: var(--studio-ink); opacity: .1; }
-/* Record rows as soft paper rows on the page's ground: a radius, no hairline, the icon in a lime disc. */
+.patient-surface .passport-hero .pill.light { background: var(--brand-lime); color: var(--brand-ink); }
+.patient-surface .chart-grid .chart-card:not(.glass) { padding: var(--space-20); }
+/* Record rows as white cards on the ground, like every other card. */
 .patient-surface main > .shortcut-list > .shortcut-row:not(.glass),
-.patient-surface main > .panel:has(> .record-row):not(.glass) { border: 0; border-radius: var(--r-card); background: var(--surface); }
-.patient-surface main > .shortcut-list > .shortcut-row .service-icon { background: var(--studio-lime); color: var(--studio-ink); }
+.patient-surface main > .panel:has(> .record-row):not(.glass) { border-radius: var(--r-lg); background: var(--surface); }
 @media (min-width: 1000px) { .patient-surface main > .shortcut-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-12); } }
-.patient-surface .chart-dot { fill: var(--charcoal); }
-.patient-surface .chart-flag { background: var(--glass-floor); border: 1px solid var(--stone); color: var(--charcoal); }
+.patient-surface .chart-dot { fill: var(--brand-ink); }
+.patient-surface .chart-flag { background: var(--surface); border: 1px solid var(--stone); color: var(--charcoal); }
 
 /* ---- Entrance ----
    `.rise` and its two delayed siblings come from glass.css. They are put on the blocks a person is
@@ -562,7 +564,7 @@
 .patient-surface .booking-for {
  display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-8);
  font-size: 14px; color: var(--charcoal);
- background: var(--pale-sage); border-radius: var(--r-control);
+ background: var(--glass-floor-ground); border-radius: var(--r-md);
  padding: var(--space-12) var(--space-16); margin-bottom: var(--space-16);
 }
 .patient-surface .booking-for > svg { color: var(--charcoal); flex: 0 0 auto; }
@@ -597,10 +599,10 @@
    the scale — and only the weight and the tracking move. */
 .patient-surface h1,
 .patient-surface .page-intro h1,
-.patient-surface .home-head h1 { font-weight: 500; letter-spacing: -1px; }
+.patient-surface .home-head h1 { font-family: var(--font-display); font-weight: 600; letter-spacing: -.5px; }
 .patient-surface h2,
-.patient-surface h3 { font-weight: 500; letter-spacing: -.3px; }
-.patient-surface .section-title h2 { font-size: 18px; font-weight: 500; letter-spacing: -.3px; }
+.patient-surface h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: 0; }
+.patient-surface .section-title h2 { font-size: 18px; font-weight: 600; letter-spacing: 0; }
 /* The eyebrow was 700, indigo, at 13px under 1.5px of tracking: four kinds of emphasis on the
    quietest line of the screen. It is a label, so it is the size, colour and tracking of a label. */
 .patient-surface .eyebrow { font-weight: 600; letter-spacing: 1.2px; color: var(--faint); }
@@ -634,10 +636,10 @@
    three were bold. A large thin numeral over a small dense label is the reference's signature and
    the single move that makes the top of a screen read as calm — clinical.css already does precisely
    this to the same `.chart-value`, so this is that rule reaching the other half of the product. */
-.patient-surface .chart-value strong { font-size: 32px; font-weight: 300; letter-spacing: -1.2px; color: var(--charcoal); }
+.patient-surface .chart-value strong { font-family: var(--font-display); font-size: 32px; font-weight: 600; letter-spacing: -.5px; color: var(--charcoal); font-variant-numeric: tabular-nums; }
 .patient-surface .chart-value small,
 .patient-surface .chart-trend { color: var(--faint); }
-.patient-surface .plan-price { font-weight: 300; letter-spacing: -1.2px; }
+.patient-surface .plan-price { font-family: var(--font-display); font-weight: 600; letter-spacing: -.5px; }
 /* The tracking is for the numeral. Left to cascade it also pulled "/ month" in against the figure,
    which is the one place on this screen where two things must not be allowed to touch. */
 .patient-surface .plan-price small { color: var(--faint); letter-spacing: 0; margin-left: 3px; }
@@ -662,9 +664,9 @@
    this codebase would end up with a third. */
 .patient-surface .service-icon,
 .patient-surface .tile-icon {
- background: color-mix(in srgb, var(--charcoal) 6%, transparent);
- color: var(--charcoal);
- border-radius: var(--r-pill);
+ background: var(--glass-floor-ground);
+ color: var(--brand-ink);
+ border-radius: var(--r-md);
 }
 /* And where sage is still earning its keep: the object a lead panel is about, the highlighted plan,
    the featured module. Each of those is one per screen, which is the point. */
@@ -672,7 +674,7 @@
 .patient-surface .glow > .tile-icon,
 .patient-surface .glass.lead .visit-top .service-icon,
 .patient-surface .module-card.highlight .service-icon,
-.patient-surface .module-card.highlight .tile-icon { background: var(--pale-sage); color: var(--charcoal); }
+.patient-surface .module-card.highlight .tile-icon { background: color-mix(in srgb, var(--brand-green) 12%, var(--surface)); color: var(--brand-ink); }
 /* The semantic tiles keep their colour and are restated here for the same reason the block further
    up this file restates the pills: the rule above is two classes deep and would otherwise quietly
    have taken the mango off the only row on the home that says something is due, and the red off

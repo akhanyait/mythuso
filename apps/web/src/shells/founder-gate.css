@@ -1,16 +1,19 @@
-/* The founder's door (packages/catalog/founder-access.json#door): one card on the brand ground.
+/* The founder's door (packages/catalog/founder-access.json#door): one elevated Card on the handoff's ground.
  *
- * The ground is the wordmark's ink, lit from two corners by the wordmark's green and mint — the palette
- * of mythuso-logo.svg and nothing else, so the first thing the founder meets is the brand and not a
- * dashboard. The card is white, and every word on it is charcoal or the declared muted pair on surface,
- * so nothing here is measured against a colour that only exists halfway down a gradient. The one word
- * drawn on the ink itself is none: the card carries everything, including the way back.
+ * Since the Lovable identity (28 September 2026, wave 4e) the door wears the handoff's look rather than the
+ * brand-ink gradient it had: the page is the calm --color-background every Control Tower screen stands on,
+ * the card is the shared Card at its elevated shadow, the head is the portal's PageHead in Outfit, and the
+ * form is the shared field and Button. The handoff asks for no gradients and no decorative grounds, and a
+ * door that looks like the rooms behind it is the one a founder recognises. Every colour is a --color-* role
+ * or one of ui.css's measured inks, so the words are measured against white and nothing halfway down a
+ * gradient.
  *
- * The form is the reveal panel's (SignIn in features/portal/gilbertone/founder/FounderAccess.tsx), which
- * is styled under `.portal` in portal.css — a sheet this screen is drawn outside of — so its classes are
- * given the same shape here, scoped to `.founder-gate`: 44px inputs and buttons, the refusal on mango,
- * the label a step down. 16px in the inputs rather than 15, because a phone zooms into anything smaller
- * and a sign-in that scrolls sideways after the first tap is a door that flinches.
+ * The form is the reveal panel's (SignIn in features/portal/gilbertone/founder/FounderAccess.tsx), whose
+ * native fields wear the shared ui-control class; the rules here only give the door's own sizes, scoped to
+ * `.founder-gate`, because portal.css — which lays that form out inside the Control Tower — is a sheet this
+ * screen is drawn outside of. 44px on every input and button, and 16px in the inputs rather than 14, because
+ * a phone zooms into anything smaller and a sign-in that scrolls sideways after the first tap is a door that
+ * flinches.
  *
  * Motion: the card arrives once by the entrance every other panel uses, in the tokens' time and curve
  * (motion.css), and not at all for somebody who asked for stillness. Nothing else moves. */
@@ -21,102 +24,86 @@
  align-items: center;
  justify-content: center;
  padding: var(--space-24) var(--space-16);
- background:
-  radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--brand-green) 28%, var(--brand-ink)) 0%, transparent 60%),
-  radial-gradient(90% 70% at 100% 100%, color-mix(in srgb, var(--brand-mint) 20%, var(--brand-ink)) 0%, transparent 55%),
-  var(--brand-ink);
- color: var(--charcoal);
+ background: var(--color-background);
+ color: var(--color-foreground);
+ font-family: var(--font-text);
 }
 @media (min-width: 700px) { .founder-gate { padding: var(--space-40) var(--space-24); } }
 
+.founder-gate-main { width: 100%; max-width: 460px; min-width: 0; }
 .founder-gate-card {
- width: 100%;
- max-width: 460px;
- min-width: 0;
  display: flex;
  flex-direction: column;
- gap: var(--space-12);
- padding: var(--space-24) var(--space-20);
- border-radius: var(--r-panel);
- background: var(--surface);
- color: var(--charcoal);
- box-shadow: 0 24px 64px color-mix(in srgb, var(--brand-ink) 55%, transparent);
+ gap: var(--space-16);
+ min-width: 0;
 }
-@media (min-width: 700px) { .founder-gate-card { padding: var(--space-32) var(--space-32); } }
+@media (max-width: 480px) { .founder-gate-card.ui-card--pad-lg { padding: var(--space-20) var(--space-16); } }
 
 /* The wordmark at the size the sidebar draws it, so the door and the portal behind it wear one mark. */
-.founder-gate-mark { display: block; width: 168px; height: 46px; object-fit: contain; object-position: left center; }
+.founder-gate-mark { display: block; width: 152px; height: 42px; object-fit: contain; object-position: left center; }
 /* The door wears the portal's one head (Parts.tsx#PageHead); these give its parts the door's sizes. */
-.founder-gate-head > div { display: flex; flex-direction: column; gap: var(--space-12); }
-.founder-gate-head .pt-head-status { display: flex; flex-direction: column; gap: var(--space-12); }
+.founder-gate-head > div { display: flex; flex-direction: column; gap: var(--space-8); }
+.founder-gate-head .pt-head-status { display: flex; flex-direction: column; gap: var(--space-12); margin-top: var(--space-16); }
 .founder-gate .pt-head-eyebrow {
- margin: var(--space-4) 0 0;
+ margin: 0;
  font-size: 13px;
- font-weight: 700;
- letter-spacing: 1.5px;
+ font-weight: 600;
+ letter-spacing: .08em;
  text-transform: uppercase;
- color: var(--charcoal-muted-on-surface);
+ color: var(--color-muted-foreground);
 }
 .founder-gate-card h1 {
  margin: 0;
+ font-family: var(--font-display);
  font-size: 28px;
- font-weight: 500;
- letter-spacing: -.5px;
- line-height: 1.15;
- color: var(--charcoal);
+ font-weight: 600;
+ letter-spacing: -.02em;
+ line-height: 1.2;
+ color: var(--color-foreground);
 }
-.founder-gate .pt-head-lead { margin: 0; font-size: 15px; line-height: 1.55; color: var(--charcoal-muted-on-surface); }
-.founder-gate-status { margin: 0; font-size: 14px; line-height: 1.5; color: var(--charcoal-muted-on-surface); }
+.founder-gate .pt-head-lead { margin: 0; font-size: 15px; line-height: 1.55; color: var(--color-muted-foreground); }
+.founder-gate-status { margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-muted-foreground); }
+/* A refusal is the handoff's warning Alert in shape — its tinted edge on white and the warning ink as a rule
+   down its side — with the service's own sentence as its words. The rule is a second channel; the sentence
+   and the holding line under it say what happened. */
 .founder-gate-refusal,
 .founder-gate .g1-founder-refusal {
  margin: 0;
- padding: var(--space-8) var(--space-12);
- border-radius: var(--r-control);
- background: var(--mango-soft);
- color: var(--ink);
+ padding: var(--space-12) var(--space-16);
+ border: 1px solid color-mix(in oklab, var(--color-warning) 50%, transparent);
+ border-left: 3px solid var(--ui-warning-ink, var(--mango-ink));
+ border-radius: var(--r-md);
+ background: var(--color-surface);
+ color: var(--color-foreground);
  font-size: 14px;
  line-height: 1.5;
 }
 
-/* ---- The reveal panel's form, given the portal's shape outside the portal ---- */
-.founder-gate .g1-form { display: flex; flex-direction: column; gap: var(--space-12); min-width: 0; }
-.founder-gate .pt-label { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .3px; color: var(--charcoal-muted-on-surface); }
-.founder-gate .g1-field { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; color: var(--charcoal); }
-.founder-gate .g1-field > span { font-size: 14px; font-weight: 600; }
+/* ---- The reveal panel's form, given the door's shape outside the portal ---- */
+.founder-gate .g1-form { display: flex; flex-direction: column; gap: var(--space-16); min-width: 0; }
+.founder-gate .pt-label { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--color-muted-foreground); }
+.founder-gate .g1-field { display: flex; flex-direction: column; gap: calc(var(--space-12) / 2); min-width: 0; color: var(--color-foreground); }
+.founder-gate .g1-field > span { font-size: 14px; font-weight: 600; line-height: 1.43; }
 .founder-gate .g1-field input {
  min-height: 44px;
  max-width: 100%;
- padding: var(--space-8) var(--space-12);
+ padding: 0 var(--space-12);
  font-size: 16px;
 }
-.founder-gate .g1-field input:disabled { background: var(--cloud); border-color: var(--stone); color: var(--faint); cursor: not-allowed; }
-.founder-gate .helper { margin: 0; color: var(--charcoal-muted-on-surface); font-size: 13px; line-height: 1.6; }
+.founder-gate .helper { margin: 0; color: var(--color-muted-foreground); font-size: 13px; line-height: 1.5; }
 .founder-gate .g1-founder-button {
  min-height: 44px;
  min-width: 44px;
- padding: var(--space-8) var(--space-16);
- display: inline-flex;
- align-items: center;
- justify-content: center;
- gap: var(--space-8);
- font-size: 15px;
+ align-self: stretch;
 }
 
-/* The way back, for somebody who is not the founder: a plain link-shaped button at a full target. */
+/* The way back, for somebody who is not the founder: the ghost Button, its words on the card's left edge
+   with the rest of the card's words, its padding hanging into the card's margin. */
 .founder-gate-leave {
  align-self: flex-start;
  min-height: 44px;
  min-width: 44px;
- margin-top: var(--space-4);
- padding: 0 var(--space-4);
- border: 0;
- background: none;
- color: var(--charcoal);
- font-size: 14px;
- font-weight: 600;
- text-decoration: underline;
- text-underline-offset: 3px;
- cursor: pointer;
+ margin: var(--space-4) 0 0 calc(-1 * var(--space-16));
 }
 
 /* ---- Motion: once, on arrival, in the tokens' time; none under reduced motion ---- */

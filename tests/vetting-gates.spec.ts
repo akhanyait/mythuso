@@ -45,8 +45,8 @@ test('a lapsed clearance holds a nurse at her gate with the lapse sentence, neve
 test('an application with checks still in review sits at the first gate that has not passed', async ({ page }) => {
  const detail = await openParty(page, /Sister Boitumelo Nkosi/);
  await expect(detail.locator('.gate-progress')).toContainText(status('background'));
- await detail.locator('.record-row').filter({ hasText: 'Two clinical references' }).getByRole('button', { name: 'Verify' }).click();
- const clearance = detail.locator('.record-row').filter({ hasText: 'Police clearance' });
+ await detail.locator('.vetting-check').filter({ hasText: 'Two clinical references' }).getByRole('button', { name: 'Verify' }).click();
+ const clearance = detail.locator('.vetting-check').filter({ hasText: 'Police clearance' });
  await clearance.getByRole('button', { name: 'Verify' }).click();
  // one reviewer's word does not pass a hard-stop gate: the clearance is high-risk and needs a second
  await expect(detail.locator('.gate-progress')).toContainText(status('background'));

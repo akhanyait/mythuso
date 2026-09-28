@@ -70,6 +70,7 @@ val BrandGreen = Color(0xFF189870)
 val BrandOrange = Color(0xFFF86830)
 val BrandLime = Color(0xFFD8F818)
 val BrandMint = Color(0xFF9FE1CB)
+val BrandCyan = Color(0xFF51F3FC)
 
 /** Generation four, the Lovable handoff of 28 September 2026: nineteen roles, each in a light and a
     dark value, converted exactly from the handoff's oklch (kept in the trailing comment). Nothing on

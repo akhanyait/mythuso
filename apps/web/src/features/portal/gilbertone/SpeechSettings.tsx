@@ -10,18 +10,19 @@ import { ChoiceChips, RangeSlider, Switch } from '../Fields';
    screen's controls to, word for word. */
 import { FieldRow, SaveBar } from '../Fields';
 import { lastChangedText } from '../../Configuration';
-import { BuildWord, Empty, Loading, Region, RovingList, tintsFor } from '../Parts';
+import { BuildWord, Empty, Loading, Region, RovingList } from '../Parts';
 import { CardStatusWord, LiveButton, LiveSentence, Locked } from './Controls';
 import { VoicePreview } from './VoicePreview';
 import { useAssistantVoice } from './useAssistantVoice';
 import { useVoiceSaving, type SettingChange } from './useVoiceSaving';
+import { Badge } from '../../../ui/Badge';
 
 /* GilbertOne · Speech settings: the Voice screen (§7.3) and the Speech settings screen of 28 September 2026 as
  * one screen, on the founder's instruction of the same day — "put the change fields on top; they are too at
  * the bottom. Voice and Speech settings are duplicated; collapse them into one place, Speech settings."
  *
  * THE ORDER IS THE FOUNDER'S. First the founder's gate, then one sentence saying where what is shown came
- * from, then the change fields: a paper panel with a tinted card per presentation
+ * from, then the change fields: a panel with a card per presentation
  * register — its provider and its voice as chips, what is in force, and its own Save as default — and under
  * them the knobs in three groups — Azure Speech's, ElevenLabs', and the ceilings, timeouts, fallback and own
  * voice every provider shares — as sliders, chips and switches, each group with its own Save — and the reason
@@ -117,8 +118,8 @@ export function SpeechSettingsScreen() {
     preview — so every row's in-force line says who changed it and when, as the Configuration cards do. */
  const history: readonly Change[] = source.phase === 'service' ? source.history : source.phase === 'tab' ? historyOf('assistant') : [];
  const inForceLine = (key: string) => `${settingsScreen.inForce} · ${shownText(key)} · ${lastChangedText(history.filter(c => c.setting === key))}`;
- /* Which card was saved last, and whether an odd or an even time, so the card that took the change settles with a flash of its
-    tint once the version in force moves — and only then, never on a refused save. The parity names the
+ /* Which card was saved last, and whether an odd or an even time, so the card that took the change settles with one brief
+    flash once the version in force moves — and only then, never on a refused save. The parity names the
     flash (fields.css, "One settings page"), so a second save of the same card replays it without a remount. */
  const [pressed, setPressed] = useState<string | null>(null);
  const [flash, setFlash] = useState<{ id: string; odd: boolean } | null>(null);
@@ -132,7 +133,6 @@ export function SpeechSettingsScreen() {
 
  /* The registers with a chooser are exactly the classes whose own previewMaySaveAsDefault allows one. */
  const registers = voice.queryClasses.filter(c => c.previewMaySaveAsDefault);
- const tints = tintsFor(registers.map(c => c.label));
  const providerKeyOf = (classId: string) => {
   const key = speechKeys.providerByClass[classId as keyof typeof speechKeys.providerByClass];
   if (!key) throw new Error(`packages/engines names no provider setting for the presentation class "${classId}".`);
@@ -174,7 +174,7 @@ export function SpeechSettingsScreen() {
       const providerKey = providerKeyOf(c.id);
       const providerSetting = settingOf(providerKey);
       const changes = changesOf([providerKey, voiceKey]);
-      return <article key={c.id} className="g1-register" data-tint={tints.get(c.label)} data-saved={savedOf(c.id)} aria-label={c.label}>
+      return <article key={c.id} className="g1-register" data-saved={savedOf(c.id)} aria-label={c.label}>
        <h4>{c.label}</h4>
        <p className="g1-register-why">{c.why}</p>
        <ChoiceChips legend={fill(words.providerLabel, { register: c.label })} name={`${saveWhy}-${c.id}-provider`} disabled={disabled} className="g1-register-chips"
@@ -206,7 +206,7 @@ export function SpeechSettingsScreen() {
     <SaveBar label={portalContract.settingsPage.saveBarLabel} className="g1-savebar">
      <label className="g1-field g1-reason" htmlFor={reasonField}>
       <span>{settingsScreen.reason}</span>
-      <textarea id={reasonField} className="fc-text" value={saving.reason} disabled={disabled} onChange={event => { saving.setReason(event.target.value); saving.clear(); }} aria-describedby={`${reasonField}-help`} autoComplete="off" spellCheck={false}/>
+      <textarea id={reasonField} className="ui-control ui-textarea" value={saving.reason} disabled={disabled} onChange={event => { saving.setReason(event.target.value); saving.clear(); }} aria-describedby={`${reasonField}-help`} autoComplete="off" spellCheck={false}/>
       <small id={`${reasonField}-help`}>{settingsScreen.reasonHelp}</small>
      </label>
      <p id={`${saveWhy}-gate`} className={source.canSave ? 'helper' : 'g1-refusal'}>{saving.gate.sentence}</p>
@@ -228,7 +228,7 @@ export function SpeechSettingsScreen() {
     <Block title={voiceWords.zonesHeading} count={voice.zones.length}>
      <RovingList label={`${voice.zones.length} zones`} rows={voice.zones.map(z => ({
       key: z.id,
-      content: <><strong>{z.label}</strong><span className="g1-tag">{zoneWord(z.configurable)}</span><span>{z.sentence}</span></>
+      content: <><strong>{z.label}</strong><Badge size="sm" className="g1-tag">{zoneWord(z.configurable)}</Badge><span>{z.sentence}</span></>
      }))}/>
     </Block>
 
@@ -240,7 +240,7 @@ export function SpeechSettingsScreen() {
        const z = zone(c.zone);
        return <tr key={c.id}>
         <th scope="row">{c.label}</th>
-        <td>{z.label} · <span className="g1-tag">{zoneWord(z.configurable)}</span></td>
+        <td>{z.label} · <Badge size="sm" className="g1-tag">{zoneWord(z.configurable)}</Badge></td>
         <td>{c.register}</td>
         <td>{c.previewMaySaveAsDefault ? fill(voiceWords.inForceSentence, { label: inForceWords(c.id) }) : <span className="g1-locked-cell">{voiceWords.lockedRowSentence}</span>}</td>
        </tr>;
@@ -253,7 +253,7 @@ export function SpeechSettingsScreen() {
      <RovingList label={words.inForceHeading} rows={providers.map(({ classId, card }) => {
       const c = voice.queryClasses.find(q => q.id === classId)!;
       const ownHere = source.speech.ownVoice === 'every-presentation-register' || (source.speech.ownVoice === 'admin-register' && classId === voice.queryClasses.find(q => q.zone === 'presentation' && q.setting?.endsWith('-admin'))?.id);
-      return { key: classId, content: <><strong>{c.label}</strong><CardStatusWord id={card.statusToday}/><span>{fill(words.registerSentence, { register: c.label, provider: card.name, voice: voiceChoicesOf(classId).find(o => o.value === (source.voices.byClass as Readonly<Record<string, string>>)[classId])?.label ?? '' })}{ownHere && <> <span className="g1-tag">{words.ownVoiceOnWord}</span></>}</span></> };
+      return { key: classId, content: <><strong>{c.label}</strong><CardStatusWord id={card.statusToday}/><span>{fill(words.registerSentence, { register: c.label, provider: card.name, voice: voiceChoicesOf(classId).find(o => o.value === (source.voices.byClass as Readonly<Record<string, string>>)[classId])?.label ?? '' })}{ownHere && <> <Badge size="sm" className="g1-tag">{words.ownVoiceOnWord}</Badge></>}</span></> };
      })}/>
      <p className="helper">{refusal('no-provider-setting-on-a-clinical-register').statement}</p>
     </Block>
@@ -307,7 +307,7 @@ export function SpeechSettingsScreen() {
       content: <><strong>{l.name}</strong>
        {l.ttsAvailable && l.ttsVoices
         ? <span>{Object.values(l.ttsVoices).map(v => <code key={v} className="g1-inline">{v}</code>)}</span>
-        : <span><span className="g1-tag">{voiceWords.notAvailableWord}</span> {assistantVoice.voiceUnavailableNotice}</span>}</>
+        : <span><Badge size="sm" className="g1-tag">{voiceWords.notAvailableWord}</Badge> {assistantVoice.voiceUnavailableNotice}</span>}</>
      }))}/> : <Loading/>}
      <p className="helper">{voice.languages.sentence}</p>
      <Empty heading={prefs.refusals.find(r => r.id === 'no-voice-chooser-for-a-person')!.statement}>{prefs.voiceChoice.sentence} {prefs.voiceChoice.why} {voice.languages.why}</Empty>
@@ -323,7 +323,7 @@ export function SpeechSettingsScreen() {
        const axis = p.boundsFrom ? prefs.axes.find(a => a.id === p.id) : undefined;
        const undecided = axis !== undefined && 'bounds' in axis && axis.bounds === null;
        return <article key={p.id} className="g1-card g1-param">
-        <h3>{p.id}{undecided && <span className="g1-tag">{voiceWords.notDecided}</span>}</h3>
+        <h3>{p.id}{undecided && <Badge size="sm" className="g1-tag">{voiceWords.notDecided}</Badge>}</h3>
         <p className="g1-param-who">{p.who}</p>
         {axis !== undefined && '_boundsWhy' in axis && <p className="g1-param-range">{axis._boundsWhy}</p>}
         <p>{p.why}</p>
@@ -332,7 +332,7 @@ export function SpeechSettingsScreen() {
       {voice.parameters.stt.map(p => {
        const undecided = 'value' in p && p.value === null;
        return <article key={p.id} className="g1-card g1-param">
-        <h3>{p.id}{undecided && <span className="g1-tag">{voiceWords.notDecided}</span>}</h3>
+        <h3>{p.id}{undecided && <Badge size="sm" className="g1-tag">{voiceWords.notDecided}</Badge>}</h3>
         {'from' in p && <p className="g1-param-who">{p.from}</p>}
         <p>{p.why}</p>
        </article>;

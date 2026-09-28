@@ -4,6 +4,7 @@ import { EmptyNote, Pill, SectionTitle } from '../components/UI';
 import { Metric } from '../surface/Surface';
 import { ClinicalDeck, type DeckFigure } from './ClinicalDeck';
 import { NotConnected } from '../components/NotConnected';
+import { Button, Select } from '../ui';
 import { blockedBy } from '../lib/capabilities';
 import { liveServices, money, type Service } from '../lib/catalog';
 import {
@@ -22,6 +23,7 @@ import { nurseShareSentenceNow } from '../lib/settings';
 import { subjectById } from '../lib/vetting-fixtures';
 import './nurse-kit.css';
 import './nurse-tools.css';
+import '../surface/nurse-identity.css';
 
 /* What a nurse is paid.
  *
@@ -101,8 +103,8 @@ function Split({ service, onPick }: { service: Service; onPick: (id: string) => 
  const split = splitOf(service);
  const rule = ruleById('share-is-not-reduced');
  return <div className="panel earn-split">
-  <label>Show the split for<select value={service.id} onChange={e => onPick(e.target.value)}>
-   {liveServices.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+  <label className="earn-pick">Show the split for<Select value={service.id} onChange={e => onPick(e.target.value)}>
+   {liveServices.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</Select></label>
   <div className="earn-bar" role="img" aria-label={`Of ${money(split.price)}, ${money(split.nurse)} is yours, ${money(split.payment)} is the card fee and ${money(split.platform)} is what MyThuso keeps`}>
    <i className="yours" style={{ flexGrow: split.nurse }}/>
    <i className="fee" style={{ flexGrow: split.payment }}/>
@@ -226,8 +228,8 @@ function Week({ week, nurseId, open, toggle }: { week: EarningWeek; nurseId: str
        it will not pay anybody, it will not verify an account and it will not reverse a payout that
        never left, and within those three refusals it says what happened to a week's run. */}
    {week.state === 'accruing' ? null : <div className="earn-run">
-    {!advice ? <button className="secondary" onClick={() => setAdvice(runWeek(week.id, nurseId, week.ends))}>
-     <Landmark size={16}/>Run the {cycle.paysOn} payment run</button> : null}
+    {!advice ? <Button variant="secondary" leadingIcon={<Landmark aria-hidden="true"/>} onClick={() => setAdvice(runWeek(week.id, nurseId, week.ends))}>
+     Run the {cycle.paysOn} payment run</Button> : null}
     {advice?.refused !== undefined ? <div className="earn-refusal"><Ban size={19}/><p>{advice.refused}</p></div> : null}
     {advice && advice.refused === undefined ? <div className="earn-advice" role="status">
      <div className="review-line"><span>The bank came back</span><Pill tone={toneFor(advice.outcome)}>{stateById(advice.outcome).name}</Pill></div>
@@ -267,15 +269,15 @@ function PayoutAccount({ nurseId }: { nurseId: string }) {
   <div className="record-row plain">
    <span className="service-icon"><Building2 size={21}/></span>
    <span><strong>{account.bank} · {account.maskedNumber}</strong><small>{account.holder} · {account.note}</small></span>
-   {stage === 'settled' ? <button className="secondary" onClick={() => setStage('verifying')}>Change account</button> : null}
+   {stage === 'settled' ? <Button variant="secondary" onClick={() => setStage('verifying')}>Change account</Button> : null}
   </div>
   {stage === 'verifying' ? <form className="form-stack space-top" onSubmit={e => { e.preventDefault(); setChecked(askToVerifyAccount(nurseId)); setStage('pending'); }}>
    <p className="muted">Before anything changes, we check it is you. Nothing here is sent.</p>
    <ul className="landing-list">{account.reverify.map(step => <li key={step}><Lock size={16}/>{step}</li>)}</ul>
    <label>One-time code<input inputMode="numeric" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} placeholder="240924"/></label>
    <div className="button-row">
-    <button type="button" className="secondary" onClick={() => { setStage('settled'); setCode(''); }}>Cancel</button>
-    <button className="primary" disabled={code.length !== 6}>Verify and start the wait<ArrowRight size={16}/></button>
+    <Button variant="secondary" onClick={() => { setStage('settled'); setCode(''); }}>Cancel</Button>
+    <Button type="submit" variant="primary" disabled={code.length !== 6} trailingIcon={<ArrowRight aria-hidden="true"/>}>Verify and start the wait</Button>
    </div>
   </form> : null}
   {stage === 'pending' ? <div className="earn-pending space-top" role="status">
@@ -318,7 +320,7 @@ export function Earnings() {
    <NotConnected of="payouts"/>
    <p className="c-deck-aside">{cycle.note}</p>
   </ClinicalDeck>
-  <div className="c-sheet earnings">
+  <div className="c-sheet earnings nurse-ui">
   <Standing nurse={nurse}/>
   <fieldset className="earn-preview-switch">
    <legend className="visually-hidden">Whose earnings to show</legend>

@@ -25,10 +25,10 @@ test('signing out from the sign-in screen can start a new account instead', asyn
 test('a high-risk check needs a second reviewer, and one name cannot be both', async ({ page }) => {
   await openAdmin(page);
   await goConsole(page, 'Vetting');
-  await expect(page.locator('.panel.metric').filter({ hasText: 'Awaiting a second reviewer' })).toContainText('1');
+  await expect(page.locator('.oi-figure').filter({ hasText: 'Awaiting a second reviewer' })).toContainText('1');
   await page.getByRole('button', { name: /Brother Lwazi Mahlangu/ }).click();
   const detail = page.locator('.vetting-grid > *').last();
-  const sanc = detail.locator('.record-row').filter({ hasText: 'SANC registration' });
+  const sanc = detail.locator('.vetting-check').filter({ hasText: 'SANC registration' });
   await expect(sanc).toContainText('Awaiting a second reviewer');
   await expect(detail).toContainText('SANC registration is waiting on a second reviewer.');
   // the reviewer who took the first decision cannot agree with themselves
@@ -38,10 +38,10 @@ test('a high-risk check needs a second reviewer, and one name cannot be both', a
   await page.getByLabel('Signed in as').selectOption('T. van Wyk · Compliance');
   await sanc.getByRole('button', { name: 'Second it' }).click();
   await expect(sanc).toContainText('Verified');
-  await expect(page.locator('.panel.metric').filter({ hasText: 'Awaiting a second reviewer' })).toContainText('0');
+  await expect(page.locator('.oi-figure').filter({ hasText: 'Awaiting a second reviewer' })).toContainText('0');
   // seconding one check does not clear the file: Thuso Kit training is still in review
   await expect(detail).toContainText('7 of 8');
-  await expect(detail.locator('.record-row').filter({ hasText: 'Thuso Kit training' })).toContainText('In review');
+  await expect(detail.locator('.vetting-check').filter({ hasText: 'Thuso Kit training' })).toContainText('In review');
 });
 test('a lapsed clearance suspends a nurse, and the dispatch board refuses her by name', async ({ page }) => {
   await openAdmin(page);
@@ -67,14 +67,14 @@ test('a lapsed clearance suspends a nurse, and the dispatch board refuses her by
 test('every vetting decision is written to a log the console can only add to', async ({ page }) => {
   await openAdmin(page);
   await goConsole(page, 'Vetting');
-  await page.getByRole('button', { name: 'Decision audit' }).click();
-  const before = await page.locator('.timeline li, .record-row.static').count();
-  await page.getByRole('button', { name: 'Queue' }).click();
+  await page.getByRole('tab', { name: 'Decision audit' }).click();
+  const before = await page.locator('.vetting-event').count();
+  await page.getByRole('tab', { name: 'Queue' }).click();
   await page.getByRole('button', { name: /Sister Boitumelo Nkosi/ }).click();
   const detail = page.locator('.vetting-grid > *').last();
-  await detail.locator('.record-row').filter({ hasText: 'Thuso Kit training' }).getByRole('button', { name: 'Verify' }).click();
-  await page.getByRole('button', { name: 'Decision audit' }).click();
-  const after = await page.locator('.timeline li, .record-row.static').count();
+  await detail.locator('.vetting-check').filter({ hasText: 'Thuso Kit training' }).getByRole('button', { name: 'Verify' }).click();
+  await page.getByRole('tab', { name: 'Decision audit' }).click();
+  const after = await page.locator('.vetting-event').count();
   expect(after).toBeGreaterThan(before);
   await expect(page.locator('main')).toContainText('Sister Boitumelo Nkosi');
 });
@@ -85,15 +85,15 @@ test('changing a price shows what the platform is actually left with', async ({ 
   await expect(row).toContainText('R 66');            // 299 − 224 nurse − 9 payment
   await row.getByRole('textbox').fill('260');
   await expect(row).toContainText('R 27');
-  await expect(row).toHaveClass(/flagged-row/);       // too thin to carry support and review
-  await expect(page.locator('.panel.metric').filter({ hasText: 'Below R40 a visit' })).toContainText('2');
+  await expect(row).toHaveClass(/is-flagged/);       // too thin to carry support and review
+  await expect(page.locator('.oi-figure').filter({ hasText: 'Below R40 a visit' })).toContainText('2');
 });
 test('funding tranches only release against milestones', async ({ page }) => {
   await openAdmin(page);
   await goConsole(page, 'Finance');
-  const released = page.locator('.panel.metric').filter({ hasText: 'Released' });
+  const released = page.locator('.oi-figure').filter({ hasText: 'Released' });
   await expect(released).toContainText('R3m');
-  const m3 = page.locator('.record-row').filter({ hasText: 'M3' });
+  const m3 = page.locator('.milestone-row').filter({ hasText: 'M3' });
   await expect(m3).toContainText('Releases R3.90m');
   await m3.getByRole('button', { name: 'Mark met' }).click();
   await expect(released).toContainText('R6.90m');
@@ -111,5 +111,5 @@ test('the console reports against the proposal, and is honest about compliance',
   await expect(page.getByRole('row', { name: /Chronic Routine/ })).toContainText('R 199/m');
   await goConsole(page, 'Compliance');
   await expect(page.getByText('Nothing on this screen is a compliance status', { exact: false })).toBeVisible();
-  await expect(page.locator('.record-row').filter({ hasText: 'SA hosting' })).toContainText('Not built');
+  await expect(page.locator('.control-row').filter({ hasText: 'SA hosting' })).toContainText('Not built');
 });

@@ -1,6 +1,7 @@
 import { Ban, FileText, Info, Send, ShieldCheck } from 'lucide-react';
 import { NotConnected } from '../components/NotConnected';
-import { SectionTitle } from '../components/UI';
+import { Badge, Button, Card } from '../ui';
+import { OfficeHead, OfficeNote, OfficeSection } from '../surface/Office';
 import { agreeToSend, askToSend, claimConsent, claimWords, codeSets, preauthorisation, useDoctorClaim, usePatientClaim } from '../lib/claims';
 import './group-claims.css';
 
@@ -18,62 +19,69 @@ import './group-claims.css';
  *
  * Nothing here contacts a scheme. The claims capability's notice is on both screens. */
 
+/* The two figures a person opens a claim for — which claim, and for how much — set as the handoff sets a
+   figure, over the state in plain words and the reason nothing has been sent. The reason is a refusal
+   and reads as one: its mark is the danger ink and its words say "not sent", so colour never carries it
+   alone. */
+function ClaimFigures({ claimRef, service, amountLabel, amount }: { claimRef: string; service: string; amountLabel: string; amount: string }) {
+ return <div className="claim-figures">
+  <div><span className="oi-eyebrow">{claimRef}</span><strong className="claim-service">{service}</strong></div>
+  <div><span className="oi-eyebrow">{amountLabel}</span><strong className="claim-amount">{amount}</strong></div>
+ </div>;
+}
+
 export function ClaimsOnRecord() {
  const claim = usePatientClaim();
  const words = claimWords.patient;
- return <div className="claim-screen">
-  <div className="page-intro"><div className="eyebrow">THUSO MONEY</div>
-   <h1>{words.heading}</h1>
-   <p>{words.intro}</p></div>
+ return <div className="oi-screen claim-screen">
+  <OfficeHead eyebrow="Thuso Money" title={words.heading} lead={words.intro}/>
   <NotConnected of="scheme-claims"/>
 
-  <section className="panel">
-   <div className="claim-figures">
-    <div><small>{claim.claimRef}</small><strong>{claim.service}</strong></div>
-    <div><small>{words.amount}</small><strong>{claim.amount}</strong></div>
-   </div>
-   <p className="claim-state" role="status"><strong>{claim.stateName}.</strong> {claim.words}</p>
-   <p className="claim-not-sent"><Ban size={15} aria-hidden="true"/> {claim.notSentBecause}</p>
-   {claim.agreed ? <p className="helper">{claim.agreed}</p> : null}
-   {claim.canAgree ? <>
-    <p className="helper"><ShieldCheck size={14} aria-hidden="true"/>{claimConsent.notAGrant}</p>
-    <button className="primary full" onClick={agreeToSend}><Send size={17} aria-hidden="true"/>{words.agree}</button>
-   </> : null}
-   {claim.said ? <p className="claim-said" role="status"><Info size={15} aria-hidden="true"/>{claim.said}</p> : null}
-  </section>
+  <Card padding="md" className="oi-card-body claim-card">
+   <ClaimFigures claimRef={claim.claimRef} service={claim.service} amountLabel={words.amount} amount={claim.amount}/>
+   <p className="claim-state" role="status"><Badge>{claim.stateName}</Badge> <span>{claim.words}</span></p>
+   <p className="oi-note oi-note--refusal claim-not-sent"><Ban aria-hidden="true"/><span>{claim.notSentBecause}</span></p>
+   {claim.agreed ? <p className="oi-help">{claim.agreed}</p> : null}
+   {claim.canAgree ? <div className="oi-stack">
+    <p className="oi-help oi-with-icon"><ShieldCheck aria-hidden="true"/>{claimConsent.notAGrant}</p>
+    <Button variant="primary" size="lg" className="oi-full" onClick={agreeToSend} leadingIcon={<Send aria-hidden="true"/>}>{words.agree}</Button>
+   </div> : null}
+   {claim.said ? <p className="oi-note claim-said" role="status"><Info aria-hidden="true"/><span>{claim.said}</span></p> : null}
+  </Card>
 
   {/* Its own heading, not the screen's again: a section that repeats the page's name says nothing and reads as a
       second page. What a scheme is never told is the half of this screen worth a heading of its own. */}
-  <SectionTitle title={words.neverHeading}/>
-  <ul className="claim-never">
-   <li><Ban size={15} aria-hidden="true"/>{claimConsent.never}</li>
-   <li><Ban size={15} aria-hidden="true"/>{codeSets.statement}</li>
-  </ul>
-  <p className="helper">{claimWords.preview}</p>
+  <OfficeSection title={words.neverHeading}>
+   <Card><ul className="oi-rows claim-never">
+    <li><div className="oi-row oi-row--mark"><Ban aria-hidden="true"/><p className="oi-row__title">{claimConsent.never}</p></div></li>
+    <li><div className="oi-row oi-row--mark"><Ban aria-hidden="true"/><p className="oi-row__title">{codeSets.statement}</p></div></li>
+   </ul></Card>
+   <p className="oi-help">{claimWords.preview}</p>
+  </OfficeSection>
  </div>;
 }
 
 export function ClaimDraft() {
  const claim = useDoctorClaim();
  const words = claimWords.doctor;
- return <div className="claim-screen claim-draft">
+ return <div className="oi-screen claim-screen claim-draft">
   <NotConnected of="scheme-claims"/>
-  <p className="claim-no-code"><FileText size={15} aria-hidden="true"/>{claim.codeSetAdopted ? words.codeLabel : codeSets.doctorWords}</p>
-  <p className="helper">{codeSets.doctorDetail}</p>
-
-  <div className="panel">
-   <div className="claim-figures">
-    <div><small>{claim.claimRef}</small><strong>{claim.service}</strong></div>
-    <div><small>{claimWords.patient.amount}</small><strong>{claim.amount}</strong></div>
-   </div>
-   <p className="claim-state" role="status"><strong>{claim.stateName}.</strong> {claim.words}</p>
-   <p className="claim-not-sent"><Ban size={15} aria-hidden="true"/> {claim.notSentBecause}</p>
-   <button className="secondary" onClick={askToSend}><Send size={16} aria-hidden="true"/>{words.send}</button>
-   {claim.said ? <p className="claim-said" role="status"><Info size={15} aria-hidden="true"/>{claim.said}</p> : null}
+  <div className="oi-stack">
+   <p className="claim-no-code"><FileText aria-hidden="true"/><span>{claim.codeSetAdopted ? words.codeLabel : codeSets.doctorWords}</span></p>
+   <p className="oi-help">{codeSets.doctorDetail}</p>
   </div>
 
-  <SectionTitle title={words.preauthHeading}/>
-  <div className="panel"><p className="helper">{preauthorisation.words}</p></div>
-  <p className="helper">{claimWords.preview}</p>
+  <Card padding="md" className="oi-card-body claim-card">
+   <ClaimFigures claimRef={claim.claimRef} service={claim.service} amountLabel={claimWords.patient.amount} amount={claim.amount}/>
+   <p className="claim-state" role="status"><Badge>{claim.stateName}</Badge> <span>{claim.words}</span></p>
+   <p className="oi-note oi-note--refusal claim-not-sent"><Ban aria-hidden="true"/><span>{claim.notSentBecause}</span></p>
+   <div className="oi-actions"><Button variant="secondary" onClick={askToSend} leadingIcon={<Send aria-hidden="true"/>}>{words.send}</Button></div>
+   {claim.said ? <p className="oi-note oi-note--refusal claim-said" role="status"><Info aria-hidden="true"/><span>{claim.said}</span></p> : null}
+  </Card>
+
+  <OfficeSection title={words.preauthHeading} level={3}>
+   <OfficeNote icon={<Ban aria-hidden="true"/>}>{preauthorisation.words}</OfficeNote>
+  </OfficeSection>
+  <p className="oi-help">{claimWords.preview}</p>
  </div>;
 }

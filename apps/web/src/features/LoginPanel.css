@@ -1,10 +1,14 @@
-.central-login .staff-signin-roles { display: grid; gap: 12px; }
-.central-login .record-row { display: flex; align-items: flex-start; gap: 12px; width: 100%; padding: 16px; text-align: left; background: var(--surface); border: 1px solid var(--stone); border-radius: 20px; color: var(--charcoal); }
+/* The role picker on the public page, in the handoff's dialog: each role a white row with a hairline and
+   a 12 corner, the edge turning to the accent under a pointer so the hover is not a colour change alone.
+   The dialog itself is core.css's .modal; this is only what the public page's copy of the picker adds. */
+.central-login .staff-signin-roles { display: grid; gap: var(--space-12); }
+.central-login .record-row { display: flex; align-items: flex-start; gap: var(--space-12); width: 100%; padding: var(--space-16); text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); color: var(--ink); }
 .central-login .record-row > span:nth-child(2) { flex: 1; min-width: 0; }
-.central-login .record-row small { display: block; font-size: 13px; margin-top: 5px; color: var(--faint); }
-.central-login .record-row > svg { flex-shrink: 0; margin-top: 4px; }
-.central-login .record-row:hover { background: var(--pale-sage); border-color: var(--sage-slate); }
-.central-login .role-refuses { font-size: 13px; color: var(--faint); }
-.central-login .role-credential svg { vertical-align: middle; margin-right: 4px; }
-
-.central-login .modal-heading h2 { font-size: 26px; line-height: 1.15; letter-spacing: -.6px; }
+.central-login .record-row strong { font-weight: 600; }
+.central-login .record-row small { display: block; font-size: 13px; margin-top: var(--space-4); color: var(--body); }
+.central-login .record-row > svg { flex-shrink: 0; margin-top: var(--space-4); }
+.central-login .record-row:hover { background: var(--canvas); border-color: var(--brand-green); filter: none; }
+.central-login .role-refuses { font-size: 13px; color: var(--body); }
+.central-login .role-credential svg { vertical-align: middle; margin-right: var(--space-4); }
+.central-login .modal-heading h2 { font-size: 24px; line-height: 1.2; letter-spacing: -.3px; }
+.central-login .record-row > .avatar { background: color-mix(in srgb, var(--brand-green) 12%, var(--surface)); color: var(--brand-ink); }

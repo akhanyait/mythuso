@@ -244,7 +244,14 @@
   "decidedOn": "2026-09-28",
   "what": "Every settings page in the Control Tower looks the same: one head, tinted section cards, a row per setting with the value in force under it, one save bar, and the same arrival.",
   "saveBarLabel": "Give the reason, then save",
-  "why": "The founder found the settings pages looking different from one another. The words here are the only sentence the shared pattern adds; everything else on a settings page is its own contract's."
+  "why": "The founder found the settings pages looking different from one another. The words here are the only sentence the shared pattern adds; everything else on a settings page is its own contract's.",
+  "identity": {
+   "decidedBy": "Founder",
+   "decidedOn": "2026-09-28",
+   "instruction": "you will also align the control tower with the similar look and feel and forms",
+   "what": "Later the same day the pattern above took the Lovable handoff's look: the section cards are the shared Card, white on the handoff's ground, and the tints are retired; a row is the shared Field, the save bar ends in the shared Button, a category's tabs are the handoff's Tabs, a figure is the MetricCard and a status the Badge. The head, the row, the save bar and the arrival keep their shape and their one sentence.",
+   "why": "The handoff's look wins every visual question; this build's logic, contracts, refusals, founder gates and sentences win every other. Nothing a settings page says or refuses changed with it."
+  }
  },
  "loading": {
   "sentence": "Getting this screen ready. It was not downloaded until you opened it.",

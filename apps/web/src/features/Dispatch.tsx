@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { ArrowRight, BadgeCheck, Check, CircleAlert, Clock3, MapPin, Radio, Route, ShieldCheck, TriangleAlert, Undo2 } from 'lucide-react';
-import { SectionTitle } from '../components/UI';
-import { Metric, Metrics } from '../surface/Surface';
+import { ArrowRight, Check, CircleAlert, Clock3, MapPin, Radio, Route, ShieldCheck, Undo2 } from 'lucide-react';
+import { Alert, Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Field, Select, StatusIndicator, Textarea, type BadgeVariant } from '../ui';
+import { OfficeFacts, OfficeFigure, OfficeHead, OfficeNote, OfficeProgress, OfficeSection } from '../surface/Office';
 import { NotConnected } from '../components/NotConnected';
 import { VettingApplication } from './Vetting';
 import { can, type VettingSubject } from '../lib/vetting';
@@ -165,84 +165,102 @@ export function DispatchBoard({ subjects = seededSubjects, heading = true }: { s
  ];
  const summary = `Dispatch map of ${coverage.city}, ${province}. ${waiting.length} visits awaiting assignment across ${zones.map(z => z.name).join(', ')}. ${dispatchable} nurses available and cleared by vetting, ${refused} blocked by vetting${unlocated ? `, ${unlocated} not drawn — ${[...new Set(noPinBecause.values())].join(' ')}` : ''}.`;
  const standing = `${waiting.length ? `${waiting.length} visits awaiting a nurse` : 'Every visit has a nurse'} · ${dispatchable} cleared for dispatch${refused ? ` · ${refused} refused by vetting` : ''}${dispatched.length ? ` · ${dispatched.length} sent` : ''}`;
- return <>
+ const assignedTo = assigned[job.id];
+ return <div className="oi-screen oi-dispatch">
   {heading
-   ? <div className="shift-head"><div><h1>Dispatch</h1><p>{standing}</p></div></div>
-   : <div className="section-title board-title"><h2>Live dispatch</h2><p>{standing}</p></div>}
+   ? <OfficeHead title="Dispatch" lead={standing}/>
+   : <div className="oi-section-head board-title"><h2 className="oi-section-title">Live dispatch</h2><p className="oi-section-note">{standing}</p></div>}
   <NotConnected of="dispatch"/>
-  <div className="dispatch-grid">
-    <div className="panel map-panel">
-     <div className="section-title"><h2>{coverage.city}</h2></div>
+  <div className="oi-split dispatch-grid">
+   <Card className="oi-map-card">
+    <CardHeader><CardTitle>{coverage.city}</CardTitle><CardDescription>{province}</CardDescription></CardHeader>
+    <CardContent className="oi-card-body">
      <LiveMap markers={markers} summary={summary} height={340}/>
      {/* The key is the contract's list of marks, not a second list typed beside the map. The two
          used to be written separately, and when the pins started reading the contract the key went
          on describing colours that were no longer on the board. */}
-     <div className="map-key">{marks.filter(m => m.id !== 'zone').map(m =>
-      <span key={m.id}><i className={`key-${m.id}`}/>{m.name}</span>)}</div>
-     <p className="helper">The map is a picture of the same information in the list beside it — every pin is projected from the coordinates the arrival estimates are measured from, so the two cannot drift apart. Everything can be dispatched from the list alone, with a keyboard.</p>
+     <ul className="oi-map-key" aria-label="Map key">{marks.filter(m => m.id !== 'zone').map(m =>
+      <li key={m.id}><i aria-hidden="true" className={`key-${m.id}`}/>{m.name}</li>)}</ul>
+     <p className="oi-help">The map is a picture of the same information in the list beside it — every pin is projected from the coordinates the arrival estimates are measured from, so the two cannot drift apart. Everything can be dispatched from the list alone, with a keyboard.</p>
      {/* One line per reason rather than one count over all of them. "Two nurses have no pin" tells a
          controller nothing they can act on; "her phone is telling us nothing" and "her device is
          reporting a position wider than Melville" are different problems with different answers. */}
      {[...noPinBecause.values()].filter((sentence, index, all) => all.indexOf(sentence) === index)
-       .map(sentence => <p className="helper" key={sentence}>{sentence} They are in the list with the reason given, and can still be assigned from it.</p>)}
-    </div>
-    <div className="panel">
-     <div className="section-title"><h2>{waiting.length ? `Awaiting assignment · ${waiting.length}` : 'Nothing waiting'}</h2></div>
+       .map(sentence => <OfficeNote key={sentence} icon={<MapPin aria-hidden="true"/>}>{sentence} They are in the list with the reason given, and can still be assigned from it.</OfficeNote>)}
+    </CardContent>
+   </Card>
+   <Card className="oi-assign-card">
+    <CardHeader>
+     <CardTitle>{waiting.length ? `Awaiting assignment · ${waiting.length}` : 'Nothing waiting'}</CardTitle>
      {/* A visit that has been sent stays on the strip with a tick rather than vanishing from it. An
          operator working a board needs to see what they have already done as well as what is left,
          and a row that disappears the moment it is pressed is how a double assignment happens. */}
-     <div className="tabs" role="group" aria-label="Visits on the board">{initialJobs.map(j =>
-      <button key={j.id} className={selected === j.id ? 'selected' : ''} aria-pressed={selected === j.id} onClick={() => setSelected(j.id)}>
-       {assigned[j.id] && <Check size={14}/>}{j.id}
+     <div className="ui-tabs oi-segment" role="group" aria-label="Visits on the board">{initialJobs.map(j =>
+      <button key={j.id} type="button" className={`ui-tab${selected === j.id ? ' ui-tab--active' : ''}`} aria-pressed={selected === j.id} onClick={() => setSelected(j.id)}>
+       {assigned[j.id] && <Check aria-hidden="true"/>}{j.id}
       </button>)}</div>
-     <div className="review-line"><span>Service</span><strong>{job.service}</strong></div>
-     <div className="review-line"><span>Area</span><strong><MapPin size={14}/> {job.area}</strong></div>
-     <div className="review-line"><span>Window</span><strong><Clock3 size={14}/> {job.window}</strong></div>
-     <div className="review-line"><span>Priority</span><strong className={job.priority === 'Urgent' ? 'flagged' : ''}>{job.priority}</strong></div>
-     <div className="review-line"><span>Status</span><strong>{assigned[job.id] ? <><Check size={14}/> Assigned to {assigned[job.id]}</> : 'Unassigned'}</strong></div>
-     {assigned[job.id] && <p className="helper">Assigning somebody else moves the visit rather than adding a second nurse to it, and <em>Unassign</em> puts it back on the board with nothing recorded against her.</p>}
-     <h3 className="space-top">Nearest available nurses</h3>
-     <p className="helper" role="status">{dispatchable} cleared for dispatch{refused ? `, ${refused} refused by vetting` : ''}{estimating ? `, ${estimating} with no arrival estimate` : ''}.</p>
-     {candidates.map(({ nurse: n, decision, eta }) => <div className="record-row static" key={n.id}>
-      <span className={`status-dot ${n.status === 'Available' && decision.allowed ? '' : 'offline'}`}/>
-      <span><strong>{n.name}</strong><small>{n.area} · {n.status} · {arrivalLine(eta)}</small><small>{basisLine(eta)}</small><small>{n.skills.join(' · ')}</small>
-       {!decision.allowed && <small className="flagged">{decision.reason}</small>}</span>
+    </CardHeader>
+    <CardContent className="oi-card-body">
+     <OfficeFacts facts={[
+      ['Service', job.service],
+      ['Area', <><MapPin aria-hidden="true"/>{job.area}</>],
+      ['Window', <><Clock3 aria-hidden="true"/>{job.window}</>],
+      ['Priority', job.priority === 'Urgent' ? <Badge variant="danger" dot>Urgent</Badge> : job.priority],
+      ['Status', assignedTo ? <><Check aria-hidden="true"/>Assigned to {assignedTo}</> : 'Unassigned']
+     ]}/>
+     {assignedTo && <p className="oi-help">Assigning somebody else moves the visit rather than adding a second nurse to it, and <em>Unassign</em> puts it back on the board with nothing recorded against her.</p>}
+     {assignedTo && <Alert variant="success" title={`${job.id} is with ${assignedTo}.`} className="next-step">
+      <p>{nextWaiting ? `${waiting.length} still waiting on this board.` : 'Nothing else on this board is waiting.'} What would happen to this one next is in the list at the foot of the screen.</p>
+      {nextWaiting && <Button variant="primary" className="oi-alert-action" onClick={() => setSelected(nextWaiting.id)} trailingIcon={<ArrowRight aria-hidden="true"/>}>Next visit waiting</Button>}
+     </Alert>}
+     <div className="oi-stack">
+      <h3 className="oi-subtitle">Nearest available nurses</h3>
+      <p className="oi-help" role="status">{dispatchable} cleared for dispatch{refused ? `, ${refused} refused by vetting` : ''}{estimating ? `, ${estimating} with no arrival estimate` : ''}.</p>
+     </div>
+    </CardContent>
+    {/* `record-row static` stays on each candidate as a name the journeys find her by; office-identity.css
+        takes its old look back off it, so what is drawn is the compact row and nothing else. */}
+    <ul className="oi-rows oi-candidates">{candidates.map(({ nurse: n, decision, eta }) => <li key={n.id}><div className="oi-row record-row static">
+     <div className="oi-row__body">
+      <p className="oi-row__title">{n.name}</p>
+      <span className="oi-row__meta">{n.area} · {arrivalLine(eta)}</span>
+      <span className="oi-row__meta">{basisLine(eta)}</span>
+      <span className="oi-row__meta">{n.skills.join(' · ')}</span>
+      {!decision.allowed && <span className="oi-row__meta oi-row__meta--refusal">{decision.reason}</span>}
+     </div>
+     <div className="oi-row__aside">
+      <StatusIndicator status={!decision.allowed ? 'offline' : n.status === 'Available' ? 'online' : 'busy'} label={decision.allowed ? n.status : 'Blocked by vetting'}/>
       {/* The assigned nurse's control says what pressing it does. It was a button reading "Assigned"
           that un-assigned her — a state label with an action hidden inside it, which is why the
           audit found no way back from an assignment: there was one, and nothing on the screen said
           so. The state is now the tick beside the name and the button is the verb. */}
       {decision.allowed
-       ? assigned[job.id] === n.name
-        ? <button className="secondary" aria-label={`Unassign ${n.name} from ${job.id}`} onClick={() => send(job.id, n.name)}><Undo2 size={15}/>Unassign</button>
-        : <button className="primary" disabled={n.status !== 'Available'} onClick={() => send(job.id, n.name)}>{assigned[job.id] ? 'Assign instead' : 'Assign'}</button>
-       : <button className="secondary" disabled aria-label={`Cannot be assigned — ${n.name}. ${decision.reason}`}>Cannot be assigned</button>}
-     </div>)}
-     <div className="privacy-note"><ShieldCheck size={19}/>Vetting is asked before a name is offered, not after. The Control Tower has no override for a lapsed clearance — there is no button here that would let one be granted.</div>
-     <div className="privacy-note"><Radio size={19}/>Estimated arrival is a straight-line distance, not a road route. Assignment weighs traffic, skills, vetting status, working hours and the patient’s own history with a nurse — none of which a straight line knows.</div>
-     {assigned[job.id] && <div className="panel next-step">
-      <span className="service-icon"><BadgeCheck size={22}/></span>
-      <div><h3>{job.id} is with {assigned[job.id]}.</h3>
-       <p>{nextWaiting ? `${waiting.length} still waiting on this board.` : 'Nothing else on this board is waiting.'} What would happen to this one next is in the list at the foot of the screen.</p></div>
-      {nextWaiting && <button className="primary" onClick={() => setSelected(nextWaiting.id)}>Next visit waiting<ArrowRight size={16}/></button>}
-     </div>}
-     <div className="privacy-note"><Route size={19}/>No routing provider is connected, so no road route is drawn and no arrival time is claimed from one. When one is added, a route it cannot give will be shown as unavailable rather than replaced by the straight line above.</div>
-    </div>
+       ? assignedTo === n.name
+        ? <Button variant="ghost" aria-label={`Unassign ${n.name} from ${job.id}`} onClick={() => send(job.id, n.name)} leadingIcon={<Undo2 aria-hidden="true"/>}>Unassign</Button>
+        : <Button variant="secondary" disabled={n.status !== 'Available'} onClick={() => send(job.id, n.name)}>{assignedTo ? 'Assign instead' : 'Assign'}</Button>
+       : <Button variant="secondary" disabled aria-label={`Cannot be assigned — ${n.name}. ${decision.reason}`}>Cannot be assigned</Button>}
+     </div>
+    </div></li>)}</ul>
+    <CardContent className="oi-notes">
+     <OfficeNote icon={<ShieldCheck aria-hidden="true"/>}>Vetting is asked before a name is offered, not after. The Control Tower has no override for a lapsed clearance — there is no button here that would let one be granted.</OfficeNote>
+     <OfficeNote icon={<Radio aria-hidden="true"/>}>Estimated arrival is a straight-line distance, not a road route. Assignment weighs traffic, skills, vetting status, working hours and the patient’s own history with a nurse — none of which a straight line knows.</OfficeNote>
+     <OfficeNote icon={<Route aria-hidden="true"/>}>No routing provider is connected, so no road route is drawn and no arrival time is claimed from one. When one is added, a route it cannot give will be shown as unavailable rather than replaced by the straight line above.</OfficeNote>
+    </CardContent>
+   </Card>
   </div>
   {/* Where an assigned visit goes, and what would happen to it next if any of this were connected.
       A board that only ever shows what is waiting cannot tell an operator whether the thing they
       just did worked — and "worked" here means a specific sequence of five things, none of which
       MyThuso can do yet. Saying them in order is what makes the gap legible rather than invisible. */}
-  {dispatched.length > 0 && <section className="dispatch-sent">
-   <div className="section-title"><h2>Sent · {dispatched.length}</h2></div>
-   <div className="panel">{dispatched.map(j => <div className="record-row static" key={j.id}>
-    <span className="service-icon check-verified"><BadgeCheck size={21}/></span>
-    <span><strong>{j.id} · {j.service}</strong><small>{assigned[j.id]} · {j.area} · {j.window}</small>
-     <small>Next: the nurse is offered the visit and accepts it, the patient is told who is coming, a six-digit visit code is issued to the patient for the doorstep, the nurse's arrival is tracked against the window, and the visit opens as an assessment when she is there.</small></span>
-    <button className="secondary" onClick={() => recall(j.id)}><Undo2 size={15}/>Recall</button>
-   </div>)}</div>
-   <div className="privacy-note"><Radio size={19}/>Nothing above has been sent. No nurse is notified, no patient is told, no code is issued and no visit is opened — dispatch is not connected, and an assignment here moves a row on this screen and nothing else.</div>
-  </section>}
- </>;
+  {dispatched.length > 0 && <OfficeSection title={`Sent · ${dispatched.length}`}>
+   <Card className="dispatch-sent"><ul className="oi-rows">{dispatched.map(j => <li key={j.id}><div className="oi-row">
+    <div className="oi-row__body"><p className="oi-row__title">{j.id} · {j.service}</p><span className="oi-row__meta">{assigned[j.id]} · {j.area} · {j.window}</span>
+     <span className="oi-row__meta">Next: the nurse is offered the visit and accepts it, the patient is told who is coming, a six-digit visit code is issued to the patient for the doorstep, the nurse's arrival is tracked against the window, and the visit opens as an assessment when she is there.</span></div>
+    <div className="oi-row__aside"><Badge variant="success" dot>Assigned</Badge><Button variant="secondary" onClick={() => recall(j.id)} leadingIcon={<Undo2 aria-hidden="true"/>}>Recall</Button></div>
+   </div></li>)}</ul></Card>
+   <OfficeNote refusal icon={<Radio aria-hidden="true"/>}>Nothing above has been sent. No nurse is notified, no patient is told, no code is issued and no visit is opened — dispatch is not connected, and an assignment here moves a row on this screen and nothing else.</OfficeNote>
+  </OfficeSection>}
+ </div>;
 }
 /* GET /v1/care/shifts@1 and GET /v1/care/circuits@1, closed in Wave 6: drawn thinly from the same
  * arithmetic the engine runs (packages/engines/src/care/domain/reads.ts), never a second copy of a
@@ -263,20 +281,22 @@ export function ShiftBoard() {
  const firstDay = shifts[0]?.date;
  const today = shifts.filter(s => s.date === firstDay);
  const published = circuitsFor().filter(c => c.published);
- return <>
-  <div className="section-title board-title"><h2>Shifts · {firstDay}</h2><p>{today.length} nurses rostered, from the hours the product actually offers rather than two times typed here.</p></div>
-  {/* A distinct row class rather than the dispatch list's own `.record-row.static`: the "Nearest
-      available nurses" list above already carries every one of these names, and a shared selector
-      would resolve to two rows for the same nurse rather than one. */}
-  <div className="panel shift-board-panel">{today.map(s => <div className="record-row shift-row" key={s.shiftRef}>
-   <span><strong>{nurseById(s.clinicianRef)?.name ?? s.clinicianRef}</strong><small>{s.zone}</small></span>
-   <small>{clockOf(s.startsAt)} – {clockOf(s.endsAt)}</small>
-  </div>)}</div>
-  <div className="section-title board-title"><h2>Rural circuits</h2></div>
-  {published.length
-   ? <div className="panel circuit-board-panel">{published.map(c => <div className="record-row shift-row" key={c.circuitId}><span><strong>{c.name}</strong><small>{c.zone}</small></span></div>)}</div>
-   : <p className="helper" role="status">{careRouteRefusal('/v1/care/circuits', 1, 'circuit-not-published')}</p>}
- </>;
+ return <div className="oi-screen">
+  <OfficeSection title={`Shifts · ${firstDay}`} note={`${today.length} nurses rostered, from the hours the product actually offers rather than two times typed here.`}>
+   {/* A distinct row from the dispatch list's candidates: the "Nearest available nurses" list above
+       already carries every one of these names, and a shared selector would resolve to two rows for
+       the same nurse rather than one. */}
+   <Card className="shift-board-panel"><ul className="oi-rows">{today.map(s => <li key={s.shiftRef}><div className="oi-row shift-row">
+    <div className="oi-row__body"><p className="oi-row__title">{nurseById(s.clinicianRef)?.name ?? s.clinicianRef}</p><span className="oi-row__meta">{s.zone}</span></div>
+    <span className="oi-row__figure">{clockOf(s.startsAt)} – {clockOf(s.endsAt)}</span>
+   </div></li>)}</ul></Card>
+  </OfficeSection>
+  <OfficeSection title="Rural circuits">
+   {published.length
+    ? <Card className="circuit-board-panel"><ul className="oi-rows">{published.map(c => <li key={c.circuitId}><div className="oi-row shift-row"><div className="oi-row__body"><p className="oi-row__title">{c.name}</p><span className="oi-row__meta">{c.zone}</span></div></div></li>)}</ul></Card>
+    : <OfficeNote icon={<Route aria-hidden="true"/>} role="status">{careRouteRefusal('/v1/care/circuits', 1, 'circuit-not-published')}</OfficeNote>}
+  </OfficeSection>
+ </div>;
 }
 
 const incidents = [
@@ -315,23 +335,25 @@ const SEVERITY_ORDER = ['Critical', 'High', 'Medium', 'Low'];
 const bySeverity = (a: { severity: string; opened: string }, b: { severity: string; opened: string }) =>
  SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity) || a.opened.localeCompare(b.opened);
 export function IncidentBoard({ open, notice = true }: { open: (s: string) => void; notice?: boolean }) {
- return <div className="panel incident-panel">
-  {/* The severity word stays on the row beside the rule that marks it. The rule is faster to read
-      down a list and the word is what a reader who cannot see it gets — colour is never the only
-      thing separating a critical incident from a medium one. */}
-  <ol className="incident-list">{[...incidents].sort(bySeverity).map(i =>
-   <li key={i.id}><button className={`incident-row sev-${i.severity.toLowerCase()}`} onClick={() => open(`Incident ${i.id}`)}>
-    <span className="incident-sev"><i aria-hidden="true"/>{i.severity}</span>
-    <span className="incident-ref">{i.id}</span>
-    <span className="incident-what"><strong>{i.title}</strong><small>{i.area} · {i.status}</small></span>
-    <span className="incident-opened">{i.opened}</span>
-    <ArrowRight size={17}/>
+ return <Card className="incident-panel">
+  {/* The severity word stays on the row as a Badge. Colour is never the only thing separating a
+      critical incident from a medium one: the word is what a reader who cannot see the colour gets. */}
+  <ol className="oi-rows incident-list">{[...incidents].sort(bySeverity).map(i =>
+   <li key={i.id}><button type="button" className={`oi-row oi-incident sev-${i.severity.toLowerCase()}`} onClick={() => open(`Incident ${i.id}`)}>
+    <span className="oi-row__body">
+     <span className="oi-row__title">{i.title}</span>
+     <span className="oi-row__meta">{i.id} · {i.area} · {i.status} · opened {i.opened}</span>
+    </span>
+    <span className="oi-row__aside"><Badge variant={severityBadge(i.severity)} dot={i.severity === 'Critical'}>{i.severity}</Badge><ArrowRight aria-hidden="true" className="oi-row__go"/></span>
    </button></li>)}</ol>
   {/* Off only where the field-safety queue stands above this board and already carries the same
       notice: one sentence a screen, not the same one twice. */}
-  {notice && <NotConnected of="dispatch" tone="inline"/>}
- </div>;
+  {notice && <CardContent><NotConnected of="dispatch" tone="inline"/></CardContent>}
+ </Card>;
 }
+/* Critical is the one filled word; high is the warning tint; the rest are neutral. Two filled words on
+   one board would be two things shouting. */
+const severityBadge = (severity: string): BadgeVariant => severity === 'Critical' ? 'danger' : severity === 'High' ? 'warning' : 'neutral';
 export function IncidentDetail({ reference = 'INC-015', onClose }: { reference?: string; onClose: () => void }) {
  const incident = incidents.find(i => i.id === reference) ?? incidents[1];
  /* Whoever is working the suburb the incident is in. It was a name typed beside a party id, which
@@ -341,20 +363,20 @@ export function IncidentDetail({ reference = 'INC-015', onClose }: { reference?:
  const [action, setAction] = useState('');
  const [notes, setNotes] = useState('');
  const [logged, setLogged] = useState<string[]>([]);
- return <div className="form-stack">
-  <h3>{incident.id} · {incident.title}</h3>
+ const time = () => new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
+ return <div className="oi-screen oi-incident-detail">
+  <div className="oi-card-head"><div><p className="oi-eyebrow">{incident.id}</p><h3 className="oi-section-title">{incident.title}</h3></div><Badge variant={severityBadge(severity)}>{severity}</Badge></div>
   <NotConnected of="dispatch"/>
-  <div className="review-line"><span>Opened</span><strong>{incident.opened} · {incident.area}</strong></div>
-  <div className="review-line"><span>Reported by</span><strong>{reporter.name} · {reporter.id}</strong></div>
-  <label>Severity<select value={severity} onChange={e => setSeverity(e.target.value)}><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select></label>
-  {severity === 'Critical' && <div className="privacy-note alert"><CircleAlert size={19}/>A critical incident pages the on-call clinical lead immediately. The form is never a prerequisite for calling emergency services.</div>}
-  <label>Immediate action<select value={action} onChange={e => setAction(e.target.value)}><option value="">Choose an action…</option>
-   <option>Call the nurse now</option><option>Advise nurse to call emergency services</option><option>Escalate to the on-call clinical lead</option><option>Notify the patient’s emergency contact</option><option>Reassign the visit</option><option>Stand down — no further action</option></select></label>
-  <label>Handover note<textarea value={notes} onChange={e => setNotes(e.target.value.slice(0, 600))} placeholder="What happened, what you did, what the next shift must know…"/></label>
-  <button className="secondary" disabled={!action} onClick={() => { setLogged([...logged, `${new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })} · ${action}`]); setAction(''); }}><Check size={16}/>Add this action to the log</button>
-  {logged.length > 0 && <ol className="timeline" aria-label="Incident log">{logged.map(l => <li className="done" key={l}><span className="timeline-dot"><Check size={12}/></span><div><strong>{l.split(' · ')[1]}</strong><em>{l.split(' · ')[0]} · You, as duty controller</em></div></li>)}</ol>}
-  <div className="privacy-note"><ShieldCheck size={19}/>An incident log is append-only. An entry may be corrected by a later entry and never by editing the one before it.</div>
-  <button className="primary full" onClick={onClose}>Close this incident<ArrowRight size={16}/></button>
+  <OfficeFacts facts={[['Opened', `${incident.opened} · ${incident.area}`], ['Reported by', `${reporter.name} · ${reporter.id}`]]}/>
+  <Field label="Severity" htmlFor="incident-severity"><Select id="incident-severity" value={severity} onChange={e => setSeverity(e.target.value)}><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></Select></Field>
+  {severity === 'Critical' && <Alert variant="danger" title="A critical incident pages the on-call clinical lead immediately.">The form is never a prerequisite for calling emergency services.</Alert>}
+  <Field label="Immediate action" htmlFor="incident-action"><Select id="incident-action" value={action} onChange={e => setAction(e.target.value)}><option value="">Choose an action…</option>
+   <option>Call the nurse now</option><option>Advise nurse to call emergency services</option><option>Escalate to the on-call clinical lead</option><option>Notify the patient’s emergency contact</option><option>Reassign the visit</option><option>Stand down — no further action</option></Select></Field>
+  <Field label="Handover note" htmlFor="incident-note"><Textarea id="incident-note" value={notes} onChange={e => setNotes(e.target.value.slice(0, 600))} placeholder="What happened, what you did, what the next shift must know…"/></Field>
+  <div className="oi-actions"><Button variant="secondary" disabled={!action} onClick={() => { setLogged([...logged, `${time()} · ${action}`]); setAction(''); }} leadingIcon={<Check aria-hidden="true"/>}>Add this action to the log</Button></div>
+  {logged.length > 0 && <Card><ol className="oi-rows" aria-label="Incident log">{logged.map(l => <li key={l}><div className="oi-row"><div className="oi-row__body"><p className="oi-row__title">{l.split(' · ')[1]}</p><span className="oi-row__meta">{l.split(' · ')[0]} · You, as duty controller</span></div></div></li>)}</ol></Card>}
+  <OfficeNote icon={<ShieldCheck aria-hidden="true"/>}>An incident log is append-only. An entry may be corrected by a later entry and never by editing the one before it.</OfficeNote>
+  <Button variant="primary" className="oi-full" onClick={onClose} trailingIcon={<ArrowRight aria-hidden="true"/>}>Close this incident</Button>
  </div>;
 }
 /* Nurse vetting is one role in a twelve-role module now, so this is the same flow with the role
@@ -391,46 +413,43 @@ export function QualityBoard({ open }: { open: (s: string) => void }) {
  const high = incidents.filter(i => i.severity === 'High').length;
  const onTime = arrivals[0];
  const upheld = complaints.filter(c => c.state.startsWith('Upheld')).length;
- return <>
-  <div className="page-intro"><div className="eyebrow">CONTROL TOWER</div>
-   <h1>Quality</h1>
-   <p>Complaints, incidents, arrival times and what they move — the numbers a board asks for before it asks for anything else.</p></div>
-  {/* One filled chip on the screen, and it is the incident with a critical on it. Two flagged
+ return <div className="oi-screen">
+  <OfficeHead eyebrow="Control Tower" title="Quality" lead="Complaints, incidents, arrival times and what they move — the numbers a board asks for before it asks for anything else."/>
+  {/* One flagged figure on the screen, and it is the incident with a critical on it. Two flagged
       figures is two things shouting, and the whole of what `flagged` means is "this one". */}
-  <Metrics>
-   <Metric label="Arrived inside the window" value={String(Math.round(onTime.visits / onTime.of * 100))} unit="%" chip={`${onTime.visits} of ${onTime.of} visits`}/>
-   <Metric label="Open incidents" value={String(incidents.length)} chip={critical ? `${critical} critical` : `${high} high`} flagged={critical > 0}/>
-   <Metric label="Complaints this week" value={String(complaints.length)} chip={`${upheld} upheld`}/>
-   <Metric label="Visits not arrived" value={String(arrivals[3].visits)} chip="Each one is an incident"/>
-  </Metrics>
-  <NotConnected of="dispatch"/>
-  <SectionTitle title="Arrival against the booked window"/>
-  <div className="panel table-scroll">
-   {/* `figures`, so the two numeric columns are read down rather than along: 71, 9, 3 and 1 all
-       began at the same pixel and ended three apart. The share carries a sage rule under it as well
-       as a percentage — four numbers between 1 and 85 are a distribution, and a distribution is the
-       one thing a bar says faster than a figure. Sage fills it and charcoal writes it, which is the
-       palette's own rule pointed at a table. */}
-   <table className="result-table figures arrival-table">
-    <caption>Sample data. Nothing in this build measures an arrival, because no visit is dispatched and no nurse’s position is being read.</caption>
-    <thead><tr><th scope="col">Arrival</th><th scope="col">Visits</th><th scope="col">Share</th></tr></thead>
-    <tbody>{arrivals.map(a => { const share = Math.round(a.visits / a.of * 100); return <tr key={a.window} className={a.window === 'Did not arrive' ? 'flagged-row' : ''}>
-     <th scope="row">{a.window}</th><td>{a.visits}</td>
-     <td className="share-cell"><span>{share}%</span><i aria-hidden="true" style={{ width: `${share}%` }}/></td>
-    </tr>; })}</tbody>
-   </table>
+  <div className="oi-figures">
+   <OfficeFigure label="Arrived inside the window" value={`${Math.round(onTime.visits / onTime.of * 100)}%`} note={`${onTime.visits} of ${onTime.of} visits · sample data`}/>
+   <OfficeFigure label="Open incidents" value={String(incidents.length)} note={critical ? `${critical} critical` : `${high} high`} flagged={critical > 0}/>
+   <OfficeFigure label="Complaints this week" value={String(complaints.length)} note={`${upheld} upheld · sample data`}/>
+   <OfficeFigure label="Visits not arrived" value={String(arrivals[3].visits)} note="Each one is an incident"/>
   </div>
-  <div className="privacy-note"><Clock3 size={19}/>A window is what the patient was told, so it is what lateness is measured against — never the time the visit was assigned, which is a number the Control Tower controls and could improve by moving.</div>
-
-  <SectionTitle title="Complaints"/>
-  <div className="panel">{complaints.map(c => <div className="record-row static" key={c.id}>
-   <span className={`service-icon severity-${c.severity.toLowerCase()}`}><TriangleAlert size={21}/></span>
-   <span><strong>{c.id} · {c.what}</strong><small>{c.state}</small></span>
-  </div>)}</div>
-  <div className="privacy-note"><ShieldCheck size={19}/>A complaint upheld against a nurse never touches money she has already earned. Suspension stops what is sent to her next; it does not reach backwards into a payout.</div>
-
-  <SectionTitle title="Incidents behind these numbers"/>
-  <IncidentBoard open={open}/>
-  <div className="privacy-note"><CircleAlert size={19}/>These counts are read from the same incidents the board above draws, so this screen and that one cannot come to disagree. The arrival, complaint and revenue figures are sample data and are marked where they appear.</div>
- </>;
+  <NotConnected of="dispatch"/>
+  <OfficeSection title="Arrival against the booked window">
+   <Card className="oi-table-wrap">
+    {/* The two numeric columns are read down rather than along, right-aligned and tabular. The share
+        carries a bar in the progress colour as well as a percentage — four numbers between 1 and 85
+        are a distribution, and a distribution is the one thing a bar says faster than a figure. */}
+    <table className="oi-table arrival-table">
+     <caption>Sample data. Nothing in this build measures an arrival, because no visit is dispatched and no nurse’s position is being read.</caption>
+     <thead><tr><th scope="col">Arrival</th><th scope="col" className="is-figure">Visits</th><th scope="col">Share</th></tr></thead>
+     <tbody>{arrivals.map(a => { const share = Math.round(a.visits / a.of * 100); return <tr key={a.window} className={a.window === 'Did not arrive' ? 'is-flagged' : ''}>
+      <th scope="row">{a.window}</th><td className="is-figure">{a.visits}</td>
+      <td><span className="oi-share"><span className="is-figure">{share}%</span><OfficeProgress part={a.visits} whole={a.of} label={`${share}% of visits`}/></span></td>
+     </tr>; })}</tbody>
+    </table>
+   </Card>
+   <OfficeNote icon={<Clock3 aria-hidden="true"/>}>A window is what the patient was told, so it is what lateness is measured against — never the time the visit was assigned, which is a number the Control Tower controls and could improve by moving.</OfficeNote>
+  </OfficeSection>
+  <OfficeSection title="Complaints">
+   <Card><ul className="oi-rows">{complaints.map(c => <li key={c.id}><div className="oi-row">
+    <div className="oi-row__body"><p className="oi-row__title">{c.id} · {c.what}</p><span className="oi-row__meta">{c.state}</span></div>
+    <div className="oi-row__aside"><Badge variant={severityBadge(c.severity)}>{c.severity}</Badge></div>
+   </div></li>)}</ul></Card>
+   <OfficeNote icon={<ShieldCheck aria-hidden="true"/>}>A complaint upheld against a nurse never touches money she has already earned. Suspension stops what is sent to her next; it does not reach backwards into a payout.</OfficeNote>
+  </OfficeSection>
+  <OfficeSection title="Incidents behind these numbers">
+   <IncidentBoard open={open}/>
+   <OfficeNote icon={<CircleAlert aria-hidden="true"/>}>These counts are read from the same incidents the board above draws, so this screen and that one cannot come to disagree. The arrival, complaint and revenue figures are sample data and are marked where they appear.</OfficeNote>
+  </OfficeSection>
+ </div>;
 }

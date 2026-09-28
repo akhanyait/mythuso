@@ -3,6 +3,8 @@ import { useRole } from '../features/DemoLogin';
 import { founderDoor as door, founderWords as words, probe, useFounderState, type FounderState } from '../lib/founder-access';
 import { portalContract } from '../lib/portal';
 import { PageHead } from '../features/portal/Parts';
+import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
 import './founder-gate.css';
 
 /* The founder's door (packages/catalog/founder-access.json#door), on the founder's instruction of
@@ -50,29 +52,32 @@ export function FounderGate({ open }: { open: () => ReactNode }) {
  return <Door state={state}/>;
 }
 
-/* The screen itself: the wordmark on the brand ground, the contract's heading and sentence, and then
-   whichever of the three things the service said — still asking, refused (dark, cross-site, locked: drawn
-   in the service's words, with the form withheld), or signed out, which is the form. */
+/* The screen itself: the wordmark on the handoff's calm ground, in one elevated Card, the contract's heading
+   and sentence, and then whichever of the three things the service said — still asking, refused (dark,
+   cross-site, locked: drawn in the service's words, with the form withheld), or signed out, which is the
+   form. The way back is the handoff's ghost Button: a quiet action, never a second primary beside Sign in. */
 function Door({ state }: { state: Exclude<FounderState, { phase: 'signed-in' }> }) {
  const { setRole } = useRole();
  return <div className="founder-gate">
-  <main className="founder-gate-card rise" aria-labelledby="founder-gate-heading">
-   <img className="founder-gate-mark" src="/brand/mythuso-logo.svg" alt="MyThuso"/>
-   {/* The same head every Control Tower screen wears (Parts.tsx#PageHead): the portal's name as the eyebrow,
-       the contract's heading and sentence, and what the service said as the status line. */}
-   <PageHead className="founder-gate-head" eyebrow={portalContract.name} title={door.words.heading} titleId="founder-gate-heading" lead={door.words.sentence}
-    status={state.phase === 'checking' || state.phase === 'refused' ? <>
-     {state.phase === 'checking' && <p className="founder-gate-status" role="status" aria-busy="true">{words.checking}</p>}
-     {state.phase === 'refused' && <>
-      <p className="founder-gate-refusal" role="status">{state.message}</p>
-      <p className="founder-gate-status">{door.words.holding}</p>
-     </>}
-    </> : undefined}/>
-   {state.phase === 'signed-out' && <Suspense fallback={<p className="founder-gate-status" role="status" aria-busy="true">{portalContract.loading.sentence}</p>}>
-    <SignIn message={state.message}/>
-   </Suspense>}
-   {/* Not the founder: the patient app, which is what the address means with no role on it. */}
-   <button type="button" className="founder-gate-leave" onClick={() => setRole('patient')}>{door.words.leave}</button>
+  <main className="founder-gate-main" aria-labelledby="founder-gate-heading">
+   <Card variant="elevated" padding="lg" className="founder-gate-card rise">
+    <img className="founder-gate-mark" src="/brand/mythuso-logo.svg" alt="MyThuso"/>
+    {/* The same head every Control Tower screen wears (Parts.tsx#PageHead): the portal's name as the eyebrow,
+        the contract's heading and sentence, and what the service said as the status line. */}
+    <PageHead className="founder-gate-head" eyebrow={portalContract.name} title={door.words.heading} titleId="founder-gate-heading" lead={door.words.sentence}
+     status={state.phase === 'checking' || state.phase === 'refused' ? <>
+      {state.phase === 'checking' && <p className="founder-gate-status" role="status" aria-busy="true">{words.checking}</p>}
+      {state.phase === 'refused' && <>
+       <p className="founder-gate-refusal" role="status">{state.message}</p>
+       <p className="founder-gate-status">{door.words.holding}</p>
+      </>}
+     </> : undefined}/>
+    {state.phase === 'signed-out' && <Suspense fallback={<p className="founder-gate-status" role="status" aria-busy="true">{portalContract.loading.sentence}</p>}>
+     <SignIn message={state.message}/>
+    </Suspense>}
+    {/* Not the founder: the patient app, which is what the address means with no role on it. */}
+    <Button variant="ghost" className="founder-gate-leave" onClick={() => setRole('patient')}>{door.words.leave}</Button>
+   </Card>
   </main>
  </div>;
 }

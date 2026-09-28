@@ -1,422 +1,383 @@
-/* THE WORKBENCH SPEAKS THE DECK'S LANGUAGE. A clinical portal opens on a dark instrument deck and
-   then, four hundred pixels down, met a second dark band drawn by a different hand: square eyebrow,
-   no rule under it, a flat ground, and a row of outlined chips for the tools. The page changed
-   dialect halfway down itself. Everything in this pass is the deck's own grammar restated here —
-   the eyebrow and the standing on one line over a hairline, a ground that is lifted rather than
-   flat, and the tool row as one floating rail instead of five separate outlines.
-   The radii are tokens now as well. 28, 22, 18, 16 and 12 were five hand-typed corners against a
-   contract that declares four: panel 28, card 20, control 16, tile 16.
+/* THE WORKBENCH, ON THE IDENTITY (28 September 2026, the Lovable handoff, wave 4c).
+ *
+ * It was two dark bands and a lavender header bracketing the work, in the deck's old dialect. The deck
+ * is the handoff's command view now — a white hero and white metric cards — and the workbench speaks
+ * the same: one white Card holding the role's board at the top, a header that says what the workspace
+ * is for, the patients down the left, the five tools as the handoff's segmented tabs, and each tool's
+ * body as a white document. Aqua is spent on three things only — the patient being worked, the tool
+ * that is open and progress through a record — so it carries information wherever it appears.
+ *
+ * WHAT DID NOT MOVE. The five tools are still five different shapes because they are five different
+ * acts — a line down the day, a document with a spine, a chain of three acts by two people, a live
+ * instrument — and every sentence on them is the kernel's or the record contract's. Clarity first: this
+ * is the one screen in the product where a clinician types something about a person, so nothing here is
+ * composed at the cost of a legible label, a 44px target or a field a thumb can hit.
+ *
+ * COLOUR. Every value is a role from tokens.json#semantic (--color-*) or one of ui.css's measured inks
+ * (--ui-warning-ink, --ui-danger-ink, --ui-success-ink), and every word stands on a ground set here from
+ * the same roles, so either theme holds. Light-theme pairs, sRGB relative luminance, the formula
+ * scripts/check-boundaries.mjs runs:
+ *     foreground on surface 16.37          on muted 13.80        on the aqua tint (12%) 14.28
+ *     muted-foreground on surface 5.66     on muted 4.77         on background 5.43
+ *     warning ink on the lime tint (20%) 6.77       danger ink on the orange tint (12%) 5.78
+ *     a control's edge is muted-foreground (5.66), the handoff's field edge as ui.css measures it; the
+ *     border role (1.43) is only ever a divider between panels, never a control's outline
+ *     accent 3.64 on surface — a mark, a rule and a selected edge; never a word
+ *
+ * COLOUR IS NEVER THE ONLY DIFFERENCE. A written section is a filled mark AND a tick AND the count at the
+ * foot; a completed stage is a filled disc AND a tick AND the word beside it; an unreconciled allergy
+ * record is the warning tint AND a triangle AND the sentence "Reconciliation outstanding"; the open tool
+ * is the lifted face AND aria-pressed; the chosen patient is the aqua edge AND aria-pressed.
+ *
+ * AND NOTHING HERE ANIMATES A CLINICAL VALUE. The only moving mark on the sheet is the wearable line,
+ * drawn by components/ChartMotion.tsx along its own path — whose resting state is the finished path. */
 
-   AND THEN THE INTERIOR, WHICH WAS STILL A COLUMN OF LABELS AND INPUTS. Everything above the tool
-   rail had been composed and everything below it was a form: three inputs in a row for a follow-up,
-   four identical textareas for a clinical record, two more and a select for a review, a select and
-   two checkboxes for a dispense. The five tools are five different acts and they are now five
-   different shapes — a line down the day, a document with a spine, a chain of three acts by two
-   people, a live instrument on the night ground. Clarity first: this is the one screen in the
-   product where a clinician types something about a person, so nothing here is composed at the cost
-   of a legible label, a 44px target or a field a thumb can hit.
-
-   EVERY PAIR ON THIS SHEET IS COMPUTED with the sRGB relative-luminance formula
-   scripts/check-boundaries.mjs runs over the ninety-two declared pairs. The declared ones are
-   named; the rest are color-mix()es of two tokens, which is what studio.css and the deck already do
-   and for the same reason — the palette has no muted tone for a dark ground, and adding one
-   regenerates the iOS and Android token files.
-
-     studioInk on studioPaper       10.59    studioInk on surface           11.66
-     studioInk on studioLine         8.89    studioInk on studioPeach        8.91
-     studioInkMuted on studioPaper   6.29    studioInkMuted on surface       6.93
-     studioInkDeep on studioLime    12.25    surface on studioInk           11.66
-     surface on studioOlive          6.46    studioOlive on surface          6.46
-     charcoal on studioPaper        15.48    charcoal on paleSage           11.11
-     danger on studioPeach           5.02    studioPaper on studioNight     13.59
-     studioLime on studioNight      12.03    studioLime on the lifted night 10.16
-     ink-muted at 78% over white     4.04 on white, 3.67 on paper, 3.08 on peach — the boundary of
-                                     every control drawn here. --studio-line is 1.31 against white,
-                                     which is a hairline between panels and is not a control's
-                                     outline: SC 1.4.11 holds that to 3:1 and the token file says so
-                                     out loud beside `faint`. Every input, select, textarea, tick
-                                     box and choice card on this sheet therefore carries the mixed
-                                     edge, and only the dividers carry the hairline.
-     ink at 12% over white           5.61 for the rail's count; white on the same tint over ink 5.92.
-
-   COLOUR IS NEVER THE ONLY DIFFERENCE. A written section is a filled mark AND a numeral that counts
-   it; a completed stage is a filled disc AND the word beside it; an unreconciled allergy record is
-   a peach panel AND a triangle AND the sentence "Reconciliation outstanding". Lime is a fill and
-   never a word except on the night ground, where it is measured at 12.03.
-
-   AND NOTHING HERE ANIMATES A CLINICAL VALUE. The only moving mark on the sheet is the wearable
-   line, drawn by components/ChartMotion.tsx along its own path — whose resting state is the
-   finished path, so a reader who asked for stillness gets the whole line rather than an empty box.
-   No value counts up, no panel slides, nothing loops. */
-.iq-workbench{margin:0 0 32px;border:1px solid var(--studio-line);border-radius:var(--r-panel);overflow:hidden;background:var(--surface);color:var(--studio-ink);
- /* The outline every control on this sheet is drawn with. One declaration, because a boundary
-    chosen per component is how a form ends up with four. */
- --iq-edge:color-mix(in srgb, var(--studio-ink-muted) 78%, var(--surface))}
-/* The role's own board, at the top of the card. It is on the pale ground rather than on the card's
-   white so that the frosted lists inside it — a day, a queue, a collection round — still read as
-   panes instead of white on white, and so the dark band below it divides the queue from the one
-   patient being worked rather than sitting on top of the screen. */
-.iq-worklist{padding:26px 30px 30px;border-bottom:1px solid var(--studio-line);
- /* Lit from the top left rather than flat, so the cards on it have something to sit in front of.
-    Both stops are lighter than the paper they mix towards, so nothing on this ground darkens. */
- background:radial-gradient(120% 90% at 6% -10%, color-mix(in srgb, var(--surface) 72%, var(--studio-paper)) 0%, transparent 62%), var(--studio-paper)}
-.iq-worklist>:last-child{margin-bottom:0}
-.iq-heading{display:grid;gap:18px;padding:24px 30px 28px;color:var(--studio-paper);position:relative;
- /* The night, lifted at one corner rather than flat — the same radial the instrument deck at the
-    top of the screen stands on, so the two dark bands on a clinical screen are recognisably one
-    object twice rather than two dark rectangles sharing a colour. studioPaper reads 11.47 on the
-    lightest part of it and 13.59 on the darkest; studioLime 10.16 and 12.03. */
- background:radial-gradient(120% 150% at 3% -30%, color-mix(in srgb, var(--studio-paper) 7%, var(--studio-night)) 0%, transparent 58%), var(--studio-night)}
-.iq-heading-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;padding-bottom:16px;border-bottom:1px solid color-mix(in srgb, var(--studio-paper) 14%, var(--studio-night))}
-.iq-heading-say>p{max-width:60ch}
-/* The workspace shell styles every .clinical h2 charcoal, which on this dark header is a
-   1.28:1 headline nobody can read. Same specificity loses on source order, so this rule carries
-   the extra class rather than !important. */
-/* 24 and 36, which are steps on the type scale in packages/design-tokens/tokens.json. It was
-   clamp(23px, 2.3vw, 34px): two ends and everything between them off a scale the whole product is
-   drawn on, in the one place a reader is most likely to notice the difference. */
-.iq-workbench .iq-heading h2{font-size:clamp(24px,2.5vw,36px);font-weight:500;line-height:1.16;max-width:20ch;margin:12px 0;letter-spacing:-1.2px;color:inherit;text-wrap:balance}
-/* The badge inside the sentence, sized in em so it grows with the headline rather than becoming a
-   dot beside a 36px word. Pale, with the dark ink inside it: this family's ink measures 1.28 on the
-   night and is never a mark there. indigoSoft against the night is 13.16 and indigoDeep on
-   indigoSoft is 13.39. */
-.iq-glyph{display:inline-grid;place-items:center;width:.92em;height:.92em;margin:0 .06em;border-radius:50%;background:var(--indigo-soft);color:var(--indigo-deep);vertical-align:-.12em}
-.iq-glyph svg{width:54%;height:54%}
-.iq-heading p{color:var(--studio-line);font-size:14px;margin:0}
-/* 13, not 12. The type scale in packages/design-tokens/tokens.json starts at 13 and the 200% zoom
-   audit reads every rendered size against it, so an eyebrow set at 12 is text the design system says
-   does not exist — and at twice the text size it is the line a reader most needs to survive. */
-.iq-eyebrow{display:flex;align-items:center;gap:8px;font-size:13px;letter-spacing:1.4px;font-weight:600;line-height:1.5}
-.iq-heading .iq-eyebrow{color:var(--studio-lime)}
-/* The standing, in the deck's own chip: outlined rather than filled, and outlined in a tone that
-   clears 3:1 against the lighter end of the gradient behind it. --studio-ink-muted measured 1.82
-   there, which is a boundary nobody can see. */
-.iq-status{white-space:nowrap;display:flex;align-items:center;gap:8px;font-size:13px;line-height:1.4;border:1px solid color-mix(in srgb, var(--studio-paper) 44%, var(--studio-night));padding:7px 13px;border-radius:var(--r-pill)}
-.iq-status>span{width:6px;height:6px;border-radius:50%;background:var(--studio-lime)}
-.iq-layout{display:grid;grid-template-columns:240px minmax(0,1fr)}
-.iq-patients{padding:22px 16px;background:var(--studio-paper);border-right:1px solid var(--studio-line)}
-.iq-patients>button{width:100%;display:flex;align-items:flex-start;gap:11px;background:transparent;border:1px solid transparent;padding:14px 12px;border-radius:var(--r-card);text-align:left;color:inherit;min-height:88px;margin-top:6px;transition:background var(--t-settle) var(--ease-soft),box-shadow var(--t-settle) var(--ease-soft)}
-.iq-patients>button:hover{background:color-mix(in srgb, var(--surface) 60%, transparent)}
-/* The patient being worked. Solid, lifted and carrying a lime rail down its leading edge — three
-   channels, because a selection told in colour alone is a selection a colour-blind reader has to
-   infer. Lime is a fill here and never a label: at 2.49 it carries no text anywhere in this app. */
-.iq-patients>button.selected{background:var(--surface);border-color:var(--studio-line);box-shadow:var(--shadow-raised);position:relative;overflow:hidden}
-.iq-patients>button.selected::before{content:'';position:absolute;left:0;top:10px;bottom:10px;width:4px;border-radius:0 var(--r-pill) var(--r-pill) 0;background:var(--studio-olive)}
-.iq-patients>button>span:nth-child(2){flex:1;min-width:0}.iq-patients strong,.iq-patients small,.iq-patients em{display:block}.iq-patients small,.iq-patients em{font-size:13px;line-height:1.4;margin-top:5px;color:var(--faint)}.iq-patients em{font-style:normal;color:var(--studio-ink)}.iq-patients .avatar{width:34px;height:34px;flex:0 0 34px;font-size:13px}.iq-patients>button>svg{flex:0 0 15px}
-.iq-patients .helper{margin:20px 8px 0}
-.iq-patient-work{min-width:0;padding:24px;display:grid;gap:20px;align-content:start}
-/* core.css resets h1, h2, h3 and p and stops there, so every h4 here arrived carrying the browser's
-   own 1.33em margin — which is what put a record's status chip twenty-seven pixels above the
-   headline it is the status of. */
-.iq-workbench h4{margin:0}
-
-/* ---- The person ---------------------------------------------------------------------------------
-   A name, a disc with their initials in it and the two records nobody should have to open a tab to
-   read. It was an eyebrow, a name and a grey strip; it is the identity of a human being and it
-   carries the weight of one now. The allergy tile turns peach when the record has not been
-   reconciled — the same flag that makes the pharmacist's verification fail — and says so in words
-   and in a mark beside the colour. */
-.iq-identity{border:1px solid var(--studio-line);border-radius:var(--r-card);padding:20px 22px;display:grid;gap:18px;background:var(--surface);position:relative}
-/* THE ONE CARD THAT CROSSES A BAND. The person being worked is what the dark band above introduces,
-   so the card carrying their name lifts out of the white column and onto the band's lower edge —
-   the reference's floating cards overlapping the panel they belong to, and the same move the
-   instrument deck makes where the board below it slides onto the canvas. The band is given the
-   overlap as padding first, so what the card covers is empty ground and never a word; it is the
-   only thing in this workspace at that elevation, which is what keeps it meaning something.
-   1101 and not a pixel less, and the number is the layout's rather than a guess: the patient rail
-   below stops being a column beside the work at `max-width:1100px` and becomes a row of cards above
-   it, and a card lifted onto the band then lands on three buttons instead of on empty ground. It
-   did, first at 1000 and then at exactly 1100 — an overlap measured against the wrong breakpoint is
-   a control nobody can press, and a breakpoint that agrees with another one only on one side of
-   itself is not agreeing with it. */
-@media(min-width:1101px){
- .iq-heading{padding-bottom:calc(28px + 48px)}
- .iq-identity{margin-top:-48px;box-shadow:var(--shadow-raised)}
+.iq-workbench {
+ --iq-edge: var(--color-muted-foreground);
+ --iq-tint: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+ margin: 0 0 var(--space-32);
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-lg);
+ overflow: hidden;
+ background: var(--color-surface);
+ color: var(--color-foreground);
+ box-shadow: var(--shadow);
 }
-.iq-identity-top{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap}
-.iq-identity-disc{width:56px;height:56px;flex:0 0 56px;border-radius:50%;display:grid;place-items:center;background:var(--studio-ink);color:var(--surface);font-size:18px;font-weight:600;letter-spacing:.5px}
-.iq-identity-say{flex:1 1 220px;min-width:0}
-.iq-workbench .iq-identity h3{font-size:32px;line-height:1.15;letter-spacing:-1px;margin:6px 0 4px;color:var(--charcoal)}
-.iq-identity-say p{color:var(--studio-ink-muted);font-size:15px}
-.iq-identity .iq-eyebrow{color:var(--studio-ink-muted)}
-.iq-chip{display:inline-flex;align-items:center;gap:7px;font-size:13px;border-radius:var(--r-pill);background:var(--studio-paper);padding:8px 13px;color:var(--studio-ink);line-height:1.4}
-.iq-chip.attention{background:var(--studio-peach)}
-.iq-facts{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:12px;margin:0}
-.iq-fact{background:var(--studio-paper);border-radius:var(--r-tile);padding:14px 16px;min-width:0}
-.iq-fact.attention{background:var(--studio-peach)}
-.iq-fact dt{font-size:13px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--studio-ink-muted)}
-.iq-fact dd{margin:6px 0 0;font-size:15px;line-height:1.5;color:var(--studio-ink)}
-.iq-fact>p{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:13px;color:var(--studio-ink-muted)}
-.iq-fact.attention>p{color:var(--studio-ink);font-weight:600}
-.iq-fact>p>svg{flex:0 0 auto}
+/* The role's board at the top of the card, on the page's own background so the rows inside it — a day,
+   a queue, a round — read as white rows rather than white on white. */
+.iq-worklist { padding: var(--space-24); border-bottom: 1px solid var(--color-border); background: var(--color-background); }
+.iq-worklist > :last-child { margin-bottom: 0; }
 
-/* One floating rail rather than five outlines. Five bordered chips in a row draw six vertical lines
-   across a card and none of them mean anything; a single recessed rail with the chosen tool lifted
-   out of it says which of five you are on in one shape. studioInk on paper is 10.59, white on
-   studioInk 11.66, and the chosen pill is also the only one carrying a shadow. */
-/* The rail is the pale panel the deck's quiet half stands on rather than a second shade of paper,
-   so the secondary tone on a clinical screen is one thing appearing twice instead of two things.
-   studioInk on it measures 10.25, white on the chosen pill 11.66. */
-.iq-tools{display:flex;gap:3px;flex-wrap:wrap;padding:5px;border:1px solid color-mix(in srgb, var(--studio-ink) 12%, var(--indigo-soft));border-radius:var(--r-panel);background:var(--indigo-soft)}
-.iq-tools button{display:flex;align-items:center;gap:7px;border:1px solid transparent;border-radius:var(--r-pill);min-height:44px;padding:9px 13px;background:transparent;color:var(--studio-ink);font-size:13px;transition:background var(--t-settle) var(--ease-soft),box-shadow var(--t-settle) var(--ease-soft)}
-.iq-tools button:hover{background:color-mix(in srgb, var(--surface) 80%, transparent)}
-.iq-tools button[aria-pressed=true]{background:var(--studio-ink);color:var(--surface);border-color:var(--studio-ink);box-shadow:var(--shadow-raised)}
-.iq-tools button[aria-pressed=true]:hover{background:var(--studio-ink)}
-/* core.css draws :focus-visible as an outline AND a box-shadow ring at the lowest possible
-   specificity, so any rule here that sets box-shadow on something focusable silently deletes half
-   of the focus indicator. Both elements on this sheet that carry a resting shadow restate the ring
-   in front of their own. */
-.iq-tools button[aria-pressed=true]:focus-visible,
-.iq-patients>button.selected:focus-visible{box-shadow:0 0 0 7px var(--focus-edge),var(--shadow-raised)}
-/* Ink at 12% over the rail rather than over white, because the rail is what it is drawn on:
-   studioInkMuted reads 5.25 there. A tint measured against the ground it is not on is how a badge
-   ends up invisible on the one surface it appears. */
-.iq-tool-count{font-size:13px;line-height:1.3;min-width:20px;padding:1px 6px;border-radius:var(--r-pill);background:color-mix(in srgb, var(--studio-ink) 12%, var(--indigo-soft));color:var(--studio-ink-muted);font-variant-numeric:tabular-nums}
-.iq-tools button[aria-pressed=true] .iq-tool-count{background:color-mix(in srgb, var(--surface) 22%, var(--studio-ink));color:var(--surface)}
+/* ---- The header ------------------------------------------------------------------------------------ */
+.iq-heading { display: grid; gap: var(--space-12); padding: var(--space-20) var(--space-24); border-bottom: 1px solid var(--color-border); background: var(--color-surface); }
+.iq-heading-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-8) var(--space-16); }
+.iq-heading-say { display: grid; gap: var(--space-4); }
+.iq-heading-say > p { max-width: 60ch; }
+.iq-workbench .iq-heading h2 { margin: 0; font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1.25; color: var(--color-foreground); }
+.iq-heading p { margin: 0; font-size: 15px; line-height: 1.55; color: var(--color-muted-foreground); }
+.iq-glyph { display: inline-grid; place-items: center; width: 1.05em; height: 1.05em; margin: 0 .06em; border-radius: var(--r-sm); background: var(--iq-tint); color: var(--color-foreground); vertical-align: -.16em; }
+.iq-glyph svg { width: 60%; height: 60%; }
+.iq-eyebrow { display: inline-flex; align-items: center; gap: var(--space-8); margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .06em; line-height: 1.5; text-transform: uppercase; color: var(--color-muted-foreground); }
+.iq-status { flex: none; }
 
-/* Each tool's body opens on a head with a rule under it, so five tools in one card read as five
-   sections rather than as one long form that changes subject without saying so. */
-.iq-tool-body{display:grid;gap:16px;align-content:start}
-.iq-section-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--studio-line)}
-.iq-workbench .iq-section-head h3{font-size:20px;margin:0;letter-spacing:-.3px;color:var(--charcoal)}
-.iq-section-head>span{font-size:13px;color:var(--studio-ink-muted)}
-.iq-tool-body>.helper{margin:0;max-width:72ch}
-.iq-hint{font-size:13px;line-height:1.6;color:var(--studio-ink-muted);margin:0;max-width:72ch}
-.iq-hint strong{color:var(--studio-ink)}
-
-/* ---- Nothing here yet ---------------------------------------------------------------------------
-   Dashed rather than solid, because the thing it outlines is a space where a record will be and not
-   a record. Each one says what has not happened, why the kernel wants it that way, and — where
-   there is one — the door to the tool that can start it. */
-.iq-nothing{display:grid;justify-items:start;gap:8px;padding:22px;border:1px dashed var(--iq-edge);border-radius:var(--r-card);background:var(--studio-paper)}
-.iq-nothing strong{font-size:18px;line-height:1.3;color:var(--charcoal)}
-.iq-nothing p{font-size:14px;line-height:1.6;color:var(--studio-ink-muted);max-width:62ch}
-.iq-nothing button{margin-top:6px}
-
-/* What the kernel will refuse, in the kernel's own words, before the button rather than after it. */
-.iq-outstanding{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-.iq-outstanding li{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:var(--r-control);background:var(--studio-peach);color:var(--studio-ink);font-size:14px;line-height:1.5}
-.iq-outstanding svg{flex:0 0 auto;margin-top:2px}
-
-/* ---- Appointments: a line down the day ------------------------------------------------------------
-   The time in its own gutter, tabular, so four visits read as a column of times; a mark on the rail
-   whose shape says what happened to that visit; the record beside it. Only the next unfinished visit
-   carries its state's sentence and the buttons that move it, because a list where every row offers
-   every action is a list with no next thing in it. */
-.iq-visits{list-style:none;margin:0;padding:0}
-.iq-visit{display:grid;grid-template-columns:58px 22px minmax(0,1fr);gap:0 14px;padding-bottom:14px}
-.iq-visit-when{text-align:right;padding-top:15px;font-variant-numeric:tabular-nums;min-width:0}
-.iq-visit-when strong{display:block;font-size:16px;line-height:1.3;color:var(--studio-ink)}
-.iq-visit-when small{display:block;font-size:13px;margin-top:3px;color:var(--studio-ink-muted)}
-.iq-visit-mark{position:relative}
-.iq-visit-mark::before{content:'';position:absolute;left:50%;top:19px;transform:translateX(-50%);width:14px;height:14px;border-radius:50%;border:2px solid var(--studio-olive);background:var(--surface);z-index:1}
-.iq-visit-mark::after{content:'';position:absolute;left:50%;top:35px;bottom:-14px;transform:translateX(-50%);width:2px;background:var(--studio-line)}
-.iq-visit:last-child .iq-visit-mark::after{display:none}
-/* Filled, hollow, dashed, solid-dark: the four states are four shapes before they are four colours,
-   and the word is on the chip beside every one of them. */
-.iq-visit.is-arrived .iq-visit-mark::before{background:var(--studio-olive)}
-.iq-visit.is-completed .iq-visit-mark::before{background:var(--studio-ink);border-color:var(--studio-ink)}
-.iq-visit.is-cancelled .iq-visit-mark::before{border-style:dashed;border-color:var(--studio-ink-muted)}
-.iq-visit-card{border:1px solid var(--studio-line);border-radius:var(--r-tile);padding:14px 16px;background:var(--surface);min-width:0}
-.iq-visit.lead .iq-visit-card{background:var(--studio-paper);border-color:transparent;box-shadow:var(--shadow-raised)}
-.iq-visit-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
-.iq-visit-card h4{display:flex;align-items:center;gap:8px;font-size:16px;line-height:1.3;color:var(--charcoal)}
-.iq-visit-line{font-size:13px;color:var(--studio-ink-muted);margin-top:6px}
-.iq-visit-detail{font-size:14px;line-height:1.6;margin-top:8px;color:var(--studio-ink);max-width:60ch}
-.iq-visit .button-row{margin-top:14px;flex-wrap:wrap}
-.iq-visit .button-row>*{flex:0 1 auto}
-
-/* One chip for every state on this sheet — a visit's, an assessment's, a request's. Three tiers:
-   the neutral line, the lime the workspace spends on the one thing that is live, and the ink that
-   closes a record. The word is always in the chip, so none of the three is a colour on its own. */
-.iq-state{display:inline-flex;align-items:center;white-space:nowrap;font-size:13px;line-height:1.4;padding:6px 11px;border-radius:var(--r-pill);background:var(--studio-line);color:var(--studio-ink)}
-.iq-state.is-arrived,.iq-state.is-verified,.iq-state.is-confirmed{background:var(--studio-lime);color:var(--studio-ink-deep)}
-.iq-state.is-cancelled,.iq-state.is-held,.iq-state.is-rejected{background:var(--studio-peach);color:var(--studio-ink)}
-.iq-state.is-completed,.iq-state.is-dispensed{background:var(--studio-ink);color:var(--surface)}
-
-/* ---- Composing something ---------------------------------------------------------------------------
-   Every form on this sheet is one shape: a head that says what the form is for, the decisions in the
-   order a person makes them, and one action at the end. `.inset` is the same form drawn inside a
-   record card, where the ground is already paper. */
-.iq-compose{display:grid;gap:16px;padding:20px 22px;border-radius:var(--r-card);background:var(--studio-paper);border:1px solid var(--studio-line)}
-.iq-compose.inset{background:var(--surface);border-color:var(--studio-line);margin-top:16px}
-/* The exception, drawn as one. Holding a request is not the other half of verifying it, and two
-   white cards of the same weight said it was. */
-.iq-compose.quiet{background:var(--studio-paper);border-color:transparent}
-.iq-compose-head h4{font-size:18px;line-height:1.3;color:var(--charcoal)}
-.iq-compose-head p{font-size:13px;line-height:1.6;color:var(--studio-ink-muted);margin-top:5px;max-width:64ch}
-.iq-compose label{display:grid;gap:8px;font-size:14px;min-width:0}
-.iq-compose label>span{font-weight:600;color:var(--studio-ink)}
-.iq-compose input,.iq-compose select,.iq-compose textarea{width:100%;min-width:0;border-radius:var(--r-control);border:1px solid var(--iq-edge);background:var(--surface);padding:13px 14px;color:var(--studio-ink);font:inherit;font-size:15px;min-height:48px;line-height:1.6}
-.iq-compose textarea{resize:vertical}
-.iq-compose label.narrow{max-width:220px}
-.iq-compose>button{justify-self:start;min-height:48px}
-.iq-compose-when{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:14px}
-/* A choice is a thing you point at, not a menu you open. Two cards with a real radio in each: the
-   dot, the ring and the icon are three channels, and the whole card is 56px of target. */
-.iq-choice{border:0;padding:0;margin:0;min-width:0}
-.iq-choice legend{padding:0;margin-bottom:10px;font-size:14px;font-weight:600;color:var(--studio-ink)}
-.iq-choice-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:12px}
-.iq-compose label.iq-choice-card{display:flex;align-items:center;gap:12px;min-height:56px;padding:14px 16px;border:1px solid var(--iq-edge);border-radius:var(--r-control);background:var(--surface);cursor:pointer}
-.iq-choice-card input{width:20px;height:20px;flex:0 0 20px;min-height:0;margin:0;padding:0;accent-color:var(--studio-ink)}
-.iq-choice-card strong{font-size:15px;font-weight:600;min-width:0}
-.iq-choice-card>svg{flex:0 0 auto;color:var(--studio-ink-muted)}
-.iq-choice-card:has(input:checked){box-shadow:inset 0 0 0 2px var(--studio-ink);border-color:var(--studio-ink)}
-.iq-choice-card:has(input:checked)>svg{color:var(--studio-ink)}
-/* An attestation is not form furniture. It is a sentence somebody signs under their own
-   registration, so it gets a row of its own, a 24px box and a border that closes when it is made. */
-.iq-compose label.iq-attest,.iq-consent label.iq-attest{display:flex;align-items:center;gap:14px;min-height:56px;padding:14px 16px;border:1px solid var(--iq-edge);border-radius:var(--r-control);background:var(--surface);font-size:15px;line-height:1.5;cursor:pointer}
-.iq-attest input{width:24px;height:24px;flex:0 0 24px;min-height:0;margin:0;padding:0;accent-color:var(--studio-ink)}
-.iq-attest:has(input:checked){box-shadow:inset 0 0 0 2px var(--studio-olive);border-color:var(--studio-olive)}
-
-/* ---- The consultation, as a document --------------------------------------------------------------
-   Four acts down a spine rather than four boxes in a grid. The letter is the mark on the spine and
-   fills when that act has been written, so how far through the record you are is a shape rather than
-   a count you have to make yourself — and the count is under it anyway, because a mark is a summary
-   and a clinician about to be refused deserves the number. */
-.iq-doc{display:grid}
-.iq-doc.locked{border:1px solid var(--studio-line);border-radius:var(--r-card);padding:22px 24px 4px;background:var(--surface)}
-.iq-pane{display:grid;grid-template-columns:38px minmax(0,1fr);gap:0 16px;position:relative;padding-bottom:22px}
-.iq-pane::before{content:'';position:absolute;left:19px;top:42px;bottom:0;width:2px;margin-left:-1px;background:var(--studio-line)}
-.iq-pane:last-child::before{display:none}
-.iq-pane.written::before{background:var(--studio-olive)}
-.iq-pane-mark{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;border:2px solid var(--iq-edge);background:var(--surface);color:var(--studio-ink-muted);position:relative;z-index:1}
-.iq-pane.written .iq-pane-mark{background:var(--studio-ink);border-color:var(--studio-ink);color:var(--surface)}
-.iq-pane-body{min-width:0;padding-top:2px}
-.iq-pane-head{margin-bottom:10px}
-@media(min-width:900px){
- .iq-pane-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px}
- .iq-pane-head p{margin-top:0;text-align:right;flex:0 1 auto}
+/* ---- The patients, and the one being worked ------------------------------------------------------- */
+.iq-layout { display: grid; grid-template-columns: 248px minmax(0, 1fr); }
+.iq-patients { display: grid; align-content: start; gap: var(--space-8); padding: var(--space-20) var(--space-16); border-right: 1px solid var(--color-border); background: var(--color-background); }
+.iq-patients > button {
+ position: relative;
+ display: grid;
+ grid-template-columns: auto minmax(0, 1fr) auto;
+ align-items: start;
+ gap: var(--space-12);
+ width: 100%;
+ min-height: 44px;
+ margin: 0;
+ padding: var(--space-12);
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-md);
+ background: var(--color-surface);
+ color: var(--color-foreground);
+ font: inherit;
+ text-align: left;
+ cursor: pointer;
+ transition: border-color var(--t-quick) var(--ease-soft), background-color var(--t-quick) var(--ease-soft);
 }
-.iq-pane-head h4{font-size:18px;line-height:1.3;color:var(--charcoal)}
-.iq-pane-head p{font-size:13px;line-height:1.5;color:var(--studio-ink-muted);margin-top:3px;max-width:64ch}
-.iq-pane textarea{width:100%;min-width:0;border:1px solid var(--iq-edge);border-radius:var(--r-control);background:var(--surface);padding:13px 14px;font:inherit;font-size:15px;line-height:1.7;color:var(--studio-ink);resize:vertical;min-height:44px}
-/* A signed record is a document and not a disabled form. The panes render as prose the moment the
-   signature exists, because a greyed-out textarea invites a reader to try to type in it. */
-.iq-pane-text{font-size:15px;line-height:1.7;color:var(--studio-ink);background:var(--studio-paper);border-radius:var(--r-control);padding:14px 16px;white-space:pre-wrap}
-.iq-pane-note{margin-top:10px;padding:11px 14px;border-left:3px solid var(--studio-olive);border-radius:0 var(--r-control) var(--r-control) 0;background:var(--studio-paper);font-size:13px;line-height:1.6;color:var(--studio-ink);max-width:66ch}
-.iq-doc-foot{display:grid;gap:14px;padding-top:18px;border-top:1px solid var(--studio-line)}
-.iq-doc-progress{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;font-size:13px}
-.iq-doc-count{font-weight:600;color:var(--studio-ink)}
-.iq-doc-dirty{display:inline-flex;align-items:center;gap:7px;color:var(--studio-ink-muted)}
-.iq-signed{display:flex;align-items:flex-start;gap:10px;padding:14px 16px;border-radius:var(--r-control);background:var(--studio-paper);font-size:14px;line-height:1.6;color:var(--studio-ink)}
-.iq-signed svg{flex:0 0 auto;margin-top:3px}
-.iq-doc-foot .button-row{flex-wrap:wrap;gap:10px}
-.iq-doc-foot .button-row>*{flex:0 1 auto}
+.iq-patients > button:hover { border-color: var(--color-accent); }
+.iq-patients > button.selected { border-color: var(--color-accent); background: var(--iq-tint); }
+.iq-patients > button.selected::before { content: ''; position: absolute; inset: var(--space-8) auto var(--space-8) -1px; width: 3px; border-radius: 0 var(--r-pill) var(--r-pill) 0; background: var(--color-accent); }
+.iq-patients > button > .avatar { width: 32px; height: 32px; border-radius: var(--r-pill); background: var(--color-muted); color: var(--color-foreground); font-size: 13px; font-weight: 700; }
+.iq-patients > button > span:nth-child(2) { display: grid; gap: 2px; min-width: 0; }
+.iq-patients > button strong { font-size: 14px; font-weight: 600; color: var(--color-foreground); }
+.iq-patients > button small { font-size: 13px; line-height: 1.4; color: var(--color-muted-foreground); }
+.iq-patients > button em { font-style: normal; font-size: 13px; font-weight: 600; color: var(--color-foreground); }
+.iq-patients > button > svg { width: 16px; height: 16px; color: var(--color-muted-foreground); }
+.iq-patients .helper { margin: var(--space-4) 0 0; font-size: 13px; line-height: 1.5; color: var(--color-muted-foreground); }
+.iq-patient-work { display: grid; align-content: start; gap: var(--space-20); min-width: 0; padding: var(--space-24); }
+.iq-workbench h4 { margin: 0; }
 
-/* ---- A chain of acts -------------------------------------------------------------------------------
-   The dispensary is three acts by two registered people and the diagnosis is two by two, and both
-   are drawn as what they are: numbered links, filled when the act has happened, and carrying — when
-   it has not — the kernel's own sentence about what it will refuse without it. The stage in hand is
-   lifted onto white; the rest stay on paper. */
-.iq-chain{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(210px,100%),1fr));gap:12px}
-.iq-link{display:grid;grid-template-columns:30px minmax(0,1fr);gap:12px;align-items:start;padding:14px;border-radius:var(--r-tile);background:var(--studio-paper);border:1px solid transparent;position:relative}
-.iq-link-no{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:600;border:1px solid var(--iq-edge);background:var(--surface);color:var(--studio-ink-muted)}
-.iq-link.done .iq-link-no{background:var(--studio-ink);border-color:var(--studio-ink);color:var(--surface)}
-.iq-link.now{background:var(--surface);border-color:var(--studio-ink)}
-.iq-link.now .iq-link-no{border-color:var(--studio-ink);color:var(--studio-ink)}
-.iq-link strong{font-size:15px;line-height:1.3;color:var(--charcoal)}
-.iq-link p{font-size:13px;line-height:1.55;color:var(--studio-ink-muted);margin-top:5px}
-.iq-link .iq-held{margin-top:7px;color:var(--studio-ink);font-weight:600}
+/* ---- The person ------------------------------------------------------------------------------------ */
+.iq-identity { display: grid; gap: var(--space-16); padding: var(--space-20); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); }
+.iq-identity-top { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-12) var(--space-16); }
+.iq-identity-disc { display: grid; place-items: center; flex: 0 0 48px; width: 48px; height: 48px; border-radius: var(--r-pill); background: var(--color-muted); color: var(--color-foreground); font-size: 16px; font-weight: 700; }
+.iq-identity-say { flex: 1 1 220px; min-width: 0; }
+.iq-workbench .iq-identity h3 { margin: var(--space-4) 0 0; font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1.2; color: var(--color-foreground); overflow-wrap: anywhere; }
+.iq-identity-say p { margin: var(--space-4) 0 0; font-size: 15px; line-height: 1.5; color: var(--color-muted-foreground); }
+.iq-chip { display: inline-flex; align-items: center; gap: calc(var(--space-12) / 2); padding: var(--space-4) calc(var(--space-20) / 2); border-radius: var(--r-pill); background: color-mix(in srgb, var(--color-success) 15%, var(--color-surface)); color: var(--color-foreground); font-size: 13px; font-weight: 600; line-height: 1.3; }
+.iq-chip.attention { background: color-mix(in srgb, var(--color-warning) 20%, var(--color-surface)); color: var(--ui-warning-ink, var(--mango-ink)); }
+.iq-chip svg { width: 15px; height: 15px; }
+.iq-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-12); margin: 0; }
+.iq-fact { display: grid; gap: var(--space-4); align-content: start; min-width: 0; padding: var(--space-12) var(--space-16); border-radius: var(--r-md); background: var(--color-muted); }
+.iq-fact.attention { background: color-mix(in srgb, var(--color-warning) 20%, var(--color-surface)); }
+.iq-fact dt { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--color-muted-foreground); }
+.iq-fact.attention dt { color: var(--ui-warning-ink, var(--mango-ink)); }
+.iq-fact dd { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.45; color: var(--color-foreground); overflow-wrap: anywhere; }
+.iq-fact > p { display: flex; align-items: center; gap: calc(var(--space-12) / 2); margin: 0; font-size: 13px; font-weight: 600; color: var(--color-muted-foreground); }
+.iq-fact.attention > p { color: var(--ui-warning-ink, var(--mango-ink)); }
+.iq-fact > p > svg { flex: none; }
 
-/* ---- A record that has been written ----------------------------------------------------------------
-   An assessment, a medication request. The impression or the item is the headline, its state is the
-   chip beside it, and what it rests on is a description list underneath rather than a paragraph
-   with a bolded word at the front of it. */
-.iq-record{border:1px solid var(--studio-line);border-radius:var(--r-card);padding:20px 22px;background:var(--surface)}
-.iq-record+.iq-record{margin-top:14px}
-.iq-record-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
-.iq-record-head h4{font-size:20px;line-height:1.3;letter-spacing:-.3px;color:var(--charcoal);min-width:0}
-.iq-record-line{font-size:13px;color:var(--studio-ink-muted);margin-top:8px}
-.iq-record-body{display:grid;gap:14px;margin:16px 0 0}
-.iq-record-body dt{font-size:13px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--studio-ink-muted)}
-.iq-record-body dd{margin:5px 0 0;font-size:15px;line-height:1.65;color:var(--studio-ink)}
-.iq-record .iq-chain{margin-top:18px}
-
-/* ---- The live signal --------------------------------------------------------------------------------
-   On the night ground, because it is the same kind of object as the instrument deck at the top of the
-   screen: a reading, the moment it was taken, and how old that makes it. There is no band behind the
-   line and no word about whether the number is good — packages/catalog/thusoiq.json's wearables note
-   says no engine reads a sample and concludes anything, and a reference band drawn here would be this
-   screen disagreeing with the kernel in the one place a clinician would believe it. */
-.iq-signal{--iq-quiet:color-mix(in srgb, var(--studio-paper) 72%, var(--studio-night));
- display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px 28px;align-items:center;padding:24px 26px;border-radius:var(--r-card);color:var(--studio-paper);
- background:linear-gradient(180deg, color-mix(in srgb, var(--studio-paper) 6%, var(--studio-night)) 0%, var(--studio-night) 100%)}
-.iq-signal .iq-eyebrow{color:var(--studio-lime)}
-.iq-signal-say{min-width:0}
-.iq-signal-value{display:block;font-size:64px;font-weight:500;line-height:1.1;letter-spacing:-2px;margin:12px 0 8px;font-variant-numeric:tabular-nums}
-.iq-signal-value.empty{font-size:40px;letter-spacing:-1px;color:var(--iq-quiet)}
-.iq-signal-value small{font-size:18px;font-weight:400;letter-spacing:0;margin-left:10px;color:var(--iq-quiet)}
-.iq-signal-say p{font-size:13px;line-height:1.5;color:var(--iq-quiet);margin:0}
-.iq-signal-plot{min-width:0}
-.iq-spark{height:104px}
-/* Above clinical-deck.css's own .c-mark, which is a ten-wide arc on a ring. Two classes beat one
-   whatever order the two sheets load in, which is the point: the deck owns that file and this rule
-   must not depend on anybody's import order. */
-.iq-spark .c-mark{fill:none;stroke:var(--studio-lime);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
-.iq-signal-blank{font-size:13px;line-height:1.6;color:var(--iq-quiet);margin:0;padding:16px 0;border-top:1px dashed color-mix(in srgb, var(--studio-paper) 40%, var(--studio-night));border-bottom:1px dashed color-mix(in srgb, var(--studio-paper) 40%, var(--studio-night))}
-.iq-signal-foot{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(140px,100%),1fr));gap:14px;margin:0;padding-top:18px;border-top:1px solid color-mix(in srgb, var(--studio-paper) 14%, var(--studio-night))}
-.iq-signal-foot dt{font-size:13px;color:var(--iq-quiet)}
-.iq-signal-foot dd{margin:5px 0 0;font-size:16px;line-height:1.4}
-.iq-consent{display:grid;gap:12px;padding:20px 22px;border:1px solid var(--studio-line);border-radius:var(--r-card);background:var(--studio-paper)}
-.iq-consent .button-row{flex-wrap:wrap}
-.iq-consent .button-row>*{flex:0 1 auto}
-.iq-provenance{border:1px solid var(--studio-line);border-radius:var(--r-card);padding:4px 18px}
-.iq-table-wrap{overflow:auto;margin-bottom:14px}
-.iq-table-wrap table{width:100%;font-size:13px;text-align:left;border-collapse:collapse}
-.iq-table-wrap th,.iq-table-wrap td{padding:12px;border-bottom:1px solid var(--studio-line);white-space:nowrap}
-.iq-table-wrap th{color:var(--studio-ink-muted);font-weight:600}
-.iq-provenance .iq-nothing{margin-bottom:16px}
-
-.iq-message{display:flex;align-items:flex-start;gap:10px;padding:13px 16px;border-radius:var(--r-control);background:var(--pale-sage);font-size:14px;line-height:1.5;color:var(--charcoal)}
-.iq-message svg{flex:0 0 auto;margin-top:2px}
-.iq-message.error{background:var(--studio-peach);color:var(--danger)}
-.iq-audit{padding:16px 24px;border-top:1px solid var(--studio-line);display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;font-size:13px;background:var(--studio-paper)}.iq-audit>span{display:flex;align-items:center;gap:7px}.iq-audit li{margin:8px 0}.iq-audit summary,.iq-tool-body summary{min-height:44px;padding:10px 0;cursor:pointer}
-@media(max-width:1100px){.iq-layout{grid-template-columns:1fr}.iq-patients{display:flex;gap:8px;overflow:auto;border-right:0;border-bottom:1px solid var(--studio-line)}.iq-patients>button{flex:0 0 220px;margin:0}.iq-patients>.iq-eyebrow,.iq-patients>.helper{display:none}}
-@media(max-width:700px){
- .iq-facts{grid-template-columns:1fr}
- .iq-signal{grid-template-columns:1fr;padding:20px}
- .iq-compose-when{grid-template-columns:1fr}
+/* ---- The tools: the handoff's segmented tabs --------------------------------------------------------
+   A muted track with the open tool lifted onto the surface, heavier and with the one shadow. They stay
+   buttons pressed in a group, because what they switch is a tool rather than a tab panel, and each keeps
+   the full 44 pixels. The count is the rows inside a tool, a neutral badge. */
+.iq-tools { display: flex; flex-wrap: wrap; gap: var(--space-4); padding: var(--space-4); border-radius: var(--r-md); background: var(--color-muted); }
+.iq-tools button {
+ display: inline-flex;
+ align-items: center;
+ gap: var(--space-8);
+ min-height: 44px;
+ padding: 0 var(--space-12);
+ border: 0;
+ border-radius: var(--r-sm);
+ background: transparent;
+ color: var(--color-muted-foreground);
+ font: inherit;
+ font-size: 14px;
+ font-weight: 600;
+ line-height: 1.2;
+ cursor: pointer;
+ transition: background-color var(--t-quick) var(--ease-soft), color var(--t-quick) var(--ease-soft);
 }
-@media(max-width:600px){
- .iq-worklist{padding:18px 14px 22px}
- .iq-heading{padding:20px 16px 22px;gap:14px}
- .iq-patient-work{padding:18px 14px;gap:16px}
- .iq-heading h2{font-size:25px}
- .iq-status{padding:6px 10px}
- .iq-eyebrow{letter-spacing:.8px}
- .iq-audit{padding:14px}
- .iq-workbench{border-radius:var(--r-card)}
- .iq-tools{border-radius:var(--r-card)}
- .iq-identity,.iq-compose,.iq-consent{padding:16px 14px}
- .iq-workbench .iq-identity h3{font-size:28px}
- .iq-identity-disc{width:48px;height:48px;flex:0 0 48px;font-size:16px}
- /* The time keeps its gutter on a phone and the rail keeps its marks: a day that loses its column
-    of times is a list of cards again. 46px holds "08:37" at 16px and at twice that it wraps to two
-    lines rather than pushing the card off the screen. */
- .iq-visit{grid-template-columns:54px 18px minmax(0,1fr);gap:0 10px}
- .iq-visit-when small{white-space:nowrap}
- .iq-visit-card{padding:13px 14px}
- .iq-signal-value{font-size:40px;letter-spacing:-1px}
- .iq-spark{height:72px}
- .iq-pane{grid-template-columns:32px minmax(0,1fr);gap:0 12px}
- .iq-pane::before{left:16px;top:36px}
- .iq-pane-mark{width:32px;height:32px;font-size:14px}
- .iq-provenance{padding:2px 14px}
-}
+.iq-tools button:hover { color: var(--color-foreground); }
+.iq-tools button[aria-pressed=true] { background: var(--color-surface); color: var(--color-foreground); box-shadow: var(--shadow); }
+.iq-tools button > svg { flex: none; }
+.iq-tools button[aria-pressed=true] > svg { color: var(--color-accent); }
+.iq-tools button:focus-visible,
+.iq-patients > button:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
+.iq-tool-count { min-width: 20px; padding: 0 calc(var(--space-12) / 2); border-radius: var(--r-pill); background: var(--color-surface); color: var(--color-foreground); font-size: 13px; line-height: 1.5; text-align: center; font-variant-numeric: tabular-nums; }
+.iq-tools button[aria-pressed=true] .iq-tool-count { background: var(--color-muted); }
 
-/* ---- The pastel system (28 September 2026) -----------------------------------------------------------
-   The deck at the top of the screen is a row of tinted cards now, with one dark card and one only. This
-   band was the second dark rectangle on the same screen, so it takes the lavender the deck gives a card
-   that is context rather than subject, and sets its ink in the same rule: brandInk on studioLilac 9.41,
-   the quiet line at 78% 5.27, the status outline at 62% 3.53 — all computed, on the token values resolved
-   on :root by clinical-deck.css (--cl-tint-lavender), since the shell remaps --studio-lilac to a grey. The
-   badge is the logo's lime with the ink in it, 10.47, as it is in the deck's headline. */
-.iq-workbench .iq-heading{background:var(--cl-tint-lavender);color:var(--brand-ink)}
-.iq-workbench .iq-heading-top{border-bottom-color:color-mix(in srgb, var(--brand-ink) 14%, var(--cl-tint-lavender))}
-.iq-workbench .iq-heading p{color:color-mix(in srgb, var(--brand-ink) 78%, var(--cl-tint-lavender))}
-.iq-workbench .iq-heading .iq-eyebrow{color:var(--brand-ink)}
-.iq-workbench .iq-heading .iq-status{border-color:color-mix(in srgb, var(--brand-ink) 62%, var(--cl-tint-lavender));background:var(--surface)}
-.iq-workbench .iq-heading .iq-status>span{background:var(--brand-green)}
-.iq-workbench .iq-heading .iq-glyph{background:var(--brand-lime);color:var(--brand-ink)}
-.iq-workbench .iq-heading h2{font-weight:400}
+.iq-tool-body { display: grid; gap: var(--space-16); min-width: 0; }
+.iq-section-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-8) var(--space-12); padding-bottom: var(--space-12); border-bottom: 1px solid var(--color-border); }
+.iq-workbench .iq-section-head h3 { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 600; line-height: 1.3; color: var(--color-foreground); }
+.iq-section-head > span { font-size: 13px; font-weight: 600; color: var(--color-muted-foreground); font-variant-numeric: tabular-nums; }
+.iq-tool-body > .helper { margin: 0; }
+.iq-hint { margin: 0; font-size: 14px; line-height: 1.55; color: var(--color-muted-foreground); }
+.iq-hint strong { color: var(--color-foreground); }
+
+/* The one shape an empty tool takes: a dashed edge and a sentence, never a bare "None." */
+.iq-nothing { display: grid; justify-items: start; gap: var(--space-8); padding: var(--space-20); border: 1px dashed var(--iq-edge); border-radius: var(--r-lg); background: var(--color-surface); }
+.iq-nothing strong { font-size: 16px; color: var(--color-foreground); }
+.iq-nothing p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--color-muted-foreground); max-width: 62ch; }
+
+/* What the kernel will refuse if asked now: the warning ink beside a triangle, above the button. */
+.iq-outstanding { display: grid; gap: var(--space-8); margin: 0; padding: 0; list-style: none; }
+.iq-outstanding li { display: flex; align-items: flex-start; gap: var(--space-8); padding: var(--space-8) var(--space-12); border-radius: var(--r-md); background: color-mix(in srgb, var(--color-warning) 20%, var(--color-surface)); color: var(--ui-warning-ink, var(--mango-ink)); font-size: 14px; font-weight: 600; line-height: 1.5; }
+.iq-outstanding svg { flex: none; margin-top: 3px; }
+
+/* ---- Appointments: a line down the day ------------------------------------------------------------ */
+.iq-visits { display: grid; margin: 0; padding: 0; list-style: none; }
+.iq-visit { display: grid; grid-template-columns: 64px 24px minmax(0, 1fr); gap: 0 var(--space-12); padding-bottom: var(--space-12); }
+.iq-visit-when { padding-top: var(--space-12); text-align: right; font-variant-numeric: tabular-nums; }
+.iq-visit-when strong { display: block; font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--color-foreground); }
+.iq-visit-when small { display: block; font-size: 13px; color: var(--color-muted-foreground); white-space: nowrap; }
+.iq-visit-mark { position: relative; }
+.iq-visit-mark::before { content: ''; position: absolute; z-index: 1; top: var(--space-16); left: 50%; width: 12px; height: 12px; margin-left: -6px; border: 2px solid var(--iq-edge); border-radius: var(--r-pill); background: var(--color-surface); }
+.iq-visit-mark::after { content: ''; position: absolute; top: 30px; bottom: calc(var(--space-12) * -1); left: 50%; width: 2px; margin-left: -1px; background: var(--color-border); }
+.iq-visit:last-child .iq-visit-mark::after { display: none; }
+.iq-visit.is-arrived .iq-visit-mark::before { border-color: var(--color-accent); background: var(--color-accent); }
+.iq-visit.is-completed .iq-visit-mark::before { border-color: var(--color-foreground); background: var(--color-foreground); }
+.iq-visit.is-cancelled .iq-visit-mark::before { border-style: dashed; }
+.iq-visit-card { display: grid; gap: var(--space-8); min-width: 0; padding: var(--space-12) var(--space-16); border: 1px solid var(--color-border); border-radius: var(--r-md); background: var(--color-surface); }
+.iq-visit.lead .iq-visit-card { border-color: var(--color-accent); box-shadow: var(--shadow); }
+.iq-visit-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-8); }
+.iq-visit-card h4 { display: flex; align-items: center; gap: var(--space-8); font-size: 16px; font-weight: 600; color: var(--color-foreground); }
+.iq-visit-line { margin: 0; font-size: 13px; color: var(--color-muted-foreground); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.iq-visit-detail { margin: 0; font-size: 14px; line-height: 1.55; color: var(--color-foreground); }
+.iq-visit .button-row { margin: 0; }
+.iq-visit .button-row > * { flex: 0 0 auto; }
+
+/* A state is the handoff's badge: the word on a tint, and the tint only ever beside the word. */
+.iq-state { display: inline-flex; align-items: center; padding: 2px var(--space-8); border-radius: var(--r-pill); background: var(--color-muted); color: var(--color-muted-foreground); font-size: 13px; font-weight: 600; line-height: 1.4; white-space: nowrap; }
+.iq-state.is-arrived, .iq-state.is-verified, .iq-state.is-confirmed { background: color-mix(in srgb, var(--color-success) 15%, var(--color-surface)); color: var(--color-foreground); }
+.iq-state.is-cancelled, .iq-state.is-held, .iq-state.is-rejected { background: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface)); color: var(--ui-danger-ink, var(--danger)); }
+.iq-state.is-completed, .iq-state.is-dispensed { background: var(--color-muted); color: var(--color-foreground); }
+
+/* ---- Forms: the handoff's fields on the forms this file draws ---------------------------------------- */
+.iq-compose { display: grid; gap: var(--space-16); min-width: 0; padding: var(--space-20); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); }
+.iq-compose.inset { margin-top: var(--space-12); background: var(--color-background); }
+.iq-compose.quiet { border-style: dashed; }
+.iq-compose-head { display: grid; gap: var(--space-4); }
+.iq-compose-head h4 { font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--color-foreground); }
+.iq-compose-head p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--color-muted-foreground); }
+.iq-compose label { display: grid; gap: calc(var(--space-12) / 2); min-width: 0; margin: 0; }
+.iq-compose label > span { font-size: 14px; font-weight: 600; line-height: 1.43; color: var(--color-foreground); }
+.iq-compose input, .iq-compose select, .iq-compose textarea {
+ box-sizing: border-box;
+ width: 100%;
+ min-width: 0;
+ min-height: 44px;
+ padding: 0 var(--space-12);
+ border: 1px solid var(--iq-edge);
+ border-radius: var(--r-md);
+ background: var(--color-surface);
+ color: var(--color-foreground);
+ font: inherit;
+ font-size: 14px;
+}
+.iq-compose textarea { padding: calc(var(--space-20) / 2) var(--space-12); line-height: 1.5; resize: vertical; }
+.iq-compose :is(input, select, textarea):focus { border-color: var(--color-ring); }
+.iq-compose label.narrow { max-width: 200px; }
+.iq-compose > .ui-button { justify-self: start; }
+.iq-compose-when { display: grid; grid-template-columns: minmax(0, 1fr) 160px; gap: var(--space-12); }
+
+/* A choice between kinds of thing, as cards: the chosen one takes the aqua edge and tint AND its radio
+   is checked, which a screen reader announces. */
+.iq-choice { margin: 0; padding: 0; border: 0; min-width: 0; }
+.iq-choice legend { margin-bottom: var(--space-8); padding: 0; font-size: 14px; font-weight: 600; color: var(--color-foreground); }
+.iq-choice-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: var(--space-8); }
+.iq-compose label.iq-choice-card {
+ display: flex;
+ align-items: center;
+ gap: var(--space-12);
+ min-height: 52px;
+ padding: var(--space-12) var(--space-16);
+ border: 1px solid var(--iq-edge);
+ border-radius: var(--r-md);
+ background: var(--color-surface);
+ cursor: pointer;
+}
+.iq-choice-card input { flex: none; width: 18px; height: 18px; min-height: 0; margin: 0; padding: 0; accent-color: var(--color-accent); }
+.iq-choice-card strong { font-size: 14px; font-weight: 600; color: var(--color-foreground); }
+.iq-choice-card > svg { flex: none; color: var(--color-muted-foreground); }
+.iq-choice-card:has(input:checked) { border-color: var(--color-accent); background: var(--iq-tint); }
+.iq-choice-card:has(input:checked) > svg { color: var(--color-foreground); }
+.iq-compose label.iq-attest, .iq-consent label.iq-attest {
+ display: flex;
+ align-items: center;
+ gap: var(--space-12);
+ min-height: 44px;
+ padding: var(--space-8) var(--space-12);
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-md);
+ background: var(--color-surface);
+ font-size: 14px;
+ color: var(--color-foreground);
+ cursor: pointer;
+}
+.iq-attest input { flex: none; width: 18px; height: 18px; min-height: 0; margin: 0; accent-color: var(--color-accent); }
+.iq-attest:has(input:checked) { border-color: var(--color-accent); background: var(--iq-tint); }
+
+/* ---- The consultation: a document with a spine ------------------------------------------------------
+   Each pane's letter on a spine down the left; the mark fills aqua and gains a tick-weight edge when the
+   section is written, and the count at the foot says the same in words. */
+.iq-doc { display: grid; min-width: 0; }
+.iq-doc.locked .iq-pane-body { opacity: 1; }
+.iq-pane { position: relative; display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 0 var(--space-16); padding-bottom: var(--space-20); }
+.iq-pane::before { content: ''; position: absolute; top: 44px; bottom: 0; left: 19px; width: 2px; background: var(--color-border); }
+.iq-pane:last-child::before { display: none; }
+.iq-pane.written::before { background: var(--color-accent); }
+.iq-pane-mark { display: grid; place-items: center; width: 40px; height: 40px; border: 2px solid var(--iq-edge); border-radius: var(--r-pill); background: var(--color-surface); color: var(--color-foreground); font-family: var(--font-display); font-size: 16px; font-weight: 600; }
+.iq-pane.written .iq-pane-mark { border-color: var(--color-accent); background: var(--color-accent); color: var(--color-accent-foreground); }
+.iq-pane-body { display: grid; gap: var(--space-8); min-width: 0; }
+.iq-pane-head { display: grid; gap: 2px; }
+@media (min-width: 900px) { .iq-pane-head { grid-template-columns: minmax(0, auto) minmax(0, 1fr); align-items: baseline; gap: var(--space-12); } }
+.iq-pane-head h4 { font-size: 16px; font-weight: 600; color: var(--color-foreground); }
+.iq-pane-head p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-muted-foreground); }
+.iq-pane textarea { box-sizing: border-box; width: 100%; min-height: 88px; padding: calc(var(--space-20) / 2) var(--space-12); border: 1px solid var(--iq-edge); border-radius: var(--r-md); background: var(--color-surface); color: var(--color-foreground); font: inherit; font-size: 15px; line-height: 1.55; resize: vertical; }
+.iq-pane textarea:focus { border-color: var(--color-ring); }
+.iq-pane-text { margin: 0; padding: var(--space-12) var(--space-16); border-radius: var(--r-md); background: var(--color-muted); font-size: 15px; line-height: 1.6; color: var(--color-foreground); white-space: pre-wrap; }
+.iq-pane-note { margin: 0; padding-left: var(--space-12); border-left: 3px solid var(--color-accent); font-size: 14px; line-height: 1.55; color: var(--color-foreground); }
+.iq-doc-foot { display: grid; gap: var(--space-12); padding-top: var(--space-16); border-top: 1px solid var(--color-border); }
+.iq-doc-progress { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8) var(--space-16); }
+.iq-doc-count { font-size: 14px; font-weight: 600; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.iq-doc-dirty { display: inline-flex; align-items: center; gap: calc(var(--space-12) / 2); font-size: 13px; font-weight: 600; color: var(--ui-warning-ink, var(--mango-ink)); }
+.iq-signed { display: flex; align-items: flex-start; gap: var(--space-8); margin: 0; padding: var(--space-12) var(--space-16); border-radius: var(--r-md); background: var(--color-muted); font-size: 14px; line-height: 1.55; color: var(--color-foreground); }
+.iq-signed svg { flex: none; margin-top: 3px; }
+.iq-doc-foot .button-row { margin: 0; }
+.iq-doc-foot .button-row > * { flex: 0 0 auto; }
+
+/* ---- Diagnosis and dispensary: a chain of acts -------------------------------------------------------- */
+.iq-chain { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; counter-reset: none; }
+.iq-link { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: var(--space-12); padding-bottom: var(--space-16); }
+.iq-link:not(:last-child)::after { content: ''; position: absolute; top: 34px; bottom: 2px; left: 15px; width: 2px; background: var(--color-border); }
+.iq-link.done:not(:last-child)::after { background: var(--color-accent); }
+.iq-link-no { display: grid; place-items: center; width: 32px; height: 32px; border: 2px solid var(--iq-edge); border-radius: var(--r-pill); background: var(--color-surface); color: var(--color-foreground); font-size: 14px; font-weight: 700; }
+.iq-link.done .iq-link-no { border-color: var(--color-accent); background: var(--color-accent); color: var(--color-accent-foreground); }
+.iq-link.now .iq-link-no { border-color: var(--color-foreground); border-width: 3px; }
+.iq-link strong { font-size: 15px; color: var(--color-foreground); }
+.iq-link p { margin: 2px 0 0; font-size: 14px; line-height: 1.5; color: var(--color-muted-foreground); }
+.iq-link .iq-held { color: var(--ui-danger-ink, var(--danger)); font-weight: 600; }
+.iq-record { display: grid; gap: var(--space-12); padding: var(--space-16) var(--space-20); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); }
+.iq-record + .iq-record { margin-top: 0; }
+.iq-record-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-8); }
+.iq-record-head h4 { font-size: 16px; font-weight: 600; color: var(--color-foreground); }
+.iq-record-line { margin: 0; font-size: 14px; color: var(--color-muted-foreground); overflow-wrap: anywhere; }
+.iq-record-body { display: grid; gap: var(--space-12); margin: 0; }
+.iq-record-body dt { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--color-muted-foreground); }
+.iq-record-body dd { margin: var(--space-4) 0 0; font-size: 15px; line-height: 1.55; color: var(--color-foreground); }
+.iq-record .iq-chain { margin-top: var(--space-4); }
+
+/* ---- Wearables: the reading, on a white card ----------------------------------------------------------
+   The figure, when it was measured and how old that makes it. No band behind the line and no word about
+   whether the number is good, because nothing here reads a sample and concludes anything. */
+.iq-signal { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: var(--space-16) var(--space-24); padding: var(--space-20); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); }
+.iq-signal .iq-eyebrow { color: var(--color-muted-foreground); }
+.iq-signal-say { display: grid; align-content: start; gap: var(--space-8); }
+.iq-signal-value { display: flex; align-items: baseline; gap: var(--space-8); font-family: var(--font-display); font-size: 40px; font-weight: 600; line-height: 1; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.iq-signal-value.empty { color: var(--color-muted-foreground); }
+.iq-signal-value small { font-family: var(--font-body, inherit); font-size: 16px; font-weight: 500; color: var(--color-muted-foreground); }
+.iq-signal-say p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-muted-foreground); }
+.iq-signal-plot { display: grid; align-items: center; min-width: 0; padding: var(--space-8); border-radius: var(--r-md); background: var(--color-background); }
+.iq-spark { height: 96px; }
+.iq-spark .c-mark { fill: none; stroke: var(--color-accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.iq-signal-blank { margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-muted-foreground); }
+.iq-signal-foot { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-12); margin: 0; padding-top: var(--space-12); border-top: 1px solid var(--color-border); }
+.iq-signal-foot dt { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--color-muted-foreground); }
+.iq-signal-foot dd { margin: 2px 0 0; font-size: 15px; font-weight: 600; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.iq-consent { display: grid; gap: var(--space-12); padding: var(--space-16) var(--space-20); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); }
+.iq-consent .button-row { margin: 0; }
+.iq-consent .button-row > * { flex: 0 0 auto; }
+.iq-provenance { padding: 0 var(--space-16); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); }
+.iq-provenance > summary { display: flex; align-items: center; min-height: 44px; font-size: 14px; font-weight: 600; color: var(--color-foreground); cursor: pointer; }
+.iq-table-wrap { overflow-x: auto; min-width: 0; padding-bottom: var(--space-16); }
+.iq-table-wrap table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.iq-table-wrap th, .iq-table-wrap td { padding: var(--space-8) var(--space-12); border-bottom: 1px solid var(--color-border); text-align: left; white-space: nowrap; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.iq-table-wrap th { font-size: 13px; font-weight: 600; color: var(--color-muted-foreground); }
+.iq-provenance .iq-nothing { margin-bottom: var(--space-16); }
+
+/* ---- What the kernel said back ------------------------------------------------------------------------ */
+.iq-message { display: flex; align-items: flex-start; gap: var(--space-8); margin: 0; padding: var(--space-12) var(--space-16); border: 1px solid color-mix(in srgb, var(--color-success) 35%, transparent); border-radius: var(--r-md); background: var(--color-surface); font-size: 14px; line-height: 1.5; color: var(--color-foreground); }
+.iq-message svg { flex: none; margin-top: 2px; color: var(--ui-success-ink, var(--teal-ink)); }
+.iq-message.error { border-color: color-mix(in srgb, var(--color-danger) 35%, transparent); }
+.iq-message.error svg { color: var(--ui-danger-ink, var(--danger)); }
+
+/* ---- The audit trail ---------------------------------------------------------------------------------- */
+.iq-audit { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-8) var(--space-16); padding: var(--space-12) var(--space-24); border-top: 1px solid var(--color-border); background: var(--color-background); font-size: 13px; color: var(--color-muted-foreground); }
+.iq-audit > span { display: inline-flex; align-items: center; gap: var(--space-8); }
+.iq-audit summary { display: flex; align-items: center; min-height: 44px; font-weight: 600; color: var(--color-foreground); cursor: pointer; }
+.iq-audit ol { margin: 0 0 var(--space-12); padding-left: var(--space-20); font-size: 13px; line-height: 1.6; color: var(--color-muted-foreground); }
+
+@media (max-width: 1100px) {
+ .iq-layout { grid-template-columns: 1fr; }
+ .iq-patients { grid-auto-flow: column; grid-auto-columns: minmax(220px, 1fr); overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--color-border); }
+ .iq-patients > .iq-eyebrow, .iq-patients > .helper { display: none; }
+}
+@media (max-width: 700px) {
+ .iq-facts { grid-template-columns: 1fr; }
+ .iq-signal { grid-template-columns: 1fr; }
+ .iq-compose-when { grid-template-columns: 1fr; }
+ .iq-signal-foot { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+ .iq-worklist { padding: var(--space-16); }
+ .iq-heading { padding: var(--space-16); }
+ .iq-patient-work { padding: var(--space-16); gap: var(--space-16); }
+ .iq-patients { padding: var(--space-12) var(--space-16); grid-auto-columns: minmax(200px, 80%); }
+ .iq-workbench .iq-heading h2 { font-size: 20px; }
+ .iq-audit { padding: var(--space-12) var(--space-16); }
+ .iq-identity, .iq-compose, .iq-consent, .iq-signal { padding: var(--space-16); }
+ .iq-workbench .iq-identity h3 { font-size: 22px; }
+ /* The time keeps its gutter on a phone and the rail keeps its marks: a day that loses its column of
+    times is a list of cards again. */
+ .iq-visit { grid-template-columns: 52px 18px minmax(0, 1fr); gap: 0 var(--space-8); }
+ .iq-visit-card { padding: var(--space-12); }
+ .iq-signal-value { font-size: 32px; }
+ .iq-spark { height: 72px; }
+ .iq-pane { grid-template-columns: 32px minmax(0, 1fr); gap: 0 var(--space-12); }
+ .iq-pane::before { top: 36px; left: 15px; }
+ .iq-pane-mark { width: 32px; height: 32px; font-size: 14px; }
+ .iq-tools button { flex: 1 1 auto; justify-content: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+ .iq-patients > button, .iq-tools button { transition: none; }
+}
