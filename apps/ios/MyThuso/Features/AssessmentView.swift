@@ -183,7 +183,7 @@ struct VisitAssessmentView: View {
             PickRow(label: "Recording as", selection: $nurse,
                     options: nurses.map { ($0.id, "\($0.name) · \($0.reference)") })
             HStack(spacing: ThusoSpacing.space8) {
-                Text("Vetting").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text("Vetting").font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 Spacer(minLength: ThusoSpacing.space8)
                 SubjectStatusPill(status: summarise(subject).status)
             }
@@ -197,7 +197,7 @@ struct VisitAssessmentView: View {
                       note: "Ask \(patient.split(separator: " ").first ?? "") for the six-digit code in the MyThuso app. In this preview the code is 482190.")
             CodeBoxes(code: $otp, invalid: !otpError.isEmpty, label: "Visit code")
             if !otpError.isEmpty {
-                Text(otpError).font(.footnote).foregroundStyle(ThusoTheme.danger)
+                Text(otpError).font(.thuso(.footnote)).foregroundStyle(ThusoRole.dangerInk)
                     .fixedSize(horizontal: false, vertical: true)
             }
             AgreeRow(text: "I have seen the patient’s identity document, or a household member has confirmed identity.", on: $identitySeen)
@@ -207,7 +207,7 @@ struct VisitAssessmentView: View {
                 .buttonStyle(CareButton())
                 .disabled(otp.count < 6 || !identitySeen)
             Text("If the code fails, the visit does not start. The nurse contacts the Control Tower instead of proceeding.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -219,7 +219,7 @@ struct VisitAssessmentView: View {
             Hairline()
             AgreeRow(text: "“May I add today’s readings to your Health Passport, where a doctor can review them?”", on: $consentRecord)
             Text("Refusal is recorded as a valid outcome, not a failed visit. A guardian consents for a child or where authority is verified.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
         }
         stageButtons(forward: "Start observations", action: holdConsent, back: 0, enabled: consentAssessment)
@@ -230,7 +230,7 @@ struct VisitAssessmentView: View {
             SurfacePanel {
                 RefusalCard(title: "This form will not take a reading from this nurse", decision: mayWrite)
                 Text("Refused at the top of the form rather than at the signature. A nurse who has taken seven readings before being told is a nurse the platform has wasted, in somebody’s home, with the cuff already on their arm.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Button("Back") { stage = 1 }.buttonStyle(QuietButton())
@@ -247,17 +247,17 @@ struct VisitAssessmentView: View {
                 SurfacePanel(tone: .quiet) {
                     PanelHead("Calculated")
                     HStack(alignment: .firstTextBaseline) {
-                        Text(derived.label).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                        Text(derived.label).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer(minLength: ThusoSpacing.space8)
                         Text("\(derived.value) \(derived.unit)")
-                            .font(.subheadline.weight(.semibold).monospacedDigit()).foregroundStyle(ThusoTheme.charcoal)
+                            .font(.thuso(.subheadline, weight: .semibold).monospacedDigit()).foregroundStyle(ThusoRole.foreground)
                     }
                     ProvenanceMark(provenance: .derived, full: true)
-                    Text(derived.workings).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(derived.workings).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                     Text("It appears because both its inputs are here and it disappears when either is taken away. There is nothing to save, so there is nothing to fall out of step with the numbers it was worked out from.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -266,7 +266,7 @@ struct VisitAssessmentView: View {
                     PanelHead("From the kit, with no indicative range")
                     ForEach(unranged) { ReadingRow(reading: $0) }
                     Text("A weight means something against this person’s own previous weights and nothing against a population’s, and a single-lead trace is not a number at all. Neither is flagged, because there is nothing honest to flag them against.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -274,12 +274,12 @@ struct VisitAssessmentView: View {
                 PanelHead("Instruments")
                 if kit.instruments.isEmpty {
                     Text("Nothing is paired to this phone, so every reading here will be one you took and typed — and it will say so. That is a complete answer, not a lesser one.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 ForEach(kit.instruments) { instrument in
                     HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-                        Text(instrument.name).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                        Text(instrument.name).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer(minLength: ThusoSpacing.space8)
                         CalibrationPill(calibration: instrument.calibration)
@@ -306,7 +306,7 @@ struct VisitAssessmentView: View {
                 Text(abnormal.isEmpty
                      ? "Readings are compared against indicative adult reference ranges only. Clinical judgement stays with you."
                      : "\(abnormal.count) reading\(abnormal.count > 1 ? "s are" : " is") outside the indicative range. Flagging is a prompt for your judgement — it is not a validated early-warning score and it does not triage the patient.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
                 Button("Record findings", action: recordFindings).buttonStyle(CareButton()).disabled(captured.isEmpty)
                 Button("Back") { stage = 1 }.buttonStyle(QuietButton())
@@ -345,19 +345,19 @@ struct VisitAssessmentView: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space12) {
-                    Text(observation.label).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                    Text(observation.label).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                     Spacer(minLength: ThusoSpacing.space8)
                     valueField(observation).frame(width: 96)
                 }
                 VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-                    Text(observation.label).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                    Text(observation.label).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
                     valueField(observation)
                 }
             }
             Text(flag(observation) ?? "Indicative range \(observation.range.lowerBound.formatted())–\(observation.range.upperBound.formatted()) \(observation.unit)")
-                .font(.footnote)
-                .foregroundStyle(flag(observation) == nil ? ThusoTheme.studioInkMuted : ThusoTheme.mangoInk)
+                .font(.thuso(.footnote))
+                .foregroundStyle(flag(observation) == nil ? ThusoRole.mutedForeground : ThusoRole.warningInk)
                 .fixedSize(horizontal: false, vertical: true)
             /* The origin, the way to state it and the way to take it, on one line while they fit
                and stacked when they do not. They were an HStack with a Spacer in it, which at the
@@ -370,18 +370,18 @@ struct VisitAssessmentView: View {
             if let kitReading = fromKit[observation.id] {
                 if let line = kitReading.instrumentLine {
                     Text(provenance == .device ? line : "\(line) — read by hand, so this is a clinician’s reading of that instrument")
-                        .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 if let label = kitReading.qualifierLabel, let qualifier = kitReading.qualifier {
-                    Text("\(label): \(qualifier)").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text("\(label): \(qualifier)").font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 CaveatNote(caveats: kitReading.caveats)
             }
             if provenance == .patientReported {
                 Text("In the record as what they said, not as something you observed.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -402,11 +402,11 @@ struct VisitAssessmentView: View {
             .multilineTextAlignment(.trailing)
             /* Monospaced digits so a column of seven readings lines up rather than shuffling as the
                numbers are typed — the same reason ThusoMetric uses them. */
-            .font(.body.monospacedDigit()).foregroundStyle(ThusoTheme.charcoal)
+            .font(.thuso(.body).monospacedDigit()).foregroundStyle(ThusoRole.foreground)
             .padding(.horizontal, ThusoSpacing.space12)
             .frame(minHeight: 44)
-            .background(ThusoTheme.surface, in: shape)
-            .overlay(shape.stroke(flag(observation) == nil ? ThusoTheme.controlEdge : ThusoTheme.mangoInk, lineWidth: 1))
+            .background(ThusoRole.surface, in: shape)
+            .overlay(shape.stroke(flag(observation) == nil ? ThusoRole.inputEdge : ThusoRole.warningInk, lineWidth: 1))
             .accessibilityLabel("\(observation.label), \(observation.unit)")
     }
 
@@ -423,14 +423,14 @@ struct VisitAssessmentView: View {
             if provenance != nil { Button("Clear the origin", role: .destructive) { origin[observation.id] = nil } }
         } label: {
             Text(provenance == nil ? "Say where this came from" : "Change")
-                .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                .font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(minHeight: 44)
                 .contentShape(Rectangle())
         }
         if let device = instruments.first?.device {
             Button("Take a reading") { capturingFor = observation.id; capturing = device }
-                .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                .font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                 .frame(minHeight: 44)
         }
     }
@@ -527,7 +527,7 @@ struct VisitAssessmentView: View {
                               "Emergency services called from the home"].map { ($0, $0) })
             if escalation.contains("Emergency") {
                 Text("In production this opens the emergency pathway immediately and alerts the Control Tower before the form is finished.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.danger)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.dangerInk)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -546,10 +546,10 @@ struct VisitAssessmentView: View {
                     ThusoMetric(value: "\(sealedReadings)", label: "Readings sealed on this phone", chip: "Not sent")
                 }
                 Text("The code checked at the door, the consent, what you found and your signature are sealed and waiting to send from this phone. Nothing was transmitted, no server was contacted and no clinician was notified, and all of it survives the app being killed.")
-                    .font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                    .font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
                 Text("In production this becomes an append-only entry in the patient’s Health Passport, attributed to your SANC registration, once a server has accepted it.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
@@ -570,13 +570,13 @@ struct VisitAssessmentView: View {
                 if let derived {
                     VStack(alignment: .leading, spacing: 5) {
                         HStack(alignment: .firstTextBaseline) {
-                            Text(derived.label).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                            Text(derived.label).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                             Spacer(minLength: ThusoSpacing.space8)
                             Text("\(derived.value) \(derived.unit)")
-                                .font(.subheadline.weight(.semibold).monospacedDigit()).foregroundStyle(ThusoTheme.charcoal)
+                                .font(.thuso(.subheadline, weight: .semibold).monospacedDigit()).foregroundStyle(ThusoRole.foreground)
                         }
                         ProvenanceMark(provenance: .derived)
-                        Text(derived.workings).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        Text(derived.workings).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -589,14 +589,14 @@ struct VisitAssessmentView: View {
             if !statedNothing.isEmpty {
                 SurfacePanel(tone: .quiet) {
                     Text("\(statedNothing.map { $0.label.lowercased() }.joined(separator: ", ")) \(statedNothing.count == 1 ? "has" : "have") a number and no origin, so \(statedNothing.count == 1 ? "it is" : "they are") not in the list above and will not be filed. Go back and say where \(statedNothing.count == 1 ? "it" : "they") came from, or leave the field empty.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.mangoInk)
+                        .font(.thuso(.footnote)).foregroundStyle(ThusoRole.warningInk)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
             ProvenanceKey()
             VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
                 Text("A nurse assessment is not a diagnosis. Prescriptions, sick notes and referrals need a registered doctor to review and sign.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
                 VettingRefusalNote(decision: mayWrite)
                 Button("Sign demo assessment", action: signOff).buttonStyle(CareButton())
@@ -682,13 +682,13 @@ struct DoctorReviewView: View {
                 yourDecision
                 VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
                     Text("Decision support may summarise or highlight. It never selects the outcome, and every entry is attributed to the signing doctor’s HPCSA registration.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                     Button(done ? "Demo decision held in this screen only" : "Sign demo decision", action: sign)
                         .buttonStyle(CareButton())
                         .disabled(done || decision.isEmpty || rationale.trimmingCharacters(in: .whitespaces).count < 10)
                     if !refused.isEmpty {
-                        Text(refused).font(.footnote).foregroundStyle(ThusoTheme.danger)
+                        Text(refused).font(.thuso(.footnote)).foregroundStyle(ThusoRole.dangerInk)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -708,7 +708,7 @@ struct DoctorReviewView: View {
             PanelHead("Nurse’s submission")
             if submitted.isEmpty {
                 Text("Nothing for this visit is on this phone.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
                 ForEach(submitted) { entry in
@@ -716,7 +716,7 @@ struct DoctorReviewView: View {
                         ReadingRow(reading: entry.reading)
                         HStack(spacing: ThusoSpacing.space8) {
                             CaptureStatePill(state: entry.state)
-                            Text(entry.capturedByName).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                            Text(entry.capturedByName).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                             Spacer(minLength: 0)
                         }
                         WrittenAgoNote(at: entry.writtenToPhoneAt)
@@ -742,7 +742,7 @@ struct DoctorReviewView: View {
             if let doctor {
                 FactRow(label: "Registration", value: doctor.reference)
                 HStack(spacing: ThusoSpacing.space8) {
-                    Text("Vetting").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text("Vetting").font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     Spacer(minLength: ThusoSpacing.space8)
                     SubjectStatusPill(status: summarise(doctor).status)
                 }

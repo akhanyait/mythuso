@@ -25,11 +25,13 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.size
 import za.co.mythuso.model.CareService
 import za.co.mythuso.model.FileBook
 import za.co.mythuso.model.Phrase
 import za.co.mythuso.model.PreviewStore
 import za.co.mythuso.model.thuso
+import za.co.mythuso.model.services
 import za.co.mythuso.ui.*
 
 class MainActivity : ComponentActivity() {
@@ -38,14 +40,24 @@ class MainActivity : ComponentActivity() {
        the newest change can be a few milliseconds behind the disk, and backgrounding is the moment
        before a process is most likely to be killed. It is closed here rather than left open. */
     private val store by lazy { PreviewStore(FileBook(filesDir), FileBook(filesDir, "visit-parts.json")) }
-    override fun onCreate(savedInstanceState: Bundle?) { super.onCreate(savedInstanceState); enableEdgeToEdge(); setContent { ThusoTheme { MyThusoApp(store) } } }
+    override fun onCreate(savedInstanceState: Bundle?) { super.onCreate(savedInstanceState); enableEdgeToEdge(); setContent { ThusoTheme { MyThusoApp(store, intent.getStringExtra("open")) } } }
     override fun onStop() { super.onStop(); store.flushLedgersToDisk() }
 }
 
 /* One destination, described once, so the bottom bar and the rail cannot disagree about what the
    app contains. A tablet gets the same five places down the side rather than a phone layout
    stretched across 900dp. */
-private data class Destination(val key: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val phrase: Phrase?)
+private data class Destination(val key: String, val icon: androidx.compose.ui.graphics.vector.ImageVector?, val phrase: Phrase?, val drawable: Int? = null)
+
+/* The patient's four places take the MyThuso icon family, as the web's patient shell does — dashboard,
+   quick, visit, health — and More takes the utility overflow glyph, which is Lucide's on the web and
+   Material's here. A workspace section keeps the Material glyph its own screen opens on. Never both for
+   one concept: a destination has a drawable or a vector, not a choice between them. */
+@Composable private fun DestinationIcon(destination: Destination) {
+    val drawable = destination.drawable
+    if (drawable != null) Icon(painterResource(drawable), null, modifier = Modifier.size(24.dp), tint = androidx.compose.ui.graphics.Color.Unspecified)
+    else if (destination.icon != null) Icon(destination.icon, null)
+}
 
 /* The two queues are the only things this preview writes to the phone, so they are the only things
    that need somewhere to write. Both are read once, on the way in: a queue loaded a frame later is a
@@ -59,13 +71,19 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
     return remember(context) { PreviewStore(FileBook(context.filesDir), FileBook(context.filesDir, "visit-parts.json")) }
 }
 
+/* `initial` is a design-review door: `adb shell am start … --es open "Thuso Kit"` opens the preview on a
+   route, so a screenshot of a screen deep in a workspace does not need twelve taps first. It opens what a
+   tap would open and nothing a tap could not — a tab, a detail route, "Book care: <service id>" for the
+   booking sheet, or "GilbertOne sheet" — and the preview has no account for it to bypass. */
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable fun MyThusoApp(store: PreviewStore = rememberPreviewStore()) {
-    var page by remember { mutableStateOf("Home") }
+@Composable fun MyThusoApp(store: PreviewStore = rememberPreviewStore(), initial: String? = null) {
+    val tabKeys = listOf("Home", "Book care", "Visits", "Passport", "More")
+    val bookingOf = initial?.takeIf { it.startsWith("Book care: ") }?.removePrefix("Book care: ")?.let { id -> services.firstOrNull { it.id == id } }
+    var page by remember { mutableStateOf(if (initial != null && initial in tabKeys) initial else if (bookingOf != null) "Book care" else "Home") }
     /* The service a home shortcut chose, handed to the catalogue once and then cleared, so going
        back to Book care later does not reopen a booking nobody asked for. */
-    var pendingService by remember { mutableStateOf<CareService?>(null) }
-    var detail by remember { mutableStateOf<String?>(null) }
+    var pendingService by remember { mutableStateOf<CareService?>(bookingOf) }
+    var detail by remember { mutableStateOf<String?>(initial?.takeIf { it !in tabKeys && bookingOf == null && it != "GilbertOne sheet" }) }
     var onboarding by remember { mutableStateOf(false) }
     /* Which workspace is open, and which of its own sections. A clinical role used to navigate by
        the patient's tabs — Home, Book care, Visits, Passport, More — which is not what a nurse on a
@@ -73,14 +91,14 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
        bar is that role's, and leaving it puts the patient's tabs back. */
     var workspace by remember { mutableStateOf<String?>(null) }
     /* GilbertOne's sheet, over whichever patient page is open. See ui/GilbertScreens.kt. */
-    var askingGilbert by remember { mutableStateOf(false) }
+    var askingGilbert by remember { mutableStateOf(initial == "GilbertOne sheet") }
     var section by remember { mutableStateOf("") }
     val tabs = listOf(
-        Destination("Home", Icons.Outlined.Home, Phrase.HOME),
-        Destination("Book care", Icons.Outlined.MedicalServices, Phrase.BOOK_CARE),
-        Destination("Visits", Icons.Outlined.CalendarMonth, Phrase.VISITS),
-        Destination("Passport", Icons.Outlined.FavoriteBorder, Phrase.PASSPORT),
-        Destination("More", Icons.Outlined.GridView, Phrase.MORE)
+        Destination("Home", null, Phrase.HOME, R.drawable.ic_mythuso_dashboard),
+        Destination("Book care", null, Phrase.BOOK_CARE, R.drawable.ic_mythuso_quick),
+        Destination("Visits", null, Phrase.VISITS, R.drawable.ic_mythuso_visit),
+        Destination("Passport", null, Phrase.PASSPORT, R.drawable.ic_mythuso_health),
+        Destination("More", Icons.Outlined.MoreHoriz, Phrase.MORE)
     )
     BackHandler(enabled = onboarding || detail != null || workspace != null || page != "Home") {
         when {
@@ -100,7 +118,7 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
         }
     }
     if (onboarding) {
-        Surface(color = StudioPaper, modifier = Modifier.fillMaxSize()) {
+        Surface(color = theme.background, modifier = Modifier.fillMaxSize()) {
             Box(Modifier.systemBarsPadding()) { OnboardingScreen(store) { onboarding = false } }
         }
         return
@@ -157,7 +175,10 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
        three pale tints drawn once, none of them darker than the floor every contrast figure in
        tokens.json is measured against. Nothing about it moves — a ground that drifts is a box that
        keeps changing under a thumb, and this is a phone somebody is holding on a doorstep. */
-    Box(Modifier.fillMaxSize().background(studioGroundBrush())) {
+    /* The ground is the handoff's background, flat: its guidelines refuse gradients and glass, and a
+       ground that drifts is a box that keeps changing under a thumb on a doorstep. */
+    val logo = if (theme.dark) R.drawable.mythuso_logo_reversed else R.drawable.mythuso_logo
+    Box(Modifier.fillMaxSize().background(theme.background)) {
         Row(Modifier.fillMaxSize()) {
             /* The rail is as wide as its longest label, from Material's 80dp up to two fifths of the
                window. The rail is where the largest type goes, and at twice the type an 80dp rail held
@@ -172,7 +193,7 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                        the old raster carried its padding inside the file and the difference went
                        into that. The outlined artwork has none, so the frame has to be right. */
                     Image(
-                        painterResource(R.drawable.mythuso_logo), "MyThuso",
+                        painterResource(logo), "MyThuso",
                         modifier = Modifier.padding(vertical = ThusoSpacing.space16).width(104.dp).height(28.dp)
                     )
                 }
@@ -182,7 +203,7 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                     NavigationRailItem(
                         selected = selectedKey == destination.key && detail == null,
                         onClick = { onSelect(destination.key) },
-                        icon = { Icon(destination.icon, null) },
+                        icon = { DestinationIcon(destination) },
                         modifier = Modifier.width(railWidth),
                         label = {
                             Text(
@@ -191,9 +212,9 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                             )
                         },
                         colors = NavigationRailItemDefaults.colors(
-                            selectedIconColor = if (role != null) SurfaceWhite else StudioPaper, selectedTextColor = if (role != null) BrandInk else Charcoal,
-                            indicatorColor = if (role != null) BrandInk else StudioNight,
-                            unselectedIconColor = if (role != null) BodyText else StudioInkMuted, unselectedTextColor = if (role != null) BodyText else StudioInkMuted
+                            selectedIconColor = theme.foreground, selectedTextColor = theme.foreground,
+                            indicatorColor = theme.accent.tint(0.15f),
+                            unselectedIconColor = theme.mutedForeground, unselectedTextColor = theme.mutedForeground
                         )
                     )
                 }
@@ -208,7 +229,7 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                             when {
                                 detail != null -> Text(detail!!, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 role != null -> Text("$role workspace", maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                page == "Home" && !wide -> Image(painterResource(R.drawable.mythuso_logo), "MyThuso", modifier = Modifier.width(126.dp).height(34.dp))
+                                page == "Home" && !wide -> Image(painterResource(logo), "MyThuso", modifier = Modifier.width(126.dp).height(34.dp))
                                 page != "Home" -> Text(label(tabs.first { it.key == page }), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         },
@@ -219,10 +240,10 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                         actions = { if (role == null) IconButton(onClick = { detail = "Notifications" }) { Icon(Icons.Outlined.Notifications, "Notifications") } },
                         colors = TopAppBarDefaults.topAppBarColors(
                             containerColor = Color.Transparent,
-                            scrolledContainerColor = GlassFloor,
-                            titleContentColor = Charcoal,
-                            navigationIconContentColor = Charcoal,
-                            actionIconContentColor = Charcoal
+                            scrolledContainerColor = theme.surface,
+                            titleContentColor = theme.foreground,
+                            navigationIconContentColor = theme.foreground,
+                            actionIconContentColor = theme.foreground
                         ),
                         scrollBehavior = scrollBehavior
                     )
@@ -240,7 +261,12 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                        gutters are the width "Assessments" was short of. Each Material item still draws
                        its own indicator, ripple, selection semantics and 48dp target; it simply fills a
                        slot sized by the arithmetic above rather than an equal fifth. */
-                    if (!wide) Surface(color = SurfaceWhite) {
+                    /* The bar is the surface with the border above it, as the web's patient shell draws
+                       its bottom navigation: a line, not a shadow. The current place is the handoff's
+                       active navigation item — the accent at 15% under the foreground. */
+                    if (!wide) Surface(color = theme.surface) {
+                        Column {
+                        HorizontalDivider(color = theme.border)
                         BoxWithConstraints(
                             Modifier.fillMaxWidth().windowInsetsPadding(NavigationBarDefaults.windowInsets)
                         ) {
@@ -255,7 +281,7 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                             NavigationBarItem(
                                 selected = selectedKey == destination.key && detail == null,
                                 onClick = { onSelect(destination.key) },
-                                icon = { Icon(destination.icon, null) },
+                                icon = { DestinationIcon(destination) },
                                 label = {
                                     Text(
                                         label(destination), maxLines = 1, softWrap = false,
@@ -264,14 +290,15 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                                     )
                                 },
                                 colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = if (role != null) SurfaceWhite else StudioPaper, selectedTextColor = if (role != null) BrandInk else Charcoal,
-                                    indicatorColor = if (role != null) BrandInk else StudioNight,
-                                    unselectedIconColor = if (role != null) BodyText else StudioInkMuted, unselectedTextColor = if (role != null) BodyText else StudioInkMuted
+                                    selectedIconColor = theme.foreground, selectedTextColor = theme.foreground,
+                                    indicatorColor = theme.accent.tint(0.15f),
+                                    unselectedIconColor = theme.mutedForeground, unselectedTextColor = theme.mutedForeground
                                 )
                             )
                                     }
                                 }
                             }
+                        }
                         }
                     }
                 }

@@ -11,6 +11,8 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
+import za.co.mythuso.ui.components.*
 import za.co.mythuso.model.*
 import java.time.LocalDateTime
 
@@ -127,51 +129,58 @@ private data class ConsultationSignature(
     val caveated = readings.count { it.caveats.isNotEmpty() }
 
     ScreenColumn {
-        /* THE RECORD OPENS ON A DECK: who is writing, how much of the standard is written, and what the
-           visit already carried in. The standing chip is on the canvas where the eye lands first, and
-           it is filled while the record is a draft, because a draft is the state that must not be
-           mistaken for a consultation. The ring is this writer's fields with the written ones lit — the
-           same `offeredFields` the form below is built from, so it moves as the form is typed into —
-           and the panel's ring is the readings carried from the capture queue, lit where one carries a
-           caveat. The choice of view stands on the canvas's edge, because it rearranges everything
-           under it and changes no value. */
-        DeckHero(
-            content = {
-                DeckPreviewMark()
-                DeckHeadline(
-                    "Clinical · ${thuso(Phrase.CONSULTATION_RECORD, store.locale)}",
-                    listOf(DeckWord.Words(reference), DeckWord.Glyph(Icons.Outlined.EditNote), DeckWord.Words(patient)),
-                    tail = consultationWhy
-                )
-                DeckTag(if (signature != null) "Signed · demo record" else "Draft — not signed", flagged = signature == null, ground = DeckGround.NIGHT)
-                DeckPills("Writing as", writer.id, writers.map { it.id to it.name }) { writerId = it; signature = null }
-                Text("${role?.name} · ${writer.reference} · ${summarise(writer).status.label}",
-                    style = MaterialTheme.typography.bodySmall, color = DeckInk.quiet)
-                if (!mayWrite.allowed) Box(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
-                    DeckRefusal("${mayWrite.reason.orEmpty()} The form is read-only rather than merely unsignable: an entry nobody may put their registration against is not a record, it is a note that looks like one.")
+        /* THE RECORD OPENS ON THE IDENTITY (28 September 2026): who is writing, how much of the standard
+           is written, and what the visit already carried in — the web's SOAP frame since Wave 4c, on
+           white cards rather than the night deck. The standing badge is where the eye lands first, and
+           it is the warning tint while the record is a draft, because a draft is the state that must not
+           be mistaken for a consultation. The two figures are counted off `offeredFields` — the same list
+           the form below is built from, so they move as the form is typed into — and off the readings
+           carried from the capture queue. The choice of view rearranges everything under it and changes
+           no value, so it is a tab row. */
+        DemoBadge()
+        Heading("Clinical · ${thuso(Phrase.CONSULTATION_RECORD, store.locale)}", "$reference · $patient", consultationWhy)
+        CareCard {
+            ThusoBadge(if (signature != null) "Signed · demo record" else "Draft — not signed", variant = if (signature != null) ThusoBadgeVariant.Success else ThusoBadgeVariant.Warning, dot = true)
+            Text("Writing as", style = MaterialTheme.typography.labelMedium, color = theme.mutedForeground)
+            FlowRowChips(writers.map { it.name }, setOf(writer.name)) { name -> writers.firstOrNull { it.name == name }?.let { writerId = it.id; signature = null } }
+            Text("${role?.name} · ${writer.reference} · ${summarise(writer).status.label}",
+                style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
+            if (!mayWrite.allowed) Box(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+                ThusoAlert(mayWrite.reason.orEmpty(), variant = ThusoAlertVariant.Danger) {
+                    ThusoAlertText("The form is read-only rather than merely unsignable: an entry nobody may put their registration against is not a record, it is a note that looks like one.")
                 }
-                DeckGlassCard {
-                    DeckFigure(
-                        value = "$filled", label = "of ${offeredFields.size} fields written",
-                        chip = if (outstanding.isEmpty()) "Every required section written" else "${outstanding.size} required still to write",
-                        flagged = outstanding.isNotEmpty(),
-                        shape = DeckShape.Ring(offeredFields.map { value(it.id).isNotEmpty() })
-                    )
-                }
-                DeckPanel {
-                    DeckFigure(
-                        value = "${readings.size}", label = "readings carried from the visit, not retyped",
-                        chip = if (caveated > 0) "$caveated carrying a caveat" else "None carrying a caveat", flagged = caveated > 0,
-                        shape = DeckShape.Ring(readings.map { it.caveats.isNotEmpty() }), ground = DeckGround.PANEL
-                    )
-                }
-            },
-            sheet = {
-                DeckPills("View", view, listOf("Full record", "SOAP", "As it reads").map { it to it }, onNight = false) { view = it }
-                Note("One record, $filled of ${offeredFields.size} fields written. SOAP and the long form are two arrangements of those same fields — switching loses nothing, because there is no second copy of the note to keep in step.")
             }
+        }
+        val perRow = if (LocalDensity.current.fontScale >= 1.3f) 1 else 2
+        val figures: List<@Composable (Modifier) -> Unit> = listOf(
+            { m -> ThusoMetricCard(
+                "Fields written", "$filled", m, unit = "of ${offeredFields.size}", icon = Icons.Outlined.EditNote,
+                foot = { ThusoBadge(
+                    if (outstanding.isEmpty()) "Every required section written" else "${outstanding.size} required still to write",
+                    variant = if (outstanding.isEmpty()) ThusoBadgeVariant.Success else ThusoBadgeVariant.Warning, size = ThusoBadgeSize.Sm, dot = true
+                ) }
+            ) },
+            { m -> ThusoMetricCard(
+                "Carried from the visit", "${readings.size}", m, unit = "readings", icon = Icons.Outlined.MonitorHeart,
+                foot = { ThusoBadge(
+                    if (caveated > 0) "$caveated carrying a caveat" else "None carrying a caveat",
+                    variant = if (caveated > 0) ThusoBadgeVariant.Warning else ThusoBadgeVariant.Neutral, size = ThusoBadgeSize.Sm, dot = true
+                ) }
+            ) }
         )
-        DeckSectionHead("The record", count = "$filled/${offeredFields.size}")
+        Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+            figures.chunked(perRow).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+                    row.forEach { it(Modifier.weight(1f)) }
+                    repeat(perRow - row.size) { Spacer(Modifier.weight(1f)) }
+                }
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
+            ThusoTabs(listOf("Full record", "SOAP", "As it reads"), view, { view = it })
+            Note("One record, $filled of ${offeredFields.size} fields written. SOAP and the long form are two arrangements of those same fields — switching loses nothing, because there is no second copy of the note to keep in step.")
+        }
+        SectionHeader("The record · $filled/${offeredFields.size}")
 
         when (view) {
             "Full record" -> offered.filter { it.id != "clinician" }.forEach { section ->
@@ -204,8 +213,8 @@ private data class ConsultationSignature(
                         StatusPill("${heading.id} · ${heading.name}", "quiet")
                         if (heading.id == "O") readings.forEach { reading ->
                             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(reading.label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                                Text("${reading.value} ${reading.unit}", style = MaterialTheme.typography.bodyMedium, color = DeckInk.sheetInk)
+                                Text(reading.label, style = MaterialTheme.typography.bodyMedium, color = theme.mutedForeground, modifier = Modifier.weight(1f))
+                                Text("${reading.value} ${reading.unit}", style = MaterialTheme.typography.bodyMedium, color = theme.foreground)
                                 ProvenanceMark(reading.provenance)
                             }
                         }
@@ -224,8 +233,8 @@ private data class ConsultationSignature(
         }
         if (neverGranted.isNotEmpty()) CareCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Outlined.MedicalServices, null, tint = DeckInk.sheetInk)
-                Text("Not on this form at all", style = MaterialTheme.typography.titleSmall, color = DeckInk.sheetInk)
+                Icon(Icons.Outlined.MedicalServices, null, tint = theme.foreground)
+                Text("Not on this form at all", style = MaterialTheme.typography.titleSmall, color = theme.foreground)
             }
             Text(
                 "${neverGranted.joinToString(", ") { it.name.lowercase() }.replaceFirstChar { it.uppercase() }} ${if (neverGranted.size > 1) "are" else "is"} absent rather than offered and refused after it has been written. A ${role?.name?.lowercase() ?: "party"} is never granted ${if (neverGranted.size > 1) "those capabilities" else "that capability"}.",
@@ -238,7 +247,7 @@ private data class ConsultationSignature(
         val signed = signature
         if (signed != null) CareCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Outlined.VerifiedUser, null, tint = DeckInk.sheetInk)
+                Icon(Icons.Outlined.VerifiedUser, null, tint = theme.foreground)
                 Text("Demo consultation signed.", style = MaterialTheme.typography.titleMedium)
             }
             ReviewLine("Clinician", signed.name)
@@ -253,7 +262,8 @@ private data class ConsultationSignature(
                 if (outstanding.isNotEmpty()) "Outstanding before this can be signed: ${outstanding.joinToString(", ") { it.name.lowercase() }}."
                 else "Every required section is written. Signing attaches the name, the council registration and the moment of signing."
             )
-            DeckButton(
+            ThusoButton(
+                "Sign demo consultation",
                 onClick = {
                     signature = ConsultationSignature(
                         writer.name, writer.reference, role?.name ?: "—", LocalDateTime.now(),
@@ -261,7 +271,7 @@ private data class ConsultationSignature(
                     )
                 },
                 enabled = mayWrite.allowed && outstanding.isEmpty()
-            , shape = ThusoButtonShape) { Text("Sign demo consultation") }
+            )
         }
     }
 }
@@ -287,32 +297,30 @@ private data class ConsultationSignature(
            to change what a reading was — it gets to say what it makes of it, which is the free field
            underneath. */
         if (section.id == "observations" && decision.allowed && readings.isNotEmpty()) {
-            Text("Readings captured on this visit", style = MaterialTheme.typography.labelLarge, color = DeckInk.sheetInk)
+            Text("Readings captured on this visit", style = MaterialTheme.typography.labelLarge, color = theme.foreground)
             readings.forEach { reading ->
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(reading.label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                        Text("${reading.value} ${reading.unit}", style = MaterialTheme.typography.bodyMedium, color = DeckInk.sheetInk)
+                        Text("${reading.value} ${reading.unit}", style = MaterialTheme.typography.bodyMedium, color = theme.foreground)
                         ProvenanceMark(reading.provenance)
                     }
                     if (reading.state != CaptureState.STORED) StatusPill(reading.state.label, "sky")
                     if (reading.superseded) StatusPill("Superseded · kept", "quiet")
                     ProvenanceBlock(reading, patient)
-                    HorizontalDivider(color = DeckInk.sheetLine)
+                    HorizontalDivider(color = theme.border)
                 }
             }
             Note("Carried from the capture queue rather than retyped. A number copied into a text box arrives in the record as something a clinician wrote, and the whole point of recording an origin is that the record can still tell the difference in a year’s time.")
         }
         if (decision.allowed) fieldsFor(section, mayDiagnose).forEach { field ->
             key(field.id) {
-                OutlinedTextField(
-                    record[field.id].orEmpty(),
-                    { record[field.id] = it.take(1200) },
-                    label = { Text(field.label) },
-                    placeholder = { Text(field.placeholder) },
-                    enabled = !locked,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                ThusoField(field.label) {
+                    ThusoTextField(
+                        record[field.id].orEmpty(), { record[field.id] = it.take(1200) },
+                        placeholder = field.placeholder, enabled = !locked, singleLine = false, minLines = 2
+                    )
+                }
             }
         } else {
             ReviewLine(section.name, "Locked")

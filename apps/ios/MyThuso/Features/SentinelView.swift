@@ -23,9 +23,9 @@ struct SentinelSection: View {
             DeckSectionHead(title: Sentinel.SentinelText.heading, count: "\(store.baselines.count)", note: Sentinel.SentinelText.intro)
             CareCard {
                 Text(Sentinel.fill(Sentinel.SentinelText.patient, ["patient": patient]))
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+                    .font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
                 StatusPill(text: Sentinel.SentinelText.evaluation, tone: "quiet")
-                Text(Sentinel.RuleText.notEvaluated).font(.footnote).foregroundStyle(DeckInk.sheetInk)
+                Text(Sentinel.RuleText.notEvaluated).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetInk)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .accessibilityIdentifier("sentinel-evaluation")
@@ -54,33 +54,33 @@ struct SentinelSection: View {
         switch code { case "core-loop": return "danger"; case "nurse-queue": return "amber"; default: return "quiet" }
     }
     private func note(_ text: String, symbol: String) -> some View {
-        Label(text, systemImage: symbol).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+        Label(text, systemImage: symbol).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
             .fixedSize(horizontal: false, vertical: true)
     }
 
     @ViewBuilder private func baselineCard(_ view: Sentinel.BaselineView) -> some View {
         HStack(spacing: ThusoSpacing.space8) {
-            Text(Devices.measureLabel(view.metric)).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+            Text(Devices.measureLabel(view.metric)).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
             Spacer(minLength: 6)
             StatusPill(text: Sentinel.label(Sentinel.baselineStates, view.stateId), tone: stateTone(view.stateId))
         }
         .accessibilityElement(children: .combine)
         Text(Sentinel.fill(Sentinel.SentinelText.counted, ["counted": "\(view.counted)", "needed": "\(view.needed)", "days": "\(view.windowDays)"]))
-            .font(.footnote).foregroundStyle(DeckInk.sheetInk)
+            .font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetInk)
             .fixedSize(horizontal: false, vertical: true)
         if let since = view.suspendedSince {
             Text(Sentinel.fill(Sentinel.SentinelText.suspendedSince, ["time": captureStamp(since)]))
-                .font(.footnote).foregroundStyle(ThusoTheme.mangoInk)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.warningInk)
         }
         if view.leftByRecall > 0 {
             Text(Sentinel.fill(Sentinel.SentinelText.leftByRecall, ["count": "\(view.leftByRecall)"]))
-                .font(.footnote).foregroundStyle(ThusoTheme.danger)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.dangerInk)
         }
     }
 
     @ViewBuilder private var raiseForm: some View {
-        Text(Sentinel.SentinelText.raiseHeading).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
-        Text(Sentinel.SentinelText.raiseIntro).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+        Text(Sentinel.SentinelText.raiseHeading).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
+        Text(Sentinel.SentinelText.raiseIntro).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
             .fixedSize(horizontal: false, vertical: true)
         Picker(Sentinel.SentinelText.entry, selection: $entryId) {
             Text("Choose…").tag(String?.none)
@@ -97,7 +97,7 @@ struct SentinelSection: View {
                 HStack(alignment: .top, spacing: ThusoSpacing.space8) {
                     Image(systemName: rung == option.rung ? "largecircle.fill.circle" : "circle").foregroundStyle(DeckInk.sheetInk)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(option.label).font(.footnote.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+                        Text(option.label).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
                         Text(option.whoIsTold).thusoFont(ThusoType.caption).foregroundStyle(DeckInk.sheetQuiet)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -118,35 +118,35 @@ struct SentinelSection: View {
         }
         .buttonStyle(CareButton())
         if let refused {
-            Text(refused.statement).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.danger)
+            Text(refused.statement).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.dangerInk)
                 .fixedSize(horizontal: false, vertical: true)
         }
         if !notice.isEmpty {
-            Text(notice).font(.footnote).foregroundStyle(DeckInk.sheetInk)
+            Text(notice).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetInk)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.updatesFrequently)
         }
     }
 
     @ViewBuilder private var tierFour: some View {
-        Text(Sentinel.SentinelText.tierFourHeading).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
-        Text(Sentinel.tierFourRefusal).font(.footnote).foregroundStyle(DeckInk.sheetInk)
+        Text(Sentinel.SentinelText.tierFourHeading).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
+        Text(Sentinel.tierFourRefusal).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetInk)
             .fixedSize(horizontal: false, vertical: true)
         ForEach(Sentinel.tierFourNeeds, id: \.self) { need in
-            Label(need, systemImage: "minus").font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+            Label(need, systemImage: "minus").font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     @ViewBuilder private var raisedList: some View {
-        Text(Sentinel.SentinelText.raisedList).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+        Text(Sentinel.SentinelText.raisedList).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
         if store.raised.isEmpty {
-            Text(Sentinel.SentinelText.noneRaised).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+            Text(Sentinel.SentinelText.noneRaised).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
         }
         ForEach(store.raised) { item in
             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
                 StatusPill(text: item.rung.label, tone: toldTone(item.rung.toldCode))
-                Text("\(Devices.measureLabel(item.metric)) · \(captureStamp(item.raisedAt))").font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                Text("\(Devices.measureLabel(item.metric)) · \(captureStamp(item.raisedAt))").font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
             }
         }
     }
@@ -167,10 +167,10 @@ struct SafeguardingReportView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
                 CareCard {
-                    Text(Sentinel.ReportText.intro).font(.footnote).foregroundStyle(DeckInk.sheetInk)
+                    Text(Sentinel.ReportText.intro).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetInk)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(Sentinel.fill(Sentinel.ReportText.patient, ["patient": patient]))
-                        .font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+                        .font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
                     Picker(Sentinel.ReportText.group, selection: $groupCode) {
                         Text("Choose…").tag(String?.none)
                         ForEach(Sentinel.groups) { group in Text(group.label).tag(String?.some(group.id)) }
@@ -181,9 +181,9 @@ struct SafeguardingReportView: View {
                         ForEach(Sentinel.categories) { category in Text(category.label).tag(String?.some(category.id)) }
                     }
                     .pickerStyle(.menu)
-                    Text(Sentinel.RuleText.categoryIsProtected).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                    Text(Sentinel.RuleText.categoryIsProtected).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(Sentinel.RuleText.noNarrative).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                    Text(Sentinel.RuleText.noNarrative).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                         .fixedSize(horizontal: false, vertical: true)
                     Button(Sentinel.ReportText.record) {
                         let result = store.record(groupCode: groupCode, categoryCode: categoryCode)
@@ -196,30 +196,30 @@ struct SafeguardingReportView: View {
                     }
                     .buttonStyle(CareButton())
                     if let refused {
-                        Text(refused.statement).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.danger)
+                        Text(refused.statement).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.dangerInk)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 if let recorded {
                     CareCard {
                         Text(Sentinel.fill(Sentinel.ReportText.recorded, ["time": captureStamp(recorded.recordedAt)]))
-                            .font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+                            .font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
                         Label(Sentinel.RuleText.notSent, systemImage: "exclamationmark.shield")
-                            .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.danger)
+                            .font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.dangerInk)
                             .fixedSize(horizontal: false, vertical: true)
                         if let applies = Sentinel.statutoryMayApply.first(where: { $0.id == recorded.groupCode }) {
-                            Text(applies.sentence).font(.footnote).foregroundStyle(DeckInk.sheetInk)
+                            Text(applies.sentence).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetInk)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         ForEach([Sentinel.RuleText.heldFor, Sentinel.RuleText.neverAutoCloses, Sentinel.RuleText.reporterNeverShown], id: \.self) { sentence in
-                            Text(sentence).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                            Text(sentence).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                     .accessibilityElement(children: .combine)
                 }
                 Label(Sentinel.RuleText.preview, systemImage: "antenna.radiowaves.left.and.right.slash")
-                    .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                    .font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(ThusoSpacing.space16)

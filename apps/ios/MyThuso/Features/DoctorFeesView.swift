@@ -30,7 +30,7 @@ struct DoctorFeesView: View {
                     muted(fee.confirmed ? fee.confirmedWords : fee.unconfirmedWords)
                     muted("\(fee.source) \(fee.whoSets)")
                 }
-                Text("Cases recorded").font(.headline).foregroundStyle(ThusoTheme.charcoal).accessibilityAddTraits(.isHeader)
+                Text("Cases recorded").font(.thuso(.headline)).foregroundStyle(ThusoRole.foreground).accessibilityAddTraits(.isHeader)
                 CareCard(padding: ThusoSpacing.space16) {
                     ForEach(cases) { signed in
                         LabeledContent(signed.reviewRef, value: "\(signed.date.formatted(.dateTime.weekday(.abbreviated).day().month(.wide))) · \(feeText)")
@@ -40,7 +40,7 @@ struct DoctorFeesView: View {
                 CareCard(padding: ThusoSpacing.space16) {
                     LabeledContent("Owed for \(cases.count) cases", value: Money.owed(for: cases, fee: fee).map(Money.randCents) ?? "Not worked out")
                     if let answer {
-                        Text(answer).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                        Text(answer).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityIdentifier("doctor-fee-refusal")
                     } else {
@@ -60,7 +60,7 @@ struct DoctorFeesView: View {
     }
 
     private func muted(_ text: String) -> some View {
-        Text(text).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+        Text(text).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             .fixedSize(horizontal: false, vertical: true)
     }
 }

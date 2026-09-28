@@ -82,16 +82,16 @@ struct ProgrammesView: View {
                 figure("\(Programmes.floor.roundTo)", "rounded to the nearest", Programmes.floor.whyRounding)
                 figure("\(Programmes.floor.minimumSuppressed)", "rows hidden, minimum", Programmes.floor.whySecondary)
                 Text("This floor is a judgement, not a standard. Nothing in POPIA names a number, and no Information Officer has signed this one off. It is written down so that it can be argued with.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             }
         }
     }
 
     private func figure(_ value: String, _ label: String, _ why: String) -> some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(value).font(.largeTitle.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
-            Text(label.uppercased()).font(.caption2.weight(.bold)).foregroundStyle(ThusoTheme.studioInkMuted)
-            Text(why).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(value).font(.thuso(.largeTitle, weight: .bold)).foregroundStyle(ThusoRole.foreground)
+            Text(label.uppercased()).font(.thuso(.caption2, weight: .bold)).foregroundStyle(ThusoRole.mutedForeground)
+            Text(why).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
@@ -113,23 +113,23 @@ struct ProgrammesView: View {
             } else {
                 let current = report
                 CareCard {
-                    Text(current.programme.name).font(.body.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
+                    Text(current.programme.name).font(.thuso(.body, weight: .bold)).foregroundStyle(ThusoRole.foreground)
                     Text("\(vetting.subject(employerId)?.name ?? "") · running since \(current.programme.started.formatted(programmeDay))")
-                        .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     StatusPill(text: "\(current.suppressed.count) of \(current.rows.count) groups not reported", tone: "amber")
                     ForEach(current.rows) { row in reportRow(row) }
                     Divider()
                     HStack {
-                        Text("Everybody").font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                        Text("Everybody").font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                         Spacer(minLength: 8)
                         Text("\(current.totalTookPart) of \(current.totalEligible) · \(percent(current.totalUptake))")
-                            .font(.footnote.weight(.semibold)).monospacedDigit().foregroundStyle(ThusoTheme.charcoal)
+                            .font(.thuso(.footnote, weight: .semibold)).monospacedDigit().foregroundStyle(ThusoRole.foreground)
                     }
                     Text("The groups shown add up to \(current.publishedTookPart), and the total says \(current.totalTookPart). That is not an error. \(Programmes.rule("figures-do-not-reconcile").sentence)")
-                        .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
-                    Text(current.programme.note).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
+                    Text(current.programme.note).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     Text(Programmes.rule("rounded-not-exact").sentence)
-                        .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
                 }
             }
         }
@@ -138,20 +138,20 @@ struct ProgrammesView: View {
     @ViewBuilder private func reportRow(_ row: ReportedCohort) -> some View {
         if let reason = row.suppressedBy {
             VStack(alignment: .leading, spacing: 5) {
-                Text(row.cohort.name).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.studioInkMuted)
-                Text("NOT REPORTED").font(.caption2.weight(.bold)).foregroundStyle(ThusoTheme.mangoInk)
+                Text(row.cohort.name).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.mutedForeground)
+                Text("NOT REPORTED").font(.thuso(.caption2, weight: .bold)).foregroundStyle(ThusoRole.warningInk)
                 Text(Programmes.suppressionReason(reason).sentence)
-                    .font(.caption).foregroundStyle(ThusoTheme.charcoal)
+                    .font(.thuso(.caption)).foregroundStyle(ThusoRole.foreground)
             }
             .padding(ThusoSpacing.space12).frame(maxWidth: .infinity, alignment: .leading)
-            .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+            .background(ThusoRole.warningTint, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
             .accessibilityElement(children: .combine)
         } else {
             HStack(alignment: .top) {
-                Text(row.cohort.name).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                Text(row.cohort.name).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                 Spacer(minLength: 8)
                 Text("\(row.tookPart) of \(row.eligible) · \(percent(row.uptake)) · \(row.advisedToSeeADoctor) advised")
-                    .font(.caption).monospacedDigit().foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.caption)).monospacedDigit().foregroundStyle(ThusoRole.mutedForeground)
                     .multilineTextAlignment(.trailing)
             }
             .accessibilityElement(children: .combine)
@@ -163,11 +163,11 @@ struct ProgrammesView: View {
     private var disclosureSection: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             CareCard {
-                Text("WHAT AN EMPLOYER SEES").font(.caption2.weight(.bold)).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text("WHAT AN EMPLOYER SEES").font(.thuso(.caption2, weight: .bold)).foregroundStyle(ThusoRole.mutedForeground)
                 ForEach(Programmes.employerSees) { item in bullet(item) }
             }
             CareCard {
-                Text("WHAT AN EMPLOYER NEVER SEES").font(.caption2.weight(.bold)).foregroundStyle(ThusoTheme.danger)
+                Text("WHAT AN EMPLOYER NEVER SEES").font(.thuso(.caption2, weight: .bold)).foregroundStyle(ThusoRole.dangerInk)
                 ForEach(Programmes.employerNeverSees) { item in bullet(item) }
             }
             refusal(Programmes.refusal("named-result"))
@@ -178,11 +178,11 @@ struct ProgrammesView: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             heading("Saying no")
             CareCard {
-                Text(Programmes.declining.headline).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                Text(Programmes.declining.note).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
-                Text(Programmes.declining.detail).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(Programmes.declining.headline).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+                Text(Programmes.declining.note).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
+                Text(Programmes.declining.detail).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
                 Text(Programmes.rule("taking-part-is-the-employees").sentence)
-                    .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
                 refusal(Programmes.refusal("learn-who-declined"))
                 refusal(Programmes.refusal("condition-employment"))
             }
@@ -193,33 +193,33 @@ struct ProgrammesView: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             heading("Joining, and leaving")
             CareCard {
-                Text("HOW SOMEBODY JOINS").font(.caption2.weight(.bold)).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text("HOW SOMEBODY JOINS").font(.thuso(.caption2, weight: .bold)).foregroundStyle(ThusoRole.mutedForeground)
                 ForEach(Array(Programmes.enrolment.enumerated()), id: \.element.id) { index, step in
                     step0(index + 1, step)
                 }
             }
             CareCard {
-                Text("WHAT HAPPENS WHEN THEY LEAVE").font(.caption2.weight(.bold)).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text("WHAT HAPPENS WHEN THEY LEAVE").font(.thuso(.caption2, weight: .bold)).foregroundStyle(ThusoRole.mutedForeground)
                 ForEach(Programmes.leaving) { step in
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(step.label).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                        Text(step.detail).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                        Text(step.label).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+                        Text(step.detail).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
                     }
                     .accessibilityElement(children: .combine)
                 }
             }
             Text(Programmes.rule("leaving-does-not-unpublish").sentence)
-                .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
         }
     }
 
     private func step0(_ number: Int, _ step: ProgrammeStep) -> some View {
         HStack(alignment: .top, spacing: ThusoSpacing.space8) {
-            Text("\(number)").font(.caption2.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
-                .frame(width: 20, height: 20).background(ThusoTheme.studioLime, in: Circle())
+            Text("\(number)").font(.thuso(.caption2, weight: .bold)).foregroundStyle(ThusoRole.foreground)
+                .frame(width: 20, height: 20).background(ThusoRole.highlight, in: Circle())
             VStack(alignment: .leading, spacing: 3) {
-                Text(step.label).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                Text(step.detail).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(step.label).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+                Text(step.detail).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
             }
         }
         .accessibilityElement(children: .combine)
@@ -237,40 +237,40 @@ struct ProgrammesView: View {
             if let decision = maySponsor, !decision.allowed { alert(decision.reason ?? "") }
             CareCard {
                 Text("\(vetting.subject(s.sponsor)?.name ?? s.sponsor) is paying for \(s.recipient)")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                    .font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                 Text("\(s.relationship) · \(randAmount(s.setAside)) set aside · \(randAmount(s.remaining)) left")
-                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
-                Text(Programmes.sponsorConsent.headline).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                Text(Programmes.sponsorConsent.detail).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
-                Text(Programmes.sponsorConsent.withdrawal).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
+                Text(Programmes.sponsorConsent.headline).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+                Text(Programmes.sponsorConsent.detail).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
+                Text(Programmes.sponsorConsent.withdrawal).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 Toggle(isOn: $serviceNamed) {
                     Text("\(s.recipient) lets this sponsor see which visit it was")
-                        .font(.caption).foregroundStyle(ThusoTheme.charcoal)
+                        .font(.thuso(.caption)).foregroundStyle(ThusoRole.foreground)
                 }
                 Text(Programmes.lineDetailChoices.first { $0.id == (serviceNamed ? "service-named" : "amount-only") }?.detail ?? "")
-                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 ForEach(s.lines) { line in
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(serviceNamed ? line.service : "Care was given")
-                                .font(.footnote).foregroundStyle(ThusoTheme.charcoal)
-                            Text(line.on.formatted(programmeDay)).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
+                            Text(line.on.formatted(programmeDay)).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
                         }
                         Spacer(minLength: 8)
-                        Text(randAmount(line.amount)).font(.footnote.weight(.semibold)).monospacedDigit()
+                        Text(randAmount(line.amount)).font(.thuso(.footnote, weight: .semibold)).monospacedDigit()
                     }
                     .accessibilityElement(children: .combine)
                 }
                 Divider()
                 HStack {
-                    Text("Drawn from what was set aside").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text("Drawn from what was set aside").font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     Spacer(minLength: 8)
-                    Text(randAmount(s.spent)).font(.subheadline.weight(.semibold)).monospacedDigit()
+                    Text(randAmount(s.spent)).font(.thuso(.subheadline, weight: .semibold)).monospacedDigit()
                 }
-                Text("WHAT A SPONSOR NEVER SEES").font(.caption2.weight(.bold)).foregroundStyle(ThusoTheme.danger)
+                Text("WHAT A SPONSOR NEVER SEES").font(.thuso(.caption2, weight: .bold)).foregroundStyle(ThusoRole.dangerInk)
                 ForEach(Programmes.sponsorNeverSees) { item in bullet(item) }
                 Text(Programmes.rule("paying-is-not-permission").sentence)
-                    .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
                 refusal(Programmes.refusal("require-the-detail"))
             }
         }
@@ -281,20 +281,20 @@ struct ProgrammesView: View {
             heading("What this screen will not do")
             ForEach(Programmes.refusals) { item in CareCard { refusal(item) } }
             Text("No report is produced, no invitation is sent and no payment is taken. Every count above is fictional, the suppression is arithmetic on it, and the floor itself still needs an Information Officer to agree with it.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
         }
     }
 
     // MARK: - Small parts
 
     private func heading(_ text: String) -> some View {
-        Text(text).font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+        Text(text).font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
     }
 
     private func bullet(_ item: Disclosure) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(item.what).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-            Text(item.why).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(item.what).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+            Text(item.why).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
@@ -302,17 +302,17 @@ struct ProgrammesView: View {
 
     private func alert(_ text: String) -> some View {
         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
-            Image(systemName: "shield.slash").font(.callout).foregroundStyle(ThusoTheme.mangoInk)
-            Text(text).font(.caption).foregroundStyle(ThusoTheme.charcoal)
+            Image(systemName: "shield.slash").font(.thuso(.callout)).foregroundStyle(ThusoRole.warningInk)
+            Text(text).font(.thuso(.caption)).foregroundStyle(ThusoRole.foreground)
         }
         .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .background(ThusoRole.warningTint, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
     }
 
     private func refusal(_ item: ProgrammeRefusal) -> some View {
         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
-            Image(systemName: "nosign").font(.callout).foregroundStyle(ThusoTheme.danger)
-            Text(item.sentence).font(.caption).foregroundStyle(ThusoTheme.charcoal)
+            Image(systemName: "nosign").font(.thuso(.callout)).foregroundStyle(ThusoRole.dangerInk)
+            Text(item.sentence).font(.thuso(.caption)).foregroundStyle(ThusoRole.foreground)
         }
     }
 }

@@ -36,9 +36,9 @@ struct EmergencyCardView: View {
                         Text(PassportSharing.fill(PassportSharingData.Card.ridesOn, [
                             "recipient": PassportSharingData.cardRecipient,
                             "when": Scheduling.longDate(PassportSharing.day(PassportSharingData.cardGrantEndsInDays))
-                        ])).font(.subheadline).fixedSize(horizontal: false, vertical: true)
-                        Text(EmergencyCardFace.opensOnly).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
-                        Text(PassportSharingData.settingsNote).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        ])).font(.thuso(.subheadline)).fixedSize(horizontal: false, vertical: true)
+                        Text(EmergencyCardFace.opensOnly).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
+                        Text(PassportSharingData.settingsNote).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     Button(PassportSharingData.Card.make) { card = PassportSharing.makeCard() }.buttonStyle(CareButton())
@@ -61,10 +61,10 @@ struct EmergencyCardView: View {
 private struct PreviewSentence: View {
     let text: String
     var body: some View {
-        Label { Text(text).font(.footnote.weight(.semibold)).fixedSize(horizontal: false, vertical: true) } icon: {
+        Label { Text(text).font(.thuso(.footnote, weight: .semibold)).fixedSize(horizontal: false, vertical: true) } icon: {
             Image(systemName: "shield.lefthalf.filled").accessibilityHidden(true)
         }
-        .foregroundStyle(ThusoTheme.charcoal)
+        .foregroundStyle(ThusoRole.foreground)
         .accessibilityElement(children: .combine)
     }
 }
@@ -90,11 +90,11 @@ struct EmergencyCardFace: View {
     var body: some View {
         CareCard(padding: ThusoSpacing.space16) {
             HStack(alignment: .firstTextBaseline) {
-                Text(PassportSharingData.Card.title).font(.headline).accessibilityAddTraits(.isHeader)
+                Text(PassportSharingData.Card.title).font(.thuso(.headline)).accessibilityAddTraits(.isHeader)
                 Spacer(minLength: ThusoSpacing.space8)
                 MetricChip(text: String(PassportSharingData.Card.preview.prefix { $0 != "." }), flagged: true)
             }
-            Text(PassportSharingData.Card.preview).font(.footnote.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
+            Text(PassportSharingData.Card.preview).font(.thuso(.footnote, weight: .semibold)).fixedSize(horizontal: false, vertical: true)
             if let image = EmergencyCardQR.image(for: card.payload) {
                 Image(uiImage: image).interpolation(.none).resizable().scaledToFit()
                     .frame(maxWidth: 220)
@@ -102,14 +102,14 @@ struct EmergencyCardFace: View {
                     .background(Color.white)
                     .accessibilityLabel(PassportSharingData.Card.qrLabel)
             }
-            Text(PassportSharingData.Card.code).thusoFont(ThusoType.caption, weight: .semibold).foregroundStyle(ThusoTheme.studioInkMuted)
-            Text(card.code).font(.title3.monospaced().weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-            Text(Self.opensOnly).font(.subheadline)
-            Text(PassportSharingData.Card.sealedNever).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
-            Text(PassportSharing.fill(PassportSharingData.Card.ends, ["when": Scheduling.longDate(card.endsOn)])).font(.subheadline)
-            Text(PassportSharing.fill(PassportSharingData.Card.opens, ["uses": String(card.usesAllowed)])).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(PassportSharingData.Card.code).thusoFont(ThusoType.caption, weight: .semibold).foregroundStyle(ThusoRole.mutedForeground)
+            Text(card.code).font(.thuso(.title3, weight: .semibold).monospaced()).foregroundStyle(ThusoRole.foreground)
+            Text(Self.opensOnly).font(.thuso(.subheadline))
+            Text(PassportSharingData.Card.sealedNever).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
+            Text(PassportSharing.fill(PassportSharingData.Card.ends, ["when": Scheduling.longDate(card.endsOn)])).font(.thuso(.subheadline))
+            Text(PassportSharing.fill(PassportSharingData.Card.opens, ["uses": String(card.usesAllowed)])).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             Text(PassportSharing.fill(PassportSharingData.Card.ridesOn, ["recipient": card.recipient, "when": Scheduling.longDate(card.grantEndsOn)]))
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted).fixedSize(horizontal: false, vertical: true)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground).fixedSize(horizontal: false, vertical: true)
         }
     }
 }
@@ -119,12 +119,12 @@ private struct PrintableCard: View {
     let card: EmergencyCardTerms
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(PassportSharingData.Card.title).font(.title2.weight(.bold))
-            Text(PassportSharingData.Card.preview).font(.body.weight(.semibold))
+            Text(PassportSharingData.Card.title).font(.thuso(.title2, weight: .bold))
+            Text(PassportSharingData.Card.preview).font(.thuso(.body, weight: .semibold))
             if let image = EmergencyCardQR.image(for: card.payload) {
                 Image(uiImage: image).interpolation(.none).resizable().scaledToFit().frame(width: 220, height: 220)
             }
-            Text("\(PassportSharingData.Card.code): \(card.code)").font(.title3.monospaced())
+            Text("\(PassportSharingData.Card.code): \(card.code)").font(.thuso(.title3).monospaced())
             Text(EmergencyCardFace.opensOnly)
             Text(PassportSharingData.Card.sealedNever)
             Text(PassportSharing.fill(PassportSharingData.Card.ends, ["when": Scheduling.longDate(card.endsOn)]))
@@ -161,24 +161,24 @@ struct PassportAccessLogView: View {
                 DemoBadge()
                 SurfaceHeading(eyebrow: PassportSharingData.Log.eyebrow, title: PassportSharingData.Log.title, subtitle: PassportSharingData.Log.intro)
                 PreviewSentence(text: PassportSharingData.Log.preview)
-                Text(PassportSharingData.Log.chain).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(PassportSharingData.Log.chain).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(PassportSharingData.Log.newest).font(.headline).accessibilityAddTraits(.isHeader)
+                Text(PassportSharingData.Log.newest).font(.thuso(.headline)).accessibilityAddTraits(.isHeader)
                 if PassportSharing.log.isEmpty {
-                    Text(PassportSharingData.Log.empty).font(.subheadline).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(PassportSharingData.Log.empty).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.mutedForeground)
                 }
                 ForEach(PassportSharing.log) { entry in
                     CareCard(spacing: ThusoSpacing.space8) {
-                        Text(entry.action).font(.headline)
+                        Text(entry.action).font(.thuso(.headline))
                         HStack(spacing: ThusoSpacing.space8) {
                             MetricChip(text: entry.outcomeLabel, flagged: entry.outcome != "granted")
                             if entry.breakGlass { MetricChip(text: PassportSharingData.Log.breakGlass, flagged: true) }
                         }
-                        Text(line(entry)).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted).fixedSize(horizontal: false, vertical: true)
-                        Text(entry.reason).font(.subheadline).fixedSize(horizontal: false, vertical: true)
+                        Text(line(entry)).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground).fixedSize(horizontal: false, vertical: true)
+                        Text(entry.reason).font(.thuso(.subheadline)).fixedSize(horizontal: false, vertical: true)
                         if let hours = entry.reviewDueInHours {
                             let due = Calendar.current.date(byAdding: .hour, value: hours, to: PassportSharing.day(entry.dayOffset)) ?? PassportSharing.day(entry.dayOffset)
-                            Text(PassportSharing.fill(PassportSharingData.Log.reviewDue, ["when": Scheduling.longDate(due)])).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                            Text(PassportSharing.fill(PassportSharingData.Log.reviewDue, ["when": Scheduling.longDate(due)])).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         }
                     }
                 }

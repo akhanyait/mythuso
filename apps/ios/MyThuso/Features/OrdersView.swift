@@ -32,19 +32,19 @@ struct TimelineList: View {
         ForEach(steps) { step in
             HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                 Image(systemName: step.state == "done" ? "checkmark.circle.fill" : step.state == "active" ? "circle.dashed" : "circle")
-                    .foregroundStyle(ThusoTheme.charcoal.opacity(step.state == "waiting" ? 0.3 : 1))
+                    .foregroundStyle(ThusoRole.foreground.opacity(step.state == "waiting" ? 0.3 : 1))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
                     /* A step nobody has reached is recessed rather than greyed with a colour of its
                        own: muted charcoal darkens with the ground it sits on, and the tick beside
                        it says the same thing a second way. */
-                    Text(step.label).font(.subheadline.weight(.semibold))
-                        .foregroundStyle(ThusoTheme.charcoal.opacity(step.state == "waiting" ? ThusoOpacity.charcoalMuted : 1))
+                    Text(step.label).font(.thuso(.subheadline, weight: .semibold))
+                        .foregroundStyle(ThusoRole.foreground.opacity(step.state == "waiting" ? ThusoOpacity.charcoalMuted : 1))
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(step.detail).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(step.detail).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                     if !step.at.isEmpty {
-                        Text(step.at).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        Text(step.at).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -109,7 +109,7 @@ struct PrescriptionView: View {
                                permission: "partner data sharing", retry: { state = .ready }) { EmptyView() }
                 }
                 Text(Dispensing.crossReference)
-                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.vertical, ThusoSpacing.space16)
@@ -126,17 +126,17 @@ struct PrescriptionView: View {
         } label: {
             HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                 Image(systemName: on ? "checkmark.square.fill" : "square")
-                    .font(.title3).foregroundStyle(ThusoTheme.charcoal).accessibilityHidden(true)
+                    .font(.thuso(.title3)).foregroundStyle(ThusoRole.foreground).accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-                    Text(medicine.0).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoTheme.charcoal)
+                    Text(medicine.0).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(medicine.1).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(medicine.1).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(medicine.2).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(medicine.2).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                     /* What the patient is told, and it is the one line on the card that is not
                        about logistics. Full charcoal, because it is the sentence a person acts on. */
-                    Text(medicine.3).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                    Text(medicine.3).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 0)
@@ -203,7 +203,7 @@ struct LabOrderView: View {
                 }
                 VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
                     Text("Abnormal results are never pushed to a patient without a clinician’s explanation. Release is a deliberate clinical act, not an automatic notification.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                     Button(released ? "Withdraw demo release" : "Release with an explanation") { released.toggle() }
                         .buttonStyle(released ? AnyButtonStyleBox(QuietButton()) : AnyButtonStyleBox(CareButton()))
@@ -224,18 +224,18 @@ struct LabOrderView: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space12) {
-                    Text(row.0).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                    Text(row.0).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                     Spacer(minLength: ThusoSpacing.space8)
-                    Text(row.1).font(.subheadline.weight(.semibold).monospacedDigit()).foregroundStyle(ThusoTheme.charcoal)
+                    Text(row.1).font(.thuso(.subheadline, weight: .semibold).monospacedDigit()).foregroundStyle(ThusoRole.foreground)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(row.0).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                    Text(row.0).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(row.1).font(.subheadline.weight(.semibold).monospacedDigit()).foregroundStyle(ThusoTheme.charcoal)
+                    Text(row.1).font(.thuso(.subheadline, weight: .semibold).monospacedDigit()).foregroundStyle(ThusoRole.foreground)
                 }
             }
             HStack(spacing: ThusoSpacing.space8) {
-                Text("Reference \(row.2)").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text("Reference \(row.2)").font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: ThusoSpacing.space8)
                 MetricChip(text: flagged ? row.3 : "Within range", tone: flagged ? .attention : .neutral)

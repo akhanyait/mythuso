@@ -57,7 +57,7 @@ struct SponsoredCareView: View {
                 twoLists
                 SurfacePanel(tone: .quiet) {
                     Label(Sponsorship.cannotRequireDetail.sentence, systemImage: "nosign")
-                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                        .font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .accessibilityElement(children: .combine)
@@ -75,11 +75,11 @@ struct SponsoredCareView: View {
     private var lead: some View {
         SurfacePanel(tone: .lead, spacing: ThusoSpacing.space16) {
             HStack(alignment: .top, spacing: ThusoSpacing.space12) {
-                Monogram(text: initials, diameter: 44, background: ThusoTheme.surface)
+                Monogram(text: initials, diameter: 44, background: ThusoRole.surface)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(person).thusoFont(ThusoType.cardTitle, weight: .semibold)
-                        .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
-                    Text(relation).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
+                    Text(relation).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 }
                 .accessibilityElement(children: .combine)
                 Spacer(minLength: 0)
@@ -107,25 +107,25 @@ struct SponsoredCareView: View {
                        at the accessibility sizes, and the amount is the column a payer reads down. */
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space12) {
-                            Text(line.on.formatted(sponsorDay)).font(.footnote)
-                                .foregroundStyle(ThusoTheme.studioInkMuted)
+                            Text(line.on.formatted(sponsorDay)).font(.thuso(.footnote))
+                                .foregroundStyle(ThusoRole.mutedForeground)
                             Spacer(minLength: ThusoSpacing.space8)
-                            Text(sponsorAmount(line.amount)).font(.subheadline.weight(.semibold))
-                                .monospacedDigit().foregroundStyle(ThusoTheme.charcoal)
+                            Text(sponsorAmount(line.amount)).font(.thuso(.subheadline, weight: .semibold))
+                                .monospacedDigit().foregroundStyle(ThusoRole.foreground)
                         }
-                        Text(Sponsorship.lineName(line)).font(.subheadline)
-                            .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+                        Text(Sponsorship.lineName(line)).font(.thuso(.subheadline))
+                            .foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityElement(children: .combine)
                     Hairline()
                 }
                 HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space12) {
-                    Text("Drawn from what you set aside").font(.footnote.weight(.semibold))
-                        .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+                    Text("Drawn from what you set aside").font(.thuso(.footnote, weight: .semibold))
+                        .foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: ThusoSpacing.space8)
-                    Text(sponsorAmount(Sponsorship.used)).font(.subheadline.weight(.semibold))
-                        .monospacedDigit().foregroundStyle(ThusoTheme.charcoal)
+                    Text(sponsorAmount(Sponsorship.used)).font(.thuso(.subheadline, weight: .semibold))
+                        .monospacedDigit().foregroundStyle(ThusoRole.foreground)
                 }
                 .accessibilityElement(children: .combine)
             }
@@ -133,16 +133,16 @@ struct SponsoredCareView: View {
                even a disabled one — implies it is a thing a sponsor could be given. */
             SurfacePanel(tone: .quiet, spacing: ThusoSpacing.space8) {
                 Label(Sponsorship.currentDetail.name, systemImage: "eye.slash")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                    .font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(Sponsorship.currentDetail.detail).font(.footnote)
-                    .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+                Text(Sponsorship.currentDetail.detail).font(.thuso(.footnote))
+                    .foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
                 Text("\(first) decides this, in her own account. It is not a setting on this screen and there is no way to ask for it.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
                 if Sponsorship.serviceIsNamed {
-                    Text(Sponsorship.namingNote).font(.footnote)
-                        .foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(Sponsorship.namingNote).font(.thuso(.footnote))
+                        .foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -156,14 +156,14 @@ struct SponsoredCareView: View {
             CareSectionHeader("What a sponsor sees, and what a sponsor never sees")
             SurfacePanel(spacing: ThusoSpacing.space16) {
                 Text("What you see").thusoFont(ThusoType.cardTitle, weight: .semibold)
-                    .foregroundStyle(ThusoTheme.charcoal).accessibilityAddTraits(.isHeader)
+                    .foregroundStyle(ThusoRole.foreground).accessibilityAddTraits(.isHeader)
                 ForEach(Sponsorship.sees) { item in
                     StatedFact(term: item.what, statement: item.why)
                 }
             }
             SurfacePanel(tone: .quiet, spacing: ThusoSpacing.space16) {
                 Text("What you never see").thusoFont(ThusoType.cardTitle, weight: .semibold)
-                    .foregroundStyle(ThusoTheme.charcoal).accessibilityAddTraits(.isHeader)
+                    .foregroundStyle(ThusoRole.foreground).accessibilityAddTraits(.isHeader)
                 ForEach(Sponsorship.neverSees) { item in
                     StatedFact(term: item.what, statement: item.why)
                 }

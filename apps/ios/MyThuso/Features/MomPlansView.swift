@@ -27,11 +27,11 @@ struct MomPlansView: View {
                 tierChoice
                 CareCard(padding: ThusoSpacing.space16, spacing: ThusoSpacing.space16) {
                     Text("What \(tier.name) would bring · Phase \(tier.phase)")
-                        .font(.headline).foregroundStyle(ThusoTheme.charcoal)
+                        .font(.thuso(.headline)).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
                     if let inherits = tier.inherits {
-                        Text(inherits).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                        Text(inherits).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityIdentifier("mom-inherits")
                     }
@@ -44,16 +44,16 @@ struct MomPlansView: View {
                 }
                 section("What no plan does") {
                     ForEach(Plans.mom.refusals) { refusal in
-                        Text(refusal.sentence).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                        Text(refusal.sentence).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(.leading, ThusoSpacing.space12)
-                            .overlay(alignment: .leading) { Rectangle().fill(ThusoTheme.charcoal).frame(width: 2) }
+                            .overlay(alignment: .leading) { Rectangle().fill(ThusoRole.foreground).frame(width: 2) }
                     }
                 }
                 section("Add-ons") {
                     muted(Plans.mom.addOnsStatement)
                     ForEach(Plans.mom.addOns) { addOn in
-                        Text(addOn.name).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                        Text(addOn.name).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                     }
                 }
                 section("Sharing the cost") { muted(Plans.mom.splittingStatement) }
@@ -61,11 +61,11 @@ struct MomPlansView: View {
                    are read first. A preview: it charges nothing, and its own screen says so. */
                 NavigationLink { MomEssentialView() } label: {
                     Text(MomEssential.fill(MomEssentialData.Words.open, ["plan": MomEssential.planName]))
-                        .font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                        .font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                         .multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space12)
                         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(ThusoTheme.charcoal, lineWidth: 1))
+                        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(ThusoRole.foreground, lineWidth: 1))
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -88,22 +88,22 @@ struct MomPlansView: View {
                 Button { chosen = option.id } label: {
                     HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space12) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(option.name).font(.subheadline.weight(.semibold))
+                            Text(option.name).font(.thuso(.subheadline, weight: .semibold))
                                 .fixedSize(horizontal: false, vertical: true)
                             Text(option.cadence).thusoFont(ThusoType.caption)
-                                .foregroundStyle(selected ? ThusoTheme.charcoal : ThusoTheme.studioInkMuted)
+                                .foregroundStyle(selected ? ThusoRole.foreground : ThusoRole.mutedForeground)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         Spacer(minLength: ThusoSpacing.space8)
-                        Text("\(Earnings.rand(option.price)) / month").font(.callout.weight(.medium)).monospacedDigit()
+                        Text("\(Earnings.rand(option.price)) / month").font(.thuso(.callout, weight: .medium)).monospacedDigit()
                             .multilineTextAlignment(.trailing)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    .foregroundStyle(ThusoTheme.charcoal)
+                    .foregroundStyle(ThusoRole.foreground)
                     .padding(ThusoSpacing.space12)
                     .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                    .background(selected ? ThusoTheme.studioLilac : ThusoTheme.surface, in: shape)
-                    .overlay(shape.stroke(selected ? ThusoTheme.charcoal : ThusoTheme.studioLine, lineWidth: 1))
+                    .background(selected ? ThusoRole.surfaceRaised : ThusoRole.surface, in: shape)
+                    .overlay(shape.stroke(selected ? ThusoRole.foreground : ThusoRole.border, lineWidth: 1))
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -116,9 +116,9 @@ struct MomPlansView: View {
 
     private func inclusionRow(_ item: MomInclusion) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-            Text("•").font(.subheadline).foregroundStyle(ThusoTheme.charcoal).accessibilityHidden(true)
+            Text("•").font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-                Text(item.text).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                Text(item.text).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
                 if let detail = item.detail { muted(detail) }
             }
@@ -128,13 +128,13 @@ struct MomPlansView: View {
     }
 
     private func muted(_ text: String) -> some View {
-        Text(text).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+        Text(text).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             .fixedSize(horizontal: false, vertical: true)
     }
 
     private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-            Text(title).font(.headline).foregroundStyle(ThusoTheme.charcoal).accessibilityAddTraits(.isHeader)
+            Text(title).font(.thuso(.headline)).foregroundStyle(ThusoRole.foreground).accessibilityAddTraits(.isHeader)
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)

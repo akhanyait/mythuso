@@ -88,7 +88,7 @@ struct TeleconsultView: View {
                 DemoBadge()
                 if stage < 4 {
                     Text("Step \(stage + 1) of \(callStages.count) · \(callStages[stage])")
-                        .font(.caption).foregroundStyle(ThusoTheme.charcoal)
+                        .font(.thuso(.caption)).foregroundStyle(ThusoRole.foreground)
                 }
                 CareHeading(eyebrow: "Doctor workspace", title: "Teleconsultation",
                             subtitle: "\(reference) · \(patient)")
@@ -111,47 +111,47 @@ struct TeleconsultView: View {
     // MARK: - Who is in the room
 
     @ViewBuilder private var roomStage: some View {
-        Text("Who will be able to see and hear you.").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-        Text(Teleconsult.rule("presence-is-consented").sentence).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+        Text("Who will be able to see and hear you.").font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+        Text(Teleconsult.rule("presence-is-consented").sentence).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
 
         CareCard {
             Picker("Doctor for this appointment", selection: $doctorId) {
                 ForEach(callDoctors, id: \.self) { id in Text(vetting.subject(id)?.name ?? id).tag(id) }
             }
-            if let doctor { Text("\(doctor.name) · \(doctor.reference)").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted) }
+            if let doctor { Text("\(doctor.name) · \(doctor.reference)").font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground) }
             /* The same capability the clinical queue asks about, refused in the same words. A doctor
                told one thing by the queue and another by the call trusts neither. */
             if let consult, !consult.allowed {
                 Label(consult.reason ?? "", systemImage: "xmark.shield")
-                    .font(.caption).foregroundStyle(ThusoTheme.danger)
+                    .font(.thuso(.caption)).foregroundStyle(ThusoRole.dangerInk)
             }
         }
 
         CareCard {
-            Text("Who else is at the address or on the call").font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            Text("Who else is at the address or on the call").font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
             ForEach(Teleconsult.participants.filter { !$0.essential }) { person in
                 Toggle(person.name, isOn: Binding(
                     get: { present[person.id] == true },
                     set: { present[person.id] = $0; consented[person.id] = false }
-                )).font(.footnote)
+                )).font(.thuso(.footnote))
             }
         }
 
         roster(canAsk: false)
 
-        Text("Asked one at a time").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+        Text("Asked one at a time").font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
         Text("Each of these is a separate answer, and each can be taken back in the middle of the call.")
-            .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
         ForEach(inTheRoom.filter { $0.consentQuestion != nil }) { person in
             CareCard {
                 Toggle(isOn: Binding(get: { consented[person.id] == true }, set: { consented[person.id] = $0 })) {
-                    Text("“\(person.consentQuestion ?? "")”").font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                    Text("“\(person.consentQuestion ?? "")”").font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                 }
                 if consented[person.id] != true {
-                    Text("If you say no: \(person.ifDeclined ?? "")").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text("If you say no: \(person.ifDeclined ?? "")").font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 } else if let item = Teleconsult.consentFor(participant: person.id), !item.required {
                     Text("You can change your mind during the call. \(item.revokedMidCall)")
-                        .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 }
             }
         }
@@ -168,14 +168,14 @@ struct TeleconsultView: View {
     // MARK: - Identity, both ends
 
     @ViewBuilder private var identityStage: some View {
-        Text("Both ends, checked.").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+        Text("Both ends, checked.").font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
         CareCard {
             StatusPill(text: "What the patient checks", tone: "quiet")
             if let doctor {
                 row("The doctor on this call", doctor.name)
                 row("Council registration", doctor.reference)
             }
-            Text(Teleconsult.identity.patientSideDetail).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(Teleconsult.identity.patientSideDetail).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
         }
         CareCard {
             StatusPill(text: "What the doctor checks", tone: "quiet")
@@ -183,14 +183,14 @@ struct TeleconsultView: View {
                in MyThuso, not two — a second mechanism invented for video would be a second thing to
                get wrong, and the one the patient had learned would stop being the one that counts. */
             Text("\(Teleconsult.identity.doctorSideDetail) In this preview the code is 482190.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             TextField("Visit code", text: $code).keyboardType(.numberPad).textFieldStyle(.roundedBorder)
                 .onChange(of: code) { _, _ in codeError = "" }
             if !codeError.isEmpty {
-                Text(codeError).font(.caption).foregroundStyle(ThusoTheme.danger)
+                Text(codeError).font(.thuso(.caption)).foregroundStyle(ThusoRole.dangerInk)
             }
         }
-        Text(Teleconsult.identity.whyOneMechanism).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+        Text(Teleconsult.identity.whyOneMechanism).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
         if codeError.isEmpty {
             Button("Confirm and continue") {
                 if code == "482190" { identityConfirmed = true; stage = 2 } else { codeError = Teleconsult.identity.failure }
@@ -205,31 +205,31 @@ struct TeleconsultView: View {
 
     @ViewBuilder private var recordingStage: some View {
         Text("Recording is a second question, and the answer here is no.")
-            .font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-        Text(Teleconsult.rule("recording-is-separate").sentence).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            .font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+        Text(Teleconsult.rule("recording-is-separate").sentence).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
         CareCard {
             Label(Teleconsult.recording.decision, systemImage: "record.circle.fill")
-                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.mangoInk)
-            Text(Teleconsult.recording.why).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.warningInk)
+            Text(Teleconsult.recording.why).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
         }
-        Text("What happens instead").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+        Text("What happens instead").font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
         ForEach(Teleconsult.recording.instead, id: \.self) { line in
-            Label(line, systemImage: "list.clipboard").font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+            Label(line, systemImage: "list.clipboard").font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
         }
-        Text("What would be asked, if it existed").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+        Text("What would be asked, if it existed").font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
         CareCard {
             row("When", "Its own screen")
-            Text(Teleconsult.recording.whenItExists.askedSeparately).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(Teleconsult.recording.whenItExists.askedSeparately).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             row("Cost of refusing", "None")
-            Text(Teleconsult.recording.whenItExists.refusingIsCostless).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(Teleconsult.recording.whenItExists.refusingIsCostless).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             row("While it runs", "Unmistakable")
-            Text(Teleconsult.recording.whenItExists.whileRecording).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(Teleconsult.recording.whenItExists.whileRecording).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             row("Who could open it", "Three, and no more")
             ForEach(Teleconsult.recording.whenItExists.whoMayView, id: \.self) { who in
-                Label(who, systemImage: "lock").font(.caption).foregroundStyle(ThusoTheme.charcoal)
+                Label(who, systemImage: "lock").font(.thuso(.caption)).foregroundStyle(ThusoRole.foreground)
             }
             row("Kept for", "\(Teleconsult.recording.whenItExists.keptForDays) days")
-            Text(Teleconsult.recording.whenItExists.afterwards).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(Teleconsult.recording.whenItExists.afterwards).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
         }
         refusalCard(Teleconsult.refusal("covert-recording"))
         Button("Open the call") { stage = 3 }.buttonStyle(CareButton())
@@ -243,24 +243,24 @@ struct TeleconsultView: View {
            both is telling the patient their answer did not matter. Both are here, switchable, so a
            review sees two screens rather than one with a different word in it. */
         CareCard {
-            Text(Teleconsult.mediaState(mediaState).name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-            Text(Teleconsult.mediaState(mediaState).detail).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
-            Text(Teleconsult.media.sentence).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(Teleconsult.mediaState(mediaState).name).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+            Text(Teleconsult.mediaState(mediaState).detail).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
+            Text(Teleconsult.media.sentence).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             Picker("Media permission", selection: $mediaState) {
                 ForEach(Teleconsult.media.states) { Text($0.name).tag($0.id) }
             }.pickerStyle(.segmented)
-            Text(Teleconsult.media.whyTheDistinctionMatters).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(Teleconsult.media.whyTheDistinctionMatters).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
         }
 
-        Text("In the room").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+        Text("In the room").font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
         roster(canAsk: true)
         if let withdrawnNote {
-            Text(withdrawnNote).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(withdrawnNote).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
                 .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, alignment: .leading)
-                .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+                .background(ThusoRole.muted, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         }
 
-        Text("The line").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+        Text("The line").font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
         Picker("The line", selection: $connectionId) {
             ForEach(Teleconsult.connection) { Text($0.name).tag($0.id) }
         }
@@ -270,56 +270,56 @@ struct TeleconsultView: View {
             else if everDropped { resumed = true }
         }
         Text("A preview control. In production this is the network's answer, not a choice.")
-            .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
         /* Both ends, side by side. The failure this is written against is a patient staring at a
            frozen picture while the doctor's screen says something else entirely. */
         CareCard {
             StatusPill(text: "The patient sees", tone: "quiet")
-            Text(Teleconsult.connectionState(connectionId).patientSees).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(Teleconsult.connectionState(connectionId).patientSees).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
             Divider()
             StatusPill(text: "The doctor sees", tone: "quiet")
-            Text(Teleconsult.connectionState(connectionId).doctorSees).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(Teleconsult.connectionState(connectionId).doctorSees).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
         }
-        Text(Teleconsult.connectionState(connectionId).note).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+        Text(Teleconsult.connectionState(connectionId).note).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
         if connectionId == "audio" {
-            Text(Teleconsult.rule("audio-is-not-lesser").sentence).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(Teleconsult.rule("audio-is-not-lesser").sentence).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
         }
 
         if dropped {
             CareCard {
                 HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                     VStack(spacing: 3) {
-                        Image(systemName: "hourglass").font(.title3).foregroundStyle(ThusoTheme.danger)
-                        Text("\(holdLeft)s").font(.title2.weight(.bold)).monospacedDigit().foregroundStyle(ThusoTheme.danger)
+                        Image(systemName: "hourglass").font(.thuso(.title3)).foregroundStyle(ThusoRole.dangerInk)
+                        Text("\(holdLeft)s").font(.thuso(.title2, weight: .bold)).monospacedDigit().foregroundStyle(ThusoRole.dangerInk)
                         Text("of \(Teleconsult.reconnect.holdSeconds) · up to \(Teleconsult.reconnect.attempts) attempts")
-                            .font(.caption2).multilineTextAlignment(.center).foregroundStyle(ThusoTheme.studioInkMuted)
+                            .font(.thuso(.caption2)).multilineTextAlignment(.center).foregroundStyle(ThusoRole.mutedForeground)
                     }
                     .frame(width: 96)
                     VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-                        Text(Teleconsult.reconnect.whoCallsWhom).font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                        Text(Teleconsult.reconnect.duringTheHold).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                        Text(Teleconsult.reconnect.whoCallsWhom).font(.thuso(.caption, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+                        Text(Teleconsult.reconnect.duringTheHold).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
                         if nursePresent {
-                            Text(Teleconsult.reconnect.nurseInTheRoom).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                            Text(Teleconsult.reconnect.nurseInTheRoom).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
                         }
                         if holdLeft == 0 {
-                            Text(Teleconsult.reconnect.afterTheHold).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
-                            Text(Teleconsult.reconnect.ifUnreachable).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                            Text(Teleconsult.reconnect.afterTheHold).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
+                            Text(Teleconsult.reconnect.ifUnreachable).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
                         }
-                        Text(Teleconsult.reconnect.whyNotLonger).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        Text(Teleconsult.reconnect.whyNotLonger).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     }
                 }
             }
-            .background(ThusoTheme.dangerSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+            .background(ThusoRole.dangerTint, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         }
 
-        Text("What this doctor may conclude, right now").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+        Text("What this doctor may conclude, right now").font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
         ForEach(Teleconsult.permitted(connection: connectionId, nursePresent: nursePresent)) { limit in
             limitRow(limit, allowed: true)
         }
         ForEach(Teleconsult.withdrawn(connection: connectionId, nursePresent: nursePresent)) { limit in
             limitRow(limit, allowed: false)
         }
-        Text(Teleconsult.rule("examination-is-attributed").sentence).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+        Text(Teleconsult.rule("examination-is-attributed").sentence).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
         refusalCard(Teleconsult.refusal("diagnose-the-unseen"))
 
         /* Nothing here can close an encounter as finished while the line is down. That is the button
@@ -329,7 +329,7 @@ struct TeleconsultView: View {
             .disabled(!Teleconsult.mayConclude(connection: connectionId, nursePresent: nursePresent) || consented["doctor"] != true)
         if !Teleconsult.mayConclude(connection: connectionId, nursePresent: nursePresent) {
             Text("The line does not currently allow a decision to be reached, so there is no way to close this encounter as a completed consultation.")
-                .font(.footnote).foregroundStyle(ThusoTheme.danger)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.dangerInk)
         }
         Button("End without a decision") { stage = 4 }.buttonStyle(QuietButton())
     }
@@ -339,43 +339,43 @@ struct TeleconsultView: View {
     @ViewBuilder private var afterwardsStage: some View {
         StatusPill(text: outcome.countsAsConsultation ? "Counts as a consultation" : "Not a consultation",
                    tone: outcome.countsAsConsultation ? "teal" : "amber")
-        Text(outcome.name).font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-        Text(outcome.record).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+        Text(outcome.name).font(.thuso(.title3, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+        Text(outcome.record).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
         CareCard {
             row("Charged", outcome.charged ? "Yes — a consultation was held" : "No")
             if !outcome.charged {
-                Text(Teleconsult.refusal("charge-for-a-failure").sentence).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(Teleconsult.refusal("charge-for-a-failure").sentence).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             }
         }
-        Text("What goes into the consultation record").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+        Text("What goes into the consultation record").font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
         Text("The same sections every MyThuso encounter writes into. A section this encounter did not reach is withheld here rather than left empty for somebody to fill in later.")
-            .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
         CareCard {
             ForEach(Teleconsult.sections(for: outcome), id: \.section.id) { entry in
                 HStack(alignment: .top) {
-                    Text(entry.section.name).font(.footnote).foregroundStyle(entry.written ? ThusoTheme.charcoal : ThusoTheme.studioInkMuted)
+                    Text(entry.section.name).font(.thuso(.footnote)).foregroundStyle(entry.written ? ThusoRole.foreground : ThusoRole.mutedForeground)
                     Spacer(minLength: 8)
                     Label(entry.written ? "Yes" : "Not reached", systemImage: entry.written ? "checkmark" : "lock")
-                        .font(.caption).foregroundStyle(entry.written ? ThusoTheme.charcoal : ThusoTheme.studioInkMuted)
+                        .font(.thuso(.caption)).foregroundStyle(entry.written ? ThusoRole.foreground : ThusoRole.mutedForeground)
                 }
             }
         }
         if outcome.countsAsConsultation {
-            Text(Teleconsult.rule("dropped-is-not-finished").sentence).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(Teleconsult.rule("dropped-is-not-finished").sentence).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             Button("Write it up in the consultation record") { openRecord = true }.buttonStyle(QuietButton())
         } else {
             refusalCard(Teleconsult.refusal("half-a-consultation"))
             Text("\(Teleconsult.rule("dropped-is-not-finished").sentence) There is no button on this screen that closes this encounter as a completed consultation, for anybody, in any state.")
-                .font(.caption).foregroundStyle(ThusoTheme.danger)
+                .font(.thuso(.caption)).foregroundStyle(ThusoRole.dangerInk)
                 .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, alignment: .leading)
-                .background(ThusoTheme.dangerSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+                .background(ThusoRole.dangerTint, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         }
-        Text("What this screen will not do").font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+        Text("What this screen will not do").font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
         ForEach(Teleconsult.refusals.filter { !["half-a-consultation", "charge-for-a-failure"].contains($0.id) }) { item in
             refusalCard(item)
         }
         Text("\(Teleconsult.rule("no-media-in-this-build").sentence) Nothing was transmitted, no encounter was written and no clinician was notified.")
-            .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
         Button("Start again") {
             stage = 0; refusedClinician = false; decisionReached = false; resumed = false; everDropped = false
             connectionId = "video"; code = ""; codeError = ""; identityConfirmed = false; withdrawnNote = nil
@@ -394,16 +394,16 @@ struct TeleconsultView: View {
             CareCard {
                 HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                     TileIcon(symbol: out ? "figure.walk.departure" : "person.fill",
-                             tint: out ? ThusoTheme.studioInkMuted : ThusoTheme.charcoal,
-                             background: out ? ThusoTheme.cloud : ThusoTheme.studioLime, size: 38)
+                             tint: out ? ThusoRole.mutedForeground : ThusoRole.foreground,
+                             background: out ? ThusoRole.muted : ThusoRole.highlight, size: 38)
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(displayName(person)).font(.subheadline.weight(.semibold))
-                            .foregroundStyle(out ? ThusoTheme.studioInkMuted : ThusoTheme.charcoal)
-                        Text(person.name).font(.caption2.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                        Text(person.place).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
-                        Text("Can see: \(person.sees)").font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
-                        Text("Can hear: \(person.hears)").font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
-                        if out { Text("Not in the room. \(person.ifDeclined ?? "")").font(.caption).foregroundStyle(ThusoTheme.studioInkMuted) }
+                        Text(displayName(person)).font(.thuso(.subheadline, weight: .semibold))
+                            .foregroundStyle(out ? ThusoRole.mutedForeground : ThusoRole.foreground)
+                        Text(person.name).font(.thuso(.caption2, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+                        Text(person.place).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
+                        Text("Can see: \(person.sees)").font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
+                        Text("Can hear: \(person.hears)").font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
+                        if out { Text("Not in the room. \(person.ifDeclined ?? "")").font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground) }
                     }
                 }
                 if canAsk && person.mayBeAskedToLeave && !out {
@@ -421,33 +421,33 @@ struct TeleconsultView: View {
     private func limitRow(_ limit: ClinicalLimit, allowed: Bool) -> some View {
         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             Image(systemName: allowed ? "checkmark.circle.fill" : "nosign")
-                .font(.subheadline).foregroundStyle(allowed ? ThusoTheme.charcoal : ThusoTheme.danger)
+                .font(.thuso(.subheadline)).foregroundStyle(allowed ? ThusoRole.foreground : ThusoRole.dangerInk)
             VStack(alignment: .leading, spacing: 3) {
-                Text(limit.name).font(.footnote.weight(.medium)).foregroundStyle(ThusoTheme.charcoal)
+                Text(limit.name).font(.thuso(.footnote, weight: .medium)).foregroundStyle(ThusoRole.foreground)
                 Text(limit.needs == "nurse" && !nursePresent
                      ? "Nobody is in the room to examine on the doctor’s behalf."
                      : limit.detail)
-                    .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
             }
         }
         .padding(ThusoSpacing.space12).frame(maxWidth: .infinity, alignment: .leading)
-        .background(allowed ? ThusoTheme.studioLilac : ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .background(allowed ? ThusoRole.surfaceRaised : ThusoRole.muted, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
     }
 
     private func refusalCard(_ item: CallRefusal) -> some View {
         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
-            Image(systemName: "nosign").font(.callout).foregroundStyle(ThusoTheme.danger)
-            Text(item.sentence).font(.caption).foregroundStyle(ThusoTheme.charcoal)
+            Image(systemName: "nosign").font(.thuso(.callout)).foregroundStyle(ThusoRole.dangerInk)
+            Text(item.sentence).font(.thuso(.caption)).foregroundStyle(ThusoRole.foreground)
         }
         .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .background(ThusoRole.muted, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
     }
 
     private func row(_ label: String, _ value: String) -> some View {
         HStack(alignment: .top) {
-            Text(label).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(label).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             Spacer(minLength: 8)
-            Text(value).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            Text(value).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                 .multilineTextAlignment(.trailing)
         }
     }

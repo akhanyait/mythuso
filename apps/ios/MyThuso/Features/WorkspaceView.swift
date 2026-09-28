@@ -367,11 +367,11 @@ struct WorkspaceSectionView: View {
                    one. Quiet, because it is true on every screen and a reader who has read it once
                    should not have to read past it to reach the work. */
                 Text("AI is decision support. An authorised clinician must sign off clinical decisions.")
-                    .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                    .font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                     .fixedSize(horizontal: false, vertical: true)
                 if landing {
                     Text("Design role preview, not authentication.")
-                        .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                        .font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 /* The way out, at full size, on every section.
@@ -649,7 +649,7 @@ struct WorkspaceSectionView: View {
             /* The sentence stays where the Form put it, because it is the truthful one: these rows
                are samples and nothing behind them is connected. */
             Text("Sample orders. No live partner API, dispensing or courier handover is connected.")
-                .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                .font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -715,7 +715,7 @@ struct WorkspaceSectionView: View {
             Button { available.toggle() } label: {
                 HStack(spacing: ThusoSpacing.space12) {
                     Image(systemName: available ? "figure.walk" : "moon.zzz")
-                        .font(.subheadline).foregroundStyle(DeckInk.sheetInk)
+                        .font(.thuso(.subheadline)).foregroundStyle(DeckInk.sheetInk)
                         .frame(width: 24).accessibilityHidden(true)
                     Text("Available for visits").thusoFont(ThusoType.body, weight: .medium)
                         .foregroundStyle(DeckInk.sheetInk)
@@ -725,8 +725,8 @@ struct WorkspaceSectionView: View {
                 }
                 .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space12)
                 .frame(maxWidth: .infinity, minHeight: 52)
-                .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoTheme.controlEdge, lineWidth: 1))
+                .background(ThusoRole.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoRole.inputEdge, lineWidth: 1))
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -818,12 +818,12 @@ struct QueueRow: View {
                 : AnyLayout(HStackLayout(alignment: .top, spacing: ThusoSpacing.space12))
             layout {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(reference).font(.footnote.weight(.semibold).monospaced())
+                    Text(reference).font(.thuso(.footnote, weight: .semibold).monospaced())
                         .foregroundStyle(DeckInk.sheetQuiet)
                     Text(subject).thusoFont(ThusoType.body, weight: .medium).foregroundStyle(DeckInk.sheetInk)
                         .fixedSize(horizontal: false, vertical: true)
                     if let note {
-                        Text(note).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                        Text(note).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -848,11 +848,11 @@ struct VisitRow: View {
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: ThusoSpacing.space8))
                 : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: ThusoSpacing.space16))
             layout {
-                Text(visit.time).font(.headline.monospacedDigit()).foregroundStyle(DeckInk.sheetInk)
+                Text(visit.time).font(.thuso(.headline).monospacedDigit()).foregroundStyle(DeckInk.sheetInk)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(visit.service).thusoFont(ThusoType.body, weight: .medium).foregroundStyle(DeckInk.sheetInk)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text("\(visit.id) · \(visit.area)").font(.footnote)
+                    Text("\(visit.id) · \(visit.area)").font(.thuso(.footnote))
                         .foregroundStyle(DeckInk.sheetQuiet)
                         .fixedSize(horizontal: false, vertical: true)
                 }

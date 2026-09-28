@@ -31,9 +31,9 @@ struct MomEssentialView: View {
                 CareHeading(eyebrow: say(journey.acting == .sponsor ? W.actingSponsor : W.actingParent), title: say(W.sponsorHeading), subtitle: W.previewNote)
                 if let state = journey.state {
                     CareCard(padding: ThusoSpacing.space16, spacing: ThusoSpacing.space8) {
-                        Text(state.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                        Text(state.name).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                         Text(say(journey.acting == .sponsor ? state.sponsorWords : state.parentWords))
-                            .font(.body).foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+                            .font(.thuso(.body)).foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
                     }
                     .accessibilityElement(children: .combine)
                     .accessibilityIdentifier("mom-essential-state")
@@ -62,15 +62,15 @@ struct MomEssentialView: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
             if let tier = MomEssential.tier {
                 CareCard(padding: ThusoSpacing.space16, spacing: ThusoSpacing.space8) {
-                    Text(MomEssential.planName).font(.headline).foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
-                    Text("\(Earnings.rand(tier.price)) / month").font(.callout.weight(.medium)).monospacedDigit().foregroundStyle(ThusoTheme.charcoal)
-                    Text(tier.cadence).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted).fixedSize(horizontal: false, vertical: true)
+                    Text(MomEssential.planName).font(.thuso(.headline)).foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
+                    Text("\(Earnings.rand(tier.price)) / month").font(.thuso(.callout, weight: .medium)).monospacedDigit().foregroundStyle(ThusoRole.foreground)
+                    Text(tier.cadence).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground).fixedSize(horizontal: false, vertical: true)
                     ForEach(tier.includes) { item in
                         HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
                             Text("•").accessibilityHidden(true)
                             Text(item.text).fixedSize(horizontal: false, vertical: true)
                         }
-                        .font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                        .font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                     }
                 }
             }
@@ -90,19 +90,19 @@ struct MomEssentialView: View {
 
     private var herAgreement: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
-            Text(say(W.parentHeading)).font(.headline).foregroundStyle(ThusoTheme.charcoal).accessibilityAddTraits(.isHeader)
-            Text(say(W.lineDetailLegend)).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            Text(say(W.parentHeading)).font(.thuso(.headline)).foregroundStyle(ThusoRole.foreground).accessibilityAddTraits(.isHeader)
+            Text(say(W.lineDetailLegend)).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
             ForEach(Programmes.lineDetailChoices) { choice in
                 choiceRow(title: choice.name, detail: choice.detail, selected: journey.lineDetail == choice.id) { journey.lineDetail = choice.id }
             }
             Toggle(isOn: $journey.shareSummaries) {
                 VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-                    Text(say(W.summariesLabel)).font(.subheadline.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
+                    Text(say(W.summariesLabel)).font(.thuso(.subheadline, weight: .semibold)).fixedSize(horizontal: false, vertical: true)
                     Text(say(W.summariesDetail, ["until": day(Calendar.current.date(byAdding: .day, value: MomEssentialData.summaryDays, to: Date()) ?? Date())]))
-                        .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted).fixedSize(horizontal: false, vertical: true)
+                        .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground).fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .tint(ThusoTheme.charcoal)
+            .tint(ThusoRole.foreground)
             .frame(minHeight: 44)
             action(say(W.agree), prominent: true) { refused = journey.agree() }
             action(say(W.backToSponsor)) { switchTo(.sponsor) }
@@ -114,7 +114,7 @@ struct MomEssentialView: View {
             CapabilityNotice(of: "payments")
             action(W.pay, prominent: true) { journey.pay() }
             if journey.paymentTried { ruled(W.nothingCharged).accessibilityIdentifier("mom-essential-nothing-charged") }
-            Text(say(W.view)).font(.headline).foregroundStyle(ThusoTheme.charcoal).accessibilityAddTraits(.isHeader)
+            Text(say(W.view)).font(.thuso(.headline)).foregroundStyle(ThusoRole.foreground).accessibilityAddTraits(.isHeader)
             muted(journey.sharedUntil.map { say(W.summariesShared, ["until": day($0)]) } ?? say(W.summariesNone))
             listed(W.seesHeading, MomEssentialData.sponsorSees)
             listed(W.neverSeesHeading, Programmes.sponsorNeverSees.map(\.what))
@@ -125,8 +125,8 @@ struct MomEssentialView: View {
 
     private var herMedicine: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
-            Text(W.medicineHeading).font(.headline).foregroundStyle(ThusoTheme.charcoal).accessibilityAddTraits(.isHeader)
-            Text(say(W.medicine)).font(.body).foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+            Text(W.medicineHeading).font(.thuso(.headline)).foregroundStyle(ThusoRole.foreground).accessibilityAddTraits(.isHeader)
+            Text(say(W.medicine)).font(.thuso(.body)).foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
             muted(W.delegate)
             CapabilityNotice(of: "medicine-collection")
             action(say(W.backToSponsor)) { switchTo(.sponsor) }
@@ -138,12 +138,12 @@ struct MomEssentialView: View {
     private func action(_ title: String, prominent: Bool = false, perform: @escaping () -> Void) -> some View {
         let shape = RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous)
         return Button(action: perform) {
-            Text(title).font(.body.weight(.semibold)).multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
-                .foregroundStyle(prominent ? ThusoTheme.surface : ThusoTheme.charcoal)
+            Text(title).font(.thuso(.body, weight: .semibold)).multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
+                .foregroundStyle(prominent ? ThusoRole.surface : ThusoRole.foreground)
                 .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space12)
                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                .background(prominent ? ThusoTheme.charcoal : ThusoTheme.surface, in: shape)
-                .overlay(shape.stroke(ThusoTheme.charcoal, lineWidth: 1))
+                .background(prominent ? ThusoRole.foreground : ThusoRole.surface, in: shape)
+                .overlay(shape.stroke(ThusoRole.foreground, lineWidth: 1))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -153,14 +153,14 @@ struct MomEssentialView: View {
         let shape = RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous)
         return Button(action: choose) {
             VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-                Text(title).font(.subheadline.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
-                Text(detail).font(.footnote).foregroundStyle(selected ? ThusoTheme.charcoal : ThusoTheme.studioInkMuted).fixedSize(horizontal: false, vertical: true)
+                Text(title).font(.thuso(.subheadline, weight: .semibold)).fixedSize(horizontal: false, vertical: true)
+                Text(detail).font(.thuso(.footnote)).foregroundStyle(selected ? ThusoRole.foreground : ThusoRole.mutedForeground).fixedSize(horizontal: false, vertical: true)
             }
-            .foregroundStyle(ThusoTheme.charcoal)
+            .foregroundStyle(ThusoRole.foreground)
             .padding(ThusoSpacing.space12)
             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            .background(selected ? ThusoTheme.studioLilac : ThusoTheme.surface, in: shape)
-            .overlay(shape.stroke(selected ? ThusoTheme.charcoal : ThusoTheme.studioLine, lineWidth: 1))
+            .background(selected ? ThusoRole.surfaceRaised : ThusoRole.surface, in: shape)
+            .overlay(shape.stroke(selected ? ThusoRole.foreground : ThusoRole.border, lineWidth: 1))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -170,20 +170,20 @@ struct MomEssentialView: View {
 
     private func listed(_ heading: String, _ items: [String]) -> some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-            Text(heading).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal).accessibilityAddTraits(.isHeader)
+            Text(heading).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground).accessibilityAddTraits(.isHeader)
             ForEach(items, id: \.self) { item in
-                Text(item).font(.subheadline).foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+                Text(item).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
             }
         }
     }
 
     private func ruled(_ text: String) -> some View {
-        Text(text).font(.subheadline).foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+        Text(text).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
             .padding(.leading, ThusoSpacing.space12)
-            .overlay(alignment: .leading) { Rectangle().fill(ThusoTheme.charcoal).frame(width: 2) }
+            .overlay(alignment: .leading) { Rectangle().fill(ThusoRole.foreground).frame(width: 2) }
     }
 
     private func muted(_ text: String) -> some View {
-        Text(text).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted).fixedSize(horizontal: false, vertical: true)
+        Text(text).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground).fixedSize(horizontal: false, vertical: true)
     }
 }

@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import za.co.mythuso.model.*
+import za.co.mythuso.ui.components.*
 
 /* The hand-over of a sealed medicine bag at a patient's door, as the nurse who holds it.
  *
@@ -123,13 +124,13 @@ class MedicinesHandoverDesk {
 
         /* Quiet ground, a phone symbol and the word synthetic in its first line: it is somebody else's screen
            standing in this one, and it must not read as part of the collector's. */
-        TonedCard(background = Cloud) {
+        TonedCard {
             Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.PhoneAndroid, null, tint = Charcoal, modifier = Modifier.size(18.dp))
-                    Text("The patient's phone · synthetic, in this preview", style = MaterialTheme.typography.labelLarge, color = Charcoal)
+                    Icon(Icons.Outlined.PhoneAndroid, null, tint = theme.foreground, modifier = Modifier.size(18.dp))
+                    Text("The patient's phone · synthetic, in this preview", style = MaterialTheme.typography.labelLarge, color = theme.foreground)
                 }
-                desk.patientPin?.let { Text(it, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold, color = Charcoal) }
+                desk.patientPin?.let { Text(it, style = ThusoMetricStyle, color = theme.foreground) }
                 Note(
                     if (desk.patientPin == null) "Shown once, and gone now. A synthetic patient, on this device so the hand-over can be walked."
                     else "A synthetic patient, on this device so the hand-over can be walked. Shown once: it goes the moment a PIN is entered, and a real collector never sees it."
@@ -138,16 +139,16 @@ class MedicinesHandoverDesk {
         }
 
         CareCard {
-            Text(Medicines.label(MedicinesData.custodyStates, desk.state), style = MaterialTheme.typography.labelMedium, color = Faint)
+            ThusoBadge(Medicines.label(MedicinesData.custodyStates, desk.state), variant = if (desk.state == "voided") ThusoBadgeVariant.Danger else ThusoBadgeVariant.Primary)
             Text(
                 listOfNotNull(Medicines.schedule(desk.prescription.scheduleCode)?.name, desk.prescription.sealRef).joinToString(" · "),
-                style = MaterialTheme.typography.titleLarge, color = Charcoal
+                style = MaterialTheme.typography.titleLarge, color = theme.foreground
             )
             Medicines.voidedBy(desk.attempts, desk.authorisation)?.let {
-                Text(Medicines.label(MedicinesData.voidReasons, it), style = MaterialTheme.typography.labelMedium, color = Danger)
+                Text(Medicines.label(MedicinesData.voidReasons, it), style = MaterialTheme.typography.labelMedium, color = theme.dangerInk)
             }
             if (desk.collection == null) {
-                StudioButton(onClick = { desk.collect() }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(text.collect) }
+                ThusoButton(text.collect, onClick = { desk.collect() }, modifier = Modifier.fillMaxWidth())
                 desk.refusal?.let { MedicinesRefusalLine(it) }
             }
         }
@@ -156,20 +157,20 @@ class MedicinesHandoverDesk {
             CareCard {
                 SealChoice(text.sealIntact, sealIntact == true) { sealIntact = true }
                 SealChoice(text.sealBroken, sealIntact == false) { sealIntact = false }
-                Text(text.pin, style = MaterialTheme.typography.titleMedium, color = Charcoal)
+                Text(text.pin, style = MaterialTheme.typography.titleMedium, color = theme.foreground)
                 CodeBoxes(pin, { pin = it }, length = MedicinesData.pinDigits, invalid = desk.refusal != null, label = text.pin)
                 if (desk.state == "collected") Note(Medicines.fill(text.attemptsLeft, mapOf("left" to desk.attemptsLeft.toString())))
                 desk.refusal?.let { MedicinesRefusalLine(it) }
             }
-            StudioButton(
-                onClick = { sealIntact?.let { desk.handOver(pin, it) }; pin = "" },
+            ThusoButton(
+                text.handOver, onClick = { sealIntact?.let { desk.handOver(pin, it) }; pin = "" },
                 enabled = pin.length == MedicinesData.pinDigits && sealIntact != null,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
-            ) { Text(text.handOver) }
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
         if (desk.handedOver) {
-            CareCard { Text(text.handedOver, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = Charcoal) }
+            ThusoAlert(text.handedOver, variant = ThusoAlertVariant.Success)
         }
     }
 }
@@ -181,7 +182,7 @@ class MedicinesHandoverDesk {
         horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)
     ) {
         RadioButton(selected = selected, onClick = null)
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = theme.foreground)
     }
 }
 
@@ -192,7 +193,7 @@ class MedicinesHandoverDesk {
         Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
         horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8), verticalAlignment = Alignment.Top
     ) {
-        Icon(Icons.Outlined.Block, null, tint = Danger, modifier = Modifier.size(18.dp))
-        Text(refusal.statement, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Charcoal)
+        Icon(Icons.Outlined.Block, null, tint = theme.dangerInk, modifier = Modifier.size(18.dp))
+        Text(refusal.statement, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = theme.foreground)
     }
 }

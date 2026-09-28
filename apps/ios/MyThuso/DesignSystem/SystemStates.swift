@@ -20,10 +20,10 @@ struct SkeletonRows: View {
             ForEach(0..<rows, id: \.self) { index in
                 HStack(spacing: ThusoSpacing.space12) {
                     RoundedRectangle(cornerRadius: ThusoRadius.tile, style: .continuous)
-                        .fill(ThusoTheme.cloud).frame(width: 40, height: 40)
+                        .fill(ThusoRole.muted).frame(width: 40, height: 40)
                     VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-                        Capsule().fill(ThusoTheme.cloud).frame(width: 190 - CGFloat(index) * 26, height: 9)
-                        Capsule().fill(ThusoTheme.cloud.opacity(0.7)).frame(width: 120 - CGFloat(index) * 18, height: 9)
+                        Capsule().fill(ThusoRole.muted).frame(width: 190 - CGFloat(index) * 26, height: 9)
+                        Capsule().fill(ThusoRole.muted.opacity(0.7)).frame(width: 120 - CGFloat(index) * 18, height: 9)
                     }
                     Spacer(minLength: 0)
                 }
@@ -90,8 +90,8 @@ struct StateBlock<Content: View>: View {
                 }
             }
             .padding(.vertical, ThusoSpacing.space8)
-            .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoTheme.studioLine, lineWidth: 1))
+            .background(ThusoRole.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoRole.border, lineWidth: 1))
         }
     }
 }
@@ -104,7 +104,7 @@ struct StatePicker: View {
     var body: some View {
         DisclosureGroup(isExpanded: $open) {
             VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-                Text(title).font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(title).font(.thuso(.caption2)).foregroundStyle(ThusoRole.mutedForeground)
                 Picker(title, selection: $state) { ForEach(LoadState.allCases) { Text($0.rawValue).tag($0) } }
                     .pickerStyle(.segmented).labelsHidden()
             }.padding(.top, ThusoSpacing.space8)
@@ -114,7 +114,7 @@ struct StatePicker: View {
                state a reviewer opened the screen to see. The frame is on the label rather than on
                the group, because the group's frame is the whole expanded panel. */
             HStack(spacing: ThusoSpacing.space8) {
-                Text("Preview states").font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text("Preview states").font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.mutedForeground)
                 if state != .ready { StatusPill(text: state.rawValue, tone: "amber") }
                 Spacer(minLength: 0)
             }
@@ -122,9 +122,9 @@ struct StatePicker: View {
             .contentShape(Rectangle())
         }
         .padding(ThusoSpacing.space12)
-        .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .background(ThusoRole.muted, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous)
-            .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3])).foregroundStyle(ThusoTheme.studioLine))
+            .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3])).foregroundStyle(ThusoRole.border))
     }
 }
 
@@ -140,8 +140,8 @@ struct EmptyStateCard: View {
             Text(message)
         }
         .padding(.vertical, ThusoSpacing.space8)
-        .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoTheme.studioLine, lineWidth: 1))
+        .background(ThusoRole.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoRole.border, lineWidth: 1))
     }
 }
 
@@ -168,15 +168,15 @@ struct CapabilityNotice: View {
     var body: some View {
         if let notice = Capabilities.notice(for: of) {
             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-                Image(systemName: "info.circle").font(.footnote)
-                    .foregroundStyle(onNight ? ThusoTheme.surface : ThusoTheme.charcoal)
+                Image(systemName: "info.circle").font(.thuso(.footnote))
+                    .foregroundStyle(onNight ? ThusoRole.onNight : ThusoRole.foreground)
                     .accessibilityHidden(true)
-                Text(notice).font(.footnote).foregroundStyle(onNight ? ThusoTheme.surface : ThusoTheme.charcoal)
+                Text(notice).font(.thuso(.footnote)).foregroundStyle(onNight ? ThusoRole.onNight : ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(ThusoSpacing.space12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(onNight ? ThusoTheme.surface.opacity(0.08) : ThusoTheme.cloud,
+            .background(onNight ? ThusoRole.onNight.opacity(0.08) : ThusoRole.muted,
                         in: RoundedRectangle(cornerRadius: onNight ? ThusoRadius.control : ThusoRadius.panel, style: .continuous))
             /* A note rather than a status: it is true when the screen opens and does not change, so
                announcing it as a live update would interrupt a reader mid-sentence for old news. */

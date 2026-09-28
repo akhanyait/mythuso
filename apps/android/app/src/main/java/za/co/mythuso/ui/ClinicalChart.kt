@@ -19,6 +19,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import kotlin.math.max
+import za.co.mythuso.ui.components.ThusoButton
+import za.co.mythuso.ui.components.ThusoButtonVariant
 import kotlin.math.min
 
 data class Reading(val label: String, val value: Double, val note: String = "—")
@@ -52,8 +54,11 @@ data class Reading(val label: String, val value: Double, val note: String = "—
         )
         Text(
             if (delta == 0.0) "No change" else "${if (delta > 0) "+" else ""}${format(delta)} since ${first.label}",
-            style = MaterialTheme.typography.bodySmall, color = StudioInkMuted
+            style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground
         )
+        /* The band is the success tint and the line the foreground, read here where the palette in
+           force can be asked; a draw lambda cannot ask it. */
+        val band = theme.success.tint(0.15f); val line = theme.foreground; val ground = theme.surface
         Canvas(Modifier.fillMaxWidth().height(74.dp).studioVisibility { plotVisible = it }
             .semantics { contentDescription = summary }) {
             val values = readings.map { it.value }
@@ -66,38 +71,34 @@ data class Reading(val label: String, val value: Double, val note: String = "—
             fun y(value: Double) = size.height - size.height * ((value - minimum) / (maximum - minimum)).toFloat()
             if (normal != null) {
                 val top = y(normal.endInclusive)
-                drawRect(PaleSage, Offset(0f, top), Size(size.width, max(y(normal.start) - top, 1f)))
+                drawRect(band, Offset(0f, top), Size(size.width, max(y(normal.start) - top, 1f)))
             }
             val path = Path()
             readings.forEachIndexed { index, reading ->
                 if (index == 0) path.moveTo(x(index), y(reading.value)) else path.lineTo(x(index), y(reading.value))
             }
             clipRect(left = -8f, top = -8f, right = (size.width + 8f) * reveal.value, bottom = size.height + 8f) {
-            drawPath(path, Charcoal, style = Stroke(width = 3f))
+            drawPath(path, line, style = Stroke(width = 3f))
             readings.forEachIndexed { index, reading ->
                 val last = index == readings.lastIndex
-                drawCircle(if (last) SurfaceWhite else Charcoal, if (last) 7f else 4f, Offset(x(index), y(reading.value)))
-                if (last) drawCircle(Charcoal, 7f, Offset(x(index), y(reading.value)), style = Stroke(width = 3f))
+                drawCircle(if (last) ground else line, if (last) 7f else 4f, Offset(x(index), y(reading.value)))
+                if (last) drawCircle(line, 7f, Offset(x(index), y(reading.value)), style = Stroke(width = 3f))
             }
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Note(first.label); Note(latest.label)
         }
-        TextButton(onClick = { showTable = !showTable }, shape = ThusoButtonShape) {
-            Icon(Icons.Outlined.TableChart, null, tint = Charcoal)
-            Spacer(Modifier.width(8.dp))
-            Text(if (showTable) "Hide readings" else "Show readings as a table")
-        }
+        ThusoButton(if (showTable) "Hide readings" else "Show readings as a table", onClick = { showTable = !showTable }, variant = ThusoButtonVariant.Ghost, leadingIcon = Icons.Outlined.TableChart)
         if (showTable) {
             Column {
                 readings.forEach { reading ->
                     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                         Text(reading.label, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
                         Text("${format(reading.value)} $unit", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                        Text(reading.note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                        Text(reading.note, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground, modifier = Modifier.weight(1f))
                     }
-                    HorizontalDivider()
+                    HorizontalDivider(color = theme.border)
                 }
                 Spacer(Modifier.height(8.dp))
                 Note("Fictional data, not a medical record.")

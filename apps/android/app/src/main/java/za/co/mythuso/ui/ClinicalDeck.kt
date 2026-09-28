@@ -894,14 +894,16 @@ sealed interface DeckWord {
         verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)
     ) {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
+            /* On the palette in force since the identity, so a section head inside a restyled screen
+               reads on the dark ground too. */
             Text(
                 title.uppercase(), style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.2.sp),
-                fontWeight = FontWeight.SemiBold, color = DeckInk.sheetQuiet, modifier = Modifier.weight(1f)
+                fontWeight = FontWeight.SemiBold, color = theme.mutedForeground, modifier = Modifier.weight(1f)
             )
-            if (count != null) Text(count, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = DeckInk.sheetInk)
+            if (count != null) Text(count, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = theme.foreground)
         }
-        Box(Modifier.fillMaxWidth().height(1.dp).background(DeckInk.sheetLine))
-        if (note.isNotEmpty()) Text(note, style = MaterialTheme.typography.bodySmall, color = DeckInk.sheetQuiet)
+        Box(Modifier.fillMaxWidth().height(1.dp).background(theme.border))
+        if (note.isNotEmpty()) Text(note, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
     }
 }
 

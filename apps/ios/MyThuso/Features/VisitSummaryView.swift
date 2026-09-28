@@ -45,7 +45,7 @@ struct PastVisitView: View {
                 careTipsDoor
                 actions
                 Text("A completed visit is not edited from here. If something on it is wrong, ask for a correction under Privacy & settings and the change is recorded beside the original rather than instead of it.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.75))
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground.opacity(0.75))
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.vertical, ThusoSpacing.space16)
@@ -60,11 +60,11 @@ struct PastVisitView: View {
     private var head: some View {
         SurfacePanel(spacing: ThusoSpacing.space16) {
             HStack(alignment: .top, spacing: ThusoSpacing.space12) {
-                TileIcon(symbol: service.symbol, tint: ThusoTheme.charcoal, background: ThusoTheme.studioLime, size: 44)
+                TileIcon(symbol: service.symbol, tint: ThusoRole.foreground, background: ThusoRole.highlight, size: 44)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(service.name).thusoFont(ThusoType.cardTitle, weight: .semibold)
-                        .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
-                    Text("\(person) · \(address)").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
+                    Text("\(person) · \(address)").font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: ThusoSpacing.space8)
@@ -87,9 +87,9 @@ struct PastVisitView: View {
         HStack(spacing: ThusoSpacing.space12) {
             Monogram(text: Arrival.nurse.initials)
             VStack(alignment: .leading, spacing: 2) {
-                Text(Passport.nurse.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(Passport.nurse.name).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(Passport.nurse.role).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(Passport.nurse.role).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
@@ -118,7 +118,7 @@ struct PastVisitView: View {
             Text(outside.isEmpty
                  ? "Every reading taken at this visit sits inside its indicative reference range. The ranges are in the table below."
                  : "\(outside.map(\.label).joined(separator: " and ")) sat outside the indicative range at this visit. A reading outside a range is something to look at, not a diagnosis.")
-                .font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
             if let note = readings.note {
                 Hairline()
@@ -132,7 +132,7 @@ struct PastVisitView: View {
     @ViewBuilder private func rangePanel(_ readings: ReadingSet) -> some View {
         SurfacePanel {
             Text("Every reading taken on \(Scheduling.longDate(readings.date)), with the indicative range it is judged against.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
             RangeTable(rows: measures.map { observation in
                 let value = readings.values[observation.id]!
@@ -148,10 +148,10 @@ struct PastVisitView: View {
     private var nothingFiled: some View {
         SurfacePanel {
             Text("No readings were filed for this visit")
-                .thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoTheme.charcoal)
+                .thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
             Text("Nothing was recorded against it, and the record does not fill that in afterwards. If you think something was measured, the nurse who came is the person to ask.")
-                .font(.subheadline).foregroundStyle(ThusoTheme.charcoal.opacity(0.75))
+                .font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground.opacity(0.75))
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -175,9 +175,9 @@ struct PastVisitView: View {
        word here is CareTipsData's, generated from packages/catalog/care-tips.json. */
     private var careTipsDoor: some View {
         SurfacePanel(tone: .quiet, spacing: ThusoSpacing.space12) {
-            Text(CareTipsData.Door.heading).font(.headline).foregroundStyle(ThusoTheme.charcoal)
+            Text(CareTipsData.Door.heading).font(.thuso(.headline)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.isHeader)
-            Text(CareTipsData.Door.detail).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+            Text(CareTipsData.Door.detail).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
             NavigationLink { CareTipsView() } label: {
                 Label(CareTipsData.Door.action, systemImage: "lightbulb").frame(maxWidth: .infinity)
@@ -226,12 +226,12 @@ struct RangeTable: View {
             VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
                 ForEach(rows) { row in
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(row.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                        Text(row.name).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                             .fixedSize(horizontal: false, vertical: true)
-                        Text(row.value).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                        Text(row.value).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityLabel("\(columns.1): \(row.value)")
-                        Text("\(columns.2) \(rangeText(row))").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        Text("\(columns.2) \(rangeText(row))").font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -246,16 +246,16 @@ struct RangeTable: View {
                     Text(columns.1)
                     Text(columns.2)
                 }
-                .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.mutedForeground)
                 .accessibilityHidden(true)
                 ForEach(rows) { row in
-                    Divider().overlay(ThusoTheme.studioLine).gridCellColumns(3)
+                    Divider().overlay(ThusoRole.border).gridCellColumns(3)
                     GridRow {
-                        Text(row.name).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                        Text(row.name).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                             .fixedSize(horizontal: false, vertical: true)
-                        Text(row.value).font(.footnote.monospacedDigit()).foregroundStyle(ThusoTheme.charcoal)
+                        Text(row.value).font(.thuso(.footnote).monospacedDigit()).foregroundStyle(ThusoRole.foreground)
                             .fixedSize(horizontal: false, vertical: true)
-                        Text(rangeText(row)).font(.footnote.monospacedDigit()).foregroundStyle(ThusoTheme.charcoal)
+                        Text(rangeText(row)).font(.thuso(.footnote).monospacedDigit()).foregroundStyle(ThusoRole.foreground)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .accessibilityElement(children: .combine)

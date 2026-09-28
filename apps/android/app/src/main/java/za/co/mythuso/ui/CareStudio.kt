@@ -162,8 +162,10 @@ val StudioNightInkQuiet = StudioPaper.copy(alpha = 0.78f)
    remembering. IconLine, NurseRow and the visit card's own header are drawn on white on five screens
    and on the night card on one; passing a colour down through all of them would have been a
    parameter nobody sets correctly the second time. */
-@Composable fun studioTitleInk(): Color = if (LocalOnStudioNight.current) StudioNightInk else Charcoal
-@Composable fun studioBodyInk(): Color = if (LocalOnStudioNight.current) StudioNightInkQuiet else StudioInkMuted
+/* Off the night card the two inks are the palette's, so a row drawn on the identity reads on the dark
+   ground too — the nurse's name on the home was charcoal on the dark surface until the emulator said so. */
+@Composable fun studioTitleInk(): Color = if (LocalOnStudioNight.current) StudioNightInk else theme.foreground
+@Composable fun studioBodyInk(): Color = if (LocalOnStudioNight.current) StudioNightInkQuiet else theme.mutedForeground
 
 /* The visit card's header on the night ground. StatusHeader's own reasoning is unchanged — the chip
    goes above the title past a 1.3 font scale, because a pill and a title cannot both have the width

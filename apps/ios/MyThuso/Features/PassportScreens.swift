@@ -67,7 +67,7 @@ struct HealthTrendsView: View {
                 CareSectionHeader("The ranges these are judged against")
                 SurfacePanel {
                     Text("Indicative reference ranges. They are a guide for a healthy adult and are not a validated early-warning score; your own doctor may work to different numbers for you.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                     RangeTable(rows: Observation.all.map { observation in
                         let value = latest.values[observation.id]
@@ -80,7 +80,7 @@ struct HealthTrendsView: View {
                     }, columns: ("Reading", "Your last", "Indicative range"), thirdSpoken: "indicative range")
                 }
                 Text("Nothing on this screen interprets a reading for you. What a number means for a particular person is a clinical judgement, and MyThuso does not make one.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.75))
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground.opacity(0.75))
                     .fixedSize(horizontal: false, vertical: true)
                 NavigationLink { ServicesView() } label: {
                     Text("Book a visit to have these taken again").frame(maxWidth: .infinity)
@@ -148,13 +148,13 @@ struct DevicePermissionView: View {
     private var head: some View {
         SurfacePanel {
             HStack(alignment: .top, spacing: ThusoSpacing.space12) {
-                TileIcon(symbol: integration.symbol, tint: ThusoTheme.charcoal,
-                         background: ThusoTheme.studioLime, size: 44)
+                TileIcon(symbol: integration.symbol, tint: ThusoRole.foreground,
+                         background: ThusoRole.highlight, size: 44)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(integration.name).thusoFont(ThusoType.cardTitle, weight: .semibold)
-                        .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
-                    Text("Readings from \(integration.platform)").font(.footnote)
-                        .foregroundStyle(ThusoTheme.studioInkMuted).fixedSize(horizontal: false, vertical: true)
+                        .foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
+                    Text("Readings from \(integration.platform)").font(.thuso(.footnote))
+                        .foregroundStyle(ThusoRole.mutedForeground).fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: ThusoSpacing.space8)
                 MetricChip(text: "Not connected", flagged: true)
@@ -170,14 +170,14 @@ struct DevicePermissionView: View {
         CareSectionHeader("What would be read")
         SurfacePanel {
             Text("Every reading type MyThuso would ask \(integration.name) for, and nothing else. It asks for these because they are what a visit records; a category it has nowhere to file is a category it does not request.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
             RangeTable(rows: Passport.readable.map { observation in
                 RangeTable.Row(name: observation.label, value: observation.unit,
                                range: Passport.rangeText(observation))
             }, columns: ("Reading", "Recorded in", "Judged against"), thirdSpoken: "judged against")
         }
-        Text(integration.sheet).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.75))
+        Text(integration.sheet).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground.opacity(0.75))
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -211,7 +211,7 @@ struct DevicePermissionView: View {
         CareSectionHeader("The instruments in the kit")
         SurfacePanel {
             Text("What a nurse carries, what each instrument measures, and how often it has to be calibrated. An instrument out of calibration still produces a reading; what it stops producing is one anybody should act on without saying so.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
             RangeTable(rows: Passport.kitInstruments.map { instrument in
                 RangeTable.Row(name: instrument.name,
@@ -223,7 +223,7 @@ struct DevicePermissionView: View {
 
     @ViewBuilder private var withdrawing: some View {
         CareSectionHeader("Turning it off again")
-        Text(integration.withdraw).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+        Text(integration.withdraw).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -234,10 +234,10 @@ struct DevicePermissionView: View {
         SurfacePanel(tone: .quiet) {
             Label {
                 Text("\(Capabilities.blocking("devices").joined(separator: " ")) Until that changes there is nothing to connect to, so there is no button here pretending otherwise.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
             } icon: {
-                Image(systemName: "lock.shield").foregroundStyle(ThusoTheme.charcoal)
+                Image(systemName: "lock.shield").foregroundStyle(ThusoRole.foreground)
             }
             .accessibilityElement(children: .combine)
         }

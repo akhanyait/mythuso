@@ -24,10 +24,10 @@ struct KitHealthSection: View {
                     .accessibilityIdentifier("device-health-\(device.serial)")
             }
             Label(Devices.RuleText.calibrationNeverRefuses, systemImage: "exclamationmark.circle")
-                .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                .font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                 .fixedSize(horizontal: false, vertical: true)
             Label(Devices.RuleText.preview, systemImage: "antenna.radiowaves.left.and.right.slash")
-                .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                .font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -46,8 +46,8 @@ struct KitHealthSection: View {
         HStack(spacing: ThusoSpacing.space12) {
             TileIcon(symbol: device.instrumentKind.flatMap(ThusoKit.device)?.symbol ?? "sensor")
             VStack(alignment: .leading, spacing: 3) {
-                Text(device.model).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
-                Text(device.serial).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                Text(device.model).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
+                Text(device.serial).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
             }
             Spacer(minLength: 6)
             StatusPill(text: Devices.label(Devices.healthStates, state), tone: stateTone(state))
@@ -58,27 +58,27 @@ struct KitHealthSection: View {
                 Label(Devices.fill(Devices.NurseText.recalledFrom, ["when": captureStamp(recall.effectiveFrom),
                                                                      "reason": Devices.label(Devices.recallReasons, recall.reasonCode)]),
                       systemImage: "xmark.shield")
-                    .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.danger)
-                Text(Devices.NurseText.doNotUse).font(.footnote).foregroundStyle(DeckInk.sheetInk)
+                    .font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.dangerInk)
+                Text(Devices.NurseText.doNotUse).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetInk)
             }
             .fixedSize(horizontal: false, vertical: true)
             .padding(ThusoSpacing.space8)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(ThusoTheme.dangerSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+            .background(ThusoRole.dangerTint, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
             .accessibilityElement(children: .combine)
         }
         VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
             Text(device.lastSyncAt.map { Devices.fill(Devices.NurseText.lastSync, ["when": captureStamp($0)]) } ?? Devices.NurseText.neverSynced)
-                .font(.footnote).foregroundStyle(DeckInk.sheetInk)
+                .font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetInk)
             if Devices.isStale(device, now: now) {
                 Text(Devices.fill(Devices.NurseText.staleSince, ["interval": Devices.intervalText(minutes: Devices.staleAfterMinutes)]))
-                    .font(.footnote).foregroundStyle(ThusoTheme.mangoInk)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.warningInk)
             }
         }
         .fixedSize(horizontal: false, vertical: true)
         HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
             StatusPill(text: Devices.label(Devices.calibrationStates, calibration.stateId), tone: calibrationTone(calibration.stateId))
-            Text(calibrationSentence(calibration)).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+            Text(calibrationSentence(calibration)).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }
@@ -110,7 +110,7 @@ struct DeviceReadingFacts: View {
         let carries = Devices.carriesWeight(reading)
         VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-                Text(Devices.measureLabel(reading.metric)).font(.footnote.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+                Text(Devices.measureLabel(reading.metric)).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
                 Spacer(minLength: 8)
                 Text(captureStamp(reading.takenAt)).thusoFont(ThusoType.caption).foregroundStyle(DeckInk.sheetQuiet)
             }
@@ -120,7 +120,7 @@ struct DeviceReadingFacts: View {
             ForEach(reading.marks, id: \.self) { id in
                 if let mark = Devices.mark(id) {
                     Label { Text("\(Text(mark.label).fontWeight(.semibold)). \(mark.sentence)") } icon: { Image(systemName: "exclamationmark.circle") }
-                        .thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.mangoInk)
+                        .thusoFont(ThusoType.caption).foregroundStyle(ThusoRole.warningInk)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -166,7 +166,7 @@ struct WearableLinkRequestView: View {
                 DemoBadge()
                 CapabilityNotice(of: "wearables")
                 if let platform { content(platform) } else {
-                    Text(Devices.refusal("platform-not-declared").statement).font(.subheadline).foregroundStyle(ThusoTheme.danger)
+                    Text(Devices.refusal("platform-not-declared").statement).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.dangerInk)
                 }
             }
             .padding(.vertical, ThusoSpacing.space16)
@@ -186,8 +186,8 @@ struct WearableLinkRequestView: View {
                 HStack(spacing: ThusoSpacing.space12) {
                     TileIcon(symbol: "applewatch", size: 40)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(platform.name).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoTheme.charcoal)
-                        Text(platform.phone).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        Text(platform.name).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoRole.foreground)
+                        Text(platform.phone).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     }
                     Spacer(minLength: ThusoSpacing.space8)
                     StatusPill(text: Devices.WearableText.stateLabel, tone: "amber")
@@ -197,16 +197,16 @@ struct WearableLinkRequestView: View {
             }
         }
         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-            Text(Devices.WearableText.notConnected).font(.subheadline.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
-            Text(Devices.WearableText.why).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
-            Text(Devices.WearableText.notInThisBuild).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(Devices.WearableText.notConnected).font(.thuso(.subheadline, weight: .bold)).foregroundStyle(ThusoRole.foreground)
+            Text(Devices.WearableText.why).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
+            Text(Devices.WearableText.notInThisBuild).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
         }
         .fixedSize(horizontal: false, vertical: true)
         if let open {
             SurfacePanel {
                 PanelHead(Devices.WearableText.scopeHeading)
                 ForEach(open.metrics, id: \.self) { metric in
-                    Label(Devices.measureLabel(metric), systemImage: "checkmark").font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                    Label(Devices.measureLabel(metric), systemImage: "checkmark").font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                 }
                 Button(Devices.WearableText.withdraw) { refused = store.withdraw(platform: platform.id) }
                     .buttonStyle(QuietButton())
@@ -218,16 +218,16 @@ struct WearableLinkRequestView: View {
                     Toggle(Devices.measureLabel(measure.id), isOn: Binding(
                         get: { chosen.contains(measure.id) },
                         set: { if $0 { chosen.insert(measure.id) } else { chosen.remove(measure.id) } }))
-                        .font(.subheadline).frame(minHeight: 44)
+                        .font(.thuso(.subheadline)).frame(minHeight: 44)
                 }
             }
             SurfacePanel {
                 PanelHead(Devices.WearableText.consentHeading)
                 Toggle(isOn: $agreed) {
-                    Text(Devices.WearableText.consentName).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                    Text(Devices.WearableText.consentName).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                Text(Devices.WearableText.consentWithdrawal).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(Devices.WearableText.consentWithdrawal).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Button(Devices.WearableText.request) {
@@ -238,11 +238,11 @@ struct WearableLinkRequestView: View {
             .disabled(!agreed || chosen.isEmpty)
         }
         if open == nil, last?.withdrawnAt != nil {
-            Text(Devices.WearableText.withdrawn).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+            Text(Devices.WearableText.withdrawn).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
         }
         if let refused {
-            Label(refused.statement, systemImage: "hand.raised").font(.footnote.weight(.medium)).foregroundStyle(ThusoTheme.danger)
+            Label(refused.statement, systemImage: "hand.raised").font(.thuso(.footnote, weight: .medium)).foregroundStyle(ThusoRole.dangerInk)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

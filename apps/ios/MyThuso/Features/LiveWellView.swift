@@ -50,15 +50,15 @@ struct LiveWellView: View {
                     VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
                         MoonArtwork().frame(width: 130, height: 130).frame(maxWidth: .infinity)
                         Text(framing.lead).thusoFont(ThusoType.caption, weight: .semibold).tracking(1.2)
-                            .foregroundStyle(ThusoTheme.studioInkMuted)
-                        Text(framing.accent).font(.largeTitle.weight(.semibold)).tracking(-1)
-                            .foregroundStyle(ThusoTheme.studioInkDeep).fixedSize(horizontal: false, vertical: true)
-                        Text(WellbeingData.statement).font(.subheadline)
-                            .foregroundStyle(ThusoTheme.studioInkMuted).fixedSize(horizontal: false, vertical: true)
+                            .foregroundStyle(ThusoRole.mutedForeground)
+                        Text(framing.accent).font(.thuso(.largeTitle, weight: .semibold)).tracking(-1)
+                            .foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
+                        Text(WellbeingData.statement).font(.thuso(.subheadline))
+                            .foregroundStyle(ThusoRole.mutedForeground).fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(ThusoSpacing.space24)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(ThusoTheme.studioLilac, in: RoundedRectangle(cornerRadius: 30))
+                    .background(ThusoRole.surfaceRaised, in: RoundedRectangle(cornerRadius: 30))
                 }
                 /* The standing disclosure, and it is clinical-records rather than a capability of
                    this feature's own — there is no wellbeing supplier to be blocked on, and
@@ -85,7 +85,7 @@ struct LiveWellView: View {
                 ForEach(Array(WellbeingData.habits.enumerated()), id: \.element.id) { index, habit in
                     habitRow(habit)
                     if writing == habit.id { note(habit) }
-                    if index < WellbeingData.habits.count - 1 { Divider().overlay(ThusoTheme.studioLine) }
+                    if index < WellbeingData.habits.count - 1 { Divider().overlay(ThusoRole.border) }
                 }
             }
         }
@@ -104,23 +104,23 @@ struct LiveWellView: View {
         } label: {
             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space12) {
                 Image(systemName: Self.marks[habit.id] ?? "square.and.pencil")
-                    .font(.subheadline).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.subheadline)).foregroundStyle(ThusoRole.mutedForeground)
                     .frame(width: 22, alignment: .leading).accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(habit.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                    Text(habit.name).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
                     /* The prompt is on the row while the row is shut and on the field while it is
                        open. It was on both, which printed the question twice, six points apart, and
                        the second copy was the one attached to the box somebody was answering it in.
                        A question belongs to the field that answers it. */
                     if writing != habit.id {
-                        Text(habit.prompt).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        Text(habit.prompt).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 Spacer(minLength: ThusoSpacing.space8)
                 Image(systemName: writing == habit.id ? "chevron.up" : "chevron.down")
-                    .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.mutedForeground)
                     .accessibilityHidden(true)
             }
             .padding(.vertical, ThusoSpacing.space8)
@@ -168,7 +168,7 @@ struct LiveWellView: View {
     private var written: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
             CareSectionHeader("What you have written")
-            Text(WellbeingData.timeline).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(WellbeingData.timeline).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
             if store.wellbeing.isEmpty {
                 /* The empty state is the contract's own sentence and it is the best one in the
@@ -182,12 +182,12 @@ struct LiveWellView: View {
                         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
                             Text(Wellbeing.day(day.offset).uppercased())
                                 .thusoFont(ThusoType.caption, weight: .semibold).tracking(1.1)
-                                .foregroundStyle(ThusoTheme.studioInkMuted)
+                                .foregroundStyle(ThusoRole.mutedForeground)
                                 .accessibilityAddTraits(.isHeader)
                             CareCard(padding: ThusoSpacing.space12, spacing: 0) {
                                 ForEach(Array(day.entries.enumerated()), id: \.element.id) { index, entry in
                                     entryRow(entry)
-                                    if index < day.entries.count - 1 { Divider().overlay(ThusoTheme.studioLine) }
+                                    if index < day.entries.count - 1 { Divider().overlay(ThusoRole.border) }
                                 }
                             }
                         }
@@ -204,8 +204,8 @@ struct LiveWellView: View {
     private func entryRow(_ entry: WellbeingEntry) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(WellbeingData.habit(entry.habit)?.name ?? entry.habit)
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
-            Text(entry.text).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
+            Text(entry.text).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.vertical, ThusoSpacing.space8)
@@ -217,9 +217,9 @@ struct LiveWellView: View {
 
     private var bringIt: some View {
         StudioNightCard {
-            Text(WellbeingData.bringIt).font(.title3.weight(.semibold)).studioNightInk()
+            Text(WellbeingData.bringIt).font(.thuso(.title3, weight: .semibold)).studioNightInk()
                 .fixedSize(horizontal: false, vertical: true)
-            Text(WellbeingData.bringItHowItWorks).font(.subheadline).studioNightInk(quiet: true)
+            Text(WellbeingData.bringItHowItWorks).font(.thuso(.subheadline)).studioNightInk(quiet: true)
                 .fixedSize(horizontal: false, vertical: true)
             NavigationLink { VisitsView() } label: { Text("Open my visits") }
                 .buttonStyle(CareButton())
@@ -236,11 +236,11 @@ struct LiveWellView: View {
                    only hierarchy this panel has and the only one it needs. Nothing is behind a
                    disclosure triangle: a refusal a reader has to open is a refusal somebody has
                    decided they would rather not have read. */
-                Text(WellbeingData.isNot).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                Text(WellbeingData.isNot).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
                 Hairline()
                 ForEach(WellbeingData.refusals) { refusal in
-                    Text(refusal.sentence).font(.subheadline).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(refusal.sentence).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }

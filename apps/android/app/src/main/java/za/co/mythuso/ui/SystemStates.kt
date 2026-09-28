@@ -17,6 +17,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import za.co.mythuso.ui.components.ThusoButton
+import za.co.mythuso.ui.components.ThusoButtonVariant
 
 /**
  * Every screen that will one day talk to a clinical, payment, partner or device integration
@@ -41,10 +43,10 @@ enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), E
     ) {
         repeat(rows) { index ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(Modifier.size(44.dp).background(Color(0x14000000), RoundedCornerShape(ThusoRadius.control)))
+                Box(Modifier.size(44.dp).background(theme.muted, RoundedCornerShape(ThusoRadius.control)))
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(Modifier.height(9.dp).width((190 - index * 26).dp).background(Color(0x14000000), RoundedCornerShape(5.dp)))
-                    Box(Modifier.height(9.dp).width((120 - index * 18).dp).background(Color(0x0F000000), RoundedCornerShape(5.dp)))
+                    Box(Modifier.height(9.dp).width((190 - index * 26).dp).background(theme.muted, RoundedCornerShape(ThusoRadius.sm)))
+                    Box(Modifier.height(9.dp).width((120 - index * 18).dp).background(theme.muted.copy(alpha = 0.7f), RoundedCornerShape(ThusoRadius.sm)))
                 }
             }
         }
@@ -54,7 +56,7 @@ enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), E
     when (state) {
         LoadState.READY -> content()
         LoadState.LOADING -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Loading ${subject.replaceFirstChar { it.lowercase() }}…", style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
+            Text("Loading ${subject.replaceFirstChar { it.lowercase() }}…", style = MaterialTheme.typography.bodyMedium, color = theme.mutedForeground)
             SkeletonRows()
         }
         else -> {
@@ -75,11 +77,11 @@ enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), E
             }
             CareCard {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(icon, null, tint = Charcoal)
+                    Icon(icon, null, tint = theme.foreground)
                     Text(heading, style = MaterialTheme.typography.titleMedium)
                 }
                 Text(body, style = MaterialTheme.typography.bodyMedium)
-                if (retry != null) OutlinedButton(onClick = retry, shape = ThusoButtonShape) { Text(if (state == LoadState.DENIED) "Review permission" else "Try again") }
+                if (retry != null) ThusoButton(if (state == LoadState.DENIED) "Review permission" else "Try again", onClick = retry, variant = ThusoButtonVariant.Secondary)
             }
         }
     }
@@ -93,17 +95,17 @@ enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), E
        nothing else on the screen duplicates, so somebody who missed it twice has no other way in. */
     Column(
         Modifier.fillMaxWidth().heightIn(min = TouchTarget)
-            .background(Color.White, RoundedCornerShape(ThusoRadius.control))
-            .border(1.dp, StudioLine, RoundedCornerShape(ThusoRadius.control)).clickable { open = !open }.padding(12.dp),
+            .background(theme.surface, RoundedCornerShape(ThusoRadius.control))
+            .border(1.dp, theme.border, RoundedCornerShape(ThusoRadius.control)).clickable { open = !open }.padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(if (open) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null, tint = StudioInkMuted, modifier = Modifier.size(18.dp))
-            Text("Preview states", style = MaterialTheme.typography.labelLarge, color = StudioInkMuted, modifier = Modifier.weight(1f))
+            Icon(if (open) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null, tint = theme.mutedForeground, modifier = Modifier.size(18.dp))
+            Text("Preview states", style = MaterialTheme.typography.labelLarge, color = theme.mutedForeground, modifier = Modifier.weight(1f))
             if (state != LoadState.READY) StatusPill(state.label, "amber")
         }
         if (open) {
-            Text(title, style = MaterialTheme.typography.labelSmall, color = StudioInkMuted)
+            Text(title, style = MaterialTheme.typography.labelSmall, color = theme.mutedForeground)
             FlowRowChips(LoadState.entries.map { it.label }, setOf(state.label)) { label -> onChange(LoadState.entries.first { it.label == label }) }
         }
     }
@@ -111,7 +113,7 @@ enum class LoadState(val label: String) { READY("Loaded"), LOADING("Loading"), E
 @Composable fun EmptyStateCard(title: String, message: String) {
     CareCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Outlined.Inbox, null, tint = Charcoal)
+            Icon(Icons.Outlined.Inbox, null, tint = theme.foreground)
             Text(title, style = MaterialTheme.typography.titleMedium)
         }
         Text(message, style = MaterialTheme.typography.bodyMedium)

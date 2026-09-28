@@ -39,7 +39,7 @@ struct VisitQueueView: View {
                 if !queue.held.isEmpty {
                     CareSectionHeader("Held on this phone")
                     Text("Not sealed yet, because the visit is not finished. Signing the assessment seals everything it holds at once.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                     ForEach(queue.held) { PartCard(part: $0) }
                 }
@@ -67,14 +67,14 @@ struct VisitQueueView: View {
         SurfacePanel(tone: .lead) {
             HStack(spacing: ThusoSpacing.space12) {
                 Image(systemName: queue.pretendNoSignal ? "icloud.slash" : "icloud")
-                    .font(.title3).foregroundStyle(ThusoTheme.charcoal).accessibilityHidden(true)
+                    .font(.thuso(.title3)).foregroundStyle(ThusoRole.foreground).accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(queue.pretendNoSignal ? "No signal" : "Connected")
-                        .thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoTheme.charcoal)
+                        .thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoRole.foreground)
                     Text(queue.pending.isEmpty
                          ? "Nothing is waiting. Everything you have done has reached the record."
                          : "\(queue.pending.count) piece\(queue.pending.count == 1 ? "" : "s") of work held on this phone")
-                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.8))
+                        .font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground.opacity(0.8))
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 0)
@@ -82,10 +82,10 @@ struct VisitQueueView: View {
             .accessibilityElement(children: .combine)
             if let oldest = queue.oldestPending {
                 Text("The oldest of them was \(writtenInWords(oldest)).")
-                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.8))
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground.opacity(0.8))
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Text(CaptureRules.queuedIsNotLost).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.8))
+            Text(CaptureRules.queuedIsNotLost).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground.opacity(0.8))
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -108,7 +108,7 @@ struct VisitQueueView: View {
         if queue.sealed.isEmpty {
             if queue.held.isEmpty {
                 Text("Nothing is sealed. An empty queue means every piece of this visit has been answered for.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
         } else {
@@ -116,7 +116,7 @@ struct VisitQueueView: View {
             ForEach(queue.sealed) { PartCard(part: $0) }
             if queue.pretendNoSignal {
                 Text("Sending needs a connection. Nothing is dropped to make a send succeed and nothing is retried behind your back.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -126,14 +126,14 @@ struct VisitQueueView: View {
         CareSectionHeader("Needs a decision")
         SurfacePanel(tone: .quiet) {
             Label {
-                Text(CaptureRules.conflictsAreNotMerged).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                Text(CaptureRules.conflictsAreNotMerged).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
-            } icon: { Image(systemName: "arrow.triangle.merge").foregroundStyle(ThusoTheme.charcoal) }
+            } icon: { Image(systemName: "arrow.triangle.merge").foregroundStyle(ThusoRole.foreground) }
             .accessibilityElement(children: .combine)
         }
         ForEach(queue.conflicted) { PartCard(part: $0) }
         Text("Nothing here is filed and nothing is thrown away. A reading two clinicians disagree about is settled on the Thuso Kit surface, where both versions can be put side by side; a whole assessment that arrives against a signed record goes to the Control Tower.")
-            .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -145,7 +145,7 @@ struct VisitQueueView: View {
                      "Take readings from a paired instrument, which queue the same way.",
                      "Start the next visit on your list. Two visits queue separately and never answer for each other.",
                      "Open the consultation record this visit produced and write it up."], id: \.self) { line in
-                Label(line, systemImage: "checkmark").font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                Label(line, systemImage: "checkmark").font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Hairline()
@@ -153,7 +153,7 @@ struct VisitQueueView: View {
             ForEach(["None of it is in the patient’s Health Passport.",
                      "No doctor can read it, so no prescription, sick note or referral can follow from it.",
                      "The Control Tower does not know this visit is done."], id: \.self) { line in
-                Label(line, systemImage: "xmark").font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.8))
+                Label(line, systemImage: "xmark").font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground.opacity(0.8))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -172,12 +172,12 @@ struct VisitQueueView: View {
         return SurfacePanel {
             PanelHead("What this store survives", note: store?.heldIn)
             ForEach(store?.saysSurvives ?? [], id: \.self) { line in
-                Label(line, systemImage: "checkmark").font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                Label(line, systemImage: "checkmark").font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Hairline()
             ForEach(store?.saysLostTo ?? [], id: \.self) { line in
-                Label(line, systemImage: "xmark").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                Label(line, systemImage: "xmark").font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -190,20 +190,20 @@ struct VisitQueueView: View {
             PanelHead("Read from this phone’s own store")
             Text(queue.ledgerWrittenAt.map { "Everything above was \(writtenInWords($0)). It is what this phone holds, not an answer from a server — there is no server in this build, and a local copy offered as though it were a fresh answer is the failure this line exists to prevent." }
                  ?? "Nothing has been written to this phone’s store yet.")
-                .font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.updatesFrequently)
             if !queue.storeNote.isEmpty {
-                Text(queue.storeNote).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.8))
+                Text(queue.storeNote).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground.opacity(0.8))
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let setAside = queue.setAside {
                 Label("A ledger that would not parse was kept as \(setAside) rather than deleted.", systemImage: "archivebox")
-                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Text(queue.ledgerPath).font(.system(.footnote, design: .monospaced))
-                .foregroundStyle(ThusoTheme.studioInkMuted).textSelection(.enabled)
+            Text(queue.ledgerPath).font(.thuso(.footnote).monospaced())
+                .foregroundStyle(ThusoRole.mutedForeground).textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -217,10 +217,10 @@ struct VisitQueueView: View {
                about a Toggle inside a List, where the height is UIKit's and nothing SwiftUI does
                reaches it; this is not that case, so it is fixed rather than exempted. */
             Toggle("Show this phone with no signal", isOn: $queue.pretendNoSignal)
-                .font(.subheadline).tint(ThusoTheme.charcoal)
+                .font(.thuso(.subheadline)).tint(ThusoRole.foreground)
                 .frame(minHeight: 44).contentShape(Rectangle())
             Toggle("A doctor has signed this visit", isOn: $queue.pretendDoctorSigned)
-                .font(.subheadline).tint(ThusoTheme.charcoal)
+                .font(.thuso(.subheadline)).tint(ThusoRole.foreground)
                 .frame(minHeight: 44).contentShape(Rectangle())
             Button(sending ? "Sending…" : "Attempt to send", action: send)
                 .buttonStyle(CareButton()).disabled(sending)
@@ -230,17 +230,17 @@ struct VisitQueueView: View {
                     .buttonStyle(QuietButton())
             }
             if !result.isEmpty {
-                Text(result).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                Text(result).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.updatesFrequently)
             }
             Hairline()
             Text("Signing out of this preview goes nowhere near the file. This drops everything held in memory and reads it again from nothing, which is what a cold launch does — the count above should not move.")
-                .font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.8))
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground.opacity(0.8))
                 .fixedSize(horizontal: false, vertical: true)
             Button("Sign out and read the file again") { queue.reloadFromDisk() }.buttonStyle(QuietButton())
             Button("Clear this phone’s store and start again") { queue.resetToFixtures() }
-                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.danger)
+                .font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.dangerInk)
                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                 .contentShape(Rectangle())
         }
@@ -310,10 +310,10 @@ struct CaptureStandingStrip: View {
     private var wide: some View {
         HStack(spacing: ThusoSpacing.space12) {
             Image(systemName: queue.pretendNoSignal ? "icloud.slash" : "icloud")
-                .foregroundStyle(ThusoTheme.charcoal).accessibilityHidden(true)
+                .foregroundStyle(ThusoRole.foreground).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
-                Text(standing).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                Text(sentence).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(standing).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+                Text(sentence).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
@@ -321,8 +321,8 @@ struct CaptureStandingStrip: View {
                on a phone is a state a nurse has to notice at a glance; "everything has landed" is
                merely true, and merely true is charcoal on white. */
             MetricChip(text: chip, tone: waiting == 0 ? .neutral : .attention)
-            Image(systemName: "chevron.right").font(.footnote.weight(.semibold))
-                .foregroundStyle(ThusoTheme.studioInkMuted).accessibilityHidden(true)
+            Image(systemName: "chevron.right").font(.thuso(.footnote, weight: .semibold))
+                .foregroundStyle(ThusoRole.mutedForeground).accessibilityHidden(true)
         }
     }
 
@@ -335,7 +335,7 @@ struct CaptureStandingStrip: View {
     private var tall: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
             Text(standing).thusoFont(ThusoType.body, weight: .semibold)
-                .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+                .foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
             MetricChip(text: chip, tone: waiting == 0 ? .neutral : .attention)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -352,19 +352,19 @@ struct PartCard: View {
     var body: some View {
         SurfacePanel {
             HStack(alignment: .top, spacing: ThusoSpacing.space12) {
-                Image(systemName: part.kind.symbol).font(.subheadline)
-                    .foregroundStyle(ThusoTheme.charcoal).frame(width: 24).accessibilityHidden(true)
+                Image(systemName: part.kind.symbol).font(.thuso(.subheadline))
+                    .foregroundStyle(ThusoRole.foreground).frame(width: 24).accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(part.kind.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                    Text(part.kind.name).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(part.summary).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(part.summary).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: ThusoSpacing.space8)
                 MetricChip(text: part.state.name, flagged: part.state == .conflicted)
             }
             .accessibilityElement(children: .combine)
-            Text("\(part.visitReference) · \(part.patient)").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text("\(part.visitReference) · \(part.patient)").font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             Hairline()
             ForEach(part.detail) { fact in FactRow(label: fact.label, value: fact.value) }
             FactRow(label: "On this phone since", value: writtenInWords(part.deviceCapturedAt))
@@ -372,17 +372,17 @@ struct PartCard: View {
                 FactRow(label: "Server receipt · what this is ordered by", value: writtenInWords(received))
             } else {
                 Text("Not received yet, so this has no time it happened — only a time this phone believed.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if part.isPending {
-                Text(part.kind.whileHeld).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                Text(part.kind.whileHeld).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let conflict = part.conflict {
                 StatedFact(term: conflict.name, statement: conflict.detail, footnote: part.note)
             } else if let note = part.note {
-                Text(note).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                Text(note).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

@@ -18,11 +18,11 @@ struct FieldSafetyPanicStyle: ButtonStyle {
         let shape = RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous)
         return configuration.label
             .thusoFont(ThusoType.body, weight: .semibold)
-            .foregroundStyle(solid ? ThusoTheme.surface : ThusoTheme.danger)
+            .foregroundStyle(solid ? ThusoRole.surface : ThusoRole.dangerInk)
             .frame(maxWidth: .infinity, minHeight: 48)
             .padding(.horizontal, ThusoSpacing.space16)
-            .background(solid ? ThusoTheme.danger : (configuration.isPressed ? ThusoTheme.dangerSoft : ThusoTheme.surface), in: shape)
-            .overlay(shape.stroke(ThusoTheme.danger, lineWidth: 2))
+            .background(solid ? ThusoRole.dangerInk : (configuration.isPressed ? ThusoRole.dangerTint : ThusoRole.surface), in: shape)
+            .overlay(shape.stroke(ThusoRole.dangerInk, lineWidth: 2))
             .contentShape(shape)
     }
 }
@@ -48,18 +48,18 @@ struct VisitSafetyPanel: View {
         SurfacePanel(spacing: ThusoSpacing.space12) {
             HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                 RoundedRectangle(cornerRadius: 2, style: .continuous)
-                    .fill(standing == .overdue ? ThusoTheme.danger : (standing == .closed ? ThusoTheme.line : ThusoTheme.stone))
+                    .fill(standing == .overdue ? ThusoRole.dangerInk : (standing == .closed ? ThusoRole.border : ThusoRole.border))
                     .frame(width: 3)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
                     Text(FieldSafety.NurseText.heading + " · " + FieldSafety.label(FieldSafety.timerStates, standing.rawValue))
-                        .thusoFont(ThusoType.caption, weight: .medium).foregroundStyle(ThusoTheme.faint)
+                        .thusoFont(ThusoType.caption, weight: .medium).foregroundStyle(ThusoRole.mutedForeground)
                     Text(headline(timer, standing))
-                        .thusoFont(ThusoType.sectionTitle, weight: .semibold).foregroundStyle(ThusoTheme.charcoal).monospacedDigit()
+                        .thusoFont(ThusoType.sectionTitle, weight: .semibold).foregroundStyle(ThusoRole.foreground).monospacedDigit()
                     if standing != .closed {
                         Text(detail(timer, standing))
                             .thusoFont(ThusoType.caption, weight: standing == .overdue ? .medium : .regular)
-                            .foregroundStyle(standing == .overdue ? ThusoTheme.danger : ThusoTheme.faint)
+                            .foregroundStyle(standing == .overdue ? ThusoRole.dangerInk : ThusoRole.mutedForeground)
                     }
                 }
                 .fixedSize(horizontal: false, vertical: true)
@@ -81,7 +81,7 @@ struct VisitSafetyPanel: View {
             if confirming { confirmation }
             if let panic, !confirming { pressed(panic) }
             if let refused {
-                Text(refused.statement).thusoFont(ThusoType.caption, weight: .medium).foregroundStyle(ThusoTheme.danger)
+                Text(refused.statement).thusoFont(ThusoType.caption, weight: .medium).foregroundStyle(ThusoRole.dangerInk)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -100,21 +100,21 @@ struct VisitSafetyPanel: View {
     @ViewBuilder private func extendForm(_ timer: FieldSafety.VisitTimer) -> some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
             Text(FieldSafety.NurseText.extendQuestion)
-                .thusoFont(ThusoType.cardTitle, weight: .medium).foregroundStyle(ThusoTheme.charcoal)
+                .thusoFont(ThusoType.cardTitle, weight: .medium).foregroundStyle(ThusoRole.foreground)
             ForEach(FieldSafety.extensionReasons) { reason in
                 TickRow(title: reason.label, ticked: reasonId == reason.id) { reasonId = reason.id }
             }
             if timer.stepsOffered.isEmpty {
                 /* The ceiling says so in the sentence on the route, rather than as buttons that do nothing. */
                 Text(FieldSafety.refusal("extension-limit").statement)
-                    .thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.faint)
+                    .thusoFont(ThusoType.caption).foregroundStyle(ThusoRole.mutedForeground)
             } else {
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: ThusoSpacing.space8) { steps(timer) }
                     VStack(spacing: ThusoSpacing.space8) { steps(timer) }
                 }
                 Text(FieldSafety.fill(FieldSafety.NurseText.extendLeft, ["minutes": String(timer.extensionLeft)]))
-                    .thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.faint)
+                    .thusoFont(ThusoType.caption).foregroundStyle(ThusoRole.mutedForeground)
             }
         }
         .fixedSize(horizontal: false, vertical: true)
@@ -149,11 +149,11 @@ struct VisitSafetyPanel: View {
             Button(FieldSafety.PanicText.cancel) { confirming = false }
                 .buttonStyle(QuietButton())
         }
-        .foregroundStyle(ThusoTheme.charcoal)
+        .foregroundStyle(ThusoRole.foreground)
         .fixedSize(horizontal: false, vertical: true)
         .padding(ThusoSpacing.space16)
-        .background(ThusoTheme.dangerSoft, in: shape)
-        .overlay(shape.stroke(ThusoTheme.danger, lineWidth: 2))
+        .background(ThusoRole.dangerTint, in: shape)
+        .overlay(shape.stroke(ThusoRole.dangerInk, lineWidth: 2))
     }
 
     private func pressed(_ panic: FieldSafety.Panic) -> some View {
@@ -170,11 +170,11 @@ struct VisitSafetyPanel: View {
                 Text(FieldSafety.PanicText.pressAgain).thusoFont(ThusoType.body)
             }
         }
-        .foregroundStyle(ThusoTheme.charcoal)
+        .foregroundStyle(ThusoRole.foreground)
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(ThusoSpacing.space12)
-        .background(ThusoTheme.dangerSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+        .background(ThusoRole.dangerTint, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 
@@ -210,7 +210,7 @@ struct SafetyDeskSection: View {
             CapabilityNotice(of: "emergency")
             CapabilityNotice(of: "dispatch")
             if store.openCount == 0 {
-                Text(FieldSafety.DeskText.empty).thusoFont(ThusoType.body).foregroundStyle(ThusoTheme.faint)
+                Text(FieldSafety.DeskText.empty).thusoFont(ThusoType.body).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             ForEach(store.desk) { row in SafetyDeskRowView(row: row) }
@@ -228,7 +228,7 @@ struct SafetyDeskRowView: View {
     /* A rule and a word for the kind, never colour alone: danger for a panic nobody holds, mango ink for
        an overdue nobody holds, faint for what the desk already has, and nothing once it is closed. */
     private var rule: Color {
-        !row.open ? .clear : (row.acknowledgedAt != nil ? ThusoTheme.faint : (row.isPanic ? ThusoTheme.danger : ThusoTheme.mangoInk))
+        !row.open ? .clear : (row.acknowledgedAt != nil ? ThusoRole.mutedForeground : (row.isPanic ? ThusoRole.dangerInk : ThusoRole.warningInk))
     }
     private var standing: String {
         if !row.open { return FieldSafety.fill(FieldSafety.DeskText.closedLine, ["outcome": row.outcome ?? ""]) }
@@ -241,21 +241,21 @@ struct SafetyDeskRowView: View {
             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
                 RoundedRectangle(cornerRadius: 2, style: .continuous).fill(rule).frame(width: 3, height: 16).accessibilityHidden(true)
                 Text(row.isPanic ? FieldSafety.DeskText.kindPanic : FieldSafety.DeskText.kindOverdue)
-                    .thusoFont(ThusoType.caption, weight: .semibold).foregroundStyle(ThusoTheme.charcoal)
-                Text(row.id).thusoFont(ThusoType.caption).monospacedDigit().foregroundStyle(ThusoTheme.faint)
+                    .thusoFont(ThusoType.caption, weight: .semibold).foregroundStyle(ThusoRole.foreground)
+                Text(row.id).thusoFont(ThusoType.caption).monospacedDigit().foregroundStyle(ThusoRole.mutedForeground)
                 Spacer(minLength: ThusoSpacing.space8)
                 Text(FieldSafety.fill(FieldSafety.DeskText.age, ["minutes": String(row.ageMinutes)]))
-                    .thusoFont(ThusoType.caption).monospacedDigit().foregroundStyle(ThusoTheme.charcoal)
+                    .thusoFont(ThusoType.caption).monospacedDigit().foregroundStyle(ThusoRole.foreground)
             }
             VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
                 Text(row.nurse).thusoFont(ThusoType.cardTitle, weight: .semibold)
-                    .foregroundStyle(row.open ? ThusoTheme.charcoal : ThusoTheme.faint)
+                    .foregroundStyle(row.open ? ThusoRole.foreground : ThusoRole.mutedForeground)
                 Text(row.suburb + " · " + FieldSafety.fill(FieldSafety.DeskText.raisedAt, ["at": FieldSafety.clock(row.raisedAt)]))
-                    .thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.faint)
-                Text(standing).thusoFont(ThusoType.caption).foregroundStyle(row.open ? ThusoTheme.charcoal : ThusoTheme.faint)
+                    .thusoFont(ThusoType.caption).foregroundStyle(ThusoRole.mutedForeground)
+                Text(standing).thusoFont(ThusoType.caption).foregroundStyle(row.open ? ThusoRole.foreground : ThusoRole.mutedForeground)
                 if row.open, let answered = row.answeredAt {
                     Text(FieldSafety.fill(FieldSafety.DeskText.answered, ["at": FieldSafety.clock(answered)]))
-                        .thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.charcoal)
+                        .thusoFont(ThusoType.caption).foregroundStyle(ThusoRole.foreground)
                 }
             }
             .fixedSize(horizontal: false, vertical: true)
@@ -263,7 +263,7 @@ struct SafetyDeskRowView: View {
             if row.isPanic { position }
             if row.open { actions }
             if let refused {
-                Text(refused.statement).thusoFont(ThusoType.caption, weight: .medium).foregroundStyle(ThusoTheme.danger)
+                Text(refused.statement).thusoFont(ThusoType.caption, weight: .medium).foregroundStyle(ThusoRole.dangerInk)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -274,24 +274,24 @@ struct SafetyDeskRowView: View {
         switch store.position(of: row.id) {
         case .shared(let at):
             VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-                Text(FieldSafety.DeskText.position).thusoFont(ThusoType.caption, weight: .medium).foregroundStyle(ThusoTheme.faint)
+                Text(FieldSafety.DeskText.position).thusoFont(ThusoType.caption, weight: .medium).foregroundStyle(ThusoRole.mutedForeground)
                 if let at {
                     let updated = FieldSafety.fill(FieldSafety.DeskText.positionUpdated, ["seconds": String(max(0, Int(store.now.timeIntervalSince(at.at))))])
                     let until = FieldSafety.fill(FieldSafety.DeskText.sharingUntil, ["ends": FieldSafety.clock(row.sharingEndsAt ?? store.now)])
                     Text(row.suburb + " · " + String(at.lat) + ", " + String(at.lng))
-                        .thusoFont(ThusoType.body, weight: .medium).monospacedDigit().foregroundStyle(ThusoTheme.charcoal)
-                    Text(updated + " · " + until).thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.faint)
+                        .thusoFont(ThusoType.body, weight: .medium).monospacedDigit().foregroundStyle(ThusoRole.foreground)
+                    Text(updated + " · " + until).thusoFont(ThusoType.caption).foregroundStyle(ThusoRole.mutedForeground)
                 } else {
-                    Text(FieldSafety.DeskText.positionNotYet).thusoFont(ThusoType.body).foregroundStyle(ThusoTheme.charcoal)
+                    Text(FieldSafety.DeskText.positionNotYet).thusoFont(ThusoType.body).foregroundStyle(ThusoRole.foreground)
                 }
             }
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(ThusoSpacing.space12)
-            .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(ThusoTheme.line))
+            .background(ThusoRole.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(ThusoRole.border))
         case .ended(let sentence):
-            Text(sentence).thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.charcoal)
+            Text(sentence).thusoFont(ThusoType.caption).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

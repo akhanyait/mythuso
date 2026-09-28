@@ -11,13 +11,11 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.MeetingRoom
 import androidx.compose.material.icons.outlined.VideocamOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
+import androidx.compose.foundation.border
+import za.co.mythuso.ui.components.*
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -120,21 +118,21 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
             CareCard {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     TileIcon(if (out) Icons.Outlined.MeetingRoom else Icons.Outlined.Person,
-                        if (out) StudioInkMuted else Indigo, if (out) Mist else IndigoSoft, 38.dp)
+                        if (out) theme.mutedForeground else theme.foreground, if (out) theme.muted else theme.accent.tint(0.15f), 38.dp)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(displayName(person), style = MaterialTheme.typography.titleSmall, color = if (out) StudioInkMuted else Charcoal)
-                        Text(person.name, style = MaterialTheme.typography.labelMedium, color = Indigo)
-                        Text(person.place, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
-                        Text("Can see: ${person.sees}", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
-                        Text("Can hear: ${person.hears}", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
-                        if (out) Text("Not in the room. ${person.ifDeclined.orEmpty()}", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                        Text(displayName(person), style = MaterialTheme.typography.titleSmall, color = if (out) theme.mutedForeground else theme.foreground)
+                        Text(person.name, style = MaterialTheme.typography.labelMedium, color = theme.primaryInk)
+                        Text(person.place, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
+                        Text("Can see: ${person.sees}", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
+                        Text("Can hear: ${person.hears}", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
+                        if (out) Text("Not in the room. ${person.ifDeclined.orEmpty()}", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                     }
                 }
                 if (canAsk && person.mayBeAskedToLeave && !out) {
-                    OutlinedButton(onClick = {
+                    ThusoButton("Ask ${displayName(person)} to step out", onClick = {
                         consented[person.id] = false
                         withdrawnNote = Teleconsult.consentFor(person.id)?.revokedMidCall
-                    }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Ask ${displayName(person)} to step out") }
+                    }, variant = ThusoButtonVariant.Secondary, modifier = Modifier.fillMaxWidth())
                 } else if (person.essential && person.id != "patient") {
                     StatusPill("Cannot be asked to leave", "quiet")
                 }
@@ -142,18 +140,12 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
         }
     }
 
-    @Composable fun Refusal(item: CallRefusal) {
-        Row(Modifier.fillMaxWidth().background(Mist, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(Icons.Outlined.Block, null, tint = Danger)
-            Text(item.sentence, style = MaterialTheme.typography.bodySmall, color = Charcoal)
-        }
-    }
+    @Composable fun Refusal(item: CallRefusal) { ThusoAlert(item.sentence, variant = ThusoAlertVariant.Danger) }
 
     @Composable fun Row2(label: String, value: String) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-            Text(label, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted, modifier = Modifier.weight(1f))
-            Text(value, style = MaterialTheme.typography.labelMedium, color = Charcoal)
+            Text(label, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground, modifier = Modifier.weight(1f))
+            Text(value, style = MaterialTheme.typography.labelMedium, color = theme.foreground)
         }
     }
 
@@ -165,21 +157,21 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
         when (stage) {
             0 -> {
                 Text("Who will be able to see and hear you.", style = MaterialTheme.typography.titleMedium)
-                Text(Teleconsult.rule("presence-is-consented").sentence, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                Text(Teleconsult.rule("presence-is-consented").sentence, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                 CareCard {
-                    Text("Doctor for this appointment", style = MaterialTheme.typography.labelMedium, color = Charcoal)
+                    Text("Doctor for this appointment", style = MaterialTheme.typography.labelMedium, color = theme.foreground)
                     FlowRowChips(callDoctorIds.map { store.vetting.subject(it)?.name ?: it }, setOf(store.vetting.subject(doctorId)?.name ?: doctorId)) { name ->
                         doctorId = callDoctorIds.firstOrNull { store.vetting.subject(it)?.name == name } ?: doctorId
                     }
-                    doctor?.let { Text("${it.name} · ${it.reference}", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted) }
+                    doctor?.let { Text("${it.name} · ${it.reference}", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground) }
                     /* The same capability the clinical queue asks about, refused in the same words.
                        A doctor told one thing by the queue and another by the call trusts neither. */
                     if (consult?.allowed == false) {
-                        Text(consult.reason.orEmpty(), style = MaterialTheme.typography.bodySmall, color = Danger)
+                        Text(consult.reason.orEmpty(), style = MaterialTheme.typography.bodySmall, color = theme.dangerInk)
                     }
                 }
                 CareCard {
-                    Text("Who else is at the address or on the call", style = MaterialTheme.typography.labelMedium, color = Charcoal)
+                    Text("Who else is at the address or on the call", style = MaterialTheme.typography.labelMedium, color = theme.foreground)
                     callParticipants.filter { !it.essential }.forEach { person ->
                         Setting(person.name, present[person.id] == true) { on ->
                             present[person.id] = on; consented[person.id] = false
@@ -189,37 +181,26 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                 Roster(canAsk = false)
                 Text("Asked one at a time", style = MaterialTheme.typography.titleMedium)
                 Text("Each of these is a separate answer, and each can be taken back in the middle of the call.",
-                     style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                     style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                 inTheRoom.filter { it.consentQuestion != null }.forEach { person ->
                     CareCard {
                         /* The box and the question are one control, not two things read out one
                            after the other. A screen reader that says "checkbox, not ticked" and then,
                            separately, "may this doctor see you and treat you", has asked the patient
                            to hold the two halves together themselves. */
-                        Row(
-                            Modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(
-                                value = consented[person.id] == true, role = Role.Checkbox,
-                                onValueChange = { consented[person.id] = it }
-                            ),
-                            verticalAlignment = Alignment.Top
-                        ) {
-                            Checkbox(consented[person.id] == true, null)
-                            Text("“${person.consentQuestion}”", style = MaterialTheme.typography.bodySmall, color = Charcoal)
-                        }
+                        ThusoCheckbox(consented[person.id] == true, { consented[person.id] = it }, "“${person.consentQuestion}”")
                         if (consented[person.id] != true) {
-                            Text("If you say no: ${person.ifDeclined.orEmpty()}", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                            Text("If you say no: ${person.ifDeclined.orEmpty()}", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                         } else Teleconsult.consentFor(person.id)?.takeIf { !it.required }?.let {
-                            Text("You can change your mind during the call. ${it.revokedMidCall}", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                            Text("You can change your mind during the call. ${it.revokedMidCall}", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                         }
                     }
                 }
                 Refusal(Teleconsult.refusal("silent-observers"))
                 if (consult?.allowed == true) {
-                    StudioButton(onClick = { stage = 1 }, Modifier.fillMaxWidth(), enabled = consented["doctor"] == true, shape = ThusoButtonShape) { Text("Check identity") }
+                    ThusoButton("Check identity", onClick = { stage = 1 }, enabled = consented["doctor"] == true, modifier = Modifier.fillMaxWidth())
                 } else {
-                    StudioButton(onClick = { refusedClinician = true; stage = 4 }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) {
-                        Text("Rebook with a doctor whose registration is current")
-                    }
+                    ThusoButton("Rebook with a doctor whose registration is current", onClick = { refusedClinician = true; stage = 4 }, modifier = Modifier.fillMaxWidth())
                 }
             }
 
@@ -228,7 +209,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                 CareCard {
                     StatusPill("What the patient checks", "quiet")
                     doctor?.let { Row2("The doctor on this call", it.name); Row2("Council registration", it.reference) }
-                    Text(callIdentity.patientSideDetail, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                    Text(callIdentity.patientSideDetail, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                 }
                 CareCard {
                     StatusPill("What the doctor checks", "quiet")
@@ -237,51 +218,51 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                        second thing to get wrong, and the one the patient had learned would stop
                        being the one that counts. */
                     Text("${callIdentity.doctorSideDetail} In this preview the code is 482190.",
-                         style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
-                    OutlinedTextField(code, { code = it.filter(Char::isDigit).take(6); codeError = "" },
-                        label = { Text("Visit code") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                    if (codeError.isNotEmpty()) Text(codeError, style = MaterialTheme.typography.bodySmall, color = Danger)
+                         style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
+                    ThusoField("Visit code", error = codeError.ifEmpty { null }) {
+                        ThusoTextField(code, { code = it.filter(Char::isDigit).take(6); codeError = "" }, invalid = codeError.isNotEmpty())
+                    }
                 }
-                Text(callIdentity.whyOneMechanism, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                Text(callIdentity.whyOneMechanism, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                 if (codeError.isEmpty()) {
-                    StudioButton(onClick = {
+                    ThusoButton("Confirm and continue", onClick = {
                         if (code == "482190") { identityConfirmed = true; stage = 2 } else codeError = callIdentity.failure
-                    }, Modifier.fillMaxWidth(), enabled = code.length >= 6, shape = ThusoButtonShape) { Text("Confirm and continue") }
+                    }, enabled = code.length >= 6, modifier = Modifier.fillMaxWidth())
                 } else {
-                    StudioButton(onClick = { stage = 4 }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Close the encounter") }
+                    ThusoButton("Close the encounter", onClick = { stage = 4 }, modifier = Modifier.fillMaxWidth())
                 }
-                OutlinedButton(onClick = { stage = 0 }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Back") }
+                ThusoButton("Back", onClick = { stage = 0 }, variant = ThusoButtonVariant.Secondary, modifier = Modifier.fillMaxWidth())
             }
 
             2 -> {
                 Text("Recording is a second question, and the answer here is no.", style = MaterialTheme.typography.titleMedium)
-                Text(Teleconsult.rule("recording-is-separate").sentence, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                Text(Teleconsult.rule("recording-is-separate").sentence, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                 CareCard {
-                    Text(callRecording.decision, style = MaterialTheme.typography.titleSmall, color = MangoInk)
-                    Text(callRecording.why, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                    Text(callRecording.decision, style = MaterialTheme.typography.titleSmall, color = theme.warningInk)
+                    Text(callRecording.why, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                 }
                 Text("What happens instead", style = MaterialTheme.typography.titleMedium)
-                callRecording.instead.forEach { Text("· $it", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted) }
+                callRecording.instead.forEach { Text("· $it", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground) }
                 Text("What would be asked, if it existed", style = MaterialTheme.typography.titleMedium)
                 CareCard {
                     Row2("When", "Its own screen")
-                    Text(callRecording.whenItExists.askedSeparately, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                    Text(callRecording.whenItExists.askedSeparately, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                     Row2("Cost of refusing", "None")
-                    Text(callRecording.whenItExists.refusingIsCostless, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                    Text(callRecording.whenItExists.refusingIsCostless, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                     Row2("While it runs", "Unmistakable")
-                    Text(callRecording.whenItExists.whileRecording, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                    Text(callRecording.whenItExists.whileRecording, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                     Row2("Who could open it", "Three, and no more")
                     callRecording.whenItExists.whoMayView.forEach {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.Outlined.Lock, null, tint = Charcoal); Text(it, style = MaterialTheme.typography.bodySmall, color = Charcoal)
+                            Icon(Icons.Outlined.Lock, null, tint = theme.foreground); Text(it, style = MaterialTheme.typography.bodySmall, color = theme.foreground)
                         }
                     }
                     Row2("Kept for", "${callRecording.whenItExists.keptForDays} days")
-                    Text(callRecording.whenItExists.afterwards, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                    Text(callRecording.whenItExists.afterwards, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                 }
                 Refusal(Teleconsult.refusal("covert-recording"))
-                StudioButton(onClick = { stage = 3 }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Open the call") }
-                OutlinedButton(onClick = { stage = 1 }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Back") }
+                ThusoButton("Open the call", onClick = { stage = 3 }, modifier = Modifier.fillMaxWidth())
+                ThusoButton("Back", onClick = { stage = 1 }, variant = ThusoButtonVariant.Secondary, modifier = Modifier.fillMaxWidth())
             }
 
             3 -> {
@@ -290,17 +271,17 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                    review sees two screens rather than one with a different word in it. */
                 CareCard {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        TileIcon(Icons.Outlined.VideocamOff, Indigo, IndigoSoft, 38.dp)
+                        TileIcon(Icons.Outlined.VideocamOff, theme.primaryInk, theme.primary.tint(0.10f), 38.dp)
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(Teleconsult.mediaState(mediaState).name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                            Text(Teleconsult.mediaState(mediaState).detail, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
-                            Text(callMedia.sentence, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                            Text(Teleconsult.mediaState(mediaState).name, style = MaterialTheme.typography.titleSmall, color = theme.foreground)
+                            Text(Teleconsult.mediaState(mediaState).detail, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
+                            Text(callMedia.sentence, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                         }
                     }
                     FlowRowChips(callMedia.states.map { it.name }, setOf(Teleconsult.mediaState(mediaState).name)) { name ->
                         mediaState = callMedia.states.firstOrNull { it.name == name }?.id ?: mediaState
                     }
-                    Text(callMedia.whyTheDistinctionMatters, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                    Text(callMedia.whyTheDistinctionMatters, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                 }
 
                 Text("In the room", style = MaterialTheme.typography.titleMedium)
@@ -315,40 +296,40 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                     else if (everDropped) resumed = true
                 }
                 Text("A preview control. In production this is the network's answer, not a choice.",
-                     style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                     style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                 /* Both ends, one card. The failure this is written against is a patient staring at a
                    frozen picture while the doctor's screen says something else entirely. */
                 CareCard {
                     StatusPill("The patient sees", "quiet")
-                    Text(Teleconsult.connectionState(connectionId).patientSees, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
-                    HorizontalDivider(color = StudioLine)
+                    Text(Teleconsult.connectionState(connectionId).patientSees, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
+                    HorizontalDivider(color = theme.border)
                     StatusPill("The doctor sees", "quiet")
-                    Text(Teleconsult.connectionState(connectionId).doctorSees, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                    Text(Teleconsult.connectionState(connectionId).doctorSees, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                 }
-                Text(Teleconsult.connectionState(connectionId).note, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                Text(Teleconsult.connectionState(connectionId).note, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                 if (connectionId == "audio") {
-                    Text(Teleconsult.rule("audio-is-not-lesser").sentence, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                    Text(Teleconsult.rule("audio-is-not-lesser").sentence, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                 }
 
                 if (dropped) {
-                    Column(Modifier.fillMaxWidth().background(DangerSoft, RoundedCornerShape(ThusoRadius.card)).padding(16.dp),
+                    Column(Modifier.fillMaxWidth().background(theme.surface, RoundedCornerShape(ThusoRadius.card)).border(1.dp, theme.danger.tint(0.35f), RoundedCornerShape(ThusoRadius.card)).padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Column(Modifier.widthIn(min = 96.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(Icons.Outlined.HourglassEmpty, null, tint = Danger)
-                                Text("${holdLeft}s", style = MaterialTheme.typography.titleLarge, color = Danger)
+                                Icon(Icons.Outlined.HourglassEmpty, null, tint = theme.dangerInk)
+                                Text("${holdLeft}s", style = ThusoMetricStyle, color = theme.dangerInk)
                                 Text("of ${callReconnect.holdSeconds} · up to ${callReconnect.attempts} attempts",
-                                     style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                                     style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                             }
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(callReconnect.whoCallsWhom, style = MaterialTheme.typography.labelMedium, color = Charcoal)
-                                Text(callReconnect.duringTheHold, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
-                                if (nursePresent) Text(callReconnect.nurseInTheRoom, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                                Text(callReconnect.whoCallsWhom, style = MaterialTheme.typography.labelMedium, color = theme.foreground)
+                                Text(callReconnect.duringTheHold, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
+                                if (nursePresent) Text(callReconnect.nurseInTheRoom, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                                 if (holdLeft == 0) {
-                                    Text(callReconnect.afterTheHold, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
-                                    Text(callReconnect.ifUnreachable, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                                    Text(callReconnect.afterTheHold, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
+                                    Text(callReconnect.ifUnreachable, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                                 }
-                                Text(callReconnect.whyNotLonger, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                                Text(callReconnect.whyNotLonger, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                             }
                         }
                     }
@@ -356,85 +337,67 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
 
                 Text("What this doctor may conclude, right now", style = MaterialTheme.typography.titleMedium)
                 Teleconsult.permitted(connectionId, nursePresent).forEach { limit ->
-                    Row(Modifier.fillMaxWidth().background(IndigoSoft, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Icon(Icons.Outlined.Check, null, tint = Charcoal)
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(limit.name, style = MaterialTheme.typography.bodySmall, color = Charcoal)
-                            Text(limit.detail, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
-                        }
-                    }
+                    ThusoAlert(limit.name, variant = ThusoAlertVariant.Success) { ThusoAlertText(limit.detail) }
                 }
                 Teleconsult.withdrawn(connectionId, nursePresent).forEach { limit ->
-                    Row(Modifier.fillMaxWidth().background(Mist, RoundedCornerShape(ThusoRadius.card)).padding(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Icon(Icons.Outlined.Block, null, tint = Danger)
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(limit.name, style = MaterialTheme.typography.bodySmall, color = Charcoal)
-                            Text(if (limit.needs == "nurse" && !nursePresent)
-                                "Nobody is in the room to examine on the doctor’s behalf." else limit.detail,
-                                 style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
-                        }
+                    ThusoAlert(limit.name, variant = ThusoAlertVariant.Danger) {
+                        ThusoAlertText(if (limit.needs == "nurse" && !nursePresent) "Nobody is in the room to examine on the doctor’s behalf." else limit.detail)
                     }
                 }
-                Text(Teleconsult.rule("examination-is-attributed").sentence, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                Text(Teleconsult.rule("examination-is-attributed").sentence, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                 Refusal(Teleconsult.refusal("diagnose-the-unseen"))
 
                 /* Nothing here can close an encounter as finished while the line is down. That is the
                    button this whole feature exists in order not to have. */
-                StudioButton(onClick = { decisionReached = true; stage = 4 }, Modifier.fillMaxWidth(),
-                    enabled = Teleconsult.mayConclude(connectionId, nursePresent) && consented["doctor"] == true, shape = ThusoButtonShape) {
-                    Text("Reach a decision and end the consultation")
-                }
+                ThusoButton("Reach a decision and end the consultation", onClick = { decisionReached = true; stage = 4 },
+                    enabled = Teleconsult.mayConclude(connectionId, nursePresent) && consented["doctor"] == true, modifier = Modifier.fillMaxWidth())
                 if (!Teleconsult.mayConclude(connectionId, nursePresent)) {
                     Text("The line does not currently allow a decision to be reached, so there is no way to close this encounter as a completed consultation.",
-                         style = MaterialTheme.typography.bodySmall, color = Danger)
+                         style = MaterialTheme.typography.bodySmall, color = theme.dangerInk)
                 }
-                OutlinedButton(onClick = { stage = 4 }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("End without a decision") }
+                ThusoButton("End without a decision", onClick = { stage = 4 }, variant = ThusoButtonVariant.Secondary, modifier = Modifier.fillMaxWidth())
             }
 
             else -> {
-                StatusPill(if (outcome.countsAsConsultation) "Counts as a consultation" else "Not a consultation",
-                    if (outcome.countsAsConsultation) "teal" else "amber")
+                ThusoBadge(if (outcome.countsAsConsultation) "Counts as a consultation" else "Not a consultation",
+                    variant = if (outcome.countsAsConsultation) ThusoBadgeVariant.Success else ThusoBadgeVariant.Warning, dot = true)
                 Text(outcome.name, style = MaterialTheme.typography.titleLarge)
-                Text(outcome.record, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                Text(outcome.record, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                 CareCard {
                     Row2("Charged", if (outcome.charged) "Yes — a consultation was held" else "No")
                     if (!outcome.charged) {
-                        Text(Teleconsult.refusal("charge-for-a-failure").sentence, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                        Text(Teleconsult.refusal("charge-for-a-failure").sentence, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                     }
                 }
                 Text("What goes into the consultation record", style = MaterialTheme.typography.titleMedium)
                 Text("The same sections every MyThuso encounter writes into. A section this encounter did not reach is withheld here rather than left empty for somebody to fill in later.",
-                     style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                     style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                 CareCard {
                     Teleconsult.sectionsFor(outcome).forEach { (section, written) ->
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                            Text(section.name, style = MaterialTheme.typography.bodySmall, color = if (written) Charcoal else StudioInkMuted, modifier = Modifier.weight(1f))
+                            Text(section.name, style = MaterialTheme.typography.bodySmall, color = if (written) theme.foreground else theme.mutedForeground, modifier = Modifier.weight(1f))
                             Text(if (written) "Yes" else "Not reached",
-                                 style = MaterialTheme.typography.labelMedium, color = if (written) Indigo else StudioInkMuted)
+                                 style = MaterialTheme.typography.labelMedium, color = if (written) theme.primaryInk else theme.mutedForeground)
                         }
                     }
                 }
                 if (outcome.countsAsConsultation) {
-                    Text(Teleconsult.rule("dropped-is-not-finished").sentence, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
-                    OutlinedButton(onClick = { open("Consultation record") }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) {
-                        Text("Write it up in the consultation record")
-                    }
+                    Text(Teleconsult.rule("dropped-is-not-finished").sentence, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
+                    ThusoButton("Write it up in the consultation record", onClick = { open("Consultation record") }, variant = ThusoButtonVariant.Secondary, modifier = Modifier.fillMaxWidth())
                 } else {
                     Refusal(Teleconsult.refusal("half-a-consultation"))
-                    Text("${Teleconsult.rule("dropped-is-not-finished").sentence} There is no button on this screen that closes this encounter as a completed consultation, for anybody, in any state.",
-                         style = MaterialTheme.typography.bodySmall, color = Danger,
-                        modifier = Modifier.fillMaxWidth().background(DangerSoft, RoundedCornerShape(ThusoRadius.card)).padding(12.dp))
+                    ThusoAlert(Teleconsult.rule("dropped-is-not-finished").sentence, variant = ThusoAlertVariant.Danger) {
+                        ThusoAlertText("There is no button on this screen that closes this encounter as a completed consultation, for anybody, in any state.")
+                    }
                 }
                 Text("What this screen will not do", style = MaterialTheme.typography.titleMedium)
                 callRefusals.filterNot { it.id == "half-a-consultation" || it.id == "charge-for-a-failure" }.forEach { Refusal(it) }
                 Note("${Teleconsult.rule("no-media-in-this-build").sentence} Nothing was transmitted, no encounter was written and no clinician was notified.")
-                OutlinedButton(onClick = {
+                ThusoButton("Start again", onClick = {
                     stage = 0; refusedClinician = false; decisionReached = false; resumed = false; everDropped = false
                     connectionId = "video"; code = ""; codeError = ""; identityConfirmed = false; withdrawnNote = null
                     listOf("doctor", "nurse", "guardian", "interpreter").forEach { consented[it] = false }
-                }, Modifier.fillMaxWidth(), shape = ThusoButtonShape) { Text("Start again") }
+                }, variant = ThusoButtonVariant.Secondary, modifier = Modifier.fillMaxWidth())
             }
         }
     }

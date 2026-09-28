@@ -83,25 +83,25 @@ enum DeckShape {
    flattened grey cannot follow the ground it sits on and an alpha has no choice but to. The ratios
    every one of these composites to are in the header above. */
 enum DeckInk {
-    static let ground = ThusoTheme.brandInk
-    static let ink = ThusoTheme.surface
+    static let ground = ThusoRole.night
+    static let ink = ThusoRole.onNight
     /// The wordmark's dot. A word only on brandInk, and on the deck only the eyebrow.
-    static let accent = ThusoTheme.brandLime
+    static let accent = ThusoRole.highlight
     /// The lead's lit mark: the wordmark's green, on the recess where it clears 3:1.
-    static let lit = ThusoTheme.brandGreen
+    static let lit = ThusoRole.accent
     /// The muted step is the token rather than a number retyped here: the same alpha every muted
     /// label on all three platforms is set at, and it darkens with whatever ground it lands on.
-    static let quiet = ThusoTheme.surface.opacity(ThusoOpacity.charcoalMuted)
-    static let mark = ThusoTheme.surface.opacity(0.44)
+    static let quiet = ThusoRole.onNightQuiet
+    static let mark = ThusoRole.onNight.opacity(0.44)
     /// The unlit mark on the lead's recess, 4.03 there. The same alpha as `mark`: the recess is darker
     /// than the ground, so a mark that clears on one clears on both.
-    static let leadMark = ThusoTheme.surface.opacity(0.44)
-    static let track = ThusoTheme.surface.opacity(0.24)
-    static let edge = ThusoTheme.surface.opacity(0.14)
-    static let leadGround = ThusoTheme.ink.opacity(0.45)
+    static let leadMark = ThusoRole.onNight.opacity(0.44)
+    static let track = ThusoRole.onNight.opacity(0.24)
+    static let edge = ThusoRole.onNight.opacity(0.14)
+    static let leadGround = ThusoRole.foreground.opacity(0.45)
     /// The roof on the wordmark: the one thing that is not as it should be. A fill or a glyph.
-    static let attention = ThusoTheme.brandOrange
-    static let onAttention = ThusoTheme.ink
+    static let attention = ThusoRole.coral
+    static let onAttention = ThusoRole.accentForeground
 }
 
 /// Minutes since midnight and back again, so a day can be drawn to scale rather than as three equal
@@ -462,10 +462,10 @@ private struct DeckInstrument: View {
     private var numeral: some View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
             if let prefix = figure.prefix {
-                Text(prefix).font(.system(size: affix, weight: .regular)).foregroundStyle(DeckInk.quiet)
+                Text(prefix).font(ThusoFont.textFixed(affix)).foregroundStyle(DeckInk.quiet)
             }
             Text(figure.value)
-                .font(.system(size: isLead ? leadFigure : restFigure, weight: .light).monospacedDigit())
+                .font(ThusoFont.displayFixed(isLead ? leadFigure : restFigure).monospacedDigit())
                 .foregroundStyle(DeckInk.ink)
         }
         .lineLimit(1)
@@ -623,45 +623,45 @@ struct ClinicalDeck: View {
  * is taller, a chosen pill is filled and heavier, and a refusal says so in words beside its glyph. */
 
 extension DeckInk {
-    static let glass = ThusoTheme.ink.opacity(0.45)
-    static let glassEdge = ThusoTheme.surface.opacity(0.16)
+    /* Lifts and edges on the night are the night's own ink at an alpha, so they follow the panel in
+       both appearances rather than turning into pale slabs on a dark screen. */
+    static let glass = ThusoRole.onNight.opacity(0.10)
+    static let glassEdge = ThusoRole.onNight.opacity(0.16)
     /// The edge of anything pressable on the canvas. See the table above: 3.63 and 4.03.
-    static let control = ThusoTheme.surface.opacity(0.44)
+    static let control = ThusoRole.onNight.opacity(0.44)
     /// A refusal's glyph on the dark. Orange is 4.24 there — a glyph's ratio, not a sentence's.
-    static let refusal = ThusoTheme.brandOrange
-    static let panel = deckWash(ThusoTheme.brandGreen, 0.06, over: ThusoTheme.surface)
-    static let panelInk = ThusoTheme.brandInk
-    static let panelQuiet = ThusoTheme.brandInk.opacity(ThusoOpacity.charcoalMuted)
-    static let panelLit = ThusoTheme.brandGreen
-    static let panelMark = ThusoTheme.brandInk.opacity(0.60)
-    static let panelTrack = ThusoTheme.brandInk.opacity(0.12)
+    static let refusal = ThusoRole.coral
+    static let panel = deckWash(ThusoRole.accent, 0.06, over: ThusoRole.surface)
+    static let panelInk = ThusoRole.foreground
+    static let panelQuiet = ThusoRole.mutedForeground
+    static let panelLit = ThusoRole.accent
+    static let panelMark = ThusoRole.foreground.opacity(0.60)
+    static let panelTrack = ThusoRole.foreground.opacity(0.12)
     /// Words on the white sheets these screens stand on.
-    static let sheetInk = ThusoTheme.brandInk
-    static let sheetQuiet = ThusoTheme.body
-    static let sheetLine = ThusoTheme.line
+    static let sheetInk = ThusoRole.foreground
+    static let sheetQuiet = ThusoRole.mutedForeground
+    static let sheetLine = ThusoRole.border
     /// The chosen pill: the wordmark's green, with the ink the ratio above is measured for.
-    static let chosen = ThusoTheme.brandGreen
-    static let onChosen = ThusoTheme.ink
+    static let chosen = ThusoRole.accent
+    static let onChosen = ThusoRole.accentForeground
     /// The sheet that stands on the canvas when what it holds is a refusal: the roof mark at 8% over
     /// white. brandInk 11.08 on it, body 6.98, mangoInk comfortably above 4.5.
-    static let attentionWash = deckWash(ThusoTheme.brandOrange, 0.08, over: ThusoTheme.surface)
+    static let attentionWash = deckWash(ThusoRole.coral, 0.08, over: ThusoRole.surface)
 }
 
 /* One opaque colour composited from two tokens. The panel is read as a colour in more places than a
    background, and a translucent green would change its ratios with whatever stands behind it. Both
    ends are tokens.json's; nothing here is typed. */
 private func deckWash(_ tint: Color, _ amount: Double, over ground: Color) -> Color {
-    var tr: CGFloat = 0, tg: CGFloat = 0, tb: CGFloat = 0, ta: CGFloat = 0
-    var gr: CGFloat = 0, gg: CGFloat = 0, gb: CGFloat = 0, ga: CGFloat = 0
-    UIColor(tint).getRed(&tr, green: &tg, blue: &tb, alpha: &ta)
-    UIColor(ground).getRed(&gr, green: &gg, blue: &gb, alpha: &ga)
-    return Color(red: gr + (tr - gr) * amount, green: gg + (tg - gg) * amount, blue: gb + (tb - gb) * amount)
+    /* Since 28 September 2026 the mix is ThusoRole's, per appearance, so a wash on a dark screen is
+       mixed from the dark values. */
+    ThusoRole.wash(tint, amount, over: ground)
 }
 
 /// The one raised elevation tokens.json declares — `0 4px 16px` of ink at ten per cent — and nothing
 /// stacks a second one under it.
 extension View {
-    func deckRaised() -> some View { shadow(color: ThusoTheme.ink.opacity(0.10), radius: 8, x: 0, y: 4) }
+    func deckRaised() -> some View { shadow(color: ThusoRole.foreground.opacity(0.10), radius: 8, x: 0, y: 4) }
 }
 
 /// Which ground a figure is drawn on, because a palette belongs to a ground and not to a width.
@@ -743,7 +743,7 @@ struct DeckCanvas<Content: View>: View {
 struct DeckHero<Content: View, Sheet: View>: View {
     var wrap = true
     /// The sheet's ground. White, or mangoSoft where what stands on the edge is a refusal.
-    var sheetFill: Color = ThusoTheme.surface
+    var sheetFill: Color = ThusoRole.surface
     @ViewBuilder var content: Content
     @ViewBuilder var sheet: Sheet
     @ScaledMetric(relativeTo: .body) private var overlap: CGFloat = 36
@@ -767,7 +767,7 @@ extension DeckHero where Sheet == EmptyView {
 /// The light card that stands on the canvas: white, the card radius, the one elevation.
 struct DeckSheet<Content: View>: View {
     var padding: CGFloat = ThusoSpacing.space16
-    var fill: Color = ThusoTheme.surface
+    var fill: Color = ThusoRole.surface
     @ViewBuilder var content: Content
     var body: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) { content }
@@ -838,7 +838,7 @@ private struct DeckDots: View {
                 var y: CGFloat = step / 2
                 while y < size.height {
                     context.fill(Path(ellipseIn: CGRect(x: x - 1, y: y - 1, width: 2, height: 2)),
-                                 with: .color(ThusoTheme.brandInk.opacity(0.14)))
+                                 with: .color(ThusoRole.foreground.opacity(0.14)))
                     y += step
                 }
                 x += step
@@ -888,7 +888,7 @@ struct DeckHeadline: View {
                 ForEach(Array(tokens.enumerated()), id: \.offset) { _, token in
                     switch token {
                     case .text(let text):
-                        Text(text).font(.system(size: size, weight: .medium)).tracking(-0.6)
+                        Text(text).font(ThusoFont.displayFixed(size, weight: .medium)).tracking(-0.6)
                             .foregroundStyle(DeckInk.ink)
                     case .glyph(let symbol):
                         DeckGlyph(symbol: symbol, diameter: size * 0.92)
@@ -914,10 +914,10 @@ struct DeckGlyph: View {
     let diameter: CGFloat
     var body: some View {
         Image(systemName: symbol)
-            .font(.system(size: diameter * 0.46, weight: .semibold))
-            .foregroundStyle(ThusoTheme.surface)
+            .font(ThusoFont.textFixed(diameter * 0.46, weight: .semibold))
+            .foregroundStyle(ThusoRole.onNight)
             .frame(width: diameter, height: diameter)
-            .background(ThusoTheme.brandGreen, in: Circle())
+            .background(ThusoRole.accent, in: Circle())
             .accessibilityHidden(true)
     }
 }
@@ -948,7 +948,7 @@ struct DeckRefusal: View {
             } icon: {
                 Image(systemName: "hand.raised").foregroundStyle(DeckInk.refusal)
             }
-                .font(.footnote)
+                .font(.thuso(.footnote))
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityLabel("Refused. \(reason)")
         }
@@ -969,7 +969,7 @@ struct DeckTag: View {
     }
     private var colours: (ink: Color, fill: Color, edge: Color) {
         switch ground {
-        case .panel: return flagged ? (ThusoTheme.surface, DeckInk.panelInk, DeckInk.panelInk)
+        case .panel: return flagged ? (ThusoRole.surface, DeckInk.panelInk, DeckInk.panelInk)
                                     : (DeckInk.panelInk, .clear, DeckInk.panelMark)
         default: return flagged ? (DeckInk.onAttention, DeckInk.attention, DeckInk.attention)
                                 : (DeckInk.quiet, .clear, DeckInk.mark)
@@ -1021,11 +1021,11 @@ struct DeckPills<Value: Hashable>: View {
     private func pill(_ option: (value: Value, title: String)) -> some View {
         let on = option.value == selection
         let ink: Color = on ? DeckInk.onChosen : (onNight ? DeckInk.ink : DeckInk.sheetInk)
-        let fill: Color = on ? DeckInk.chosen : (onNight ? DeckInk.glass : ThusoTheme.surface)
-        let edge: Color = on ? .clear : (onNight ? DeckInk.control : ThusoTheme.controlEdge)
+        let fill: Color = on ? DeckInk.chosen : (onNight ? DeckInk.glass : ThusoRole.surface)
+        let edge: Color = on ? .clear : (onNight ? DeckInk.control : ThusoRole.inputEdge)
         return Button { selection = option.value } label: {
             HStack(spacing: ThusoSpacing.space4) {
-                if on { Image(systemName: "checkmark").font(.footnote.weight(.bold)).accessibilityHidden(true) }
+                if on { Image(systemName: "checkmark").font(.thuso(.footnote, weight: .bold)).accessibilityHidden(true) }
                 Text(option.title).thusoFont(ThusoType.minimumBody, weight: on ? .semibold : .regular)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1050,8 +1050,8 @@ struct DeckCircle: View {
     var onNight = false
     var body: some View {
         Image(systemName: symbol)
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(onNight ? DeckInk.ground : ThusoTheme.surface)
+            .font(.thuso(.subheadline, weight: .semibold))
+            .foregroundStyle(onNight ? DeckInk.ground : DeckInk.ink)
             .frame(width: 44, height: 44)
             .background(onNight ? DeckInk.ink : DeckInk.ground, in: Circle())
             .accessibilityHidden(true)
@@ -1074,7 +1074,7 @@ struct DeckDestination: View {
                 if raised {
                     DeckGlyph(symbol: symbol, diameter: 44)
                 } else {
-                    Image(systemName: symbol).font(.body).foregroundStyle(DeckInk.sheetInk)
+                    Image(systemName: symbol).font(.thuso(.body)).foregroundStyle(DeckInk.sheetInk)
                         .frame(width: 44).accessibilityHidden(true)
                 }
             }
@@ -1082,7 +1082,7 @@ struct DeckDestination: View {
                 Text(title).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(DeckInk.sheetInk)
                     .fixedSize(horizontal: false, vertical: true)
                 if !subtitle.isEmpty {
-                    Text(subtitle).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                    Text(subtitle).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -1092,7 +1092,7 @@ struct DeckDestination: View {
         .padding(.leading, ThusoSpacing.space16).padding(.trailing, ThusoSpacing.space12)
         .padding(.vertical, ThusoSpacing.space12)
         .frame(maxWidth: .infinity, minHeight: 68, alignment: .leading)
-        .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+        .background(ThusoRole.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous)
             .stroke(raised ? .clear : DeckInk.sheetLine, lineWidth: 1))
         .modifier(DeckRaisedIf(raised: raised))
@@ -1130,7 +1130,7 @@ struct DeckSectionHead: View {
             }
             Hairline()
             if !note.isEmpty {
-                Text(note).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                Text(note).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -1247,11 +1247,11 @@ struct DeckFigure: View {
     private func numeral(size: CGFloat) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
             if let prefix {
-                Text(prefix).font(.system(size: affix, weight: .regular)).foregroundStyle(quiet)
+                Text(prefix).font(ThusoFont.textFixed(affix)).foregroundStyle(quiet)
             }
-            Text(value).font(.system(size: size, weight: .light).monospacedDigit()).foregroundStyle(ink)
+            Text(value).font(ThusoFont.displayFixed(size).monospacedDigit()).foregroundStyle(ink)
             if let unit {
-                Text(unit).font(.system(size: affix, weight: .regular)).foregroundStyle(quiet)
+                Text(unit).font(ThusoFont.textFixed(affix)).foregroundStyle(quiet)
             }
         }
         .lineLimit(1)
@@ -1363,7 +1363,7 @@ struct ClinicalProtocolsView: View {
                         .thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(DeckInk.sheetInk)
                         .fixedSize(horizontal: false, vertical: true)
                     Text("AI is decision support. An authorised clinician must sign off clinical decisions.")
-                        .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                        .font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 DeckSectionHead(title: "Where a reading is flagged", count: "\(Records.observations.count)")
@@ -1393,17 +1393,17 @@ private struct ProtocolRangeRow: View {
                 Text(range.label).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(DeckInk.sheetInk)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: ThusoSpacing.space8)
-                Text(range.unit).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                Text(range.unit).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
             }
             HStack(spacing: 0) {
-                Text("Low").font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                Text("Low").font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                     .frame(maxWidth: .infinity, alignment: .leading).padding(.leading, ThusoSpacing.space12)
                 Text("\(low)–\(high)").thusoFont(ThusoType.minimumBody, weight: .semibold).monospacedDigit()
-                    .foregroundStyle(ThusoTheme.surface)
+                    .foregroundStyle(ThusoRole.onNight)
                     .lineLimit(1).minimumScaleFactor(0.8)
                     .frame(maxWidth: .infinity, minHeight: 32)
                     .background(DeckInk.ground, in: Capsule())
-                Text("High").font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                Text("High").font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                     .frame(maxWidth: .infinity, alignment: .trailing).padding(.trailing, ThusoSpacing.space12)
             }
             .frame(minHeight: 32)
@@ -1411,7 +1411,7 @@ private struct ProtocolRangeRow: View {
         }
         .padding(ThusoSpacing.space16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
+        .background(ThusoRole.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: ThusoRadius.card, style: .continuous).stroke(DeckInk.sheetLine, lineWidth: 1))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(range.label). Below \(low) \(range.unit) is flagged low, \(low) to \(high) is inside the indicative range, above \(high) is flagged high.")

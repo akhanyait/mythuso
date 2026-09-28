@@ -52,7 +52,7 @@ struct OnboardingView: View {
                     default: consent
                     }
                     Text("Nothing you type here leaves your device. This preview creates no account.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.vertical, ThusoSpacing.space16)
@@ -72,11 +72,11 @@ struct OnboardingView: View {
                     options: ThusoLocale.allCases.map { ($0, "\($0.native) · \($0.reviewLabel)") })
             if let notice = store.locale.reviewNotice {
                 Label(notice, systemImage: "exclamationmark.triangle")
-                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Text(ThusoLanguageNotes.clinicalRule).font(.footnote)
-                .foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(ThusoLanguageNotes.clinicalRule).font(.thuso(.footnote))
+                .foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
         }
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
@@ -105,7 +105,7 @@ struct OnboardingView: View {
             PanelHead("Check your messages", note: "In this preview the code is 240924.")
             CodeBoxes(code: $code, invalid: !codeError.isEmpty, label: "Verification code")
             if !codeError.isEmpty {
-                Text(codeError).font(.footnote).foregroundStyle(ThusoTheme.danger)
+                Text(codeError).font(.thuso(.footnote)).foregroundStyle(ThusoRole.dangerInk)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -121,7 +121,7 @@ struct OnboardingView: View {
                        note: idNumber.isEmpty ? "Use a fictional number for this preview — for example 8001015009087." : idCheck.message,
                        wrong: !idNumber.isEmpty && !idCheck.ok, keyboard: .numberPad)
             Text("Production verification runs against the Department of Home Affairs through an accredited provider, with a documented lawful basis. Nothing is verified here.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
         }
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
@@ -154,7 +154,7 @@ struct OnboardingView: View {
             Hairline()
             AgreeRow(text: "Send me optional health tips and product news.", on: $consentUpdates)
             Text("Consent is recorded with its version, wording and timestamp so you can see exactly what you agreed to, and withdraw it later.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
         }
         stepButtons(forward: "Enter MyThuso", enabled: consentCare && consentPopia,
@@ -197,7 +197,7 @@ struct RecoverAccessView: View {
             FactRow(label: "Reference", value: "REC-0042 · Demo")
             FactRow(label: "Indicative wait", value: routes.first { $0.0 == route }?.2 ?? "")
             Text("Nothing was submitted. Production recovery is rate-limited, audited and reversible for a cooling-off period.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
         }
         Button("Done") { dismiss() }.buttonStyle(CareButton())
@@ -215,7 +215,7 @@ struct RecoverAccessView: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             Button("Start recovery") { submitted = true }.buttonStyle(CareButton()).disabled(route.isEmpty)
             Text("Recovery never reveals your records to the person helping you.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

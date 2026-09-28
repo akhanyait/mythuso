@@ -32,26 +32,26 @@ struct ResponderView: View {
                 CapabilityNotice(of: "dispatch")
                 SurfaceHeading(eyebrow: "Thuso Ride", title: Movement.ResponderText.heading, subtitle: Movement.ResponderText.intro)
                 Label(Movement.notAnAmbulance, systemImage: "info.circle")
-                    .font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                    .font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
                 offer
                 summary
                 if trip.stateId == "accepted" { handover }
                 if let refusal {
                     Label(refusal, systemImage: "hand.raised")
-                        .font(.footnote.weight(.medium)).foregroundStyle(ThusoTheme.danger)
+                        .font(.thuso(.footnote, weight: .medium)).foregroundStyle(ThusoRole.dangerInk)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("responder-refusal")
                 }
                 if let status {
-                    Text(status).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                    Text(status).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Text(Movement.fill(Movement.ResponderText.heartbeat, ["interval": Movement.intervalText()]))
-                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(Movement.preview)
-                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.vertical, ThusoSpacing.space16)
@@ -72,23 +72,23 @@ struct ResponderView: View {
     @ViewBuilder private var offer: some View {
         SurfacePanel(tone: .lead) {
             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-                Text(trip.id).font(.subheadline.weight(.semibold).monospaced()).foregroundStyle(ThusoTheme.charcoal)
+                Text(trip.id).font(.thuso(.subheadline, weight: .semibold).monospaced()).foregroundStyle(ThusoRole.foreground)
                 Spacer(minLength: ThusoSpacing.space8)
                 StatusPill(text: Movement.priority(trip.priorityClass)?.label ?? trip.priorityClass, tone: "quiet")
                 StatusPill(text: Movement.label(Movement.tripStates, trip.stateId), tone: trip.stateId == "handed-over" ? "quiet" : trip.stateId == "accepted" ? "teal" : "amber")
             }
             Label(Movement.fill(Movement.ResponderText.pickup, ["zone": Movement.label(Movement.zones, trip.zoneId), "when": when(trip.pickupAt)]), systemImage: "mappin")
-                .font(.subheadline).foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+                .font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
             Label(Movement.fill(Movement.ResponderText.destination, ["facility": Movement.label(Movement.facilities, trip.facilityRef)]), systemImage: "building.2")
-                .font(.subheadline).foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+                .font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
             if trip.stateId == "requested" && !trip.declined {
-                Text(Movement.ResponderText.offered).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(Movement.ResponderText.offered).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: ThusoSpacing.space8) { acceptButton; declineButton }
                     VStack(spacing: ThusoSpacing.space8) { acceptButton; declineButton }
                 }
             } else if trip.declined {
-                Text(Movement.ResponderText.declined).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                Text(Movement.ResponderText.declined).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -108,7 +108,7 @@ struct ResponderView: View {
             Text(Movement.summaryOpen(trip)
                  ? Movement.fill(Movement.ResponderText.summaryOpen, ["categories": PassportSharingData.emergencySummaryNames.joined(separator: ", ")])
                  : trip.stateId == "handed-over" ? Movement.ResponderText.summaryClosed : Movement.ResponderText.summaryNotYet)
-                .font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                .font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .combine)
@@ -124,10 +124,10 @@ struct ResponderView: View {
             }
             .pickerStyle(.menu)
             .frame(minHeight: 44)
-            Text(Movement.ResponderText.checklistHeading).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            Text(Movement.ResponderText.checklistHeading).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
             ForEach(Movement.checklist, id: \.self) { line in
                 Toggle(isOn: Binding(get: { ticked.contains(line) }, set: { if $0 { ticked.insert(line) } else { ticked.remove(line) } })) {
-                    Text(line).font(.subheadline).foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+                    Text(line).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(minHeight: 44)
             }

@@ -66,7 +66,7 @@ struct CareOfferCard: View {
             careTitle(serviceName)
             if let marker = offer.marker {
                 Label(marker, systemImage: "checkmark.seal")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                    .font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             /* This app has no admin surface and never reads the value an admin puts in force on the web: it
@@ -76,7 +76,7 @@ struct CareOfferCard: View {
                phone is not using. It never withholds the offer. */
             if CareData.scopeNotReviewed(CareData.Preview.serviceId) {
                 Label(CareData.notClinicallyReviewed, systemImage: "exclamationmark.shield")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                    .font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             careFact("When", "Today, \(CareVisitStore.clock(store.scheduledFor))", "\(store.service?.duration ?? 0) min")
@@ -112,7 +112,7 @@ struct CareVisitView: View {
                 VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
                     careEyebrow("Visit \(CareData.Preview.appointmentRef) · \(zoneName)")
                     Text("\(serviceName), today at \(CareVisitStore.clock(store.scheduledFor))")
-                        .font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                        .font(.thuso(.title3, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
                     CapabilityNotice(of: "booking")
@@ -146,19 +146,19 @@ struct CareVisitView: View {
                 let current = !store.completed && index == at
                 HStack(spacing: ThusoSpacing.space12) {
                     ZStack {
-                        Circle().fill(done ? ThusoTheme.brandInk : ThusoTheme.surface)
-                        Circle().strokeBorder(done || current ? ThusoTheme.brandInk : ThusoTheme.controlEdge, lineWidth: current ? 2 : 1)
+                        Circle().fill(done ? ThusoRole.primary : ThusoRole.surface)
+                        Circle().strokeBorder(done || current ? ThusoRole.primary : ThusoRole.inputEdge, lineWidth: current ? 2 : 1)
                         if done {
-                            Image(systemName: "checkmark").font(.footnote.weight(.bold)).foregroundStyle(ThusoTheme.surface)
+                            Image(systemName: "checkmark").font(.thuso(.footnote, weight: .bold)).foregroundStyle(ThusoRole.primaryForeground)
                         } else {
-                            Text("\(index + 1)").font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                            Text("\(index + 1)").font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                         }
                     }
                     .frame(width: 28, height: 28)
                     .accessibilityHidden(true)
                     Text(stage.name)
-                        .font(current ? .subheadline.weight(.semibold) : .subheadline)
-                        .foregroundStyle(ThusoTheme.charcoal)
+                        .font(current ? .thuso(.subheadline, weight: .semibold) : .thuso(.subheadline))
+                        .foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 0)
                 }
@@ -229,9 +229,9 @@ struct CareVisitView: View {
             ForEach(store.protocols) { entry in
                 HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space12) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(entry.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                        Text(entry.name).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                             .fixedSize(horizontal: false, vertical: true)
-                        Text("Version \(entry.version)").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        Text("Version \(entry.version)").font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     }
                     Spacer(minLength: ThusoSpacing.space8)
                     MetricChip(text: entry.status.capitalized)
@@ -250,7 +250,7 @@ struct CareVisitView: View {
             careNote(CareData.recordSentence)
             Label(store.signedOff ? "Signed off on this phone." : "Not signed off yet.",
                   systemImage: store.signedOff ? "checkmark.seal" : "clock")
-                .font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                .font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
         }
         if !store.signedOff { assessmentLink }
         Button("Continue to handover") { store.go(to: .handover) }.buttonStyle(CareButton())
@@ -280,23 +280,23 @@ struct CareVisitView: View {
 
 private func careEyebrow(_ text: String) -> some View {
     Text(text.uppercased())
-        .font(.footnote.weight(.semibold)).tracking(0.4)
-        .foregroundStyle(ThusoTheme.studioInkMuted)
+        .font(.thuso(.footnote, weight: .semibold)).tracking(0.4)
+        .foregroundStyle(ThusoRole.mutedForeground)
         .fixedSize(horizontal: false, vertical: true)
 }
 
 private func careTitle(_ text: String) -> some View {
     Text(text)
         .thusoFont(ThusoType.cardTitle, weight: .semibold)
-        .foregroundStyle(ThusoTheme.charcoal)
+        .foregroundStyle(ThusoRole.foreground)
         .fixedSize(horizontal: false, vertical: true)
         .accessibilityAddTraits(.isHeader)
 }
 
 private func careNote(_ text: String, strong: Bool = false) -> some View {
     Text(text)
-        .font(strong ? .subheadline.weight(.semibold) : .subheadline)
-        .foregroundStyle(strong ? ThusoTheme.charcoal : ThusoTheme.studioInkMuted)
+        .font(strong ? .thuso(.subheadline, weight: .semibold) : .thuso(.subheadline))
+        .foregroundStyle(strong ? ThusoRole.foreground : ThusoRole.mutedForeground)
         .fixedSize(horizontal: false, vertical: true)
 }
 
@@ -304,10 +304,10 @@ private func careNote(_ text: String, strong: Bool = false) -> some View {
    compares, so it is the one set heavy, and the digits are monospaced so two offers line up. */
 private func careFact(_ label: String, _ value: String, _ detail: String) -> some View {
     VStack(alignment: .leading, spacing: 2) {
-        Text(label).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
-        Text(value).font(.body.weight(.semibold)).monospacedDigit().foregroundStyle(ThusoTheme.charcoal)
+        Text(label).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
+        Text(value).font(.thuso(.body, weight: .semibold)).monospacedDigit().foregroundStyle(ThusoRole.foreground)
             .fixedSize(horizontal: false, vertical: true)
-        Text(detail).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+        Text(detail).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             .fixedSize(horizontal: false, vertical: true)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
@@ -331,16 +331,16 @@ private struct CashAtTheDoorPanel: View {
             }
             VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
                 Label(Money.cashNursePatientPhone, systemImage: "iphone")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(ThusoTheme.charcoal)
+                    .font(.thuso(.footnote, weight: .semibold))
+                    .foregroundStyle(ThusoRole.foreground)
                 if let shown = door.patientCode {
                     Text(shown)
-                        .font(.title2.weight(.semibold).monospacedDigit())
-                        .foregroundStyle(ThusoTheme.charcoal)
+                        .font(.thuso(.title2, weight: .semibold).monospacedDigit())
+                        .foregroundStyle(ThusoRole.foreground)
                 }
                 Text(door.patientCode == nil ? Money.cashNurseShownAlready : Money.cashNurseShownOnce)
-                    .font(.footnote)
-                    .foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.footnote))
+                    .foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .accessibilityElement(children: .combine)
@@ -363,12 +363,12 @@ private struct CashAtTheDoorPanel: View {
 
 private func careRefusal(_ text: String, why: String? = nil) -> some View {
     HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-        Image(systemName: "hand.raised").foregroundStyle(ThusoTheme.danger).accessibilityHidden(true)
+        Image(systemName: "hand.raised").foregroundStyle(ThusoRole.dangerInk).accessibilityHidden(true)
         VStack(alignment: .leading, spacing: 4) {
-            Text(text).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            Text(text).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
             if let why {
-                Text(why).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(why).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

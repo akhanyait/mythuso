@@ -57,11 +57,10 @@ struct StudioGround: View {
     var body: some View {
         GeometryReader { geo in
             let span = max(geo.size.width, geo.size.height)
-            ZStack {
-                ThusoTheme.studioPaper
-                RadialGradient(colors: [ThusoTheme.surface.opacity(0.85), ThusoTheme.surface.opacity(0)],
-                               center: UnitPoint(x: 0.85, y: 0), startRadius: 0, endRadius: span * 0.7)
-            }
+            /* One flat ground, the handoff's background role. The highlight this used to carry is gone:
+               the handoff refuses gradients and decorative orbs, and `span` is kept only so the
+               geometry reader still fills the screen. */
+            ZStack { ThusoRole.background }.frame(width: span, height: span, alignment: .topLeading)
         }
         .ignoresSafeArea()
         .accessibilityHidden(true)
@@ -112,11 +111,7 @@ struct NightPanel: View {
     var body: some View {
         GeometryReader { geo in
             let span = max(geo.size.width, geo.size.height)
-            ZStack {
-                ThusoTheme.studioNight
-                RadialGradient(colors: [ThusoTheme.surface.opacity(0.10), ThusoTheme.surface.opacity(0)],
-                               center: UnitPoint(x: 0.12, y: 0.02), startRadius: 0, endRadius: span * 0.9)
-            }
+            ZStack { ThusoRole.night }.frame(width: span, height: span, alignment: .topLeading)
         }
         .accessibilityHidden(true)
     }
@@ -133,27 +128,15 @@ struct Frosted: ViewModifier {
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         content
-            .background {
-                if reduceTransparency {
-                    shape.fill(ThusoTheme.glassFloor)
-                } else {
-                    shape.fill(.ultraThinMaterial)
-                }
-            }
-            .overlay {
-                shape.stroke(ThusoTheme.studioLine, lineWidth: 1)
-                    .overlay(alignment: .top) {
-                        if edge && !reduceTransparency {
-                            LinearGradient(colors: [ThusoTheme.glassEdge.opacity(0),
-                                                    ThusoTheme.glassEdge.opacity(0.7),
-                                                    ThusoTheme.glassEdge.opacity(0)],
-                                           startPoint: .leading, endPoint: .trailing)
-                                .frame(height: 1)
-                                .padding(.horizontal, radius / 2)
-                        }
-                    }
-            }
+            /* No material and no edge highlight since 28 September 2026: the handoff refuses glass
+               effects, so a "frosted" panel is the card — a surface, a border and the one shadow —
+               and the modifier keeps its name so its callers did not have to move. `edge` and the
+               transparency setting are read and unused for the same reason. */
+            .background(shape.fill(ThusoRole.surface))
+            .overlay(shape.stroke(ThusoRole.border, lineWidth: 1))
             .clipShape(shape)
+            .thusoShadow()
+            .opacity(edge || reduceTransparency ? 1 : 1)
     }
 }
 extension View {
@@ -193,22 +176,22 @@ struct ThusoMetric: View {
        from a ForEach over a contract has nowhere to put an argument that is the same for all of
        them. StudioNightCard is the only thing that sets it. */
     @Environment(\.onStudioNight) private var onNight
-    private var ink: Color { onNight ? ThusoTheme.studioPaper : ThusoTheme.charcoal }
+    private var ink: Color { onNight ? ThusoRole.onNight : ThusoRole.foreground }
     var body: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
             if let chip {
                 MetricChip(text: chip, tone: onNight ? (flagged ? .flaggedOnNight : .onDark)
-                                                     : (flagged ? .filled : .neutral))
+                                                     : (flagged ? .filled : .good))
             }
             HStack(alignment: .firstTextBaseline, spacing: 3) {
                 if let prefix {
-                    Text(prefix).font(.system(size: affix, weight: .regular)).foregroundStyle(ink)
+                    Text(prefix).font(ThusoFont.textFixed(affix)).foregroundStyle(ink)
                 }
                 Text(value)
-                    .font(.system(size: figure, weight: .light).monospacedDigit())
+                    .font(ThusoFont.displayFixed(figure).monospacedDigit())
                     .foregroundStyle(ink)
                 if let unit {
-                    Text(unit).font(.system(size: affix, weight: .regular)).foregroundStyle(ink)
+                    Text(unit).font(ThusoFont.textFixed(affix)).foregroundStyle(ink)
                 }
             }
             .lineLimit(1)
@@ -219,8 +202,8 @@ struct ThusoMetric: View {
                muted opacity: `studioPaper` at 78% composites to #C8CBC6 and reads 9.04:1. A
                `studioPaperMuted` would close that last gap; it is in the report rather than mixed
                here. */
-            Text(label).font(.footnote)
-                .foregroundStyle(onNight ? ink.opacity(ThusoOpacity.charcoalMuted) : ThusoTheme.studioInkMuted)
+            Text(label).font(.thuso(.footnote))
+                .foregroundStyle(onNight ? ink.opacity(ThusoOpacity.charcoalMuted) : ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -258,6 +241,8 @@ enum ChipTone {
     case attention
     /// Refused, lapsed, declined, out of date.
     case refused
+    /// A value inside its range: the success tint, said in words beside it. The web's success badge.
+    case good
     /// On a dark ground, where the only ink that reads is white.
     case onDark
     /// The one value on a screen that is being pointed at. Charcoal fill, white word.
@@ -273,13 +258,18 @@ enum ChipTone {
     /// and danger 5.77 on their own washes; white 12.6:1 on the charcoal fill.
     var colours: (Color, Color, Color) {
         switch self {
-        case .neutral: return (ThusoTheme.charcoal, ThusoTheme.surface, ThusoTheme.studioLine)
-        case .quiet: return (ThusoTheme.studioInkMuted, ThusoTheme.cloud, .clear)
-        case .attention: return (ThusoTheme.mangoInk, ThusoTheme.mangoSoft, ThusoTheme.mangoInk.opacity(0.24))
-        case .refused: return (ThusoTheme.danger, ThusoTheme.dangerSoft, ThusoTheme.danger.opacity(0.3))
-        case .onDark: return (ThusoTheme.surface, ThusoTheme.surface.opacity(0.16), ThusoTheme.surface.opacity(0.3))
-        case .filled: return (ThusoTheme.studioPaper, ThusoTheme.studioNight, ThusoTheme.studioNight)
-        case .flaggedOnNight: return (ThusoTheme.studioInkDeep, ThusoTheme.studioLime, ThusoTheme.studioLime)
+        /* The handoff's Badge, by tone: neutral and quiet on the muted well, attention on the warning tint
+           with the foreground (the lime cannot carry words, so the words are the ink and the tint is the
+           hint), refused in the danger ink on its tint, filled the primary with its foreground. On the
+           night card the ink is the night's own. */
+        case .neutral: return (ThusoRole.foreground, ThusoRole.muted, .clear)
+        case .quiet: return (ThusoRole.mutedForeground, ThusoRole.muted, .clear)
+        case .attention: return (ThusoRole.foreground, ThusoRole.warningTint, .clear)
+        case .refused: return (ThusoRole.dangerInk, ThusoRole.dangerTint, .clear)
+        case .good: return (ThusoRole.foreground, ThusoRole.successTint, .clear)
+        case .onDark: return (ThusoRole.onNight, ThusoRole.onNight.opacity(0.16), .clear)
+        case .filled: return (ThusoRole.primaryForeground, ThusoRole.primary, .clear)
+        case .flaggedOnNight: return (ThusoRole.accentForeground, ThusoRole.highlight, .clear)
         }
     }
 
@@ -312,7 +302,7 @@ struct MetricChip: View {
     }
     var body: some View {
         let (ink, fill, edge) = tone.colours
-        Text(text).font(.footnote.weight(.medium))
+        Text(text).font(.thuso(.caption, weight: .semibold))
             .foregroundStyle(ink)
             .padding(.horizontal, ThusoSpacing.space8).padding(.vertical, 3)
             .fixedSize(horizontal: false, vertical: true)
@@ -351,17 +341,19 @@ struct SurfacePanel<Content: View>: View {
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous) }
     private var fill: Color {
         switch tone {
-        case .lead: return ThusoTheme.studioLilac
-        case .plain: return ThusoTheme.surface
-        case .quiet: return ThusoTheme.cloud
+        case .lead: return ThusoRole.surfaceRaised
+        case .plain: return ThusoRole.surface
+        case .quiet: return ThusoRole.muted
         }
     }
+    /* The handoff's Card since 28 September 2026: a border on every tone and the one card shadow. */
     var body: some View {
         VStack(alignment: .leading, spacing: spacing) { content }
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(fill, in: shape)
-            .overlay(shape.stroke(tone == .plain ? ThusoTheme.studioLine : .clear, lineWidth: 1))
+            .overlay(shape.stroke(ThusoRole.border, lineWidth: 1))
+            .thusoShadow()
     }
 }
 
@@ -375,10 +367,10 @@ struct PanelHead<Trailing: View>: View {
     var body: some View {
         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoTheme.charcoal)
+                Text(title).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
                 if let note {
-                    Text(note).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(note).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -398,11 +390,11 @@ struct OpenCircle: View {
     let label: String
     var symbol = "arrow.up.right"
     var body: some View {
-        Image(systemName: symbol).font(.subheadline.weight(.semibold))
-            .foregroundStyle(ThusoTheme.charcoal)
+        Image(systemName: symbol).font(.thuso(.subheadline, weight: .semibold))
+            .foregroundStyle(ThusoRole.foreground)
             .frame(width: 44, height: 44)
-            .background(ThusoTheme.surface, in: Circle())
-            .overlay(Circle().stroke(ThusoTheme.controlEdge, lineWidth: 1))
+            .background(ThusoRole.surface, in: Circle())
+            .overlay(Circle().stroke(ThusoRole.inputEdge, lineWidth: 1))
             .accessibilityLabel(label)
     }
 }
@@ -425,21 +417,19 @@ struct NavPillLabel: View {
        so a two-line pill eats the first and last word of the line it curves past — and at the
        accessibility sizes every pill is a two-line pill. */
     private var shape: AnyShape {
-        subtitle.isEmpty && !typeSize.isAccessibilitySize
-            ? AnyShape(Capsule())
-            : AnyShape(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        AnyShape(RoundedRectangle(cornerRadius: ThusoRadius.md, style: .continuous))
     }
     /* The row you are on takes `studioNight` and `studioPaper`, which is the same pair the one live
        card on a screen uses. A neutral black pill on a cream ground reads as a hole rather than as a
        place, and the two darks would have been the only two darks in the app that disagreed. */
-    private var ink: Color { current ? ThusoTheme.studioPaper : ThusoTheme.charcoal }
+    private var ink: Color { current ? ThusoRole.foreground : ThusoRole.mutedForeground }
     var body: some View {
         HStack(spacing: ThusoSpacing.space12) {
             /* At the accessibility sizes the symbol is dropped rather than shrunk: the words are
                what the row is for, and a glyph beside six lines of wrapped label is noise
                competing for a narrow column. */
             if !typeSize.isAccessibilitySize {
-                Image(systemName: symbol).font(.subheadline).foregroundStyle(ink)
+                Image(systemName: symbol).font(.thuso(.subheadline)).foregroundStyle(ink)
                     .frame(width: 24).accessibilityHidden(true)
             }
             VStack(alignment: .leading, spacing: 2) {
@@ -452,9 +442,8 @@ struct NavPillLabel: View {
                        2.30:1, which clears nothing, on the one string that tells a reader whether
                        the row is the one they want. It is the muted charcoal every other secondary
                        label is, which reads 6.01 on that ground and darkens with it. */
-                    Text(subtitle).font(.footnote)
-                        .foregroundStyle(current ? ThusoTheme.studioPaper.opacity(0.8)
-                                                 : ThusoTheme.studioInkMuted)
+                    Text(subtitle).font(.thuso(.footnote))
+                        .foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -462,16 +451,19 @@ struct NavPillLabel: View {
             /* The same arithmetic for the arrow. It is hidden from VoiceOver, so it is decoration —
                but it is the decoration that says this row goes somewhere, and at 2.30 it did not
                say it to anybody. */
-            Image(systemName: "arrow.right").font(.subheadline.weight(.semibold))
-                .foregroundStyle(current ? ThusoTheme.studioNight : ThusoTheme.studioInkMuted)
+            Image(systemName: "arrow.right").font(.thuso(.subheadline, weight: .semibold))
+                .foregroundStyle(current ? ThusoRole.foreground : ThusoRole.mutedForeground)
                 .frame(width: 36, height: 36)
-                .background(current ? ThusoTheme.studioPaper : .clear, in: Circle())
+                .background(current ? ThusoRole.surface : .clear, in: Circle())
                 .accessibilityHidden(true)
         }
         .padding(.leading, ThusoSpacing.space16).padding(.trailing, 6)
         .padding(.vertical, ThusoSpacing.space8)
         .frame(maxWidth: .infinity, minHeight: 52)
-        .background(current ? ThusoTheme.studioNight : ThusoTheme.cloud, in: shape)
+        /* The handoff's NavigationItem: the current row on the accent tint with the foreground and a
+           heavier weight, the others on the surface with a border. Compact corners, not a pill. */
+        .background(current ? ThusoRole.accentTint : ThusoRole.surface, in: shape)
+        .overlay(shape.stroke(current ? .clear : ThusoRole.border, lineWidth: 1))
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(current ? [.isSelected] : [])
@@ -507,7 +499,7 @@ struct SegmentBar: View {
         HStack(spacing: 5) {
             ForEach(0..<max(total, 1), id: \.self) { index in
                 Capsule()
-                    .fill(index == now ? ThusoTheme.studioNight : index < done ? ThusoTheme.studioOlive : ThusoTheme.cloud)
+                    .fill(index == now ? ThusoRole.primary : index < done ? ThusoRole.accent : ThusoRole.muted)
                     .frame(height: 12)
             }
         }
@@ -533,13 +525,13 @@ struct SurfaceHeading: View {
                 /* An eyebrow is a label, not a value, so it is the muted charcoal every other
                    label in this language is — never a sage, which reads at 2.30:1 on the cloud
                    ground a quiet panel uses and cannot carry a word anywhere. */
-                Text(eyebrow.uppercased()).font(.footnote.weight(.semibold)).tracking(1.1)
-                    .foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(eyebrow.uppercased()).font(.thuso(.footnote, weight: .semibold)).tracking(1.1)
+                    .foregroundStyle(ThusoRole.mutedForeground)
             }
-            Text(title).font(.system(size: titleSize, weight: .regular)).foregroundStyle(ThusoTheme.charcoal)
+            Text(title).font(ThusoFont.displayFixed(titleSize, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
             if !subtitle.isEmpty {
-                Text(subtitle).font(.subheadline).foregroundStyle(ThusoTheme.charcoal.opacity(0.75))
+                Text(subtitle).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground.opacity(0.75))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -561,17 +553,17 @@ struct FactRow: View {
                 /* Charcoal, muted by opacity rather than by a grey of its own. A metric can sit on
                  white or on the palest sage, and a fixed grey that reads on one does not read on
                  the other — which is exactly what "sage is a fill and never a label" is about. */
-            Text(label).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(label).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 Spacer(minLength: ThusoSpacing.space8)
-                Text(value).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                Text(value).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                     .multilineTextAlignment(.trailing)
             }
             VStack(alignment: .leading, spacing: 2) {
                 /* Charcoal, muted by opacity rather than by a grey of its own. A metric can sit on
                  white or on the palest sage, and a fixed grey that reads on one does not read on
                  the other — which is exactly what "sage is a fill and never a label" is about. */
-            Text(label).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
-                Text(value).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+            Text(label).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
+                Text(value).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -589,12 +581,12 @@ struct StatedFact: View {
     var footnote: String?
     var body: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-            Text(term).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(term).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
-            Text(statement).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+            Text(statement).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
             if let footnote {
-                Text(footnote).font(.footnote).foregroundStyle(ThusoTheme.charcoal.opacity(0.75))
+                Text(footnote).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground.opacity(0.75))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -615,8 +607,9 @@ struct StatedFact: View {
 private struct ScaledSystemFont: ViewModifier {
     let size: CGFloat
     let weight: Font.Weight
-    @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
-    func body(content: Content) -> some View { content.font(.system(size: size * scale, weight: weight)) }
+    /* The text face, since 28 September 2026, scaled by the font itself relative to .body — the same
+       ratio the @ScaledMetric here used to apply, now applied once. */
+    func body(content: Content) -> some View { content.font(ThusoFont.text(size, weight: weight, relativeTo: .body)) }
 }
 extension View {
     func thusoFont(_ size: CGFloat, weight: Font.Weight = .regular) -> some View {
@@ -626,5 +619,5 @@ extension View {
 
 /// A hairline. Separation in this language is this and a lighter fill, and nothing else.
 struct Hairline: View {
-    var body: some View { Rectangle().fill(ThusoTheme.studioLine).frame(height: 1).accessibilityHidden(true) }
+    var body: some View { Rectangle().fill(ThusoRole.border).frame(height: 1).accessibilityHidden(true) }
 }

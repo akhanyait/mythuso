@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import za.co.mythuso.model.*
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.platform.LocalDensity
+import za.co.mythuso.ui.components.*
 
 /*
  * Thuso Kit, and the queue underneath it.
@@ -64,13 +66,13 @@ private fun provenanceIcon(provenance: Provenance): ImageVector = when (provenan
 }
 @Composable fun ProvenanceMark(provenance: Provenance) {
     Row(
-        Modifier.background(DeckInk.panel, CircleShape).padding(horizontal = 8.dp, vertical = 4.dp)
+        Modifier.background(theme.muted, CircleShape).padding(horizontal = 8.dp, vertical = 4.dp)
             .semantics(mergeDescendants = true) { contentDescription = provenance.label },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Icon(provenanceIcon(provenance), null, tint = DeckInk.sheetInk, modifier = Modifier.size(13.dp))
-        Text(provenance.shortLabel, style = MaterialTheme.typography.labelMedium, color = DeckInk.sheetInk)
+        Icon(provenanceIcon(provenance), null, tint = theme.foreground, modifier = Modifier.size(13.dp))
+        Text(provenance.shortLabel, style = MaterialTheme.typography.labelMedium, color = theme.foreground)
     }
 }
 @Composable private fun CalibrationPill(state: CalibrationState) {
@@ -122,8 +124,8 @@ private fun stateTone(state: CaptureState) = when (state) {
         }
         reading.caveats.forEach { caveat ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Outlined.Info, null, tint = MangoInk, modifier = Modifier.size(15.dp))
-                Text(caveat, style = MaterialTheme.typography.bodySmall, color = DeckInk.sheetQuiet)
+                Icon(Icons.Outlined.Info, null, tint = theme.warningInk, modifier = Modifier.size(15.dp))
+                Text(caveat, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
             }
         }
     }
@@ -148,7 +150,7 @@ private fun stateTone(state: CaptureState) = when (state) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 StatusPill("Clock disagreed", "sky")
                 Text("This phone was ${skewText(skew)}. Settled by the server, because ordering is a fact about clocks — nothing clinical was decided.",
-                    style = MaterialTheme.typography.bodySmall, color = DeckInk.sheetQuiet)
+                    style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
             }
         }
     }
@@ -181,68 +183,68 @@ private fun stateTone(state: CaptureState) = when (state) {
     val dueSoon = capture.paired.count { it.state == CalibrationState.DUE }
 
     ScreenColumn {
-        /* THE KIT IS A DECK, AND THE SENTENCE ABOUT BLUETOOTH STANDS ON IT.
-           The screen used to open on a notice, a heading and two white cards of equal weight, so the
-           one fact a reviewer most needs — nothing here reaches an instrument — sat at the same height
-           as the choice of nurse. The capability's own sentence is on the canvas now, at reading
-           size; the choice of nurse is a pill cluster, because comparing the three is the whole
-           demonstration; and "Nothing here connects" is the sheet standing on the canvas's edge, the
-           first thing under the deck and the most raised thing on the screen.
-           The two figures are counted off the two lists below them: the ring is the contract's six
-           instruments with the paired ones lit, and the panel's ring is what is still on this phone,
-           lit where a reading disagrees with another. */
-        DeckHero(
-            content = {
-                DeckPreviewMark()
-                DeckHeadline(
-                    "Thuso Kit",
-                    listOf(DeckWord.Words("Connected"), DeckWord.Glyph(Icons.Outlined.Sensors), DeckWord.Words("diagnostic capture.")),
-                    tail = "$visit · $patient. Six instruments, each with what it measures, how it would connect and when it was last calibrated."
-                )
-                NotConnected("devices")
-                DeckPills("Capturing as", nurse.id, nurses.map { it.id to it.name }) { nurseId = it }
-                Text(
-                    "Capturing a reading is writing into somebody’s record, so it asks the vetting module the same question a consultation does: may this party write a clinical note?",
-                    style = MaterialTheme.typography.bodySmall, color = DeckInk.quiet
-                )
-                Text("${vettingRoleById(nurse.roleId)?.name} · ${nurse.reference} · ${summarise(nurse).status.label}",
-                    style = MaterialTheme.typography.bodySmall, color = DeckInk.quiet)
-                if (!mayCapture.allowed) Box(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
-                    DeckRefusal("${mayCapture.reason.orEmpty()} Pairing and calibration stay readable — knowing which instrument is out of date is not a clinical write — but no reading is taken under this registration.")
+        /* THE KIT ON THE IDENTITY (28 September 2026). It opened on a night deck with a glass figure
+           standing on it; the handoff's guidelines refuse glass and a lit ground, so it opens the way
+           the nurse's kit does on the web since Wave 4b: the heading, the capability's own sentence on
+           a card, the choice of nurse as chips — comparing the three is the whole demonstration — and
+           two metric cards counted off the two lists below them: the contract's six instruments with
+           the paired ones counted, and what is still on this phone, with what disagrees. "Nothing here
+           connects" is an alert, the first thing under the figures. */
+        DemoBadge()
+        Heading("Nurse workspace", "Thuso Kit", "$visit · $patient. Six instruments, each with what it measures, how it would connect and when it was last calibrated.")
+        NotConnected("devices")
+        CareCard {
+            Text("Capturing as", style = MaterialTheme.typography.labelMedium, color = theme.mutedForeground)
+            FlowRowChips(nurses.map { it.name }, setOf(nurse.name)) { name -> nurses.firstOrNull { it.name == name }?.let { nurseId = it.id } }
+            Text(
+                "Capturing a reading is writing into somebody’s record, so it asks the vetting module the same question a consultation does: may this party write a clinical note?",
+                style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground
+            )
+            Text("${vettingRoleById(nurse.roleId)?.name} · ${nurse.reference} · ${summarise(nurse).status.label}",
+                style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
+            if (!mayCapture.allowed) Box(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+                ThusoAlert(mayCapture.reason.orEmpty(), variant = ThusoAlertVariant.Danger) {
+                    ThusoAlertText("Pairing and calibration stay readable — knowing which instrument is out of date is not a clinical write — but no reading is taken under this registration.")
                 }
-                DeckGlassCard {
-                    DeckFigure(
-                        value = "${capture.paired.size}", label = "of ${kitInstruments.size} instruments paired to this phone",
-                        chip = when {
-                            capture.paired.isEmpty() -> "Nothing paired"
-                            outOfDate > 0 -> "$outOfDate out of calibration"
-                            dueSoon > 0 -> "$dueSoon due for calibration"
-                            else -> "All in calibration"
-                        },
-                        flagged = outOfDate > 0,
-                        shape = DeckShape.Ring(kitInstruments.map { instrument -> capture.paired.any { it.instrument.id == instrument.id } })
-                    )
-                }
-                DeckPanel {
-                    DeckFigure(
-                        value = "${held.size}", label = "readings held on this phone, not yet sent",
-                        chip = if (needing > 0) "$needing needing a decision" else "None needing a decision", flagged = needing > 0,
-                        shape = DeckShape.Ring(held.map { it.state == CaptureState.CONFLICTED }), ground = DeckGround.PANEL
-                    )
-                }
-            },
-            sheet = {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Outlined.BluetoothDisabled, null, tint = DeckInk.sheetInk)
-                    Text("Nothing here connects.", style = MaterialTheme.typography.titleMedium, color = DeckInk.sheetInk)
-                }
-                Text(
-                    "No Bluetooth adapter is opened, no scan is started and no instrument is on the other end. This app asks for no permission at all — not location, not Bluetooth, not internet — and its manifest declares none, so nothing here could reach an instrument or a server even if one existed.",
-                    style = MaterialTheme.typography.bodyMedium, color = DeckInk.sheetInk
-                )
-                Note("What is real is the shape: what each instrument measures, what has to be recorded alongside it, when it was last calibrated, and what happens to the reading afterwards. The numbers are generated on this phone and every screen that shows one says so.")
             }
+        }
+        val perRow = if (LocalDensity.current.fontScale >= 1.3f) 1 else 2
+        val figures: List<@Composable (Modifier) -> Unit> = listOf(
+            { m -> ThusoMetricCard(
+                "Paired to this phone", "${capture.paired.size}", m, unit = "of ${kitInstruments.size}",
+                icon = Icons.Outlined.Sensors,
+                foot = { ThusoBadge(
+                    when {
+                        capture.paired.isEmpty() -> "Nothing paired"
+                        outOfDate > 0 -> "$outOfDate out of calibration"
+                        dueSoon > 0 -> "$dueSoon due for calibration"
+                        else -> "All in calibration"
+                    },
+                    variant = if (outOfDate > 0) ThusoBadgeVariant.Warning else if (capture.paired.isEmpty()) ThusoBadgeVariant.Neutral else ThusoBadgeVariant.Success,
+                    size = ThusoBadgeSize.Sm, dot = true
+                ) }
+            ) },
+            { m -> ThusoMetricCard(
+                "Held, not yet sent", "${held.size}", m, unit = "readings",
+                icon = Icons.Outlined.Inventory2,
+                foot = { ThusoBadge(
+                    if (needing > 0) "$needing needing a decision" else "None needing a decision",
+                    variant = if (needing > 0) ThusoBadgeVariant.Warning else ThusoBadgeVariant.Neutral, size = ThusoBadgeSize.Sm, dot = true
+                ) }
+            ) }
         )
+        Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+            figures.chunked(perRow).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+                    row.forEach { it(Modifier.weight(1f)) }
+                    repeat(perRow - row.size) { Spacer(Modifier.weight(1f)) }
+                }
+            }
+        }
+        ThusoAlert("Nothing here connects.") {
+            ThusoAlertText("No Bluetooth adapter is opened, no scan is started and no instrument is on the other end. This app asks for no permission at all — not location, not Bluetooth, not internet — and its manifest declares none, so nothing here could reach an instrument or a server even if one existed.")
+            ThusoAlertText("What is real is the shape: what each instrument measures, what has to be recorded alongside it, when it was last calibrated, and what happens to the reading afterwards. The numbers are generated on this phone and every screen that shows one says so.")
+        }
 
         /* The registry's view of the same six instruments: reporting, stale or recalled, and what each
            reading taken on one carries. It reads the serials and calibrations this phone already holds. */
@@ -251,7 +253,7 @@ private fun stateTone(state: CaptureState) = when (state) {
         /* The patient's Sentinel state, made only of what the instruments above published with clinical weight. */
         SentinelSection(patient, capture)
 
-        DeckSectionHead("Paired instruments", count = "${capture.paired.size}")
+        SectionHeader("Paired instruments · ${capture.paired.size}")
         if (capture.paired.isEmpty()) EmptyStateCard("Nothing is paired", "Discover below. In this preview discovery is a timer and a list compiled into the app.")
         capture.paired.forEach { paired ->
             InstrumentCard(
@@ -267,16 +269,14 @@ private fun stateTone(state: CaptureState) = when (state) {
             )
         }
 
-        DeckSectionHead("Not paired", count = "${capture.unpaired().size}")
+        SectionHeader("Not paired · ${capture.unpaired().size}")
         CareCard {
-            Text("Discover instruments", style = MaterialTheme.typography.titleMedium)
+            Text("Discover instruments", style = MaterialTheme.typography.titleMedium, color = theme.foreground)
             Text(
                 "In production this is a Bluetooth Low Energy scan, and it needs a permission this app does not have and has not asked for. Here it is a 1.6-second timer followed by a list that was compiled into the app.",
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium, color = theme.mutedForeground
             )
-            DeckButton(onClick = { scanning = true }, enabled = !scanning, shape = ThusoButtonShape) {
-                Text(if (scanning) "Pretending to look…" else "Pretend to discover")
-            }
+            ThusoButton(if (scanning) "Pretending to look…" else "Pretend to discover", onClick = { scanning = true }, enabled = !scanning, loading = scanning)
             if (scanning) SkeletonRows(2)
         }
         if (scanned) capture.unpaired().forEach { instrument ->
@@ -284,22 +284,23 @@ private fun stateTone(state: CaptureState) = when (state) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     TileIcon(instrumentIcon(instrument.id), size = 38.dp)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(instrument.name, style = MaterialTheme.typography.titleSmall, color = DeckInk.sheetInk)
+                        Text(instrument.name, style = MaterialTheme.typography.titleSmall, color = theme.foreground)
                         Note("${instrument.transport} · measures ${instrument.measures.joinToString(", ") { measureLabels[it] ?: it }}")
                     }
                 }
                 Note(instrument.note)
-                OutlinedButton(onClick = { capture.pair(instrument) }, shape = ThusoButtonShape) { Text("Pair (nothing is contacted)") }
+                ThusoButton("Pair (nothing is contacted)", onClick = { capture.pair(instrument) }, variant = ThusoButtonVariant.Secondary)
             }
         }
         if (scanned && capture.unpaired().isEmpty()) Note("All six instruments in the contract are paired. Pairing survives a restart: it is written to the same file the queue is.")
 
-        DeckSectionHead(
-            "Where these readings go",
-            note = "A reading taken here is held on this phone first, then queued, then sent. Nothing is sent from this preview, so the queue is where the work sits and it is worth looking at."
-        )
-        DeckDestination("Capture queue", "", Icons.Outlined.Inventory2, raised = true) { open("Capture queue") }
-        DeckDestination("Visit assessment", "", Icons.Outlined.ContentPaste) { open("Visit assessment") }
+        Section("Where these readings go") {
+            Note("A reading taken here is held on this phone first, then queued, then sent. Nothing is sent from this preview, so the queue is where the work sits and it is worth looking at.")
+            CareCard(padding = ThusoSpacing.space8) {
+                ThusoNavigationItem("Capture queue", Icons.Outlined.Inventory2, { open("Capture queue") }, count = held.size)
+                ThusoNavigationItem("Visit assessment", Icons.Outlined.ContentPaste, { open("Visit assessment") })
+            }
+        }
     }
 }
 
@@ -336,7 +337,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             TileIcon(instrumentIcon(paired.instrument.id), size = 40.dp)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(paired.instrument.name, style = MaterialTheme.typography.titleSmall, color = DeckInk.sheetInk)
+                Text(paired.instrument.name, style = MaterialTheme.typography.titleSmall, color = theme.foreground)
                 Note("${paired.serial} · ${paired.instrument.transport} · battery ${paired.battery}%")
             }
             CalibrationPill(paired.state)
@@ -344,43 +345,40 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         Note(calibrationWording(paired.calibration))
         if (paired.state == CalibrationState.OUT_OF_DATE) Text(
             "This instrument is out of calibration and it still takes readings. A nurse in a home with one blood-pressure monitor needs the number; what she must not have is the number without the caveat, so the caveat is written onto every reading it produces and travels with them into the record.",
-            style = MaterialTheme.typography.bodyMedium, color = MangoInk
+            style = MaterialTheme.typography.bodyMedium, color = theme.warningInk
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            DeckButton(onClick = toggle, shape = ThusoButtonShape) { Text(if (expanded) "Close" else "Take a reading") }
-            TextButton(onClick = unpair, shape = ThusoButtonShape) { Text("Unpair") }
+            ThusoButton(if (expanded) "Close" else "Take a reading", onClick = toggle, variant = ThusoButtonVariant.Secondary)
+            ThusoButton("Unpair", onClick = unpair, variant = ThusoButtonVariant.Ghost)
         }
         if (!expanded) return@CareCard
 
-        HorizontalDivider(color = DeckInk.sheetLine)
+        HorizontalDivider(color = theme.border)
         if (paired.instrument.measures.size > 1) {
-            Text("What are you measuring?", style = MaterialTheme.typography.labelLarge, color = DeckInk.sheetInk)
+            Text("What are you measuring?", style = MaterialTheme.typography.labelLarge, color = theme.foreground)
             FlowRowChips(paired.instrument.measures.map { measureLabels[it] ?: it }, setOf(measureLabels[measure] ?: measure)) { chosen ->
                 measure = paired.instrument.measures.first { (measureLabels[it] ?: it) == chosen }
             }
         }
         /* The limitation, at the moment of the reading. */
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Outlined.Info, null, tint = MangoInk, modifier = Modifier.size(17.dp))
+            Icon(Icons.Outlined.Info, null, tint = theme.warningInk, modifier = Modifier.size(17.dp))
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("What this instrument cannot decide for you", style = MaterialTheme.typography.labelLarge, color = DeckInk.sheetInk)
+                Text("What this instrument cannot decide for you", style = MaterialTheme.typography.labelLarge, color = theme.foreground)
                 Text(paired.instrument.note, style = MaterialTheme.typography.bodyMedium)
             }
         }
-        Text(paired.instrument.records.label, style = MaterialTheme.typography.labelLarge, color = DeckInk.sheetInk)
+        Text(paired.instrument.records.label, style = MaterialTheme.typography.labelLarge, color = theme.foreground)
         Note(paired.instrument.records.why)
         FlowRowChips(paired.instrument.records.options, setOfNotNull(detail.ifEmpty { null })) { option -> detail = option }
         if (detail.isEmpty()) Note("The reading is not taken until this is answered. It is recorded with the number, because it cannot be recovered from the number afterwards.")
-        DeckButton(
-            onClick = { takenId = capture(measure, detail).id },
-            enabled = mayCapture && detail.isNotEmpty()
-        , shape = ThusoButtonShape) { Text("Take the reading") }
-        if (!mayCapture) Text(refusal.orEmpty(), style = MaterialTheme.typography.bodySmall, color = Danger)
+        ThusoButton("Take the reading", onClick = { takenId = capture(measure, detail).id }, enabled = mayCapture && detail.isNotEmpty())
+        if (!mayCapture) Text(refusal.orEmpty(), style = MaterialTheme.typography.bodySmall, color = theme.dangerInk)
 
         if (taken != null) {
-            HorizontalDivider(color = DeckInk.sheetLine)
+            HorizontalDivider(color = theme.border)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("${taken.value} ${taken.unit}", style = MaterialTheme.typography.titleLarge, color = DeckInk.sheetInk)
+                Text("${taken.value} ${taken.unit}", style = MaterialTheme.typography.titleLarge, color = theme.foreground)
                 ProvenanceMark(taken.provenance)
                 StatusPill(taken.state.label, stateTone(taken.state))
             }
@@ -388,7 +386,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             ProvenanceBlock(taken)
             if (taken.state == CaptureState.CAPTURED) {
                 Note(CaptureState.CAPTURED.detail)
-                DeckButton(onClick = { seal(taken.id) }, shape = ThusoButtonShape) { Text("Seal it — waiting to send") }
+                ThusoButton("Seal it — waiting to send", onClick = { seal(taken.id) })
             } else Note(taken.state.detail)
         }
     }
@@ -427,20 +425,20 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         /* offlineNeverServesStaleSilently, first thing on the screen and in words. */
         CareCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Outlined.Storage, null, tint = DeckInk.sheetInk)
+                Icon(Icons.Outlined.Storage, null, tint = theme.foreground)
                 Text("Read from this phone, ${ageText(capture.readAtMillis)}", style = MaterialTheme.typography.titleMedium)
             }
             Text(capture.where, style = MaterialTheme.typography.bodyMedium)
             ReviewLine("Survives", capture.survives)
             ReviewLine("Does not survive", capture.doesNotSurvive)
             Note("It is not encrypted. A file in this app’s private storage is private to this app and no more than that, which is enough for fictional readings and is not enough for real ones — the controls that would be needed first are in docs/PRIVACY-AND-SECURITY.md.")
-            if (capture.storeNote.isNotEmpty()) Text(capture.storeNote, style = MaterialTheme.typography.bodyMedium, color = MangoInk)
+            if (capture.storeNote.isNotEmpty()) Text(capture.storeNote, style = MaterialTheme.typography.bodyMedium, color = theme.warningInk)
             /* A disk that would not take the write is said on the screen that claims what this phone
                keeps, because the claim above is not true while it is refusing. */
             (capture.writeState as? LedgerWrite.Refused)?.let {
-                Text(it.reason, style = MaterialTheme.typography.bodyMedium, color = MangoInk)
+                Text(it.reason, style = MaterialTheme.typography.bodyMedium, color = theme.warningInk)
             }
-            OutlinedButton(onClick = { capture.reload() }, shape = ThusoButtonShape) { Text("Re-read the store") }
+            ThusoButton("Re-read the store", onClick = { capture.reload() }, variant = ThusoButtonVariant.Secondary)
             Note("Re-reading loads the file again and updates the line above. It is the same read the app does on the way in, which is how you can tell the queue is on the disk and not in memory: close the app entirely, open it again, and the entries are still here.")
         }
 
@@ -450,7 +448,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
                 Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     StatusPill("${counts[state] ?: 0}", stateTone(state))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(state.label, style = MaterialTheme.typography.bodyMedium, color = DeckInk.sheetInk)
+                        Text(state.label, style = MaterialTheme.typography.bodyMedium, color = theme.foreground)
                         Note(state.detail)
                     }
                 }
@@ -472,8 +470,8 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         /* A design-review control, kept collapsed and labelled, because a phone with no internet
            permission cannot otherwise be shown sending anything. */
         Column(
-            Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(ThusoRadius.control))
-                .border(1.dp, DeckInk.sheetLine, RoundedCornerShape(ThusoRadius.control))
+            Modifier.fillMaxWidth().background(theme.surface, RoundedCornerShape(ThusoRadius.control))
+                .border(1.dp, theme.border, RoundedCornerShape(ThusoRadius.control))
                 /* Announced as a button that expands, rather than as an unnamed tap target. */
                 .clickable(
                     onClickLabel = if (controls) "Hide the design-review controls" else "Show the design-review controls",
@@ -482,14 +480,14 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(if (controls) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null, tint = DeckInk.sheetQuiet, modifier = Modifier.size(18.dp))
-                Text("Design-review controls", style = MaterialTheme.typography.labelLarge, color = DeckInk.sheetQuiet, modifier = Modifier.weight(1f))
+                Icon(if (controls) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null, tint = theme.mutedForeground, modifier = Modifier.size(18.dp))
+                Text("Design-review controls", style = MaterialTheme.typography.labelLarge, color = theme.mutedForeground, modifier = Modifier.weight(1f))
                 if (capture.pretendConnected) StatusPill("Pretending online", "amber")
             }
             if (controls) {
                 Note("None of this is in the product. It exists so a reviewer can see the states a phone with no internet permission can never reach on its own.")
                 Setting("Pretend a connection is available", capture.pretendConnected) { capture.pretendConnected = it }
-                Text("Set this phone’s clock wrong", style = MaterialTheme.typography.labelLarge, color = DeckInk.sheetInk)
+                Text("Set this phone’s clock wrong", style = MaterialTheme.typography.labelLarge, color = theme.foreground)
                 Note("A phone that has been offline for a week may have drifted, or been set by hand. Anything taken while it is wrong keeps the wrong time as what the phone believed, and the server’s receipt time is what orders it.")
                 FlowRowChips(listOf("Correct", "3 hours slow", "40 minutes fast", "2 days slow"), setOf(when (capture.clockOffsetMinutes) {
                     -180L -> "3 hours slow"; 40L -> "40 minutes fast"; -2880L -> "2 days slow"; else -> "Correct"
@@ -499,16 +497,14 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
                     }
                 }
                 Note("This phone currently believes it is ${stampText(capture.deviceNow())}.")
-                OutlinedButton(onClick = { capture.forgetEverything() }, shape = ThusoButtonShape) { Text("Clear the demonstration queue") }
+                ThusoButton("Clear the demonstration queue", onClick = { capture.forgetEverything() }, variant = ThusoButtonVariant.Secondary)
                 Note("There is no such button in the product. An entry is superseded or withdrawn with a reason; it is never erased, and it is never dropped to make a sync succeed.")
             }
         }
 
         CareCard {
             Text("Send what is waiting", style = MaterialTheme.typography.titleMedium)
-            DeckButton(onClick = { capture.beginSending(); sending = true }, enabled = !sending && counts[CaptureState.QUEUED]?.let { it > 0 } == true, shape = ThusoButtonShape) {
-                Text(if (sending) "Sending…" else "Try to send")
-            }
+            ThusoButton(if (sending) "Sending…" else "Try to send", onClick = { capture.beginSending(); sending = true }, enabled = !sending && counts[CaptureState.QUEUED]?.let { it > 0 } == true, loading = sending)
             capture.lastAttempt?.let {
                 Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
             }
@@ -516,12 +512,12 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         }
 
         if (waiting.isNotEmpty()) {
-            Text("Not yet ordered", style = MaterialTheme.typography.titleMedium, color = DeckInk.sheetInk)
+            Text("Not yet ordered", style = MaterialTheme.typography.titleMedium, color = theme.foreground)
             Note("These have no established time. They are listed in the order this phone wrote them, which is the phone’s own sequence and not an authority about when anything happened.")
             waiting.forEach { reading -> QueueEntryCard(store, reading, resolver) }
         }
         if (landed.isNotEmpty()) {
-            Text("Ordered by the server’s receipt time", style = MaterialTheme.typography.titleMedium, color = DeckInk.sheetInk)
+            Text("Ordered by the server’s receipt time", style = MaterialTheme.typography.titleMedium, color = theme.foreground)
             landed.forEach { reading -> QueueEntryCard(store, reading, resolver) }
         }
         if (ordered.isEmpty()) EmptyStateCard("The queue is empty", "Nothing has been captured on this phone. Take a reading on the Thuso Kit screen and it will appear here.")
@@ -529,7 +525,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         CareCard {
             Text("The rules this screen is written against", style = MaterialTheme.typography.titleMedium)
             Note(captureWhy)
-            captureRules.forEach { (sentence, _) -> Text("· $sentence", style = MaterialTheme.typography.bodySmall, color = DeckInk.sheetQuiet) }
+            captureRules.forEach { (sentence, _) -> Text("· $sentence", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground) }
         }
         ToolRow("Thuso Kit") { open("Thuso Kit") }
     }
@@ -540,12 +536,12 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
     CareCard {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(reading.label, style = MaterialTheme.typography.titleSmall, color = DeckInk.sheetInk)
+                Text(reading.label, style = MaterialTheme.typography.titleSmall, color = theme.foreground)
                 Note("${reading.visit} · ${reading.patient} · ${reading.id}")
             }
             Text("${reading.value} ${reading.unit}",
                  style = MaterialTheme.typography.titleLarge,
-                color = if (reading.superseded) DeckInk.sheetQuiet else Ink)
+                color = if (reading.superseded) theme.mutedForeground else theme.foreground)
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ProvenanceMark(reading.provenance)
@@ -555,16 +551,16 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
         }
         CaptureSourcePills(reading)
         Note("Written to this phone ${ageText(reading.writtenMillis)}.")
-        TextButton(onClick = { open = !open }, shape = ThusoButtonShape) { Text(if (open) "Less" else "What travels with this reading") }
+        ThusoButton(if (open) "Less" else "What travels with this reading", onClick = { open = !open }, variant = ThusoButtonVariant.Ghost)
         if (open) {
             ProvenanceBlock(reading)
-            HorizontalDivider(color = DeckInk.sheetLine)
+            HorizontalDivider(color = theme.border)
             TimesBlock(reading)
         }
         reading.refusal?.let {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Outlined.Block, null, tint = Danger, modifier = Modifier.size(16.dp))
-                Text(it, style = MaterialTheme.typography.bodyMedium, color = Danger)
+                Icon(Icons.Outlined.Block, null, tint = theme.dangerInk, modifier = Modifier.size(16.dp))
+                Text(it, style = MaterialTheme.typography.bodyMedium, color = theme.dangerInk)
             }
             Note("It stays on this phone. A refusal is not a delete, and nothing here removes it while somebody still has to decide what to do with it.")
         }
@@ -579,10 +575,10 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
 @Composable private fun ConflictBlock(store: PreviewStore, reading: CapturedReading, resolver: VettingSubject?) {
     val conflict = captureConflictById(reading.conflictId) ?: return
     val capture = store.capture
-    HorizontalDivider(color = DeckInk.sheetLine)
+    HorizontalDivider(color = theme.border)
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Icon(Icons.Outlined.Balance, null, tint = MangoInk)
-        Text(conflict.name, style = MaterialTheme.typography.titleSmall, color = DeckInk.sheetInk)
+        Icon(Icons.Outlined.Balance, null, tint = theme.warningInk)
+        Text(conflict.name, style = MaterialTheme.typography.titleSmall, color = theme.foreground)
     }
     Text(conflict.detail, style = MaterialTheme.typography.bodyMedium)
     Note("Resolved by: ${if (conflict.resolution == "clinician") "a clinician" else "the server"}.")
@@ -596,24 +592,24 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
                 it.id != reading.id && it.visit == reading.visit && it.observationId == reading.observationId && !it.superseded
             }
             if (other == null) { Note("The other reading is no longer in this queue, so there is nothing to choose between."); return }
-            Text("Both readings, side by side", style = MaterialTheme.typography.labelLarge, color = DeckInk.sheetInk)
+            Text("Both readings, side by side", style = MaterialTheme.typography.labelLarge, color = theme.foreground)
             Note("Neither is presented as the better one and neither is a correction of the other. They are two things that happened, and a clinician says which stands.")
             listOf(other, reading).forEach { candidate ->
                 Column(
-                    Modifier.fillMaxWidth().background(Mist, RoundedCornerShape(ThusoRadius.control)).padding(12.dp),
+                    Modifier.fillMaxWidth().background(theme.muted, RoundedCornerShape(ThusoRadius.control)).padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("${candidate.value} ${candidate.unit}", style = MaterialTheme.typography.titleLarge, color = DeckInk.sheetInk)
+                        Text("${candidate.value} ${candidate.unit}", style = MaterialTheme.typography.titleLarge, color = theme.foreground)
                         ProvenanceMark(candidate.provenance)
                     }
                     Note("${candidate.id} · this phone believed ${clockText(candidate.deviceMillis)}${candidate.serverMillis?.let { " · server received ${clockText(it)}" } ?: " · not yet received"}")
                     ProvenanceBlock(candidate)
-                    DeckButton(onClick = {
+                    ThusoButton("This one stands", onClick = {
                         val loser = if (candidate.id == reading.id) other.id else reading.id
                         capture.chooseBetween(candidate.id, loser, resolver,
                             "The other reading is kept in full and marked superseded, because a record that deletes the first reading cannot show why the second was taken.")
-                    }, shape = ThusoButtonShape) { Text("This one stands") }
+                    })
                 }
             }
         }
@@ -622,7 +618,7 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             val summary = capturer?.let { summarise(it) }
             val lapsed = summary?.lapsed.orEmpty()
             val lapsedOn = capturer?.records?.firstOrNull { record -> lapsed.any { it.id == record.checkId } }?.expiresOn
-            Text("Taken while cleared, arriving after the clearance ran out", style = MaterialTheme.typography.labelLarge, color = DeckInk.sheetInk)
+            Text("Taken while cleared, arriving after the clearance ran out", style = MaterialTheme.typography.labelLarge, color = theme.foreground)
             ReviewLine("Captured by", "${reading.byName} · ${reading.byReference}")
             ReviewLine("Standing today", summary?.status?.label ?: "—")
             if (lapsed.isNotEmpty()) ReviewLine("What lapsed", lapsed.joinToString(" and ") { it.name })
@@ -634,35 +630,33 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
                 "The reading is not discarded: it was taken by a cleared nurse, on a patient who was in front of her, and throwing it away would lose a fact about that patient to punish a lapsed certificate. It is also not filed on her authority alone, because that authority is no longer current. A clinician who is cleared today accepts it, and both names stand on the record afterwards — hers, because she is the one who was in the room, and theirs, because the filing is on their registration.",
                 style = MaterialTheme.typography.bodyMedium
             )
-            DeckButton(onClick = { capture.countersign(reading.id, resolver) }, shape = ThusoButtonShape) {
-                Text("Countersign as ${resolver.name}")
-            }
+            ThusoButton("Countersign as ${resolver.name}", onClick = { capture.countersign(reading.id, resolver) })
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = {
+                ThusoButton("Hold it", onClick = {
                     capture.hold(reading.id, "Held by ${resolver.name} · ${resolver.reference}: not countersigned yet. It stays here, in full, until somebody is willing to put their registration against it.")
-                }, shape = ThusoButtonShape) { Text("Hold it") }
-                TextButton(onClick = {
+                    }, variant = ThusoButtonVariant.Secondary)
+                ThusoButton("Withdraw with a reason", onClick = {
                     capture.withdraw(reading.id, resolver, "Withdrawn after review: the reading could not be attributed to a current registration and no clinician was willing to countersign it.")
-                }, shape = ThusoButtonShape) { Text("Withdraw with a reason") }
+                    }, variant = ThusoButtonVariant.Ghost)
             }
             Note("Restoring the capturer’s own clearance resolves this too, and better: the reading then files on the registration it was taken under. That decision belongs in the Control Tower’s vetting pipeline, not here.")
         }
         "stale-write" -> {
-            Text("The record moved on while this waited", style = MaterialTheme.typography.labelLarge, color = DeckInk.sheetInk)
+            Text("The record moved on while this waited", style = MaterialTheme.typography.labelLarge, color = theme.foreground)
             ReviewLine("Visit", reading.visit)
             ReviewLine("What changed", "A clinician signed the record for this visit while the entry was queued.")
             Text(
                 "It is never applied silently after the fact. Either it goes in as an addendum, openly, with the clinician who signed told that something arrived after their signature — or it is held, or it is withdrawn with a reason. What it does not do is slide into a signed record and change what somebody has already put their name to.",
                 style = MaterialTheme.typography.bodyMedium
             )
-            DeckButton(onClick = { capture.fileAsAddendum(reading.id, resolver) }, shape = ThusoButtonShape) { Text("File as an addendum") }
+            ThusoButton("File as an addendum", onClick = { capture.fileAsAddendum(reading.id, resolver) })
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = {
+                ThusoButton("Hold it", onClick = {
                     capture.hold(reading.id, "Held by ${resolver.name} · ${resolver.reference} pending a word with the clinician who signed the visit.")
-                }, shape = ThusoButtonShape) { Text("Hold it") }
-                TextButton(onClick = {
+                    }, variant = ThusoButtonVariant.Secondary)
+                ThusoButton("Withdraw with a reason", onClick = {
                     capture.withdraw(reading.id, resolver, "Withdrawn after review: the visit had been signed and the reading was not needed as an addendum. The row and this reason stay on the phone.")
-                }, shape = ThusoButtonShape) { Text("Withdraw with a reason") }
+                    }, variant = ThusoButtonVariant.Ghost)
             }
         }
         else -> Note("This one is settled by the server, because it is a fact about clocks rather than a clinical judgement. Both times stay on the reading.")

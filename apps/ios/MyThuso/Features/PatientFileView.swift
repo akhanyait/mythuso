@@ -73,10 +73,10 @@ struct PatientFileView: View {
                 StateBlock(state: feed, subject: "This patient file", permission: "clinical record access",
                            retry: { feed = .ready }) {
                     VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
-                        Text(tab.holds).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                        Text(tab.holds).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                         tabBody
                         Label(tab.notBuilt, systemImage: "checkmark.shield")
-                            .font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                            .font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
                     }
                 }
             }
@@ -117,7 +117,7 @@ struct PatientFileView: View {
                       options: PatientFixtures.all.map { ($0.id, "\($0.name) · \($0.id)") }, onNight: false)
             DeckPills(label: thuso(.viewingAs, store.locale), selection: $viewer,
                       options: viewers.map { ($0.id, "\($0.name) · \($0.role?.name ?? $0.roleId)") }, onNight: false)
-            Text(spokenState).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+            Text(spokenState).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.updatesFrequently)
         }
@@ -146,7 +146,7 @@ struct PatientFileView: View {
                     Text("Observations are not open to this viewer").thusoFont(ThusoType.cardTitle, weight: .semibold)
                         .foregroundStyle(DeckInk.panelInk).fixedSize(horizontal: false, vertical: true)
                     if let reason = clinical.reason {
-                        Text(reason).font(.footnote).foregroundStyle(DeckInk.panelQuiet).fixedSize(horizontal: false, vertical: true)
+                        Text(reason).font(.thuso(.footnote)).foregroundStyle(DeckInk.panelQuiet).fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
@@ -162,14 +162,14 @@ struct PatientFileView: View {
                     let open = canOpenTab(subject, item).allowed
                     Button { tabName = item.name; notice = "" } label: {
                         HStack(spacing: 5) {
-                            Text(item.name).font(.footnote.weight(.semibold))
-                            if !open { Image(systemName: "lock").font(.caption2.weight(.semibold)) }
+                            Text(item.name).font(.thuso(.footnote, weight: .semibold))
+                            if !open { Image(systemName: "lock").font(.thuso(.caption2, weight: .semibold)) }
                         }
                         .padding(.horizontal, 13).padding(.vertical, 9)
                         .frame(minHeight: 44)
-                        .background(item.name == tabName ? DeckInk.chosen : ThusoTheme.surface, in: Capsule())
+                        .background(item.name == tabName ? DeckInk.chosen : ThusoRole.surface, in: Capsule())
                         .foregroundStyle(item.name == tabName ? DeckInk.onChosen : DeckInk.sheetQuiet)
-                        .overlay(Capsule().stroke(ThusoTheme.controlEdge, lineWidth: item.name == tabName ? 0 : 1))
+                        .overlay(Capsule().stroke(ThusoRole.inputEdge, lineWidth: item.name == tabName ? 0 : 1))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(open ? item.name : "\(item.name), refused to this viewer")
@@ -209,21 +209,21 @@ struct RefusalCard: View {
     let decision: VettingDecision
     var body: some View {
         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
-            Image(systemName: "lock").font(.body).foregroundStyle(ThusoTheme.danger)
+            Image(systemName: "lock").font(.thuso(.body)).foregroundStyle(ThusoRole.dangerInk)
             VStack(alignment: .leading, spacing: 5) {
-                Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+                Text(title).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
                 if let reason = decision.reason {
-                    Text(reason).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                    Text(reason).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                 }
                 if !decision.blockedBy.isEmpty {
                     Text("Outstanding: \(decision.blockedBy.map(\.name).joined(separator: " · "))")
-                        .font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                        .font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
                 }
             }
         }
         .padding(ThusoSpacing.space16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.dangerSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .background(ThusoRole.dangerTint, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 }
@@ -247,7 +247,7 @@ struct ProtectedLineNote: View {
         let vetted = can(viewer, "view-protected-record")
         Label("A protected \(what) appears on this page only where the patient released that entry to you by name. \(vetted.allowed ? releaseRefusal(viewer.roleId) : (vetted.reason ?? ""))",
               systemImage: "lock")
-            .font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+            .font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
             .accessibilityElement(children: .combine)
     }
 }
@@ -320,7 +320,7 @@ struct PatientSummaryHeader: View {
                         ForEach(profile.chips, id: \.rawValue) { id in
                             let entry = chip(id)
                             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-                                Text(entry.0).font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                                Text(entry.0).font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
                                 Spacer(minLength: 8)
                                 StatusPill(text: entry.1, tone: entry.2)
                             }
@@ -332,12 +332,12 @@ struct PatientSummaryHeader: View {
                 if let scope = grantSentence(viewer.roleId, "view-patient-summary") {
                     Label("The header is cut to this role's own words in the vetting contract: “\(scope)”",
                           systemImage: "checkmark.shield")
-                        .font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                        .font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
                 }
             } else {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Patient \(patient.id)").font(.body.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
-                    Text("The file is open. The person is not.").font(.caption).foregroundStyle(DeckInk.sheetQuiet)
+                    Text("Patient \(patient.id)").font(.thuso(.body, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
+                    Text("The file is open. The person is not.").font(.thuso(.caption)).foregroundStyle(DeckInk.sheetQuiet)
                 }
                 RefusalCard(title: "The patient summary is not open to this viewer", decision: decision)
             }
@@ -347,9 +347,9 @@ struct PatientSummaryHeader: View {
         HStack(spacing: ThusoSpacing.space12) {
             Monogram(text: patient.initials, diameter: 46)
             VStack(alignment: .leading, spacing: 3) {
-                Text(patient.name).font(.body.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+                Text(patient.name).font(.thuso(.body, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
                 Text("\(patient.id) · \(patient.sex) · \(ageFrom(patient.dob)) years")
-                    .font(.caption).foregroundStyle(DeckInk.sheetQuiet)
+                    .font(.thuso(.caption)).foregroundStyle(DeckInk.sheetQuiet)
             }
             Spacer(minLength: 0)
         }
@@ -370,21 +370,21 @@ struct WithheldNoticeCard: View {
             ? "Vetted is not released: the patient releases a category entry by entry, in their own account, naming you. Ask them."
             : "\(decision.reason ?? "") Ask the patient, or the clinician they released it to."
         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
-            Image(systemName: "lock").font(.body).foregroundStyle(ThusoTheme.mangoInk)
+            Image(systemName: "lock").font(.thuso(.body)).foregroundStyle(ThusoRole.warningInk)
             VStack(alignment: .leading, spacing: 5) {
                 Text("A category is withheld from this header.")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
-                Text(Records.summaryCard.withheld).font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                    .font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
+                Text(Records.summaryCard.withheld).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                 /* The categories are listed from the contract rather than typed into this sentence,
                    so one added to records.json is named here without anybody editing a screen. */
                 Text("These are never a chip: \(Records.protectedCategories.joined(separator: ", ")). The notice stands on every file, whether or not anything is held behind it.")
-                    .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
-                Text(ask).font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                    .font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
+                Text(ask).font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
             }
         }
         .padding(ThusoSpacing.space16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .background(ThusoRole.warningTint, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 }
@@ -396,9 +396,9 @@ struct FieldRow: View {
     let value: String
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-            Text(label).font(.caption).foregroundStyle(DeckInk.sheetQuiet)
+            Text(label).font(.thuso(.caption)).foregroundStyle(DeckInk.sheetQuiet)
             Spacer(minLength: 10)
-            Text(value).font(.footnote.weight(.medium)).foregroundStyle(DeckInk.sheetInk)
+            Text(value).font(.thuso(.footnote, weight: .medium)).foregroundStyle(DeckInk.sheetInk)
                 .multilineTextAlignment(.trailing)
         }
         .accessibilityElement(children: .combine)
@@ -413,18 +413,18 @@ struct RecordEntryRow: View {
         let type = Records.type(entry.typeId)
         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             TileIcon(symbol: decision.allowed ? "doc.text" : "lock",
-                     tint: decision.allowed ? DeckInk.sheetInk : ThusoTheme.danger,
-                     background: decision.allowed ? DeckInk.panel : ThusoTheme.dangerSoft, size: 38)
+                     tint: decision.allowed ? DeckInk.sheetInk : ThusoRole.dangerInk,
+                     background: decision.allowed ? DeckInk.panel : ThusoRole.dangerTint, size: 38)
             VStack(alignment: .leading, spacing: 3) {
                 Text(decision.allowed ? entry.title : "\(type?.name ?? "Record") · withheld")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+                    .font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
                 Text(decision.allowed ? entry.detail : (decision.reason ?? ""))
-                    .font(.caption).foregroundStyle(DeckInk.sheetQuiet)
+                    .font(.thuso(.caption)).foregroundStyle(DeckInk.sheetQuiet)
                 if full {
                     Text("\(type?.name ?? "") · \(type?.fhir ?? "") · \(shortDate(entry.at))\(decision.allowed ? " · \(entry.by)" : "")")
-                        .font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                        .font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
                 } else {
-                    Text(shortDate(entry.at)).font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                    Text(shortDate(entry.at)).font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
                 }
                 if decision.allowed { ReleasedTag(entry: entry) }
             }
@@ -469,7 +469,7 @@ struct PatientFileOverview: View {
                     ForEach(patient.summaryPoints, id: \.self) { point in
                         HStack(alignment: .top, spacing: ThusoSpacing.space8) {
                             Circle().fill(DeckInk.sheetInk).frame(width: 5, height: 5).padding(.top, 6)
-                            Text(point).font(.footnote).foregroundStyle(DeckInk.sheetInk)
+                            Text(point).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetInk)
                         }
                     }
                 }
@@ -480,7 +480,7 @@ struct PatientFileOverview: View {
             CareCard {
                 if recent.isEmpty {
                     Text("Nothing in this patient's history is open to this viewer. That is a refusal, not an empty record.")
-                        .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                        .font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                 } else {
                     ForEach(recent) { RecordEntryRow(entry: $0, decision: canOpen(viewer, $0)) }
                 }
@@ -488,7 +488,7 @@ struct PatientFileOverview: View {
             DeckSectionHead(title: "Actions")
             actions
             if !notice.isEmpty {
-                Text(notice).font(.caption).foregroundStyle(DeckInk.sheetQuiet)
+                Text(notice).font(.thuso(.caption)).foregroundStyle(DeckInk.sheetQuiet)
                     .accessibilityAddTraits(.updatesFrequently)
             }
         }
@@ -496,11 +496,11 @@ struct PatientFileOverview: View {
 
     @ViewBuilder private var lastVisitCard: some View {
         CareCard {
-            Label("Last visit", systemImage: "calendar").font(.caption.weight(.semibold)).foregroundStyle(DeckInk.sheetQuiet)
+            Label("Last visit", systemImage: "calendar").font(.thuso(.caption, weight: .semibold)).foregroundStyle(DeckInk.sheetQuiet)
             if clinical.allowed {
-                Text(shortDate(patient.lastVisit.at)).font(.title3.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
-                Text(patient.lastVisit.service).font(.footnote).foregroundStyle(DeckInk.sheetInk)
-                Text("\(patient.lastVisit.by) · \(patient.lastVisit.outcome)").font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                Text(shortDate(patient.lastVisit.at)).font(.thuso(.title3, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
+                Text(patient.lastVisit.service).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetInk)
+                Text("\(patient.lastVisit.by) · \(patient.lastVisit.outcome)").font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
             } else {
                 RefusalCard(title: "Withheld", decision: clinical)
             }
@@ -508,28 +508,28 @@ struct PatientFileOverview: View {
     }
     @ViewBuilder private var nextAppointmentCard: some View {
         CareCard {
-            Label("Next appointment", systemImage: "calendar.badge.clock").font(.caption.weight(.semibold)).foregroundStyle(DeckInk.sheetQuiet)
+            Label("Next appointment", systemImage: "calendar.badge.clock").font(.thuso(.caption, weight: .semibold)).foregroundStyle(DeckInk.sheetQuiet)
             if let next = patient.nextAppointment {
-                Text("\(shortDate(next.at)) · \(next.time)").font(.title3.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
-                Text(next.service).font(.footnote).foregroundStyle(DeckInk.sheetInk)
-                Text(next.place).font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                Text("\(shortDate(next.at)) · \(next.time)").font(.thuso(.title3, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
+                Text(next.service).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetInk)
+                Text(next.place).font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
             } else {
                 Text("Nothing is booked. A missed appointment and an unbooked one are not the same thing, and this file does not blur them.")
-                    .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                    .font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
             }
         }
     }
     @ViewBuilder private var medicationCard: some View {
         CareCard {
-            Label("Current medication", systemImage: "pills").font(.caption.weight(.semibold)).foregroundStyle(DeckInk.sheetQuiet)
+            Label("Current medication", systemImage: "pills").font(.thuso(.caption, weight: .semibold)).foregroundStyle(DeckInk.sheetQuiet)
             if medicines.allowed {
                 if let first = current.first {
-                    Text("\(first.name) \(first.dose)").font(.title3.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
-                    Text(first.frequency).font(.footnote).foregroundStyle(DeckInk.sheetInk)
+                    Text("\(first.name) \(first.dose)").font(.thuso(.title3, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
+                    Text(first.frequency).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetInk)
                     Text("\(current.count > 1 ? "\(current.count - 1) more · " : "")\(first.repeats)")
-                        .font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                        .font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
                 } else {
-                    Text("Nothing is currently prescribed.").font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                    Text("Nothing is currently prescribed.").font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                 }
             } else {
                 RefusalCard(title: "Withheld", decision: medicines)
@@ -567,13 +567,13 @@ struct PatientFileOverview: View {
             }
         }
         Text("Recorded \(longDate(latest.at)) by \(patient.careTeam[0].name). Each reading says where it came from. A weight the patient read off her own bathroom scale is in this record as exactly that, and never as something a clinician measured — which is why the mark is beside every number rather than a footnote under the card.")
-            .font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+            .font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
         NavigationLink("What the four marks mean") {
             ScrollView { VStack(alignment: .leading, spacing: ThusoSpacing.space16) { DemoBadge(); ProvenanceKey() }.padding(ThusoSpacing.space16) }
                 .thusoGround()
                 .navigationTitle("Where a reading came from").navigationBarTitleDisplayMode(.inline)
         }
-        .font(.caption.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+        .font(.thuso(.caption, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
         ClinicalChart(title: "Systolic blood pressure", unit: "mmHg",
                       readings: patient.vitals.map { Reading(label: dayLabel($0.at), value: $0.systolic) },
                       normal: 90...140, symbol: "heart")
@@ -615,20 +615,20 @@ struct VitalStat: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: ThusoSpacing.space8) {
-                Image(systemName: symbol).font(.footnote).foregroundStyle(DeckInk.sheetInk).frame(width: 18)
-                Text(name).font(.caption).foregroundStyle(DeckInk.sheetQuiet)
+                Image(systemName: symbol).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetInk).frame(width: 18)
+                Text(name).font(.thuso(.caption)).foregroundStyle(DeckInk.sheetQuiet)
                 Spacer(minLength: 8)
                 if provenance == nil {
-                    Text("Not filed").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.mangoInk)
+                    Text("Not filed").font(.thuso(.caption, weight: .semibold)).foregroundStyle(ThusoRole.warningInk)
                 } else {
-                    Text(value).font(.system(.body, design: .rounded, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
-                    Text(unit).font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                    Text(value).font(.thuso(.body, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
+                    Text(unit).font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
                 }
             }
             if let provenance {
                 ProvenanceMark(provenance: provenance)
             } else {
-                Text(CaptureRules.provenanceIsRequired).font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                Text(CaptureRules.provenanceIsRequired).font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
             }
         }
         .accessibilityElement(children: .combine)
@@ -644,10 +644,10 @@ struct SectionHeading: View {
     var onAction: (() -> Void)?
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text(title).font(.callout.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+            Text(title).font(.thuso(.callout, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
             Spacer(minLength: 8)
             if let action, let onAction {
-                Button(action, action: onAction).font(.footnote.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+                Button(action, action: onAction).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
             }
         }
         .padding(.top, 2)
@@ -687,11 +687,11 @@ struct PatientFileTimeline: View {
                 HStack(spacing: ThusoSpacing.space8) {
                     ForEach(kinds, id: \.self) { kind in
                         Button { filter = kind } label: {
-                            Text(kind).font(.caption.weight(.semibold))
+                            Text(kind).font(.thuso(.caption, weight: .semibold))
                                 .padding(.horizontal, 12).padding(.vertical, 8)
                                 /* The same chosen pill the tab strip above uses, so a filter and a
                                    tab do not read as two families of control on one screen. */
-                                .background(filter == kind ? DeckInk.chosen : ThusoTheme.surface, in: Capsule())
+                                .background(filter == kind ? DeckInk.chosen : ThusoRole.surface, in: Capsule())
                                 .foregroundStyle(filter == kind ? DeckInk.onChosen : DeckInk.sheetInk)
                                 .overlay(Capsule().stroke(filter == kind ? .clear : DeckInk.sheetLine, lineWidth: 1))
                         }
@@ -704,11 +704,11 @@ struct PatientFileTimeline: View {
             .accessibilityLabel("Filter by record type")
             Label("Protected entries are not listed here, on any patient, for any viewer without a release. A locked line would say one exists, which is the disclosure this class exists to prevent.",
                   systemImage: "lock")
-                .font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                .font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
             CareCard {
                 if rows.isEmpty {
                     Text("Nothing under this filter. Change the record type, or choose all records. An empty filter is not an empty record.")
-                        .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                        .font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                     Button("Show all records") { filter = "All records" }.buttonStyle(QuietButton())
                 } else {
                     ForEach(rows) { RecordEntryRow(entry: $0, decision: canOpen(viewer, $0), full: true) }
@@ -729,11 +729,11 @@ struct PatientFileConsultations: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
             Label("Twelve sections, the same twelve whoever writes them, mapped to \(Records.soap.map(\.id).joined(separator: " · ")) as the reading order. A section marked as needing a capability is about who may write it; reading a prescription is not prescribing.",
                   systemImage: "doc.text")
-                .font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                .font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
             if rows.isEmpty {
                 CareCard {
                     Text("No consultation in this file is open to this viewer. Consultations exist; this viewer is not one of the people who may read them.")
-                        .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                        .font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                 }
             } else {
                 ForEach(rows) { consultation in
@@ -746,7 +746,7 @@ struct PatientFileConsultations: View {
                                 FieldRow(label: "Treatment plan", value: consultation.plan)
                                 FieldRow(label: "Clinician and registration", value: "\(consultation.by) · \(consultation.registration)")
                                 FieldRow(label: "Place", value: consultation.place)
-                                Text("The standardised structure").font(.subheadline.weight(.semibold))
+                                Text("The standardised structure").font(.thuso(.subheadline, weight: .semibold))
                                     .foregroundStyle(DeckInk.sheetInk).padding(.top, 4)
                                 ForEach(Records.consultationSections) { section in
                                     ConsultationSectionRow(section: section, filled: consultation.sections.contains(section.id))
@@ -756,8 +756,8 @@ struct PatientFileConsultations: View {
                         } label: {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text("\(shortDate(consultation.at)) · \(consultation.kind)")
-                                    .font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
-                                Text(consultation.by).font(.caption).foregroundStyle(DeckInk.sheetQuiet)
+                                    .font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
+                                Text(consultation.by).font(.thuso(.caption)).foregroundStyle(DeckInk.sheetQuiet)
                                 ReleasedTag(entry: consultation)
                             }
                         }
@@ -774,13 +774,13 @@ struct ConsultationSectionRow: View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: ThusoSpacing.space8) {
                 Image(systemName: filled ? "checkmark.circle.fill" : "circle")
-                    .font(.caption).foregroundStyle(filled ? DeckInk.sheetInk : DeckInk.sheetQuiet)
-                Text(section.name).font(.footnote.weight(.medium)).foregroundStyle(DeckInk.sheetInk)
+                    .font(.thuso(.caption)).foregroundStyle(filled ? DeckInk.sheetInk : DeckInk.sheetQuiet)
+                Text(section.name).font(.thuso(.footnote, weight: .medium)).foregroundStyle(DeckInk.sheetInk)
             }
             Text("\(filled ? "Recorded" : section.required ? "Required and not recorded" : "Not recorded")\(section.gatedBy.map { " · written only by a party holding \($0)" } ?? "")")
-                .font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                .font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
             if let note = section.note {
-                Text(note).font(.caption2).italic().foregroundStyle(DeckInk.sheetQuiet)
+                Text(note).font(.thuso(.caption2)).italic().foregroundStyle(DeckInk.sheetQuiet)
             }
         }
         .padding(.vertical, 2)
@@ -805,21 +805,21 @@ struct PatientFileMedication: View {
             CareCard {
                 if patient.allergies.isEmpty {
                     Label("No allergy has been recorded.", systemImage: "exclamationmark.shield")
-                        .font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+                        .font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
                     Text("That is not the same as no allergy. Ask before dispensing.")
-                        .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                        .font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                 } else {
                     Label("Allergies: \(patient.allergies.map { "\($0.substance) — \($0.reaction.lowercased()) (\($0.severity.lowercased()))" }.joined(separator: "; ")).",
                           systemImage: "exclamationmark.triangle")
-                        .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.danger)
+                        .font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.dangerInk)
                     Text("Carried into this screen because the pharmacist needs it before anything else, not after the label is printed.")
-                        .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                        .font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                 }
             }
             DeckSectionHead(title: "Current medicine")
             CareCard {
                 if current.isEmpty {
-                    Text("No current medicine is open to this viewer.").font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                    Text("No current medicine is open to this viewer.").font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                 } else {
                     ForEach(current) { medicine in
                         MedicineRow(medicine: medicine, detail: "\(medicine.frequency) · started \(medicine.started) · \(medicine.repeats)",
@@ -849,9 +849,9 @@ struct MedicineRow: View {
         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             TileIcon(symbol: "pills", size: 38)
             VStack(alignment: .leading, spacing: 3) {
-                Text("\(medicine.name) \(medicine.dose)").font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
-                Text(detail).font(.caption).foregroundStyle(DeckInk.sheetQuiet)
-                Text(attribution).font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                Text("\(medicine.name) \(medicine.dose)").font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
+                Text(detail).font(.thuso(.caption)).foregroundStyle(DeckInk.sheetQuiet)
+                Text(attribution).font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
                 ReleasedTag(entry: medicine)
             }
             Spacer(minLength: 0)
@@ -871,15 +871,15 @@ struct PatientFileResults: View {
         let order = can(viewer, "order-test")
         VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
             if rows.isEmpty {
-                CareCard { Text("No result in this file is open to this viewer.").font(.footnote).foregroundStyle(DeckInk.sheetQuiet) }
+                CareCard { Text("No result in this file is open to this viewer.").font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet) }
             } else {
                 ForEach(rows) { report in
                     CareCard {
                         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                             TileIcon(symbol: "testtube.2", size: 38)
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(report.name).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
-                                Text("\(report.source) · \(shortDate(report.at))").font(.caption).foregroundStyle(DeckInk.sheetQuiet)
+                                Text(report.name).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
+                                Text("\(report.source) · \(shortDate(report.at))").font(.thuso(.caption)).foregroundStyle(DeckInk.sheetQuiet)
                             }
                             Spacer(minLength: 0)
                             StatusPill(text: report.status)
@@ -888,22 +888,22 @@ struct PatientFileResults: View {
                         ForEach(report.rows) { row in
                             VStack(alignment: .leading, spacing: 2) {
                                 HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-                                    Text(row.name).font(.caption).foregroundStyle(DeckInk.sheetQuiet)
+                                    Text(row.name).font(.thuso(.caption)).foregroundStyle(DeckInk.sheetQuiet)
                                     Spacer(minLength: 8)
-                                    Text(row.value).font(.footnote.weight(.semibold))
-                                        .foregroundStyle(row.flag == nil ? DeckInk.sheetInk : ThusoTheme.mangoInk)
+                                    Text(row.value).font(.thuso(.footnote, weight: .semibold))
+                                        .foregroundStyle(row.flag == nil ? DeckInk.sheetInk : ThusoRole.warningInk)
                                 }
                                 Text("Reference range \(row.range)\(row.flag.map { " · \($0)" } ?? "")")
-                                    .font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                                    .font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
                             }
                             .padding(.vertical, 2)
                             .accessibilityElement(children: .combine)
                         }
                         Text("Fictional results. Reference ranges are indicative and are not a validated early-warning score.")
-                            .font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                            .font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
                         Label("Released by \(report.releasedBy). An abnormal result is held until a clinician releases it with an explanation — release is a clinical act, not a delivery step.",
                               systemImage: "checkmark.shield")
-                            .font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                            .font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
                     }
                 }
             }
@@ -930,16 +930,16 @@ struct PatientFileReferrals: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
             CareCard {
                 if rows.isEmpty {
-                    Text("No referral in this file is open to this viewer.").font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                    Text("No referral in this file is open to this viewer.").font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                 } else {
                     ForEach(rows) { referral in
                         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                             TileIcon(symbol: "paperplane", size: 38)
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(referral.to).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
-                                Text(referral.reason).font(.caption).foregroundStyle(DeckInk.sheetQuiet)
+                                Text(referral.to).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
+                                Text(referral.reason).font(.thuso(.caption)).foregroundStyle(DeckInk.sheetQuiet)
                                 Text("\(shortDate(referral.at)) · \(referral.urgency) · \(referral.by)")
-                                    .font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                                    .font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
                                 StatusPill(text: referral.status, tone: referral.status.hasPrefix("Accepted") ? "teal" : "sky")
                             }
                             Spacer(minLength: 0)
@@ -956,7 +956,7 @@ struct PatientFileReferrals: View {
                than being quietly loosened on one platform and not the others. */
             Label("The contract lets a nurse read that her patient was referred, and reserves making a referral for a clinician holding “refer-patient”. This tab currently asks for the second, which is stricter than the record type is. Separating reading a referral from writing one is not built.",
                   systemImage: "paperplane")
-                .font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                .font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
         }
     }
 }
@@ -971,15 +971,15 @@ struct PatientFileDocuments: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
             CareCard {
                 if rows.isEmpty {
-                    Text("No document in this file is open to this viewer.").font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                    Text("No document in this file is open to this viewer.").font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                 } else {
                     ForEach(rows) { document in
                         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                             TileIcon(symbol: "doc.text", size: 38)
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(document.name).font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
-                                Text("\(document.kind) · \(document.by)").font(.caption).foregroundStyle(DeckInk.sheetQuiet)
-                                Text("\(shortDate(document.at)) · DocumentReference").font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                                Text(document.name).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
+                                Text("\(document.kind) · \(document.by)").font(.thuso(.caption)).foregroundStyle(DeckInk.sheetQuiet)
+                                Text("\(shortDate(document.at)) · DocumentReference").font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
                             }
                             Spacer(minLength: 0)
                         }
@@ -1009,26 +1009,26 @@ struct PatientFileBilling: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
             CareCard {
                 Label("A code is not anonymous.", systemImage: "creditcard")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+                    .font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
                 Text("Finance sees a service code and an amount and never a diagnosis in words — but a code can be looked up. A claim line for a protected service is withheld here for the same reason the words are.")
-                    .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                    .font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
             }
             CareCard {
                 if rows.isEmpty {
-                    Text("No claim line in this file is open to this viewer.").font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                    Text("No claim line in this file is open to this viewer.").font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                 } else {
                     ForEach(rows) { line in
                         VStack(alignment: .leading, spacing: 3) {
                             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-                                Text("\(line.code) · \(line.service)").font(.footnote.weight(.semibold))
+                                Text("\(line.code) · \(line.service)").font(.thuso(.footnote, weight: .semibold))
                                     .foregroundStyle(DeckInk.sheetInk)
                                 Spacer(minLength: 8)
-                                Text("R\(line.amount)").font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+                                Text("R\(line.amount)").font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
                             }
                             Text("\(shortDate(line.at)) · \(line.payer) · \(line.status)")
-                                .font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                                .font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
                             if let note = line.note {
-                                Text(note).font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                                Text(note).font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
                             }
                         }
                         .padding(.vertical, 4)
@@ -1036,14 +1036,14 @@ struct PatientFileBilling: View {
                         Divider().overlay(DeckInk.sheetLine)
                     }
                     HStack {
-                        Text("Visible to this viewer").font(.caption).foregroundStyle(DeckInk.sheetQuiet)
+                        Text("Visible to this viewer").font(.thuso(.caption)).foregroundStyle(DeckInk.sheetQuiet)
                         Spacer()
                         Text("R\(total) · \(rows.count) of \(patient.billing.count) lines")
-                            .font(.footnote.weight(.semibold)).foregroundStyle(DeckInk.sheetInk)
+                            .font(.thuso(.footnote, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
                     }
                     .accessibilityElement(children: .combine)
                     Text("Fictional claim lines. Nothing has been submitted to a scheme and no payment has been taken.")
-                        .font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                        .font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
                 }
             }
             ProtectedLineNote(viewer: viewer, what: "claim line")

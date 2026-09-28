@@ -103,7 +103,7 @@ struct MedicinesView: View {
                 if desk.handedOver {
                     SurfacePanel(tone: .lead) {
                         Label(Medicines.HandoverText.handedOver, systemImage: "checkmark.seal")
-                            .thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoTheme.charcoal)
+                            .thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoRole.foreground)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .accessibilityIdentifier("medicines-handed-over")
@@ -120,15 +120,15 @@ struct MedicinesView: View {
     private var patientPhone: some View {
         SurfacePanel(tone: .quiet, spacing: ThusoSpacing.space8) {
             Label("The patient's phone · synthetic, in this preview", systemImage: "iphone")
-                .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                .font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
             if let shown = desk.patientPin {
-                Text(shown).font(.title2.weight(.semibold).monospacedDigit()).foregroundStyle(ThusoTheme.charcoal)
+                Text(shown).font(.thuso(.title2, weight: .semibold).monospacedDigit()).foregroundStyle(ThusoRole.foreground)
                     .accessibilityIdentifier("medicines-patient-pin")
             }
             Text(desk.patientPin == nil
                  ? "Shown once, and gone now. A synthetic patient, on this device so the hand-over can be walked."
                  : "A synthetic patient, on this device so the hand-over can be walked. Shown once: it goes the moment a PIN is entered, and a real collector never sees it.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .combine)
@@ -137,14 +137,14 @@ struct MedicinesView: View {
     private var bag: some View {
         SurfacePanel(spacing: ThusoSpacing.space8) {
             Text(Medicines.label(Medicines.custodyStates, desk.state))
-                .thusoFont(ThusoType.caption, weight: .medium).foregroundStyle(ThusoTheme.faint)
+                .thusoFont(ThusoType.caption, weight: .medium).foregroundStyle(ThusoRole.mutedForeground)
             Text([Medicines.schedule(desk.prescription.scheduleCode)?.name, desk.prescription.sealRef]
                     .compactMap { $0 }.joined(separator: " · "))
-                .thusoFont(ThusoType.sectionTitle, weight: .semibold).foregroundStyle(ThusoTheme.charcoal).monospacedDigit()
+                .thusoFont(ThusoType.sectionTitle, weight: .semibold).foregroundStyle(ThusoRole.foreground).monospacedDigit()
                 .fixedSize(horizontal: false, vertical: true)
             if let reason = Medicines.voidedBy(desk.attempts, desk.authorisation) {
                 Text(Medicines.label(Medicines.voidReasons, reason))
-                    .thusoFont(ThusoType.caption, weight: .medium).foregroundStyle(ThusoTheme.danger)
+                    .thusoFont(ThusoType.caption, weight: .medium).foregroundStyle(ThusoRole.dangerInk)
             }
             if desk.collection == nil {
                 Button(Medicines.HandoverText.collect) { desk.collect() }
@@ -159,11 +159,11 @@ struct MedicinesView: View {
         SurfacePanel(spacing: ThusoSpacing.space12) {
             sealChoice(Medicines.HandoverText.sealIntact, intact: true)
             sealChoice(Medicines.HandoverText.sealBroken, intact: false)
-            Text(Medicines.HandoverText.pin).thusoFont(ThusoType.cardTitle, weight: .medium).foregroundStyle(ThusoTheme.charcoal)
+            Text(Medicines.HandoverText.pin).thusoFont(ThusoType.cardTitle, weight: .medium).foregroundStyle(ThusoRole.foreground)
             CodeBoxes(code: $pin, length: Medicines.pinDigits, invalid: desk.refusal != nil, label: Medicines.HandoverText.pin)
             if desk.state == "collected" {
                 Text(Medicines.fill(Medicines.HandoverText.attemptsLeft, ["left": String(desk.attemptsLeft)]))
-                    .thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.faint)
+                    .thusoFont(ThusoType.caption).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let refusal = desk.refusal { refusalLine(refusal) }
@@ -181,8 +181,8 @@ struct MedicinesView: View {
         Button { sealIntact = intact } label: {
             HStack(spacing: ThusoSpacing.space12) {
                 Image(systemName: sealIntact == intact ? "largecircle.fill.circle" : "circle")
-                    .font(.title3).foregroundStyle(ThusoTheme.charcoal).accessibilityHidden(true)
-                Text(title).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                    .font(.thuso(.title3)).foregroundStyle(ThusoRole.foreground).accessibilityHidden(true)
+                Text(title).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
             }
@@ -197,8 +197,8 @@ struct MedicinesView: View {
        state is not carried by colour alone. */
     private func refusalLine(_ refusal: MedicinesRefusal) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-            Image(systemName: "hand.raised").foregroundStyle(ThusoTheme.danger).accessibilityHidden(true)
-            Text(refusal.statement).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            Image(systemName: "hand.raised").foregroundStyle(ThusoRole.dangerInk).accessibilityHidden(true)
+            Text(refusal.statement).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .combine)

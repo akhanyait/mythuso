@@ -1,12 +1,27 @@
 import SwiftUI
 
-// Native care overview. Large text uses a vertical layout so readings stay readable.
+/* The patient's home, on the Lovable handoff's dashboard since 28 September 2026 — the same
+   composition as apps/web/src/features/Dashboard.tsx, in the same order: a welcome carrying the one
+   next step, a row of four figures from the record, the readings as tabs of trends, the care a
+   person can book, what happened lately, and the rest of the home in the order a person needs it.
+
+   Every figure is the record's (Models/Passport.swift, the four reading sets and the last review in
+   packages/catalog/passport.json) or the booked visit's; nothing is typed here. No goals — the
+   handoff draws goal bars and no contract defines a health goal. No medicines count — no patient-side
+   medicine list exists in any contract — so the doctor's review is the fourth figure. The editorial
+   hero and the peach promotion the home used to carry are gone: the handoff refuses oversized
+   marketing layouts and decorative artwork, and the one dark card is gone with them, because the
+   dashboard is white cards on one ground with a raised one where the person came for.
+
+   Large text uses a vertical layout so readings stay readable. */
 struct HomeView: View {
     let book: () -> Void
     let firstRun: () -> Void
     @EnvironmentObject private var store: PreviewStore
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.colorScheme) private var colorScheme
     @State private var askingGilbert = false
+    @State private var trend = "pressure"
     private var stacked: Bool { typeSize.isAccessibilitySize }
 
     var body: some View {
@@ -19,7 +34,7 @@ struct HomeView: View {
             .overlay(alignment: .bottomTrailing) {
                 Button { askingGilbert = true } label: {
                     ZStack {
-                        Circle().fill(ThusoTheme.brandInk).frame(width: 60, height: 60)
+                        Circle().fill(ThusoRole.night).frame(width: 60, height: 60)
                         AssistantSphere(size: 76)
                     }
                     .frame(width: 64, height: 64)
@@ -36,7 +51,8 @@ struct HomeView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Image("Brand").resizable().scaledToFit().frame(width: 124, height: 34).accessibilityLabel("MyThuso")
+                    /* The wordmark's reversed cut on the dark ground, so its ink is not lost against it. */
+                    Image(colorScheme == .dark ? "BrandReversed" : "Brand").resizable().scaledToFit().frame(width: 124, height: 34).accessibilityLabel("MyThuso")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink { NotificationsView() } label: { Image(systemName: "bell") }.accessibilityLabel("Notifications")
@@ -47,22 +63,22 @@ struct HomeView: View {
     private var content: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: ThusoSpacing.space24) {
-                greeting
+                DemoBadge()
+                welcome
+                metrics
                 arranged
-                careCover
-                healthSnapshot
-                searchField
-                liveWell
                 shortcuts
-                results
+                trends
+                history
+                liveWell
                 carePlan
                 family
                 NavigationLink { PassportView() } label: { passportPromo }.buttonStyle(.plain)
                 Button(action: firstRun) {
-                    Label("See the first-run and recovery flow", systemImage: "person.badge.plus").font(.footnote.weight(.semibold))
+                    Label("See the first-run and recovery flow", systemImage: "person.badge.plus").font(.thuso(.footnote, weight: .semibold))
                 }
                 .frame(minHeight: 44).contentShape(Rectangle())
-                .foregroundStyle(ThusoTheme.charcoal)
+                .foregroundStyle(ThusoRole.foreground)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.bottom, ThusoSpacing.space16)
             }
@@ -72,27 +88,69 @@ struct HomeView: View {
         .scrollContentBackground(.hidden)
     }
 
-    // MARK: - Who, and where
+    // MARK: - The welcome, and in it the next step
 
-    // Location and patient context remain beside the greeting.
-    private var greeting: some View {
-        VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
-            DemoBadge()
+    /* Location and who the visit is for are the two things that change what everything below means,
+       so they sit together at the top rather than being buried in a booking step. The next step is the
+       one thing a person opened the home for, and the one primary button on the screen is its. */
+    private var welcome: some View {
+        ThusoCard(variant: .elevated, padding: .md, spacing: ThusoSpacing.space16) {
             VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
+                Text("Your everyday care".uppercased()).font(.thuso(.caption, weight: .semibold)).tracking(0.8)
+                    .foregroundStyle(ThusoRole.mutedForeground)
                 Text(thuso(FramingData.patientLead, store.locale))
-                    .font(.largeTitle.weight(.semibold)).tracking(-1.2)
-                    .foregroundStyle(ThusoTheme.studioInkDeep)
+                    .font(ThusoFont.screenTitle)
+                    .foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(thuso(FramingData.patientDetail, store.locale))
-                    .font(.subheadline).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.subheadline)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: ThusoSpacing.space8) { areaChip; personChip }
                 VStack(alignment: .leading, spacing: ThusoSpacing.space8) { areaChip; personChip }
             }
+            nextStep
         }
+    }
+
+    private var nextStep: some View {
+        let visit = store.visits.first
+        let confirmed = visit?.status == "Confirmed"
+        return VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+            HStack(alignment: .top, spacing: ThusoSpacing.space12) {
+                if !stacked {
+                    MyThusoIcon(icon: MyThusoIconsData.visit, size: 22, animated: visit?.isScheduled == false)
+                        .frame(width: 40, height: 40)
+                        .background(ThusoRole.accentTint, in: RoundedRectangle(cornerRadius: ThusoRadius.md, style: .continuous))
+                }
+                VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
+                    Text(visit == nil ? "Find the care you need" : confirmed ? "Get ready for your visit" : "Review your visit request")
+                        .font(ThusoFont.cardTitle).foregroundStyle(ThusoRole.foreground)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(visit.map { "\($0.service.name) · \($0.shortWhenText) · \($0.patient)" }
+                         ?? "Compare care options, then choose a time that suits you.")
+                        .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            if let visit {
+                NavigationLink { VisitDetailView(visit: visit) } label: {
+                    Label(confirmed ? "Prepare for my visit" : "View visit details", systemImage: "arrow.right")
+                        .labelStyle(TrailingIconLabelStyle())
+                }
+                .buttonStyle(ThusoButtonStyle(.primary, fullWidth: true))
+            } else {
+                ThusoButton("Explore care", fullWidth: true, trailingSymbol: "arrow.right", action: book)
+            }
+        }
+        .padding(ThusoSpacing.space16)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background(ThusoRole.surfaceRaised, in: RoundedRectangle(cornerRadius: ThusoRadius.md, style: .continuous))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Your next care action")
     }
 
     private var areaChip: some View {
@@ -113,28 +171,65 @@ struct HomeView: View {
             .accessibilityLabel("Care is for Lerato Molefe. Open your circle of care")
     }
 
-    /* The two chips that say who the care is for and where.
-     *
-     * They were capsules with `lineLimit(2)` on them, and at the accessibility sizes that is two
-     * defects at once: "Rosebank, Johannesburg" came out as "Rosebank, Johanne…" — the suburb
-     * somebody had chosen, unreadable in the control that chose it — and a capsule's ends curve in
-     * by half its height, so on a two-line chip the first and last words sit inside the curve. It
-     * is the same pair of problems MetricChip and NavPillLabel already solved, solved the same way:
-     * the text wraps as far as it needs to, and past the accessibility sizes the shape stops being
-     * a capsule and becomes a rounded rectangle whose corners leave the words alone. */
+    /* The two chips that say who the care is for and where: the handoff's secondary button at the
+       small size, with compact corners rather than a capsule, so a wrapped suburb is never cut by
+       its own curve. */
     private func chipLabel(symbol: String, text: String) -> some View {
-        let shape: AnyShape = typeSize.isAccessibilitySize
-            ? AnyShape(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
-            : AnyShape(Capsule())
+        let shape = RoundedRectangle(cornerRadius: ThusoRadius.sm, style: .continuous)
         return HStack(spacing: ThusoSpacing.space8) {
-            Image(systemName: symbol).font(.footnote).accessibilityHidden(true)
-            Text(text).font(.footnote.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
-            Image(systemName: "chevron.down").font(.caption2.weight(.semibold)).accessibilityHidden(true)
+            Image(systemName: symbol).font(.thuso(.footnote)).accessibilityHidden(true)
+            Text(text).font(.thuso(.footnote, weight: .semibold)).fixedSize(horizontal: false, vertical: true)
+            Image(systemName: "chevron.down").font(.thuso(.caption2, weight: .semibold)).accessibilityHidden(true)
         }
-        .foregroundStyle(ThusoTheme.charcoal)
+        .foregroundStyle(ThusoRole.foreground)
         .padding(.horizontal, ThusoSpacing.space12).padding(.vertical, ThusoSpacing.space8).frame(minHeight: 44)
-        .background(ThusoTheme.surface, in: shape)
-        .overlay(shape.stroke(ThusoTheme.controlEdge, lineWidth: 1))
+        .background(ThusoRole.surface, in: shape)
+        .overlay(shape.stroke(ThusoRole.border, lineWidth: 1))
+    }
+
+    // MARK: - The figures, from the record
+
+    /* Two of them are readings and open the record they came from; the other two are facts about the
+       account and are not buttons, because nothing is behind them to open. */
+    private var metrics: some View {
+        let visit = store.visits.first
+        let systolic = Passport.latestSet.values["systolic"] ?? 0
+        let diastolic = Passport.latestSet.values["diastolic"] ?? 0
+        let glucose = Passport.latestSet.values["glucose"] ?? 0
+        let pressureInRange = Passport.flag("systolic", systolic).isNormal && Passport.flag("diastolic", diastolic).isNormal
+        let glucoseInRange = Passport.flag("glucose", glucose).isNormal
+        let columns = stacked ? [GridItem(.flexible(), alignment: .top)] : [GridItem(.flexible(), spacing: ThusoSpacing.space12, alignment: .top), GridItem(.flexible(), alignment: .top)]
+        return LazyVGrid(columns: columns, alignment: .leading, spacing: ThusoSpacing.space12) {
+            ThusoMetricCard(label: "Next visit",
+                            value: visit.map { $0.isScheduled ? ($0.start ?? "Soon") : "Soon" } ?? "None",
+                            trend: visit.map { $0.isScheduled ? Scheduling.shortDate($0.date ?? Date()) : $0.service.name }) {
+                MyThusoIcon(icon: MyThusoIconsData.visit, size: 20)
+            }
+            NavigationLink { PassportView() } label: {
+                ThusoMetricCard(label: "Blood pressure", value: "\(Int(systolic))/\(Int(diastolic))", unit: "mmHg",
+                                badge: (pressureInRange ? "In range" : "Outside range", pressureInRange)) {
+                    MyThusoIcon(icon: MyThusoIconsData.health, size: 20)
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Opens your Health Passport")
+            NavigationLink { PassportView() } label: {
+                ThusoMetricCard(label: "Blood glucose",
+                                value: Passport.spec("glucose").map { Passport.format($0, glucose) } ?? "",
+                                unit: Passport.spec("glucose")?.unit,
+                                badge: (glucoseInRange ? "In range" : "Outside range", glucoseInRange)) {
+                    MyThusoIcon(icon: MyThusoIconsData.results, size: 20)
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Opens your Health Passport")
+            ThusoMetricCard(label: "Doctor's review", value: Scheduling.shortDate(Passport.lastReview.date),
+                            trend: Passport.reviewer.name) {
+                MyThusoIcon(icon: MyThusoIconsData.health, size: 20)
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Your care at a glance")
     }
 
     // MARK: - What is already arranged
@@ -150,13 +245,13 @@ struct HomeView: View {
                 CareCard(padding: ThusoSpacing.space16, spacing: ThusoSpacing.space12) {
                     HStack(alignment: .center, spacing: 12) {
                         Image("CareNursePortrait").resizable().scaledToFill().frame(width: 56, height: 64).clipped()
-                            .clipShape(RoundedRectangle(cornerRadius: 16)).accessibilityHidden(true)
+                            .clipShape(RoundedRectangle(cornerRadius: ThusoRadius.md)).accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 4) {
-                            Label("Before your visit", systemImage: "checklist").font(.subheadline.weight(.semibold))
-                            Text("Care at home · Illustrative image").thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                            Label("Before your visit", systemImage: "checklist").font(.thuso(.subheadline, weight: .semibold))
+                            Text("Care at home · Illustrative image").thusoFont(ThusoType.caption).foregroundStyle(ThusoRole.mutedForeground)
                         }
                     }
-                    Text("Have your medication list ready. Review the address and appointment details before the day.").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text("Have your medication list ready. Review the address and appointment details before the day.").font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     ClinicianProfileLink(doctor: false)
                     NavigationLink { VisitDetailView(visit: visit) } label: { Text("Visit details and preparation").frame(minHeight: 44).contentShape(Rectangle()) }.buttonStyle(.plain)
                 }
@@ -165,9 +260,9 @@ struct HomeView: View {
                    so all three apps say the same thing about having nothing booked. */
                 CareCard(weight: .lead) {
                     TileIcon(symbol: "calendar.badge.plus")
-                    Text(Scheduling.Label.noUpcoming).font(.headline).foregroundStyle(ThusoTheme.charcoal)
+                    Text(Scheduling.Label.noUpcoming).font(.thuso(.headline)).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(Scheduling.Label.noUpcomingDetail).font(.subheadline).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(Scheduling.Label.noUpcomingDetail).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                     Button(thuso(.bookNurse, store.locale), action: book).buttonStyle(QuietButton())
                 }
@@ -175,133 +270,79 @@ struct HomeView: View {
         }
     }
 
-    /* THE ONE NEAR-BLACK CARD ON THIS SCREEN, AND IT CARRIES THE ONE THING THAT IS ALREADY TRUE.
-     *
-     * The prototype's phone frames spend exactly one dark card per screen, and they spend it on what
-     * is live right now. On a returning patient's home that is the visit somebody has already
-     * arranged — not the catalogue under it, not the promotion at the foot of it. It was a pale lead
-     * card among seven other cards, which is the defect the design language names first: a screen
-     * where every card is a rounded box with the same treatment has no subject.
-     *
-     * Everything on it is `studioPaper`, the declared ink for this ground at 13.95:1, with the
-     * supporting lines at the muted opacity — 9.04:1. The chip is `onDark`, which is the tone this
-     * app already had for exactly this case and which no longer needs the visit's own tone word: on
-     * a card that is one thing to VoiceOver and one object on the screen, a teal chip and an amber
-     * chip were two colours saying what the words beside them already say. The monogram takes the
-     * paper as its disc, so the initials stay dark on something light rather than vanishing. */
+    /* The visit as a white card with the tile the family draws for a visit, the status as a badge in
+       the contract's own word, and the nurse beneath a rule. An arrival estimate belongs to "come now"
+       and to nothing else; a visit booked for a named hour says how long it takes instead. */
     private func visitCard(_ visit: BookedVisit) -> some View {
-        StudioNightCard(spacing: ThusoSpacing.space12) {
+        ThusoCard(padding: .sm, spacing: ThusoSpacing.space12) {
             let head = HStack(spacing: ThusoSpacing.space12) {
-                TileIcon(symbol: visit.service.symbol, tint: ThusoTheme.studioInkDeep, background: ThusoTheme.studioLime)
+                TileIcon(symbol: visit.service.symbol, tint: ThusoRole.foreground, background: ThusoRole.accentTint)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(visit.service.name).font(.subheadline.weight(.semibold)).studioNightInk()
-                    Text(visit.shortWhenText).font(.footnote).studioNightInk(quiet: true)
+                    Text(visit.service.name).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+                    Text(visit.shortWhenText).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 }
-                if !stacked { Spacer(minLength: 6); MetricChip(text: visit.status, tone: .onDark) }
+                if !stacked { Spacer(minLength: 6); StatusPill(text: visit.status) }
             }
             if stacked {
-                VStack(alignment: .leading, spacing: ThusoSpacing.space8) { head; MetricChip(text: visit.status, tone: .onDark) }
+                VStack(alignment: .leading, spacing: ThusoSpacing.space8) { head; StatusPill(text: visit.status) }
             } else {
                 head
             }
-            /* An arrival estimate belongs to "come now" and to nothing else; a visit booked for a
-               named hour says how long it takes instead, from the catalogue. */
             HStack(spacing: ThusoSpacing.space4) {
                 Image(systemName: visit.isScheduled ? "clock" : "bolt.fill").thusoFont(ThusoType.caption)
-                Text(visit.isScheduled ? "\(visit.service.duration) minutes" : "Looking for the nearest nurse").font(.footnote)
+                Text(visit.isScheduled ? "\(visit.service.duration) minutes" : "Looking for the nearest nurse").font(.thuso(.footnote))
             }
-            .studioNightInk(quiet: true)
+            .foregroundStyle(ThusoRole.mutedForeground)
             HStack(spacing: ThusoSpacing.space4) {
                 Image(systemName: "mappin.and.ellipse").thusoFont(ThusoType.caption)
-                Text(visit.address).font(.footnote)
+                Text(visit.address).font(.thuso(.footnote))
             }
-            .studioNightInk(quiet: true)
-            /* A rule on a card this dark has to be drawn in the card's own ink. `studioLine` is a
-               hairline for a light ground and there is nothing of it to see here. */
-            Rectangle().fill(ThusoTheme.studioPaper.opacity(0.18)).frame(height: 1).accessibilityHidden(true)
+            .foregroundStyle(ThusoRole.mutedForeground)
+            ThusoDivider()
             HStack(spacing: ThusoSpacing.space12) {
-                Monogram(text: Arrival.nurse.initials, background: ThusoTheme.studioPaper)
+                ThusoAvatar(initials: Arrival.nurse.initials, size: .md)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(Arrival.nurse.name).font(.subheadline.weight(.semibold)).studioNightInk()
-                    Text(Arrival.nurse.role).thusoFont(ThusoType.caption).studioNightInk(quiet: true)
+                    Text(Arrival.nurse.name).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+                    Text(Arrival.nurse.role).thusoFont(ThusoType.caption).foregroundStyle(ThusoRole.mutedForeground)
                 }
                 Spacer(minLength: 4)
-                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).studioNightInk(quiet: true)
+                Image(systemName: "chevron.right").font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.mutedForeground)
             }
         }
-    }
-
-    // MARK: - Arranging the next thing
-
-    private var careCover: some View {
-        VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
-            Text("HELP. HEALTH. HOME.").thusoFont(ThusoType.caption, weight: .semibold).tracking(1.5)
-                .foregroundStyle(ThusoTheme.studioLime)
-            Text("Care that\nfeels like home.").font(.largeTitle.weight(.medium)).tracking(-1.4)
-                .foregroundStyle(.white).fixedSize(horizontal: false, vertical: true)
-            Button(action: book) {
-                Label(thuso(.bookNurse, store.locale), systemImage: "arrow.up.right")
-                    .font(.subheadline.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space12)
-                    .frame(minHeight: 44)
-                    .background(ThusoTheme.studioLime, in: RoundedRectangle(cornerRadius: ThusoRadius.control))
-                    .foregroundStyle(ThusoTheme.studioInkDeep)
-            }.buttonStyle(.plain)
-            Text("Illustrative image").thusoFont(ThusoType.caption).foregroundStyle(.white)
-        }
-        .padding(ThusoSpacing.space24)
-        .frame(maxWidth: .infinity, minHeight: 254, alignment: .leading)
-        .background {
-            GeometryReader { geometry in
-                Image("CareEditorial").resizable().scaledToFill()
-                    .frame(width: geometry.size.width, height: geometry.size.height).clipped()
-                    .overlay {
-                        LinearGradient(stops: [.init(color: ThusoTheme.studioNight.opacity(0.96), location: 0),
-                                               .init(color: ThusoTheme.studioNight.opacity(0.80), location: 0.52),
-                                               .init(color: ThusoTheme.studioNight.opacity(0.1), location: 1)],
-                                       startPoint: .leading, endPoint: .trailing)
-                    }
-            }.accessibilityHidden(true)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
-    }
-
-    /* The words typed here live on the store, so the catalogue in the next tab opens already
-       filtered. The search used to call book() and throw the query away. */
-    private var searchField: some View {
-        /* Round while the prompt fits on one line, and a rounded rectangle once it does not. A
-           search prompt at three times the type wraps, and a capsule wrapping is a capsule cutting
-           the first and last word of the line it curves past. */
-        let shape: AnyShape = typeSize.isAccessibilitySize
-            ? AnyShape(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
-            : AnyShape(Capsule())
-        return HStack(spacing: ThusoSpacing.space12) {
-            Image(systemName: "magnifyingglass").foregroundStyle(ThusoTheme.studioInkMuted).accessibilityHidden(true)
-            /* One line, deliberately. A vertical axis would let the prompt wrap, and it would also
-               turn Return into a newline — which is the one key this field has a job for. */
-            TextField("What care do you need today?", text: $store.careQuery).submitLabel(.search).onSubmit(book)
-                .accessibilityLabel("Search for care")
-        }
-        .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space12).frame(minHeight: 48)
-        .contentShape(Rectangle())
-        .background(ThusoTheme.surface, in: shape)
-        .overlay(shape.stroke(ThusoTheme.controlEdge, lineWidth: 1))
     }
 
     // MARK: - Care you can book today
 
-    /* One row per service: one icon, the name, what it is, the price and how long it takes. The
-       two-up grid this replaces had room for the name and nothing else, and wrapped it over three
-       lines on a small phone. Both numbers come from the catalogue rather than being typed here. */
+    /* The words typed here live on the store, so the catalogue in the next tab opens already
+       filtered. The search used to call book() and throw the query away. One line, deliberately: a
+       vertical axis would let the prompt wrap, and it would also turn Return into a newline — which
+       is the one key this field has a job for. */
+    private var searchField: some View {
+        HStack(spacing: ThusoSpacing.space12) {
+            Image(systemName: "magnifyingglass").foregroundStyle(ThusoRole.mutedForeground).accessibilityHidden(true)
+            TextField("What care do you need today?", text: $store.careQuery).submitLabel(.search).onSubmit(book)
+                .font(.thuso(.subheadline))
+                .accessibilityLabel("Search for care")
+        }
+        .padding(.horizontal, ThusoSpacing.space12).frame(minHeight: 44)
+        .contentShape(Rectangle())
+        .background(ThusoRole.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.md, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.md, style: .continuous).stroke(ThusoRole.inputEdge, lineWidth: 1))
+        .thusoShadow()
+    }
+
+    /* One row per service: one icon, the name, what it is, the price and how long it takes. Both
+       numbers come from the catalogue rather than being typed here. */
     private var shortcuts: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             CareSectionHeader(title: "Care you can book today") {
                 Button("See all care", action: book).frame(minHeight: 44).contentShape(Rectangle())
             }
+            searchField
             CareCard(padding: ThusoSpacing.space16, spacing: 0) {
                 ForEach(Array(CareService.all.prefix(4).enumerated()), id: \.element) { index, service in
                     NavigationLink { BookingView(service: service) } label: { shortcutRow(service, index: index) }.buttonStyle(.plain)
-                    if index < 3 { Divider().overlay(ThusoTheme.studioLine) }
+                    if index < 3 { ThusoDivider() }
                 }
             }
         }
@@ -311,20 +352,20 @@ struct HomeView: View {
         let layout = stacked ? AnyLayout(VStackLayout(alignment: .leading, spacing: ThusoSpacing.space8)) : AnyLayout(HStackLayout(spacing: ThusoSpacing.space12))
         return layout {
             if !stacked {
-                Image(systemName: service.symbol).font(.body).foregroundStyle(ThusoTheme.charcoal)
+                Image(systemName: service.symbol).font(.thuso(.body)).foregroundStyle(ThusoRole.foreground)
                     .frame(width: 28).accessibilityHidden(true)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(service.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                Text(service.detail).thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(service.name).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+                Text(service.detail).thusoFont(ThusoType.caption).foregroundStyle(ThusoRole.mutedForeground)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: ThusoSpacing.space8) {
                 VStack(alignment: stacked ? .leading : .trailing, spacing: 2) {
-                    Text("R\(service.price)").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                    Text("\(service.duration) min").thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text("R\(service.price)").font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+                    Text("\(service.duration) min").thusoFont(ThusoType.caption).foregroundStyle(ThusoRole.mutedForeground)
                 }
-                Image(systemName: "chevron.right").thusoFont(ThusoType.caption, weight: .semibold).foregroundStyle(ThusoTheme.studioInkMuted)
+                Image(systemName: "chevron.right").thusoFont(ThusoType.caption, weight: .semibold).foregroundStyle(ThusoRole.mutedForeground)
                     .accessibilityHidden(true)
             }
         }
@@ -335,103 +376,118 @@ struct HomeView: View {
         .accessibilityLabel("\(service.name). \(service.detail) From R\(service.price), \(service.duration) minutes")
     }
 
-    // MARK: - Results, plans and family
+    // MARK: - The readings as trends
 
-    // The home and Passport read the same fixture; a redesign must not invent new readings.
-    private var healthSnapshot: some View {
-        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
-            Text("Your care at a glance").font(.headline).foregroundStyle(ThusoTheme.studioInk)
-            Text("Sample readings · \(Scheduling.shortDate(Passport.latestSet.date))")
-                .thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.studioInkMuted)
-            let layout = stacked ? AnyLayout(VStackLayout(spacing: ThusoSpacing.space12))
-                                 : AnyLayout(HStackLayout(alignment: .top, spacing: ThusoSpacing.space12))
-            layout {
-                snapshotCard(id: "systolic", symbol: "heart", fill: ThusoTheme.surface)
-                snapshotCard(id: "glucose", symbol: "waveform.path.ecg", fill: ThusoTheme.studioLime)
-            }
-        }
-    }
-
-    private func snapshotCard(id: String, symbol: String, fill: Color) -> some View {
-        NavigationLink { PassportView() } label: {
-            VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
-                HStack {
-                    Image(systemName: symbol)
-                    Spacer()
-                    Image(systemName: "arrow.up.right").thusoFont(ThusoType.caption)
-                }.foregroundStyle(ThusoTheme.studioInk)
-                if let observation = Passport.spec(id), let value = Passport.latestSet.values[id] {
-                    let display = id == "systolic"
-                        ? "\(Int(value))/\(Int(Passport.latestSet.values["diastolic"] ?? 0))"
-                        : Passport.format(observation, value)
-                    Text(id == "systolic" ? "Blood pressure" : observation.label)
-                        .thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.studioInkMuted)
-                    Text(display).font(.title.weight(.semibold)).tracking(-1.2)
-                        .foregroundStyle(ThusoTheme.studioInkDeep)
-                        .fixedSize(horizontal: false, vertical: true)
-                    HStack(alignment: .bottom) {
-                        Text(observation.unit).thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.studioInkMuted)
-                        Spacer(minLength: 4)
-                        HStack(alignment: .bottom, spacing: 3) {
-                            ForEach(Array(Passport.series(observation).enumerated()), id: \.offset) { index, reading in
-                                Capsule().fill(ThusoTheme.studioOlive.opacity(0.45))
-                                    .frame(width: 7, height: max(5, reading.value / (id == "systolic" ? 160 : 8) * 30))
-                                    .studioBarEntrance(delay: Double(index) * 0.08, identity: "\(id):\(reading.value)")
-                            }
-                        }.frame(height: 30).accessibilityHidden(true)
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(ThusoSpacing.space16)
-            .background(fill, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
-        }.buttonStyle(.plain)
-    }
-
-    private var results: some View {
+    /* The trends a person watches, as peer views of one record: blood pressure, pulse and glucose,
+       one drawn at a time. Drawn only through readings on record — two or more of the measure — and
+       otherwise the honest empty state, never a figure invented to fill a chart. The home and the
+       Passport read the same fixture; a redesign must not invent new readings. */
+    private static let trendTabs: [(id: String, title: String, measure: String)] = [
+        ("pressure", "Blood pressure", "systolic"), ("pulse", "Pulse", "pulse"), ("glucose", "Glucose", "glucose")
+    ]
+    private var trends: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             CareSectionHeader(title: "Your health over time") {
                 NavigationLink(thuso(.openPassport, store.locale)) { PassportView() }
             }
-            if let observation = Passport.spec("systolic") {
-                ClinicalChart(title: "Systolic blood pressure", unit: observation.unit,
-                              readings: Passport.series(observation), normal: observation.range,
-                              symbol: "heart")
-            }
-            NavigationLink { PassportView() } label: {
-                CareCard {
-                    Text("Full blood count").font(.headline).foregroundStyle(ThusoTheme.studioInk)
-                    Text("Awaiting doctor review").font(.subheadline).foregroundStyle(ThusoTheme.studioInkMuted)
-                    StatusPill(text: "With a doctor", tone: "amber")
+            ThusoCard(padding: .md, spacing: ThusoSpacing.space12) {
+                Text("\(Passport.readingSets.count) home visits on record, the last on \(Scheduling.shortDate(Passport.latestSet.date)). Sample readings.")
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
+                    .fixedSize(horizontal: false, vertical: true)
+                ThusoTabs(selection: $trend, tabs: Self.trendTabs.map { ($0.id, $0.title) })
+                let current = Self.trendTabs.first { $0.id == trend } ?? Self.trendTabs[0]
+                if let observation = Passport.spec(current.measure), Passport.series(observation).count > 1 {
+                    ClinicalChart(title: observation.label, unit: observation.unit,
+                                  readings: Passport.series(observation), normal: observation.range,
+                                  decimals: Passport.decimals(observation), symbol: Passport.symbol(observation.id))
+                    if current.id == "pressure" {
+                        Text("Systolic is drawn here; the diastolic readings are in your Passport beside it.")
+                            .font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                } else {
+                    EmptyStateCard(title: "No trend yet", message: "A trend is drawn once two readings of \(current.title.lowercased()) are on your record. Nothing is drawn from a reading that is not there.", symbol: "chart.xyaxis.line")
                 }
-            }.buttonStyle(.plain)
+            }
         }
     }
 
+    // MARK: - What happened lately
+
+    /* Newest first: each visit that took readings, and the doctor's review of the last one on the day it
+       was written. Read from the Passport rather than composed here. */
+    private struct HistoryItem: Identifiable { let id: String; let day: Int; let title: String; let detail: String; let badge: String?; let good: Bool }
+    private var historyItems: [HistoryItem] {
+        let review = HistoryItem(id: "review", day: Passport.lastReview.reviewedDayOffset,
+                                 title: "\(Passport.reviewer.name) reviewed your readings",
+                                 detail: Passport.lastReview.next, badge: "Reviewed", good: true)
+        let visits: [HistoryItem] = Passport.readingSets.map { set in
+            let systolic = set.values["systolic"] ?? 0, diastolic = set.values["diastolic"] ?? 0
+            let inRange = Passport.flag("systolic", systolic).isNormal && Passport.flag("diastolic", diastolic).isNormal
+            return HistoryItem(id: String(set.dayOffset), day: set.dayOffset, title: "Home visit · readings taken",
+                               detail: "Blood pressure \(Int(systolic))/\(Int(diastolic)) mmHg\(set.note.map { " · \($0)" } ?? "")",
+                               badge: inRange ? nil : "Outside range", good: false)
+        }
+        return ([review] + visits).sorted { $0.day > $1.day }
+    }
+    private var history: some View {
+        VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
+            CareSectionHeader("Recent care")
+            ThusoCard(padding: .md, spacing: 0) {
+                Text("What your nurse recorded, and what the doctor said about it.")
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.bottom, ThusoSpacing.space8)
+                ForEach(Array(historyItems.enumerated()), id: \.element.id) { index, item in
+                    if index > 0 { ThusoDivider() }
+                    HStack(alignment: .top, spacing: ThusoSpacing.space12) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(Scheduling.shortDate(Date().addingTimeInterval(TimeInterval(item.day) * 86_400)))
+                                .font(.thuso(.caption, weight: .semibold)).foregroundStyle(ThusoRole.mutedForeground)
+                            Text(item.title).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(item.detail).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        if let badge = item.badge, !stacked {
+                            ThusoBadge(badge, variant: item.good ? .success : .warning, size: .sm)
+                        }
+                    }
+                    .padding(.vertical, ThusoSpacing.space12)
+                    .accessibilityElement(children: .combine)
+                }
+            }
+        }
+    }
+
+    // MARK: - Live well, plans and family
+
     private var liveWell: some View {
         NavigationLink { LiveWellView() } label: {
-            VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
+            ThusoCard(padding: .md, spacing: ThusoSpacing.space12) {
                 Text("YOUR EVERYDAY WELLBEING").thusoFont(ThusoType.caption, weight: .semibold).tracking(1.2)
-                    .foregroundStyle(ThusoTheme.studioInkMuted)
-                HStack(alignment: .center, spacing: 8) {
-                    Text("Make room\nfor you.").font(.largeTitle.weight(.medium)).tracking(-1.4)
-                        .foregroundStyle(ThusoTheme.studioInkDeep).fixedSize(horizontal: false, vertical: true)
-                    if !stacked { Spacer(minLength: 0); MoonArtwork().frame(width: 120, height: 120) }
+                    .foregroundStyle(ThusoRole.mutedForeground)
+                HStack(alignment: .center, spacing: ThusoSpacing.space12) {
+                    Text("Make room\nfor you.").font(ThusoFont.heading)
+                        .foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    if !stacked {
+                        MyThusoIcon(icon: MyThusoIconsData.mind, size: 28)
+                            .frame(width: 48, height: 48)
+                            .background(ThusoRole.accentTint, in: RoundedRectangle(cornerRadius: ThusoRadius.md, style: .continuous))
+                    }
                 }
                 Text("How have you been feeling? A quiet space for your own words.")
-                    .font(.subheadline).foregroundStyle(ThusoTheme.studioInkMuted).fixedSize(horizontal: false, vertical: true)
+                    .font(.thuso(.subheadline)).foregroundStyle(ThusoRole.mutedForeground).fixedSize(horizontal: false, vertical: true)
                 HStack {
-                    Text("Open your journal").font(.subheadline.weight(.semibold))
+                    Text("Open your journal").font(.thuso(.subheadline, weight: .semibold))
                     Spacer(minLength: 8)
-                    Image(systemName: "arrow.up.right")
+                    Image(systemName: "arrow.right")
                 }
-                .foregroundStyle(ThusoTheme.studioInk)
-                .padding(ThusoSpacing.space16)
-                .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control))
+                .foregroundStyle(ThusoRole.foreground)
+                .frame(minHeight: 44)
             }
-            .padding(ThusoSpacing.space24)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(ThusoTheme.studioLilac, in: RoundedRectangle(cornerRadius: 30, style: .continuous))
         }.buttonStyle(.plain)
     }
 
@@ -453,29 +509,26 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             CareSectionHeader(title: "Your circle of care") {
                 NavigationLink("My family") { FamilyView() }.frame(minHeight: 44).contentShape(Rectangle())
-                    .frame(minHeight: 44).contentShape(Rectangle())
             }
             CareCard(padding: ThusoSpacing.space16, spacing: 0) {
                 ForEach(Array(store.family.enumerated()), id: \.offset) { index, member in
                     NavigationLink { FamilyView() } label: {
                         MenuRow(title: member, subtitle: relationship(index), symbol: "person.crop.circle")
                     }.buttonStyle(.plain)
-                    Divider().overlay(ThusoTheme.studioLine)
+                    ThusoDivider()
                 }
                 NavigationLink { FamilyView() } label: {
-                    Label("Add a family member", systemImage: "plus").font(.subheadline.weight(.semibold))
+                    Label("Add a family member", systemImage: "plus").font(.thuso(.subheadline, weight: .semibold))
                         .frame(maxWidth: .infinity, alignment: .leading).frame(minHeight: 44).contentShape(Rectangle())
                 }
-                .buttonStyle(.plain).foregroundStyle(ThusoTheme.charcoal)
+                .buttonStyle(.plain).foregroundStyle(ThusoRole.foreground)
             }
             /* Booking for somebody opens their booking, never their record. What you may see of
-               another person is decided in My family, under consent, and nowhere on this screen. */
-            /* One element with the sentence as its label. `children: .combine` left the shield in the
-               tree as an element of its own, so VoiceOver read "checkmark shield" before the words
-               it decorates. */
+               another person is decided in My family, under consent, and nowhere on this screen.
+               One element with the sentence as its label, so VoiceOver does not read the shield first. */
             Label("Booking for someone opens their booking, never their record. What you may see is decided in My family.",
                   systemImage: "checkmark.shield")
-                .thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                .thusoFont(ThusoType.caption).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Booking for someone opens their booking, never their record. What you may see is decided in My family.")
@@ -493,31 +546,25 @@ struct HomeView: View {
         }
     }
 
-    /* THE PROMOTION GAVE UP THE DARK CARD, BECAUSE THERE IS ONLY ONE OF THOSE.
-     *
-     * It was a NightPanel, and so is the visit at the top of this screen now — two near-black cards
-     * on one page, which is two subjects, which is none. The offer is the quieter of the two claims
-     * by a long way: one of them is a nurse coming to somebody's house on Thursday and the other is
-     * an invitation to look at a record.
-     *
-     * So it takes `studioPeach`, one of the three tiles the Care Studio palette declares, with
-     * charcoal on it. It is still the warmest object at the foot of the screen and it is no longer
-     * competing with the thing that is actually happening. */
+    /// The invitation to look at the record, as a white card: the quieter of the screen's claims.
     private var passportPromo: some View {
-        VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-            StatusPill(text: "THUSO PASS")
-            Text("Your health.\nOne safe place.").font(.title3.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
+        ThusoCard(padding: .md, spacing: ThusoSpacing.space8) {
+            ThusoBadge("Thuso Pass", variant: .accent, size: .sm)
+            Text("Your health.\nOne safe place.").font(.thuso(.title3, weight: .bold)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
             Text("Every visit, reading and result, in a record you own and control.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("\(thuso(.openPassport, store.locale)) →").font(.subheadline.weight(.semibold))
-                .foregroundStyle(ThusoTheme.charcoal)
+            Text("\(thuso(.openPassport, store.locale)) →").font(.thuso(.subheadline, weight: .semibold))
+                .foregroundStyle(ThusoRole.foreground)
         }
-        .padding(ThusoSpacing.space20)
-        .frame(maxWidth: .infinity, minHeight: 150, alignment: .leading)
-        .background(ThusoTheme.studioPeach,
-                    in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// A label with its symbol after the words, for the button that points onwards.
+struct TrailingIconLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: ThusoSpacing.space8) { configuration.title; configuration.icon }
     }
 }

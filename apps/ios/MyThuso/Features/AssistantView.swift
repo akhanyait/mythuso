@@ -81,6 +81,7 @@ struct AssistantView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: ThusoSpacing.space24) {
+                    identityHead
                     stage
                     voiceArea
                     CapabilityNotice(of: capability)
@@ -102,7 +103,6 @@ struct AssistantView: View {
         .background(ground.ignoresSafeArea())
         .safeAreaInset(edge: .bottom, spacing: 0) { composer }
         .navigationTitle(Gilbert.name).navigationBarTitleDisplayMode(.inline)
-        .toolbarColorScheme(.dark, for: .navigationBar)
         .navigationDestination(isPresented: $showingSos) { SosView() }
         .onAppear { gather() }
         .onChange(of: turns.last?.id) { _, _ in
@@ -231,15 +231,10 @@ struct AssistantView: View {
     /// service is not deployed — and the local answer is what such a phone keeps.
     private static let serviceBase = URL(string: "http://localhost:8791")!
 
-    /* The ground the sphere is lit against: brandInk, recessed at the ends by the design system's ink at
-       45%. Every word was measured against brandInk itself, the lighter of the two. */
-    private var ground: some View {
-        ZStack {
-            ThusoTheme.brandInk
-            LinearGradient(colors: [ThusoTheme.ink.opacity(0.45), .clear, ThusoTheme.ink.opacity(0.45)],
-                           startPoint: .top, endPoint: .bottom)
-        }
-    }
+    /* The identity's ground since 28 September 2026. The sphere's own night panel is the stage's, so the
+       words measured against the brand ink stay on the brand ink and the rest of the screen reads like
+       every other. */
+    private var ground: some View { ThusoRole.background }
 
     // MARK: - The sphere and the state, in words
 
@@ -252,10 +247,10 @@ struct AssistantView: View {
             if ProcessInfo.processInfo.arguments.contains("-GilbertSelfTest") {
                 let disagreements = Gilbert.selfTest()
                 Text(disagreements.isEmpty ? "agrees" : disagreements.joined(separator: " | "))
-                    .font(.footnote).foregroundStyle(ThusoTheme.surface)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.onNight)
                     .accessibilityIdentifier("gilbert-self-test")
                 Text(Gilbert.falsePositiveReport().joined(separator: " | "))
-                    .font(.footnote).foregroundStyle(ThusoTheme.surface)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.onNight)
                     .accessibilityIdentifier("gilbert-false-positives")
             }
             #endif
@@ -263,30 +258,54 @@ struct AssistantView: View {
             VStack(spacing: ThusoSpacing.space8) {
                 Text(Gilbert.spec(pulse).cue)
                     .thusoFont(ThusoType.caption, weight: .semibold)
-                    .foregroundStyle(ThusoTheme.surface)
+                    .foregroundStyle(ThusoRole.onNight)
                     .padding(.horizontal, ThusoSpacing.space12).padding(.vertical, ThusoSpacing.space4)
-                    .overlay(Capsule().stroke(pulse == .escalate ? ThusoTheme.brandOrange : ThusoTheme.brandMint.opacity(0.62),
+                    .overlay(Capsule().stroke(pulse == .escalate ? ThusoRole.coral : ThusoRole.nightAccent.opacity(0.62),
                                               lineWidth: pulse == .escalate ? 2 : 1))
                 if let stageName {
                     Text(stageName)
                         .thusoFont(ThusoType.caption, weight: .semibold)
                         .tracking(1.4)
-                        .foregroundStyle(ThusoTheme.brandMint)
+                        .foregroundStyle(ThusoRole.nightAccent)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 if let figure = stageFigure {
-                    Text(figure).font(.system(.largeTitle, design: .default, weight: .ultraLight))
-                        .foregroundStyle(ThusoTheme.surface)
+                    Text(figure).font(ThusoFont.metricLarge)
+                        .foregroundStyle(ThusoRole.onNight)
                 }
                 Text(Gilbert.descriptorLine)
                     .thusoFont(ThusoType.caption)
-                    .foregroundStyle(ThusoTheme.brandMint)
+                    .foregroundStyle(ThusoRole.nightAccent)
             }
             .accessibilityElement(children: .combine)
             .frame(maxWidth: 420)
         }
         .frame(maxWidth: .infinity)
+        /* The one night panel on the screen since 28 September 2026: the sphere is lit against it, and
+           every word on it keeps the ink measured for that ground. Everything else on the screen is on
+           the identity's light ground. */
+        .padding(.vertical, ThusoSpacing.space24).padding(.horizontal, ThusoSpacing.space16)
+        .background(ThusoRole.night, in: RoundedRectangle(cornerRadius: ThusoRadius.lg, style: .continuous))
+    }
+
+    /* The official GilbertOne logo — the Lovable handoff's master, the seated character above the name —
+       as the asset in Assets.xcassets, resized whole and never redrawn, recoloured or cropped, with the
+       descriptor line beside it so the name and its correction are read together. It sits on a light
+       card because the lettering is the brand ink. */
+    private var identityHead: some View {
+        ThusoCard(padding: .md, spacing: ThusoSpacing.space8) {
+            HStack {
+                Spacer(minLength: 0)
+                Image("GilbertOneLogo").resizable().scaledToFit().frame(maxWidth: 200)
+                    .accessibilityLabel(Gilbert.name)
+                Spacer(minLength: 0)
+            }
+            Text(Gilbert.descriptorLine).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
+                .frame(maxWidth: .infinity, alignment: .center).multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     /// Only what has a name of its own; every other answer is named by the state pill above it.
@@ -347,19 +366,19 @@ struct AssistantView: View {
                 if listener.phase == .interrupted { SceneNote(text: Gilbert.voice.interrupted) }
                 Button { listener.talk() } label: {
                     Label(Gilbert.voice.talkLabel, systemImage: "mic.fill")
-                        .font(.body.weight(.semibold))
+                        .font(.thuso(.body, weight: .semibold))
                         .frame(maxWidth: .infinity, minHeight: 52)
                 }
                 .buttonStyle(SceneButtonStyle(filled: true))
                 .accessibilityHint(Gilbert.voice.howItWorks)
                 Text(Gilbert.voice.howItWorks)
-                    .font(.footnote).foregroundStyle(ThusoTheme.brandMint)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityHidden(true)
             }
         case .explaining:
             SceneCard {
-                Text(Gilbert.voice.beforePermission).font(.body).foregroundStyle(ThusoTheme.surface)
+                Text(Gilbert.voice.beforePermission).font(.thuso(.body)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: ThusoSpacing.space8) { permissionButtons }
@@ -369,16 +388,16 @@ struct AssistantView: View {
         case .listening:
             SceneCard {
                 Text(Gilbert.voice.captionsLabel).thusoFont(ThusoType.caption, weight: .semibold)
-                    .foregroundStyle(ThusoTheme.brandMint)
+                    .foregroundStyle(ThusoRole.mutedForeground)
                 Text(listener.captions.isEmpty ? "…" : listener.captions)
-                    .font(.title3).foregroundStyle(ThusoTheme.surface)
+                    .font(.thuso(.title3)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityLabel(Gilbert.voice.captionsLabel)
                     .accessibilityValue(listener.captions)
                     .accessibilityAddTraits(.updatesFrequently)
                 Button { listener.stop() } label: {
                     Label(Gilbert.voice.stopLabel, systemImage: "stop.fill")
-                        .font(.title3.weight(.semibold))
+                        .font(.thuso(.title3, weight: .semibold))
                         .frame(maxWidth: .infinity, minHeight: 60)
                 }
                 .buttonStyle(SceneButtonStyle(filled: true))
@@ -389,17 +408,17 @@ struct AssistantView: View {
         case .heard:
             SceneCard {
                 Text(Gilbert.voice.correctLabel).thusoFont(ThusoType.caption, weight: .semibold)
-                    .foregroundStyle(ThusoTheme.brandMint)
+                    .foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
                 TextField(Gilbert.conversation.inputHint, text: $correction, axis: .vertical)
                     .autocorrectionDisabled(true)
                     .textInputAutocapitalization(.never)
                     .lineLimit(1...6)
                     .focused($correcting)
-                    .foregroundStyle(ThusoTheme.brandInk)
+                    .foregroundStyle(ThusoRole.foreground)
                     .padding(ThusoSpacing.space12)
                     .frame(minHeight: 44)
-                    .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+                    .background(ThusoRole.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
                     .accessibilityLabel(Gilbert.voice.correctLabel)
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: ThusoSpacing.space8) { correctionButtons }
@@ -432,10 +451,10 @@ struct AssistantView: View {
                 VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
                     if let asked = turn.asked {
                         Text(asked)
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(ThusoTheme.brandInk)
+                            .font(.thuso(.body, weight: .semibold))
+                            .foregroundStyle(ThusoRole.foreground)
                             .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space8)
-                            .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+                            .background(ThusoRole.primaryTint, in: RoundedRectangle(cornerRadius: ThusoRadius.md, style: .continuous))
                             .frame(maxWidth: .infinity, alignment: .trailing)
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityLabel("\(turn.channel == .spoken ? Gilbert.conversation.youSaid : Gilbert.conversation.youAsked): \(asked)")
@@ -443,7 +462,7 @@ struct AssistantView: View {
                     SceneCard {
                         Text(Gilbert.name.uppercased())
                             .thusoFont(ThusoType.caption, weight: .semibold).tracking(1.2)
-                            .foregroundStyle(ThusoTheme.brandMint)
+                            .foregroundStyle(ThusoRole.mutedForeground)
                             .accessibilityHidden(true)
                         replyBody(turn)
                         /* Words GilbertOne did not read are said to be unread, with the numbers beside them,
@@ -475,9 +494,9 @@ struct AssistantView: View {
             if !groups.isEmpty {
                 SceneText(Gilbert.emergency.noticed)
                 ForEach(groups) { group in
-                    Text(group.name).font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.surface)
+                    Text(group.name).font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                         .padding(.leading, ThusoSpacing.space12)
-                        .overlay(alignment: .leading) { Rectangle().fill(ThusoTheme.brandOrange).frame(width: 2) }
+                        .overlay(alignment: .leading) { Rectangle().fill(ThusoRole.coral).frame(width: 2) }
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -547,15 +566,15 @@ struct AssistantView: View {
         SceneText(Gilbert.handover.lead)
         ForEach(Gilbert.summary(of: earlier, emergencyEarlier: raised), id: \.label) { row in
             VStack(alignment: .leading, spacing: 2) {
-                Text(row.label).thusoFont(ThusoType.caption, weight: .semibold).foregroundStyle(ThusoTheme.brandMint)
-                Text(row.value).font(.body).foregroundStyle(ThusoTheme.surface).fixedSize(horizontal: false, vertical: true)
+                Text(row.label).thusoFont(ThusoType.caption, weight: .semibold).foregroundStyle(ThusoRole.mutedForeground)
+                Text(row.value).font(.thuso(.body)).foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
         }
         VStack(alignment: .leading, spacing: 2) {
-            Text(BookingData.Handover.answeredByLabel).thusoFont(ThusoType.caption, weight: .semibold).foregroundStyle(ThusoTheme.brandMint)
-            Text(BookingData.Handover.answeredBy.joined(separator: ", ")).font(.body).foregroundStyle(ThusoTheme.surface).fixedSize(horizontal: false, vertical: true)
+            Text(BookingData.Handover.answeredByLabel).thusoFont(ThusoType.caption, weight: .semibold).foregroundStyle(ThusoRole.mutedForeground)
+            Text(BookingData.Handover.answeredBy.joined(separator: ", ")).font(.thuso(.body)).foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
@@ -564,9 +583,9 @@ struct AssistantView: View {
             SceneHeading(Gilbert.handover.notCarriedHeading)
             ForEach(Gilbert.handover.notCarried) { item in
                 HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-                    Image(systemName: "minus").font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.brandMint)
+                    Image(systemName: "minus").font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.mutedForeground)
                         .accessibilityHidden(true)
-                    Text(item.sentence).font(.body).foregroundStyle(ThusoTheme.surface).fixedSize(horizontal: false, vertical: true)
+                    Text(item.sentence).font(.thuso(.body)).foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
@@ -574,8 +593,8 @@ struct AssistantView: View {
             SceneText(outcome.sentNow ? Gilbert.handover.sentTitle : Gilbert.handover.alreadySent, weight: .semibold)
             if outcome.sentNow { SceneText(Gilbert.handover.sent) }
             VStack(alignment: .leading, spacing: 2) {
-                Text(Gilbert.handover.sentReference).thusoFont(ThusoType.caption, weight: .semibold).foregroundStyle(ThusoTheme.brandMint)
-                Text(outcome.record.reference).font(.title3.weight(.semibold).monospaced()).foregroundStyle(ThusoTheme.surface)
+                Text(Gilbert.handover.sentReference).thusoFont(ThusoType.caption, weight: .semibold).foregroundStyle(ThusoRole.mutedForeground)
+                Text(outcome.record.reference).font(.thuso(.title3, weight: .semibold).monospaced()).foregroundStyle(ThusoRole.foreground)
                     .textSelection(.enabled)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -614,7 +633,7 @@ struct AssistantView: View {
     /// The unread answer. Guiding, never a calm Idle: the words GilbertOne could not read may be the ones that mattered.
     private var unreadBlock: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
-            Rectangle().fill(ThusoTheme.brandOrange).frame(height: 2).accessibilityHidden(true)
+            Rectangle().fill(ThusoRole.coral).frame(height: 2).accessibilityHidden(true)
             SceneText(Gilbert.unread.sentence, weight: .semibold)
             SceneText(Gilbert.unread.detail)
             SceneText(Gilbert.unread.ifUrgent)
@@ -638,9 +657,9 @@ struct AssistantView: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
             ForEach(lines, id: \.number) { line in
                 HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space12) {
-                    Text(line.number).font(.title2.weight(.semibold).monospacedDigit()).foregroundStyle(ThusoTheme.surface)
+                    Text(line.number).font(.thuso(.title2, weight: .semibold).monospacedDigit()).foregroundStyle(ThusoRole.foreground)
                         .frame(minWidth: 72, alignment: .leading)
-                    Text(line.name).font(.body).foregroundStyle(ThusoTheme.surface).fixedSize(horizontal: false, vertical: true)
+                    Text(line.name).font(.thuso(.body)).foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
                 }
                 .accessibilityElement(children: .combine)
             }
@@ -655,7 +674,7 @@ struct AssistantView: View {
                 VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
                     SceneHeading(group.heading)
                     if let lead = group.lead {
-                        Text(lead).thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.brandMint)
+                        Text(lead).thusoFont(ThusoType.caption).foregroundStyle(ThusoRole.mutedForeground)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     ForEach(Gilbert.questions.filter { $0.group == group.id }) { question in
@@ -678,7 +697,7 @@ struct AssistantView: View {
                     Label(Gilbert.conversation.startAgainLabel, systemImage: "arrow.counterclockwise")
                         .frame(minHeight: 44)
                 }
-                .foregroundStyle(ThusoTheme.surface)
+                .foregroundStyle(ThusoRole.foreground)
             }
         }
     }
@@ -688,19 +707,19 @@ struct AssistantView: View {
             SceneHeading(Gilbert.conversation.refusalsHeading)
             SceneCard(spacing: ThusoSpacing.space8) {
                 ForEach(Gilbert.refusals) { refusal in
-                    Text(refusal.statement).font(.footnote).foregroundStyle(ThusoTheme.surface)
+                    Text(refusal.statement).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
             Text("\(Gilbert.poweredBy). \(Gilbert.poweredByMeans)")
-                .thusoFont(ThusoType.caption).foregroundStyle(ThusoTheme.brandMint)
+                .thusoFont(ThusoType.caption).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     private var silence: some View {
         Text(Gilbert.silenceIsNotSafety)
-            .font(.footnote).foregroundStyle(ThusoTheme.brandMint)
+            .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             .frame(maxWidth: .infinity, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
     }
@@ -730,8 +749,8 @@ struct AssistantView: View {
         }
         .padding(.horizontal, ThusoSpacing.space20)
         .padding(.vertical, ThusoSpacing.space12)
-        .background(ThusoTheme.brandInk)
-        .overlay(alignment: .top) { Rectangle().fill(ThusoTheme.brandMint.opacity(0.22)).frame(height: 1) }
+        .background(ThusoRole.surface)
+        .overlay(alignment: .top) { ThusoDivider() }
     }
 }
 
@@ -741,14 +760,16 @@ extension AssistantView {
        the screen pretending it is not there. */
     fileprivate var composerField: some View {
         TextField(Gilbert.conversation.inputHint, text: $draft)
+            .font(.thuso(.subheadline))
             .autocorrectionDisabled(true)
             .textInputAutocapitalization(.never)
             .submitLabel(.send)
             .onSubmit(sendDraft)
-            .foregroundStyle(ThusoTheme.brandInk)
+            .foregroundStyle(ThusoRole.foreground)
             .padding(.horizontal, ThusoSpacing.space12)
             .frame(minHeight: 44)
-            .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+            .background(ThusoRole.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.md, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.md, style: .continuous).stroke(typing ? ThusoRole.ring : ThusoRole.inputEdge, lineWidth: typing ? 1.5 : 1))
             .focused($typing)
             .accessibilityLabel(Gilbert.conversation.inputLabel)
             .accessibilityHint(Gilbert.conversation.keyboardNote)
@@ -757,7 +778,7 @@ extension AssistantView {
 
     fileprivate var keyboardNote: some View {
         Text(Gilbert.conversation.keyboardNote)
-            .font(.footnote).foregroundStyle(ThusoTheme.brandMint)
+            .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             .frame(maxWidth: .infinity, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityIdentifier("gilbert-keyboard-note")
@@ -774,7 +795,7 @@ extension AssistantView {
                 if speaker.muted { speaker.stop() }
             } label: {
                 Image(systemName: speaker.muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                    .font(.body.weight(.semibold))
+                    .font(.thuso(.body, weight: .semibold))
                     .frame(width: 44, height: 44)
             }
             .buttonStyle(SceneButtonStyle(filled: false))
@@ -785,7 +806,7 @@ extension AssistantView {
 
     fileprivate func composerSend(fill: Bool) -> some View {
         Button(action: sendDraft) {
-            Text(Gilbert.conversation.sendLabel).font(.body.weight(.semibold))
+            Text(Gilbert.conversation.sendLabel).font(.thuso(.body, weight: .semibold))
                 .padding(.horizontal, ThusoSpacing.space16)
                 .frame(maxWidth: fill ? .infinity : nil, minHeight: 44)
                 .frame(minWidth: 44)
@@ -803,39 +824,33 @@ private struct HandoverOutcome {
 
 // MARK: - Small pieces this screen is the only user of
 
-/// A section title on the night ground. The shared header sets charcoal, which is unreadable here.
+/// A section title, in the foreground.
 private struct SceneHeading: View {
     let text: String
     init(_ text: String) { self.text = text }
     var body: some View {
-        Text(text).font(.headline).foregroundStyle(ThusoTheme.surface)
+        Text(text).font(.thuso(.headline)).foregroundStyle(ThusoRole.foreground)
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityAddTraits(.isHeader)
     }
 }
 
-/// A panel that belongs to the dark ground: a lift rather than a fill, and a hairline rather than a
-/// shadow.
+/// The handoff's Card, since 28 September 2026: the name stays so the screen did not have to move.
 private struct SceneCard<Content: View>: View {
     var spacing: CGFloat = ThusoSpacing.space12
     @ViewBuilder var content: Content
-    private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous) }
     var body: some View {
-        VStack(alignment: .leading, spacing: spacing) { content }
-            .padding(ThusoSpacing.space16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.white.opacity(0.06), in: shape)
-            .overlay(shape.stroke(ThusoTheme.surface.opacity(0.16), lineWidth: 1))
+        ThusoCard(padding: .sm, spacing: spacing) { content }
     }
 }
 
 private struct SceneNote: View {
     let text: String
     var body: some View {
-        Text(text).font(.footnote).foregroundStyle(ThusoTheme.surface)
+        Text(text).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
             .padding(ThusoSpacing.space12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(ThusoTheme.surface.opacity(0.08), in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+            .background(ThusoRole.muted, in: RoundedRectangle(cornerRadius: ThusoRadius.md, style: .continuous))
             .fixedSize(horizontal: false, vertical: true)
     }
 }
@@ -846,27 +861,21 @@ private struct SceneText: View {
     var quiet = false
     init(_ text: String, weight: Font.Weight = .regular, quiet: Bool = false) { self.text = text; self.weight = weight; self.quiet = quiet }
     var body: some View {
-        Text(text).font(.body.weight(weight)).foregroundStyle(quiet ? ThusoTheme.brandMint : ThusoTheme.surface)
+        Text(text).font(.thuso(.body, weight: weight)).foregroundStyle(quiet ? ThusoRole.mutedForeground : ThusoRole.foreground)
             .lineSpacing(3)
             .frame(maxWidth: .infinity, alignment: .leading)
             .fixedSize(horizontal: false, vertical: true)
     }
 }
 
-/// White and ink when filled; a mint hairline (4.14:1 against the ground) when not; an orange edge for
-/// the one question that leads to an ambulance.
+/// The handoff's primary when filled and its secondary when not; an orange edge for the one question
+/// that leads to an ambulance, drawn over the button so the coral is a mark and never the words.
 private struct SceneButtonStyle: ButtonStyle {
     let filled: Bool
     var urgent = false
     func makeBody(configuration: Configuration) -> some View {
-        let shape = RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous)
-        configuration.label
-            .font(.body.weight(.semibold))
-            .foregroundStyle(filled ? ThusoTheme.brandInk : ThusoTheme.surface)
-            .padding(.horizontal, ThusoSpacing.space12)
-            .background(filled ? AnyShapeStyle(ThusoTheme.surface.opacity(configuration.isPressed ? 0.85 : 1))
-                               : AnyShapeStyle(Color.white.opacity(configuration.isPressed ? 0.14 : 0.07)), in: shape)
-            .overlay(shape.stroke(urgent ? ThusoTheme.brandOrange : (filled ? Color.clear : ThusoTheme.brandMint.opacity(0.62)), lineWidth: urgent ? 2 : 1))
-            .contentShape(shape)
+        ThusoButtonStyle(filled ? .primary : .secondary, size: .md).makeBody(configuration: configuration)
+            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.md, style: .continuous)
+                .stroke(urgent ? ThusoRole.coral : .clear, lineWidth: 2))
     }
 }

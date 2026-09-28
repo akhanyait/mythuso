@@ -59,8 +59,8 @@ struct ReadingsExplainedView: View {
                             label: "Readings inside their range", chip: "On the day they were taken",
                             flagged: inside < measures.count)
             }
-            Text(Explain.Provenance.whoDecides).font(.footnote)
-                .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+            Text(Explain.Provenance.whoDecides).font(.thuso(.footnote))
+                .foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -92,11 +92,11 @@ struct ReadingsExplainedView: View {
             } label: {
                 HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(observation.label).font(.subheadline.weight(.semibold))
-                            .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+                        Text(observation.label).font(.thuso(.subheadline, weight: .semibold))
+                            .foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
                         Text(value.map { "\(Passport.rangeText(observation)) · your last was \(Passport.format(observation, $0)) \(observation.unit)" }
                              ?? Passport.rangeText(observation))
-                            .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                            .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: ThusoSpacing.space8)
@@ -106,8 +106,8 @@ struct ReadingsExplainedView: View {
                         MetricChip(text: flag.chip, tone: flag.isNormal ? .neutral : .attention)
                     }
                     Image(systemName: open ? "chevron.up" : "chevron.down")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(ThusoTheme.studioInkMuted)
+                        .font(.thuso(.footnote, weight: .semibold))
+                        .foregroundStyle(ThusoRole.mutedForeground)
                         .frame(width: 24, height: 44).accessibilityHidden(true)
                 }
                 .frame(minHeight: 44)
@@ -134,7 +134,7 @@ struct ReadingsExplainedView: View {
         return VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
             Label("Not this screen: \(names). Any of those is an emergency and needs an ambulance rather than a reading.",
                   systemImage: "exclamationmark.triangle")
-                .font(.footnote).foregroundStyle(ThusoTheme.mangoInk)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.warningInk)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityElement(children: .combine)
             NavigationLink { SosView() } label: {
@@ -143,7 +143,7 @@ struct ReadingsExplainedView: View {
         }
         .padding(ThusoSpacing.space12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+        .background(ThusoRole.warningTint, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
     }
 
     /* Provenance, and it is on the screen rather than in a policy. A reader deciding how much weight

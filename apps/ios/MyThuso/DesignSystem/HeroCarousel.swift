@@ -53,7 +53,7 @@ struct HeroCarousel: View {
                     withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) { index = position }
                     playing = false
                 } label: {
-                    Capsule().fill(position == index ? ThusoTheme.studioNight : ThusoTheme.controlEdge)
+                    Capsule().fill(position == index ? ThusoRole.night : ThusoRole.inputEdge)
                         .frame(width: position == index ? 22 : 6, height: 6)
                         .frame(width: 30, height: 44)
                         .contentShape(Rectangle())
@@ -66,10 +66,10 @@ struct HeroCarousel: View {
                there and is not shown. Everywhere else it is required. */
             if !reduceMotion {
                 Button { playing.toggle() } label: {
-                    Image(systemName: playing ? "pause.fill" : "play.fill").font(.caption.weight(.semibold))
-                        .foregroundStyle(ThusoTheme.charcoal).frame(width: 32, height: 32)
-                        .background(ThusoTheme.surface, in: Circle())
-                        .overlay(Circle().stroke(ThusoTheme.controlEdge, lineWidth: 1))
+                    Image(systemName: playing ? "pause.fill" : "play.fill").font(.thuso(.caption, weight: .semibold))
+                        .foregroundStyle(ThusoRole.foreground).frame(width: 32, height: 32)
+                        .background(ThusoRole.surface, in: Circle())
+                        .overlay(Circle().stroke(ThusoRole.inputEdge, lineWidth: 1))
                         .frame(width: 44, height: 44).contentShape(Rectangle())
                 }
                 .accessibilityLabel(playing ? "Pause the highlights" : "Play the highlights")
@@ -85,7 +85,7 @@ struct HeroCarousel: View {
                    so it stands on the palest sage in the ramp and is cropped by the
                    band rather than by a hand-placed offset. */
                 ZStack(alignment: .bottom) {
-                    LinearGradient(colors: [ThusoTheme.studioLilac, ThusoTheme.surface], startPoint: .top, endPoint: .bottom)
+                    LinearGradient(colors: [ThusoRole.surfaceRaised, ThusoRole.surface], startPoint: .top, endPoint: .bottom)
                     Image(slide.banner).resizable().scaledToFit().frame(height: 150)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                         .padding(.trailing, ThusoSpacing.space20)
@@ -95,33 +95,33 @@ struct HeroCarousel: View {
             }
             VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
                 Text(slide.title.replacingOccurrences(of: "\n", with: " "))
-                    .font(.title3.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
+                    .font(.thuso(.title3, weight: .bold)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(slide.body).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(slide.body).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
                 trustRow(slide)
                 Button { onAction(position) } label: {
                     HStack(spacing: ThusoSpacing.space8) {
                         Text(slide.cta)
-                        Image(systemName: "arrow.right").font(.footnote.weight(.semibold))
+                        Image(systemName: "arrow.right").font(.thuso(.footnote, weight: .semibold))
                     }
-                    .font(.subheadline.weight(.semibold))
+                    .font(.thuso(.subheadline, weight: .semibold))
                     .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space12)
                     .frame(minHeight: 44)
-                    .background(ThusoTheme.studioNight, in: Capsule()).foregroundStyle(ThusoTheme.studioPaper)
+                    .background(ThusoRole.night, in: Capsule()).foregroundStyle(ThusoRole.onNight)
                 }
                 .padding(.top, ThusoSpacing.space4)
-                Text(slide.caption).font(.caption2.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(slide.caption).font(.thuso(.caption2, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(ThusoSpacing.space16)
             .frame(maxWidth: .infinity, alignment: .leading)
             Spacer(minLength: 0)
         }
-        .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoTheme.studioLine, lineWidth: 1))
+        .background(ThusoRole.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).stroke(ThusoRole.border, lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
-        .shadow(color: ThusoTheme.lift, radius: 10, y: 3)
+        .thusoShadow(raised: true)
         .padding(.horizontal, 2)
     }
 
@@ -146,10 +146,10 @@ struct HeroCarousel: View {
 
     private func trustMark(_ symbol: String, _ label: String) -> some View {
         Label {
-            Text(label).font(.caption2.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            Text(label).font(.thuso(.caption2, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
         } icon: {
-            Image(systemName: symbol).font(.caption2).foregroundStyle(ThusoTheme.tealInk)
+            Image(systemName: symbol).font(.thuso(.caption2)).foregroundStyle(ThusoRole.successInk)
         }
         .labelStyle(.titleAndIcon)
     }
@@ -174,9 +174,9 @@ struct HeroTexture: View {
     var tone: Int = 0
     private var top: Color {
         switch tone {
-        case 1: return ThusoTheme.tealSoft
-        case 2: return ThusoTheme.mangoSoft
-        default: return ThusoTheme.auroraSage
+        case 1: return ThusoRole.accentTint
+        case 2: return ThusoRole.warningTint
+        default: return ThusoRole.surfaceRaised
         }
     }
     var body: some View {

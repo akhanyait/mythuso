@@ -190,21 +190,21 @@ struct ConsultationRecordView: View {
                 .disabled(signature != nil)
             HStack(spacing: ThusoSpacing.space8) {
                 DeckTag(text: standing.status.label, flagged: !standing.cleared)
-                Text(role?.name ?? subject.roleId).font(.footnote).foregroundStyle(DeckInk.quiet)
+                Text(role?.name ?? subject.roleId).font(.thuso(.footnote)).foregroundStyle(DeckInk.quiet)
                 Spacer(minLength: 0)
             }
             .accessibilityElement(children: .combine)
             if !mayWrite.allowed {
                 VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-                    Text("This form is read-only").font(.subheadline.weight(.semibold)).foregroundStyle(DeckInk.ink)
+                    Text("This form is read-only").font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.ink)
                     DeckRefusal(decision: mayWrite)
                     if !mayWrite.blockedBy.isEmpty {
                         Text("Outstanding: \(mayWrite.blockedBy.map(\.name).joined(separator: " · "))")
-                            .font(.footnote).foregroundStyle(DeckInk.quiet)
+                            .font(.thuso(.footnote)).foregroundStyle(DeckInk.quiet)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     Text("The form is read-only rather than merely unsignable: an entry nobody may put their registration against is not a record, it is a note that looks like one.")
-                        .font(.footnote).foregroundStyle(DeckInk.quiet)
+                        .font(.thuso(.footnote)).foregroundStyle(DeckInk.quiet)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -224,7 +224,7 @@ struct ConsultationRecordView: View {
             DeckPills(label: "View", selection: $view, options: RecordView.allCases.map { ($0, $0.rawValue) }, onNight: false)
             Label("One record, \(filled) of \(offeredFields.count) fields written. SOAP and the long form are two arrangements of those same fields — switching loses nothing, because there is no second copy of the note to keep in step.",
                   systemImage: "square.and.pencil")
-                .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                .font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.updatesFrequently)
         }
@@ -241,10 +241,10 @@ struct ConsultationRecordView: View {
                 let covered = offered.filter { (soapCovers[heading.id] ?? []).contains($0.id) }
                 CareCard {
                     StatusPill(text: "\(heading.id) · \(heading.name)", tone: "quiet")
-                    Text(heading.detail).font(.caption).foregroundStyle(DeckInk.sheetQuiet)
+                    Text(heading.detail).font(.thuso(.caption)).foregroundStyle(DeckInk.sheetQuiet)
                     if covered.isEmpty {
                         Label("Nothing under this heading is offered to a \(role?.name.lowercased() ?? "party").",
-                              systemImage: "lock").font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                              systemImage: "lock").font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
                     } else {
                         ForEach(covered) { sectionFields($0) }
                     }
@@ -264,7 +264,7 @@ struct ConsultationRecordView: View {
                     StatusPill(text: "\(heading.id) · \(heading.name)", tone: "quiet")
                     if lines.isEmpty {
                         Text("Nothing written under \(heading.name.lowercased()) yet.")
-                            .font(.caption).foregroundStyle(DeckInk.sheetQuiet)
+                            .font(.thuso(.caption)).foregroundStyle(DeckInk.sheetQuiet)
                     } else {
                         ForEach(lines) { FieldRow(label: $0.label, value: value($0.id)) }
                     }
@@ -272,7 +272,7 @@ struct ConsultationRecordView: View {
             }
             CareCard {
                 Label("Assembled from the fields above every time this view opens. It is a reading of the record rather than a copy of it, so there is nothing here to save and nothing to fall out of step.",
-                      systemImage: "list.clipboard").font(.caption).foregroundStyle(DeckInk.sheetQuiet)
+                      systemImage: "list.clipboard").font(.thuso(.caption)).foregroundStyle(DeckInk.sheetQuiet)
             }
         }
 
@@ -281,13 +281,13 @@ struct ConsultationRecordView: View {
                 StatusPill(text: "Already in this record", tone: "quiet")
                 ForEach(carried) { FieldRow(label: $0.label, value: value($0.id)) }
                 Label("Written on another clinician’s form and read-only here. The record does not change shape because the reader did.",
-                      systemImage: "lock").font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                      systemImage: "lock").font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
             }
         }
         if !neverGranted.isEmpty {
             CareCard {
                 Label(neverGrantedSentence, systemImage: "stethoscope")
-                    .font(.caption).foregroundStyle(DeckInk.sheetQuiet)
+                    .font(.thuso(.caption)).foregroundStyle(DeckInk.sheetQuiet)
             }
         }
         signatureBlock
@@ -314,18 +314,18 @@ struct ConsultationRecordView: View {
             if decision.allowed {
                 ForEach(fields(section)) { field in
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(field.label).font(.caption.weight(.semibold)).foregroundStyle(DeckInk.sheetQuiet)
+                        Text(field.label).font(.thuso(.caption, weight: .semibold)).foregroundStyle(DeckInk.sheetQuiet)
                         TextEditor(text: Binding(get: { draft[field.id] ?? "" },
                                                  set: { draft[field.id] = String($0.prefix(1200)) }))
                             .frame(minHeight: 76).scrollContentBackground(.hidden)
                             .padding(ThusoSpacing.space8)
                             .background(DeckInk.panel, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(ThusoTheme.controlEdge, lineWidth: 1))
+                            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(ThusoRole.inputEdge, lineWidth: 1))
                             .disabled(signature != nil || !mayWrite.allowed)
                             .accessibilityLabel(field.label)
                             .accessibilityHint(field.prompt)
                         if !field.prompt.isEmpty && value(field.id).isEmpty {
-                            Text(field.prompt).font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                            Text(field.prompt).font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
                         }
                     }
                 }
@@ -335,11 +335,11 @@ struct ConsultationRecordView: View {
                    writer may not use at all says so once, at the top, rather than twelve times
                    down the page. */
                 if section.gatedBy != nil, let reason = decision.reason {
-                    Label(reason, systemImage: "hand.raised").font(.caption2).foregroundStyle(ThusoTheme.danger)
+                    Label(reason, systemImage: "hand.raised").font(.thuso(.caption2)).foregroundStyle(ThusoRole.dangerInk)
                 }
             }
             if let note = section.note {
-                Text(note).font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                Text(note).font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
             }
             /* A nurse's assessment and a doctor's diagnosis are different fields, not one field
                with a warning. The row stays on the form, empty and locked, so the record shows
@@ -349,7 +349,7 @@ struct ConsultationRecordView: View {
                 FieldRow(label: "Diagnosis", value: "Not recorded — a doctor’s")
                 Label("A nurse’s assessment is a different field from a diagnosis, not the same field written by somebody else. \(can(subject, "sign-clinical-review").reason ?? "") This record carries no diagnosis until a doctor writes one under their own HPCSA registration.",
                       systemImage: "person.crop.circle.badge.checkmark")
-                    .font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                    .font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
             }
         }
     }
@@ -359,7 +359,7 @@ struct ConsultationRecordView: View {
     @ViewBuilder private var capturedReadings: some View {
         if visitReadings.isEmpty {
             Label("Nothing has been captured for \(reference) on this phone yet. The assessment writes here.",
-                  systemImage: "tray").font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                  systemImage: "tray").font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
         } else {
             VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
                 StatusPill(text: "Carried from the visit · \(visitReadings.count)", tone: "quiet")
@@ -368,16 +368,16 @@ struct ConsultationRecordView: View {
                         ReadingRow(reading: entry.reading)
                         HStack(spacing: ThusoSpacing.space8) {
                             CaptureStatePill(state: entry.state)
-                            Text(entry.capturedByName).font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                            Text(entry.capturedByName).font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
                             Spacer(minLength: 0)
                         }
-                        Text(entry.whenItHappened).font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                        Text(entry.whenItHappened).font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
                         WrittenAgoNote(at: entry.writtenToPhoneAt, what: "This reading")
                     }
                     if entry.id != visitReadings.last?.id { Divider().overlay(DeckInk.sheetLine) }
                 }
                 Text("Read-only here. These are the readings as they were taken, with the origin, the instrument and the calibration each was taken under. The box below is for what they do not carry.")
-                    .font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                    .font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
             }
             .padding(ThusoSpacing.space12)
             .background(DeckInk.panel, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
@@ -393,7 +393,7 @@ struct ConsultationRecordView: View {
             Text(outstanding.isEmpty
                  ? "Every required section is written. Signing attaches the name, the council registration and the moment of signing."
                  : "Outstanding before this can be signed: \(outstanding.map { $0.name.lowercased() }.joined(separator: ", ")).")
-                .font(.caption).foregroundStyle(DeckInk.sheetQuiet)
+                .font(.thuso(.caption)).foregroundStyle(DeckInk.sheetQuiet)
                 .accessibilityAddTraits(.updatesFrequently)
             /* Signed over, not signed away. A caveat is shown at the signature because the
                signature is the moment somebody takes responsibility for what the record says, and
@@ -402,7 +402,7 @@ struct ConsultationRecordView: View {
             if !caveated.isEmpty {
                 CaveatNote(caveats: caveated.flatMap { entry in entry.reading.caveats.map { "\(entry.reading.label): \($0)" } })
                 Text("None of these refuses a reading. Each of them marks one, and you are about to put your registration to the record that holds them.")
-                    .font(.caption2).foregroundStyle(DeckInk.sheetQuiet)
+                    .font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
             }
             Button("Sign demo consultation") {
                 signature = ConsultationSignature(name: subject.name, reference: subject.reference,
@@ -417,7 +417,7 @@ struct ConsultationRecordView: View {
     @ViewBuilder private func signedBlock(_ signature: ConsultationSignature) -> some View {
         CareCard {
             Label("Demo consultation signed.", systemImage: "checkmark.seal.fill")
-                .font(.headline).foregroundStyle(DeckInk.sheetInk)
+                .font(.thuso(.headline)).foregroundStyle(DeckInk.sheetInk)
             FieldRow(label: "Clinician", value: signature.name)
             FieldRow(label: "Council registration", value: signature.reference)
             FieldRow(label: "Role", value: signature.role)
@@ -426,7 +426,7 @@ struct ConsultationRecordView: View {
                      ? "Recorded by the signing doctor"
                      : "Not recorded — a nurse’s assessment is not a diagnosis")
             Text("Nothing was written to a record, transmitted or acted on. In production this becomes an append-only entry attributed to that registration, and an encounter nobody signs stays a draft rather than quietly counting as a consultation.")
-                .font(.footnote).foregroundStyle(DeckInk.sheetQuiet)
+                .font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
             Button("Close") { dismiss() }.buttonStyle(QuietButton())
         }
     }

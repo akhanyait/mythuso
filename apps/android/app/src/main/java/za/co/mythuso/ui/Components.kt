@@ -46,7 +46,7 @@ import za.co.mythuso.model.Capabilities
 @Composable fun ReviewLine(label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(label, style = MaterialTheme.typography.bodyMedium, color = LocalSecondaryText.current)
-        Text(value, style = MaterialTheme.typography.bodyMedium, color = Charcoal, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = theme.foreground, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
     }
 }
 /* Secondary text reads its colour from the surface it is on rather than from the theme, because the
@@ -98,10 +98,10 @@ import za.co.mythuso.model.Capabilities
        drawn for the dark, so the sentence and the rule that it draws nothing once the capability is
        connected stay in one place. */
     val night = LocalOnStudioNight.current
-    TonedCard(background = if (night) SurfaceWhite.copy(alpha = 0.08f) else Cloud) {
+    TonedCard(background = if (night) SurfaceWhite.copy(alpha = 0.08f) else theme.muted) {
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Outlined.Info, null, tint = if (night) SurfaceWhite else Charcoal, modifier = Modifier.size(18.dp))
-            Text(notice, style = MaterialTheme.typography.bodySmall, color = if (night) SurfaceWhite else StudioInkMuted)
+            Icon(Icons.Outlined.Info, null, tint = if (night) SurfaceWhite else theme.foreground, modifier = Modifier.size(18.dp))
+            Text(notice, style = MaterialTheme.typography.bodySmall, color = if (night) SurfaceWhite else theme.mutedForeground)
         }
     }
 }

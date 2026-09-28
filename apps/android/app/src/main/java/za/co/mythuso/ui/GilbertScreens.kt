@@ -58,6 +58,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import za.co.mythuso.R
+import za.co.mythuso.ui.components.*
 import za.co.mythuso.model.AssistantClient
 import za.co.mythuso.model.BookingData
 import za.co.mythuso.model.CrisisLinesData
@@ -105,9 +110,12 @@ import kotlin.math.sin
  * microphone is open. With animations removed in the phone's accessibility settings it is one still
  * frame and ignores the level. It is hidden from TalkBack; the state is a live region in words beside it.
  *
- * Colour. Words are white (12.04:1 on BrandInk) or BrandMint (8.09); BrandInk on the white field and
- * buttons (12.04). Orange marks the emergency question and the escalated sphere as an edge and a fill,
- * never as text. */
+ * Colour, since the identity (28 September 2026). The sheet is the surface, light or dark as the phone
+ * is, and every word is the foreground or the muted foreground; the sphere keeps the brand's own
+ * colours because it is the character. The official GilbertOne logo — the handoff's PNG master,
+ * resized whole and never cropped or recoloured — stands at the head of the sheet with the descriptor
+ * line beside it, because the name and its correction are read together. The danger ink marks the
+ * emergency question and the escalated sphere as an edge and a fill, never as text. */
 
 /* Where the assistant API is reached from this build: the emulator's alias for the machine's own
  * loopback (10.0.2.2), where the service binds. A physical phone cannot reach it, which is the truth
@@ -117,14 +125,14 @@ private const val ASSISTANT_BASE = "http://10.0.2.2:8791"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun GilbertSheet(store: PreviewStore, onDismiss: () -> Unit, open: (String) -> Unit) {
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet, containerColor = BrandInk, contentColor = SurfaceWhite) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet, containerColor = theme.surface, contentColor = theme.foreground) {
         GilbertContent(store, open = { onDismiss(); open(it) }, close = onDismiss)
     }
 }
 
 /** The route in AccountScreens.kt, for a link or a More row that opens GilbertOne full screen. */
 @Composable fun GilbertScreen(store: PreviewStore, open: (String) -> Unit) {
-    Box(Modifier.fillMaxSize().background(BrandInk)) { GilbertContent(store, open = open, close = null) }
+    Box(Modifier.fillMaxSize().background(theme.background)) { GilbertContent(store, open = open, close = null) }
 }
 
 @Composable fun GilbertOrb(modifier: Modifier = Modifier, onClick: () -> Unit) {
@@ -134,7 +142,7 @@ private const val ASSISTANT_BASE = "http://10.0.2.2:8791"
             .padding(end = ThusoSpacing.space16, bottom = ThusoSpacing.space12)
             .size(64.dp)
             .clip(CircleShape)
-            .background(BrandInk)
+            .background(theme.primary)
             .clickable(role = Role.Button, onClick = onClick)
             .semantics(mergeDescendants = true) { contentDescription = GilbertData.callToAction },
         contentAlignment = Alignment.Center
@@ -247,17 +255,21 @@ private const val ASSISTANT_BASE = "http://10.0.2.2:8791"
         refine(turns.last())
     }
 
-    CompositionLocalProvider(LocalOnStudioNight provides true, LocalContentColor provides SurfaceWhite) {
+    CompositionLocalProvider(LocalOnStudioNight provides false, LocalContentColor provides theme.foreground) {
         Column(Modifier.fillMaxWidth().fillMaxHeight().imePadding()) {
             Column(
                 Modifier.weight(1f).verticalScroll(scroll).padding(horizontal = ThusoSpacing.space20, vertical = ThusoSpacing.space16),
                 verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space24)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(GilbertData.name, style = MaterialTheme.typography.titleLarge, color = SurfaceWhite, modifier = Modifier.semantics { heading() })
-                        Text(GilbertData.descriptorLine, style = MaterialTheme.typography.bodySmall, color = BrandMint)
-                    }
+                /* The official logo, from the handoff's master under res/drawable-nodpi (byte for byte the
+                   PNG in packages/brand/lovable-handoff; scripts/check-boundaries.mjs holds the two to one
+                   hash). Resized whole at the master's own 1448:1086, and the descriptor line under it. */
+                Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) { heading() }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
+                    Image(
+                        painterResource(R.drawable.gilbert_one_logo), GilbertData.name,
+                        modifier = Modifier.width(168.dp).height(126.dp), contentScale = ContentScale.Fit
+                    )
+                    Text(GilbertData.descriptorLine, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                 }
                 Stage(listener, pulse, latest, asked, reduced)
                 VoiceArea(listener, correction, { correction = it }, sendCorrection) { ask.launch(Manifest.permission.RECORD_AUDIO) }
@@ -300,9 +312,9 @@ private const val ASSISTANT_BASE = "http://10.0.2.2:8791"
         } else drawing()
         /* The state, in words, and announced when it changes. Colour is never the only difference. */
         Text(
-            pulse.spec.cue, style = MaterialTheme.typography.labelLarge, color = SurfaceWhite,
+            pulse.spec.cue, style = MaterialTheme.typography.labelLarge, color = theme.foreground,
             modifier = Modifier
-                .border(if (pulse == Pulse.ESCALATE) 2.dp else 1.dp, if (pulse == Pulse.ESCALATE) BrandOrange else BrandMint.copy(alpha = 0.62f), RoundedCornerShape(50))
+                .border(if (pulse == Pulse.ESCALATE) 2.dp else 1.dp, if (pulse == Pulse.ESCALATE) theme.dangerInk else theme.border, RoundedCornerShape(ThusoRadius.pill))
                 .padding(horizontal = ThusoSpacing.space12, vertical = ThusoSpacing.space4)
                 .semantics { contentDescription = pulse.spec.announcement; liveRegion = LiveRegionMode.Polite }
         )
@@ -312,8 +324,8 @@ private const val ASSISTANT_BASE = "http://10.0.2.2:8791"
             /* Every other answer is named by the state pill above; a second label would say nothing. */
             else -> (if (asked) null else GilbertData.callToAction) to null
         }
-        if (name != null) Text(name.uppercase(), style = MaterialTheme.typography.labelMedium, color = BrandMint)
-        if (figure != null) Text(figure, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.ExtraLight, color = SurfaceWhite)
+        if (name != null) Text(name.uppercase(), style = MaterialTheme.typography.labelMedium, color = theme.mutedForeground)
+        if (figure != null) Text(figure, style = MaterialTheme.typography.displaySmall, color = theme.foreground)
     }
 }
 
@@ -324,38 +336,30 @@ private const val ASSISTANT_BASE = "http://10.0.2.2:8791"
         GilbertListener.Phase.IDLE, GilbertListener.Phase.FAILED -> Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
             if (listener.phase == GilbertListener.Phase.FAILED) NightNote(GilbertData.voice.failed)
             FilledButton(GilbertData.voice.talkLabel, Modifier.heightIn(min = 52.dp)) { listener.talk() }
-            Text(GilbertData.voice.howItWorks, style = MaterialTheme.typography.bodySmall, color = BrandMint)
+            Text(GilbertData.voice.howItWorks, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
         }
         GilbertListener.Phase.EXPLAINING -> NightCard {
-            Text(GilbertData.voice.beforePermission, style = MaterialTheme.typography.bodyLarge, color = SurfaceWhite)
+            Text(GilbertData.voice.beforePermission, style = MaterialTheme.typography.bodyLarge, color = theme.foreground)
             FilledButton(GilbertData.voice.askPermissionLabel) { askPermission() }
             QuietButton(GilbertData.voice.notNowLabel) { listener.notNow() }
         }
         GilbertListener.Phase.OPENING -> Spacer(Modifier.height(0.dp))
         GilbertListener.Phase.LISTENING -> NightCard {
-            Text(GilbertData.voice.captionsLabel, style = MaterialTheme.typography.labelMedium, color = BrandMint)
+            Text(GilbertData.voice.captionsLabel, style = MaterialTheme.typography.labelMedium, color = theme.mutedForeground)
             Text(
-                listener.captions.ifEmpty { "…" }, style = MaterialTheme.typography.titleMedium, color = SurfaceWhite,
+                listener.captions.ifEmpty { "…" }, style = MaterialTheme.typography.titleMedium, color = theme.foreground,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
             )
-            Button(
-                onClick = { listener.stop() },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp),
-                shape = RoundedCornerShape(ThusoRadius.control),
-                colors = ButtonDefaults.buttonColors(containerColor = SurfaceWhite, contentColor = BrandInk)
-            ) {
-                Icon(Icons.Filled.Stop, null)
-                Spacer(Modifier.width(ThusoSpacing.space8))
-                Text(GilbertData.voice.stopLabel, style = MaterialTheme.typography.titleMedium)
-            }
+            /* A large stop, for the reason the contract's gestureWhy gives. */
+            ThusoButton(GilbertData.voice.stopLabel, onClick = { listener.stop() }, size = ThusoButtonSize.Lg, leadingIcon = Icons.Filled.Stop, modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp))
         }
         GilbertListener.Phase.FINISHING -> NightNote(Pulse.THINKING.spec.announcement)
         GilbertListener.Phase.HEARD -> NightCard {
-            Text(GilbertData.voice.correctLabel, style = MaterialTheme.typography.labelMedium, color = BrandMint)
+            Text(GilbertData.voice.correctLabel, style = MaterialTheme.typography.labelMedium, color = theme.mutedForeground)
             OutlinedTextField(
                 value = correction, onValueChange = onCorrection, modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = plainKeyboard(ImeAction.Default),
-                colors = fieldColours(), shape = RoundedCornerShape(ThusoRadius.control)
+                colors = thusoFieldColours(), shape = RoundedCornerShape(ThusoRadius.control)
             )
             FilledButton(GilbertData.conversation.sendLabel, enabled = correction.isNotBlank()) { send() }
             QuietButton(GilbertData.voice.discardLabel) { onCorrection(""); listener.discard() }
@@ -369,15 +373,15 @@ private const val ASSISTANT_BASE = "http://10.0.2.2:8791"
             val said = if (turn.channel == GilbertChannel.SPOKEN) GilbertData.conversation.youSaid else GilbertData.conversation.youAsked
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
                 Text(
-                    asked, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = BrandInk,
-                    modifier = Modifier.clip(RoundedCornerShape(ThusoRadius.control)).background(SurfaceWhite)
+                    asked, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = theme.foreground,
+                    modifier = Modifier.clip(RoundedCornerShape(ThusoRadius.control)).background(theme.muted)
                         .padding(horizontal = ThusoSpacing.space16, vertical = ThusoSpacing.space8)
                         .semantics { contentDescription = "$said: $asked" }
                 )
             }
         }
         NightCard {
-            Text(GilbertData.name.uppercase(), style = MaterialTheme.typography.labelMedium, color = BrandMint, modifier = Modifier.clearAndSetSemantics {})
+            Text(GilbertData.name.uppercase(), style = MaterialTheme.typography.labelMedium, color = theme.mutedForeground, modifier = Modifier.clearAndSetSemantics {})
             when (val reply = turn.reply) {
                 is GilbertReply.Situation -> Body(reply.situation.sentence)
                 GilbertReply.Identity -> { Body(GilbertData.whatItIs); Body(GilbertData.whatItIsNot) }
@@ -391,9 +395,9 @@ private const val ASSISTANT_BASE = "http://10.0.2.2:8791"
                         Body(GilbertData.emergency.noticed)
                         reply.groups.forEach { group ->
                             Row(Modifier.height(IntrinsicSize.Min)) {
-                                Box(Modifier.width(2.dp).fillMaxHeight().background(BrandOrange))
+                                Box(Modifier.width(2.dp).fillMaxHeight().background(theme.dangerInk))
                                 Spacer(Modifier.width(ThusoSpacing.space12))
-                                Text(group.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = SurfaceWhite)
+                                Text(group.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = theme.foreground)
                             }
                         }
                     }
@@ -447,19 +451,19 @@ private const val ASSISTANT_BASE = "http://10.0.2.2:8791"
                     Body(h.lead)
                     reply.rows.forEach { row ->
                         Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
-                            Text(row.label, style = MaterialTheme.typography.labelMedium, color = BrandMint)
-                            Text(row.value, style = MaterialTheme.typography.bodyLarge, color = SurfaceWhite)
+                            Text(row.label, style = MaterialTheme.typography.labelMedium, color = theme.mutedForeground)
+                            Text(row.value, style = MaterialTheme.typography.bodyLarge, color = theme.foreground)
                         }
                     }
                     Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
-                        Text(BookingData.Handover.answeredByLabel, style = MaterialTheme.typography.labelMedium, color = BrandMint)
-                        Text(BookingData.Handover.answeredBy.joinToString(", "), style = MaterialTheme.typography.bodyLarge, color = SurfaceWhite)
+                        Text(BookingData.Handover.answeredByLabel, style = MaterialTheme.typography.labelMedium, color = theme.mutedForeground)
+                        Text(BookingData.Handover.answeredBy.joinToString(", "), style = MaterialTheme.typography.bodyLarge, color = theme.foreground)
                     }
                     if (reply.urgency == "emergency") Body(h.neverLowered, strong = true)
-                    Text(h.notCarriedHeading, style = MaterialTheme.typography.labelMedium, color = BrandMint, modifier = Modifier.semantics { heading() })
+                    Text(h.notCarriedHeading, style = MaterialTheme.typography.labelMedium, color = theme.mutedForeground, modifier = Modifier.semantics { heading() })
                     h.notCarried.forEach { item ->
                         Row(Modifier.height(IntrinsicSize.Min)) {
-                            Box(Modifier.width(2.dp).fillMaxHeight().background(BrandMint))
+                            Box(Modifier.width(2.dp).fillMaxHeight().background(theme.border))
                             Spacer(Modifier.width(ThusoSpacing.space12))
                             Body(item.sentence)
                         }
@@ -468,8 +472,8 @@ private const val ASSISTANT_BASE = "http://10.0.2.2:8791"
                         Body(if (sent.sentNow) h.sentTitle else h.alreadySent, strong = true)
                         if (sent.sentNow) Body(h.sent)
                         Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
-                            Text(h.sentReference, style = MaterialTheme.typography.labelMedium, color = BrandMint)
-                            Text(sent.handover.reference, style = MaterialTheme.typography.titleMedium, color = SurfaceWhite)
+                            Text(h.sentReference, style = MaterialTheme.typography.labelMedium, color = theme.mutedForeground)
+                            Text(sent.handover.reference, style = MaterialTheme.typography.titleMedium, color = theme.foreground)
                         }
                         Body(h.stillUrgent)
                         Lines(h.lines)
@@ -489,7 +493,7 @@ private const val ASSISTANT_BASE = "http://10.0.2.2:8791"
 /* The unread answer. Guiding, never a calm Idle: the words GilbertOne could not read may be the ones that mattered. */
 @Composable private fun Unread(open: (String) -> Unit, onHandOver: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-        Box(Modifier.fillMaxWidth().height(2.dp).background(BrandOrange).clearAndSetSemantics {})
+        Box(Modifier.fillMaxWidth().height(2.dp).background(theme.dangerInk).clearAndSetSemantics {})
         Body(GilbertData.unread.sentence, strong = true)
         Body(GilbertData.unread.detail)
         Body(GilbertData.unread.ifUrgent)
@@ -544,9 +548,9 @@ private fun spokenAloud(turn: GilbertTurn): String {
     Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
         lines.forEach { line ->
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.semantics(mergeDescendants = true) {}) {
-                Text(line.number, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold, color = SurfaceWhite, modifier = Modifier.widthIn(min = 80.dp))
+                Text(line.number, style = MaterialTheme.typography.headlineSmall, color = theme.foreground, modifier = Modifier.widthIn(min = 80.dp))
                 Spacer(Modifier.width(ThusoSpacing.space12))
-                Text(line.name, style = MaterialTheme.typography.bodyLarge, color = SurfaceWhite)
+                Text(line.name, style = MaterialTheme.typography.bodyLarge, color = theme.foreground)
             }
         }
     }
@@ -556,31 +560,27 @@ private fun spokenAloud(turn: GilbertTurn): String {
     Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space20)) {
         GilbertData.questionGroups.forEach { group ->
             Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
-                Text(group.heading, style = MaterialTheme.typography.titleMedium, color = SurfaceWhite, modifier = Modifier.semantics { heading() })
-                group.lead?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = BrandMint) }
+                Text(group.heading, style = MaterialTheme.typography.titleMedium, color = theme.foreground, modifier = Modifier.semantics { heading() })
+                group.lead?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground) }
                 GilbertData.questions.filter { it.group == group.id }.forEach { question ->
                     QuietButton(question.asks, urgent = question.answer == "emergency") { choose(question) }
                 }
             }
         }
-        if (asked) TextButton(onClick = again, modifier = Modifier.heightIn(min = TouchTarget)) {
-            Icon(Icons.Outlined.Refresh, null, tint = SurfaceWhite)
-            Spacer(Modifier.width(ThusoSpacing.space8))
-            Text(GilbertData.conversation.startAgainLabel, color = SurfaceWhite)
-        }
+        if (asked) ThusoButton(GilbertData.conversation.startAgainLabel, onClick = again, variant = ThusoButtonVariant.Ghost, leadingIcon = Icons.Outlined.Refresh)
     }
 }
 
 @Composable private fun Refusals() {
     Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-        Text(GilbertData.conversation.refusalsHeading, style = MaterialTheme.typography.titleMedium, color = SurfaceWhite, modifier = Modifier.semantics { heading() })
-        NightCard { GilbertData.refusals.forEach { Text(it.statement, style = MaterialTheme.typography.bodyMedium, color = SurfaceWhite) } }
-        Text("${GilbertData.poweredBy}. ${GilbertData.poweredByMeans}", style = MaterialTheme.typography.bodySmall, color = BrandMint)
+        Text(GilbertData.conversation.refusalsHeading, style = MaterialTheme.typography.titleMedium, color = theme.foreground, modifier = Modifier.semantics { heading() })
+        NightCard { GilbertData.refusals.forEach { Text(it.statement, style = MaterialTheme.typography.bodyMedium, color = theme.foreground) } }
+        Text("${GilbertData.poweredBy}. ${GilbertData.poweredByMeans}", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
     }
 }
 
 @Composable private fun Silence() {
-    Text(GilbertData.silenceIsNotSafety, style = MaterialTheme.typography.bodySmall, color = BrandMint)
+    Text(GilbertData.silenceIsNotSafety, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
 }
 
 /* The keyboard note shows while the field has the keyboard, which is when the keyboard's microphone key
@@ -589,29 +589,40 @@ private fun spokenAloud(turn: GilbertTurn): String {
 @Composable private fun Composer(draft: String, onDraft: (String) -> Unit, send: () -> Unit, largeType: Boolean, speaker: GilbertSpeaker) {
     var typing by remember { mutableStateOf(false) }
     Column(
-        Modifier.fillMaxWidth().background(BrandInk).navigationBarsPadding()
+        Modifier.fillMaxWidth().background(theme.surface).navigationBarsPadding()
             .padding(horizontal = ThusoSpacing.space20, vertical = ThusoSpacing.space12),
         verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)
     ) {
-        HorizontalDivider(color = BrandMint.copy(alpha = 0.22f))
-        Text(GilbertData.conversation.inputLabel, style = MaterialTheme.typography.labelLarge, color = SurfaceWhite, modifier = Modifier.clearAndSetSemantics {})
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
-            /* No floating label. On the night ground a label cut a dark notch in the field's top border
-               with nothing visible in it; the heading above is the field's name instead, and TalkBack
-               reads the same words. */
+        HorizontalDivider(color = theme.border)
+        Text(GilbertData.conversation.inputLabel, style = MaterialTheme.typography.labelLarge, color = theme.foreground, modifier = Modifier.clearAndSetSemantics {})
+        /* No floating label: the heading above is the field's name, and TalkBack reads the same words.
+           The identity's field (thusoFieldColours), with the same keyboard rules as before: no
+           autocorrection, and Send on the keyboard sends. */
+        val field: @Composable (Modifier) -> Unit = { m ->
             OutlinedTextField(
                 value = draft, onValueChange = onDraft, singleLine = true,
                 placeholder = { Text(GilbertData.conversation.inputHint) },
                 keyboardOptions = plainKeyboard(ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = { send() }),
-                colors = fieldColours(), shape = RoundedCornerShape(ThusoRadius.control),
-                modifier = Modifier.weight(1f).onFocusChanged { typing = it.isFocused }
+                colors = thusoFieldColours(), shape = RoundedCornerShape(ThusoRadius.control),
+                modifier = m.onFocusChanged { typing = it.isFocused }
                     .semantics { contentDescription = GilbertData.conversation.inputLabel }
             )
+        }
+        /* Beside its two buttons while the words fit; above them at the largest type, where a phone that
+           has also given two fifths of itself to the rail left the field one character wide. */
+        if (largeType) Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
+            field(Modifier.fillMaxWidth())
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
+                SpeechToggle(speaker)
+                FilledButton(GilbertData.conversation.sendLabel, Modifier.weight(1f)) { send() }
+            }
+        } else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
+            field(Modifier.weight(1f))
             SpeechToggle(speaker)
             FilledButton(GilbertData.conversation.sendLabel, Modifier.wrapContentWidth(), fill = false) { send() }
         }
-        if (typing) Text(GilbertData.conversation.keyboardNote, style = MaterialTheme.typography.bodySmall, color = BrandMint)
+        if (typing) Text(GilbertData.conversation.keyboardNote, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
         if (!largeType) Silence()
     }
 }
@@ -627,61 +638,45 @@ private fun spokenAloud(turn: GilbertTurn): String {
         onClick = { speaker.muted = !speaker.muted; if (speaker.muted) speaker.stop() },
         modifier = Modifier.size(TouchTarget).semantics { contentDescription = label }
     ) {
-        Icon(if (speaker.muted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp, null, tint = SurfaceWhite)
+        Icon(if (speaker.muted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp, null, tint = theme.foreground)
     }
 }
 
-// Small pieces on the night ground.
+// Small pieces on the identity: a card, a muted note, the body, the primary and the secondary button.
 
-@Composable private fun fieldColours() = OutlinedTextFieldDefaults.colors(
-    focusedContainerColor = SurfaceWhite, unfocusedContainerColor = SurfaceWhite,
-    focusedTextColor = BrandInk, unfocusedTextColor = BrandInk, cursorColor = BrandInk,
-    focusedBorderColor = BrandMint, unfocusedBorderColor = BrandMint.copy(alpha = 0.62f),
-    focusedLabelColor = BrandInk, unfocusedLabelColor = BrandInk,
-    focusedPlaceholderColor = BrandInk.copy(alpha = 0.62f), unfocusedPlaceholderColor = BrandInk.copy(alpha = 0.62f)
-)
-
-@Composable private fun NightCard(content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(ThusoRadius.card)).background(SurfaceWhite.copy(alpha = 0.06f))
-            .border(1.dp, SurfaceWhite.copy(alpha = 0.16f), RoundedCornerShape(ThusoRadius.card)).padding(ThusoSpacing.space16),
-        verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12), content = content
-    )
-}
+@Composable private fun NightCard(content: @Composable ColumnScope.() -> Unit) { CareCard(content = content) }
 
 @Composable private fun NightNote(text: String) {
     Text(
-        text, style = MaterialTheme.typography.bodyMedium, color = SurfaceWhite,
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(ThusoRadius.control)).background(SurfaceWhite.copy(alpha = 0.08f)).padding(ThusoSpacing.space12)
+        text, style = MaterialTheme.typography.bodyMedium, color = theme.foreground,
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(ThusoRadius.control)).background(theme.muted).padding(ThusoSpacing.space12)
     )
 }
 
 @Composable private fun Body(text: String, strong: Boolean = false, quiet: Boolean = false) {
-    Text(text, style = MaterialTheme.typography.bodyLarge, fontWeight = if (strong) FontWeight.SemiBold else FontWeight.Normal, color = if (quiet) BrandMint else SurfaceWhite)
+    Text(text, style = MaterialTheme.typography.bodyLarge, fontWeight = if (strong) FontWeight.SemiBold else FontWeight.Normal, color = if (quiet) theme.mutedForeground else theme.foreground)
 }
 
 @Composable private fun FilledButton(label: String, modifier: Modifier = Modifier, enabled: Boolean = true, fill: Boolean = true, onClick: () -> Unit) {
-    Button(
-        onClick = onClick, enabled = enabled,
-        modifier = (if (fill) modifier.fillMaxWidth() else modifier).heightIn(min = TouchTarget),
-        shape = RoundedCornerShape(ThusoRadius.control),
-        colors = ButtonDefaults.buttonColors(containerColor = SurfaceWhite, contentColor = BrandInk, disabledContainerColor = SurfaceWhite.copy(alpha = 0.4f), disabledContentColor = BrandInk)
-    ) {
-        if (label == GilbertData.voice.talkLabel) { Icon(Icons.Outlined.Mic, null); Spacer(Modifier.width(ThusoSpacing.space8)) }
-        if (label == GilbertData.unmatched.handoverLabel) { Icon(Icons.Outlined.Person, null); Spacer(Modifier.width(ThusoSpacing.space8)) }
-        if (label == GilbertData.emergency.sosLabel) { Icon(Icons.Outlined.LocalHospital, null); Spacer(Modifier.width(ThusoSpacing.space8)) }
-        Text(label, fontWeight = FontWeight.SemiBold)
+    val icon = when (label) {
+        GilbertData.voice.talkLabel -> Icons.Outlined.Mic
+        GilbertData.unmatched.handoverLabel -> Icons.Outlined.Person
+        GilbertData.emergency.sosLabel -> Icons.Outlined.LocalHospital
+        else -> null
     }
+    ThusoButton(label, onClick = onClick, enabled = enabled, leadingIcon = icon, modifier = if (fill) modifier.fillMaxWidth() else modifier)
 }
 
+/* A suggested question, or a way out: the handoff's secondary button, and — when the question is the
+   emergency one — the danger ink on its edge, so the urgent way out is found without being read. */
 @Composable private fun QuietButton(label: String, urgent: Boolean = false, onClick: () -> Unit) {
     OutlinedButton(
         onClick = onClick, modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget),
         shape = RoundedCornerShape(ThusoRadius.control),
-        border = BorderStroke(if (urgent) 2.dp else 1.dp, if (urgent) BrandOrange else BrandMint.copy(alpha = 0.62f)),
-        colors = ButtonDefaults.outlinedButtonColors(containerColor = SurfaceWhite.copy(alpha = 0.07f), contentColor = SurfaceWhite)
+        border = BorderStroke(if (urgent) 2.dp else 1.dp, if (urgent) theme.dangerInk else theme.border),
+        colors = ButtonDefaults.outlinedButtonColors(containerColor = theme.surface, contentColor = theme.foreground)
     ) {
-        Text(label, modifier = Modifier.fillMaxWidth())
+        Text(label, modifier = Modifier.fillMaxWidth(), fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -753,7 +748,8 @@ private const val STILL_MOMENT = 2.35
         val body = extent * 0.315f * (1f + 0.018f * breath.toFloat() + 0.09f * heard)
         val bodyAlpha = if (pulse == Pulse.HANDOVER) 0.72f else 1f
         val light = Offset(centre.x - body * 0.32f + (sin(t * 0.23) * body * 0.07).toFloat(), centre.y - body * 0.44f + (cos(t * 0.19) * body * 0.06).toFloat())
-        val core = if (step >= 2) Color(0xFF0B1F27) else BrandInk
+        /* The core darkens with depth: the dark ground token rather than a deeper hex typed here. */
+        val core = if (step >= 2) ThusoSemantic.Dark.background else BrandInk
         drawCircle(Brush.radialGradient(listOf(BrandMint, BrandGreen, core, core), light, body * 1.55f), body, centre, alpha = bodyAlpha)
         drawCircle(Brush.radialGradient(0f to Color.Transparent, (0.70f + step * 0.055f) to Color.Transparent, 1f to Color.White.copy(alpha = 0.55f), center = centre, radius = body), body, centre, alpha = bodyAlpha)
         drawCircle(Brush.radialGradient(listOf(Color.White.copy(alpha = 0.55f), Color.Transparent), Offset(centre.x - body * 0.32f, centre.y - body * 0.40f), body * 0.32f), body * 0.32f, Offset(centre.x - body * 0.32f, centre.y - body * 0.40f), alpha = bodyAlpha)

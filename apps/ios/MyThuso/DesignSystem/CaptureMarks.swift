@@ -35,18 +35,18 @@ import SwiftUI
 extension Provenance {
     var tint: Color {
         switch self {
-        case .device: return ThusoTheme.indigo
-        case .manual: return ThusoTheme.info
-        case .patientReported: return ThusoTheme.slate
-        case .derived: return ThusoTheme.indigoDeep
+        case .device: return ThusoRole.primary
+        case .manual: return ThusoRole.info
+        case .patientReported: return ThusoRole.foreground
+        case .derived: return ThusoRole.primary
         }
     }
     var wash: Color {
         switch self {
-        case .device: return ThusoTheme.indigoSoft
-        case .manual: return ThusoTheme.infoSoft
-        case .patientReported: return ThusoTheme.accentSoft
-        case .derived: return ThusoTheme.cloud
+        case .device: return ThusoRole.primaryTint
+        case .manual: return ThusoRole.infoTint
+        case .patientReported: return ThusoRole.accentTint
+        case .derived: return ThusoRole.muted
         }
     }
 }
@@ -58,8 +58,8 @@ struct ProvenanceMark: View {
     var full = false
     var body: some View {
         HStack(spacing: 5) {
-            Image(systemName: provenance.symbol).font(.caption2.weight(.semibold))
-            Text(full ? provenance.name : provenance.shortName).font(.caption2.weight(.semibold))
+            Image(systemName: provenance.symbol).font(.thuso(.caption2, weight: .semibold))
+            Text(full ? provenance.name : provenance.shortName).font(.thuso(.caption2, weight: .semibold))
         }
         .foregroundStyle(provenance.tint)
         .padding(.horizontal, 9).padding(.vertical, 5)
@@ -79,24 +79,24 @@ struct ProvenanceKey: View {
     var body: some View {
         CareCard {
             Label("Four origins, four marks", systemImage: "square.on.square.dashed")
-                .font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                .font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
             Text("They differ by symbol and colour, not by weight. A blood pressure a nurse took by hand on the right cuff is a clinical skill, not a weaker copy of one a machine sent over. What the mark says is where the number came from — what it is worth is the reader’s judgement, which is what the sentences below are for.")
-                .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
             ForEach(Provenance.allCases) { provenance in
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(spacing: ThusoSpacing.space8) {
                         ProvenanceMark(provenance: provenance, full: true)
                         Spacer(minLength: 6)
-                        Text(provenance.fhir).font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
+                        Text(provenance.fhir).font(.thuso(.caption2)).foregroundStyle(ThusoRole.mutedForeground)
                     }
-                    Text(provenance.detail).font(.caption2).foregroundStyle(ThusoTheme.charcoal)
-                    Text(provenance.trust).font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(provenance.detail).font(.thuso(.caption2)).foregroundStyle(ThusoRole.foreground)
+                    Text(provenance.trust).font(.thuso(.caption2)).foregroundStyle(ThusoRole.mutedForeground)
                 }
                 .padding(.vertical, 4)
                 .accessibilityElement(children: .combine)
-                if provenance != Provenance.allCases.last { Divider().overlay(ThusoTheme.studioLine) }
+                if provenance != Provenance.allCases.last { Divider().overlay(ThusoRole.border) }
             }
-            Text(CaptureRules.provenanceIsRequired).font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(CaptureRules.provenanceIsRequired).font(.thuso(.caption2)).foregroundStyle(ThusoRole.mutedForeground)
         }
     }
 }
@@ -111,12 +111,12 @@ struct CaveatNote: View {
             VStack(alignment: .leading, spacing: 5) {
                 ForEach(caveats, id: \.self) { caveat in
                     Label(caveat, systemImage: "exclamationmark.circle")
-                        .font(.caption2).foregroundStyle(ThusoTheme.mangoInk)
+                        .font(.thuso(.caption2)).foregroundStyle(ThusoRole.warningInk)
                 }
             }
             .padding(ThusoSpacing.space8)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+            .background(ThusoRole.warningTint, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
             .accessibilityElement(children: .combine)
         }
     }
@@ -139,10 +139,10 @@ struct ReadingRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-                Text(reading.label).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(reading.label).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
                 Spacer(minLength: 8)
-                Text(reading.display).font(.system(.subheadline, design: .rounded, weight: .semibold))
-                    .foregroundStyle(ThusoTheme.charcoal).multilineTextAlignment(.trailing)
+                Text(reading.display).font(.thuso(.subheadline, weight: .semibold))
+                    .foregroundStyle(ThusoRole.foreground).multilineTextAlignment(.trailing)
             }
             HStack(spacing: ThusoSpacing.space8) {
                 ProvenanceMark(provenance: reading.provenance)
@@ -153,14 +153,14 @@ struct ReadingRow: View {
             }
             if let line = reading.instrumentLine {
                 Text(reading.calibratedOn.map { "\(line) · last calibrated \(vettingDate($0))" } ?? line)
-                    .font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.caption2)).foregroundStyle(ThusoRole.mutedForeground)
             }
             if let label = reading.qualifierLabel, let qualifier = reading.qualifier {
-                Text("\(label): \(qualifier)").font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text("\(label): \(qualifier)").font(.thuso(.caption2)).foregroundStyle(ThusoRole.mutedForeground)
             }
             if !reading.derivedFrom.isEmpty {
                 Text("Calculated from \(reading.derivedFrom.map { KitMeasures.label($0).lowercased() }.joined(separator: " and "))")
-                    .font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.caption2)).foregroundStyle(ThusoRole.mutedForeground)
             }
             if !dense { CaveatNote(caveats: reading.caveats) }
         }
@@ -182,12 +182,12 @@ struct TwoClocksRow: View {
             Text(entry.whenItHappened == captureStamp(entry.serverReceivedAt ?? entry.deviceCapturedAt)
                  ? "Ordered by the receipt time. The phone’s own time is kept beside it as what the phone believed."
                  : entry.whenItHappened)
-                .font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.caption2)).foregroundStyle(ThusoRole.mutedForeground)
             if let drift = entry.clockDisagreedBy {
                 let hours = abs(drift) / 3600
                 Label("This phone’s clock was \(String(format: "%.1f", hours)) hours \(drift > 0 ? "ahead of" : "behind") the receipt. Nobody was asked about it — the receipt time orders the record and the phone’s time is kept as what the phone believed.",
                       systemImage: "clock.badge.exclamationmark")
-                    .font(.caption2).foregroundStyle(ThusoTheme.mangoInk)
+                    .font(.thuso(.caption2)).foregroundStyle(ThusoRole.warningInk)
             }
         }
         .accessibilityElement(children: .combine)
@@ -202,10 +202,10 @@ struct WrittenAgoNote: View {
     var body: some View {
         if let at {
             Text("\(what) was \(writtenInWords(at)), to the store on this phone.")
-                .font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.caption2)).foregroundStyle(ThusoRole.mutedForeground)
         } else {
             Text("\(what) has not been written to this phone’s store.")
-                .font(.caption2).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.caption2)).foregroundStyle(ThusoRole.mutedForeground)
         }
     }
 }

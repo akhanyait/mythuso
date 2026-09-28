@@ -42,16 +42,16 @@ struct VisitThreadView: View {
                 VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
                     CareHeading(eyebrow: "", title: BookingData.Thread.title, subtitle: BookingData.Thread.lead)
                     CapabilityNotice(of: "messaging")
-                    Text(BookingData.Thread.notARecord).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(BookingData.Thread.notARecord).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                     /* Words only, or — if the generated setting ever says photos are on — that photos are not in
                        this preview yet. A phone holds no clinical review state, so it never claims one. */
                     Text(BookingData.Thread.photos ? BookingData.Thread.photosNotInPreview : BookingData.Thread.wordsOnly)
-                        .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                     if closed == nil, let closesAt {
                         Label(Booking.fill(BookingData.Thread.openAfterVisit, ["closes": Scheduling.format(closesAt, "d MMM, HH:mm")]), systemImage: "clock")
-                            .font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                            .font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     conversation
@@ -68,16 +68,16 @@ struct VisitThreadView: View {
         .scrollDismissesKeyboard(.interactively)
         .thusoGround()
         .navigationTitle(BookingData.Thread.openLabel).navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoTheme.glassFloor, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoRole.surface, for: .navigationBar)
     }
 
     @ViewBuilder private var conversation: some View {
         if messages.isEmpty {
             if closed == nil {
-                Text(BookingData.Thread.empty).font(.subheadline).foregroundStyle(ThusoTheme.charcoalMutedOnCloud)
+                Text(BookingData.Thread.empty).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.mutedForeground)
                     .padding(ThusoSpacing.space16)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+                    .background(ThusoRole.muted, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
                     .fixedSize(horizontal: false, vertical: true)
             }
         } else {
@@ -97,33 +97,33 @@ struct VisitThreadView: View {
         let shape = RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous)
         return VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-                Text(who).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(who).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                 Spacer(minLength: ThusoSpacing.space8)
-                Text(Scheduling.format(message.at, "HH:mm")).font(.footnote.monospacedDigit()).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(Scheduling.format(message.at, "HH:mm")).font(.thuso(.footnote).monospacedDigit()).foregroundStyle(ThusoRole.mutedForeground)
             }
-            Text(message.words).font(.body).foregroundStyle(ThusoTheme.charcoal)
+            Text(message.words).font(.thuso(.body)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
             if mine {
-                Text(BookingData.Thread.kept).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(BookingData.Thread.kept).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(ThusoSpacing.space12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(mine ? ThusoTheme.studioLilac : ThusoTheme.surface, in: shape)
-        .overlay(shape.stroke(mine ? Color.clear : ThusoTheme.studioLine, lineWidth: 1))
+        .background(mine ? ThusoRole.surfaceRaised : ThusoRole.surface, in: shape)
+        .overlay(shape.stroke(mine ? Color.clear : ThusoRole.border, lineWidth: 1))
         .accessibilityElement(children: .combine)
     }
 
     private func closedNote(_ closed: BookingThreadClosed) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-            Image(systemName: "lock").font(.subheadline).foregroundStyle(ThusoTheme.charcoal).accessibilityHidden(true)
-            Text(closed.sentence).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+            Image(systemName: "lock").font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground).accessibilityHidden(true)
+            Text(closed.sentence).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(ThusoSpacing.space16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .background(ThusoRole.muted, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("thread-closed")
     }
@@ -135,26 +135,26 @@ struct VisitThreadView: View {
     private var composer: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-                Image(systemName: "phone").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Image(systemName: "phone").font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                     .accessibilityHidden(true)
-                Text(BookingData.Thread.nobodyWatches).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(BookingData.Thread.nobodyWatches).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(ThusoSpacing.space12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(ThusoTheme.mangoInk.opacity(0.24), lineWidth: 1))
+            .background(ThusoRole.warningTint, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(ThusoRole.warningInk.opacity(0.24), lineWidth: 1))
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("thread-nobody-watches")
             TextField(BookingData.Thread.inputLabel, text: $draft, axis: .vertical)
                 .lineLimit(2...6)
                 .focused($writing)
-                .font(.body).foregroundStyle(ThusoTheme.charcoal)
+                .font(.thuso(.body)).foregroundStyle(ThusoRole.foreground)
                 .padding(ThusoSpacing.space12)
                 .frame(maxWidth: .infinity, minHeight: 44, alignment: .topLeading)
-                .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+                .background(ThusoRole.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous)
-                    .stroke(writing ? ThusoTheme.charcoal : ThusoTheme.controlEdge, lineWidth: writing ? 1.5 : 1))
+                    .stroke(writing ? ThusoRole.foreground : ThusoRole.inputEdge, lineWidth: writing ? 1.5 : 1))
                 .accessibilityLabel(BookingData.Thread.inputLabel)
                 .accessibilityIdentifier("thread-input")
                 .onChange(of: draft) { _, _ in refused = nil }
@@ -163,7 +163,7 @@ struct VisitThreadView: View {
                 VStack(alignment: .leading, spacing: ThusoSpacing.space8) { counter; send }
             }
             if let sentence = (over ? Booking.postRefusal(draft, closed: false) : refused)?.sentence {
-                Label(sentence, systemImage: "exclamationmark.circle").font(.footnote).foregroundStyle(ThusoTheme.danger)
+                Label(sentence, systemImage: "exclamationmark.circle").font(.thuso(.footnote)).foregroundStyle(ThusoRole.dangerInk)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("thread-refusal")
             }
@@ -172,8 +172,8 @@ struct VisitThreadView: View {
 
     private var counter: some View {
         Text("\(count) / \(BookingData.Thread.maxCharacters)")
-            .font(.footnote.monospacedDigit().weight(over ? .semibold : .regular))
-            .foregroundStyle(over ? ThusoTheme.danger : ThusoTheme.studioInkMuted)
+            .font(.thuso(.footnote, weight: over ? .semibold : .regular).monospacedDigit())
+            .foregroundStyle(over ? ThusoRole.dangerInk : ThusoRole.mutedForeground)
             .accessibilityLabel("\(count) of \(BookingData.Thread.maxCharacters)")
             .accessibilityIdentifier("thread-count")
     }

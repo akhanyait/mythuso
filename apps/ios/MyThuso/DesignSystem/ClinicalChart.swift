@@ -45,15 +45,15 @@ struct ClinicalChart: View {
                with the quiet line rather than competing with the figure. */
             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
                 if let symbol {
-                    Image(systemName: symbol).font(.footnote)
-                        .foregroundStyle(ThusoTheme.studioInkMuted).accessibilityHidden(true)
+                    Image(systemName: symbol).font(.thuso(.footnote))
+                        .foregroundStyle(ThusoRole.mutedForeground).accessibilityHidden(true)
                 }
                 Text(latest.value == first.value ? "No change since \(first.label)" : "\(latest.value > first.value ? "+" : "")\(format(latest.value - first.value)) since \(first.label)")
-                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             plot.frame(height: plotHeight).accessibilityElement().accessibilityLabel(summary)
-            HStack { Text(first.label); Spacer(); Text(latest.label) }.font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            HStack { Text(first.label); Spacer(); Text(latest.label) }.font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             /* A button rather than a DisclosureGroup.
              *
              * MyThusoUITests found this twice, on two screens and at two content sizes: "Show
@@ -65,12 +65,12 @@ struct ClinicalChart: View {
              * accessibility story, and it has to be a target rather than nearly one. */
             Button { withAnimation(reduceMotion ? nil : ThusoMotion.soft()) { showTable.toggle() } } label: {                HStack(spacing: ThusoSpacing.space8) {
                     Text(showTable ? "Hide readings" : "Show readings as a table")
-                        .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                        .font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 0)
                     Image(systemName: showTable ? "chevron.up" : "chevron.down")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(ThusoTheme.studioInkMuted).accessibilityHidden(true)
+                        .font(.thuso(.footnote, weight: .semibold))
+                        .foregroundStyle(ThusoRole.mutedForeground).accessibilityHidden(true)
                 }
                 .frame(maxWidth: .infinity, minHeight: 44)
                 .contentShape(Rectangle())
@@ -85,13 +85,13 @@ struct ClinicalChart: View {
                             Text(reading.label).frame(maxWidth: .infinity, alignment: .leading)
                             Text("\(format(reading.value)) \(unit)").frame(maxWidth: .infinity, alignment: .leading)
                             Text(reading.note).frame(maxWidth: .infinity, alignment: .leading)
-                                .foregroundStyle(ThusoTheme.studioInkMuted)
+                                .foregroundStyle(ThusoRole.mutedForeground)
                         }
-                        .font(.caption).padding(.vertical, ThusoSpacing.space8)
+                        .font(.thuso(.caption)).padding(.vertical, ThusoSpacing.space8)
                         .accessibilityElement(children: .combine)
-                        Divider().overlay(ThusoTheme.studioLine)
+                        Divider().overlay(ThusoRole.border)
                     }
-                    Text("Fictional data, not a medical record.").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted).frame(maxWidth: .infinity, alignment: .leading).padding(.top, ThusoSpacing.space8)
+                    Text("Fictional data, not a medical record.").font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground).frame(maxWidth: .infinity, alignment: .leading).padding(.top, ThusoSpacing.space8)
                 }
             }
         }
@@ -110,7 +110,7 @@ struct ClinicalChart: View {
             ZStack {
                 if let normal {
                     let top = point(0, normal.upperBound).y, bottom = point(0, normal.lowerBound).y
-                    Rectangle().fill(ThusoTheme.paleSage).frame(height: max(bottom - top, 1)).position(x: geo.size.width / 2, y: (top + bottom) / 2)
+                    Rectangle().fill(ThusoRole.surfaceRaised).frame(height: max(bottom - top, 1)).position(x: geo.size.width / 2, y: (top + bottom) / 2)
                 }
                 ZStack {
                 Path { path in
@@ -118,10 +118,10 @@ struct ClinicalChart: View {
                         let next = point(index, reading.value)
                         index == 0 ? path.move(to: next) : path.addLine(to: next)
                     }
-                }.stroke(ThusoTheme.charcoal, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
+                }.stroke(ThusoRole.foreground, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
                 ForEach(Array(readings.enumerated()), id: \.element) { index, reading in
-                    Circle().fill(index == readings.count - 1 ? ThusoTheme.surface : ThusoTheme.charcoal)
-                        .overlay(Circle().stroke(ThusoTheme.charcoal, lineWidth: index == readings.count - 1 ? 2 : 0))
+                    Circle().fill(index == readings.count - 1 ? ThusoRole.surface : ThusoRole.foreground)
+                        .overlay(Circle().stroke(ThusoRole.foreground, lineWidth: index == readings.count - 1 ? 2 : 0))
                         .frame(width: index == readings.count - 1 ? 9 : 6)
                         .position(point(index, reading.value))
                 }

@@ -77,9 +77,9 @@ struct DispensingView: View {
     private var header: some View {
         CareCard {
             Text(Dispensing.prescription.reference)
-                .font(.title3.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
+                .font(.thuso(.title3, weight: .bold)).foregroundStyle(ThusoRole.foreground)
             Text("\(Dispensing.prescription.patient) · \(Dispensing.prescription.patientBorn) · issued \(Dispensing.prescription.issued.formatted(dispensingDay))")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             row("Prescribed by", attributedTo(prescriberId))
             row("Dispensed by", "\(Dispensing.prescription.pharmacist.name) · \(Dispensing.prescription.pharmacist.registration)")
             row("At", attributedTo(pharmacyId))
@@ -115,12 +115,12 @@ struct DispensingView: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             heading("What a substitution may and may not change")
             CareCard {
-                Text("Never, without the prescriber").font(.caption.weight(.bold))
-                    .textCase(.uppercase).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text("Never, without the prescriber").font(.thuso(.caption, weight: .bold))
+                    .textCase(.uppercase).foregroundStyle(ThusoRole.mutedForeground)
                 ForEach(Dispensing.neverChanges) { change in bullet(change.what, change.why) }
                 Divider()
-                Text("May change, and the patient is told").font(.caption.weight(.bold))
-                    .textCase(.uppercase).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text("May change, and the patient is told").font(.thuso(.caption, weight: .bold))
+                    .textCase(.uppercase).foregroundStyle(ThusoRole.mutedForeground)
                 ForEach(Dispensing.mayChange) { change in bullet(change.what, change.why) }
                 refusal(Dispensing.refusal("substitute-the-molecule"))
             }
@@ -133,13 +133,13 @@ struct DispensingView: View {
             ForEach(Dispensing.substitutionClasses) { klass in
                 CareCard {
                     StatusPill(text: klass.shortName, tone: klass.tone)
-                    Text(klass.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                    Text(klass.detail).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
-                    Text(klass.whoDecides).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(klass.name).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+                    Text(klass.detail).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
+                    Text(klass.whoDecides).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 }
             }
             Text("There is no fourth class called “may be substituted”. Section 22F of the Medicines and Related Substances Act 101 of 1965 makes telling the patient a duty on every substitution, with four exceptions — \(Dispensing.statutoryGrounds.map { "\($0.name.lowercased()) (\($0.section ?? ""))" }.joined(separator: ", ")) — so a silent swap is not the mild end of this screen. It is outside it.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
         }
     }
 
@@ -149,12 +149,12 @@ struct DispensingView: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             heading("\(Dispensing.prescription.items.count) items · \(Dispensing.prescription.substituted.count) substituted")
             Text(Dispensing.rule("substitution-is-clinical").sentence)
-                .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
             ForEach(Dispensing.prescription.items) { item in itemCard(item) }
             Text(Dispensing.rule("patient-is-told-first").sentence)
-                .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
             Text(Dispensing.rule("substitution-is-signed").sentence)
-                .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
         }
     }
 
@@ -165,18 +165,18 @@ struct DispensingView: View {
         return CareCard {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(item.dispensed).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                    Text(item.dispensed).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                     Text("\(item.molecule) \(item.strength) · \(item.form) · \(item.dose) · \(item.quantity)")
-                        .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
                 }
                 Spacer(minLength: 8)
                 StatusPill(text: klass.shortName, tone: klass.tone)
             }
             Text(item.wasSubstituted ? "Written: \(item.prescribed)" : "Written and dispensed: \(item.prescribed)")
-                .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
             groundLine(ground)
             if let second = item.secondGround { groundLine(Dispensing.ground(second)) }
-            Text(klass.whoDecides).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(klass.whoDecides).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
 
             /* An item that must not be substituted carries no control. The refusal is the absence,
                and the sentence says where the route actually is. */
@@ -185,13 +185,13 @@ struct DispensingView: View {
             if let reason = item.writtenReason {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("\(Dispensing.prescription.pharmacist.name) · \(Dispensing.prescription.pharmacist.registration)")
-                        .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                        .font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                     Text("\(Dispensing.prescription.pharmacist.role) · the prescriber was told the same day")
-                        .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
-                    Text(reason).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                        .font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
+                    Text(reason).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
                 }
                 .padding(ThusoSpacing.space12).frame(maxWidth: .infinity, alignment: .leading)
-                .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+                .background(ThusoRole.muted, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
             }
 
             Button(isTold ? "Hide what was said to the patient" : "Read this to the patient") {
@@ -206,10 +206,10 @@ struct DispensingView: View {
                 set: { on in if on { handed.insert(item.id) } else { handed.remove(item.id) } }
             )) {
                 Text(isTold ? "Handed over" : "Nothing is handed over before the patient has been told what it is")
-                    .font(.caption).foregroundStyle(isTold ? ThusoTheme.charcoal : ThusoTheme.studioInkMuted)
+                    .font(.thuso(.caption)).foregroundStyle(isTold ? ThusoRole.foreground : ThusoRole.mutedForeground)
             }
             .disabled(!isTold || !open)
-            Text(item.note).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(item.note).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
         }
     }
 
@@ -218,24 +218,24 @@ struct DispensingView: View {
     private func telling(_ item: PrescriptionItem) -> some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
             Label(Dispensing.headline(item), systemImage: "ear")
-                .font(.caption.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
+                .font(.thuso(.caption, weight: .bold)).foregroundStyle(ThusoRole.foreground)
             if item.wasSubstituted {
-                Text("It replaces \(item.prescribed).").font(.caption).foregroundStyle(ThusoTheme.charcoal)
+                Text("It replaces \(item.prescribed).").font(.thuso(.caption)).foregroundStyle(ThusoRole.foreground)
             }
-            Text(item.patientWords).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+            Text(item.patientWords).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
             if !item.sameness.isEmpty {
-                Text("The same").font(.caption.weight(.bold)).textCase(.uppercase).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text("The same").font(.thuso(.caption, weight: .bold)).textCase(.uppercase).foregroundStyle(ThusoRole.mutedForeground)
                 ForEach(item.sameness, id: \.self) { line in
-                    Text("• \(line)").font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text("• \(line)").font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
                 }
-                Text("Different").font(.caption.weight(.bold)).textCase(.uppercase).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text("Different").font(.thuso(.caption, weight: .bold)).textCase(.uppercase).foregroundStyle(ThusoRole.mutedForeground)
                 ForEach(item.differences, id: \.self) { line in
-                    Text("• \(line)").font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text("• \(line)").font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
                 }
             }
         }
         .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.studioLilac, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .background(ThusoRole.surfaceRaised, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
     }
 
     private var handover: some View {
@@ -247,10 +247,10 @@ struct DispensingView: View {
                         || (step.id == "recorded" && handed.count == Dispensing.prescription.items.count))
                     HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                         Image(systemName: done ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(ThusoTheme.charcoal.opacity(done ? 1 : 0.3))
+                            .foregroundStyle(ThusoRole.foreground.opacity(done ? 1 : 0.3))
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(step.label).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                            Text(step.detail).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                            Text(step.label).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+                            Text(step.detail).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
                         }
                     }
                     .accessibilityElement(children: .combine)
@@ -269,8 +269,8 @@ struct DispensingView: View {
             CareCard {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(auth.reference).font(.body.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
-                        Text("\(auth.programme) · \(auth.condition)").font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                        Text(auth.reference).font(.thuso(.body, weight: .bold)).foregroundStyle(ThusoRole.foreground)
+                        Text("\(auth.programme) · \(auth.condition)").font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
                     }
                     Spacer(minLength: 8)
                     StatusPill(text: "\(Dispensing.repeatsRemaining) of \(auth.repeatsAuthorised) left",
@@ -284,32 +284,32 @@ struct DispensingView: View {
                     Dispensing.strandedRepeats > 0
                         ? "Whichever comes first — \(Dispensing.strandedRepeats) of the repeats cannot be collected before it expires"
                         : "Whichever comes first")
-                Text(auth.note).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
-                Text(auth.quantityNote).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(auth.note).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
+                Text(auth.quantityNote).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 Text(Dispensing.rule("authorisation-is-boxed").sentence)
-                    .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
                 row("Last collected", Dispensing.lastCollectedOn.formatted(dispensingDay))
                 row("Next collection due", Dispensing.nextCollectionOn.formatted(dispensingDay))
                 Button("Collect a repeat") { collectTried = true }.buttonStyle(CareButton()).disabled(!open)
                 if collectTried {
                     if answer.allowed {
-                        Text(answer.reason).font(.caption).foregroundStyle(ThusoTheme.charcoal)
+                        Text(answer.reason).font(.thuso(.caption)).foregroundStyle(ThusoRole.foreground)
                     } else {
                         alert(answer.reason, symbol: "calendar.badge.clock")
                         Text(Dispensing.rule("early-is-refused-with-a-date").sentence)
-                            .font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                            .font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
                     }
                 }
                 if Dispensing.isFinalRepeat {
                     alert("This is the last repeat. It is said now, not at the counter next month.", symbol: "exclamationmark.circle")
                 }
                 VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-                    Text("What happens at the end").font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                    Text(auth.endsWith).font(.caption).foregroundStyle(ThusoTheme.charcoal)
-                    Text(Dispensing.rule("ends-in-a-review").sentence).font(.caption).foregroundStyle(ThusoTheme.charcoal)
+                    Text("What happens at the end").font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+                    Text(auth.endsWith).font(.thuso(.caption)).foregroundStyle(ThusoRole.foreground)
+                    Text(Dispensing.rule("ends-in-a-review").sentence).font(.thuso(.caption)).foregroundStyle(ThusoRole.foreground)
                 }
                 .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, alignment: .leading)
-                .background(ThusoTheme.studioLilac, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+                .background(ThusoRole.surfaceRaised, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
             }
         }
     }
@@ -319,41 +319,41 @@ struct DispensingView: View {
             heading("What this screen will not do")
             ForEach(Dispensing.refusals) { item in CareCard { refusal(item) } }
             Text("Nothing is dispensed, no stock is checked and no prescriber is notified. Every date above is arithmetic on the demo contract, and none of the clinical wording here has been read by a pharmacist.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
         }
     }
 
     // MARK: - Small parts
 
     private func heading(_ text: String) -> some View {
-        Text(text).font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+        Text(text).font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
     }
 
     private func row(_ label: String, _ value: String) -> some View {
         HStack(alignment: .top) {
-            Text(label).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(label).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             Spacer(minLength: 8)
-            Text(value).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            Text(value).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                 .multilineTextAlignment(.trailing)
         }
     }
 
     private func box(_ label: String, _ value: String, _ note: String) -> some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(label).font(.caption2.weight(.bold)).textCase(.uppercase).foregroundStyle(ThusoTheme.studioInkMuted)
-            Text(value).font(.body.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
-            Text(note).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(label).font(.thuso(.caption2, weight: .bold)).textCase(.uppercase).foregroundStyle(ThusoRole.mutedForeground)
+            Text(value).font(.thuso(.body, weight: .bold)).foregroundStyle(ThusoRole.foreground)
+            Text(note).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
         }
         .padding(ThusoSpacing.space12).frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .background(ThusoRole.muted, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
     }
 
     private func bullet(_ what: String, _ why: String) -> some View {
         HStack(alignment: .top, spacing: ThusoSpacing.space8) {
-            Text("•").foregroundStyle(ThusoTheme.charcoal)
+            Text("•").foregroundStyle(ThusoRole.foreground)
             VStack(alignment: .leading, spacing: 2) {
-                Text(what).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                Text(why).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(what).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+                Text(why).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
             }
         }
         .accessibilityElement(children: .combine)
@@ -361,11 +361,11 @@ struct DispensingView: View {
 
     private func groundLine(_ ground: SubstitutionGround) -> some View {
         HStack(alignment: .top, spacing: ThusoSpacing.space8) {
-            Image(systemName: "info.circle").font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+            Image(systemName: "info.circle").font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
             VStack(alignment: .leading, spacing: 3) {
                 Text(ground.section == nil ? ground.name : "\(ground.name) · section \(ground.section ?? "")")
-                    .font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                Text(ground.detail).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.caption, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+                Text(ground.detail).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
             }
         }
         .accessibilityElement(children: .combine)
@@ -373,17 +373,17 @@ struct DispensingView: View {
 
     private func alert(_ text: String, symbol: String) -> some View {
         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
-            Image(systemName: symbol).font(.callout).foregroundStyle(ThusoTheme.mangoInk)
-            Text(text).font(.caption).foregroundStyle(ThusoTheme.charcoal)
+            Image(systemName: symbol).font(.thuso(.callout)).foregroundStyle(ThusoRole.warningInk)
+            Text(text).font(.thuso(.caption)).foregroundStyle(ThusoRole.foreground)
         }
         .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.mangoSoft, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .background(ThusoRole.warningTint, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
     }
 
     private func refusal(_ item: DispensingRefusal) -> some View {
         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
-            Image(systemName: "nosign").font(.callout).foregroundStyle(ThusoTheme.danger)
-            Text(item.sentence).font(.caption).foregroundStyle(ThusoTheme.charcoal)
+            Image(systemName: "nosign").font(.thuso(.callout)).foregroundStyle(ThusoRole.dangerInk)
+            Text(item.sentence).font(.thuso(.caption)).foregroundStyle(ThusoRole.foreground)
         }
     }
 }

@@ -41,17 +41,17 @@ struct ClinicalInboxView: View {
 
     private func reviewCard(_ review: ClinicalReview) -> some View {
         CareCard(padding: ThusoSpacing.space16) {
-            Text(review.id).font(.headline).foregroundStyle(ThusoTheme.charcoal)
+            Text(review.id).font(.thuso(.headline)).foregroundStyle(ThusoRole.foreground)
             muted(ClinicalData.InboxText.patient.replacingOccurrences(of: "{subject}", with: review.subjectRef))
             muted(protocolLine(review))
             muted(review.recordComplete ? ClinicalData.InboxText.recordComplete : ClinicalData.InboxText.recordIncomplete)
             if let mode = review.signingMode {
                 Text(Clinical.signedSentence(mode: mode, visitProtocol: review.protocolVersionId))
-                    .font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                    .font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
                 muted(ClinicalData.PromText.schedule.replacingOccurrences(of: "{days}", with: ClinicalData.promDays.map(String.init).joined(separator: " and ")))
             } else {
-                Text(ClinicalData.InboxText.mode).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(ClinicalData.InboxText.mode).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                 ForEach(ClinicalData.modes) { mode in
                     Button("\(ClinicalData.InboxText.sign): \(mode.label)") {
                         answers[review.id] = inbox.sign(review.id, mode: mode.id, signer: vetting.subject(signerId))?.statement
@@ -59,7 +59,7 @@ struct ClinicalInboxView: View {
                     .buttonStyle(QuietButton())
                 }
                 if let answer = answers[review.id] {
-                    Text(answer).font(.footnote).foregroundStyle(ThusoTheme.danger)
+                    Text(answer).font(.thuso(.footnote)).foregroundStyle(ThusoRole.dangerInk)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("clinical-sign-refusal")
                 }
@@ -75,11 +75,11 @@ struct ClinicalInboxView: View {
 
     private var triageCard: some View {
         CareCard(padding: ThusoSpacing.space16) {
-            Text(ClinicalData.TriageText.heading).font(.headline).foregroundStyle(ThusoTheme.charcoal)
+            Text(ClinicalData.TriageText.heading).font(.thuso(.headline)).foregroundStyle(ThusoRole.foreground)
             muted(ClinicalData.TriageText.intro)
             if let triage {
-                Text(ClinicalData.TriageText.notTriaged).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                Text(triage.statement).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                Text(ClinicalData.TriageText.notTriaged).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+                Text(triage.statement).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
                 muted(ClinicalData.TriageText.human)
                 muted(ClinicalData.TriageText.emergencyFirst)
@@ -92,11 +92,11 @@ struct ClinicalInboxView: View {
 
     private var guidanceCard: some View {
         CareCard(padding: ThusoSpacing.space16) {
-            Text(ClinicalData.GuidanceText.heading).font(.headline).foregroundStyle(ThusoTheme.charcoal)
+            Text(ClinicalData.GuidanceText.heading).font(.thuso(.headline)).foregroundStyle(ThusoRole.foreground)
             muted(ClinicalData.GuidanceText.intro)
             ForEach(ClinicalData.outcomes) { outcome in
                 if let answer = guidance[outcome.id] {
-                    Text("\(outcome.label) · \(ClinicalData.GuidanceText.noScript)").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                    Text("\(outcome.label) · \(ClinicalData.GuidanceText.noScript)").font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                     muted(answer)
                 } else {
                     Button(ClinicalData.GuidanceText.give.replacingOccurrences(of: "{outcome}", with: outcome.label)) {
@@ -109,7 +109,7 @@ struct ClinicalInboxView: View {
     }
 
     private func muted(_ text: String) -> some View {
-        Text(text).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+        Text(text).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             .fixedSize(horizontal: false, vertical: true)
     }
 }

@@ -22,27 +22,27 @@ struct GroupOptInView: View {
                 CapabilityNotice(of: "payments")
 
                 CareCard(padding: ThusoSpacing.space16) {
-                    Text(GroupsData.previewGroupName).font(.headline).foregroundStyle(ThusoTheme.charcoal)
-                    Text(words).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                    Text(GroupsData.previewGroupName).font(.thuso(.headline)).foregroundStyle(ThusoRole.foreground)
+                    Text(words).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("group-state")
-                    Text(Groups.words(GroupsData.Words.limit)).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(Groups.words(GroupsData.Words.limit)).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
                 if stateCode == "invited" {
                     CareCard(padding: ThusoSpacing.space16) {
-                        Text(GroupsData.Words.choose).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                        Text(GroupsData.Words.choose).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                         Picker(GroupsData.Words.choose, selection: $chosen) {
                             ForEach(offered) { detail in Text(detail.name).tag(detail.id) }
                         }.pickerStyle(.inline).labelsHidden()
                         if let detail = offered.first(where: { $0.id == chosen }) {
-                            Text(detail.detail).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                            Text(detail.detail).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         /* One choice means an employer, and the reason is said here rather than met as a refusal. */
                         if offered.count == 1 {
-                            Text(GroupsData.Words.employerOnly).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                            Text(GroupsData.Words.employerOnly).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         Button(Groups.words(GroupsData.Words.agree)) { stateCode = "member" }.buttonStyle(CareButton())
@@ -50,17 +50,17 @@ struct GroupOptInView: View {
                 } else if stateCode == "member" {
                     CareCard(padding: ThusoSpacing.space16) {
                         /* No way to pay on a phone: no provider is connected, and the contract's sentence says so. */
-                        Text(Money.providerlessWords).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        Text(Money.providerlessWords).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                             .fixedSize(horizontal: false, vertical: true)
                         Button(Groups.words(GroupsData.Words.leave)) { stateCode = "left" }.buttonStyle(QuietButton())
                     }
                 }
 
                 CareCard(padding: ThusoSpacing.space16) {
-                    Text(GroupsData.noPooledMoney).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(GroupsData.noPooledMoney).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                Text(GroupsData.Words.preview).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(GroupsData.Words.preview).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.vertical, ThusoSpacing.space16)

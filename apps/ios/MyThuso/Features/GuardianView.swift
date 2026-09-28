@@ -80,11 +80,11 @@ struct InviteGuardianView: View {
             PickRow(label: "Relationship", selection: $relationship, options: relationships.map { ($0, $0) })
             if minor {
                 Text("For a child under 18 you are asking for guardianship, not sharing. Production requires proof of parental responsibility and a record of the child’s own views as they grow older.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Text("They receive an invitation on their own phone and choose whether to accept. You can withdraw it at any time.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
         }
         Button("Continue") { step = 1 }.buttonStyle(CareButton())
@@ -93,7 +93,7 @@ struct InviteGuardianView: View {
 
     @ViewBuilder private var whatTheySee: some View {
         Text("What should they be able to see?")
-            .thusoFont(ThusoType.sectionTitle, weight: .medium).foregroundStyle(ThusoTheme.charcoal)
+            .thusoFont(ThusoType.sectionTitle, weight: .medium).foregroundStyle(ThusoRole.foreground)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityAddTraits(.isHeader)
         /* Cards rather than rows, and the widest grant is last for the same reason the contract
@@ -105,7 +105,7 @@ struct InviteGuardianView: View {
             }
         }
         Text("Sexual and reproductive health, mental health and HIV-related entries stay hidden under every scope unless you release them one by one.")
-            .font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+            .font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
             .fixedSize(horizontal: false, vertical: true)
         stepButtons(forward: "Continue", to: 2, back: 0)
     }
@@ -115,7 +115,7 @@ struct InviteGuardianView: View {
             PanelHead("For how long?")
             PickRow(label: "Access expires", selection: $expires, options: durations.map { ($0, $0) })
             Text("Time-limited access is the safer default. An open-ended grant is reviewed with you every six months. They must verify their identity before the invitation becomes active — an unverified invitation grants nothing.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
         }
         stepButtons(forward: "Review", to: 3, back: 1)
@@ -165,7 +165,7 @@ struct SystemStatesView: View {
                     PanelHead("The chosen state")
                     if state == .ready {
                         Label("The real content, with nothing standing in for it.", systemImage: "checkmark.circle")
-                            .font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                            .font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                             .fixedSize(horizontal: false, vertical: true)
                     } else {
                         StateBlock(state: state, subject: "Your laboratory results",
@@ -178,7 +178,7 @@ struct SystemStatesView: View {
                 }
                 EmptyStateCard(title: "No visits yet", message: "When you book your first visit it appears here, with the nurse’s name and what to have ready.")
                 Text("An error state never blames the patient, never loses what they typed, and always says what happens next.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.vertical, ThusoSpacing.space16)
@@ -222,16 +222,16 @@ struct LanguageView: View {
                 if let notice = store.locale.reviewNotice {
                     SurfacePanel(tone: .quiet) {
                         Label(notice, systemImage: "exclamationmark.triangle")
-                            .font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                            .font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
-                    Text(ThusoLanguageNotes.clinicalRule).font(.footnote)
-                        .foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(ThusoLanguageNotes.clinicalRule).font(.thuso(.footnote))
+                        .foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(ThusoLanguageNotes.fallback).font(.footnote)
-                        .foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(ThusoLanguageNotes.fallback).font(.thuso(.footnote))
+                        .foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 signLanguage
@@ -243,8 +243,8 @@ struct LanguageView: View {
                     NavigationLink { InterpretingView() } label: {
                         NavPillLabel(title: Interpreting.labels.heading, symbol: "person.2.wave.2")
                     }.buttonStyle(.plain)
-                    Text(Interpreting.rule("one-roster").sentence).font(.footnote)
-                        .foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(Interpreting.rule("one-roster").sentence).font(.thuso(.footnote))
+                        .foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -265,7 +265,7 @@ struct LanguageView: View {
             ForEach([ThusoLanguageNotes.signLanguageRequirementDetail,
                      ThusoLanguageNotes.signLanguageStatus,
                      ThusoLanguageNotes.signLanguageWhyNotListed], id: \.self) { sentence in
-                Text(sentence).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(sentence).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -280,11 +280,11 @@ struct LanguageView: View {
             PanelHead("What must never happen")
             ForEach(ThusoLanguageNotes.signLanguageNeverHappens, id: \.self) { sentence in
                 Label(sentence, systemImage: "xmark.circle")
-                    .font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                    .font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Text(ThusoLanguageNotes.signLanguageNotBuilt).font(.footnote)
-                .foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(ThusoLanguageNotes.signLanguageNotBuilt).font(.thuso(.footnote))
+                .foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

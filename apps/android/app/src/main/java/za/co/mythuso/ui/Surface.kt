@@ -115,7 +115,7 @@ import androidx.compose.ui.unit.dp
  * rather than optimistic. It still does not move: a ground that drifts is a box that keeps changing
  * under a thumb, and this is a phone somebody is holding on a doorstep. */
 @Composable fun studioGroundBrush(): Brush = Brush.linearGradient(
-    0.0f to SurfaceWhite, 0.35f to StudioPaper, 1.0f to StudioPaper
+    0.0f to theme.background, 1.0f to theme.background
 )
 
 /* Secondary text, and the ground it is allowed to sit on.
@@ -133,7 +133,8 @@ import androidx.compose.ui.unit.dp
  *
  * The composition local stays, because the night card still has to say what its own quiet ink is and
  * that one has no token yet. */
-internal val LocalSecondaryText = androidx.compose.runtime.compositionLocalOf { StudioInkMuted }
+/* The default is the light palette's muted ink; ThusoTheme provides the palette in force over it. */
+internal val LocalSecondaryText = androidx.compose.runtime.compositionLocalOf { LightPalette.mutedForeground }
 
 /* The signature of the language, and the one text style in this app that is not one of Material's
    roles: `FontWeight.Light` is a real 300 here — Roboto ships the axis on every Android — where the
@@ -142,10 +143,7 @@ internal val LocalSecondaryText = androidx.compose.runtime.compositionLocalOf { 
    token file's `metric`; the reference sets its figures at 40, which is on the type scale the design
    brief lists and is not one of the seven roles `typography.scale` declares, so this asks for the
    step that exists rather than inventing one. */
-private val MetricNumeral = androidx.compose.ui.text.TextStyle(
-    fontSize = ThusoType.metric, lineHeight = ThusoType.metric,
-    fontWeight = FontWeight.Light, fontFeatureSettings = "tnum"
-)
+private val MetricNumeral get() = ThusoMetricStyle
 
 /** A metric: the chip above, the numeral large and thin, the name below. */
 @Composable fun Metric(
@@ -167,20 +165,19 @@ private val MetricNumeral = androidx.compose.ui.text.TextStyle(
            outlined. Colour is never the only difference — the chip says the word as well. */
         if (chip != null) Text(
             chip, style = MaterialTheme.typography.labelSmall,
-            color = if (flagged) StudioPaper else Charcoal,
+            color = if (flagged) theme.foreground else theme.foreground,
             modifier = Modifier
-                .background(if (flagged) StudioNight else SurfaceWhite, RoundedCornerShape(ThusoRadius.pill))
-                .then(if (flagged) Modifier else Modifier.border(1.dp, StudioLine, RoundedCornerShape(ThusoRadius.pill)))
+                .background(if (flagged) theme.warning.tint(0.20f) else theme.success.tint(0.15f), RoundedCornerShape(ThusoRadius.pill))
                 .padding(horizontal = ThusoSpacing.space12, vertical = ThusoSpacing.space4)
         )
         Row(verticalAlignment = Alignment.Bottom) {
             if (prefix.isNotEmpty()) Text(
-                prefix, style = MaterialTheme.typography.bodyLarge, color = Charcoal,
+                prefix, style = MaterialTheme.typography.bodyLarge, color = theme.foreground,
                 modifier = Modifier.padding(end = ThusoSpacing.space4)
             )
-            Text(value, style = MetricNumeral, color = Charcoal, maxLines = 1)
+            Text(value, style = MetricNumeral, color = theme.foreground, maxLines = 1)
             if (unit.isNotEmpty()) Text(
-                unit, style = MaterialTheme.typography.bodyLarge, color = Charcoal,
+                unit, style = MaterialTheme.typography.bodyLarge, color = theme.foreground,
                 modifier = Modifier.padding(start = ThusoSpacing.space4)
             )
         }
@@ -230,24 +227,27 @@ enum class PanelTone { PLAIN, QUIET, LEAD, GLASS }
 ) {
     val opaque = prefersOpaqueSurfaces()
     val shape = RoundedCornerShape(ThusoRadius.panel)
+    /* The identity's four grounds: a card, the muted panel, the raised surface for the one panel a
+       screen leads with, and — where the page still asks for glass — the surface itself, because the
+       handoff's guidelines refuse glass effects and a card is what stands in its place. */
     val fill = when (tone) {
-        PanelTone.PLAIN -> SurfaceWhite
-        PanelTone.QUIET -> Cloud
-        PanelTone.LEAD -> StudioLilac
-        PanelTone.GLASS -> if (opaque) GlassFloor else SurfaceWhite.copy(alpha = 0.72f)
+        PanelTone.PLAIN -> theme.surface
+        PanelTone.QUIET -> theme.muted
+        PanelTone.LEAD -> theme.surfaceRaised
+        PanelTone.GLASS -> theme.surface
     }
     val hairline = when (tone) {
-        PanelTone.PLAIN, PanelTone.GLASS -> StudioLine
-        else -> Color.Transparent
+        PanelTone.QUIET -> Color.Transparent
+        else -> theme.border
     }
     /* The lead panel used to have to override this, because the secondary grey of the day failed on
        its fill. studioInkMuted clears 4.90 on studioLilac, so there is one answer for every tone and
        the panel no longer has to know which one it is. */
     androidx.compose.runtime.CompositionLocalProvider(
-        LocalSecondaryText provides StudioInkMuted
+        LocalSecondaryText provides theme.mutedForeground
     ) {
         Column(
-            modifier.fillMaxWidth().clip(shape).background(fill, shape).border(1.dp, hairline, shape).padding(padding),
+            modifier.fillMaxWidth().then(if (tone == PanelTone.LEAD) Modifier.raisedShadow(shape) else Modifier).clip(shape).background(fill, shape).border(1.dp, hairline, shape).padding(padding),
             verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12), content = content
         )
     }
@@ -257,17 +257,17 @@ enum class PanelTone { PLAIN, QUIET, LEAD, GLASS }
 @Composable fun SPanelHead(title: String, note: String = "", openLabel: String = "", onOpen: (() -> Unit)? = null) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = Charcoal, modifier = Modifier.semantics { heading() })
+            Text(title, style = MaterialTheme.typography.titleMedium, color = theme.foreground, modifier = Modifier.semantics { heading() })
             if (note.isNotEmpty()) Text(note, style = MaterialTheme.typography.bodySmall, color = LocalSecondaryText.current)
         }
         if (onOpen != null) Box(
-            Modifier.size(TouchTarget).clip(RoundedCornerShape(ThusoRadius.pill))
-                .background(SurfaceWhite, RoundedCornerShape(ThusoRadius.pill))
-                .border(1.dp, StudioLine, RoundedCornerShape(ThusoRadius.pill))
+            Modifier.size(TouchTarget).clip(RoundedCornerShape(ThusoRadius.control))
+                .background(theme.surface, RoundedCornerShape(ThusoRadius.control))
+                .border(1.dp, theme.border, RoundedCornerShape(ThusoRadius.control))
                 .clickable(onClick = onOpen)
                 .semantics { role = Role.Button; contentDescription = openLabel.ifEmpty { "Open $title" } },
             Alignment.Center
-        ) { Icon(Icons.Outlined.ArrowOutward, null, tint = Charcoal, modifier = Modifier.size(18.dp)) }
+        ) { Icon(Icons.Outlined.ArrowOutward, null, tint = theme.foreground, modifier = Modifier.size(18.dp)) }
     }
 }
 
@@ -276,32 +276,31 @@ enum class PanelTone { PLAIN, QUIET, LEAD, GLASS }
  * The height floor is the touch target and nothing caps it, so a reader at the largest font scale
  * gets a taller pill rather than a clipped label. */
 @Composable fun NavPillRow(icon: ImageVector, label: String, current: Boolean = false, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(ThusoRadius.pill)
+    val shape = RoundedCornerShape(ThusoRadius.control)
     Row(
         Modifier.fillMaxWidth().heightIn(min = TouchTarget).clip(shape)
-            /* The row you are on takes studioNight and studioPaper, the same pair the one live card
-               on a screen uses. A neutral black pill on a cream ground reads as a hole rather than as
-               a place, and the two darks would have been the only two in the app that disagreed. */
-            .background(if (current) StudioNight else Cloud, shape)
+            /* The row you are on is the handoff's active navigation item: the accent at 15% under the
+               foreground, with the heavier weight — never colour alone. Compact corners, not a pill. */
+            .background(if (current) theme.accent.tint(0.15f) else theme.muted, shape)
             .clickable(onClick = onClick)
             .padding(start = ThusoSpacing.space16, end = ThusoSpacing.space4, top = ThusoSpacing.space4, bottom = ThusoSpacing.space4)
             .semantics(mergeDescendants = true) { role = Role.Tab; contentDescription = if (current) "$label, current" else label },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)
     ) {
-        Icon(icon, null, tint = if (current) StudioPaper else Charcoal, modifier = Modifier.size(20.dp))
+        Icon(icon, null, tint = if (current) theme.foreground else theme.mutedForeground, modifier = Modifier.size(20.dp))
         Text(
             label, style = MaterialTheme.typography.titleSmall,
-            color = if (current) StudioPaper else Charcoal,
+            color = if (current) theme.foreground else theme.mutedForeground,
             maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f)
         )
         Box(
-            Modifier.size(36.dp).background(if (current) StudioPaper else Color.Transparent, RoundedCornerShape(ThusoRadius.pill)),
+            Modifier.size(36.dp),
             Alignment.Center
         ) {
             Icon(
                 Icons.AutoMirrored.Outlined.ArrowForward, null,
-                tint = if (current) StudioNight else StudioInkMuted, modifier = Modifier.size(17.dp)
+                tint = if (current) theme.foreground else theme.mutedForeground, modifier = Modifier.size(17.dp)
             )
         }
     }
@@ -319,9 +318,9 @@ enum class PanelTone { PLAIN, QUIET, LEAD, GLASS }
             Box(
                 Modifier.weight(1f).height(12.dp).background(
                     when {
-                        index == now -> StudioNight
-                        index < done -> StudioOlive
-                        else -> Cloud
+                        index == now -> theme.primary
+                        index < done -> theme.accent
+                        else -> theme.muted
                     },
                     RoundedCornerShape(ThusoRadius.pill)
                 )
@@ -336,10 +335,9 @@ enum class PanelTone { PLAIN, QUIET, LEAD, GLASS }
     val shape = RoundedCornerShape(ThusoRadius.pill)
     Text(
         text, style = MaterialTheme.typography.labelSmall,
-        color = if (flagged) StudioPaper else Charcoal, maxLines = 1,
+        color = theme.foreground, maxLines = 1,
         modifier = Modifier
-            .background(if (flagged) StudioNight else SurfaceWhite, shape)
-            .then(if (flagged) Modifier else Modifier.border(1.dp, StudioLine, shape))
+            .background(if (flagged) theme.warning.tint(0.20f) else theme.success.tint(0.15f), shape)
             .padding(horizontal = ThusoSpacing.space12, vertical = ThusoSpacing.space4)
     )
 }

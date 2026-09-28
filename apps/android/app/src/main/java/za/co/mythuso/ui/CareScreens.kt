@@ -45,6 +45,8 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.semantics.hideFromAccessibility
+import za.co.mythuso.ui.components.*
 
 /* Every screen's ground. 16dp in from the edges, 24dp between the things on it — unrelated things
    far apart — and a section holds its own header 12dp above its own content. The last gap is the
@@ -57,24 +59,26 @@ import androidx.compose.foundation.text.KeyboardActions
         verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space24), content = content
     )
 }
-/* Native editorial home: care cover, dated readings, appointments and a personal journal.
-   Booking callbacks still carry the selected service and search query. */
+/* The patient's home, on the identity (28 September 2026): the same order and the same data as
+   apps/web/src/features/Dashboard.tsx. The welcome and, in it, the one thing a person opened the home
+   for — the next step; the figures, from the record; care you can book today; your health over time,
+   drawn only from readings on record; recent care, newest first; and the rest of the household. Every
+   card is white, as the web's are since the handoff: the editorial cover, the lilac wellbeing block and
+   the peach promotion said nothing a reader could use. Booking callbacks still carry the selected
+   service and search query. */
 @Composable fun HomeScreen(store: PreviewStore, book: (CareService?) -> Unit, open: (String) -> Unit, firstRun: () -> Unit) {
     ScreenColumn {
         HomeGreeting(store, open)
         HomeNextVisit(store, book, open)
-        HomeBooking(store, book)
-        HomeSnapshot(open)
-        HomeCareCover(store, book)
-        HomeLiveWell(open)
+        HomeMetrics(store, open)
         HomeShortcuts(store, book)
         HomeResults(open)
+        HomeHistory(open)
+        HomeLiveWell(open)
         HomeCarePlan(open)
         HomeFamily(store, open)
         PassportPromo(store, open)
-        /* The tagline used to close this screen in thirteen-point grey. It opens it now, at forty
-           points on a lime block, so it is not repeated down here. */
-        TextButton(onClick = firstRun, modifier = Modifier.heightIn(min = TouchTarget), shape = ThusoButtonShape) { Text("See the first-run and recovery flow") }
+        ThusoButton("See the first-run and recovery flow", onClick = firstRun, variant = ThusoButtonVariant.Ghost, modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -86,40 +90,26 @@ import androidx.compose.foundation.text.KeyboardActions
     var areaMenu by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space16)) {
         DemoBadge()
-        /* THE HEADLINE IS THE CONTRACT'S OWN WORDS, IN ELEVEN LANGUAGES.
-           The prototype's patient frame is a greeting over a short line about what the product is
-           for, both set very large. The temptation was to type the second line in English and let ten
-           locales show a slogan nobody had translated, on the one screen a person opens first. There
-           was no need: shell.greeting and shell.tagline are both in locales.json, reviewed to the
-           same standard as the rest of the shell, and "Help. Health. Home." is three words in every
-           one of them. So the tagline is promoted from a centred grey caption at the very bottom of
-           this screen to the second line of the headline. Nothing new was written.
-
-           The waving hand went with it. An emoji at forty points is a picture the size of a word,
-           TalkBack reads it aloud as "waving hand" after the greeting, and it was the one decorative
-           object in a design that has no others. */
-        /* Which three keys, from packages/catalog/framing.json rather than from here. The words are
-           still the locale table's — this screen has never typed them — but which of its two hundred
-           keys make up the patient's headline is a framing decision, and it sits in the one file
-           that holds the other five. */
+        /* THE HEADLINE IS THE CONTRACT'S OWN WORDS, IN ELEVEN LANGUAGES. shell.greeting and shell.tagline
+           are both in locales.json, reviewed to the same standard as the rest of the shell; which keys
+           make up the patient's headline is packages/catalog/framing.json's decision, not this file's.
+           Set in the display face, as the handoff sets a page title. */
         Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
-            Text(thuso(FramingData.patientLead, store.locale),
-                style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold,
-                letterSpacing = (-1).sp, color = StudioInkDeep)
-            Text(thuso(FramingData.patientDetail, store.locale),
-                style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
+            Text(thuso(FramingData.patientLead, store.locale), style = MaterialTheme.typography.headlineLarge, color = theme.foreground,
+                modifier = Modifier.semantics { heading() })
+            Text(thuso(FramingData.patientDetail, store.locale), style = MaterialTheme.typography.bodyMedium, color = theme.mutedForeground)
         }
         /* A FlowRow rather than a Row: at the largest font scales the two chips take a line each
            instead of squeezing the care area down to an ellipsis. */
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Box {
                 ContextChip(Icons.Outlined.LocationOn, store.careArea, "Care area: ${store.careArea}") { areaMenu = true }
-                DropdownMenu(areaMenu, { areaMenu = false }) {
+                DropdownMenu(areaMenu, { areaMenu = false }, containerColor = theme.surface) {
                     careAreas.forEach { area ->
                         DropdownMenuItem(
-                            text = { Text(area) },
+                            text = { Text(area, color = theme.foreground) },
                             onClick = { store.careArea = area; areaMenu = false },
-                            trailingIcon = { if (area == store.careArea) Icon(Icons.Outlined.Check, null, tint = Charcoal) }
+                            trailingIcon = { if (area == store.careArea) Icon(Icons.Outlined.Check, null, tint = theme.foreground) }
                         )
                     }
                 }
@@ -132,25 +122,35 @@ import androidx.compose.foundation.text.KeyboardActions
     }
 }
 
+/* The handoff's pd-chip: a compact control, so the one place a pill is still right. */
 @Composable private fun ContextChip(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, label: String, click: () -> Unit) {
     Row(
-        Modifier.heightIn(min = TouchTarget).clip(CircleShape).background(Color.White.copy(alpha = 0.92f))
-            .border(1.dp, StudioLine, CircleShape).clickable(onClick = click)
+        Modifier.heightIn(min = TouchTarget).clip(CircleShape).background(theme.surface)
+            .border(1.dp, theme.border, CircleShape).clickable(onClick = click)
             .padding(horizontal = ThusoSpacing.space12, vertical = ThusoSpacing.space8)
             .semantics { contentDescription = label },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Icon(icon, null, tint = Charcoal, modifier = Modifier.size(16.dp))
-        Text(text, style = MaterialTheme.typography.labelMedium, color = Charcoal, modifier = Modifier.weight(1f, fill = false))
-        Icon(Icons.Outlined.ExpandMore, null, tint = StudioInkMuted, modifier = Modifier.size(16.dp))
+        Icon(icon, null, tint = theme.foreground, modifier = Modifier.size(16.dp))
+        /* Ellipsised rather than broken: "Johannesbur / g" is not a place. The whole name is in the
+           description a screen reader reads. */
+        Text(text, style = MaterialTheme.typography.labelMedium, color = theme.foreground, maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+        Icon(Icons.Outlined.ExpandMore, null, tint = theme.mutedForeground, modifier = Modifier.size(16.dp))
     }
 }
 
-/* The one thing on this screen that is already true: a visit somebody has arranged. It is a LeadCard
-   rather than a CareCard, and that is the whole of the difference between a home screen with a
-   subject and a home screen with eight equal cards on it. The card is one thing to TalkBack too —
-   merged, so the service, the hour and the nurse are read as a sentence rather than as six stops. */
+/* The MyThuso visit icon on the handoff's tile, for the one card on this screen that is about a visit. */
+@Composable private fun VisitTile() {
+    Box(Modifier.size(44.dp).background(theme.accent.tint(0.15f), RoundedCornerShape(ThusoRadius.tile)), Alignment.Center) {
+        Icon(painterResource(R.drawable.ic_mythuso_visit), null, Modifier.size(24.dp), tint = Color.Unspecified)
+    }
+}
+
+/* The next step, as the web's pd-next section: what is already true — a visit somebody has arranged —
+   or the way to arrange one. It is the LeadCard, the one elevated card on the screen, and it is one
+   thing to TalkBack: the service, the hour and the nurse read as a sentence rather than as six stops. */
 @Composable private fun HomeNextVisit(store: PreviewStore, book: (CareService?) -> Unit, open: (String) -> Unit) {
     val visit = store.visits.firstOrNull()
     Section(thuso(Phrase.NEXT_VISIT, store.locale), if (visit == null) null else "All visits", { open("Visits") }) {
@@ -158,99 +158,142 @@ import androidx.compose.foundation.text.KeyboardActions
             /* Not a blank space and not a fixture. The sentences are the scheduling contract's, so
                all three apps say the same thing about having nothing booked. */
             LeadCard(Modifier.semantics(mergeDescendants = true) {}) {
-                TileIcon(Icons.Outlined.EditCalendar, size = 44.dp)
-                Text(SchedulingData.noUpcoming, style = MaterialTheme.typography.titleLarge, color = Charcoal)
-                Text(SchedulingData.noUpcomingDetail, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
-                StudioButton(onClick = { book(null) }) { Text("Find your care") }
+                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+                    VisitTile()
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
+                        Text(SchedulingData.noUpcoming, style = MaterialTheme.typography.titleLarge, color = theme.foreground)
+                        Text(SchedulingData.noUpcomingDetail, style = MaterialTheme.typography.bodyMedium, color = theme.mutedForeground)
+                    }
+                }
+                ThusoButton("Explore care", onClick = { book(null) }, trailingIcon = Icons.AutoMirrored.Outlined.ArrowForward, modifier = Modifier.fillMaxWidth())
             }
         } else {
-            /* Spelled out rather than left to be concatenated. A merged card reads its children in
-               order, which on this one is seven fragments — a service, an hour, a pill, a duration,
-               an address and a nurse's two lines — and the sentence below is what somebody would
-               actually say about a visit. */
+            val confirmed = visit.status == "Confirmed"
             val spoken = "${visit.service.name}, ${visit.status}. ${visit.shortWhenText}. " +
                 (if (visit.isScheduled) "${visit.service.duration} minutes. " else "Looking for the nearest nurse. ") +
                 "${visit.address}. Sister Naledi Mokoena, Registered Nurse, SANC."
-            /* THE ONE NEAR-BLACK CARD ON THIS SCREEN, AND IT CARRIES THE ONE THING ALREADY TRUE.
-               The prototype's phone frames spend exactly one dark card and spend it on what is live
-               right now. On a returning patient's home that is the visit somebody has arranged — not
-               the catalogue under it and not the promotion at the foot of it. It was a pale lead card
-               among seven other cards, which is the defect the design language names first.
-
-               The chip loses its tone word on the way. On a card that is one node to TalkBack and one
-               object on the screen, a teal chip and an amber chip were two colours saying what the
-               words beside them already say; the night chip says the word. */
-            StudioNightCard(
-                Modifier
-                    .clickable { open("Upcoming visit: ${visit.reference}") }
-                    .semantics(mergeDescendants = true) { contentDescription = spoken }
-            ) {
-                StudioNightStatusHeader(visit.status) {
-                    Text(visit.service.name, style = MaterialTheme.typography.titleLarge, color = StudioNightInk)
-                    Text(visit.shortWhenText, style = MaterialTheme.typography.bodyMedium, color = StudioNightInkQuiet)
+            /* The state pill sits at the row's end while there is room and above the title past a 1.3
+               font scale, for StatusHeader's reason: a pill and a title cannot both have the width on a
+               393dp phone, and the pill overran the title at twice the type. */
+            val stacked = LocalDensity.current.fontScale >= 1.3f
+            LeadCard(Modifier.semantics(mergeDescendants = true) { contentDescription = spoken }) {
+                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+                    VisitTile()
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
+                        if (stacked) StatusPill(visit.status, if (confirmed) "teal" else "amber")
+                        Text(if (confirmed) "Get ready for your visit" else "Review your visit request", style = MaterialTheme.typography.titleLarge, color = theme.foreground)
+                        Text("${visit.service.name} · ${visit.shortWhenText} · ${visit.person}", style = MaterialTheme.typography.bodyMedium, color = theme.mutedForeground)
+                    }
+                    if (!stacked) StatusPill(visit.status, if (confirmed) "teal" else "amber")
                 }
                 /* An arrival estimate belongs to "come now" and to nothing else; a visit booked for a
                    named hour says how long it takes instead, from the catalogue. */
                 if (visit.isScheduled) IconLine(Icons.Outlined.Schedule, "${visit.service.duration} minutes")
                 else IconLine(Icons.Outlined.Bolt, "Looking for the nearest nurse")
                 IconLine(Icons.Outlined.LocationOn, visit.address)
-                /* A rule on a card this dark is drawn in the card's own ink. StudioLine is a hairline
-                   for a light ground and there is nothing of it to see here. */
-                HorizontalDivider(color = StudioPaper.copy(alpha = 0.18f))
-                NurseRow { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = StudioNightInkQuiet) }
-                Text("Have your medication list ready.", style = MaterialTheme.typography.bodySmall, color = StudioNightInkQuiet)
-                Text("View visit details & preparation", style = MaterialTheme.typography.labelMedium, color = StudioLime)
+                HorizontalDivider(color = theme.border)
+                NurseRow()
+                Text("Have your medication list ready.", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
+                ThusoButton(
+                    if (confirmed) "Prepare for my visit" else "View visit details",
+                    onClick = { open("Upcoming visit: ${visit.reference}") },
+                    trailingIcon = Icons.AutoMirrored.Outlined.ArrowForward, modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
 }
 
-/* The action, and then the way round it. The search field used to sit above the button, which put a
-   text box between somebody who had already decided and the button that acts on the decision. */
-@Composable private fun HomeCareCover(store: PreviewStore, book: (CareService?) -> Unit) {
-    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(30.dp)).background(StudioNight)) {
-        Image(painterResource(R.drawable.care_editorial), null,
-            modifier = Modifier.matchParentSize(), contentScale = ContentScale.Crop)
-        Box(Modifier.matchParentSize().background(Brush.horizontalGradient(listOf(
-            StudioNight.copy(alpha = 0.96f), StudioNight.copy(alpha = 0.80f), StudioNight.copy(alpha = 0.1f)))))
-        Column(Modifier.fillMaxWidth().heightIn(min = 254.dp).padding(ThusoSpacing.space24),
-            verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space16)) {
-            Text("HELP. HEALTH. HOME.", style = MaterialTheme.typography.labelMedium,
-                letterSpacing = 1.5.sp, color = StudioLime)
-            Text("Care that\nfeels like home.", style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Medium, letterSpacing = (-1.4).sp, color = SurfaceWhite)
-            Button(onClick = { book(null) }, shape = RoundedCornerShape(ThusoRadius.control),
-                colors = ButtonDefaults.buttonColors(containerColor = StudioLime, contentColor = StudioInkDeep),
-                modifier = Modifier.heightIn(min = TouchTarget)) {
-                Text(thuso(Phrase.BOOK_NURSE, store.locale), modifier = Modifier.weight(1f, fill = false))
-                Spacer(Modifier.width(ThusoSpacing.space8))
-                Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, modifier = Modifier.size(18.dp))
+/* The figures, from the record — the same four the web counts (Dashboard.tsx, "pd-metrics"): the next
+   visit, blood pressure and blood glucose from the Passport's latest set, and the doctor's review. Two
+   of them are readings and open the record they came from; the other two are facts about the account
+   and are not buttons, because nothing is behind them to open. Two to a row, and one to a row once the
+   reader has enlarged the type past the point where two large numerals fit. */
+@Composable private fun HomeMetrics(store: PreviewStore, open: (String) -> Unit) {
+    val next = store.visits.firstOrNull()
+    val latest = Passport.latestSet
+    val systolic = Passport.spec("systolic")
+    val diastolic = Passport.spec("diastolic")
+    val glucose = Passport.spec("glucose")
+    val pressureInRange = systolic != null && diastolic != null &&
+        Passport.flagOf(systolic, latest.values.getValue("systolic")) == "normal" && Passport.flagOf(diastolic, latest.values.getValue("diastolic")) == "normal"
+    val glucoseValue = glucose?.let { latest.values[it.id] }
+    val glucoseInRange = glucose != null && glucoseValue != null && Passport.flagOf(glucose, glucoseValue) == "normal"
+    val cards: List<@Composable (Modifier) -> Unit> = listOf(
+        { m -> ThusoMetricCard(
+            "Next visit", next?.let { if (it.isScheduled) it.start ?: "Soon" else "Soon" } ?: "None", m,
+            trend = next?.let { if (it.isScheduled && it.date != null) Scheduling.shortDate(it.date) else it.service.name },
+            iconSlot = { Icon(painterResource(R.drawable.ic_mythuso_visit), null, Modifier.size(20.dp), tint = Color.Unspecified) }
+        ) },
+        { m -> ThusoMetricCard(
+            "Blood pressure", "${latest.values.getValue("systolic").toInt()}/${latest.values.getValue("diastolic").toInt()}", m,
+            unit = systolic?.unit,
+            iconSlot = { Icon(painterResource(R.drawable.ic_mythuso_health), null, Modifier.size(20.dp), tint = Color.Unspecified) },
+            onClick = { open("Health Passport") },
+            foot = { RangeFoot(pressureInRange, "systolic") }
+        ) },
+        { m -> ThusoMetricCard(
+            "Blood glucose", if (glucose != null && glucoseValue != null) Passport.format(glucose, glucoseValue) else "—", m,
+            unit = glucose?.unit,
+            iconSlot = { Icon(painterResource(R.drawable.ic_mythuso_results), null, Modifier.size(20.dp), tint = Color.Unspecified) },
+            onClick = { open("Health Passport") },
+            foot = { RangeFoot(glucoseInRange, "glucose") }
+        ) },
+        { m -> ThusoMetricCard(
+            "Doctor's review", Passport.shortLabel(lastReview.reviewedDayOffset), m, trend = passportReviewer.name,
+            iconSlot = { Icon(painterResource(R.drawable.ic_mythuso_health), null, Modifier.size(20.dp), tint = Color.Unspecified) }
+        ) }
+    )
+    val perRow = if (LocalDensity.current.fontScale >= 1.3f) 1 else 2
+    Column(Modifier.semantics { contentDescription = "Your care at a glance" }, verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+        cards.chunked(perRow).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+                row.forEach { card -> card(Modifier.weight(1f)) }
+                repeat(perRow - row.size) { Spacer(Modifier.weight(1f)) }
             }
-            Text("Illustrative image", style = MaterialTheme.typography.bodySmall, color = SurfaceWhite)
         }
     }
 }
 
-@Composable private fun HomeBooking(store: PreviewStore, book: (CareService?) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-        OutlinedTextField(
-            store.careQuery, { store.careQuery = it }, placeholder = { Text("What care do you need today?") },
-            leadingIcon = { Icon(Icons.Outlined.Search, null, tint = StudioInkMuted) },
-            singleLine = true, shape = RoundedCornerShape(ThusoRadius.pill),
-            textStyle = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Search for care" },
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { store.careCategory = "All care"; book(null) }),
-            colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White, focusedContainerColor = Color.White, unfocusedBorderColor = StudioInkMuted)
-        )
+/* Under a reading: whether it sits inside its indicative range, in words, and the shape of it over the
+   visits on record — a sparkline drawn only from readings that reached the record. */
+@Composable private fun RangeFoot(inRange: Boolean, measure: String) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+        ThusoBadge(if (inRange) "In range" else "Outside range", variant = if (inRange) ThusoBadgeVariant.Success else ThusoBadgeVariant.Warning, size = ThusoBadgeSize.Sm, dot = true)
+        Sparkline(measure)
     }
 }
 
-/* One row per service: one symbol, the name, what it is, the price and how long it takes. The
-   two-up grid this replaces had room for the name and nothing else, and wrapped it over three lines
-   on a small phone. Both numbers come from the catalogue rather than being typed here. */
+@Composable private fun Sparkline(measure: String) {
+    val observation = Passport.spec(measure) ?: return
+    val series = Passport.seriesFor(observation).map { it.second }
+    if (series.size < 2) return
+    val ink = theme.accent
+    androidx.compose.foundation.Canvas(Modifier.width(56.dp).height(20.dp).semantics { hideFromAccessibility() }) {
+        val low = series.min(); val high = series.max()
+        val span = if (high - low == 0.0) 1.0 else high - low
+        val path = androidx.compose.ui.graphics.Path()
+        series.forEachIndexed { index, value ->
+            val x = size.width * index / (series.size - 1)
+            val y = size.height - (size.height * ((value - low) / span)).toFloat()
+            if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        }
+        drawPath(path, ink, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx()))
+    }
+}
+
+/* One row per service: one symbol, the name, what it is, the price and how long it takes. Both
+   numbers come from the catalogue rather than being typed here. The field above them is the
+   identity's search: the same words as the web's, and Search sends the query to the catalogue. */
 @Composable private fun HomeShortcuts(store: PreviewStore, book: (CareService?) -> Unit) {
     Section("Care you can book today", "See all", { book(null) }) {
+        ThusoTextField(
+            store.careQuery, { store.careQuery = it }, placeholder = "What care do you need today?",
+            leadingIcon = Icons.Outlined.Search,
+            modifier = Modifier.semantics { contentDescription = "Search for care" },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { store.careCategory = "All care"; book(null) })
+        )
         CareCard(padding = ThusoSpacing.space8) {
             services.take(4).forEachIndexed { index, service ->
                 Row(
@@ -263,79 +306,33 @@ import androidx.compose.foundation.text.KeyboardActions
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)
                 ) {
-                    /* One tint, not four. These rows used to cycle brown, mauve and slate-blue behind
-                       their symbols, and a colour that means nothing is a colour that has stopped
-                       meaning anything where it is meant to mean something — a reading out of range,
-                       a refusal, a visit nobody has picked up. */
                     TileIcon(serviceIcon(service.id))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
-                        Text(service.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                        Text(service.detail, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                        Text(service.name, style = MaterialTheme.typography.titleSmall, color = theme.foreground)
+                        Text(service.detail, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                     }
                     Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
-                        Text("R${service.price}", style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                        Text("${service.duration} min", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                        Text("R${service.price}", style = MaterialTheme.typography.titleSmall, color = theme.foreground)
+                        Text("${service.duration} min", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                     }
+                    Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = theme.mutedForeground, modifier = Modifier.size(20.dp))
                 }
-                if (index < 3) HorizontalDivider(color = StudioLine)
+                if (index < 3) HorizontalDivider(color = theme.border)
             }
         }
     }
 }
 
-// Sample values come from the same record as the Passport, including their date.
-@Composable private fun HomeSnapshot(open: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-        Text("Your care at a glance", style = MaterialTheme.typography.titleMedium, color = StudioInk)
-        Text("Sample readings · ${Passport.shortLabel(Passport.latestSet.dayOffset)}",
-            style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
-        val stacked = LocalDensity.current.fontScale >= 1.3f
-        if (stacked) {
-            SnapshotCard("systolic", Modifier.fillMaxWidth(), open)
-            SnapshotCard("glucose", Modifier.fillMaxWidth(), open)
-        } else Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-            SnapshotCard("systolic", Modifier.weight(1f), open)
-            SnapshotCard("glucose", Modifier.weight(1f), open)
-        }
-    }
-}
-
-@Composable private fun SnapshotCard(id: String, modifier: Modifier, open: (String) -> Unit) {
-    val observation = Passport.spec(id) ?: return
-    val value = Passport.latestSet.values[id] ?: return
-    val shape = RoundedCornerShape(ThusoRadius.panel)
-    val display = if (id == "systolic") "${value.toInt()}/${Passport.latestSet.values.getValue("diastolic").toInt()}"
-                  else Passport.format(observation, value)
-    Column(modifier.clip(shape).background(if (id == "systolic") SurfaceWhite else StudioLime)
-        .clickable(role = Role.Button) { open("Health Passport") }
-        .semantics(mergeDescendants = true) {}
-        .padding(ThusoSpacing.space16), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Icon(if (id == "systolic") Icons.Outlined.FavoriteBorder else Icons.Outlined.MonitorHeart,
-                null, tint = StudioInk, modifier = Modifier.size(20.dp))
-            Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, tint = StudioInkMuted, modifier = Modifier.size(16.dp))
-        }
-        Text(if (id == "systolic") "Blood pressure" else observation.label,
-            style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
-        Text(display, fontSize = 30.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-1).sp, color = StudioInkDeep)
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(observation.unit, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
-            Row(Modifier.height(30.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                Passport.seriesFor(observation).forEachIndexed { index, (_, reading) ->
-                    Box(Modifier.width(7.dp).height((reading / (if (id == "systolic") 160 else 8) * 30).toFloat().dp)
-                        .studioBarEntrance(index * 80, reading)
-                        .background(StudioOlive.copy(alpha = 0.45f), CircleShape))
-                }
-            }
-        }
-    }
-}
-
+/* Your health over time: the trend, drawn only through readings that reached the record — two or more
+   of one measure — and, where there are not two, the honest empty state rather than a line drawn
+   through one point. */
 @Composable private fun HomeResults(open: (String) -> Unit) {
     Section("Your health over time", "Health Passport", { open("Health Passport") }) {
-        Passport.spec("systolic")?.let { observation ->
-            ClinicalChart("Systolic blood pressure", observation.unit, Passport.seriesFor(observation).map { (set, value) -> Reading(Passport.shortLabel(set.dayOffset), value, set.note ?: "—") }, observation.low..observation.high)
-        }
+        val observation = Passport.spec("systolic")
+        val series = observation?.let { Passport.seriesFor(it) }.orEmpty()
+        if (observation != null && series.size > 1) {
+            ClinicalChart("Systolic blood pressure", observation.unit, series.map { (set, value) -> Reading(Passport.shortLabel(set.dayOffset), value, set.note ?: "—") }, observation.low..observation.high)
+        } else EmptyStateCard("No trend to show yet", "A trend needs two readings on your record. It is drawn from what a nurse recorded, never filled in.")
         PassportData.documents.firstOrNull { it.name == "Laboratory results" }?.let { document ->
             CareCard {
                 MenuRow(document.name, "${Passport.shortLabel(document.dayOffset)} · ${document.kind}", Icons.Outlined.Biotech) { open(document.opens ?: "Health Passport") }
@@ -345,23 +342,58 @@ import androidx.compose.foundation.text.KeyboardActions
     }
 }
 
-@Composable private fun HomeLiveWell(open: (String) -> Unit) {
-    val stacked = LocalDensity.current.fontScale >= 1.3f
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(30.dp)).background(StudioLilac)
-        .clickable(role = Role.Button) { open("Live well") }.semantics(mergeDescendants = true) {}
-        .padding(ThusoSpacing.space24), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space16)) {
-        Text("YOUR EVERYDAY WELLBEING", style = MaterialTheme.typography.labelMedium, letterSpacing = 1.2.sp, color = StudioInkMuted)
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Make room\nfor you.", style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Medium, letterSpacing = (-1.4).sp, color = StudioInkDeep, modifier = Modifier.weight(1f))
-            if (!stacked) MoonArtwork(Modifier.size(112.dp))
+/* What happened lately, newest first: each visit that took readings, and the doctor's review of the
+   last one on the day it was written. Read from the Passport's contract rather than composed here,
+   as the web's "Recent care" is. */
+@Composable private fun HomeHistory(open: (String) -> Unit) {
+    data class Item(val day: Long, val title: String, val detail: String, val badge: String?)
+    val systolic = Passport.spec("systolic")
+    val diastolic = Passport.spec("diastolic")
+    val history = (listOf(Item(lastReview.reviewedDayOffset, "${passportReviewer.name} reviewed your readings", lastReview.next, "Reviewed")) +
+        readingSets.map { set ->
+            val s = set.values["systolic"]; val d = set.values["diastolic"]
+            val outside = systolic != null && diastolic != null && s != null && d != null &&
+                (Passport.flagOf(systolic, s) != "normal" || Passport.flagOf(diastolic, d) != "normal")
+            Item(set.dayOffset, "Home visit · readings taken",
+                "Blood pressure ${s?.toInt() ?: "—"}/${d?.toInt() ?: "—"} ${systolic?.unit.orEmpty()}${set.note?.let { " · $it" } ?: ""}",
+                if (outside) "Outside range" else null)
+        }).sortedByDescending { it.day }
+    Section("Recent care", "Care timeline", { open("Care timeline") }) {
+        CareCard(padding = ThusoSpacing.space8) {
+            Text("What your nurse recorded, and what the doctor said about it.", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground,
+                modifier = Modifier.padding(horizontal = ThusoSpacing.space8))
+            history.forEachIndexed { index, item ->
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(ThusoRadius.control)).clickable { open("Health Passport") }
+                        .heightIn(min = TouchTarget).padding(ThusoSpacing.space8).semantics(mergeDescendants = true) {},
+                    verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)
+                ) {
+                    Text(Passport.shortLabel(item.day), style = MaterialTheme.typography.labelMedium, color = theme.mutedForeground, modifier = Modifier.widthIn(min = 52.dp))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
+                        Text(item.title, style = MaterialTheme.typography.titleSmall, color = theme.foreground)
+                        Text(item.detail, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
+                    }
+                    item.badge?.let { ThusoBadge(it, variant = if (it == "Reviewed") ThusoBadgeVariant.Primary else ThusoBadgeVariant.Warning, size = ThusoBadgeSize.Sm) }
+                }
+                if (index < history.lastIndex) HorizontalDivider(color = theme.border)
+            }
         }
-        Text("How have you been feeling? A quiet space for your own words.", style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
-        Row(Modifier.fillMaxWidth().background(SurfaceWhite, RoundedCornerShape(ThusoRadius.control))
-            .padding(ThusoSpacing.space16), horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8),
-            verticalAlignment = Alignment.CenterVertically) {
-            Text("Open your journal", style = MaterialTheme.typography.labelLarge, color = StudioInk, modifier = Modifier.weight(1f))
-            Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, tint = StudioInk, modifier = Modifier.size(18.dp))
+    }
+}
+
+/* Live well, on a card like every other: the eyebrow, the invitation and the way in. The lilac block
+   and its decorative moon are gone with the handoff's refusal of decorative orbs. */
+@Composable private fun HomeLiveWell(open: (String) -> Unit) {
+    ThusoCard(
+        Modifier.semantics(mergeDescendants = true) {}, variant = ThusoCardVariant.Interactive,
+        padding = ThusoCardPadding.Md, onClick = { open("Live well") }
+    ) {
+        Text("YOUR EVERYDAY WELLBEING", style = MaterialTheme.typography.labelSmall, letterSpacing = 0.8.sp, color = theme.mutedForeground)
+        Text("Make room for you.", style = MaterialTheme.typography.titleLarge, color = theme.foreground)
+        Text("How have you been feeling? A quiet space for your own words.", style = MaterialTheme.typography.bodyMedium, color = theme.mutedForeground)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
+            Text("Open your journal", style = MaterialTheme.typography.labelLarge, color = theme.foreground)
+            Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, tint = theme.foreground, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -396,58 +428,36 @@ import androidx.compose.foundation.text.KeyboardActions
                 }
                 if (portrait != null) PersonRow(member, relationship, portrait) { open("My family") }
                 else MenuRow(member, relationship, Icons.Outlined.AccountCircle) { open("My family") }
-                HorizontalDivider(color = StudioLine)
+                HorizontalDivider(color = theme.border)
             }
             MenuRow("Add a family member", "", Icons.Outlined.PersonAdd) { open("My family") }
         }
         /* Booking for somebody opens their booking, never their record. What you may see of another
            person is decided in My family, under consent, and nowhere on this screen. */
-        /* Tinted rather than left on the page ground, which is the colour it was already sitting on:
-           a panel the colour of the thing behind it is not a panel. */
-        TonedCard {
-            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
-                Icon(Icons.Outlined.VerifiedUser, null, tint = Charcoal, modifier = Modifier.size(18.dp))
-                Text("Booking for someone opens their booking, never their record. What you may see is decided in My family.",
-                     style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
-            }
+        ThusoAlert("Booking for someone opens their booking, never their record.") {
+            ThusoAlertText("What you may see is decided in My family.")
         }
     }
 }
 
-/* THE PROMOTION GAVE UP THE DARK CARD, BECAUSE THERE IS ONLY ONE OF THOSE.
-   It was charcoal, and so is the visit at the top of this screen now — two near-black cards on one
-   page, which is two subjects, which is none. One of those claims is a nurse arriving at somebody's
-   house on Thursday and the other is an invitation to look at a record, and they were drawn
-   identically. It takes studioPeach, one of the three tiles this palette declares, with charcoal on
-   it at 12.1:1. It is still the warmest object at the foot of the screen; it has stopped competing
-   with the thing that is actually happening. */
+/* The promotion, on a card: a badge, the line and the way in. It was a peach block, and before that the
+   second near-black card on the page. */
 @Composable private fun PassportPromo(store: PreviewStore, open: (String) -> Unit) {
-    Box(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(ThusoRadius.card))
-            .background(StudioPeach)
-            .clickable { open("Health Passport") }.padding(ThusoSpacing.space20)
-            .semantics(mergeDescendants = true) {}
+    ThusoCard(
+        Modifier.semantics(mergeDescendants = true) {}, variant = ThusoCardVariant.Interactive,
+        padding = ThusoCardPadding.Md, onClick = { open("Health Passport") }
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatusPill("THUSO PASS", "light")
-            Text("Your health.\nOne safe place.", style = MaterialTheme.typography.titleLarge, color = Color.White)
-            Text("Every visit, reading and result, in a record you own and control.",
-                  style = MaterialTheme.typography.bodySmall, color = SurfaceWhite)
-            Text("${thuso(Phrase.OPEN_PASSPORT, store.locale)} →", style = MaterialTheme.typography.titleSmall, color = SurfaceWhite)
-        }
+        ThusoBadge("Thuso Pass", variant = ThusoBadgeVariant.Primary)
+        Text("Your health. One safe place.", style = MaterialTheme.typography.titleLarge, color = theme.foreground)
+        Text("Every visit, reading and result, in a record you own and control.", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
+        Text("${thuso(Phrase.OPEN_PASSPORT, store.locale)} →", style = MaterialTheme.typography.labelLarge, color = theme.foreground)
     }
 }
 /* The nurse whose name is on the visit. The portrait is the shared illustration the three apps are
-   held to by scripts/check-boundaries.mjs — it has been rendered into this bundle all along and only
-   Android was not drawing it, which is why lint had it down as an unused resource. Two initials in a
-   circle is what a system shows when it does not know who is coming. */
+   held to by scripts/check-boundaries.mjs. */
 @Composable fun NurseRow(trailing: @Composable (() -> Unit)? = null) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-        Image(
-            painterResource(R.drawable.mythuso_nurse), null,
-            Modifier.size(44.dp).clip(CircleShape).background(AccentSoft, CircleShape),
-            contentScale = ContentScale.Crop
-        )
+        ThusoAvatar("Sister Naledi Mokoena", size = ThusoAvatarSize.Lg, image = painterResource(R.drawable.mythuso_nurse))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Sister Naledi Mokoena", style = MaterialTheme.typography.titleSmall, color = studioTitleInk())
             Text("Registered Nurse (SANC)", style = MaterialTheme.typography.bodySmall, color = studioBodyInk())
@@ -493,13 +503,10 @@ fun serviceIcon(id: String) = when (id) {
         }
         val filtered = discoverCare(store.careQuery, store.careCategory)
         Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-            OutlinedTextField(
-                store.careQuery, { store.careQuery = it }, placeholder = { Text("Find a service") },
-                leadingIcon = { Icon(Icons.Outlined.Search, null, tint = StudioInkMuted) },
-                singleLine = true, shape = RoundedCornerShape(ThusoRadius.pill),
-                textStyle = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Find a service" },
-                colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = Color.White, focusedContainerColor = Color.White, unfocusedBorderColor = StudioInkMuted)
+            ThusoTextField(
+                store.careQuery, { store.careQuery = it }, placeholder = "Find a service",
+                leadingIcon = Icons.Outlined.Search,
+                modifier = Modifier.semantics { contentDescription = "Find a service" }
             )
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 careCategories.forEach { category ->
@@ -509,10 +516,10 @@ fun serviceIcon(id: String) = when (id) {
                     }, label = { Text(category) })
                 }
             }
-            Text("${filtered.size} services · Prices and durations shown before booking", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+            Text("${filtered.size} services · Prices and durations shown before booking", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
             if (filtered.isEmpty()) {
                 EmptyStateCard("No matching services", "Try a different care category or a shorter search.")
-                OutlinedButton(onClick = { store.careQuery = ""; store.careCategory = "All care" }, shape = ThusoButtonShape) { Text("Show all services") }
+                ThusoButton("Show all services", onClick = { store.careQuery = ""; store.careCategory = "All care" }, variant = ThusoButtonVariant.Secondary)
             }
             else filtered.chunked(columns).forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
@@ -521,8 +528,8 @@ fun serviceIcon(id: String) = when (id) {
                 }
             }
         }
-        TonedCard {
-            Note("All clinical decisions require a registered clinician. Prescription services require a valid prescription.")
+        ThusoAlert("All clinical decisions require a registered clinician.") {
+            ThusoAlertText("Prescription services require a valid prescription.")
         }
     }
     selected?.let { BookingDialog(it, store) { selected = null } }
@@ -537,15 +544,15 @@ fun serviceIcon(id: String) = when (id) {
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
             TileIcon(serviceIcon(service.id))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
-                Text(service.name, style = MaterialTheme.typography.titleMedium, color = Charcoal)
-                Text(service.detail, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                Text(service.name, style = MaterialTheme.typography.titleMedium, color = theme.foreground)
+                Text(service.detail, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
             }
-            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = StudioInkMuted, modifier = Modifier.size(20.dp))
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = theme.mutedForeground, modifier = Modifier.size(20.dp))
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
-            Text("From R${service.price}", style = MaterialTheme.typography.titleSmall, color = Charcoal)
-            Text("·", style = MaterialTheme.typography.bodySmall, color = StudioLine)
-            Text("${service.duration} minutes", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+            Text("From R${service.price}", style = MaterialTheme.typography.titleSmall, color = theme.foreground)
+            Text("·", style = MaterialTheme.typography.bodySmall, color = theme.border)
+            Text("${service.duration} minutes", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
         }
     }
 }
@@ -585,15 +592,15 @@ fun serviceIcon(id: String) = when (id) {
     val labels = listOf("Who is the visit for?", "Where should we come?", BookingData.Person.heading, "Choose your time", "Choose payment", "Review your visit")
     val finished = step == 6
     ModalBottomSheet(onDismissRequest = close, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = SurfaceWhite, contentColor = Charcoal) {
+        containerColor = theme.surface, contentColor = theme.foreground) {
         Column(Modifier.fillMaxWidth().imePadding().padding(horizontal = 24.dp).padding(bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(if (finished) "Your demo visit is booked" else labels[step], style = MaterialTheme.typography.titleLarge, color = Charcoal)
+            Text(if (finished) "Your demo visit is booked" else labels[step], style = MaterialTheme.typography.titleLarge, color = theme.foreground, modifier = Modifier.semantics { heading() })
             if (!finished) {
                 StepDots(step + 1, labels.size, labels[step])
-                Column(Modifier.fillMaxWidth().background(StudioPaper, RoundedCornerShape(16.dp)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(service.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                    Text("R${service.price} · ${service.duration} minutes · Registered nurse", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
-                    if (step > 0) Text(person, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                Column(Modifier.fillMaxWidth().background(theme.muted, RoundedCornerShape(ThusoRadius.card)).padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(service.name, style = MaterialTheme.typography.titleSmall, color = theme.foreground)
+                    Text("R${service.price} · ${service.duration} minutes · Registered nurse", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
+                    if (step > 0) Text(person, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                 }
             }
             Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -602,7 +609,9 @@ fun serviceIcon(id: String) = when (id) {
                         CareChoice(name, if (name == "Lerato Molefe") "For yourself" else "For someone in your family", person == name) { person = name }
                     }
                     1 -> {
-                        OutlinedTextField(address, { address = it }, label = { Text("Visit location") }, supportingText = { Text("Enter at least 5 characters. Your draft stays here if you close this sheet.") }, modifier = Modifier.fillMaxWidth())
+                        ThusoField("Visit location", hint = "Enter at least 5 characters. Your draft stays here if you close this sheet.", required = true) {
+                            ThusoTextField(address, { address = it }, placeholder = "Street, suburb")
+                        }
                         Note("Choose a location where the person receiving care can welcome the clinician. Coverage is checked separately; this preview does not dispatch anyone.")
                     }
                     2 -> NurseChoiceStep(options, person, choice, nurseId) { next, id -> choice = next; nurseId = id }
@@ -619,7 +628,7 @@ fun serviceIcon(id: String) = when (id) {
                             val minutes = CareData.offerExpiresAfterMinutes.toString()
                             fun say(text: String) = text.replace("{nurse}", nurse.subject.name).replace("{minutes}", minutes)
                             if (rule.asksPatient) {
-                                Text(say(BookingData.Fallback.heading), style = MaterialTheme.typography.titleSmall, color = Charcoal)
+                                Text(say(BookingData.Fallback.heading), style = MaterialTheme.typography.titleSmall, color = theme.foreground)
                                 Note(say(rule.sentence))
                                 BookingData.Fallback.choices.forEach { option -> CareChoice(say(option.name), option.sentence, fallbackPick == option.id) { fallbackPick = option.id } }
                             } else Note(say(rule.sentence))
@@ -659,10 +668,7 @@ fun serviceIcon(id: String) = when (id) {
                         ReviewLine(BookingData.Review.cancellingLabel, CancellationData.windowSentence)
                         Note("A registered nurse provides this service. A doctor may decide that a home visit is needed after reviewing your care; it is not booked through this selection.")
                         NotConnected("booking")
-                        Row(Modifier.fillMaxWidth().heightIn(min = TouchTarget).toggleable(consent, role = Role.Checkbox, onValueChange = { consent = it }), verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(consent, null)
-                            Text("I understand this is a UI preview using fictional information.", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                        }
+                        ThusoCheckbox(consent, { consent = it }, "I understand this is a UI preview using fictional information.")
                     }
                     else -> {
                         Note("No nurse has been dispatched. Your demo visit is now in the Visits tab.")
@@ -677,8 +683,8 @@ fun serviceIcon(id: String) = when (id) {
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (!finished) TextButton(onClick = { if (step == 0) close() else step -= 1 }, shape = ThusoButtonShape) { Text(if (step == 0) "Save & close" else "Back") }
-                StudioButton(onClick = {
+                if (!finished) ThusoButton(if (step == 0) "Save & close" else "Back", onClick = { if (step == 0) close() else step -= 1 }, variant = ThusoButtonVariant.Ghost)
+                ThusoButton(if (step == 5) "Confirm & book" else if (finished) "Done" else "Continue", onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     when (step) {
                         5 -> {
@@ -697,24 +703,27 @@ fun serviceIcon(id: String) = when (id) {
                         6 -> close()
                         else -> step += 1
                     }
-                }, modifier = Modifier.weight(1f), enabled = when(step) { 1 -> address.trim().length >= 5; 2 -> choiceStands; 3 -> !scheduled || slot in hours; 5 -> consent; else -> true }) {
-                    Text(if (step == 5) "Confirm & book" else if (finished) "Done" else "Continue")
-                }
+                }, modifier = Modifier.weight(1f), enabled = when(step) { 1 -> address.trim().length >= 5; 2 -> choiceStands; 3 -> !scheduled || slot in hours; 5 -> consent; else -> true },
+                trailingIcon = if (step == 5 || finished) null else Icons.AutoMirrored.Outlined.ArrowForward)
             }
-            if (!finished) Text("Draft kept for this session · No payment taken", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+            if (!finished) Text("Draft kept for this session · No payment taken", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
         }
     }
 }
 
 @Composable private fun CareChoice(title: String, detail: String, chosen: Boolean, choose: () -> Unit) {
     val haptic = LocalHapticFeedback.current
-    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(if (chosen) StudioLime.copy(alpha = .35f) else StudioPaper)
+    /* A chosen row is the accent at 15% with the accent on its edge, and it carries the radio mark as
+       well, so the fill is never the only difference. Compact corners, the control radius. */
+    val shape = RoundedCornerShape(ThusoRadius.control)
+    Row(Modifier.fillMaxWidth().clip(shape).background(if (chosen) theme.accent.tint(0.15f) else theme.surface)
+        .border(1.dp, if (chosen) theme.accent else theme.border, shape)
         .clickable(role = Role.RadioButton) { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); choose() }.semantics { selected = chosen }.padding(8.dp),
         verticalAlignment = Alignment.CenterVertically) {
         RadioButton(chosen, null)
         Column(Modifier.weight(1f).padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-            Text(detail, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+            Text(title, style = MaterialTheme.typography.titleSmall, color = theme.foreground)
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
         }
     }
 }
@@ -738,21 +747,21 @@ fun serviceIcon(id: String) = when (id) {
     footer: String
 ) {
     val haptic = LocalHapticFeedback.current
-    Text(SchedulingData.scheduledHeading, style = MaterialTheme.typography.titleSmall, color = Charcoal)
+    Text(SchedulingData.scheduledHeading, style = MaterialTheme.typography.titleSmall, color = theme.foreground)
     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         days.forEachIndexed { index, offered ->
             Column(
                 Modifier.widthIn(min = 66.dp).heightIn(min = 72.dp).padding(vertical = 4.dp)
-                    .background(if (day == index) StudioNight else SurfaceWhite, RoundedCornerShape(ThusoRadius.card))
-                    .border(1.dp, if (day == index) Indigo else StudioLine, RoundedCornerShape(ThusoRadius.card))
+                    .background(if (day == index) theme.primary else theme.surface, RoundedCornerShape(ThusoRadius.card))
+                    .border(1.dp, if (day == index) theme.primary else theme.border, RoundedCornerShape(ThusoRadius.card))
                     .clickable { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); onDay(index) }
                     .semantics { selected = day == index; contentDescription = Scheduling.longDate(offered.date) },
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(offered.weekday, style = MaterialTheme.typography.labelMedium, color = if (day == index) SurfaceWhite else StudioInkMuted)
-                Text(offered.dayNumber, style = MaterialTheme.typography.titleMedium, color = if (day == index) StudioPaper else Charcoal)
-                Text(offered.month, style = MaterialTheme.typography.labelMedium, color = if (day == index) SurfaceWhite else StudioInkMuted)
+                Text(offered.weekday, style = MaterialTheme.typography.labelMedium, color = if (day == index) theme.primaryForeground else theme.mutedForeground)
+                Text(offered.dayNumber, style = MaterialTheme.typography.titleMedium, color = if (day == index) theme.primaryForeground else theme.foreground)
+                Text(offered.month, style = MaterialTheme.typography.labelMedium, color = if (day == index) theme.primaryForeground else theme.mutedForeground)
             }
         }
     }
@@ -761,14 +770,13 @@ fun serviceIcon(id: String) = when (id) {
             row.forEach { time ->
                 Box(
                     Modifier.weight(1f).heightIn(min = TouchTarget)
-                        /* A time somebody has picked out of a grid of twelve is exactly the
-                           one-per-screen the loud fill is for: studioLime, with charcoal on it at
-                           15.3:1, and it is the only object on the screen wearing it. */
-                        .background(if (slot == time) StudioLime else SurfaceWhite, RoundedCornerShape(ThusoRadius.control))
-                        .border(1.dp, if (slot == time) Indigo else StudioLine, RoundedCornerShape(ThusoRadius.control))
+                        /* The time somebody has picked is the primary fill under its foreground — the
+                           handoff spends the ink on selection — and it says so in its semantics too. */
+                        .background(if (slot == time) theme.primary else theme.surface, RoundedCornerShape(ThusoRadius.control))
+                        .border(1.dp, if (slot == time) theme.primary else theme.border, RoundedCornerShape(ThusoRadius.control))
                         .clickable { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove); onSlot(time) }.semantics { selected = slot == time },
                     Alignment.Center
-                ) { Text(time, style = MaterialTheme.typography.titleSmall, color = if (slot == time) Color.White else StudioInkMuted) }
+                ) { Text(time, style = MaterialTheme.typography.titleSmall, color = if (slot == time) theme.primaryForeground else theme.mutedForeground) }
             }
         }
     }
@@ -851,36 +859,24 @@ fun serviceIcon(id: String) = when (id) {
             DemoBadge()
         }
         Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space16)) {
-            PrimaryTabRow(
-                selectedTabIndex = tabs.indexOf(tab),
-                containerColor = Color.Transparent,
-                divider = { HorizontalDivider(color = StudioLine) }
-            ) {
-                tabs.forEach { name ->
-                    Tab(
-                        selected = tab == name, onClick = { tab = name },
-                        text = { Text(name, style = MaterialTheme.typography.labelMedium, maxLines = 1) },
-                        selectedContentColor = Charcoal, unselectedContentColor = StudioInkMuted
-                    )
-                }
-            }
+            ThusoTabs(tabs, tab, { tab = it })
             StateBlock(state, "Your visit list", "notifications", { state = LoadState.READY }) {
                 Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
                     rows.forEach { row ->
                         val body: @Composable ColumnScope.() -> Unit = {
                             Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
                                 Column(
-                                    Modifier.widthIn(min = 56.dp).background(Canvas, RoundedCornerShape(ThusoRadius.control))
+                                    Modifier.widthIn(min = 56.dp).background(theme.muted, RoundedCornerShape(ThusoRadius.control))
                                         .padding(horizontal = ThusoSpacing.space8, vertical = ThusoSpacing.space8),
                                     horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
                                 ) {
-                                    Text(row.weekday, style = MaterialTheme.typography.labelSmall, color = StudioInkMuted)
-                                    Text(row.dayNumber, style = MaterialTheme.typography.titleLarge, color = Charcoal)
-                                    Text(row.month, style = MaterialTheme.typography.labelSmall, color = StudioInkMuted)
+                                    Text(row.weekday, style = MaterialTheme.typography.labelSmall, color = theme.mutedForeground)
+                                    Text(row.dayNumber, style = MaterialTheme.typography.titleLarge, color = theme.foreground)
+                                    Text(row.month, style = MaterialTheme.typography.labelSmall, color = theme.mutedForeground)
                                 }
                                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
                                     StatusHeader(row.status, row.tone) {
-                                        Text(row.title, style = if (row.nurse) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleSmall, color = Charcoal)
+                                        Text(row.title, style = if (row.nurse) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleSmall, color = theme.foreground)
                                     }
                                     IconLine(Icons.Outlined.Schedule, row.time)
                                     IconLine(Icons.Outlined.LocationOn, row.place)
@@ -888,7 +884,7 @@ fun serviceIcon(id: String) = when (id) {
                                 }
                             }
                             if (row.nurse) {
-                                HorizontalDivider(color = StudioLine)
+                                HorizontalDivider(color = theme.border)
                                 NurseRow()
                             }
                             /* Every visit that exists can be moved and can be cancelled — not only
@@ -905,19 +901,16 @@ fun serviceIcon(id: String) = when (id) {
                                rows all offering "Cancel this visit" are three identical stops to a
                                screen reader with nothing to tell them apart. */
                             row.visit?.let { visit ->
-                                HorizontalDivider(color = StudioLine)
+                                HorizontalDivider(color = theme.border)
                                 Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-                                    OutlinedButton(
-                                        onClick = { moving = visit },
-                                        Modifier.weight(1f).heightIn(min = TouchTarget)
-                                            .semantics { contentDescription = "Move the ${row.title} visit, ${row.time}" },
-                                        shape = ThusoButtonShape
-                                    ) { Text("Reschedule") }
-                                    if (row.nurse) StudioButton(
-                                        onClick = { open("Upcoming visit: ${visit.reference}") },
-                                        Modifier.weight(1f).heightIn(min = TouchTarget),
-                                        shape = ThusoButtonShape
-                                    ) { Text("View details") }
+                                    ThusoButton(
+                                        "Reschedule", onClick = { moving = visit }, variant = ThusoButtonVariant.Secondary,
+                                        modifier = Modifier.weight(1f).semantics { contentDescription = "Move the ${row.title} visit, ${row.time}" }
+                                    )
+                                    if (row.nurse) ThusoButton(
+                                        "View details", onClick = { open("Upcoming visit: ${visit.reference}") },
+                                        modifier = Modifier.weight(1f)
+                                    )
                                 }
                                 /* Only on the Upcoming tab, and only where there is a visit behind
                                    the row. What the screen shows depends on the day — the suburb and
@@ -927,22 +920,18 @@ fun serviceIcon(id: String) = when (id) {
                                    it and a red one below it, a line of charcoal text on its own read
                                    as a heading — it was found by looking at the three together. The
                                    pin says what kind of answer is behind it before the words do. */
-                                if (tab == "Upcoming") OutlinedButton(
-                                    onClick = { open("Where is your nurse · ${visit.reference}") },
-                                    modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)
-                                        .semantics { contentDescription = "Where is the nurse for the ${row.title} visit, ${row.time}" },
-                                    shape = ThusoButtonShape
-                                ) {
-                                    Icon(Icons.Outlined.LocationOn, null, Modifier.size(17.dp), tint = Charcoal)
-                                    Spacer(Modifier.width(ThusoSpacing.space8))
-                                    Text("Where is your nurse?")
-                                }
+                                if (tab == "Upcoming") ThusoButton(
+                                    "Where is your nurse?", onClick = { open("Where is your nurse · ${visit.reference}") },
+                                    variant = ThusoButtonVariant.Secondary, leadingIcon = Icons.Outlined.LocationOn,
+                                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Where is the nurse for the ${row.title} visit, ${row.time}" }
+                                )
+                                /* The way out is a ghost button in the refusal ink: findable, and nudging nobody. */
                                 TextButton(
                                     onClick = { cancelling = visit },
                                     modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget)
                                         .semantics { contentDescription = "Cancel the ${row.title} visit, ${row.time}" },
                                     shape = ThusoButtonShape,
-                                    colors = ButtonDefaults.textButtonColors(contentColor = Danger)
+                                    colors = ButtonDefaults.textButtonColors(contentColor = theme.dangerInk)
                                 ) { Text("Cancel this visit") }
                             }
                         }
@@ -963,24 +952,14 @@ fun serviceIcon(id: String) = when (id) {
             }
             StatePicker("Preview how this list behaves when the network or service is unavailable", state) { state = it }
         }
-        Box(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(ThusoRadius.card))
-                .background(StudioNight)
-                .semantics(mergeDescendants = true) {}
-        ) {
-            Image(painterResource(R.drawable.mythuso_family), null, Modifier.align(Alignment.BottomEnd).height(140.dp), contentScale = ContentScale.Fit)
-            Column(Modifier.padding(ThusoSpacing.space20).fillMaxWidth(0.62f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-                Text("Care that fits your life.", style = MaterialTheme.typography.titleLarge, color = Color.White)
-                Text("Easy booking. Trusted professionals.", style = MaterialTheme.typography.bodySmall, color = SurfaceWhite)
-                Button(
-                    onClick = { open("Book care") }, shape = RoundedCornerShape(ThusoRadius.control),
-                    modifier = Modifier.heightIn(min = TouchTarget),
-                    colors = ButtonDefaults.buttonColors(containerColor = SurfaceWhite, contentColor = Charcoal)
-                ) {
-                    Text("Book another visit", style = MaterialTheme.typography.labelLarge)
-                    Spacer(Modifier.width(ThusoSpacing.space8))
-                    Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(16.dp))
+        CareCard(Modifier.semantics(mergeDescendants = true) {}, padding = ThusoSpacing.space20) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
+                    Text("Care that fits your life.", style = MaterialTheme.typography.titleLarge, color = theme.foreground)
+                    Text("Easy booking. Trusted professionals.", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
+                    ThusoButton("Book another visit", onClick = { open("Book care") }, trailingIcon = Icons.AutoMirrored.Outlined.ArrowForward)
                 }
+                Image(painterResource(R.drawable.mythuso_family), null, Modifier.height(112.dp), contentScale = ContentScale.Fit)
             }
         }
     }

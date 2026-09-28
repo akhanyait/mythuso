@@ -45,6 +45,7 @@ import za.co.mythuso.model.CareOfferState
 import za.co.mythuso.model.CareStage
 import za.co.mythuso.model.CareVisitState
 import za.co.mythuso.model.PreviewStore
+import za.co.mythuso.ui.components.*
 
 /*
  * A visit offered to a nurse, and the visit itself, on Android.
@@ -83,7 +84,7 @@ private const val TICK_MILLIS = 15_000L
             CareEyebrow("You accepted · ${CareData.Preview.appointmentRef}")
             CareTitle("$serviceName, ${care.visitZone?.name.orEmpty()}")
             Note("Today at ${CareVisitState.clock(care.scheduledFor)} · ${care.service?.duration ?: 0} min")
-            StudioButton(onClick = { open("Care visit") }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Continue this visit") }
+            ThusoButton("Continue this visit", onClick = { open("Care visit") }, modifier = Modifier.fillMaxWidth())
         }
         available && offer != null && offer.state == CareOfferState.OPEN -> CareOfferPanel(care, offer, serviceName)
         offer != null && (offer.state == CareOfferState.DECLINED || offer.state == CareOfferState.LAPSED) -> CareCard {
@@ -102,14 +103,14 @@ private const val TICK_MILLIS = 15_000L
     CareCard {
         CareEyebrow("A visit offered to you")
         CareTitle(serviceName)
-        offer.marker?.let { Text(it, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = Charcoal) }
+        offer.marker?.let { Text(it, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = theme.foreground) }
         /* This app has no admin surface and never reads the value an admin puts in force on the web: it offers
            by the generated default. So the marker describes that default and only that — shown while the
            contract's default for who may be offered this service waits on a clinical review, and gone the day a
            reviewed default is emitted, never because a doctor confirmed a web value this phone is not using. It
            never withholds the offer. */
         if (CareData.scopeNotReviewed(CareData.Preview.serviceId)) {
-            Text(CareData.notClinicallyReviewed, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = Charcoal)
+            Text(CareData.notClinicallyReviewed, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, color = theme.foreground)
         }
         CareFact("When", "Today, ${CareVisitState.clock(care.scheduledFor)}", "${care.service?.duration ?: 0} min")
         CareFact("How far", "%.1f km".format(offer.distanceKm), CareData.distanceBasis)
@@ -118,8 +119,8 @@ private const val TICK_MILLIS = 15_000L
         NotConnected("booking")
         care.refusal?.takeIf { it.stage == null }?.let { CareRefusalText(it.statement) }
         CareButtons(
-            primary = { modifier -> StudioButton(onClick = { care.accept() }, modifier = modifier) { Text("Accept this visit") } },
-            secondary = { modifier -> OutlinedButton(onClick = { care.decline() }, shape = ThusoButtonShape, modifier = modifier) { Text("Decline") } }
+            primary = { modifier -> ThusoButton("Accept this visit", onClick = { care.accept() }, modifier = modifier) },
+            secondary = { modifier -> ThusoButton("Decline", onClick = { care.decline() }, variant = ThusoButtonVariant.Secondary, modifier = modifier) }
         )
     }
 }
@@ -135,7 +136,7 @@ private const val TICK_MILLIS = 15_000L
             CareEyebrow("Visit ${CareData.Preview.appointmentRef} · $zoneName")
             Text(
                 "${care.service?.name.orEmpty()}, today at ${CareVisitState.clock(care.scheduledFor)}",
-                style = MaterialTheme.typography.titleLarge, color = Charcoal, modifier = Modifier.semantics { heading() }
+                style = MaterialTheme.typography.titleLarge, color = theme.foreground, modifier = Modifier.semantics { heading() }
             )
             NotConnected("booking")
         }
@@ -170,7 +171,7 @@ private const val TICK_MILLIS = 15_000L
                     care.offer?.let { CareStrong("%.1f km · ".format(it.distanceKm) + CareData.distanceBasis) }
                     Note(care.locationSentence)
                 }
-                CareWide { modifier -> StudioButton(onClick = { care.go(CareStage.START) }, modifier = modifier) { Text("I am at the door") } }
+                CareWide { modifier -> ThusoButton("I am at the door", onClick = { care.go(CareStage.START) }, modifier = modifier) }
             }
             CareStage.START -> CareCodeStage(care, CareStage.START, "Confirm you are at the right door", "Start the visit", code, { code = it }) {
                 care.start(code)
@@ -185,19 +186,19 @@ private const val TICK_MILLIS = 15_000L
                             horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12), verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(Modifier.weight(1f)) {
-                                Text(entry.name, style = MaterialTheme.typography.titleSmall, color = Charcoal)
+                                Text(entry.name, style = MaterialTheme.typography.titleSmall, color = theme.foreground)
                                 Note("Version ${entry.version}")
                             }
                             Text(
-                                entry.status.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelMedium, color = Charcoal,
-                                modifier = Modifier.border(1.dp, StudioLine, RoundedCornerShape(ThusoRadius.pill))
+                                entry.status.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelMedium, color = theme.foreground,
+                                modifier = Modifier.border(1.dp, theme.border, RoundedCornerShape(ThusoRadius.pill))
                                     .padding(horizontal = ThusoSpacing.space12, vertical = ThusoSpacing.space4)
                             )
                         }
                     }
                     care.checklistRefusal?.let { CareRefusalText(it, care.checklistWhy) }
                 }
-                CareWide { modifier -> StudioButton(onClick = { care.go(CareStage.RECORD) }, modifier = modifier) { Text("Continue to readings and sign-off") } }
+                CareWide { modifier -> ThusoButton("Continue to readings and sign-off", onClick = { care.go(CareStage.RECORD) }, modifier = modifier) }
             }
             CareStage.RECORD -> {
                 CareCard {
@@ -206,8 +207,8 @@ private const val TICK_MILLIS = 15_000L
                     Note(CareData.recordSentence)
                     CareStrong(if (care.signedOff) "Signed off on this phone." else "Not signed off yet.")
                 }
-                if (!care.signedOff) DeckDestination("Open the visit assessment", "Identity, consent, readings, findings, sign-off", Icons.Outlined.ContentPaste) { open("Care assessment") }
-                CareWide { modifier -> StudioButton(onClick = { care.go(CareStage.HANDOVER) }, modifier = modifier) { Text("Continue to handover") } }
+                if (!care.signedOff) CareCard(padding = ThusoSpacing.space8) { ThusoNavigationItem("Open the visit assessment", Icons.Outlined.ContentPaste, { open("Care assessment") }) }
+                CareWide { modifier -> ThusoButton("Continue to handover", onClick = { care.go(CareStage.HANDOVER) }, modifier = modifier) }
             }
             CareStage.HANDOVER -> {
                 CareCard {
@@ -215,8 +216,8 @@ private const val TICK_MILLIS = 15_000L
                     NotConnected("doctor-review")
                     care.refusal?.takeIf { it.stage == CareStage.HANDOVER }?.let { CareRefusalText(it.statement) }
                 }
-                if (care.refusal?.stage == CareStage.HANDOVER) DeckDestination("Open the visit assessment", "Identity, consent, readings, findings, sign-off", Icons.Outlined.ContentPaste) { open("Care assessment") }
-                CareWide { modifier -> StudioButton(onClick = { care.handOver() }, modifier = modifier) { Text("Hand to a doctor") } }
+                if (care.refusal?.stage == CareStage.HANDOVER) CareCard(padding = ThusoSpacing.space8) { ThusoNavigationItem("Open the visit assessment", Icons.Outlined.ContentPaste, { open("Care assessment") }) }
+                CareWide { modifier -> ThusoButton("Hand to a doctor", onClick = { care.handOver() }, modifier = modifier) }
             }
             CareStage.COMPLETE -> CareCodeStage(care, CareStage.COMPLETE, "Complete with the code", "Complete the visit", code, { code = it }) {
                 care.complete(code)
@@ -235,8 +236,8 @@ private const val TICK_MILLIS = 15_000L
         CareTitle(MoneyData.cashNurseHeading)
         door.amountCents?.let { CareStrong("${Money.state(if (door.recorded) "succeeded" else "pending").name} · ${Money.randCents(it)}") }
         Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
-            Text(MoneyData.cashNursePatientPhone, style = MaterialTheme.typography.labelLarge, color = Charcoal)
-            door.patientCode?.let { Text(it, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold, color = Charcoal) }
+            Text(MoneyData.cashNursePatientPhone, style = MaterialTheme.typography.labelLarge, color = theme.foreground)
+            door.patientCode?.let { Text(it, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold, color = theme.foreground) }
             Note(if (door.patientCode != null) MoneyData.cashNurseShownOnce else MoneyData.cashNurseShownAlready)
         }
         if (door.recorded) {
@@ -250,7 +251,7 @@ private const val TICK_MILLIS = 15_000L
     }
     if (!door.recorded) {
         CareWide { modifier ->
-            StudioButton(onClick = { door.enter(code); code = "" }, enabled = code.length == MoneyData.cashCodeLength, modifier = modifier) { Text(MoneyData.cashNurseEnter) }
+            ThusoButton(MoneyData.cashNurseEnter, onClick = { door.enter(code); code = "" }, enabled = code.length == MoneyData.cashCodeLength, modifier = modifier)
         }
     }
 }
@@ -270,7 +271,7 @@ private const val TICK_MILLIS = 15_000L
         CodeBoxes(code, change, invalid = care.refusal?.stage == stage, label = "Visit code")
         care.refusal?.takeIf { it.stage == stage }?.let { CareRefusalText(it.statement) }
     }
-    CareWide { modifier -> StudioButton(onClick = run, enabled = code.length == 6, modifier = modifier) { Text(button) } }
+    CareWide { modifier -> ThusoButton(button, onClick = run, enabled = code.length == 6, modifier = modifier) }
 }
 
 /* Six named steps as a column rather than a row of dots: what is behind her filled, where she is
@@ -288,16 +289,16 @@ private const val TICK_MILLIS = 15_000L
                 horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12), verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
-                    Modifier.size(28.dp).background(if (done) BrandInk else SurfaceWhite, CircleShape)
-                        .border(if (current) 2.dp else 1.dp, if (done || current) BrandInk else StudioLine, CircleShape),
+                    Modifier.size(28.dp).background(if (done) theme.primary else theme.surface, CircleShape)
+                        .border(if (current) 2.dp else 1.dp, if (done || current) theme.primary else theme.border, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (done) Icon(Icons.Outlined.Check, null, tint = SurfaceWhite, modifier = Modifier.size(16.dp))
-                    else Text("${index + 1}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = Charcoal)
+                    if (done) Icon(Icons.Outlined.Check, null, tint = theme.primaryForeground, modifier = Modifier.size(16.dp))
+                    else Text("${index + 1}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = theme.foreground)
                 }
                 Text(
                     stage.stageName, style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (current) FontWeight.SemiBold else FontWeight.Normal, color = Charcoal
+                    fontWeight = if (current) FontWeight.SemiBold else FontWeight.Normal, color = theme.foreground
                 )
             }
         }
@@ -311,11 +312,11 @@ private const val TICK_MILLIS = 15_000L
 }
 
 @Composable private fun CareTitle(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium, color = Charcoal, modifier = Modifier.semantics { heading() })
+    Text(text, style = MaterialTheme.typography.titleMedium, color = theme.foreground, modifier = Modifier.semantics { heading() })
 }
 
 @Composable private fun CareStrong(text: String) {
-    Text(text, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Charcoal)
+    Text(text, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = theme.foreground)
 }
 
 /* A fact on the offer: a label over a value over what the value is. The value is what a nurse compares,
@@ -323,7 +324,7 @@ private const val TICK_MILLIS = 15_000L
 @Composable private fun CareFact(label: String, value: String, detail: String) {
     Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
         Note(label)
-        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = Charcoal)
+        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = theme.foreground)
         Note(detail)
     }
 }
@@ -335,7 +336,7 @@ private const val TICK_MILLIS = 15_000L
         Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
         horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8), verticalAlignment = Alignment.Top
     ) {
-        Icon(Icons.Outlined.Block, null, tint = Danger, modifier = Modifier.size(18.dp))
+        Icon(Icons.Outlined.Block, null, tint = theme.dangerInk, modifier = Modifier.size(18.dp))
         Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
             CareStrong(statement)
             why?.let { Note(it) }

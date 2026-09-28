@@ -114,33 +114,33 @@ struct DispatchMap: View {
         GeometryReader { geo in
             let size = min(geo.size.width, geo.size.height)
             ZStack {
-                RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).fill(ThusoTheme.cloud)
+                RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous).fill(ThusoRole.muted)
                 ForEach(Dispatch.zones) { zone in
                     if let point = Dispatch.plot(zone.position) {
-                        Circle().fill(ThusoTheme.paleSage.opacity(0.65))
-                            .overlay { Circle().stroke(ThusoTheme.sageSlate.opacity(0.55), lineWidth: 1) }
+                        Circle().fill(ThusoRole.surfaceRaised.opacity(0.65))
+                            .overlay { Circle().stroke(ThusoRole.mutedForeground.opacity(0.55), lineWidth: 1) }
                             .frame(width: zone.radius * 2 * size, height: zone.radius * 2 * size)
                             .position(x: point.x * size, y: point.y * size)
                     }
                 }
                 ForEach(Dispatch.nurses) { nurse in
                     if let point = Dispatch.plot(nurse.position) {
-                        Circle().fill(nurse.status == "Available" ? ThusoTheme.tealInk : ThusoTheme.studioInkMuted)
+                        Circle().fill(nurse.status == "Available" ? ThusoRole.successInk : ThusoRole.mutedForeground)
                             .frame(width: 10, height: 10).position(x: point.x * size, y: point.y * size)
                     }
                 }
                 ForEach(Dispatch.jobs) { job in
                     if let point = Dispatch.plot(job.position) {
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(assigned[job.id] != nil ? ThusoTheme.tealInk : ThusoTheme.mangoInk)
+                            .fill(assigned[job.id] != nil ? ThusoRole.successInk : ThusoRole.warningInk)
                             .frame(width: 12, height: 12)
-                            .overlay { if job.id == selected { Circle().stroke(ThusoTheme.charcoal, style: StrokeStyle(lineWidth: 1.5, dash: [3, 2])).frame(width: 26, height: 26) } }
+                            .overlay { if job.id == selected { Circle().stroke(ThusoRole.foreground, style: StrokeStyle(lineWidth: 1.5, dash: [3, 2])).frame(width: 26, height: 26) } }
                             .position(x: point.x * size, y: point.y * size)
                     }
                 }
                 ForEach(Dispatch.zones) { zone in
                     if let point = Dispatch.plot(zone.position) {
-                        Text(zone.name).font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.studioInkMuted)
+                        Text(zone.name).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.mutedForeground)
                             .position(x: point.x * size, y: (point.y - zone.radius) * size + 8)
                     }
                 }
@@ -262,7 +262,7 @@ struct DispatchBoardView: View {
             }
             if unplotted > 0 {
                 Text("\(unplotted) nurse\(unplotted == 1 ? " has" : "s have") no position this map can use, and \(unplotted == 1 ? "is" : "are") not drawn. \(Geography.refusal("no-position-shared").sentence)")
-                    .font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -284,9 +284,9 @@ struct DispatchBoardView: View {
         }
     }
     @ViewBuilder private var mapKey: some View {
-        Label("Available", systemImage: "circle.fill").foregroundStyle(ThusoTheme.tealInk).font(.footnote)
-        Label("On a visit", systemImage: "circle.fill").foregroundStyle(ThusoTheme.studioInkMuted).font(.footnote)
-        Label("Visit", systemImage: "square.fill").foregroundStyle(ThusoTheme.mangoInk).font(.footnote)
+        Label("Available", systemImage: "circle.fill").foregroundStyle(ThusoRole.successInk).font(.thuso(.footnote))
+        Label("On a visit", systemImage: "circle.fill").foregroundStyle(ThusoRole.mutedForeground).font(.thuso(.footnote))
+        Label("Visit", systemImage: "square.fill").foregroundStyle(ThusoRole.warningInk).font(.thuso(.footnote))
     }
 
     @ViewBuilder private var awaitingAssignment: some View {
@@ -329,12 +329,12 @@ struct DispatchBoardView: View {
         }
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             Text("Estimated arrival is a straight-line guess in this preview. Real dispatch weighs traffic, skills, vetting status, working hours and the patient’s own history with a nurse.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
             /* The sentence above is a promise; this one is the arithmetic that keeps it. If the two
                ever stop agreeing, it is this screen that is lying. */
             Text("Each estimate is the distance from the nurse’s last reported position to the address, in a straight line, at an assumed \(Int(urbanSpeedKmh)) km/h in traffic. No road factor is applied — a multiplier chosen to make the number feel right would make the label a lie. Where a position cannot be used, the row says “Estimating” and gives the reason rather than a number nothing produced.")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -366,7 +366,7 @@ struct DispatchNurseRow: View {
             }
             VettingRefusalNote(decision: decision)
             if !refused.isEmpty {
-                Text(refused).font(.footnote).foregroundStyle(ThusoTheme.danger)
+                Text(refused).font(.thuso(.footnote)).foregroundStyle(ThusoRole.dangerInk)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let subject {
@@ -375,7 +375,7 @@ struct DispatchNurseRow: View {
                    sixteen-point target in it — which is what the audit measured. */
                 NavigationLink { VettingStatusView(subjectId: subject.id) } label: {
                     Text("Why is this nurse refused or cleared?")
-                        .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                        .font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(minHeight: 44)
                         .contentShape(Rectangle())
@@ -389,7 +389,7 @@ struct DispatchNurseRow: View {
     @ViewBuilder private var identity: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
             HStack(spacing: ThusoSpacing.space8) {
-                Text(nurse.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(nurse.name).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
                 if let subject { SubjectStatusPill(status: summarise(subject).status) }
             }
@@ -397,16 +397,16 @@ struct DispatchNurseRow: View {
                missing must not arrive as silence. The row shows the short form and speaks the
                long one, including what the estimate was derived from. */
             Text("\(nurse.area) · \(nurse.status) · \(estimate.label)")
-                .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityLabel("\(nurse.area). \(nurse.status). \(estimate.spoken)")
-            Text(nurse.skills).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(nurse.skills).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
             if case let .unavailable(reason, _) = estimate {
                 /* Amber, not red: nothing is being refused here. The nurse can still be assigned —
                    the board just will not pretend to know when she will arrive. */
                 Label(reason, systemImage: "location.slash")
-                    .font(.footnote).foregroundStyle(ThusoTheme.mangoInk)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.warningInk)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityHidden(true)
             }
@@ -462,7 +462,7 @@ struct IncidentDetailView: View {
                     ChoiceRow(label: "Severity", selection: $severity, options: severities.map { ($0, $0) })
                     if severity == "Critical" {
                         Text("A critical incident pages the on-call clinical lead immediately. The form is never a prerequisite for calling emergency services.")
-                            .font(.footnote).foregroundStyle(ThusoTheme.danger)
+                            .font(.thuso(.footnote)).foregroundStyle(ThusoRole.dangerInk)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     Hairline()
@@ -481,13 +481,13 @@ struct IncidentDetailView: View {
                         PanelHead("Demo incident log")
                         ForEach(log, id: \.self) { entry in
                             Label(entry, systemImage: "checkmark.circle.fill")
-                                .font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                                .font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                 }
                 Text("Incident logs are append-only and reviewed weekly. Nothing here is recorded, paged or sent.")
-                    .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.vertical, ThusoSpacing.space16)

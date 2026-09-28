@@ -41,9 +41,9 @@ struct ArrivalView: View {
                 lead(arrival)
                 if case let .outsideCoverage(_, refusal, why) = arrival {
                     SurfacePanel(tone: .quiet) {
-                        Label(refusal, systemImage: "mappin.slash").font(.footnote)
-                            .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
-                        Text(why).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                        Label(refusal, systemImage: "mappin.slash").font(.thuso(.footnote))
+                            .foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
+                        Text(why).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .accessibilityElement(children: .combine)
@@ -52,12 +52,12 @@ struct ArrivalView: View {
                 notTheseThings
                 SurfacePanel(tone: .quiet) {
                     Label(Arrival.Refusal.nothingIsMeasured, systemImage: "dot.radiowaves.left.and.right")
-                        .font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                        .font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .accessibilityElement(children: .combine)
-                Text(Arrival.coverageSentence).font(.footnote)
-                    .foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(Arrival.coverageSentence).font(.thuso(.footnote))
+                    .foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
                 NavigationLink { DoorCheckView(visit: visit) } label: {
                     Text(VerifyInService.PatientDoorText.open).frame(maxWidth: .infinity)
@@ -86,12 +86,12 @@ struct ArrivalView: View {
     @ViewBuilder private func lead(_ arrival: Arrival.State) -> some View {
         SurfacePanel(tone: .lead, spacing: ThusoSpacing.space16) {
             HStack(alignment: .top, spacing: ThusoSpacing.space12) {
-                Monogram(text: Arrival.nurse.initials, diameter: 44, background: ThusoTheme.surface)
+                Monogram(text: Arrival.nurse.initials, diameter: 44, background: ThusoRole.surface)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(Arrival.nurse.name).thusoFont(ThusoType.cardTitle, weight: .semibold)
-                        .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
-                    Text(Arrival.nurse.role).font(.footnote)
-                        .foregroundStyle(ThusoTheme.studioInkMuted)
+                        .foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
+                    Text(Arrival.nurse.role).font(.thuso(.footnote))
+                        .foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .accessibilityElement(children: .combine)
@@ -100,12 +100,12 @@ struct ArrivalView: View {
             }
             ThusoMetrics { figures(arrival) }
             if let refusal = arrival.refusal {
-                Label(refusal, systemImage: "clock").font(.footnote)
-                    .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+                Label(refusal, systemImage: "clock").font(.thuso(.footnote))
+                    .foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
                     .accessibilityElement(children: .combine)
             } else if case let .onTheDay(_, _, estimate) = arrival {
-                Label(Arrival.basisSentence(estimate), systemImage: "ruler").font(.footnote)
-                    .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+                Label(Arrival.basisSentence(estimate), systemImage: "ruler").font(.thuso(.footnote))
+                    .foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
                     .accessibilityElement(children: .combine)
             }
         }
@@ -165,16 +165,16 @@ struct ArrivalView: View {
                       note: Geography.schematicName)
             ArrivalMap(from: from, to: to, summary: mapSummary(from: from, to: to))
             VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-                if let from { key(ThusoTheme.charcoal, "\(Arrival.nurse.name) · \(from.name)") }
-                key(ThusoTheme.mutedSage, "Your visit · \(to.name)")
+                if let from { key(ThusoRole.foreground, "\(Arrival.nurse.name) · \(from.name)") }
+                key(ThusoRole.border, "Your visit · \(to.name)")
             }
             /* Both sentences are the geography contract's: how coarse a position is, and that no
                tile server was asked for one. */
-            Text(Geography.schematicSentence).font(.footnote)
-                .foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(Geography.schematicSentence).font(.thuso(.footnote))
+                .foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
-            Text(Arrival.precisionSentence).font(.footnote)
-                .foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(Arrival.precisionSentence).font(.thuso(.footnote))
+                .foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -182,7 +182,7 @@ struct ArrivalView: View {
     private func key(_ colour: Color, _ label: String) -> some View {
         HStack(spacing: ThusoSpacing.space8) {
             Circle().fill(colour).frame(width: 10, height: 10)
-            Text(label).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+            Text(label).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .combine)
@@ -248,25 +248,25 @@ struct ArrivalMap: View {
                 let centre = at(zone.at)
                 let circle = Path(ellipseIn: CGRect(x: centre.x - radius, y: centre.y - radius,
                                                     width: radius * 2, height: radius * 2))
-                context.fill(circle, with: .color(ThusoTheme.softSage.opacity(0.34)))
-                context.stroke(circle, with: .color(ThusoTheme.mutedSage.opacity(0.6)), lineWidth: 1)
+                context.fill(circle, with: .color(ThusoRole.border.opacity(0.34)))
+                context.stroke(circle, with: .color(ThusoRole.border.opacity(0.6)), lineWidth: 1)
             }
             if let from {
                 var line = Path()
                 line.move(to: at(from.at))
                 line.addLine(to: at(to.at))
-                context.stroke(line, with: .color(ThusoTheme.charcoal.opacity(0.55)),
+                context.stroke(line, with: .color(ThusoRole.foreground.opacity(0.55)),
                                style: StrokeStyle(lineWidth: 2, dash: [5, 4]))
             }
             func mark(_ point: Geography.Point, _ colour: Color) {
                 let centre = at(point)
                 let dot = Path(ellipseIn: CGRect(x: centre.x - 8, y: centre.y - 8, width: 16, height: 16))
                 context.fill(Path(ellipseIn: CGRect(x: centre.x - 11, y: centre.y - 11, width: 22, height: 22)),
-                             with: .color(ThusoTheme.surface))
+                             with: .color(ThusoRole.surface))
                 context.fill(dot, with: .color(colour))
             }
-            mark(to.at, ThusoTheme.mutedSage)
-            if let from { mark(from.at, ThusoTheme.charcoal) }
+            mark(to.at, ThusoRole.border)
+            if let from { mark(from.at, ThusoRole.foreground) }
             /* Every circle says which suburb it is. A schematic of five unnamed blobs is a picture
                a reader has to be told about; the key names the two that carry a mark, and this
                names the rest — including the ones the coverage sentence says nobody works in. */
@@ -276,9 +276,9 @@ struct ArrivalMap: View {
             for zone in Geography.zones where !typeSize.isAccessibilitySize {
                 let centre = at(zone.at)
                 let radius = Geography.radiusInSquare(zone.radiusKm, size: Double(span))
-                var label = context.resolve(Text(zone.name).font(.footnote.weight(.medium))
-                    .foregroundColor(ThusoTheme.charcoal))
-                label.shading = .color(ThusoTheme.charcoal)
+                var label = context.resolve(Text(zone.name).font(.thuso(.footnote, weight: .medium))
+                    .foregroundColor(ThusoRole.foreground))
+                label.shading = .color(ThusoRole.foreground)
                 let size = label.measure(in: CGSize(width: span, height: span))
                 context.draw(label, at: CGPoint(x: centre.x, y: centre.y + radius + size.height * 0.7),
                              anchor: .center)
@@ -286,7 +286,7 @@ struct ArrivalMap: View {
         }
         .frame(height: min(side, 340))
         .frame(maxWidth: .infinity)
-        .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+        .background(ThusoRole.muted, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
         .accessibilityElement()
         .accessibilityLabel(summary)
     }

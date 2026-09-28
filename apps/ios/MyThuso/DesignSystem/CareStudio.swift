@@ -84,18 +84,18 @@ struct StudioHeadline: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(lead)
-                    .font(.system(size: size, weight: .semibold))
-                    .foregroundStyle(ThusoTheme.brandInk)
+                    .font(ThusoFont.displayFixed(size, weight: .semibold))
+                    .foregroundStyle(ThusoRole.primaryInk)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(accent)
-                    .font(.system(size: size, weight: .semibold))
-                    .foregroundStyle(ThusoTheme.brandGreen)
+                    .font(ThusoFont.displayFixed(size, weight: .semibold))
+                    .foregroundStyle(ThusoRole.accent)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if !detail.isEmpty {
                 Text(detail)
-                    .font(.subheadline)
-                    .foregroundStyle(ThusoTheme.body)
+                    .font(.thuso(.subheadline))
+                    .foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -135,8 +135,7 @@ struct StudioNightCard<Content: View>: View {
    changes; an alpha has no choice but to follow it. */
 extension View {
     func studioNightInk(quiet: Bool = false) -> some View {
-        foregroundStyle(quiet ? ThusoTheme.studioPaper.opacity(ThusoOpacity.charcoalMuted)
-                              : ThusoTheme.studioPaper)
+        foregroundStyle(quiet ? ThusoRole.onNightQuiet : ThusoRole.onNight)
     }
 }
 
@@ -150,12 +149,12 @@ struct MoonArtwork: View {
         TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion || !visible || scenePhase != .active)) { context in
             let phase = reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate * .pi / 4
             ZStack {
-            Circle().fill(RadialGradient(colors: [ThusoTheme.surface, ThusoTheme.studioLilac, ThusoTheme.studioInkMuted],
+            Circle().fill(RadialGradient(colors: [ThusoRole.surface, ThusoRole.surfaceRaised, ThusoRole.mutedForeground],
                                          center: .topLeading, startRadius: 0, endRadius: 140))
                 .padding(16)
-                .shadow(color: ThusoTheme.studioInk.opacity(0.15), radius: 12, x: 8, y: 10)
+                .shadow(color: ThusoRole.foreground.opacity(0.15), radius: 12, x: 8, y: 10)
                 .scaleEffect(1 + 0.02 * sin(phase))
-            Ellipse().stroke(ThusoTheme.studioInkMuted.opacity(0.4), lineWidth: 1)
+            Ellipse().stroke(ThusoRole.mutedForeground.opacity(0.4), lineWidth: 1)
                 .frame(height: 50).rotationEffect(.degrees(-28 + 12 * sin(phase * 0.5)))
             }.offset(y: 3 * sin(phase))
         }.accessibilityHidden(true)

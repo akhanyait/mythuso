@@ -1,7 +1,11 @@
 package za.co.mythuso.ui
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.Alignment
+import za.co.mythuso.ui.components.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateMapOf
@@ -34,7 +38,7 @@ import za.co.mythuso.model.PreviewStore
     val signer = store.vetting.subject("D-401")
     ScreenColumn {
         DemoBadge()
-        Heading("Doctor", ClinicalData.InboxText.heading, ClinicalData.InboxText.intro)
+        Heading("Doctor workspace", ClinicalData.InboxText.heading, ClinicalData.InboxText.intro)
         NotConnected("doctor-review")
         Note(ClinicalData.InboxText.preview)
         Note(ClinicalData.InboxText.confirmers.replace("{roles}", Clinical.roles(ClinicalData.confirmers)))
@@ -48,12 +52,12 @@ import za.co.mythuso.model.PreviewStore
             val answer = triage["answer"]
             if (answer != null) {
                 Text(ClinicalData.TriageText.notTriaged, style = MaterialTheme.typography.titleSmall)
-                Text(answer.statement, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
+                Text(answer.statement, style = MaterialTheme.typography.bodyMedium, color = theme.foreground)
                 Note(ClinicalData.TriageText.human)
                 Note(ClinicalData.TriageText.emergencyFirst)
                 Note(ClinicalData.TriageText.routedTo.replace("{roles}", Clinical.roles(ClinicalData.triageRoutesTo)))
             } else {
-                OutlinedButton(onClick = { triage["answer"] = Clinical.startTriage() }, shape = ThusoButtonShape) { Text(ClinicalData.TriageText.start) }
+                ThusoButton(ClinicalData.TriageText.start, onClick = { triage["answer"] = Clinical.startTriage() }, variant = ThusoButtonVariant.Secondary)
             }
         }
         CareCard {
@@ -65,9 +69,7 @@ import za.co.mythuso.model.PreviewStore
                     Text("${outcome.label} · ${ClinicalData.GuidanceText.noScript}", style = MaterialTheme.typography.titleSmall)
                     Note(said)
                 } else {
-                    OutlinedButton(onClick = { guidance[outcome.id] = Clinical.giveGuidance(outcome.id).statement }, shape = ThusoButtonShape) {
-                        Text(ClinicalData.GuidanceText.give.replace("{outcome}", outcome.label))
-                    }
+                    ThusoButton(ClinicalData.GuidanceText.give.replace("{outcome}", outcome.label), onClick = { guidance[outcome.id] = Clinical.giveGuidance(outcome.id).statement }, variant = ThusoButtonVariant.Secondary)
                 }
             }
         }
@@ -76,7 +78,10 @@ import za.co.mythuso.model.PreviewStore
 
 @Composable private fun ReviewCard(review: ClinicalReview, refused: String?, sign: (String) -> Unit) {
     CareCard {
-        Text(review.appointmentRef, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
+            Text(review.appointmentRef, style = MaterialTheme.typography.titleLarge, color = theme.foreground, modifier = Modifier.weight(1f).semantics { heading() })
+            ThusoBadge(if (review.signingMode != null) "Signed" else "Waiting", variant = if (review.signingMode != null) ThusoBadgeVariant.Success else ThusoBadgeVariant.Warning, size = ThusoBadgeSize.Sm, dot = true)
+        }
         Note(ClinicalData.InboxText.patient.replace("{subject}", review.subjectRef))
         val named = review.protocolVersionId
         Note(if (named == null) ClinicalData.InboxText.namedNone
@@ -84,14 +89,16 @@ import za.co.mythuso.model.PreviewStore
         Note(if (review.recordComplete) ClinicalData.InboxText.recordComplete else ClinicalData.InboxText.recordIncomplete)
         val mode = review.signingMode
         if (mode != null) {
-            Text(Clinical.signedSentence(mode, review.protocolVersionId), style = MaterialTheme.typography.bodyMedium, color = Charcoal)
+            Text(Clinical.signedSentence(mode, review.protocolVersionId), style = MaterialTheme.typography.bodyMedium, color = theme.foreground)
             Note(ClinicalData.PromText.schedule.replace("{days}", ClinicalData.promDays.joinToString(" and ")))
         } else {
             Text(ClinicalData.InboxText.mode, style = MaterialTheme.typography.titleSmall)
             ClinicalData.modes.forEach { choice ->
-                OutlinedButton(onClick = { sign(choice.id) }, shape = ThusoButtonShape) { Text("${ClinicalData.InboxText.sign}: ${choice.label}") }
+                ThusoButton("${ClinicalData.InboxText.sign}: ${choice.label}", onClick = { sign(choice.id) }, variant = ThusoButtonVariant.Secondary)
             }
-            if (refused != null) Text(refused, style = MaterialTheme.typography.bodyMedium, color = Danger)
+            /* The refusal is the route's sentence, word for word, as a danger alert: the icon and the
+               words carry it, never the colour alone. */
+            if (refused != null) ThusoAlert(refused, variant = ThusoAlertVariant.Danger)
         }
     }
 }

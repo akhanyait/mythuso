@@ -10,7 +10,7 @@ import SwiftUI
  * which on `.thusoGround()` is a caret on a gradient. The screens that had already moved each
  * solved that privately — the consultation's note editor grew a cloud fill, a control radius and a
  * `controlEdge` hairline inline — so the treatment existed once per screen and nowhere by name.
- * It is here now, once. Every boundary is `ThusoTheme.controlEdge`, because that is what a control
+ * It is here now, once. Every boundary is `ThusoRole.inputEdge`, because that is what a control
  * boundary is in this system, while `stone` is what a card edge is.
  *
  * THE LABEL IS NEVER THE PLACEHOLDER. A placeholder disappears the moment somebody types, which
@@ -35,20 +35,20 @@ struct WriteField: View {
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous) }
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(label).font(.footnote.weight(.semibold))
-                .foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(label).font(.thuso(.footnote, weight: .semibold))
+                .foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
             TextField(hint, text: $text)
-                .font(.body).foregroundStyle(ThusoTheme.charcoal)
+                .font(.thuso(.body)).foregroundStyle(ThusoRole.foreground)
                 .keyboardType(keyboard).textContentType(contentType)
                 .padding(.horizontal, ThusoSpacing.space12)
                 .frame(minHeight: 48)
-                .background(ThusoTheme.surface, in: shape)
-                .overlay(shape.stroke(wrong ? ThusoTheme.danger : ThusoTheme.controlEdge, lineWidth: 1))
+                .background(ThusoRole.surface, in: shape)
+                .overlay(shape.stroke(wrong ? ThusoRole.dangerInk : ThusoRole.inputEdge, lineWidth: 1))
                 .accessibilityLabel(label)
             if !note.isEmpty {
-                Text(note).font(.footnote)
-                    .foregroundStyle(wrong ? ThusoTheme.danger : ThusoTheme.studioInkMuted)
+                Text(note).font(.thuso(.footnote))
+                    .foregroundStyle(wrong ? ThusoRole.dangerInk : ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -66,18 +66,18 @@ struct WriteNote: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous)
         return VStack(alignment: .leading, spacing: 5) {
-            Text(label).font(.footnote.weight(.semibold))
-                .foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(label).font(.thuso(.footnote, weight: .semibold))
+                .foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
             TextEditor(text: $text)
-                .font(.body).foregroundStyle(ThusoTheme.charcoal)
+                .font(.thuso(.body)).foregroundStyle(ThusoRole.foreground)
                 .frame(minHeight: minHeight).scrollContentBackground(.hidden)
                 .padding(ThusoSpacing.space8)
-                .background(ThusoTheme.cloud, in: shape)
-                .overlay(shape.stroke(ThusoTheme.controlEdge, lineWidth: 1))
+                .background(ThusoRole.muted, in: shape)
+                .overlay(shape.stroke(ThusoRole.inputEdge, lineWidth: 1))
                 .accessibilityLabel(label)
             if !prompt.isEmpty {
-                Text(prompt).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(prompt).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -102,8 +102,8 @@ struct ChoiceRow<Value: Hashable>: View {
     let options: [(value: Value, title: String)]
     var body: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-            Text(label).font(.footnote.weight(.semibold))
-                .foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(label).font(.thuso(.footnote, weight: .semibold))
+                .foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: ThusoSpacing.space8) { buttons }
@@ -119,16 +119,16 @@ struct ChoiceRow<Value: Hashable>: View {
             let on = option.value == selection
             Button { selection = option.value } label: {
                 Text(option.title)
-                    .font(.subheadline.weight(on ? .semibold : .regular))
-                    .foregroundStyle(on ? ThusoTheme.studioPaper : ThusoTheme.charcoal)
+                    .font(.thuso(.subheadline, weight: on ? .semibold : .regular))
+                    .foregroundStyle(on ? ThusoRole.primaryForeground : ThusoRole.foreground)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, ThusoSpacing.space12)
                     .frame(maxWidth: .infinity, minHeight: 48)
-                    .background(on ? ThusoTheme.studioNight : ThusoTheme.surface,
+                    .background(on ? ThusoRole.primary : ThusoRole.surface,
                                 in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous)
-                        .stroke(on ? ThusoTheme.studioNight : ThusoTheme.controlEdge, lineWidth: 1))
+                        .stroke(on ? ThusoRole.primary : ThusoRole.inputEdge, lineWidth: 1))
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -151,8 +151,8 @@ struct PickRow<Value: Hashable>: View {
                here — "Advise clinic or emergency department now" — and beside a label it gets the
                narrower half of the row and truncates the end, which on a next step is the part that
                says what to do. */
-            Text(label).font(.footnote.weight(.semibold))
-                .foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(label).font(.thuso(.footnote, weight: .semibold))
+                .foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
             /* The padding is inside the picker rather than around it. A menu picker publishes the
                height of its own content as the control's accessibility frame, so a frame put on the
@@ -162,16 +162,16 @@ struct PickRow<Value: Hashable>: View {
             Picker(label, selection: $selection) {
                 ForEach(options, id: \.value) { Text($0.title).tag($0.value) }
             }
-            .labelsHidden().tint(ThusoTheme.charcoal)
+            .labelsHidden().tint(ThusoRole.foreground)
             .padding(.vertical, ThusoSpacing.space8).padding(.horizontal, ThusoSpacing.space8)
             .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
             .contentShape(Rectangle())
-            .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+            .background(ThusoRole.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous)
-                .stroke(ThusoTheme.controlEdge, lineWidth: 1))
+                .stroke(ThusoRole.inputEdge, lineWidth: 1))
             .accessibilityLabel(label)
             if !note.isEmpty {
-                Text(note).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(note).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -213,12 +213,12 @@ struct ThusoSwitchStyle: ToggleStyle {
     }
     private func switchMark(_ on: Bool) -> some View {
         Capsule()
-            .fill(on ? ThusoTheme.studioNight : ThusoTheme.cloud)
-            .overlay(Capsule().stroke(on ? ThusoTheme.studioNight : ThusoTheme.controlEdge, lineWidth: 1))
+            .fill(on ? ThusoRole.primary : ThusoRole.muted)
+            .overlay(Capsule().stroke(on ? ThusoRole.primary : ThusoRole.inputEdge, lineWidth: 1))
             .frame(width: 50, height: 30)
             .overlay(alignment: on ? .trailing : .leading) {
-                Circle().fill(ThusoTheme.surface)
-                    .overlay(Circle().stroke(ThusoTheme.controlEdge.opacity(on ? 0 : 1), lineWidth: 1))
+                Circle().fill(ThusoRole.surface)
+                    .overlay(Circle().stroke(ThusoRole.inputEdge.opacity(on ? 0 : 1), lineWidth: 1))
                     .frame(width: 24, height: 24)
                     .padding(.horizontal, 3)
             }
@@ -232,7 +232,7 @@ struct AgreeRow: View {
     @Binding var on: Bool
     var body: some View {
         Toggle(isOn: $on) {
-            Text(text).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+            Text(text).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .toggleStyle(ThusoSwitchStyle())
@@ -252,15 +252,15 @@ struct ChoiceCard: View {
         Button(action: choose) {
             HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                 Image(systemName: chosen ? "largecircle.fill.circle" : "circle")
-                    .font(.title3).foregroundStyle(ThusoTheme.charcoal)
+                    .font(.thuso(.title3)).foregroundStyle(ThusoRole.foreground)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-                    Text(title).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoTheme.charcoal)
+                    Text(title).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(detail).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(detail).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                     if !footnote.isEmpty {
-                        Text(footnote).font(.footnote.weight(.medium)).foregroundStyle(ThusoTheme.charcoal)
+                        Text(footnote).font(.thuso(.footnote, weight: .medium)).foregroundStyle(ThusoRole.foreground)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -274,10 +274,10 @@ struct ChoiceCard: View {
                is a full-width card in a list of two or three: a lime panel of that size is the lead
                card the design deliberately does not have. The loud fill is spent on the time-slot
                grid, where the chosen object is one chip out of twelve. */
-            .background(chosen ? ThusoTheme.studioLilac : ThusoTheme.surface,
+            .background(chosen ? ThusoRole.surfaceRaised : ThusoRole.surface,
                         in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous)
-                .stroke(chosen ? ThusoTheme.charcoal : ThusoTheme.studioLine, lineWidth: 1))
+                .stroke(chosen ? ThusoRole.accent : ThusoRole.border, lineWidth: 1))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -296,9 +296,9 @@ struct TickRow: View {
         Button(action: toggle) {
             HStack(spacing: ThusoSpacing.space12) {
                 Image(systemName: ticked ? "checkmark.square.fill" : "square")
-                    .font(.title3).foregroundStyle(ThusoTheme.charcoal)
+                    .font(.thuso(.title3)).foregroundStyle(ThusoRole.foreground)
                     .accessibilityHidden(true)
-                Text(title).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                Text(title).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
             }

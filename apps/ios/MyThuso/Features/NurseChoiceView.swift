@@ -31,10 +31,10 @@ struct NurseChoiceView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
             VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-                Text(BookingData.Person.heading).font(.title2.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                Text(BookingData.Person.heading).font(.thuso(.title2, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
-                Text(BookingData.Person.lead).font(.subheadline).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(BookingData.Person.lead).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             VStack(spacing: ThusoSpacing.space8) {
@@ -47,7 +47,7 @@ struct NurseChoiceView: View {
                 }
             }
             if kind == "named" { namedList }
-            Text(BookingData.Person.continuity).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(BookingData.Person.continuity).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
             if !options.notOffered.isEmpty { notOffered.padding(.top, ThusoSpacing.space8) }
         }
@@ -71,19 +71,19 @@ struct NurseChoiceView: View {
                              ["person": patient, "reason": seen.candidate.notOfferedBecause ?? Booking.refusal("nurse-badge-not-current")?.sentence ?? ""])
             } ?? Booking.fill(BookingData.Person.noPrevious, ["person": patient])
             HStack(alignment: .top, spacing: ThusoSpacing.space12) {
-                Image(systemName: "minus.circle").font(.title3).foregroundStyle(ThusoTheme.charcoalMutedOnCloud)
+                Image(systemName: "minus.circle").font(.thuso(.title3)).foregroundStyle(ThusoRole.mutedForeground)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-                    Text(previous.name).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoTheme.charcoal)
+                    Text(previous.name).thusoFont(ThusoType.cardTitle, weight: .semibold).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(reason).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                    Text(reason).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 0)
             }
             .padding(ThusoSpacing.space16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+            .background(ThusoRole.muted, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("person-previous-unavailable")
         }
@@ -100,21 +100,21 @@ struct NurseChoiceView: View {
                 Button { named = nurse.id } label: {
                     HStack(alignment: .top, spacing: ThusoSpacing.space12) {
                         Image(systemName: on ? "largecircle.fill.circle" : "circle")
-                            .font(.title3).foregroundStyle(ThusoTheme.charcoal).accessibilityHidden(true)
+                            .font(.thuso(.title3)).foregroundStyle(ThusoRole.foreground).accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-                            Text(nurse.name).font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                            Text(nurse.name).font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                                 .fixedSize(horizontal: false, vertical: true)
-                            Text(nurse.worksIn).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                            Text(nurse.worksIn).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                                 .fixedSize(horizontal: false, vertical: true)
                             Label(BookingData.Person.badgeName, systemImage: "checkmark.seal.fill")
-                                .font(.footnote.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                                .font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                         }
                         Spacer(minLength: 0)
                     }
                     .padding(ThusoSpacing.space12)
                     .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                    .background(on ? ThusoTheme.studioLilac : ThusoTheme.surface, in: shape)
-                    .overlay(shape.stroke(on ? ThusoTheme.charcoal : ThusoTheme.studioLine, lineWidth: 1))
+                    .background(on ? ThusoRole.surfaceRaised : ThusoRole.surface, in: shape)
+                    .overlay(shape.stroke(on ? ThusoRole.foreground : ThusoRole.border, lineWidth: 1))
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -135,11 +135,11 @@ struct NurseChoiceView: View {
                 ForEach(Array(options.notOffered.enumerated()), id: \.element.id) { index, nurse in
                     if index > 0 { Hairline() }
                     VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-                        Text(nurse.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                        Text(nurse.name).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                             .fixedSize(horizontal: false, vertical: true)
-                        Text(nurse.worksIn).font(.footnote).foregroundStyle(ThusoTheme.charcoalMutedOnCloud)
+                        Text(nurse.worksIn).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                             .fixedSize(horizontal: false, vertical: true)
-                        Text(nurse.notOfferedBecause ?? "").font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                        Text(nurse.notOfferedBecause ?? "").font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)

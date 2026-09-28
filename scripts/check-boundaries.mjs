@@ -75,6 +75,7 @@ import { emitContractTests } from "./emit-contract-tests.mjs";
 import { emitEventPrivacyTests } from "./emit-event-privacy-tests.mjs";
 import { emitPlugins } from "./emit-plugins.mjs";
 import { emitCrisisLines } from "./emit-crisis-lines.mjs";
+import { emitCi, CI_SOURCES } from "./emit-ci.mjs";
 function files(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
     e.isDirectory() ? files(join(dir, e.name)) : [join(dir, e.name)],
@@ -3099,6 +3100,18 @@ const generated = [
     source: "packages/catalog/icons.json",
     command: "npm run icons",
     files: (await import("./emit-icons.mjs")).emitIcons(),
+  },
+  /* The CI document (29 September 2026): docs/brand/CI.md, PACK.md and ci.html are written from the
+     tokens, the contracts, the brand masters and the component sources, and held here the way the
+     clinical review pack is — a brand book that drifts from the tokens is a brand book that lies. One
+     entry per source, so the file is also refused when it is older than any of them. */
+  ...((files) => CI_SOURCES.map((source) => ({ source, command: "npm run ci", files })))(emitCi()),
+  /* The identity's two typefaces on iOS (Wave 5a, 28 September 2026): the family names, the faces by
+     PostScript name and Info.plist's UIAppFonts list, so no phone types a family name. */
+  {
+    source: "packages/design-tokens/tokens.json",
+    command: "npm run typography",
+    files: (await import("./emit-typography.mjs")).emitTypography(),
   },
 ];
 for (const { source, command, files } of generated) {
@@ -8915,51 +8928,11 @@ if (
     );
 }
 
-/* Nothing renders below the smallest size the design declares, and iOS does — 417 times.
-   `ThusoType.minimumRendered` is 13 and its comment says "Nothing in any of the three apps renders
-   text below this." The web is held to it: tests/accessibility.spec.ts measures rendered text at a
-   320px viewport and found twenty-odd rules that had drifted under, each one a number somebody
-   nudged to make a row fit. iOS was never measured the same way, and SwiftUI's `.caption` is 12
-   points at the default content size and `.caption2` is 11.
-
-   That is not caught by the Dynamic Type tests and could not be: those pair a screen against itself
-   at two content sizes and ask whether every string grew. A caption grows perfectly. It is simply
-   two points too small before it starts.
-
-   Ratcheted rather than fixed, and deliberately. The replacement is mechanical —
-   `.thusoFont(ThusoType.caption)` scales the same way and starts at 13 — but it is 414 text sites
-   across 22 files and a bulk edit with no visual pass is how a design language gets flattened in one
-   commit. So the number may fall and may not rise, every fix is noticed, and the day it reaches
-   zero this block fails and gets deleted. The twelve that size an SF Symbol rather than a word are
-   counted with the rest: a glyph has no legibility floor, but separating them by regex is a guess,
-   and a ratchet that guesses is a ratchet nobody trusts. */
-{
-  const SMALL_TYPE_ON_IOS = 395;
-  let found = 0;
-  const worst = [];
-  for (const file of files("apps/ios/MyThuso").filter((f) =>
-    f.endsWith(".swift"),
-  )) {
-    const n = (read(file).match(/\.font\(\.caption2?\b/g) ?? []).length;
-    if (n) {
-      found += n;
-      worst.push([file, n]);
-    }
-  }
-  if (found > SMALL_TYPE_ON_IOS) {
-    worst.sort((a, b) => b[1] - a[1]);
-    throw new Error(
-      `iOS renders text below ThusoType.minimumRendered in ${found} places, and this ratchet allows ${SMALL_TYPE_ON_IOS}. .caption is 12 points and .caption2 is 11; the design's smallest declared size is 13. Use .thusoFont(ThusoType.caption), which scales the same way and starts at 13. Worst: ${worst
-        .slice(0, 3)
-        .map(([f, n]) => `${f} (${n})`)
-        .join(", ")}.`,
-    );
-  }
-  if (found < SMALL_TYPE_ON_IOS)
-    throw new Error(
-      `iOS is down to ${found} places rendering text below ThusoType.minimumRendered, and this ratchet still says ${SMALL_TYPE_ON_IOS}. Lower it to ${found}${found ? "" : " — or rather, delete this block, because it is spent"}. A ratchet nobody lowers is a ratchet that stops meaning anything.`,
-    );
-}
+/* The iOS small-type ratchet lived here from 14 to 28 September 2026 — 417 places rendering text
+   below ThusoType.minimumRendered, allowed to fall and never rise. Wave 5a (iOS on the identity)
+   routed every system text style through Font.thuso(_:weight:), which lands .caption and .caption2
+   on the 13-point floor, so the count reached zero and the block failed as it said it would; it is
+   deleted, as it said it should be. The floor is now held by the typography itself. */
 
 /* Live well, and the seven things it may never draw.
    packages/catalog/wellbeing.json is the only feature in this product that talks to somebody about
@@ -37585,4 +37558,332 @@ console.log(
     w4b("CareVisit's patient trend is no longer drawn only through readings that reached the record, two or more of one measure.");
 
   console.log(`Wave 4b, the nurse's screens on the identity · ${sheets.length} sheets and ${w4bRules} rules on tokens alone, no tint, literal, typed corner, shadow or duration, every size on the scale and nothing endless; every animation in nurse-identity.css taken away under reduced motion; Kit, KitCapture and Interpreting off the shared components on the patient's entry; the readiness ring two counts and no percentage; the map's line straight and dashed under the dispatch notice; clinical weight the Devices contract's answer; the trend only through readings on record.`);
+}
+
+/* The CI document — 29 September 2026 */
+/* docs/brand/CI.md, PACK.md and ci.html are compared byte for byte with scripts/emit-ci.mjs in the
+   generated list above. What is held here is what byte-equality alone cannot say about the generator's
+   output — the four ways a brand document goes quietly wrong:
+
+   1. A colour that is not a token. Every six-digit hex in CI.md must be a value in tokens.json — a flat
+      colour, a semantic role in either scheme, or a knownFailures proposed fix — so nobody can copy a
+      superseded or invented value out of the brand book. The generator deliberately never quotes the
+      23 September brand values for this reason.
+   2. A file that is not there, or not that size. Every path PACK.md names must exist and weigh exactly
+      the bytes the row states. A pack index whose sizes are wrong is an index somebody hand-edited or a
+      file somebody re-encoded without regenerating.
+   3. A person captioned as a patient. Nobody in any photograph this product carries is one, and
+      hero.json says so beside every figure. PACK.md's caption column, and every alt and figcaption in
+      ci.html, may not say the word — the handoff's own file names do, which is why the path column is
+      exempt and the caption says the name is the handoff's.
+   0. The word "undefined" (or NaN, or [object Object]) anywhere in the three files.
+   4. A page that reaches out. ci.html is published as one self-contained page: no script at all, no
+      stylesheet, font or image fetched from anywhere. The fonts and the logos are embedded.
+   Each was proved to fire by breaking the generator's output and restoring it. */
+{
+  const ciFail = (m) => { throw new Error(`The CI document: ${m}`); };
+  const ci = read("docs/brand/CI.md");
+  const pack = read("docs/brand/PACK.md");
+  const page = read("docs/brand/ci.html");
+
+  /* 0. A field read from a file that does not hold it prints "undefined", and a brand book that says
+     "the web's undefined-second cap" has published a value nobody set. */
+  for (const [name, content] of [["CI.md", ci], ["PACK.md", pack], ["ci.html", page]]) {
+    const m = /\bundefined\b|\bNaN\b|\[object Object\]/.exec(content);
+    if (m) ciFail(`docs/brand/${name} prints "${m[0]}". The generator read a field that does not exist; source it or print "unsourced".`);
+  }
+
+  /* 1. */
+  const tokenHexes = new Set(
+    [
+      ...Object.values(tokens.color),
+      ...["light", "dark"].flatMap((m) => Object.values(tokens.semantic[m]).map((v) => v.hex)),
+      ...tokens.contrast.knownFailures.map((f) => f.proposedFix),
+    ].map((h) => h.toLowerCase()),
+  );
+  for (const [hex] of ci.matchAll(/#[0-9a-fA-F]{6}\b/g))
+    if (!tokenHexes.has(hex.toLowerCase()))
+      ciFail(`CI.md prints ${hex}, which is not a value in packages/design-tokens/tokens.json. A brand book may only show colours the tokens hold.`);
+
+  /* 2. */
+  const packRows = [...pack.matchAll(/^\| `([^`]+)` \| ([^|]*) \| [^|]* \| (\d+|missing) \| ([^|]*) \|/gm)];
+  if (packRows.length < 60) ciFail(`PACK.md indexes ${packRows.length} files; the pack has more than that.`);
+  for (const [, path, kind, size, caption] of packRows) {
+    if (size === "missing" || !existsSync(path)) ciFail(`PACK.md names ${path} and it is not on disk.`);
+    if (statSync(path).size !== Number(size)) ciFail(`PACK.md says ${path} is ${size} bytes; it is ${statSync(path).size}. Run: npm run ci`);
+    /* 3. */
+    if (/\.(png|jpe?g|webp)$/i.test(path) && /\bpatients?\b/i.test(caption))
+      ciFail(`PACK.md captions ${path} with the word "patient" ("${caption.trim()}"). Nobody photographed is one, and the picture may not say otherwise.`);
+  }
+  for (const m of page.matchAll(/\balt="([^"]*)"|<figcaption>([^<]*)<\/figcaption>/g)) {
+    const caption = m[1] ?? m[2];
+    if (caption && /\bpatients?\b/i.test(caption)) ciFail(`ci.html captions a picture "${caption}". Nobody photographed is a patient.`);
+  }
+
+  /* 4. */
+  if (/<script\b/i.test(page)) ciFail("ci.html carries a script. The page is static and self-contained.");
+  const reach = page.match(/(?:src|href)="https?:|url\((?:"|')?https?:|@import\b/i);
+  if (reach) ciFail(`ci.html reaches outside itself ("${reach[0]}"). Fonts, logos and pictures are embedded so the page stands alone.`);
+  if (!/data:font\/woff2;base64,/.test(page) || !/data:image\/webp;base64,/.test(page)) ciFail("ci.html no longer embeds the faces and the logo; a copy of the page outside the repository would render in the wrong type.");
+
+  console.log(`The CI document · ${ci.split("\n## ").length - 1} chapters, every hex a token value; ${packRows.length} files in the pack at the size on disk, none captioned as a patient; ci.html self-contained with no script.`);
+}
+
+/* Wave 5b — Android on the identity */
+/* 29 September 2026. The Lovable handoff's look reached the Android app: Outfit and Figtree bundled from
+   the OFL sources and routed through the Material typography; a Compose component set under
+   ui/components mirroring apps/web/src/ui, every colour a role of the palette in force (ThusoSemantic
+   light and dark through isSystemInDarkTheme, and ui.css's four measured inks); the shell, the patient
+   home, booking, the Passport, medicines, care tips, the kit, the visit, the inbox, the consultation,
+   the teleconsult and the assistant on it, with the official GilbertOne logo as a drawable. What is held
+   here is what would let it drift back without anybody deciding it should:
+     1. The two faces are the masters this wave recorded, byte for byte, with their licences beside them,
+        and ThusoTypography spends both — Outfit for display and card titles, Figtree for everything read.
+     2. Tokens only: no hex literal and no superseded colour name in the components or the restyled screens.
+     3. Every component the web has exists by name with the web's variants; the spinner turns once and
+        reads the animator scale; a status is never colour alone; every control is a 48dp target.
+     4. The logo drawable is the handoff's master to the byte, resized whole, and never without the
+        descriptor line beside it.
+     5. The patient's four places take the MyThuso icon family, as the web's patient shell does, and
+        ThusoTheme reads every role of both palettes. */
+{
+  const w5b = (message) => { throw new Error(`Wave 5b, Android on the identity: ${message}`); };
+  const android = "apps/android/app/src/main";
+  const uiRoot = `${android}/java/za/co/mythuso/ui`;
+  const strip = (code) => code.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
+  const digest = (file) => createHash("sha256").update(readFileSync(file)).digest("hex");
+  const tokens = JSON.parse(read("packages/design-tokens/tokens.json"));
+
+  /* 1. */
+  const masters = {
+    outfit_variable: "fc7287273e66929776e2ba54f144fe699080bec29f61bf649d70d871468aeade",
+    figtree_variable: "26ad3db9b31ff7dde67a91ff515d022d2f495cd506590699cf264f0bfe6fb714",
+  };
+  for (const [name, sum] of Object.entries(masters)) {
+    const file = `${android}/res/font/${name}.ttf`;
+    if (!existsSync(file)) w5b(`${file} is missing. Both faces are bundled.`);
+    const buf = readFileSync(file);
+    if (buf.readUInt32BE(0) !== 0x00010000) w5b(`${file} is not a TrueType font.`);
+    const tags = Array.from({ length: buf.readUInt16BE(4) }, (_, i) => buf.toString("ascii", 12 + i * 16, 16 + i * 16));
+    if (!tags.includes("fvar")) w5b(`${file} has no fvar table, so it is not the variable master whose weight axis Typography.kt names.`);
+    if (digest(file) !== sum) w5b(`${file} is not the OFL master this wave recorded (sha256 ${sum.slice(0, 12)}…). A face is the source's bytes or it is a different face; record the new hash here with the reason.`);
+  }
+  for (const [licence, family] of [["OFL-Outfit.txt", "Outfit"], ["OFL-Figtree.txt", "Figtree"]]) {
+    const file = `${android}/assets/fonts/${licence}`;
+    if (!existsSync(file) || !/SIL OPEN FONT LICENSE Version 1\.1/.test(read(file)) || !read(file).includes(family))
+      w5b(`${file} is missing or is not the SIL Open Font License 1.1 for ${family}. A face ships with its licence beside it.`);
+  }
+  const typography = strip(read(`${uiRoot}/Typography.kt`));
+  for (const [font, weights] of [["outfit_variable", [500, 600, 700]], ["figtree_variable", [400, 500, 600, 700, 800]]])
+    for (const weight of weights)
+      if (!new RegExp(`R\\.font\\.${font}[^\\n]*FontVariation\\.weight\\(${weight}\\)`).test(typography))
+        w5b(`Typography.kt no longer names ${font} at ${weight}, one of the weights the web self-hosts.`);
+  const scale = typography.slice(typography.indexOf("val ThusoTypography = Typography("));
+  if (!/private fun display\([^)]*\)\s*=\s*TextStyle\(fontFamily = OutfitFamily/.test(typography) || !/private fun text\([^)]*\)\s*=\s*TextStyle\(fontFamily = FigtreeFamily/.test(typography))
+    w5b("Typography.kt's display() is not Outfit or its text() is not Figtree.");
+  for (const role of ["displayLarge", "displayMedium", "displaySmall", "headlineLarge", "headlineMedium", "headlineSmall", "titleLarge"])
+    if (!new RegExp(`${role} = display\\(`).test(scale)) w5b(`ThusoTypography.${role} is not set in Outfit, the display face.`);
+  for (const role of ["titleMedium", "titleSmall", "bodyLarge", "bodyMedium", "bodySmall", "labelLarge", "labelMedium", "labelSmall"])
+    if (!new RegExp(`${role} = text\\(`).test(scale)) w5b(`ThusoTypography.${role} is not set in Figtree, the text face.`);
+  const themeKt = strip(read(`${uiRoot}/Theme.kt`));
+  if (!/typography = ThusoTypography/.test(themeKt)) w5b("ThusoTheme no longer hands Material ThusoTypography.");
+  if (!/dark: Boolean = isSystemInDarkTheme\(\)/.test(themeKt)) w5b("ThusoTheme no longer decides light or dark from isSystemInDarkTheme(), once, at the root.");
+  for (const mode of ["Light", "Dark"])
+    for (const role of tokens.semantic.names)
+      if (!themeKt.includes(`ThusoSemantic.${mode}.${role}`)) w5b(`${mode}Palette does not read ThusoSemantic.${mode}.${role}. Every role reaches the screens through the palette.`);
+
+  /* 2. */
+  const restyled = [
+    `${android}/java/za/co/mythuso/MainActivity.kt`,
+    ...["Theme", "Typography", "Surface", "Components", "SystemStates", "ClinicalChart", "CareScreens", "BookingScreens", "AccountScreens", "PassportScreens",
+      "MedicinesScreens", "CareTipsScreens", "CaptureScreens", "CareVisitScreens", "ClinicalInboxScreens", "ConsultationScreens", "TeleconsultScreens", "GilbertScreens"]
+      .map((f) => `${uiRoot}/${f}.kt`),
+  ];
+  const components = files(`${uiRoot}/components`).filter((f) => f.endsWith(".kt"));
+  const composeName = (name) => ({ body: "BodyText", surface: "SurfaceWhite" })[name] ?? name[0].toUpperCase() + name.slice(1);
+  /* Every name tokens.json retires, as Tokens.kt spells it. `Canvas` is also a Compose composable, so the
+     colour is the bare word: not qualified by a dot and not followed by a call. */
+  const retired = Object.keys(tokens.colorGenerations.supersededBy).map(composeName);
+  let swept = 0;
+  for (const f of [...restyled, ...components]) {
+    if (!existsSync(f)) w5b(`${f} is missing.`);
+    const code = strip(read(f));
+    const literal = code.match(/\b0x[0-9A-Fa-f]{6,8}\b|#[0-9A-Fa-f]{6}\b/);
+    if (literal) w5b(`${f} types the colour ${literal[0]}. Every colour on the identity is a role of the palette in force (theme.<role>) or a generated token.`);
+    for (const name of retired)
+      if (new RegExp(`(?<![.\\w])${name}\\b(?!\\s*\\()`).test(code))
+        w5b(`${f} still spends ${name}, which tokens.json#colorGenerations.supersededBy retires in favour of ${tokens.colorGenerations.supersededBy[Object.keys(tokens.colorGenerations.supersededBy).find((k) => composeName(k) === name)]}.`);
+    swept += 1;
+  }
+
+  /* 3. */
+  const expected = {
+    "ThusoButton.kt": ["fun ThusoButton(", "enum class ThusoButtonVariant { Primary, Accent, Secondary, Ghost, Destructive }", "enum class ThusoButtonSize { Sm, Md, Lg, Icon }", "loading: Boolean", "leadingIcon: ImageVector?", "trailingIcon: ImageVector?", "TouchTarget"],
+    "ThusoCard.kt": ["fun ThusoCard(", "fun ThusoCardHeader(", "fun ThusoCardTitle(", "fun ThusoCardDescription(", "fun ThusoCardContent(", "enum class ThusoCardVariant { Default, Elevated, Interactive }"],
+    "ThusoMetricCard.kt": ["fun ThusoMetricCard(", "ThusoMetricStyle"],
+    "ThusoField.kt": ["fun ThusoField(", "fun ThusoTextField(", "fun ThusoDropdown(", "fun ThusoCheckbox(", "hint: String?", "error: String?", "required: Boolean", "TouchTarget"],
+    "ThusoAlert.kt": ["fun ThusoAlert(", "enum class ThusoAlertVariant { Info, Success, Warning, Danger }", "Icons.Outlined.Info", "Icons.Outlined.CheckCircle", "Icons.Outlined.WarningAmber", "Icons.Outlined.ErrorOutline"],
+    "ThusoBadge.kt": ["fun ThusoBadge(", "fun ThusoStatusIndicator(", "enum class ThusoStatus { Online, Busy, Offline }", "label: String"],
+    "ThusoTabs.kt": ["fun ThusoTabs(", "TouchTarget", "Role.Tab"],
+    "ThusoNavigationItem.kt": ["fun ThusoNavigationItem(", "TouchTarget", "count: Int?"],
+    "ThusoAvatar.kt": ["fun ThusoAvatar(", "initials"],
+    "ThusoDivider.kt": ["fun ThusoDivider("],
+    "ThusoSpinner.kt": ["fun ThusoSpinner(", "ANIMATOR_DURATION_SCALE", "ThusoMotion.enterMs", "ThusoMotion.EaseSoft"],
+  };
+  for (const [file, needles] of Object.entries(expected)) {
+    const path = `${uiRoot}/components/${file}`;
+    if (!existsSync(path)) w5b(`${path} is missing. The Compose set mirrors apps/web/src/ui by name.`);
+    const code = strip(read(path));
+    for (const needle of needles) if (!code.includes(needle)) w5b(`${path} no longer carries ${JSON.stringify(needle)}.`);
+    if (!/\btheme\b/.test(code)) w5b(`${path} reads no role of the palette in force.`);
+    if (/MaterialTheme\.colorScheme/.test(code)) w5b(`${path} reads MaterialTheme.colorScheme. A component reads the palette in force, so light and dark are one object provided once.`);
+  }
+  const spinner = strip(read(`${uiRoot}/components/ThusoSpinner.kt`));
+  if (/infiniteRepeatable|rememberInfiniteTransition/.test(spinner)) w5b("ThusoSpinner runs forever. It turns once as it arrives and then rests.");
+  const status = strip(read(`${uiRoot}/components/ThusoBadge.kt`));
+  const offline = status.slice(status.indexOf("ThusoStatus.Offline ->"), status.indexOf("ThusoStatus.Offline ->") + 200);
+  if (!/border\(/.test(offline)) w5b("ThusoStatusIndicator's offline dot is no longer a hollow ring: the three states must survive a greyscale screen.");
+  if (!/fun ThusoStatusIndicator\(status: ThusoStatus, label: String,/.test(status)) w5b("ThusoStatusIndicator's label is no longer required. Availability is said in words.");
+
+  /* 4. */
+  const master = "packages/brand/lovable-handoff/handoff/src/assets/logos/gilbert-one-logo.png";
+  const drawable = `${android}/res/drawable-nodpi/gilbert_one_logo.png`;
+  if (!existsSync(drawable)) w5b(`${drawable} is missing. The official GilbertOne logo stands at the head of the assistant's sheet.`);
+  if (digest(drawable) !== digest(master)) w5b(`${drawable} is not the handoff's master to the byte. The official logo is never redrawn, recoloured or re-encoded; copy the master again.`);
+  let logoSites = 0;
+  for (const f of files(`${android}/java`).filter((f) => f.endsWith(".kt"))) {
+    const code = strip(read(f));
+    for (const m of code.matchAll(/R\.drawable\.gilbert_one_logo/g)) {
+      logoSites += 1;
+      const around = code.slice(Math.max(0, m.index - 400), m.index + 800);
+      if (!around.includes("GilbertData.descriptorLine")) w5b(`${f} draws the GilbertOne logo without GilbertData.descriptorLine beside it. The name and its correction are read together.`);
+      const call = code.slice(m.index, code.indexOf(")", code.indexOf("contentScale", m.index)) + 1);
+      if (!/ContentScale\.Fit/.test(call) || /Crop|colorFilter|tint =/.test(call)) w5b(`${f} crops, tints or stretches the GilbertOne logo. It is resized whole or not at all.`);
+    }
+  }
+  if (logoSites < 1) w5b("No screen draws R.drawable.gilbert_one_logo; the assistant's sheet opens on the official logo.");
+
+  /* 5. */
+  const shell = strip(read(`${android}/java/za/co/mythuso/MainActivity.kt`));
+  for (const [key, icon] of [["Home", "ic_mythuso_dashboard"], ["Book care", "ic_mythuso_quick"], ["Visits", "ic_mythuso_visit"], ["Passport", "ic_mythuso_health"]])
+    if (!new RegExp(`Destination\\("${key}"[^\\n]*R\\.drawable\\.${icon}`).test(shell))
+      w5b(`MainActivity's "${key}" destination no longer takes ${icon}, the MyThuso icon the web's patient shell gives that place. Never a generic icon and a MyThuso icon for one concept.`);
+  if (!/ThusoTheme \{/.test(shell)) w5b("MainActivity no longer wraps the app in ThusoTheme.");
+
+  console.log(`Wave 5b, Android on the identity · Outfit and Figtree the OFL masters by hash, licensed beside them, routed through ThusoTypography (7 display roles, 8 text roles); ${swept} files on the palette alone with no hex and none of ${retired.length} retired names; ${Object.keys(expected).length} component files with the web's variants, the spinner turning once on the animator scale, availability never colour alone; the GilbertOne logo the master to the byte at ${logoSites} site(s) with the descriptor beside it; the patient's four places on the MyThuso family and ThusoTheme reading all ${tokens.semantic.names.length} roles, light and dark.`);
+}
+
+/* Wave 5a — iOS on the identity */
+/* The Lovable identity on the phone, 28 September 2026, held to five things it must not stop being:
+
+   1. The typefaces are bundled and registered: every face TypographyData.swift names is a real TrueType file
+      under MyThuso/Fonts beside its OFL text, Info.plist lists it under UIAppFonts, and the Xcode project
+      copies the folder and merges that plist — a face that is named and not bundled falls back to the
+      system font silently, which is how a design language leaves a platform without anybody noticing.
+   2. Nothing in Components/ or Features/ writes a colour of its own: no hex, no Color(red:), no UIColor by
+      component. Every colour is a role in ThusoRole or a token in ThusoTheme, light and dark resolved once
+      in Identity.swift. And nothing there asks SwiftUI for a system text style by name any more — every
+      style goes through Font.thuso, which is where Outfit and Figtree are — or for a system font by size.
+   3. The component set the web has exists here by name, with the web's variants and sizes by name, and the
+      spinner turns once and answers Reduce Motion.
+   4. The official GilbertOne logo in the asset catalogue is the handoff's master to the byte — resized
+      whole by the view, never cropped, recoloured or redrawn — and stands with the descriptor line.
+   5. The patient's primary destinations wear the MyThuso family on the tab bar, and the app icon is still
+      MyThuso's. */
+{
+  const w5a = (message) => { throw new Error(`Wave 5a, iOS on the identity: ${message}`); };
+  const ios = "apps/ios/MyThuso";
+  const swiftOf = (dir) => files(dir).filter((f) => f.endsWith(".swift"));
+
+  /* 1. */
+  const typographyData = read(`${ios}/DesignSystem/TypographyData.swift`);
+  const faces = [...typographyData.matchAll(/^\s+"([\w-]+\.ttf)"/gm)].map((m) => m[1]);
+  if (faces.length < 8) w5a(`TypographyData.swift names ${faces.length} font files; the identity carries Outfit at three weights and Figtree at five.`);
+  const plist = read(`${ios}/Info.plist`);
+  if (!/<key>UIAppFonts<\/key>/.test(plist)) w5a("Info.plist no longer registers UIAppFonts.");
+  for (const face of faces) {
+    const path = `${ios}/Fonts/${face}`;
+    if (!existsSync(path)) w5a(`${path} is named by TypographyData.swift and is not bundled.`);
+    const magic = readFileSync(path).readUInt32BE(0);
+    if (magic !== 0x00010000 && magic !== 0x4f54544f) w5a(`${path} is not a TrueType or OpenType font.`);
+    if (!plist.includes(`<string>Fonts/${face}</string>`)) w5a(`Info.plist does not list Fonts/${face} under UIAppFonts.`);
+  }
+  for (const licence of ["OFL-Outfit.txt", "OFL-Figtree.txt"])
+    if (!existsSync(`${ios}/Fonts/${licence}`) || !/SIL Open Font License/.test(read(`${ios}/Fonts/${licence}`)))
+      w5a(`${ios}/Fonts/${licence} is missing or is not the SIL Open Font License. The faces travel with their licence.`);
+  const pbxproj = read("apps/ios/MyThuso.xcodeproj/project.pbxproj");
+  const fontsRef = pbxproj.match(/([0-9A-F]{24}) = \{ isa = PBXFileReference; lastKnownFileType = folder; path = MyThuso\/Fonts;/);
+  if (!fontsRef) w5a("project.pbxproj has no folder reference for MyThuso/Fonts.");
+  const fontsBuild = pbxproj.match(new RegExp(`([0-9A-F]{24}) = \\{ isa = PBXBuildFile; fileRef = ${fontsRef[1]}; \\}`));
+  if (!fontsBuild || !new RegExp(`isa = PBXResourcesBuildPhase;[^()]*files = \\([^)]*${fontsBuild[1]}`).test(pbxproj))
+    w5a("project.pbxproj does not copy MyThuso/Fonts in the app's Resources phase.");
+  if ((pbxproj.match(/INFOPLIST_FILE = MyThuso\/Info\.plist;/g) ?? []).length !== 2)
+    w5a("project.pbxproj does not merge MyThuso/Info.plist into both app configurations, so UIAppFonts never reaches the bundle.");
+  const typography = uncommented(read(`${ios}/DesignSystem/Typography.swift`));
+  if (!/ThusoTypography\.display/.test(typography) || !/ThusoTypography\.text/.test(typography) || /"Outfit"|"Figtree"/.test(typography))
+    w5a("Typography.swift must reach the families through the generated ThusoTypography and never type a family name.");
+
+  /* 2. */
+  const restyled = [...swiftOf(`${ios}/DesignSystem/Components`), ...swiftOf(`${ios}/Features`)];
+  const styles = "largeTitle|title|title2|title3|headline|subheadline|body|callout|footnote|caption|caption2";
+  for (const f of restyled) {
+    const code = uncommented(read(f)).replace(/"(?:[^"\\]|\\.)*"/g, '""');
+    const literal = code.match(/#[0-9a-fA-F]{6}\b|\bU?I?Color\((?:red|white|hue|_colorLiteralRed):|Color\(\.sRGB/);
+    if (literal) w5a(`${f} writes a colour of its own ("${literal[0]}"). Every colour is a role in ThusoRole or a token in ThusoTheme.`);
+    const systemStyle = code.match(new RegExp(`\\.font\\(\\.(?:${styles})\\b`));
+    if (systemStyle) w5a(`${f} asks for a system text style ("${systemStyle[0]}"). Every style goes through Font.thuso, where Outfit and Figtree are.`);
+    const systemSize = code.match(/\.font\(\.system\(size:\s*\d/);
+    if (systemSize) w5a(`${f} sets a system font at a typed size ("${systemSize[0]}"). Sizes come from ThusoType through ThusoFont.`);
+  }
+
+  /* 3. */
+  const components = {
+    ThusoButton: ["case primary, accent, secondary, ghost, destructive", "case sm, md, lg, icon", "loading", "leadingSymbol", "trailingSymbol"],
+    ThusoCard: ["struct ThusoCardHeader", "struct ThusoCardTitle", "struct ThusoCardDescription", "struct ThusoCardContent", "standard, elevated, interactive"],
+    ThusoMetricCard: ["let label", "let value", "var trend"],
+    ThusoField: ["let label", "var hint", "var error", "var required", "struct ThusoTextField", "struct ThusoTextEditor", "struct ThusoPicker", "struct ThusoCheckbox"],
+    ThusoAlert: ["case info, success, warning, danger", "info.circle", "checkmark.circle", "exclamationmark.triangle", "exclamationmark.circle"],
+    ThusoBadge: ["neutral, primary, accent, success, warning, danger", "struct ThusoStatusIndicator", "case online, busy, offline", "let label"],
+    ThusoTabs: ["struct ThusoTabs", ".isSelected"],
+    ThusoNavigationItem: ["struct ThusoNavigationItem", "var active", "var count"],
+    ThusoAvatar: ["case sm, md, lg", "initials"],
+    ThusoDivider: ["struct ThusoDivider"],
+    ThusoSpinner: ["struct ThusoSpinner", "accessibilityReduceMotion", "ThusoMotion.enter"],
+  };
+  for (const [name, needs] of Object.entries(components)) {
+    const path = `${ios}/DesignSystem/Components/${name}.swift`;
+    if (!existsSync(path)) w5a(`${path} does not exist. The web's ${name.replace("Thuso", "")} has a SwiftUI mirror by that name.`);
+    const code = read(path);
+    if (!new RegExp(`struct ${name}\\b`).test(code)) w5a(`${path} does not declare ${name}.`);
+    for (const need of needs) if (!code.includes(need)) w5a(`${path} no longer carries "${need}", which the web's component has.`);
+  }
+  const spinner = uncommented(read(`${ios}/DesignSystem/Components/ThusoSpinner.swift`));
+  if (/repeatForever/.test(spinner)) w5a("ThusoSpinner runs forever. It turns once as it arrives and rests.");
+  const status = uncommented(read(`${ios}/DesignSystem/Components/ThusoBadge.swift`));
+  if (!/case \.offline: Circle\(\)\.stroke/.test(status)) w5a("ThusoStatusIndicator's offline dot is no longer a hollow ring: the three states must survive a greyscale screen, never colour alone.");
+
+  /* 4. */
+  const master = "packages/brand/lovable-handoff/handoff/src/assets/logos/gilbert-one-logo.png";
+  const asset = `${ios}/Assets.xcassets/GilbertOneLogo.imageset/gilbert-one-logo.png`;
+  if (!existsSync(asset)) w5a(`${asset} is missing. The official logo goes in as the master, never redrawn.`);
+  const sha = (p) => createHash("sha256").update(readFileSync(p)).digest("hex");
+  if (sha(asset) !== sha(master)) w5a(`${asset} is not the handoff's master to the byte (sha256 ${sha(master).slice(0, 12)}…). The logo is never cropped, recoloured or redrawn.`);
+  if (!/"filename" : "gilbert-one-logo\.png"/.test(read(`${ios}/Assets.xcassets/GilbertOneLogo.imageset/Contents.json`)))
+    w5a("GilbertOneLogo.imageset's Contents.json does not name the master.");
+  const assistant = uncommented(read(`${ios}/Features/AssistantView.swift`));
+  const logoAt = assistant.indexOf('Image("GilbertOneLogo")');
+  if (logoAt < 0) w5a("AssistantView no longer draws the official GilbertOne logo.");
+  if (!assistant.slice(logoAt, logoAt + 900).includes("Gilbert.descriptorLine")) w5a("AssistantView draws the GilbertOne logo without Gilbert.descriptorLine beside it. The name and its correction are read together.");
+  for (const f of restyled) if (/gilbert-one-logo|GilbertOneLogo/.test(read(f)) && /\.clipped\(\)|\.clipShape\(/.test(read(f).slice(read(f).indexOf("GilbertOneLogo"), read(f).indexOf("GilbertOneLogo") + 300)))
+    w5a(`${f} clips the GilbertOne logo. It is resized whole or not at all.`);
+
+  /* 5. */
+  const app = uncommented(read(`${ios}/MyThusoApp.swift`));
+  for (const [place, icon] of [["home", "dashboard"], ["bookCare", "quick"], ["visits", "visit"], ["passport", "health"]])
+    if (!new RegExp(`thuso\\(\\.${place}, store\\.locale\\)[^\\n]*MyThusoIconsData\\.${icon}\\b`).test(app))
+      w5a(`the tab bar no longer draws ${place} with the family's ${icon} icon. The patient's primary destinations wear the MyThuso family, as on the web.`);
+  if (!existsSync(`${ios}/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png`)) w5a("the MyThuso app icon is missing.");
+  if (/GilbertOne|gilbert-one/.test(read(`${ios}/Assets.xcassets/AppIcon.appiconset/Contents.json`))) w5a("the app icon is not MyThuso's.");
+
+  console.log(`Wave 5a, iOS on the identity · ${faces.length} faces bundled, licensed and registered through UIAppFonts and the merged Info.plist; ${restyled.length} component and screen files on the roles alone with no colour literal, no system text style and no typed system size; ${Object.keys(components).length} components mirroring the web's by name, the spinner turning once; the GilbertOne logo the master to the byte with the descriptor beside it; the patient's four places on the MyThuso family and the app icon MyThuso's.`);
 }

@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import za.co.mythuso.model.CareTip
 import za.co.mythuso.model.CareTips
 import za.co.mythuso.model.CareTipsData
+import za.co.mythuso.ui.components.*
 
 /* Care tips, after a visit: one card in front, the next two behind it, read one at a time.
  *
@@ -63,10 +64,10 @@ import za.co.mythuso.model.CareTipsData
     val still = prefersReducedMotion()
     ScreenColumn {
         Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
-            Text(CareTipsData.Screen.eyebrow, style = MaterialTheme.typography.labelMedium, color = StudioInkMuted)
-            Text(CareTipsData.Screen.heading, style = MaterialTheme.typography.headlineSmall, color = Charcoal,
+            Text(CareTipsData.Screen.eyebrow, style = MaterialTheme.typography.labelMedium, color = theme.mutedForeground)
+            Text(CareTipsData.Screen.heading, style = MaterialTheme.typography.headlineSmall, color = theme.foreground,
                  modifier = Modifier.semantics { heading() })
-            Text(CareTipsData.Screen.lead, style = MaterialTheme.typography.bodyMedium, color = StudioInkMuted)
+            Text(CareTipsData.Screen.lead, style = MaterialTheme.typography.bodyMedium, color = theme.mutedForeground)
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space16)) {
@@ -83,7 +84,7 @@ import za.co.mythuso.model.CareTipsData
                         contentAlignment = Alignment.Center
                     ) {
                         Box(Modifier.fillMaxWidth().height(if (index == at) 8.dp else 4.dp)
-                            .background(if (index <= at) StudioInk else SageSlate, CircleShape))
+                            .background(if (index <= at) theme.primary else theme.border, CircleShape))
                     }
                 }
             }
@@ -91,52 +92,26 @@ import za.co.mythuso.model.CareTipsData
             TipStack(at, still)
 
             Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-                OutlinedButton(
-                    onClick = { at -= 1 }, enabled = at > 0,
-                    modifier = Modifier.weight(1f).heightIn(min = TouchTarget), shape = ThusoButtonShape
-                ) {
-                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(ThusoSpacing.space8))
-                    Text(CareTipsData.Screen.back)
-                }
-                StudioButton(
-                    onClick = { at = if (last) 0 else at + 1 },
-                    modifier = Modifier.weight(2f).heightIn(min = TouchTarget)
-                ) {
-                    if (last) {
-                        Icon(Icons.Outlined.Replay, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(ThusoSpacing.space8))
-                        Text(CareTipsData.Screen.startAgain)
-                    } else {
-                        Text(CareTipsData.Screen.next)
-                        Spacer(Modifier.width(ThusoSpacing.space8))
-                        Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(18.dp))
-                    }
-                }
+                ThusoButton(
+                    CareTipsData.Screen.back, onClick = { at -= 1 }, enabled = at > 0, variant = ThusoButtonVariant.Secondary,
+                    leadingIcon = Icons.AutoMirrored.Outlined.ArrowBack, modifier = Modifier.weight(1f)
+                )
+                if (last) ThusoButton(CareTipsData.Screen.startAgain, onClick = { at = 0 }, leadingIcon = Icons.Outlined.Replay, modifier = Modifier.weight(2f))
+                else ThusoButton(CareTipsData.Screen.next, onClick = { at += 1 }, trailingIcon = Icons.AutoMirrored.Outlined.ArrowForward, modifier = Modifier.weight(2f))
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8), verticalAlignment = Alignment.Top) {
-                Icon(Icons.Outlined.Shield, null, Modifier.size(18.dp), tint = StudioInk)
-                Text(CareTipsData.Review.notice, style = MaterialTheme.typography.bodyMedium, color = StudioInk)
-            }
+            ThusoAlert(CareTipsData.Review.notice)
         }
 
         CareCard(padding = ThusoSpacing.space20) {
-            Text(CareTipsData.Screen.refusalsHeading, style = MaterialTheme.typography.titleLarge, color = Charcoal,
+            Text(CareTipsData.Screen.refusalsHeading, style = MaterialTheme.typography.titleLarge, color = theme.foreground,
                  modifier = Modifier.semantics { heading() })
             CareTipsData.refusals.forEach { sentence ->
                 Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12), verticalAlignment = Alignment.Top) {
-                    Icon(Icons.Outlined.Block, null, Modifier.size(18.dp), tint = StudioInkMuted)
-                    Text(sentence, style = MaterialTheme.typography.bodyMedium, color = StudioInk)
+                    Icon(Icons.Outlined.Block, null, Modifier.size(18.dp), tint = theme.mutedForeground)
+                    Text(sentence, style = MaterialTheme.typography.bodyMedium, color = theme.foreground)
                 }
             }
-            OutlinedButton(
-                onClick = { open("Thuso SOS") },
-                modifier = Modifier.fillMaxWidth().heightIn(min = TouchTarget), shape = ThusoButtonShape
-            ) {
-                Icon(Icons.Outlined.LocalHospital, null, Modifier.size(18.dp))
-                Spacer(Modifier.width(ThusoSpacing.space8))
-                Text(CareTipsData.Screen.emergencyLabel)
-            }
+            ThusoButton(CareTipsData.Screen.emergencyLabel, onClick = { open("Thuso SOS") }, variant = ThusoButtonVariant.Secondary, leadingIcon = Icons.Outlined.LocalHospital, modifier = Modifier.fillMaxWidth())
         }
     }
 }
@@ -175,8 +150,10 @@ private fun Modifier.clickableSegment(label: String, onClick: () -> Unit): Modif
    between them; past that height — a large font scale — the card simply grows. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable private fun TipCard(tip: CareTip, index: Int) {
-    val chip = if (tip.dark) StudioLime else SurfaceWhite
-    val chipInk = if (tip.dark) StudioInk else tip.ink
+    /* The card's fill and ink are the contract's own, generated into CareTipsData; the chip on it is
+       the surface, or on the one dark card the handoff's highlight under the dark ink. */
+    val chip = if (tip.dark) theme.highlight else theme.surface
+    val chipInk = if (tip.dark) ThusoSemantic.Light.foreground else tip.ink
     Column(
         Modifier.fillMaxWidth().heightIn(min = 340.dp)
             .background(tip.fill, RoundedCornerShape(ThusoRadius.card))

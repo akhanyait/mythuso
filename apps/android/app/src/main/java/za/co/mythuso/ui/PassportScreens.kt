@@ -17,6 +17,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import za.co.mythuso.model.*
+import za.co.mythuso.ui.components.*
 
 /* Three screens the Health Passport offered on Android and could not open.
  *
@@ -45,25 +46,25 @@ import za.co.mythuso.model.*
             horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)
         ) {
             listOf(headings.first, headings.second, headings.third).forEach {
-                Text(it, style = MaterialTheme.typography.labelSmall, color = StudioInkMuted, modifier = Modifier.weight(1f))
+                Text(it, style = MaterialTheme.typography.labelSmall, color = theme.mutedForeground, modifier = Modifier.weight(1f))
             }
         }
         rows.forEachIndexed { index, row ->
-            if (index > 0) HorizontalDivider(color = StudioLine)
+            if (index > 0) HorizontalDivider(color = theme.border)
             if (stacked) Column(
                 Modifier.fillMaxWidth().padding(vertical = ThusoSpacing.space12),
                 verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)
             ) {
-                Text(row.first, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                Text("${headings.second}: ${row.second}", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
-                Text("${headings.third}: ${row.third}", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                Text(row.first, style = MaterialTheme.typography.titleSmall, color = theme.foreground)
+                Text("${headings.second}: ${row.second}", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
+                Text("${headings.third}: ${row.third}", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
             } else Row(
                 Modifier.fillMaxWidth().padding(vertical = ThusoSpacing.space12),
                 horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)
             ) {
-                Text(row.first, style = MaterialTheme.typography.titleSmall, color = Charcoal, modifier = Modifier.weight(1f))
-                Text(row.second, style = MaterialTheme.typography.bodySmall, color = Charcoal, modifier = Modifier.weight(1f))
-                Text(row.third, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted, modifier = Modifier.weight(1f))
+                Text(row.first, style = MaterialTheme.typography.titleSmall, color = theme.foreground, modifier = Modifier.weight(1f))
+                Text(row.second, style = MaterialTheme.typography.bodySmall, color = theme.foreground, modifier = Modifier.weight(1f))
+                Text(row.third, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -72,16 +73,16 @@ import za.co.mythuso.model.*
 /** A statement and what stands behind it, which is the shape most of this product's prose takes. */
 @Composable private fun Stated(term: String, detail: String, footnote: String = "") {
     Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
-        Text(term, style = MaterialTheme.typography.titleSmall, color = Charcoal)
-        Text(detail, style = MaterialTheme.typography.bodyMedium, color = Charcoal)
-        if (footnote.isNotEmpty()) Text(footnote, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+        Text(term, style = MaterialTheme.typography.titleSmall, color = theme.foreground)
+        Text(detail, style = MaterialTheme.typography.bodyMedium, color = theme.foreground)
+        if (footnote.isNotEmpty()) Text(footnote, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
     }
 }
 
 @Composable private fun Helper(icon: ImageVector, text: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8), verticalAlignment = Alignment.Top) {
-        Icon(icon, null, tint = StudioInkMuted, modifier = Modifier.size(16.dp).padding(top = 2.dp))
-        Text(text, style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+        Icon(icon, null, tint = theme.mutedForeground, modifier = Modifier.size(16.dp).padding(top = 2.dp))
+        Text(text, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
     }
 }
 
@@ -109,9 +110,9 @@ import za.co.mythuso.model.*
                 flagged = outside.isNotEmpty()
             )
             Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
-                Text("Your last visit", style = MaterialTheme.typography.titleMedium, color = Charcoal,
+                Text("Your last visit", style = MaterialTheme.typography.titleMedium, color = theme.foreground,
                      modifier = Modifier.semantics { heading() })
-                Text(Scheduling.longDate(Passport.dateOf(latest.dayOffset)), style = MaterialTheme.typography.bodySmall, color = Charcoal)
+                Text(Scheduling.longDate(Passport.dateOf(latest.dayOffset)), style = MaterialTheme.typography.bodySmall, color = theme.foreground)
             }
             MetricRow(Passport.headlineMeasures.filter { latest.values.containsKey(it.id) }.map { observation ->
                 val value = latest.values.getValue(observation.id)
@@ -134,12 +135,7 @@ import za.co.mythuso.model.*
                     decimals = if (Passport.format(observation, 1.0).contains('.')) 1 else 0
                 )
             }
-            OutlinedButton(
-                onClick = { showAll = !showAll },
-                Modifier.fillMaxWidth().heightIn(min = TouchTarget), shape = ThusoButtonShape
-            ) {
-                Text(if (showAll) "Show the four I watch" else "Show the other ${Passport.otherMeasures.size} readings")
-            }
+            ThusoButton(if (showAll) "Show the four I watch" else "Show the other ${Passport.otherMeasures.size} readings", onClick = { showAll = !showAll }, variant = ThusoButtonVariant.Secondary, modifier = Modifier.fillMaxWidth())
         }
 
         /* Every range on this screen in one place, because a person who wants to check one number
@@ -167,10 +163,7 @@ import za.co.mythuso.model.*
         PrimaryAction("Book a visit to have these taken again") { open("Book care") }
         /* This screen is not itself a navigation entry, so no tab is lit while you are on it. A
            full-size way back is the difference between a sub-page and a dead end. */
-        OutlinedButton(
-            onClick = { open("Health Passport") },
-            Modifier.fillMaxWidth().heightIn(min = TouchTarget), shape = ThusoButtonShape
-        ) { Text("Back to your Health Passport") }
+        ThusoButton("Back to your Health Passport", onClick = { open("Health Passport") }, variant = ThusoButtonVariant.Secondary, modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -188,20 +181,20 @@ import za.co.mythuso.model.*
         SPanel {
             SChip("Completed")
             Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
-                Text(service.name, style = MaterialTheme.typography.titleLarge, color = Charcoal,
+                Text(service.name, style = MaterialTheme.typography.titleLarge, color = theme.foreground,
                      modifier = Modifier.semantics { heading() })
-                Text("${passportHolder.name} · Home visit · Sandton", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                Text("${passportHolder.name} · Home visit · Sandton", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
             }
-            HorizontalDivider(color = StudioLine)
+            HorizontalDivider(color = theme.border)
             ReviewLine("When", Scheduling.longDate(Passport.dateOf(dayOffset)))
             ReviewLine("Where", "Home visit · Sandton")
             ReviewLine("This visit", "R${service.price}")
-            HorizontalDivider(color = StudioLine)
+            HorizontalDivider(color = theme.border)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
                 TileIcon(Icons.Outlined.MedicalServices)
                 Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
-                    Text("Sister Naledi Mokoena", style = MaterialTheme.typography.titleSmall, color = Charcoal)
-                    Text("Registered Nurse (SANC)", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                    Text("Sister Naledi Mokoena", style = MaterialTheme.typography.titleSmall, color = theme.foreground)
+                    Text("Registered Nurse (SANC)", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                 }
             }
         }
@@ -264,7 +257,7 @@ import za.co.mythuso.model.*
             CareCard(padding = ThusoSpacing.space20) {
                 ReviewLine("Reviewed by", reviewedBy)
                 ReviewLine("On", Scheduling.longDate(Passport.dateOf(lastReview.reviewedDayOffset)))
-                HorizontalDivider(color = StudioLine)
+                HorizontalDivider(color = theme.border)
                 Stated("The assessment", lastReview.assessment)
                 Stated("What to do until the next visit", lastReview.plan)
                 Stated("What happens next", lastReview.next)
@@ -275,24 +268,14 @@ import za.co.mythuso.model.*
            question — what to do until the next visit — and their own screen says the plan above comes
            first. Every word here is CareTipsData's, generated from packages/catalog/care-tips.json. */
         CareCard(padding = ThusoSpacing.space20) {
-            Text(CareTipsData.Door.heading, style = MaterialTheme.typography.titleLarge, color = Charcoal,
+            Text(CareTipsData.Door.heading, style = MaterialTheme.typography.titleLarge, color = theme.foreground,
                  modifier = Modifier.semantics { heading() })
-            Text(CareTipsData.Door.detail, style = MaterialTheme.typography.bodyMedium, color = StudioInk)
-            OutlinedButton(
-                onClick = { open(CareTipsData.Door.opens) },
-                Modifier.fillMaxWidth().heightIn(min = TouchTarget), shape = ThusoButtonShape
-            ) {
-                Icon(Icons.Outlined.Lightbulb, null, Modifier.size(18.dp))
-                Spacer(Modifier.width(ThusoSpacing.space8))
-                Text(CareTipsData.Door.action)
-            }
+            Text(CareTipsData.Door.detail, style = MaterialTheme.typography.bodyMedium, color = theme.foreground)
+            ThusoButton(CareTipsData.Door.action, onClick = { open(CareTipsData.Door.opens) }, variant = ThusoButtonVariant.Secondary, leadingIcon = Icons.Outlined.Lightbulb, modifier = Modifier.fillMaxWidth())
         }
 
         PrimaryAction("Book ${service.name} again") { open("Book care") }
-        OutlinedButton(
-            onClick = { open("Health trends") },
-            Modifier.fillMaxWidth().heightIn(min = TouchTarget), shape = ThusoButtonShape
-        ) { Text("See how this has changed over time") }
+        ThusoButton("See how this has changed over time", onClick = { open("Health trends") }, variant = ThusoButtonVariant.Secondary, modifier = Modifier.fillMaxWidth())
         Helper(Icons.Outlined.Shield, "A completed visit is not edited from here. If something on it is wrong, ask for a correction under Privacy & settings and the change is recorded beside the original rather than instead of it.")
     }
 }
@@ -352,9 +335,9 @@ private fun measureName(id: String): String {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12), verticalAlignment = Alignment.CenterVertically) {
                 TileIcon(spec.icon)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)) {
-                    Text(spec.name, style = MaterialTheme.typography.titleLarge, color = Charcoal,
+                    Text(spec.name, style = MaterialTheme.typography.titleLarge, color = theme.foreground,
                          modifier = Modifier.semantics { heading() })
-                    Text("Readings from ${spec.platform}", style = MaterialTheme.typography.bodySmall, color = StudioInkMuted)
+                    Text("Readings from ${spec.platform}", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                 }
             }
         }
@@ -422,10 +405,7 @@ private fun measureName(id: String): String {
            a Connect button and must not look like the one the note below says there is not. */
         if (spec.name == "Health Connect") {
             Note(DevicesData.WearableText.notConnected)
-            OutlinedButton(
-                onClick = { open(Devices.wearableLinkTitle("health-connect")) },
-                Modifier.fillMaxWidth().heightIn(min = TouchTarget), shape = ThusoButtonShape
-            ) { Text(Devices.wearableLinkTitle("health-connect")) }
+            ThusoButton(Devices.wearableLinkTitle("health-connect"), onClick = { open(Devices.wearableLinkTitle("health-connect")) }, variant = ThusoButtonVariant.Secondary, modifier = Modifier.fillMaxWidth())
         }
 
         /* Why it cannot be switched on today, in the contract's own words rather than in a
@@ -435,18 +415,15 @@ private fun measureName(id: String): String {
            instruments herself. */
         TonedCard {
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
-                Icon(Icons.Outlined.Lock, null, tint = Charcoal, modifier = Modifier.size(18.dp))
+                Icon(Icons.Outlined.Lock, null, tint = theme.foreground, modifier = Modifier.size(18.dp))
                 Text(
                     Capabilities.blocking("devices").joinToString(" ") +
                         " Until that changes there is nothing to connect to, so there is no button here pretending otherwise.",
-                    style = MaterialTheme.typography.bodySmall, color = Charcoal
+                    style = MaterialTheme.typography.bodySmall, color = theme.foreground
                 )
             }
         }
         PrimaryAction("Book a visit — the nurse brings the instruments") { open("Book care") }
-        OutlinedButton(
-            onClick = { open("Health Passport") },
-            Modifier.fillMaxWidth().heightIn(min = TouchTarget), shape = ThusoButtonShape
-        ) { Text("Back to your Health Passport") }
+        ThusoButton("Back to your Health Passport", onClick = { open("Health Passport") }, variant = ThusoButtonVariant.Secondary, modifier = Modifier.fillMaxWidth())
     }
 }

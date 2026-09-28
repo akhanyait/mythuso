@@ -62,11 +62,11 @@ struct ShopView: View {
     private var balanceCard: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("THUSO POINTS").thusoFont(ThusoType.caption, weight: .semibold).kerning(1.2).foregroundStyle(.green)
-            Text("\(points)").font(.system(size: 40, weight: .bold))
+            Text("\(points)").font(ThusoFont.metricLarge)
             // Worth is multiplied, never typed. See the note at the top of this file.
             Text("worth \(Commerce.randValue(points: points, track: "household"), format: .currency(code: ShopData.currency)) off goods")
                 .thusoFont(ThusoType.caption).foregroundStyle(.white.opacity(0.75))
-            Text(tier.name).font(.subheadline.weight(.semibold)).foregroundStyle(.green)
+            Text(tier.name).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(.green)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(22)
@@ -84,12 +84,12 @@ struct ShopView: View {
             }
             ForEach(products) { product in
                 VStack(alignment: .leading, spacing: 7) {
-                    Text(product.name).font(.headline)
-                    Text(product.does).font(.subheadline).foregroundStyle(.secondary)
+                    Text(product.name).font(.thuso(.headline))
+                    Text(product.does).font(.thuso(.subheadline)).foregroundStyle(.secondary)
                     // Attached to the product, so it cannot be scrolled past.
                     if product.needsReading { refusalLine("reading-is-not-advice") }
                     HStack {
-                        Text(Double(product.priceCents) / 100, format: .currency(code: ShopData.currency)).font(.title3.weight(.bold))
+                        Text(Double(product.priceCents) / 100, format: .currency(code: ShopData.currency)).font(.thuso(.title3, weight: .bold))
                         Spacer()
                         Button("Add") { add(product) }.buttonStyle(.borderedProminent).tint(.green)
                     }
@@ -103,11 +103,11 @@ struct ShopView: View {
 
     private var basketCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Basket").font(.headline)
+            Text("Basket").font(.thuso(.headline))
             ForEach(basket) { line in
                 if let product = ShopData.product(line.productId) {
                     HStack {
-                        Text(product.name).font(.subheadline)
+                        Text(product.name).font(.thuso(.subheadline))
                         Spacer()
                         Text("×\(line.quantity)").foregroundStyle(.secondary)
                         Text(Double(product.priceCents * line.quantity) / 100, format: .currency(code: ShopData.currency))
@@ -119,10 +119,10 @@ struct ShopView: View {
             HStack { Text("Delivery").foregroundStyle(.secondary); Spacer()
                 Text(Double(delivery) / 100, format: .currency(code: ShopData.currency)) }
             HStack {
-                Text("Would come to").font(.headline)
+                Text("Would come to").font(.thuso(.headline))
                 Spacer()
                 Text(Double(Commerce.totalCents(lines: basket, pointsSpent: pointsSpent, freeDelivery: tier.id != "green")) / 100,
-                     format: .currency(code: ShopData.currency)).font(.headline)
+                     format: .currency(code: ShopData.currency)).font(.thuso(.headline))
             }
             Button("Hold stock and quote me") { quote() }
                 .buttonStyle(.borderedProminent).tint(.green).frame(maxWidth: .infinity)
@@ -136,7 +136,7 @@ struct ShopView: View {
         VStack(alignment: .leading, spacing: 12) {
             ForEach(RewardsData.earnReasons.filter { $0.track == "household" }) { reason in
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(reason.name).font(.subheadline.weight(.semibold))
+                    Text(reason.name).font(.thuso(.subheadline, weight: .semibold))
                     if let fixed = reason.points { Text("\(fixed) points").thusoFont(ThusoType.caption) }
                     else if let perRand = reason.perRand { Text("\(perRand, specifier: "%g") point per rand").thusoFont(ThusoType.caption) }
                     // What the ledger row will say, shown before it is written.
@@ -151,12 +151,12 @@ struct ShopView: View {
                 .padding(14)
                 .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
             }
-            Text("Your points history").font(.headline)
+            Text("Your points history").font(.thuso(.headline))
             if ledger.isEmpty { Text("Nothing yet.").thusoFont(ThusoType.caption).foregroundStyle(.secondary) }
             ForEach(ledger.reversed()) { entry in
                 HStack {
                     VStack(alignment: .leading) {
-                        Text(RewardsData.reason(entry.reason)?.name ?? entry.reason).font(.subheadline)
+                        Text(RewardsData.reason(entry.reason)?.name ?? entry.reason).font(.thuso(.subheadline))
                         Text(entry.note).thusoFont(ThusoType.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
@@ -169,7 +169,7 @@ struct ShopView: View {
 
     private var refusalsPanel: some View {
         VStack(alignment: .leading, spacing: 9) {
-            Text("What this shop will not do").font(.headline)
+            Text("What this shop will not do").font(.thuso(.headline))
             ForEach(ShopData.refusals) { Text($0.sentence).thusoFont(ThusoType.caption).foregroundStyle(.secondary) }
             ForEach(RewardsData.refusals) { Text($0.sentence).thusoFont(ThusoType.caption).foregroundStyle(.secondary) }
         }

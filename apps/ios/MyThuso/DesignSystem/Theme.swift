@@ -10,35 +10,8 @@ import SwiftUI
    once — and every gap was a number typed into a stack. That is why the interface read as soft and
    improvised rather than composed. Everything below is built from ThusoRadius and ThusoSpacing so
    there is one scale and the design system can move it. */
-extension ThusoTheme {
-    /// Elevation, expressed once. A card that leads a screen may lift; nothing else may.
-    static let lift = ink.opacity(0.06)
-
-    /* THE EDGE OF A CONTROL IS NOT A HAIRLINE, AND MEASURING IS WHAT SAID SO.
-     *
-     * A one-time-code box, a search field, a note editor, an unselected time slot: each of these is
-     * a white shape on a near-white ground, and its border is the only thing on the screen saying
-     * where it is. WCAG 2.2 SC 1.4.11 holds that border to 3:1, and every one of them was drawn in
-     * `line` — #E2E8F0, which measures 1.23:1 on white. `stone` is 1.36. Both are invisible; a
-     * reader with ordinary eyesight finds those fields by guessing, and a reader without does not
-     * find them at all.
-     *
-     * Nothing in the sage ramp can carry it either: sageSlate, the darkest the ramp goes, is 2.90
-     * on white and fails by a tenth. Charcoal at half alpha reaches 3.28 on white but 2.96 on the
-     * palest sage, so it would pass on the screens it was measured on and fail on a lead panel.
-     *
-     * So it is the muted charcoal the labels already use — 6.69 on white, 6.01 on cloud, 5.37 on
-     * paleSage, 4.74 on the deepest sage fill. Past 3:1 on every ground in the palette with room to
-     * spare, and, being an alpha rather than a flattened grey, it darkens with whatever it sits on
-     * for the same reason ThusoOpacity.charcoalMuted exists at all. It also makes the resting and
-     * the active state one progression rather than two ideas: an idle field is charcoal at 72% and
-     * one point, the field you are in is charcoal at full weight and one and a half.
-     *
-     * A DIVIDER IS STILL `stone`. This is not a licence to darken every line in the app. A rule
-     * between two rows, the edge of a card, the ring round a monogram — none of those is a control
-     * and none of them has to be found, so they stay the hairline the design language asks for. */
-    static let controlEdge = charcoal.opacity(ThusoOpacity.charcoalMuted)
-}
+/* `lift` and `controlEdge` used to live here. Since 28 September 2026 elevation is `thusoShadow()` from
+   the tokens' two shadows and a control's edge is ThusoRole.inputEdge, so nothing is renamed here. */
 
 /* How much a card is meant to matter.
  *
@@ -71,17 +44,21 @@ struct CareCard<Content: View>: View {
        the one button a screen is for. */
     private var fill: Color {
         switch weight {
-        case .lead: return ThusoTheme.studioLilac
-        case .plain: return ThusoTheme.surface
-        case .quiet: return ThusoTheme.cloud
+        case .lead: return ThusoRole.surfaceRaised
+        case .plain: return ThusoRole.surface
+        case .quiet: return ThusoRole.muted
         }
     }
+    /* The handoff's Card since 28 September 2026 — a border and the one card shadow on every weight;
+       the lead card is the raised surface rather than a tint of its own. ThusoCard in Components/ is
+       the same shape for a screen written against the catalogue's names. */
     var body: some View {
         VStack(alignment: .leading, spacing: spacing) { content }
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(fill, in: shape)
-            .overlay(shape.stroke(weight == .plain ? ThusoTheme.studioLine : .clear, lineWidth: 1))
+            .overlay(shape.stroke(ThusoRole.border, lineWidth: 1))
+            .thusoShadow()
     }
 }
 
@@ -92,12 +69,12 @@ struct CareHeading: View {
     var body: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
             if !eyebrow.isEmpty {
-                Text(eyebrow.uppercased()).font(.caption2.weight(.semibold)).tracking(1.1).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(eyebrow.uppercased()).font(.thuso(.caption2, weight: .semibold)).tracking(1.1).foregroundStyle(ThusoRole.mutedForeground)
             }
-            Text(title).font(.title2.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
+            Text(title).font(.thuso(.title2, weight: .bold)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
             if !subtitle.isEmpty {
-                Text(subtitle).font(.subheadline).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text(subtitle).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -121,18 +98,18 @@ struct CareSectionHeader<Trailing: View>: View {
     let title: String
     @ViewBuilder var trailing: Trailing
     private var link: some View {
-        trailing.font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+        trailing.font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
             .frame(minHeight: 44).contentShape(Rectangle())
     }
     var body: some View {
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) {
-                Text(title).font(.headline).foregroundStyle(ThusoTheme.charcoal)
+                Text(title).font(.thuso(.headline)).foregroundStyle(ThusoRole.foreground)
                 Spacer(minLength: ThusoSpacing.space8)
                 link
             }
             VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-                Text(title).font(.headline).foregroundStyle(ThusoTheme.charcoal)
+                Text(title).font(.thuso(.headline)).foregroundStyle(ThusoRole.foreground)
                 link
             }
         }
@@ -155,33 +132,17 @@ private func buttonShape(_ accessibility: Bool) -> AnyShape {
     accessibility ? AnyShape(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous)) : AnyShape(Capsule())
 }
 
-// The primary action uses brand ink; mint remains a supporting card accent.
+/* Since 28 September 2026 both are the handoff's Button, full width: CareButton its primary at the
+   large size and QuietButton its secondary. The two names stay because every screen already asks for
+   them by name; the look is ThusoButtonStyle's, so there is one button in this product. */
 struct CareButton: ButtonStyle {
-    @Environment(\.dynamicTypeSize) private var typeSize
     func makeBody(configuration: Configuration) -> some View {
-        let shape = buttonShape(typeSize.isAccessibilitySize)
-        return configuration.label
-            .font(.subheadline.weight(.semibold))
-            .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space12)
-            .frame(maxWidth: .infinity, minHeight: 48)
-            .background(ThusoTheme.studioInk, in: shape)
-            .overlay(shape.fill(ThusoTheme.studioInkDeep.opacity(configuration.isPressed ? 0.12 : 0)))
-            .foregroundStyle(ThusoTheme.surface)
-            .contentShape(Rectangle())
+        ThusoButtonStyle(.primary, size: .lg, fullWidth: true).makeBody(configuration: configuration)
     }
 }
 struct QuietButton: ButtonStyle {
-    @Environment(\.dynamicTypeSize) private var typeSize
     func makeBody(configuration: Configuration) -> some View {
-        let shape = buttonShape(typeSize.isAccessibilitySize)
-        return configuration.label
-            .font(.subheadline.weight(.semibold))
-            .padding(.horizontal, ThusoSpacing.space16).padding(.vertical, ThusoSpacing.space12)
-            .frame(maxWidth: .infinity, minHeight: 48)
-            .background(configuration.isPressed ? ThusoTheme.cloud : ThusoTheme.surface, in: shape)
-            .overlay(shape.stroke(ThusoTheme.controlEdge, lineWidth: 1))
-            .foregroundStyle(ThusoTheme.charcoal)
-            .contentShape(Rectangle())
+        ThusoButtonStyle(.secondary, size: .lg, fullWidth: true).makeBody(configuration: configuration)
     }
 }
 
@@ -206,15 +167,15 @@ struct Monogram: View {
     /* White with a hairline, on every ground. A sage disc on a sage lead card was invisible — the
        monogram was there in the layout and gone in the screenshot — and separation in this language
        is a hairline and a lighter fill rather than a second tint per card. */
-    var background: Color = ThusoTheme.surface
+    var background: Color = ThusoRole.surface
     @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
     @Environment(\.dynamicTypeSize) private var typeSize
     var body: some View {
         if !typeSize.isAccessibilitySize {
-            Text(text).font(.footnote.weight(.bold)).foregroundStyle(ThusoTheme.charcoal)
+            Text(text).font(.thuso(.footnote, weight: .bold)).foregroundStyle(ThusoRole.foreground)
                 .frame(width: diameter * scale, height: diameter * scale)
                 .background(background, in: Circle())
-                .overlay(Circle().stroke(ThusoTheme.studioLine, lineWidth: 1))
+                .overlay(Circle().stroke(ThusoRole.border, lineWidth: 1))
                 .accessibilityHidden(true)
         }
     }
@@ -223,14 +184,14 @@ struct Monogram: View {
 /// A soft tinted square holding a symbol. It marks what leads a section — not every row in it.
 struct TileIcon: View {
     let symbol: String
-    var tint: Color = ThusoTheme.charcoal
+    var tint: Color = ThusoRole.foreground
     /* THE DEFAULT IS THE QUIET PLATE, AND THE LOUD ONE IS ASKED FOR BY NAME.
        This was studioLime for an afternoon, and the emulator screenshot of the care catalogue is why
        it is not: six rows, six lime squares, straight down the screen. A plate marks what leads a
        section rather than every row in it — that is the sentence above this control — and a default
        is precisely what every row gets, so a loud default is the one thing that rule cannot survive.
        Charcoal reads 13.53:1 on cloud and 15.3:1 on the lime a caller passes deliberately. */
-    var background: Color = ThusoTheme.cloud
+    var background: Color = ThusoRole.muted
     var size: CGFloat = 40
     /* @ScaledMetric so the plate grows with the reader's text size. It used to be a fixed square
        beside text that could triple in height, which is how a 44-point tile ended up floating
@@ -270,14 +231,14 @@ struct StepDots: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: ThusoSpacing.space8))
             : AnyLayout(HStackLayout(spacing: ThusoSpacing.space8))
         return layout {
-            Text("Step \(step) of \(total)").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-            Text(label).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text("Step \(step) of \(total)").font(.thuso(.caption, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+            Text(label).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
                 .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: ThusoSpacing.space8)
             HStack(spacing: ThusoSpacing.space4) {
                 ForEach(1...total, id: \.self) { index in
-                    Capsule().fill(index <= step ? ThusoTheme.studioNight : ThusoTheme.cloud)
+                    Capsule().fill(index <= step ? ThusoRole.primary : ThusoRole.muted)
                         .frame(width: index == step ? 18 : 6, height: 6)
                 }
             }
@@ -306,11 +267,11 @@ struct CodeBoxes: View {
                 ForEach(0..<length, id: \.self) { index in
                     let digit = index < code.count ? String(Array(code)[index]) : ""
                     let active = focused && index == min(code.count, length - 1)
-                    Text(digit).font(.title3.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                    Text(digit).font(.thuso(.title3, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                         .frame(maxWidth: .infinity, minHeight: boxHeight)
-                        .background(ThusoTheme.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+                        .background(ThusoRole.surface, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous).stroke(
-                            invalid ? ThusoTheme.danger : (active ? ThusoTheme.charcoal : ThusoTheme.controlEdge),
+                            invalid ? ThusoRole.dangerInk : (active ? ThusoRole.foreground : ThusoRole.inputEdge),
                             lineWidth: active || invalid ? 1.5 : 1))
                 }
             }
@@ -333,13 +294,13 @@ struct DemoBadge: View {
     var body: some View {
         Label("Design preview · Fictional data", systemImage: "info.circle")
             .accessibilityElement(children: .ignore).accessibilityLabel("Design preview · Fictional data")
-            .font(.caption.weight(.medium))
-            .foregroundStyle(ThusoTheme.charcoal)
+            .font(.thuso(.caption, weight: .medium))
+            .foregroundStyle(ThusoRole.foreground)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, ThusoSpacing.space8).padding(.vertical, ThusoSpacing.space4)
             /* A rounded rectangle rather than a capsule: at the accessibility sizes this wraps to
                three lines, and a capsule's ends then curve so far in that they cut the text. */
-            .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+            .background(ThusoRole.muted, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
     }
@@ -361,28 +322,28 @@ struct MenuRow: View {
     var body: some View {
         HStack(spacing: ThusoSpacing.space12) {
             if tinted || danger {
-                TileIcon(symbol: symbol, tint: danger ? ThusoTheme.danger : ThusoTheme.charcoal,
-                         background: danger ? ThusoTheme.dangerSoft : ThusoTheme.studioLime, size: 36)
+                TileIcon(symbol: symbol, tint: danger ? ThusoRole.dangerInk : ThusoRole.foreground,
+                         background: danger ? ThusoRole.dangerTint : ThusoRole.highlight, size: 36)
             } else if !typeSize.isAccessibilitySize {
                 /* At the accessibility sizes the symbol is dropped rather than shrunk: the words are
                    what the row is for, and a 24-point glyph beside six lines of wrapped label is
                    noise competing for a narrow column. */
-                Image(systemName: symbol).font(.body).foregroundStyle(ThusoTheme.charcoal)
+                Image(systemName: symbol).font(.thuso(.body)).foregroundStyle(ThusoRole.foreground)
                     .frame(width: 26, alignment: .center).accessibilityHidden(true)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.subheadline.weight(.semibold))
-                    .foregroundStyle(danger ? ThusoTheme.danger : ThusoTheme.charcoal)
+                Text(title).font(.thuso(.subheadline, weight: .semibold))
+                    .foregroundStyle(danger ? ThusoRole.dangerInk : ThusoRole.foreground)
                     .fixedSize(horizontal: false, vertical: true)
                 if !subtitle.isEmpty {
-                    Text(subtitle).font(.caption).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(subtitle).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
             Spacer(minLength: ThusoSpacing.space8)
             if !danger {
-                Image(systemName: "chevron.right").font(.caption.weight(.semibold))
-                    .foregroundStyle(ThusoTheme.studioInkMuted).accessibilityHidden(true)
+                Image(systemName: "chevron.right").font(.thuso(.caption, weight: .semibold))
+                    .foregroundStyle(ThusoRole.mutedForeground).accessibilityHidden(true)
             }
         }
         .padding(.vertical, ThusoSpacing.space8)
@@ -404,11 +365,11 @@ struct FeatureDetail: View {
                 CareCard(weight: .lead) {
                     TileIcon(symbol: "sparkles")
                     Text("This workflow will connect to the relevant clinical, operational or partner service in the functionality phase.")
-                        .font(.subheadline).foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+                        .font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
                     Text("No live care, payments, device permissions or clinical decisions are activated.")
-                        .font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted).fixedSize(horizontal: false, vertical: true)
+                        .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground).fixedSize(horizontal: false, vertical: true)
                 }
-                Text("Connected to your care journey.").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                Text("Connected to your care journey.").font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             }
             .padding(.horizontal, ThusoSpacing.space20).padding(.vertical, ThusoSpacing.space16)
         }

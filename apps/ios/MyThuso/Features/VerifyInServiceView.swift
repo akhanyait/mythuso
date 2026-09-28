@@ -33,22 +33,22 @@ struct ShiftStartView: View {
                 CapabilityNotice(of: "credential-verification")
                 SurfacePanel(tone: .lead) {
                     Label(VerifyInService.ShiftText.noMatch, systemImage: "person.crop.circle.badge.questionmark")
-                        .font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+                        .font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(VerifyInService.ShiftText.whyNoMatch).font(.footnote)
-                        .foregroundStyle(ThusoTheme.studioInkMuted).fixedSize(horizontal: false, vertical: true)
+                    Text(VerifyInService.ShiftText.whyNoMatch).font(.thuso(.footnote))
+                        .foregroundStyle(ThusoRole.mutedForeground).fixedSize(horizontal: false, vertical: true)
                     if let shift = store.shift {
                         Text(VerifyInService.fill(VerifyInService.ShiftText.started, ["at": clockTime(shift.startedAt)]))
-                            .font(.footnote.weight(.medium)).foregroundStyle(ThusoTheme.charcoal)
-                        Text(VerifyInService.nurseLine(shift)).font(.footnote)
-                            .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+                            .font(.thuso(.footnote, weight: .medium)).foregroundStyle(ThusoRole.foreground)
+                        Text(VerifyInService.nurseLine(shift)).font(.thuso(.footnote))
+                            .foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
                     } else {
                         Button(VerifyInService.ShiftText.button) { start() }
                             .buttonStyle(CareButton())
                             .accessibilityIdentifier("shift-start")
                     }
                     if let refused {
-                        Text(refused.statement).font(.footnote).foregroundStyle(ThusoTheme.danger)
+                        Text(refused.statement).font(.thuso(.footnote)).foregroundStyle(ThusoRole.dangerInk)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -83,17 +83,17 @@ struct NurseDoorCodeView: View {
                 SurfaceHeading(eyebrow: "At the door", title: VerifyInService.NurseDoorText.heading, subtitle: VerifyInService.NurseDoorText.intro)
                 SurfacePanel(tone: .lead) {
                     if let shown = store.shown {
-                        Text(shown.digits).font(.system(size: 40, weight: .bold, design: .monospaced))
-                            .foregroundStyle(ThusoTheme.charcoal).accessibilityLabel(VerifyInService.NurseDoorText.heading)
-                        Text(VerifyInService.fill(VerifyInService.NurseDoorText.expires, ["at": clockTime(shown.expiresAt)])).font(.footnote)
-                        Text(VerifyInService.fill(VerifyInService.NurseDoorText.tries, ["attempts": String(shown.attemptsAllowed)])).font(.footnote)
+                        Text(shown.digits).font(ThusoFont.metricLarge.monospacedDigit())
+                            .foregroundStyle(ThusoRole.foreground).accessibilityLabel(VerifyInService.NurseDoorText.heading)
+                        Text(VerifyInService.fill(VerifyInService.NurseDoorText.expires, ["at": clockTime(shown.expiresAt)])).font(.thuso(.footnote))
+                        Text(VerifyInService.fill(VerifyInService.NurseDoorText.tries, ["attempts": String(shown.attemptsAllowed)])).font(.thuso(.footnote))
                     }
-                    Text(VerifyInService.NurseDoorText.preview).font(.footnote)
-                        .foregroundStyle(ThusoTheme.studioInkMuted).fixedSize(horizontal: false, vertical: true)
+                    Text(VerifyInService.NurseDoorText.preview).font(.thuso(.footnote))
+                        .foregroundStyle(ThusoRole.mutedForeground).fixedSize(horizontal: false, vertical: true)
                     Button(store.shown == nil ? VerifyInService.NurseDoorText.button : VerifyInService.NurseDoorText.again) { show() }
                         .buttonStyle(CareButton())
                     if let refused {
-                        Text(refused.statement).font(.footnote).foregroundStyle(ThusoTheme.danger)
+                        Text(refused.statement).font(.thuso(.footnote)).foregroundStyle(ThusoRole.dangerInk)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -132,14 +132,14 @@ struct DoorCheckView: View {
                 CapabilityNotice(of: "credential-verification")
                 SurfacePanel(tone: .lead) {
                     HStack(spacing: ThusoSpacing.space12) {
-                        Monogram(text: Arrival.nurse.initials, diameter: 44, background: ThusoTheme.surface)
+                        Monogram(text: Arrival.nurse.initials, diameter: 44, background: ThusoRole.surface)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(Arrival.nurse.name).font(.body.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-                            Text("\(visit.service.name) for \(visit.patient)").font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                            Text(Arrival.nurse.name).font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+                            Text("\(visit.service.name) for \(visit.patient)").font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         }
                     }
-                    Text(VerifyInService.PatientDoorText.photo).font(.footnote)
-                        .foregroundStyle(ThusoTheme.studioInkMuted).fixedSize(horizontal: false, vertical: true)
+                    Text(VerifyInService.PatientDoorText.photo).font(.thuso(.footnote))
+                        .foregroundStyle(ThusoRole.mutedForeground).fixedSize(horizontal: false, vertical: true)
                     if !deskTold && !confirmed {
                         CodeBoxes(code: $typed, length: VerifyInService.doorDigits, invalid: refused != nil, label: VerifyInService.PatientDoorText.codeLabel)
                         Button(VerifyInService.PatientDoorText.check) { check() }
@@ -148,11 +148,11 @@ struct DoorCheckView: View {
                     outcome
                 }
                 if !deskTold {
-                    Text(VerifyInService.PatientDoorText.anyTime).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+                    Text(VerifyInService.PatientDoorText.anyTime).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
                     Button(role: .destructive) { answer("not-my-nurse") } label: {
                         Text(VerifyInService.label(VerifyInService.answers, "not-my-nurse")).frame(maxWidth: .infinity, minHeight: 48)
-                    }.buttonStyle(.bordered).tint(ThusoTheme.danger)
+                    }.buttonStyle(.bordered).tint(ThusoRole.dangerInk)
                 }
             }
             .padding(.vertical, ThusoSpacing.space16)
@@ -164,24 +164,24 @@ struct DoorCheckView: View {
 
     @ViewBuilder private var outcome: some View {
         if let refused {
-            Text(refused.statement).font(.footnote).foregroundStyle(ThusoTheme.danger).fixedSize(horizontal: false, vertical: true)
+            Text(refused.statement).font(.thuso(.footnote)).foregroundStyle(ThusoRole.dangerInk).fixedSize(horizontal: false, vertical: true)
         }
         if deskTold {
             VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-                Label(VerifyInService.PatientDoorText.mismatch, systemImage: "exclamationmark.shield").font(.body.weight(.semibold))
-                Text(VerifyInService.PatientDoorText.danger).font(.footnote)
+                Label(VerifyInService.PatientDoorText.mismatch, systemImage: "exclamationmark.shield").font(.thuso(.body, weight: .semibold))
+                Text(VerifyInService.PatientDoorText.danger).font(.thuso(.footnote))
             }
-            .foregroundStyle(ThusoTheme.danger).accessibilityElement(children: .combine)
+            .foregroundStyle(ThusoRole.dangerInk).accessibilityElement(children: .combine)
         } else if confirmed {
-            Label(VerifyInService.PatientDoorText.verified, systemImage: "checkmark.seal").font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+            Label(VerifyInService.PatientDoorText.verified, systemImage: "checkmark.seal").font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
         } else if case let .wrong(left) = tried {
-            Text(VerifyInService.fill(VerifyInService.PatientDoorText.wrong, ["attempts": String(left)])).font(.footnote).foregroundStyle(ThusoTheme.danger)
+            Text(VerifyInService.fill(VerifyInService.PatientDoorText.wrong, ["attempts": String(left)])).font(.thuso(.footnote)).foregroundStyle(ThusoRole.dangerInk)
         } else if case let .codeFits(name, tierName) = tried {
-            Label(VerifyInService.PatientDoorText.matched, systemImage: "checkmark.seal").font(.footnote.weight(.medium))
+            Label(VerifyInService.PatientDoorText.matched, systemImage: "checkmark.seal").font(.thuso(.footnote, weight: .medium))
             LabeledContent(VerifyInService.PatientDoorText.name, value: name)
             LabeledContent(VerifyInService.PatientDoorText.badge, value: tierName ?? VerifyInService.PatientDoorText.noBadge)
-            Text(VerifyInService.PatientDoorText.badgeSentence).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
-            Text(VerifyInService.PatientDoorText.question).font(.body.weight(.semibold))
+            Text(VerifyInService.PatientDoorText.badgeSentence).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
+            Text(VerifyInService.PatientDoorText.question).font(.thuso(.body, weight: .semibold))
             if tierName != nil {
                 Button(VerifyInService.label(VerifyInService.answers, "she-is-my-nurse")) { answer("she-is-my-nurse") }.buttonStyle(CareButton())
             }

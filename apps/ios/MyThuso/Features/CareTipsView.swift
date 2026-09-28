@@ -38,7 +38,7 @@ struct CareTipsView: View {
                     Image(systemName: "checkmark.shield").accessibilityHidden(true)
                     Text(CareTipsData.Review.notice).fixedSize(horizontal: false, vertical: true)
                 }
-                .font(.subheadline).foregroundStyle(ThusoTheme.studioInk)
+                .font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                 .accessibilityElement(children: .combine)
                 refusals
             }
@@ -51,11 +51,11 @@ struct CareTipsView: View {
 
     private var intro: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-            Text(CareTipsData.Screen.eyebrow).thusoFont(ThusoType.caption, weight: .semibold).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(CareTipsData.Screen.eyebrow).thusoFont(ThusoType.caption, weight: .semibold).foregroundStyle(ThusoRole.mutedForeground)
             Text(CareTipsData.Screen.heading).thusoFont(ThusoType.heading, weight: .semibold)
-                .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+                .foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
-            Text(CareTipsData.Screen.lead).font(.subheadline).foregroundStyle(ThusoTheme.studioInkMuted)
+            Text(CareTipsData.Screen.lead).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -66,7 +66,7 @@ struct CareTipsView: View {
         HStack(spacing: ThusoSpacing.space8) {
             ForEach(Array(tips.enumerated()), id: \.element.id) { index, _ in
                 Button { go(index) } label: {
-                    Capsule().fill(index <= at ? ThusoTheme.studioInk : ThusoTheme.sageSlate)
+                    Capsule().fill(index <= at ? ThusoRole.foreground : ThusoRole.mutedForeground)
                         .frame(height: index == at ? 8 : 4)
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .contentShape(Rectangle())
@@ -107,26 +107,26 @@ struct CareTipsView: View {
     }
 
     private func card(_ tip: CareTip) -> some View {
-        let chip = tip.dark ? ThusoTheme.studioLime : ThusoTheme.surface
-        let chipInk = tip.dark ? ThusoTheme.studioInk : tip.ink
+        let chip = tip.dark ? ThusoRole.highlight : ThusoRole.surface
+        let chipInk = tip.dark ? ThusoRole.foreground : tip.ink
         return VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
             ViewThatFits(in: .horizontal) {
                 HStack {
-                    Text(tip.tag).font(.footnote.weight(.semibold)).foregroundStyle(chipInk)
+                    Text(tip.tag).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(chipInk)
                         .padding(.horizontal, ThusoSpacing.space12).padding(.vertical, ThusoSpacing.space4)
                         .background(chip, in: Capsule())
                     Spacer(minLength: ThusoSpacing.space8)
-                    Text(CareTips.counter(at)).font(.footnote.monospacedDigit()).foregroundStyle(tip.ink)
+                    Text(CareTips.counter(at)).font(.thuso(.footnote).monospacedDigit()).foregroundStyle(tip.ink)
                 }
                 VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-                    Text(tip.tag).font(.footnote.weight(.semibold)).foregroundStyle(chipInk)
+                    Text(tip.tag).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(chipInk)
                         .padding(.horizontal, ThusoSpacing.space12).padding(.vertical, ThusoSpacing.space4)
                         .background(chip, in: RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
-                    Text(CareTips.counter(at)).font(.footnote.monospacedDigit()).foregroundStyle(tip.ink)
+                    Text(CareTips.counter(at)).font(.thuso(.footnote).monospacedDigit()).foregroundStyle(tip.ink)
                 }
             }
             Image(systemName: symbol(tip.category))
-                .font(.largeTitle.weight(.light))
+                .font(.thuso(.largeTitle, weight: .light))
                 .foregroundStyle(chipInk)
                 .padding(ThusoSpacing.space8)
                 .frame(minWidth: 72, minHeight: 72)
@@ -136,7 +136,7 @@ struct CareTipsView: View {
             Text(tip.title).thusoFont(24, weight: .semibold).foregroundStyle(tip.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
-            Text(tip.body).font(.body).foregroundStyle(tip.ink)
+            Text(tip.body).font(.thuso(.body)).foregroundStyle(tip.ink)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(ThusoSpacing.space24)
@@ -179,12 +179,12 @@ struct CareTipsView: View {
 
     private var refusals: some View {
         SurfacePanel(spacing: ThusoSpacing.space12) {
-            Text(CareTipsData.Screen.refusalsHeading).font(.headline).foregroundStyle(ThusoTheme.charcoal)
+            Text(CareTipsData.Screen.refusalsHeading).font(.thuso(.headline)).foregroundStyle(ThusoRole.foreground)
                 .accessibilityAddTraits(.isHeader)
             ForEach(CareTipsData.refusals, id: \.self) { sentence in
                 HStack(alignment: .top, spacing: ThusoSpacing.space12) {
-                    Image(systemName: "nosign").foregroundStyle(ThusoTheme.studioInkMuted).accessibilityHidden(true)
-                    Text(sentence).font(.subheadline).foregroundStyle(ThusoTheme.studioInk)
+                    Image(systemName: "nosign").foregroundStyle(ThusoRole.mutedForeground).accessibilityHidden(true)
+                    Text(sentence).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .accessibilityElement(children: .combine)

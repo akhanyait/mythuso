@@ -57,7 +57,7 @@ struct CancelVisitView: View {
         .thusoGround()
         .navigationTitle(recorded == nil ? "Cancel or move" : "Cancelled")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoTheme.glassFloor, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoRole.surface, for: .navigationBar)
     }
 
     // MARK: - Deciding
@@ -66,13 +66,13 @@ struct CancelVisitView: View {
         visitSummary
         momentPicker
         CareCard {
-            Text(state.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            Text(state.name).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
-            Text(state.detail).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+            Text(state.detail).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
         }
         if state.refusesCancellation { refusal } else { offerThenReasons }
-        Text(Cancellation.windowSentence).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+        Text(Cancellation.windowSentence).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -84,7 +84,7 @@ struct CancelVisitView: View {
     @ViewBuilder private var refusal: some View {
         CareCard(weight: .lead) {
             TileIcon(symbol: "hand.raised")
-            Text(state.patientWords).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            Text(state.patientWords).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
         }
         Button("Back to the visit") { dismiss() }.buttonStyle(CareButton())
@@ -97,14 +97,14 @@ struct CancelVisitView: View {
             ForEach(Array(Cancellation.reasons.enumerated()), id: \.element) { index, option in
                 Button { reason = option.id } label: { reasonRow(option) }.buttonStyle(.plain)
                     .accessibilityAddTraits(reason == option.id ? [.isSelected] : [])
-                if index < Cancellation.reasons.count - 1 { Divider().overlay(ThusoTheme.studioLine) }
+                if index < Cancellation.reasons.count - 1 { Divider().overlay(ThusoRole.border) }
             }
         }
         /* From the contract, not typed. The sentence exists because a screen can behave permissively
            and still read as a demand — "I would rather not say" being pre-selected is the behaviour,
            and this is the product saying so out loud. */
         Text(Cancellation.refusal("no-reason-required"))
-            .font(.footnote).foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+            .font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
         /* Offered a second time, and only for the reason that is not really a cancellation. The
            first offer is at the top of a screen somebody has since scrolled past; this one is
            directly above the button that takes the visit away. */
@@ -115,7 +115,7 @@ struct CancelVisitView: View {
            late cancellation is recorded as late; that is the whole of what being late does. */
         Button("Cancel this visit") { record() }.buttonStyle(QuietButton())
         if state.id == "inside-window" {
-            Text(Cancellation.alwaysStatement).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+            Text(Cancellation.alwaysStatement).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
         }
         CapabilityNotice(of: "payments")
@@ -124,8 +124,8 @@ struct CancelVisitView: View {
     private func reasonRow(_ option: CancellationReason) -> some View {
         HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             Image(systemName: reason == option.id ? "largecircle.fill.circle" : "circle")
-                .foregroundStyle(ThusoTheme.charcoal).accessibilityHidden(true)
-            Text(option.text).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                .foregroundStyle(ThusoRole.foreground).accessibilityHidden(true)
+            Text(option.text).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }
@@ -134,8 +134,8 @@ struct CancelVisitView: View {
 
     private var rescheduleOffer: some View {
         CareCard(weight: .lead) {
-            Text(Cancellation.Reschedule.sentence).font(.subheadline.weight(.semibold))
-                .foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+            Text(Cancellation.Reschedule.sentence).font(.thuso(.subheadline, weight: .semibold))
+                .foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
             NavigationLink { RescheduleVisitView(visit: visit) } label: {
                 Text("Move this visit instead").frame(maxWidth: .infinity)
             }.buttonStyle(CareButton())
@@ -159,15 +159,15 @@ struct CancelVisitView: View {
        already does to set the starting value. */
     private var momentPicker: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space8) {
-            Text("Preview moments").font(.caption.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            Text("Preview moments").font(.thuso(.caption, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
             Text("This preview has no schedule behind it, so choose the moment to see what it says.")
-                .font(.caption2).foregroundStyle(ThusoTheme.charcoal).fixedSize(horizontal: false, vertical: true)
+                .font(.thuso(.caption2)).foregroundStyle(ThusoRole.foreground).fixedSize(horizontal: false, vertical: true)
             ForEach(Cancellation.states) { option in
                 Button { moment = option.id } label: {
                     HStack(spacing: ThusoSpacing.space8) {
                         Image(systemName: moment == option.id ? "largecircle.fill.circle" : "circle")
-                            .foregroundStyle(ThusoTheme.charcoal).accessibilityHidden(true)
-                        Text(option.name).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+                            .foregroundStyle(ThusoRole.foreground).accessibilityHidden(true)
+                        Text(option.name).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer(minLength: 0)
                     }
@@ -179,9 +179,9 @@ struct CancelVisitView: View {
         }
         .padding(ThusoSpacing.space12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(ThusoTheme.cloud, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
+        .background(ThusoRole.muted, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous)
-            .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3])).foregroundStyle(ThusoTheme.controlEdge))
+            .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3])).foregroundStyle(ThusoRole.inputEdge))
     }
 
     private func record() {
@@ -197,9 +197,9 @@ struct CancelVisitView: View {
        decided to say. */
     @ViewBuilder private func confirmation(_ record: CancelledVisit) -> some View {
         CareCard(weight: .lead) {
-            Text(record.state.patientWords).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+            Text(record.state.patientWords).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
-            Divider().overlay(ThusoTheme.studioLine)
+            Divider().overlay(ThusoRole.border)
             LabeledContent("Visit", value: record.visit.service.name)
             LabeledContent("It was booked for", value: record.visit.whenText)
             LabeledContent("Reason recorded", value: record.reason.text)
@@ -209,9 +209,9 @@ struct CancelVisitView: View {
         CareCard(padding: ThusoSpacing.space16, spacing: ThusoSpacing.space12) {
             ForEach(Cancellation.doesNotUndo) { limit in
                 VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-                    Text(limit.statement).font(.subheadline).foregroundStyle(ThusoTheme.charcoal)
+                    Text(limit.statement).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(limit.why).font(.caption).foregroundStyle(ThusoTheme.charcoal)
+                    Text(limit.why).font(.thuso(.caption)).foregroundStyle(ThusoRole.foreground)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .accessibilityElement(children: .combine)
@@ -267,7 +267,7 @@ struct RescheduleVisitView: View {
         .thusoGround()
         .navigationTitle(moved == nil ? "Move this visit" : "Moved")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoTheme.glassFloor, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar).toolbarBackground(ThusoRole.surface, for: .navigationBar)
     }
 
     @ViewBuilder private var picker: some View {
@@ -277,25 +277,25 @@ struct RescheduleVisitView: View {
             LabeledContent("Where", value: visit.address)
             LabeledContent("Patient", value: visit.patient)
         }
-        Text(Cancellation.Reschedule.keepsTheSameVisit).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+        Text(Cancellation.Reschedule.keepsTheSameVisit).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
             .fixedSize(horizontal: false, vertical: true)
         VisitTimePicker(days: days, day: $day, slot: $slot, minutes: visit.service.duration)
         Button("Move this visit") { moved = store.reschedule(visit, to: chosenDay.date, start: slot) }
             .buttonStyle(CareButton())
-        Text(Cancellation.windowSentence).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+        Text(Cancellation.windowSentence).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
             .fixedSize(horizontal: false, vertical: true)
     }
 
     @ViewBuilder private func confirmation(_ visit: BookedVisit) -> some View {
         CareCard(weight: .lead) {
-            Text("This visit has moved.").font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
-            Divider().overlay(ThusoTheme.studioLine)
+            Text("This visit has moved.").font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
+            Divider().overlay(ThusoRole.border)
             LabeledContent("Visit", value: visit.service.name)
             LabeledContent("Now", value: visit.whenText)
             LabeledContent("Where", value: visit.address)
             LabeledContent("Patient", value: visit.patient)
         }
-        Text(Cancellation.Reschedule.keepsTheSameVisit).font(.footnote).foregroundStyle(ThusoTheme.charcoal)
+        Text(Cancellation.Reschedule.keepsTheSameVisit).font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
             .fixedSize(horizontal: false, vertical: true)
         NavigationLink { VisitsView() } label: { Text("See your visits").frame(maxWidth: .infinity) }
             .buttonStyle(CareButton())

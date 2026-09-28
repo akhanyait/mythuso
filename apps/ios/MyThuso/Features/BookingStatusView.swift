@@ -36,7 +36,7 @@ struct BookingStatusView: View {
 
     var body: some View {
         CareCard(spacing: ThusoSpacing.space12) {
-            Text(BookingData.statusHeading).font(.headline).foregroundStyle(ThusoTheme.charcoal)
+            Text(BookingData.statusHeading).font(.thuso(.headline)).foregroundStyle(ThusoRole.foreground)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
             VStack(alignment: .leading, spacing: 0) {
@@ -58,17 +58,17 @@ struct BookingStatusView: View {
         return HStack(alignment: .top, spacing: ThusoSpacing.space12) {
             VStack(spacing: 0) {
                 ZStack {
-                    Circle().fill(reached ? ThusoTheme.studioNight : ThusoTheme.surface)
-                    Circle().strokeBorder(reached ? ThusoTheme.studioNight : ThusoTheme.controlEdge, lineWidth: 1.5)
+                    Circle().fill(reached ? ThusoRole.primary : ThusoRole.surface)
+                    Circle().strokeBorder(reached ? ThusoRole.primary : ThusoRole.inputEdge, lineWidth: 1.5)
                     if reached {
                         Image(systemName: standing == .now ? "circle.fill" : "checkmark")
-                            .font(.caption2.weight(.bold)).imageScale(standing == .now ? .small : .medium)
-                            .foregroundStyle(ThusoTheme.studioPaper)
+                            .font(.thuso(.caption2, weight: .bold)).imageScale(standing == .now ? .small : .medium)
+                            .foregroundStyle(ThusoRole.primaryForeground)
                     }
                 }
                 .frame(width: mark, height: mark)
                 if !last {
-                    Rectangle().fill(standing == .done ? ThusoTheme.studioNight : ThusoTheme.studioLine)
+                    Rectangle().fill(standing == .done ? ThusoRole.night : ThusoRole.border)
                         .frame(width: 2).frame(maxHeight: .infinity)
                 }
             }
@@ -78,8 +78,8 @@ struct BookingStatusView: View {
                     HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space8) { title(words); chip(standing); Spacer(minLength: 0) }
                     VStack(alignment: .leading, spacing: ThusoSpacing.space4) { title(words); chip(standing) }
                 }
-                Text(words.patientWords).font(.footnote)
-                    .foregroundStyle(reached ? ThusoTheme.charcoal : ThusoTheme.studioInkMuted)
+                Text(words.patientWords).font(.thuso(.footnote))
+                    .foregroundStyle(reached ? ThusoRole.foreground : ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.bottom, last ? 0 : ThusoSpacing.space16)
@@ -90,7 +90,7 @@ struct BookingStatusView: View {
     }
 
     private func title(_ words: BookingStateWords) -> some View {
-        Text(words.name).font(.subheadline.weight(.semibold)).foregroundStyle(ThusoTheme.charcoal)
+        Text(words.name).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
     }
 
     private func chip(_ standing: Standing) -> some View {
@@ -98,7 +98,7 @@ struct BookingStatusView: View {
     }
 
     private func note(_ sentence: String) -> some View {
-        Text(sentence).font(.footnote).foregroundStyle(ThusoTheme.studioInkMuted)
+        Text(sentence).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
             .fixedSize(horizontal: false, vertical: true)
     }
 }
