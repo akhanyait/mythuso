@@ -581,8 +581,15 @@ const contrastRatio = (a, b) => {
   );
   return (high + 0.05) / (low + 0.05);
 };
+/* Generation four's roles are light.<role> and dark.<role>, resolved from #semantic rather than from
+   the flat palette — added 28 September 2026 so the contrast table and the generations record can
+   name them. Anything else still resolves exactly as it did. */
+const semanticHex = (name) => {
+  const m = /^(light|dark)\.(\w+)$/.exec(name);
+  return m ? tokens.semantic?.[m[1]]?.[m[2]]?.hex : undefined;
+};
 const colourOf = (name) => {
-  const hex = tokens.color[name];
+  const hex = tokens.color[name] ?? semanticHex(name);
   if (!hex)
     throw new Error(
       `The contrast table names a colour "${name}" that is not in the palette`,
@@ -662,7 +669,7 @@ for (const [old, replacement] of Object.entries(generations.supersededBy)) {
     throw new Error(
       `colorGenerations says "${old}" is superseded, but it is no longer in the palette. Once it is gone, take it out of the list too — a retirement note outliving its subject is the next person's confusion.`,
     );
-  if (!tokens.color[replacement])
+  if (!tokens.color[replacement] && !semanticHex(replacement))
     throw new Error(
       `colorGenerations says "${old}" is superseded by "${replacement}", which does not exist. A retirement pointing nowhere cannot be carried out.`,
     );
@@ -3085,6 +3092,13 @@ const generated = [
     source: "packages/catalog/conversation-mode.json",
     command: "npm run conversation-mode",
     files: (await import("./emit-conversation-mode.mjs")).emitConversationMode(),
+  },
+  /* The MyThuso icon family (28 September 2026): every path the handoff drew, generated into React,
+     vector drawables and SwiftUI Path builders so no coordinate is typed on any platform. */
+  {
+    source: "packages/catalog/icons.json",
+    command: "npm run icons",
+    files: (await import("./emit-icons.mjs")).emitIcons(),
   },
 ];
 for (const { source, command, files } of generated) {
@@ -35748,7 +35762,7 @@ console.log(
     ctFail("apps/web/src/App.tsx no longer reads the route's name from care-tips-route.generated.ts, which is generated from the contract.");
   if (!/const CareTipsDoor = lazy\(\(\) => import\('\.\/CareTips'\)\.then\(m => \(\{ default: m\.CareTipsDoor \}\)\)\)/.test(read("apps/web/src/features/VisitSummary.tsx")))
     ctFail("A completed visit no longer loads the care tips' door on a dynamic import (apps/web/src/features/VisitSummary.tsx), or no longer has one.");
-  if (!/page === careTipsRoute\.opens \?/.test(app) || !/\[\.\.\.patientSections, careTipsRoute\.opens\]/.test(app))
+  if (!/page === careTipsRoute\.opens \?/.test(app) || !/\[\.\.\.patientSections, careTipsRoute\.opens(?:, [^\]]+)?\]/.test(app))
     ctFail("apps/web/src/App.tsx no longer routes the care tips by the contract's own name, or ?open=care-tips no longer opens them.");
   if (!/export function CareTipsDoor[\s\S]*navigate\(careTipsRoute\.opens\)/.test(read("apps/web/src/features/CareTips.tsx")))
     ctFail("The door on a completed visit no longer opens the care tips by the contract's route (CareTipsDoor in apps/web/src/features/CareTips.tsx).");
@@ -36299,5 +36313,324 @@ console.log(
 
   console.log(
     `One settings page · ${settingScreens.length} screens that render a setting draw it with Fields.tsx; ${portalScreens.length} portal screen files hand-roll no slider, checkbox or select (the voice preview's two selects wear the shared class); the settings-page motion in two sheets runs on the tokens alone, gated and removed; PageHead heads Frame and the founder's door, ${categoryFiles.length} category files frame every screen, and no other file draws an <h1>; both changing screens end in the save bar under the contract's sentence.`,
+  );
+}
+
+/* Lovable generation four — 28 September 2026 */
+{
+  /* The handoff's look wins every visual question — the Founder, 28 September 2026 — and a look that
+     wins has to be pinned to the file it came from, or a month from now the tokens say one thing,
+     theme.css says another, and nobody can tell which was the handoff. So: the masters under
+     packages/brand/lovable-handoff are held to a manifest of hashes, the four brand values and the
+     nineteen semantic roles are read back out of the handoff's theme.css and compared with the tokens
+     (through the same oklch conversion, so a hand-typed hex that is nearly right fails), every
+     generated platform file is read for the same hexes, the two faces are self-hosted with nothing
+     reaching a font CDN, and the radii are the compact set the handoff asks for. */
+  const home = "packages/brand/lovable-handoff";
+  const masters = `${home}/handoff`;
+  const g4 = (message) => {
+    throw new Error(`Lovable generation four: ${message}`);
+  };
+  const walk = (dir) =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? walk(`${dir}/${e.name}`) : [`${dir}/${e.name}`],
+    );
+  const sha256 = (file) => createHash("sha256").update(readFileSync(file)).digest("hex");
+
+  /* 1. The masters are the handoff's, byte for byte, and nothing sits beside them unrecorded. */
+  if (!existsSync(`${home}/README.md`) || !/never redrawn/.test(read(`${home}/README.md`)))
+    g4(`${home}/README.md is missing or no longer says the official logos are never redrawn.`);
+  const manifest = read(`${home}/MANIFEST.sha256`)
+    .trim()
+    .split("\n")
+    .map((line) => line.split(/\s{2}/));
+  if (manifest.length < 22) g4(`${home}/MANIFEST.sha256 names ${manifest.length} files; the handoff had 22 masters.`);
+  for (const [sum, path] of manifest) {
+    if (!existsSync(`${masters}/${path}`)) g4(`${masters}/${path} is in the manifest and not on disk.`);
+    if (sha256(`${masters}/${path}`) !== sum)
+      g4(`${masters}/${path} is not the file the handoff delivered. The masters are copied unmodified; the official logos are never redrawn.`);
+  }
+  for (const file of walk(masters))
+    if (!manifest.some(([, path]) => `${masters}/${path}` === file))
+      g4(`${file} sits among the masters and the manifest does not name it.`);
+
+  /* 2. The theme is the source. The brand literals and every role, light and dark, read out of it. */
+  const theme = read(`${masters}/src/styles/theme.css`);
+  const themeBlock = (selector) => {
+    const body = theme.match(new RegExp(`${selector.replace(".", "\\.")}\\s*\\{([^}]+)\\}`))?.[1];
+    if (!body) g4(`theme.css has no ${selector} block.`);
+    return Object.fromEntries([...body.matchAll(/--([a-z-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+  };
+  const themeLight = themeBlock(":root"), themeDark = themeBlock(".dark");
+  for (const [name, variable] of [["brandInk", "primary"], ["brandGreen", "accent"], ["brandOrange", "danger"], ["brandLime", "warning"]])
+    if ((tokens.color[name] ?? "").toLowerCase() !== themeLight[variable].toLowerCase())
+      g4(`tokens.json says ${name} is ${tokens.color[name]}; the handoff's theme.css says --${variable} is ${themeLight[variable]}. The handoff's exact values are the brand.`);
+  /* OKLab → linear sRGB → sRGB, rounded to eight bits, channels clipped to the gamut. The same
+     arithmetic Chromium's canvas paints for these sixteen values. */
+  const oklchToHex = (text) => {
+    const m = /^oklch\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*\)$/.exec(text);
+    if (!m) g4(`"${text}" is not an oklch() this check can convert.`);
+    const [L, C, h] = m.slice(1).map(Number);
+    const a = C * Math.cos((h * Math.PI) / 180), b = C * Math.sin((h * Math.PI) / 180);
+    const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+    const mm = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+    const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
+    return "#" + [
+      4.0767416621 * l - 3.3077115913 * mm + 0.2309699292 * s,
+      -1.2684380046 * l + 2.6097574011 * mm - 0.3413193965 * s,
+      -0.0041960863 * l - 0.7034186147 * mm + 1.707614701 * s,
+    ]
+      .map((c) => Math.min(1, Math.max(0, c)))
+      .map((c) => (c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055))
+      .map((c) => Math.round(c * 255).toString(16).padStart(2, "0"))
+      .join("");
+  };
+  const roles = tokens.semantic?.names ?? [];
+  const expectedRoles = ["background", "foreground", "surface", "surfaceRaised", "primary", "primaryForeground", "accent", "accentForeground", "muted", "mutedForeground", "success", "warning", "danger", "info", "highlight", "coral", "border", "input", "ring"];
+  if (JSON.stringify(roles) !== JSON.stringify(expectedRoles))
+    g4(`tokens.json#semantic.names is not the handoff's nineteen roles in the handoff's order.`);
+  const toKebab = (name) => name.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+  for (const mode of ["light", "dark"]) {
+    for (const role of roles) {
+      const entry = tokens.semantic[mode]?.[role];
+      if (!entry || !/^#[0-9a-f]{6}$/.test(entry.hex ?? ""))
+        g4(`tokens.json#semantic.${mode}.${role} has no lowercase six-digit hex. Every role has a light and a dark value.`);
+      const written = (mode === "light" ? themeLight : themeDark)[toKebab(role)];
+      if (!written) g4(`theme.css's ${mode} block has no --${toKebab(role)}.`);
+      if (written.startsWith("oklch")) {
+        if (entry.oklch !== written) g4(`semantic.${mode}.${role} keeps "${entry.oklch}" beside its hex; theme.css writes ${written}.`);
+        if (oklchToHex(written) !== entry.hex)
+          g4(`semantic.${mode}.${role} is ${entry.hex}; ${written} converts to ${oklchToHex(written)}. The hex is the conversion, exactly.`);
+      } else if (written.toLowerCase() !== entry.hex) {
+        g4(`semantic.${mode}.${role} is ${entry.hex}; theme.css writes the literal ${written}.`);
+      }
+    }
+  }
+
+  /* 3. Every platform carries the same hex — the generated files as they are on disk. */
+  const css = read("apps/web/src/tokens.generated.css");
+  const swift = read("apps/ios/MyThuso/DesignSystem/Tokens.swift");
+  const kotlin = read("apps/android/app/src/main/java/za/co/mythuso/ui/Tokens.kt");
+  const mediaAt = css.indexOf('@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){');
+  const forcedAt = css.indexOf(':root[data-theme="dark"]{');
+  if (mediaAt < 0 || forcedAt < mediaAt)
+    g4("tokens.generated.css no longer carries the dark values under prefers-color-scheme: dark guarded by data-theme=\"light\", followed by :root[data-theme=\"dark\"].");
+  const cssRoot = css.slice(0, mediaAt), cssMedia = css.slice(mediaAt, forcedAt), cssForced = css.slice(forcedAt);
+  const between = (text, open, close) => {
+    const from = text.indexOf(open);
+    if (from < 0) g4(`${open.trim()} is missing from a generated file.`);
+    const to = text.indexOf(close, from + open.length);
+    return text.slice(from, to < 0 ? undefined : to);
+  };
+  const swiftSemantic = between(swift, "enum ThusoSemantic {", "\nenum ThusoRadius");
+  const kotlinSemantic = between(kotlin, "object ThusoSemantic {", "\nobject ThusoRadius");
+  for (const mode of ["light", "dark"]) {
+    const Mode = mode === "light" ? "Light" : "Dark";
+    const swiftMode = between(swiftSemantic, `enum ${Mode} {`, "\n    }");
+    const kotlinMode = between(kotlinSemantic, `object ${Mode} {`, "\n    }");
+    for (const role of roles) {
+      const { hex } = tokens.semantic[mode][role];
+      const declaration = ` --color-${toKebab(role)}:${hex};`;
+      for (const [where, text] of mode === "light" ? [[":root", cssRoot]] : [["the prefers-color-scheme block", cssMedia], ["the :root[data-theme=\"dark\"] block", cssForced]])
+        if (!text.includes(declaration)) g4(`tokens.generated.css does not carry${declaration} in ${where}.`);
+      if (mode === "light" && (cssMedia.includes(declaration) || cssForced.includes(declaration)) && hex !== tokens.semantic.dark[role].hex)
+        g4(`tokens.generated.css carries the light ${role} inside a dark block.`);
+      if (!new RegExp(`static let ${role} = Color\\(red: [\\d.]+, green: [\\d.]+, blue: [\\d.]+\\)\\s+// ${hex}\\b`).test(swiftMode))
+        g4(`Tokens.swift's ThusoSemantic.${Mode}.${role} does not carry ${hex}.`);
+      if (!kotlinMode.includes(`val ${role} = Color(0xFF${hex.slice(1).toUpperCase()})`))
+        g4(`Tokens.kt's ThusoSemantic.${Mode}.${role} does not carry ${hex}.`);
+    }
+  }
+  for (const name of ["brandInk", "brandGreen", "brandOrange", "brandLime"]) {
+    const hex = tokens.color[name];
+    if (!cssRoot.includes(` --${toKebab(name)}:${hex.toLowerCase()};`)) g4(`tokens.generated.css does not carry --${toKebab(name)}:${hex.toLowerCase()}.`);
+    if (!new RegExp(`static let ${name} = Color\\([^)]+\\)\\s+// ${hex}\\b`).test(swift)) g4(`Tokens.swift's ThusoTheme.${name} does not carry ${hex}.`);
+    if (!kotlin.includes(`val ${name[0].toUpperCase()}${name.slice(1)} = Color(0xFF${hex.slice(1).toUpperCase()})`)) g4(`Tokens.kt's ${name} does not carry ${hex}.`);
+  }
+
+  /* 4. The faces are self-hosted, licensed beside the files, and nothing reaches a font CDN. */
+  const fonts = "apps/web/public/fonts";
+  for (const face of ["outfit-latin", "outfit-latin-ext", "figtree-latin", "figtree-latin-ext"]) {
+    const file = `${fonts}/${face}.woff2`;
+    if (!existsSync(file)) g4(`${file} is missing. Both faces are self-hosted.`);
+    if (readFileSync(file).subarray(0, 4).toString("latin1") !== "wOF2") g4(`${file} is not a woff2 file.`);
+  }
+  for (const licence of ["OFL-Outfit.txt", "OFL-Figtree.txt"])
+    if (!existsSync(`${fonts}/${licence}`) || !/SIL OPEN FONT LICENSE Version 1\.1/.test(read(`${fonts}/${licence}`)))
+      g4(`${fonts}/${licence} is missing or is not the SIL Open Font License 1.1. A face ships with its licence beside it.`);
+  const core = read("apps/web/src/surface/core.css");
+  for (const [family, file, weights] of [["Outfit", "outfit-latin", "500 700"], ["Outfit", "outfit-latin-ext", "500 700"], ["Figtree", "figtree-latin", "400 800"], ["Figtree", "figtree-latin-ext", "400 800"]])
+    if (!core.includes(`@font-face{font-family:${family};src:url(/fonts/${file}.woff2)format('woff2');font-weight:${weights};`))
+      g4(`core.css no longer declares ${family} from /fonts/${file}.woff2 at ${weights}.`);
+  if (!/^Figtree,/.test(tokens.typography.stacks.text) || !/^Outfit,/.test(tokens.typography.stacks.display))
+    g4("tokens.json#typography.stacks: text leads with Figtree and display leads with Outfit, from the handoff.");
+  const webFiles = [...walk("apps/web/src"), ...readdirSync("apps/web").filter((f) => f.endsWith(".html")).map((f) => `apps/web/${f}`), ...walk("apps/web/public")]
+    .filter((f) => /\.(css|html|tsx?|svg)$/.test(f));
+  for (const file of webFiles)
+    if (/fonts\.(googleapis|gstatic)\.com/.test(read(file)))
+      g4(`${file} reaches a font CDN. The faces are self-hosted; a health service does not tell Google who is reading it.`);
+  for (const page of readdirSync("apps/web").filter((f) => f.endsWith(".html")))
+    for (const [, href] of read(`apps/web/${page}`).matchAll(/<link rel="preload" href="(\/fonts\/[^"]+)"/g))
+      if (!existsSync(`apps/web/public${href}`)) g4(`${page} preloads ${href}, which does not exist.`);
+
+  /* 5. Compact corners: the handoff's three radii, and the five product names mapped onto them. */
+  const radius = tokens.radius;
+  for (const [name, value] of [["sm", 6], ["md", 8], ["lg", 12], ["pill", 999]])
+    if (radius[name] !== value) g4(`tokens.json#radius.${name} is ${radius[name]}; the handoff's is ${value}.`);
+  for (const [name, target] of [["card", "lg"], ["panel", "lg"], ["control", "md"], ["tile", "md"]])
+    if (radius[name] !== radius[target]) g4(`tokens.json#radius.${name} is ${radius[name]} and ${target} is ${radius[target]}. ${name} is ${target}; the product takes compact corners together or not at all.`);
+
+  /* 6. The masters are never served. No heavy handoff image under apps/web/public, and no screen names the folder. */
+  const heavy = new Set(manifest.filter(([, path]) => /\.(png|jpe?g)$/i.test(path) && statSync(`${masters}/${path}`).size > 150 * 1024).map(([sum]) => sum));
+  for (const file of walk("apps/web/public"))
+    if (/\.(png|jpe?g)$/i.test(file) && statSync(file).size > 150 * 1024 && heavy.has(sha256(file)))
+      g4(`${file} is one of the handoff's masters, served as it came. The landing image rule is 150 kB per image; a master is re-encoded for a screen, never copied to one.`);
+  for (const file of webFiles)
+    if (/(?:url\(|from\s+['"]|import\s*\(\s*['"]|src=['"]|href=['"])[^)'"]*lovable-handoff/.test(read(file)))
+      g4(`${file} loads a file from packages/brand/lovable-handoff. No screen loads a master.`);
+
+  /* 7. Every role against every ground has a row in #contrast, light and dark — listed as a pair or parked as a failure. */
+  const measured = new Set([...tokens.contrast.pairs, ...tokens.contrast.knownFailures].map((p) => `${p.foreground} on ${p.background}`));
+  const grounds = ["background", "surface", "surfaceRaised", "muted"];
+  for (const mode of ["light", "dark"])
+    for (const role of roles.filter((r) => !grounds.includes(r) && !/Foreground$/.test(r)))
+      for (const ground of grounds)
+        if (!measured.has(`${mode}.${role} on ${mode}.${ground}`))
+          g4(`${mode}.${role} on ${mode}.${ground} is a pair the tokens define and #contrast does not measure.`);
+
+  console.log(
+    `Lovable generation four · ${manifest.length} masters under ${home} match their manifest; the four brand values and ${roles.length} roles × light and dark are the handoff's theme.css (oklch converted exactly) and reach CSS, Swift and Kotlin as the same hex, the dark values under prefers-color-scheme and data-theme; Outfit and Figtree self-hosted with their licences, ${webFiles.length} web files reaching no font CDN; radii sm 6 / md 8 / lg 12 with card, panel, control and tile mapped onto them; no master served and ${tokens.contrast.knownFailures.length} pairs parked as failures with a measured replacement each.`,
+  );
+}
+
+/* MyThuso icon family — 28 September 2026 */
+/* The branded icons the design handoff drew, adopted exactly and generated once from
+   packages/catalog/icons.json. The generated list above already holds the emitted files to the
+   emitter byte for byte; what is held here is what the family promises beyond that.
+
+     1. Every icon in the contract is on all three platforms: a component the web exports, a vector
+        drawable and a listing row on Android, a Path builder and a row in `all` on iOS. And the nine
+        concept words the family was commissioned for are all present.
+     2. No icon path is typed into a .tsx, .ts, .swift, .kt or .xml outside the generated files, and
+        no screen draws the signal dot by hand. A path typed into a screen is a path that drifts from
+        the other two platforms the day somebody nudges a coordinate.
+     3. The signal pulse changes transform (or opacity) and nothing else, so no icon's box moves under
+        a thumb; runs only under [data-decor="on"], so the pause control reaches it; spends the tokens'
+        duration and curve — the quick token times the contract's factor, which recomputes to the
+        contract's duration against tokens.json — and never a literal time; and is removed under
+        reduced motion. The scale it runs between is the contract's, and each colour role's class
+        maps to the token variable the contract names.
+     4. No file under apps/web/src imports both a MyThuso icon and a Lucide icon that says the same
+        thing. Each icon lists the Lucide names it replaces; the sentence is the contract's.
+     5. The gallery at ?open=icons is reached only behind import.meta.env.DEV and a dynamic import in
+        App.tsx, and nothing else imports it — so a production build never carries it and the
+        patient's first view pays nothing for the family until a screen wears an icon. */
+{
+  const icSource = "packages/catalog/icons.json";
+  const ic = JSON.parse(read(icSource));
+  const icFail = (message) => { throw new Error(`MyThuso icon family: ${message}`); };
+  const icRule = (id) => ic.rules.find((r) => r.id === id)?.sentence ?? icFail(`the contract has no rule "${id}".`);
+  const icEmitted = (await import("./emit-icons.mjs")).emitIcons().map((f) => f.path);
+  const icWeb = "apps/web/src/ui/icons/MyThusoIcons.generated.tsx";
+  const icKotlin = "apps/android/app/src/main/java/za/co/mythuso/model/MyThusoIcons.kt";
+  const icSwift = "apps/ios/MyThuso/Models/MyThusoIconsData.swift";
+  const icCss = "apps/web/src/ui/icons/icons.css";
+  const icApp = "apps/web/src/App.tsx";
+  const icGallery = "apps/web/src/features/IconGallery.tsx";
+  const icConcepts = ["dashboard", "health", "visit", "quick", "results", "medication", "mind", "messages", "family"];
+  const icStrip = (code) => code.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+
+  /* 1. */
+  for (const concept of icConcepts)
+    if (!ic.icons.some((i) => i.id === concept)) icFail(`${icSource} has no "${concept}" icon. The family was commissioned with nine concepts and every one of them is a row here.`);
+  const webCode = read(icWeb), kotlinCode = read(icKotlin), swiftCode = read(icSwift);
+  const swiftAll = swiftCode.match(/static let all: \[Icon\] = \[([^\]]*)\]/)?.[1] ?? icFail(`${icSwift} no longer lists the family in \`all\`.`);
+  for (const icon of ic.icons) {
+    if (!icon.elements?.length) icFail(`"${icon.id}" draws nothing.`);
+    if (!Array.isArray(icon.neverBeside) || !icon.neverBeside.length) icFail(`"${icon.id}" names no Lucide icon it replaces, so rule "never-both" has nothing to hold it to.`);
+    const drawable = `apps/android/app/src/main/res/drawable/ic_mythuso_${icon.id.replace(/[^a-z0-9]+/g, "_")}.xml`;
+    if (!webCode.includes(`export const ${icon.component} = createMyThusoIcon('${icon.component}', '${icon.id}'`)) icFail(`the web does not export ${icon.component} for "${icon.id}".`);
+    if (!existsSync(drawable)) icFail(`Android has no drawable for "${icon.id}" (${drawable}).`);
+    if (!icEmitted.includes(drawable)) icFail(`the emitter no longer writes ${drawable}, so the generated list cannot hold it.`);
+    if (!kotlinCode.includes(`R.drawable.ic_mythuso_${icon.id.replace(/[^a-z0-9]+/g, "_")})`)) icFail(`${icKotlin} does not list "${icon.id}".`);
+    if (!swiftCode.includes(`static let ${icon.id} = Icon(id: "${icon.id}"`)) icFail(`${icSwift} has no Path builder for "${icon.id}".`);
+    if (!swiftAll.split(/\s*,\s*/).includes(icon.id)) icFail(`${icSwift} builds "${icon.id}" but leaves it out of \`all\`.`);
+  }
+  for (const [role, spec] of Object.entries(ic.roles)) {
+    if (role.startsWith("_")) continue;
+    if (spec.className && !new RegExp(`className="[^"]*(?:^|\\s)${spec.className}(?:\\s|$)[^"]*"`).test(webCode.replace(/className="([^"]*)"/g, (_, c) => `className=" ${c} "`))) icFail(`the web never wears the "${role}" role's class ${spec.className}.`);
+  }
+
+  /* 2. */
+  const icPaths = ic.icons.flatMap((i) => i.elements.filter((e) => e.kind === "path").map((e) => e.d));
+  const icSignalDot = new RegExp(`cx=(?:\\{${ic.signal.cx}\\}|"${ic.signal.cx}")\\s+cy=(?:\\{${ic.signal.cy}\\}|"${ic.signal.cy}")`);
+  const icSources = [...files("apps/web/src"), ...files("apps/ios/MyThuso"), ...files("apps/android/app/src/main")]
+    .filter((f) => /\.(tsx?|swift|kt|xml)$/.test(f) && !icEmitted.includes(f));
+  for (const f of icSources) {
+    const text = read(f);
+    for (const d of icPaths)
+      if (text.includes(d)) icFail(`${f} types the icon path "${d.slice(0, 32)}…". Every path of the family lives in ${icSource} and is generated from there; a screen imports the component.`);
+    if (icSignalDot.test(text)) icFail(`${f} draws the signal dot by hand (cx ${ic.signal.cx}, cy ${ic.signal.cy}). It is the family's, drawn once in the generated components.`);
+  }
+  if (/#[0-9a-f]{3,8}\b/i.test(icStrip(webCode))) icFail(`${icWeb} carries a colour. Roles are classes; icons.css maps them to the token variables.`);
+
+  /* 3. */
+  const tokensJson = JSON.parse(read("packages/design-tokens/tokens.json"));
+  const pulse = ic.signal.pulse;
+  const derived = tokensJson.motion[pulse.durationFromToken.token];
+  if (derived === undefined) icFail(`the pulse derives from tokens.motion.${pulse.durationFromToken.token}, which tokens.json does not have.`);
+  if (derived * pulse.durationFromToken.times !== pulse.durationMs) icFail(`${pulse.durationFromToken.token} (${derived} ms) × ${pulse.durationFromToken.times} is not the contract's ${pulse.durationMs} ms.`);
+  if (pulse.durationFromToken.token !== "quickMs") icFail(`the pulse spends tokens.motion.${pulse.durationFromToken.token}; the stylesheet is checked against --t-quick.`);
+  const css = read(icCss).replace(/\/\*[\s\S]*?\*\//g, "");
+  if (/cubic-bezier\(/.test(css) || /--(?:ease-soft|t-quick|t-settle|t-enter)\s*:/.test(css)) icFail(`${icCss} types a curve or redeclares a motion token. They arrive from tokens.generated.css.`);
+  const frames = [...css.matchAll(/@keyframes\s+([\w-]+)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g)];
+  const signalFrames = frames.find((m) => m[1] === "mythuso-signal") ?? icFail(`${icCss} no longer defines @keyframes mythuso-signal.`);
+  for (const prop of [...signalFrames[2].matchAll(/([a-z-]+)\s*:/g)].map((m) => m[1]))
+    if (!/^(transform|opacity)$/.test(prop)) icFail(`the signal pulse animates ${prop}. Transform and opacity only, so no icon's box ever moves under a thumb.`);
+  const scales = [...signalFrames[2].matchAll(/scale\(([\d.]+)\)/g)].map((m) => Number(m[1]));
+  if (!scales.includes(pulse.from) || !scales.includes(pulse.to) || scales.some((s) => s !== pulse.from && s !== pulse.to))
+    icFail(`the signal pulse scales between ${scales.join(" and ")}; the contract says ${pulse.from} → ${pulse.to}.`);
+  const animationRules = [...css.matchAll(/([^{}]+)\{[^{}]*?\banimation\s*:\s*([^;]+);/g)].filter((m) => !/^none\b/.test(m[2].trim()));
+  if (animationRules.length !== 1) icFail(`${icCss} has ${animationRules.length} animation rules; the signal pulse is the family's one animation.`);
+  const [, selector, value] = animationRules[0];
+  if (!selector.includes('[data-decor="on"]') || !selector.includes(".mythuso-icon--animated") || !selector.includes(`.${ic.signal.className}`))
+    icFail(`${icCss} plays the pulse on "${selector.trim()}". It runs under [data-decor="on"] on .mythuso-icon--animated .${ic.signal.className} and nowhere else, so the pause control reaches it and an icon that merely names a place never pulses.`);
+  if (!value.includes("mythuso-signal") || !value.includes(`calc(var(--t-quick) * ${pulse.durationFromToken.times})`) || !value.includes("var(--ease-soft)") || /\b\d+(\.\d+)?m?s\b/.test(value) || !/\binfinite\b/.test(value))
+    icFail(`${icCss} plays the pulse as "${value.trim()}". It is mythuso-signal for calc(var(--t-quick) * ${pulse.durationFromToken.times}) on var(--ease-soft), infinite, with no time typed here.`);
+  if (!/@media \(prefers-reduced-motion: reduce\)\s*\{[^}]*\.mythuso-icon--animated \.mythuso-icon__signal\s*\{\s*animation:\s*none !important;?\s*\}/.test(css))
+    icFail(`${icCss} does not remove the pulse under prefers-reduced-motion. Reduced motion removes an animation rather than shortening it.`);
+  if (!/\.mythuso-icon__signal\s*\{[^}]*transform-box:\s*fill-box/.test(css)) icFail(`${icCss} no longer scales the signal dot about its own box, so the pulse would drift the dot rather than swell it.`);
+  for (const [role, spec] of Object.entries(ic.roles)) {
+    if (role.startsWith("_") || !spec.className) continue;
+    const rule = new RegExp(`\\.${spec.className}\\s*\\{\\s*${spec.paints}:\\s*${spec.css.replace(/[()]/g, "\\$&")};`);
+    if (!rule.test(css)) icFail(`${icCss} does not paint .${spec.className}'s ${spec.paints} with ${spec.css}, which is what the "${role}" role means.`);
+  }
+
+  /* 4. */
+  const namesOf = (code, from) => [...code.matchAll(new RegExp(`import\\s*\\{([^}]*)\\}\\s*from\\s*['"]${from}['"]`, "g"))]
+    .flatMap((m) => m[1].split(",").map((s) => s.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0]).filter(Boolean));
+  let icPairsChecked = 0;
+  for (const f of files("apps/web/src").filter((f) => /\.tsx?$/.test(f))) {
+    const code = icStrip(read(f));
+    const lucide = new Set(namesOf(code, "lucide-react"));
+    if (!lucide.size) continue;
+    for (const name of namesOf(code, "[^'\"]*MyThusoIcons\\.generated")) {
+      const icon = ic.icons.find((i) => i.component === name);
+      if (!icon) continue;
+      icPairsChecked++;
+      const clash = icon.neverBeside.find((n) => lucide.has(n));
+      if (clash) icFail(`${f} imports ${name} and Lucide's ${clash}, and both say "${icon.id}". ${icRule("never-both")}`);
+    }
+  }
+
+  /* 5. */
+  const appCode = icStrip(read(icApp));
+  if (!/const IconGallery = import\.meta\.env\.DEV \? lazy\(\(\) => import\('\.\/features\/IconGallery'\)/.test(appCode))
+    icFail(`${icApp} no longer reaches the icon gallery behind import.meta.env.DEV and a dynamic import. A production build must not carry it, and the patient's first view must not pay for it.`);
+  for (const f of files("apps/web/src").filter((f) => /\.tsx?$/.test(f) && f !== icApp && f !== icGallery))
+    if (/features\/IconGallery/.test(icStrip(read(f)))) icFail(`${f} imports the icon gallery. Only App.tsx does, behind the development flag.`);
+
+  console.log(
+    `MyThuso icon family · ${ic.icons.length} icons of ${icSource} on three platforms (${icEmitted.length} generated files), the ${icConcepts.length} commissioned concepts among them; no path or signal dot typed in ${icSources.length} hand-written sources; the pulse on transform alone under [data-decor="on"], calc(var(--t-quick) * ${pulse.durationFromToken.times}) = ${pulse.durationMs} ms on var(--ease-soft), removed under reduced motion, between ${pulse.from} and ${pulse.to}; ${icPairsChecked} MyThuso imports beside Lucide with no concept said twice; the gallery behind the development flag alone.`,
   );
 }

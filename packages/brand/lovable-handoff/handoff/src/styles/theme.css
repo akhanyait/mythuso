@@ -1,0 +1,746 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: oklch(0.985 0.006 211);
+  --foreground: oklch(0.24 0.052 239);
+  --surface: oklch(1 0 0);
+  --surface-raised: oklch(0.97 0.012 211);
+  --primary: #083848;
+  --primary-foreground: oklch(1 0 0);
+  --accent: #189870;
+  --accent-foreground: oklch(0.21 0.043 222);
+  --muted: oklch(0.94 0.014 217);
+  --muted-foreground: oklch(0.51 0.041 232);
+  --success: #189870;
+  --warning: #d8f818;
+  --danger: #f86830;
+  --info: #189870;
+  --highlight: #d8f818;
+  --coral: #f86830;
+  --border: oklch(0.88 0.021 220);
+  --input: oklch(0.91 0.018 220);
+  --ring: #189870;
+  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --shadow-sm: 0 1px 2px oklch(0.24 0.052 239 / 0.06);
+  --shadow-md: 0 8px 24px oklch(0.24 0.052 239 / 0.1);
+}
+
+.dark {
+  --background: oklch(0.17 0.035 235);
+  --foreground: oklch(0.94 0.012 211);
+  --surface: oklch(0.215 0.04 235);
+  --surface-raised: oklch(0.255 0.044 235);
+  --primary: #189870;
+  --primary-foreground: oklch(0.17 0.035 235);
+  --accent: #25c99a;
+  --accent-foreground: oklch(0.17 0.035 235);
+  --muted: oklch(0.29 0.035 232);
+  --muted-foreground: oklch(0.72 0.026 220);
+  --success: #25c99a;
+  --warning: #d8f818;
+  --danger: #ff7b48;
+  --info: #25c99a;
+  --highlight: #d8f818;
+  --coral: #ff7b48;
+  --border: oklch(0.34 0.036 232);
+  --input: oklch(0.36 0.038 232);
+  --ring: #25c99a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-highlight: var(--highlight);
+  --color-coral: var(--coral);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-display: var(--font-display);
+  --font-sans: var(--font-body);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+}
+
+@layer base {
+  * { box-sizing: border-box; border-color: var(--border); }
+  button, input, textarea, select { font: inherit; }
+  html { background: var(--background); }
+  body { background: var(--background); color: var(--foreground); font-family: var(--font-body); }
+  ::selection { background: color-mix(in oklab, var(--accent) 35%, transparent); }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+}
+
+@keyframes gilbert-turn {
+  0%, 12%, 100% { transform: translateX(0) rotate(0deg); }
+  28%, 40% { transform: translateX(-3%) rotate(-2deg); }
+  62%, 74% { transform: translateX(3%) rotate(2deg); }
+}
+
+@keyframes gilbert-look {
+  0%, 12%, 100% { transform: translateX(0); }
+  28%, 40% { transform: translateX(-13%); }
+  62%, 74% { transform: translateX(13%); }
+}
+
+@keyframes gilbert-blink {
+  0%, 22%, 26%, 58%, 62%, 89%, 93%, 100% { transform: scaleY(1); }
+  24%, 60%, 91% { transform: scaleY(0.08); }
+}
+
+@keyframes hero-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-0.5rem) rotate(0.5deg); }
+}
+
+@keyframes hero-pulse {
+  0%, 100% { opacity: 0.2; transform: scale(0.85); }
+  50% { opacity: 0; transform: scale(1.65); }
+}
+
+@keyframes hero-drift {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(0.35rem, -0.45rem) rotate(12deg); }
+}
+
+@keyframes patient-rise {
+  from { opacity: 0; transform: translateY(0.75rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes chart-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes chart-reveal {
+  from { opacity: 0; transform: translateY(0.5rem) scaleY(0.78); }
+  to { opacity: 0.13; transform: translateY(0) scaleY(1); }
+}
+
+@keyframes chart-point-arrive {
+  0%, 68% { opacity: 0; transform: scale(0.2); }
+  82% { opacity: 1; transform: scale(1.45); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes chart-halo-pulse {
+  0%, 100% { opacity: 0.08; transform: scale(0.8); }
+  50% { opacity: 0.2; transform: scale(1.25); }
+}
+
+@keyframes status-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--success) 34%, transparent); }
+  50% { box-shadow: 0 0 0 0.25rem color-mix(in oklab, var(--success) 0%, transparent); }
+}
+
+@keyframes notification-ring {
+  0%, 72%, 100% { transform: scale(1); }
+  78% { transform: scale(1.35); }
+  84% { transform: scale(0.9); }
+}
+
+@keyframes metric-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes chart-range-arrive {
+  from { opacity: 0; transform: scaleY(0.2); }
+  to { opacity: 1; transform: scaleY(1); }
+}
+
+@keyframes health-tab-enter {
+  from { opacity: 0; transform: translateY(0.55rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes health-goal-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes mythuso-signal {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.25); }
+}
+
+@keyframes consultation-enter {
+  from { opacity: 0; transform: translateY(0.6rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes nurse-orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes nurse-readiness {
+  from { transform: rotate(-95deg); }
+  to { transform: rotate(18deg); }
+}
+
+@keyframes nurse-bar-rise {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+@keyframes nurse-route-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes nurse-pin-arrive {
+  0% { opacity: 0; transform: translateY(-0.75rem) scale(0.7); }
+  70% { opacity: 1; transform: translateY(0.1rem) scale(1.08); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes nurse-location-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--highlight) 42%, transparent); }
+  50% { box-shadow: 0 0 0 0.55rem color-mix(in oklab, var(--highlight) 0%, transparent); }
+}
+
+@keyframes nurse-field-enter {
+  from { opacity: 0; transform: translateY(0.7rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes nurse-schedule-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.mythuso-icon {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mythuso-icon__signal {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.mythuso-icon--animated .mythuso-icon__signal {
+  animation: mythuso-signal 1.8s ease-in-out infinite;
+}
+.consultation-layout > *,
+.consultation-next { animation: consultation-enter 480ms ease-out both; }
+.consultation-rail > :nth-child(2) { animation-delay: 70ms; }
+.consultation-rail > :nth-child(3) { animation-delay: 140ms; }
+.consultation-rail > :nth-child(4) { animation-delay: 210ms; }
+.consultation-shade {
+  background: color-mix(in oklab, var(--primary) 22%, transparent);
+}
+
+.hero-stage {
+  background-color: var(--surface);
+}
+.hero-plane {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.55;
+  background: color-mix(in oklab, var(--accent) 13%, transparent);
+  clip-path: polygon(0 18%, 72% 0, 100% 64%, 24% 100%);
+}
+.hero-plane--left { inset: 0 auto 22% -8%; width: 36%; }
+.hero-plane--right { inset: 0 -5% 0 auto; width: 48%; background: color-mix(in oklab, var(--highlight) 11%, transparent); }
+.hero-particle {
+  position: absolute;
+  z-index: 2;
+  display: block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 0.25rem;
+  animation: hero-drift 6s ease-in-out infinite;
+}
+.hero-particle--lime { right: 6%; top: 10%; background: var(--highlight); }
+.hero-particle--teal { right: 38%; top: 16%; width: 1.4rem; height: 1.4rem; border-radius: 50%; background: var(--accent); animation-delay: -2s; }
+.hero-particle--orange { right: 3%; bottom: 17%; width: 0.55rem; height: 0.55rem; background: var(--coral); animation-delay: -4s; }
+.hero-badge { background: color-mix(in oklab, var(--surface) 72%, transparent); backdrop-filter: blur(0.75rem); }
+.hero-halo {
+  background: color-mix(in oklab, var(--accent) 8%, transparent);
+  box-shadow: inset 0 0 4rem color-mix(in oklab, var(--accent) 12%, transparent);
+}
+.hero-portrait {
+  box-shadow: 0 2rem 4rem color-mix(in oklab, var(--primary) 12%, transparent);
+  clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%, 0 14%);
+}
+.hero-image-wash { background: color-mix(in oklab, var(--accent) 8%, transparent); }
+.hero-float { animation: hero-float 7s ease-in-out infinite; }
+.hero-float--patient { animation-delay: -2.5s; }
+.hero-float--assistant { animation-duration: 8.5s; }
+.hero-icon-tile { box-shadow: inset 0 1px 0 color-mix(in oklab, var(--surface) 85%, transparent), 0 0.45rem 1.1rem color-mix(in oklab, var(--primary) 9%, transparent); transition: transform 180ms ease, box-shadow 180ms ease; }
+.group:hover .hero-icon-tile { transform: translateY(-0.15rem); box-shadow: inset 0 1px 0 color-mix(in oklab, var(--surface) 85%, transparent), 0 0.7rem 1.35rem color-mix(in oklab, var(--primary) 13%, transparent); }
+.hero-action { transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease; }
+.hero-action:hover { transform: translateX(0.2rem); border-color: color-mix(in oklab, var(--accent) 40%, var(--border)); background: var(--surface); }
+.hero-listening__pulse { background: var(--accent); animation: hero-pulse 2.2s ease-out infinite; }
+
+.patient-dashboard-main > * {
+  animation: patient-rise 520ms ease-out both;
+}
+.patient-dashboard-main > :nth-child(2) { animation-delay: 70ms; }
+.patient-dashboard-main > :nth-child(3) { animation-delay: 140ms; }
+.patient-dashboard-main > :nth-child(4) { animation-delay: 210ms; }
+.patient-dashboard-main > :nth-child(5) { animation-delay: 280ms; }
+.patient-welcome__mountain {
+  position: absolute;
+  bottom: 0;
+  height: 58%;
+  background: color-mix(in oklab, var(--accent) 7%, transparent);
+  clip-path: polygon(0 100%, 18% 52%, 32% 72%, 49% 22%, 64% 68%, 78% 42%, 100% 100%);
+}
+.patient-welcome__mountain--one { left: 24%; width: 52%; }
+.patient-welcome__mountain--two { right: 0; width: 42%; opacity: 0.55; transform: scaleY(0.72); transform-origin: bottom; }
+.patient-action,
+.patient-panel,
+.health-metric,
+.health-chart-card {
+  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease, background-color 220ms ease;
+}
+.patient-action:hover,
+.patient-panel:hover,
+.health-metric:hover,
+.health-chart-card:hover {
+  transform: translateY(-0.18rem);
+  border-color: color-mix(in oklab, var(--accent) 35%, var(--border));
+  box-shadow: 0 0.75rem 1.8rem color-mix(in oklab, var(--primary) 9%, transparent);
+}
+.patient-icon-tile {
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--surface) 90%, transparent), 0 0.35rem 0.8rem color-mix(in oklab, var(--primary) 8%, transparent);
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+.group:hover .patient-icon-tile,
+.patient-action:hover .patient-icon-tile,
+button:hover > .patient-icon-tile {
+  transform: translateY(-0.12rem) scale(1.04);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--surface) 90%, transparent), 0 0.5rem 1rem color-mix(in oklab, var(--primary) 12%, transparent);
+}
+.patient-nav-item svg { transition: transform 180ms ease; }
+.patient-nav-item:hover svg { transform: translateX(0.12rem); }
+.health-trend__grid {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 0.6;
+}
+.health-trend__area {
+  fill: currentColor;
+  opacity: 0.12;
+  transform-origin: bottom;
+  animation: chart-reveal 700ms 240ms ease-out both;
+}
+.health-trend__line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: chart-draw 950ms 180ms ease-out forwards;
+}
+.health-trend__point {
+  fill: var(--surface);
+  stroke: currentColor;
+  stroke-width: 1.75;
+  transform-origin: center;
+  transition: r 180ms ease;
+}
+.health-metric:hover .health-trend__point { r: 3.6px; }
+.health-chart-card {
+  animation: patient-rise 560ms ease-out both;
+}
+.health-chart-card--2 { animation-delay: 90ms; }
+.health-chart-card--3 { animation-delay: 180ms; }
+.health-chart-card--4 { animation-delay: 270ms; }
+.health-chart__grid {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 0.7;
+  stroke-dasharray: 2 4;
+}
+.health-chart__area {
+  fill: currentColor;
+  opacity: 0.13;
+  transform-origin: bottom;
+  animation: chart-reveal 900ms 220ms ease-out both;
+}
+.health-chart__line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  vector-effect: non-scaling-stroke;
+  animation: chart-draw 1250ms 220ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.health-chart__point {
+  fill: var(--surface);
+  stroke: currentColor;
+  stroke-width: 2.25;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: chart-point-arrive 1350ms 220ms ease-out both;
+}
+.health-chart__halo {
+  fill: currentColor;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: chart-halo-pulse 2.6s 1.5s ease-in-out infinite;
+}
+.health-command-chart__range {
+  fill: color-mix(in oklab, var(--highlight) 22%, transparent);
+  transform-origin: center;
+  animation: chart-range-arrive 700ms 100ms ease-out both;
+}
+.health-command-chart__area {
+  fill: currentColor;
+  opacity: 0.08;
+  transform-origin: bottom;
+  animation: chart-reveal 900ms 180ms ease-out both;
+}
+.health-command-chart__line-secondary { animation-delay: 360ms; }
+.health-command-chart__label {
+  fill: var(--muted-foreground);
+  font-family: var(--font-body);
+  font-size: 9px;
+}
+.health-metric__progress {
+  transform-origin: left;
+  animation: metric-progress 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.health-metric__progress--1 { width: 78%; background: var(--accent); }
+.health-metric__progress--2 { width: 68%; background: var(--primary); animation-delay: 100ms; }
+.health-metric__progress--3 { width: 72%; background: var(--coral); animation-delay: 200ms; }
+.health-metric__progress--4 { width: 84%; background: var(--highlight); animation-delay: 300ms; }
+.health-chart__labels {
+  fill: var(--muted-foreground);
+  font-family: var(--font-body);
+  font-size: 7px;
+}
+.status-pulse { animation: status-breathe 2.4s ease-out infinite; }
+.notification-dot { animation: notification-ring 3.8s ease-in-out infinite; }
+.health-tab-enter { animation: health-tab-enter 420ms ease-out both; }
+.health-history-item { animation: patient-rise 480ms ease-out both; }
+.health-history-item:nth-child(2) { animation-delay: 70ms; }
+.health-history-item:nth-child(3) { animation-delay: 140ms; }
+.health-history-item:nth-child(4) { animation-delay: 210ms; }
+.health-history-item:nth-child(5) { animation-delay: 280ms; }
+.health-goal-progress { transform-origin: left; animation: health-goal-fill 900ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.health-goal-progress--1 { width: 84%; }
+.health-goal-progress--2 { width: 68%; animation-delay: 90ms; }
+.health-goal-progress--3 { width: 72%; animation-delay: 180ms; }
+.health-goal-progress--4 { width: 56%; animation-delay: 270ms; }
+
+.nurse-command-hero {
+  box-shadow: 0 1.25rem 2.5rem color-mix(in oklab, var(--primary) 18%, transparent);
+}
+.nurse-command-orbit {
+  position: absolute;
+  border: 1px dashed color-mix(in oklab, var(--accent) 28%, transparent);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: nurse-orbit 24s linear infinite;
+}
+.nurse-command-orbit::after {
+  content: "";
+  position: absolute;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--highlight);
+  left: 16%;
+  top: 8%;
+}
+.nurse-command-orbit--one { width: 19rem; height: 19rem; right: -7rem; top: -9rem; }
+.nurse-command-orbit--two { width: 12rem; height: 12rem; right: 16rem; bottom: -9rem; animation-direction: reverse; animation-duration: 18s; }
+.nurse-readiness-ring { transform: rotate(18deg); animation: nurse-readiness 900ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.nurse-stat { animation: patient-rise 520ms ease-out both; }
+.nurse-stat--2 { animation-delay: 70ms; }
+.nurse-stat--3 { animation-delay: 140ms; }
+.nurse-stat--4 { animation-delay: 210ms; }
+.nurse-chart-grid { fill: none; stroke: var(--border); stroke-width: 0.75; stroke-dasharray: 3 5; }
+.nurse-chart-area { opacity: 0.85; animation: chart-reveal 900ms 160ms ease-out both; }
+.nurse-chart-line { fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; vector-effect: non-scaling-stroke; animation: chart-draw 1400ms 180ms cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.nurse-chart-line--late { stroke-width: 2.25; animation-delay: 360ms; }
+.nurse-chart-label { fill: var(--muted-foreground); font-family: var(--font-body); font-size: 10px; }
+.nurse-chart-point { fill: var(--surface); stroke: currentColor; stroke-width: 3; animation: chart-point-arrive 1500ms ease-out both; }
+.nurse-workload-bar { transform-origin: bottom; animation: nurse-bar-rise 800ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.nurse-alert { transition: transform 180ms ease, border-color 180ms ease, opacity 180ms ease; }
+.nurse-alert:hover { transform: translateX(0.18rem); border-color: color-mix(in oklab, var(--accent) 35%, var(--border)); }
+.nurse-dashboard-main { background: color-mix(in oklab, var(--background) 92%, var(--surface)); }
+.nurse-shift-summary { isolation: isolate; }
+.nurse-shift-summary .hero-particle { z-index: 0; }
+.nurse-shift-summary > .relative { z-index: 1; }
+.nurse-map-frame { transition: box-shadow 220ms ease; }
+.nurse-map-card { animation: consultation-enter 320ms ease-out both; }
+.nurse-sidebar-quote { animation: patient-rise 600ms 300ms ease-out both; }
+.nurse-mapbox-pin, .nurse-mapbox-clinic, .nurse-mapbox-nurse { display: flex; align-items: center; justify-content: center; border: 2px solid var(--surface); box-shadow: var(--shadow-md); font-family: var(--font-body); }
+.nurse-mapbox-pin { width: 2.25rem; height: 2.25rem; border-radius: 50%; background: var(--primary); color: var(--primary-foreground); font-size: 0.625rem; font-weight: 700; cursor: pointer; transition: box-shadow 180ms ease, border-color 180ms ease; }
+.nurse-mapbox-pin--urgent { background: var(--coral); }
+.nurse-mapbox-pin--selected { border-color: var(--highlight); box-shadow: 0 0 0 0.35rem color-mix(in oklab, var(--highlight) 24%, transparent), var(--shadow-md); }
+.nurse-mapbox-clinic { width: 2.5rem; height: 2.5rem; border-radius: var(--radius-md); background: var(--accent); color: var(--accent-foreground); font-weight: 700; font-size: 1.25rem; }
+.nurse-mapbox-nurse { width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--highlight); border-width: 4px; }
+.nurse-shift-grid {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: min(42rem, 58%);
+  opacity: 0.7;
+  background-image:
+    linear-gradient(color-mix(in oklab, var(--accent) 8%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklab, var(--accent) 8%, transparent) 1px, transparent 1px);
+  background-size: 2rem 2rem;
+  mask-image: linear-gradient(to left, black, transparent);
+}
+.nurse-map-panel { overflow: hidden; }
+.nurse-map {
+  background-color: var(--surface-raised);
+  background-image:
+    linear-gradient(color-mix(in oklab, var(--border) 40%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklab, var(--border) 40%, transparent) 1px, transparent 1px);
+  background-size: 2.5rem 2.5rem;
+}
+.nurse-map-road { position: absolute; height: 0.75rem; border-radius: 999px; background: var(--surface); box-shadow: 0 0 0 1px var(--border); }
+.nurse-map-road--one { width: 72%; left: -8%; top: 44%; transform: rotate(-17deg); }
+.nurse-map-road--two { width: 62%; right: -6%; top: 30%; transform: rotate(34deg); }
+.nurse-map-road--three { width: 58%; right: 5%; bottom: 24%; transform: rotate(-8deg); }
+.nurse-map-block { position: absolute; border: 1px solid var(--border); border-radius: var(--radius-md); background: color-mix(in oklab, var(--surface) 64%, var(--accent)); opacity: 0.45; }
+.nurse-map-block--one { width: 19%; height: 18%; left: 7%; top: 16%; transform: rotate(-8deg); }
+.nurse-map-block--two { width: 24%; height: 16%; right: 9%; top: 11%; transform: rotate(7deg); }
+.nurse-map-block--three { width: 16%; height: 22%; right: 14%; bottom: 21%; transform: rotate(-5deg); }
+.nurse-map-block--four { width: 22%; height: 15%; left: 30%; bottom: 15%; transform: rotate(5deg); }
+.nurse-map-route { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; vector-effect: non-scaling-stroke; animation: nurse-route-draw 1500ms 250ms cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.nurse-map-pin { animation: nurse-pin-arrive 520ms ease-out both; transition: box-shadow 180ms ease, border-color 180ms ease; }
+.nurse-map-pin--one { left: 18%; bottom: 24%; }
+.nurse-map-pin--two { left: 31%; top: 31%; animation-delay: 80ms; }
+.nurse-map-pin--three { right: 17%; top: 35%; animation-delay: 160ms; }
+.nurse-map-pin--four { left: 52%; bottom: 32%; animation-delay: 240ms; }
+.nurse-map-pin--five { right: 11%; top: 14%; animation-delay: 320ms; }
+.nurse-map-pin--selected { border-color: var(--highlight); box-shadow: 0 0 0 0.35rem color-mix(in oklab, var(--highlight) 24%, transparent), var(--shadow-md); }
+.nurse-map-location { animation: nurse-location-pulse 2.2s ease-out infinite; }
+.nurse-queue-row { transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease; }
+.nurse-queue-row:hover { transform: translateX(0.18rem); }
+.nurse-queue-progress { width: 54%; transform-origin: left; animation: metric-progress 900ms ease-out both; }
+.nurse-plan-row { animation: patient-rise 460ms ease-out both; }
+.nurse-plan-row:nth-child(2) { animation-delay: 60ms; }
+.nurse-plan-row:nth-child(3) { animation-delay: 120ms; }
+.nurse-plan-row:nth-child(4) { animation-delay: 180ms; }
+.nurse-plan-row:nth-child(5) { animation-delay: 240ms; }
+.nurse-plan-row:nth-child(6) { animation-delay: 300ms; }
+.nurse-allocation-progress { transform-origin: left; animation: metric-progress 800ms ease-out both; }
+.nurse-field-space > * { animation: nurse-field-enter 480ms ease-out both; }
+.nurse-field-space > :nth-child(2) { animation-delay: 60ms; }
+.nurse-field-space > :nth-child(3) { animation-delay: 120ms; }
+.nurse-field-space > :nth-child(4) { animation-delay: 180ms; }
+.nurse-field-space > :nth-child(5) { animation-delay: 240ms; }
+.nurse-field-intro { isolation: isolate; }
+.nurse-field-intro::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: min(38rem, 60%);
+  background-image: radial-gradient(circle, color-mix(in oklab, var(--accent) 18%, transparent) 1px, transparent 1px);
+  background-size: 1.25rem 1.25rem;
+  mask-image: linear-gradient(to left, black, transparent);
+  pointer-events: none;
+}
+.nurse-field-card, .nurse-field-metric, .nurse-reading-row { transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }
+.nurse-field-card:hover, .nurse-field-metric:hover, .nurse-reading-row:hover { transform: translateY(-0.12rem); border-color: color-mix(in oklab, var(--accent) 34%, var(--border)); box-shadow: var(--shadow-md); }
+.nurse-field-metric--dark { background: var(--primary); }
+.nurse-schedule-progress { transform-origin: left; animation: nurse-schedule-fill 900ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.nurse-mini-line { fill: none; stroke: var(--primary); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: chart-draw 1100ms 220ms ease-out forwards; }
+.nurse-donut { border: 0.55rem solid color-mix(in oklab, var(--primary) 16%, transparent); border-right-color: var(--accent); transform: rotate(-12deg); }
+.nurse-donut > * { transform: rotate(12deg); }
+.nurse-donut--dark { border-color: color-mix(in oklab, var(--surface) 22%, transparent); border-right-color: var(--highlight); }
+.nurse-patient-hero { isolation: isolate; animation: patient-rise 480ms ease-out both; }
+.nurse-patient-hero > .relative { z-index: 1; }
+.nurse-patient-metric { animation: patient-rise 480ms ease-out both; transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }
+.nurse-patient-metric:hover { transform: translateY(-0.12rem); border-color: color-mix(in oklab, var(--accent) 34%, var(--border)); box-shadow: var(--shadow-md); }
+.nurse-patient-metric--2 { animation-delay: 70ms; }
+.nurse-patient-metric--3 { animation-delay: 140ms; }
+.nurse-patient-metric--4 { animation-delay: 210ms; }
+.nurse-patient-row { animation: patient-rise 420ms ease-out both; transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease; }
+.nurse-patient-row:hover { transform: translateX(0.18rem); }
+.nurse-patient-row--2 { animation-delay: 55ms; }
+.nurse-patient-row--3 { animation-delay: 110ms; }
+.nurse-patient-row--4 { animation-delay: 165ms; }
+.nurse-patient-row--5 { animation-delay: 220ms; }
+.nurse-patient-profile { animation: consultation-enter 320ms ease-out both; }
+.nurse-patient-profile img { animation: nurse-patient-image 520ms ease-out both; }
+.nurse-patient-trend { fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; vector-effect: non-scaling-stroke; animation: chart-draw 1100ms 180ms cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.doctor-page > * { animation: doctor-page-enter 460ms ease-out both; }
+.doctor-page > :nth-child(2) { animation-delay: 60ms; }
+.doctor-page > :nth-child(3) { animation-delay: 120ms; }
+.doctor-page > :nth-child(4) { animation-delay: 180ms; }
+.doctor-command-hero { isolation: isolate; }
+.doctor-command-hero > .relative { z-index: 1; }
+.doctor-panel, .doctor-metric { transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }
+.doctor-metric:hover { transform: translateY(-0.12rem); border-color: color-mix(in oklab, var(--accent) 34%, var(--border)); box-shadow: var(--shadow-md); }
+.doctor-queue-row { animation: patient-rise 440ms ease-out both; transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease; }
+.doctor-queue-row:hover { transform: translateX(0.18rem); }
+.doctor-delay-2 { animation-delay: 70ms; }
+.doctor-delay-3 { animation-delay: 140ms; }
+.doctor-delay-4 { animation-delay: 210ms; }
+.doctor-delay-5 { animation-delay: 280ms; }
+.doctor-case-panel { animation: consultation-enter 320ms ease-out both; }
+.doctor-mobile-nav { scrollbar-width: none; }
+.doctor-mobile-nav::-webkit-scrollbar { display: none; }
+
+@keyframes nurse-patient-image { from { opacity: 0; transform: scale(1.04); } to { opacity: 1; transform: scale(1); } }
+@keyframes doctor-page-enter { from { opacity: 0; transform: translateY(0.45rem); } to { opacity: 1; transform: translateY(0); } }
+
+.gilbert-one { transform-origin: 50% 58%; }
+.gilbert-one__face {
+  position: absolute;
+  left: 18.5%;
+  top: 29.8%;
+  width: 63%;
+  height: 25%;
+  overflow: hidden;
+  border-radius: 38%;
+  background: var(--foreground);
+}
+.gilbert-one__gaze {
+  position: absolute;
+  left: 14%;
+  top: 26%;
+  width: 72%;
+  height: 52%;
+  overflow: visible;
+  transform-origin: center;
+}
+.gilbert-one__eyes {
+  fill: var(--surface);
+  filter: drop-shadow(0 0 5px color-mix(in oklab, var(--surface) 82%, transparent));
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.gilbert-one--animated { animation: gilbert-turn 7s ease-in-out infinite; }
+.gilbert-one--animated .gilbert-one__gaze { animation: gilbert-look 7s ease-in-out infinite; }
+.gilbert-one--animated .gilbert-one__eyes { animation: gilbert-blink 7s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .gilbert-one--animated,
+  .gilbert-one--animated .gilbert-one__gaze,
+  .gilbert-one--animated .gilbert-one__eyes,
+  .hero-float,
+  .hero-particle,
+  .hero-listening__pulse,
+  .patient-dashboard-main > *,
+  .health-trend__area,
+  .health-trend__line,
+  .health-chart-card,
+  .health-chart__area,
+  .health-chart__line,
+  .health-chart__point,
+  .health-chart__halo,
+  .health-command-chart__range,
+  .health-command-chart__area,
+  .health-metric__progress,
+  .status-pulse,
+  .notification-dot,
+  .health-tab-enter,
+  .health-history-item,
+  .health-goal-progress,
+  .nurse-command-orbit,
+  .nurse-readiness-ring,
+  .nurse-stat,
+  .nurse-chart-area,
+  .nurse-chart-line,
+  .nurse-chart-point,
+  .nurse-workload-bar,
+  .nurse-map-route,
+  .nurse-map-pin,
+  .nurse-map-location,
+  .nurse-queue-progress,
+  .nurse-plan-row,
+  .nurse-allocation-progress,
+  .nurse-patient-hero,
+  .nurse-patient-metric,
+  .nurse-patient-row,
+  .nurse-patient-profile,
+  .nurse-patient-profile img,
+  .nurse-patient-trend,
+  .doctor-page > *,
+  .doctor-queue-row,
+  .doctor-case-panel,
+  .nurse-map-card,
+  .nurse-sidebar-quote,
+  .nurse-field-space > *,
+  .nurse-schedule-progress,
+  .nurse-mini-line { animation: none; }
+  .mythuso-icon--animated .mythuso-icon__signal { animation: none; }
+  .consultation-layout > *,
+  .consultation-next { animation: none; }
+  .patient-action,
+  .patient-panel,
+  .health-metric,
+  .health-chart-card,
+  .patient-icon-tile,
+  .patient-nav-item svg,
+  .nurse-alert,
+  .nurse-map-pin,
+  .nurse-queue-row,
+  .nurse-field-card,
+  .nurse-field-metric,
+  .nurse-reading-row { transition: none; }
+}
+
+/* Donut and multi-series chart motion */
+.chart-ring {
+  fill: none;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: ring-fill 1300ms 200ms ease-out both;
+}
+.chart-ring-track { fill: none; stroke: var(--muted); }
+.chart-bar { transform-origin: bottom; transform-box: fill-box; animation: chart-reveal 800ms ease-out both; }
+@keyframes ring-fill { from { stroke-dashoffset: 100; } }
+@media (prefers-reduced-motion: reduce) { .chart-ring, .chart-bar { animation: none; } }
+
+@keyframes impact-map-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-9px); }
+}
+@keyframes impact-halo-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.92); }
+  50% { opacity: 0.7; transform: scale(1.06); }
+}
+@keyframes impact-rise {
+  from { opacity: 0; transform: translateY(0.75rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.impact-panel { scroll-margin-top: 5rem; }
+.impact-map { animation: impact-map-float 8s ease-in-out infinite; }
+.impact-halo {
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--success) 22%, transparent), transparent 72%);
+  animation: impact-halo-pulse 5s ease-in-out infinite;
+}
+.impact-stat { opacity: 0; }
+.impact-go .impact-stat { animation: impact-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .impact-map, .impact-halo { animation: none; }
+  .impact-stat { opacity: 1; }
+  .impact-go .impact-stat { animation: none; }
+}

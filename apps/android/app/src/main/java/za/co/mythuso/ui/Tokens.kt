@@ -65,17 +65,67 @@ val StudioPeach = Color(0xFFF4DDC9)
 val StudioLine = Color(0xFFDFE2D8)
 val StudioInkMuted = Color(0xFF505D53)
 val StudioOlive = Color(0xFF466647)
-val BrandInk = Color(0xFF0F3B4A)
-val BrandGreen = Color(0xFF1D9E75)
-val BrandOrange = Color(0xFFFF6B35)
-val BrandLime = Color(0xFFD9FF1A)
+val BrandInk = Color(0xFF083848)
+val BrandGreen = Color(0xFF189870)
+val BrandOrange = Color(0xFFF86830)
+val BrandLime = Color(0xFFD8F818)
 val BrandMint = Color(0xFF9FE1CB)
 
+/** Generation four, the Lovable handoff of 28 September 2026: nineteen roles, each in a light and a
+    dark value, converted exactly from the handoff's oklch (kept in the trailing comment). Nothing on
+    Android reads them yet; they exist so that restyling a screen is a matter of reaching for one. */
+object ThusoSemantic {
+    object Light {
+        val background = Color(0xFFF6FBFC) // oklch(0.985 0.006 211)
+        val foreground = Color(0xFF022235) // oklch(0.24 0.052 239)
+        val surface = Color(0xFFFFFFFF) // oklch(1 0 0)
+        val surfaceRaised = Color(0xFFECF7FA) // oklch(0.97 0.012 211)
+        val primary = Color(0xFF083848)
+        val primaryForeground = Color(0xFFFFFFFF) // oklch(1 0 0)
+        val accent = Color(0xFF189870)
+        val accentForeground = Color(0xFF001C26) // oklch(0.21 0.043 222)
+        val muted = Color(0xFFE1EEF1) // oklch(0.94 0.014 217)
+        val mutedForeground = Color(0xFF4E6B7A) // oklch(0.51 0.041 232)
+        val success = Color(0xFF189870)
+        val warning = Color(0xFFD8F818)
+        val danger = Color(0xFFF86830)
+        val info = Color(0xFF189870)
+        val highlight = Color(0xFFD8F818)
+        val coral = Color(0xFFF86830)
+        val border = Color(0xFFC9DBE1) // oklch(0.88 0.021 220)
+        val input = Color(0xFFD5E4EA) // oklch(0.91 0.018 220)
+        val ring = Color(0xFF189870)
+    }
+    object Dark {
+        val background = Color(0xFF00121C) // oklch(0.17 0.035 235)
+        val foreground = Color(0xFFE3EDF0) // oklch(0.94 0.012 211)
+        val surface = Color(0xFF041C29) // oklch(0.215 0.04 235)
+        val surfaceRaised = Color(0xFF092635) // oklch(0.255 0.044 235)
+        val primary = Color(0xFF189870)
+        val primaryForeground = Color(0xFF00121C) // oklch(0.17 0.035 235)
+        val accent = Color(0xFF25C99A)
+        val accentForeground = Color(0xFF00121C) // oklch(0.17 0.035 235)
+        val muted = Color(0xFF182E3A) // oklch(0.29 0.035 232)
+        val mutedForeground = Color(0xFF93A9B0) // oklch(0.72 0.026 220)
+        val success = Color(0xFF25C99A)
+        val warning = Color(0xFFD8F818)
+        val danger = Color(0xFFFF7B48)
+        val info = Color(0xFF25C99A)
+        val highlight = Color(0xFFD8F818)
+        val coral = Color(0xFFFF7B48)
+        val border = Color(0xFF243B47) // oklch(0.34 0.036 232)
+        val input = Color(0xFF28414E) // oklch(0.36 0.038 232)
+        val ring = Color(0xFF25C99A)
+    }
+}
 object ThusoRadius {
-    val card = 20.dp
-    val panel = 28.dp
-    val control = 16.dp
-    val tile = 16.dp
+    val sm = 6.dp
+    val md = 8.dp
+    val lg = 12.dp
+    val card = 12.dp
+    val panel = 12.dp
+    val control = 8.dp
+    val tile = 8.dp
     val pill = 999.dp
 }
 /** Opacities, as opacities. A flattened grey cannot follow the ground it sits on; an alpha has no

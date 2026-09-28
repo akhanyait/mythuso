@@ -1,0 +1,46 @@
+/* The MyThuso icon family on the web: what the generated components in MyThusoIcons.generated.tsx
+   wear. Nothing here is a colour or a number of its own — every value is a token variable or the
+   figure packages/catalog/icons.json gives, and scripts/check-boundaries.mjs holds the two together.
+
+   ROUND CAPS AND JOINS on the svg, as the handoff drew them: a stylesheet rule outranks an element's
+   presentation attribute, so every stroke in the family is round whatever its element says.
+
+   COLOURS ARE ROLES. A path carries a class naming its role and the role is mapped here to the
+   token variable, so when the tokens change the family changes with them, on every platform at
+   once. currentColor is the text colour of wherever the icon sits and needs no rule.
+
+   THE SIGNAL PULSE is the one thing in the family that moves, and it obeys the same three rules as
+   every other endless animation in this tree. It changes transform only, so no control's box ever
+   moves under a thumb. It runs only under [data-decor="on"], the flag apps/web/src/lib/motion.ts
+   raises and the pause control clears, so a page whose script never runs gets no motion and one
+   button stops all of it. And it is removed — not shortened — under prefers-reduced-motion.
+
+   1.8 s is the handoff's duration and is not a motion token. A duration typed into a stylesheet is
+   a second motion system starting, so it is spent as the quick token times 11.25: 160 ms × 11.25 is
+   exactly 1800 ms, and the contract's durationFromToken records the same arithmetic for the
+   phones. The curve is the product's one curve rather than the handoff's ease-in-out. */
+
+.mythuso-icon {
+ stroke-linecap: round;
+ stroke-linejoin: round;
+ flex: none;
+}
+.mythuso-icon__accent { stroke: var(--brand-green); }
+.mythuso-icon__primary { stroke: var(--brand-ink); }
+.mythuso-icon__highlight { fill: var(--brand-lime); }
+
+/* Scaled about its own centre rather than the svg's origin, or a pulse would drift the dot. */
+.mythuso-icon__signal {
+ transform-box: fill-box;
+ transform-origin: center;
+}
+:root[data-decor="on"] .mythuso-icon--animated .mythuso-icon__signal {
+ animation: mythuso-signal calc(var(--t-quick) * 11.25) var(--ease-soft) infinite;
+}
+@keyframes mythuso-signal {
+ 0%, 100% { transform: scale(1); }
+ 50% { transform: scale(1.25); }
+}
+@media (prefers-reduced-motion: reduce) {
+ .mythuso-icon--animated .mythuso-icon__signal { animation: none !important; }
+}

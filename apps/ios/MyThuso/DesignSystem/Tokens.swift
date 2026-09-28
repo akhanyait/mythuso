@@ -61,17 +61,67 @@ enum ThusoTheme {
     static let studioLine = Color(red: 0.875, green: 0.886, blue: 0.847)              // #DFE2D8
     static let studioInkMuted = Color(red: 0.314, green: 0.365, blue: 0.325)          // #505D53
     static let studioOlive = Color(red: 0.275, green: 0.400, blue: 0.278)             // #466647
-    static let brandInk = Color(red: 0.059, green: 0.231, blue: 0.290)                // #0F3B4A
-    static let brandGreen = Color(red: 0.114, green: 0.620, blue: 0.459)              // #1D9E75
-    static let brandOrange = Color(red: 1.000, green: 0.420, blue: 0.208)             // #FF6B35
-    static let brandLime = Color(red: 0.851, green: 1.000, blue: 0.102)               // #D9FF1A
+    static let brandInk = Color(red: 0.031, green: 0.220, blue: 0.282)                // #083848
+    static let brandGreen = Color(red: 0.094, green: 0.596, blue: 0.439)              // #189870
+    static let brandOrange = Color(red: 0.973, green: 0.408, blue: 0.188)             // #F86830
+    static let brandLime = Color(red: 0.847, green: 0.973, blue: 0.094)               // #D8F818
     static let brandMint = Color(red: 0.624, green: 0.882, blue: 0.796)               // #9FE1CB
 }
+/// Generation four, the Lovable handoff of 28 September 2026: nineteen roles, each in a light and a
+/// dark value, converted exactly from the handoff's oklch (kept in the trailing comment). Nothing
+/// on iOS reads them yet; they exist so that restyling a screen is a matter of reaching for one.
+enum ThusoSemantic {
+    enum Light {
+        static let background = Color(red: 0.965, green: 0.984, blue: 0.988)        // #f6fbfc oklch(0.985 0.006 211)
+        static let foreground = Color(red: 0.008, green: 0.133, blue: 0.208)        // #022235 oklch(0.24 0.052 239)
+        static let surface = Color(red: 1.000, green: 1.000, blue: 1.000)           // #ffffff oklch(1 0 0)
+        static let surfaceRaised = Color(red: 0.925, green: 0.969, blue: 0.980)     // #ecf7fa oklch(0.97 0.012 211)
+        static let primary = Color(red: 0.031, green: 0.220, blue: 0.282)           // #083848
+        static let primaryForeground = Color(red: 1.000, green: 1.000, blue: 1.000) // #ffffff oklch(1 0 0)
+        static let accent = Color(red: 0.094, green: 0.596, blue: 0.439)            // #189870
+        static let accentForeground = Color(red: 0.000, green: 0.110, blue: 0.149)  // #001c26 oklch(0.21 0.043 222)
+        static let muted = Color(red: 0.882, green: 0.933, blue: 0.945)             // #e1eef1 oklch(0.94 0.014 217)
+        static let mutedForeground = Color(red: 0.306, green: 0.420, blue: 0.478)   // #4e6b7a oklch(0.51 0.041 232)
+        static let success = Color(red: 0.094, green: 0.596, blue: 0.439)           // #189870
+        static let warning = Color(red: 0.847, green: 0.973, blue: 0.094)           // #d8f818
+        static let danger = Color(red: 0.973, green: 0.408, blue: 0.188)            // #f86830
+        static let info = Color(red: 0.094, green: 0.596, blue: 0.439)              // #189870
+        static let highlight = Color(red: 0.847, green: 0.973, blue: 0.094)         // #d8f818
+        static let coral = Color(red: 0.973, green: 0.408, blue: 0.188)             // #f86830
+        static let border = Color(red: 0.788, green: 0.859, blue: 0.882)            // #c9dbe1 oklch(0.88 0.021 220)
+        static let input = Color(red: 0.835, green: 0.894, blue: 0.918)             // #d5e4ea oklch(0.91 0.018 220)
+        static let ring = Color(red: 0.094, green: 0.596, blue: 0.439)              // #189870
+    }
+    enum Dark {
+        static let background = Color(red: 0.000, green: 0.071, blue: 0.110)        // #00121c oklch(0.17 0.035 235)
+        static let foreground = Color(red: 0.890, green: 0.929, blue: 0.941)        // #e3edf0 oklch(0.94 0.012 211)
+        static let surface = Color(red: 0.016, green: 0.110, blue: 0.161)           // #041c29 oklch(0.215 0.04 235)
+        static let surfaceRaised = Color(red: 0.035, green: 0.149, blue: 0.208)     // #092635 oklch(0.255 0.044 235)
+        static let primary = Color(red: 0.094, green: 0.596, blue: 0.439)           // #189870
+        static let primaryForeground = Color(red: 0.000, green: 0.071, blue: 0.110) // #00121c oklch(0.17 0.035 235)
+        static let accent = Color(red: 0.145, green: 0.788, blue: 0.604)            // #25c99a
+        static let accentForeground = Color(red: 0.000, green: 0.071, blue: 0.110)  // #00121c oklch(0.17 0.035 235)
+        static let muted = Color(red: 0.094, green: 0.180, blue: 0.227)             // #182e3a oklch(0.29 0.035 232)
+        static let mutedForeground = Color(red: 0.576, green: 0.663, blue: 0.690)   // #93a9b0 oklch(0.72 0.026 220)
+        static let success = Color(red: 0.145, green: 0.788, blue: 0.604)           // #25c99a
+        static let warning = Color(red: 0.847, green: 0.973, blue: 0.094)           // #d8f818
+        static let danger = Color(red: 1.000, green: 0.482, blue: 0.282)            // #ff7b48
+        static let info = Color(red: 0.145, green: 0.788, blue: 0.604)              // #25c99a
+        static let highlight = Color(red: 0.847, green: 0.973, blue: 0.094)         // #d8f818
+        static let coral = Color(red: 1.000, green: 0.482, blue: 0.282)             // #ff7b48
+        static let border = Color(red: 0.141, green: 0.231, blue: 0.278)            // #243b47 oklch(0.34 0.036 232)
+        static let input = Color(red: 0.157, green: 0.255, blue: 0.306)             // #28414e oklch(0.36 0.038 232)
+        static let ring = Color(red: 0.145, green: 0.788, blue: 0.604)              // #25c99a
+    }
+}
 enum ThusoRadius {
-    static let card: CGFloat = 20
-    static let panel: CGFloat = 28
-    static let control: CGFloat = 16
-    static let tile: CGFloat = 16
+    static let sm: CGFloat = 6
+    static let md: CGFloat = 8
+    static let lg: CGFloat = 12
+    static let card: CGFloat = 12
+    static let panel: CGFloat = 12
+    static let control: CGFloat = 8
+    static let tile: CGFloat = 8
     static let pill: CGFloat = 999
 }
 /// Opacities, as opacities. A flattened grey cannot follow the ground it sits on; an alpha has no

@@ -82,6 +82,13 @@ const MarketOrderPage = lazy(() => import('./features/MarketOrder').then(m => ({
    different pages, and not one tip is on the patient's first load. */
 const CareTipsPage = lazy(() => import('./features/CareTips').then(m => ({ default: m.CareTips })));
 import { careTipsRoute } from './lib/care-tips-route.generated';
+/* The icon family's gallery, at `?open=icons`, in development builds only: every icon of
+   packages/catalog/icons.json at two sizes with its signal pulsing, so the family can be looked at and
+   tested before a screen wears it. `import.meta.env.DEV` is a constant at build time, so in a production
+   build the whole branch folds to null and the dynamic import is never emitted — the patient's first
+   view pays nothing for it. No icon is wired into a screen yet; that is a later wave's work. */
+const IconGallery = import.meta.env.DEV ? lazy(() => import('./features/IconGallery').then(m => ({ default: m.IconGallery }))) : null;
+const developmentSections = IconGallery ? ['Icons'] : [];
 function EmergencyWhileSosLoads() {
  return <div className="sos"><div className="sos-emergency">
   <div className="sos-emergency-head"><div><strong>{sosEmergency.headline}</strong><p>{sosEmergency.lead}</p></div></div>
@@ -135,7 +142,7 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
     hero offers four destinations and two of them are sections rather than the application, so
     `/app/?open=live-well` opens Live well. Read once and never written — see lib/roles.ts for why
     the address stops following a reader the moment they start navigating for themselves. */
- const [page, setPage] = useState(() => sectionFromSearch(window.location.search, [...patientSections, careTipsRoute.opens], 'Overview'));
+ const [page, setPage] = useState(() => sectionFromSearch(window.location.search, [...patientSections, careTipsRoute.opens, ...developmentSections], 'Overview'));
  const [modal, setModal] = useState<string | null>(null);
  const [booking, setBooking] = useState<Service | null>(null);
  /* Every visit the app knows about, in one list, because a visit you can look at and never change is
@@ -256,7 +263,8 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
           : page === 'Privacy & settings' ? <Privacy open={setModal}/>
            : page === 'Language & access' ? <Access/>
             : page === 'Explore MyThuso' ? <Explore open={setModal} onOnboarding={() => setOnboarding('first-run')} navigate={navigate}/>
-             : <MoreHub navigate={navigate} open={setModal} onSignOut={signOut}/>}
+             : IconGallery && page === 'Icons' ? <Suspense fallback={<p className="helper" role="status">Opening the icon family.</p>}><IconGallery/></Suspense>
+              : <MoreHub navigate={navigate} open={setModal} onSignOut={signOut}/>}
   </PatientShell>
   {booking &&<Modal surface={SURFACE} title="A nurse, at your door." onClose={() => setBooking(null)}><Suspense fallback={<p className="helper" role="status">Opening the booking.</p>}><BookingFlow service={booking} person={forPerson ?? undefined} held={heldHours(rows)} previousNurseFor={person => previousNurseIn(rows, person)} onComplete={v => { setRows([rowFor(v, `VIS-01${rows.length}`), ...rows]); setBooking(null); navigate('My visits'); }}/></Suspense></Modal>}
   {/* Looking at a visit, moving one and standing one down are three screens rather than three

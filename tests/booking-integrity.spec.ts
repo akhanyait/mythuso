@@ -11,11 +11,15 @@ function expectedDays(count = 5, firstOffset = 1) {
   const days = [];
   for (let i = 0; i < count; i++) {
     const date = new Date(Date.now() + (firstOffset + i) * 86_400_000);
-    const inZa = new Intl.DateTimeFormat('en-ZA', { timeZone: 'Africa/Johannesburg', weekday: 'short', day: 'numeric' });
+    const inZa = new Intl.DateTimeFormat('en-ZA', { timeZone: 'Africa/Johannesburg', weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
     const parts = inZa.formatToParts(date);
     days.push({
       weekday: parts.find(p => p.type === 'weekday')!.value.toUpperCase(),
-      day: parts.find(p => p.type === 'day')!.value
+      day: parts.find(p => p.type === 'day')!.value,
+      /* The month and year the review writes beside the day — read from the same clock, never typed,
+         because a journey that says "September" fails on the first of October. */
+      month: parts.find(p => p.type === 'month')!.value,
+      year: parts.find(p => p.type === 'year')!.value
     });
   }
   return days;
@@ -79,10 +83,10 @@ test('the date chosen survives the confirmation and reaches the visit list', asy
   await d.getByRole('button', { name: 'Continue' }).click();
   await d.getByRole('button', { name: 'Continue' }).click();
   // the review states the full date, not just a time
-  await expect(d.getByText(new RegExp(`${third.day} September 2026`)).last()).toBeVisible();
+  await expect(d.getByText(new RegExp(`${third.day} ${third.month} ${third.year}`)).last()).toBeVisible();
   await d.getByRole('checkbox').check();
   await confirmBooking(d);
-  await expect(d.getByText(new RegExp(`${third.day} September 2026`)).last()).toBeVisible();
+  await expect(d.getByText(new RegExp(`${third.day} ${third.month} ${third.year}`)).last()).toBeVisible();
   await expect(d.getByText('14:00 – 14:45')).toBeVisible();
   await d.getByRole('button', { name: 'View my visits' }).click();
   // and the list shows that day, not a hard-coded one

@@ -24,7 +24,8 @@
  * the shell's own sheet, because the workbench and the kit read them as well as this deck.
  *
  * EVERY PAIR IS COMPUTED, with scripts/check-boundaries.mjs's relative-luminance formula, on what the
- * shell's ink (brandInk #0F3B4A) resolves to. Ink on the four tints and the quiet words at 78%:
+ * shell's ink (brandInk — #0F3B4A when these figures were taken; #083848 since 28 September 2026, which is
+ * darker, so every figure below rises) resolves to. Ink on the four tints and the quiet words at 78%:
  *     mint (brandMint)      ink 8.09   quiet 4.72   — ink on mint is declared in tokens.json#contrast
  *     lavender (studioLilac) ink 9.41  quiet 5.27
  *     peach (studioPeach)   ink 9.19   quiet 5.25

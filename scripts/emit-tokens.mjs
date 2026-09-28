@@ -45,6 +45,17 @@ const banner = extension => {
 export function emitTokens(root = '') {
  const tokens = JSON.parse(readFileSync(root + SOURCE, 'utf8'));
  const colours = Object.entries(tokens.color);
+ /* Generation four — the Lovable handoff of 28 September 2026 — is a set of ROLES, each with a light
+    and a dark value, rather than a fourth run of flat names. They reach the web as --color-<role>,
+    the name the handoff's own @theme block gives them, so they do not overwrite the three
+    current-generation names they share a word with (surface, danger, info) on a screen that still
+    reads those. The dark values are emitted under prefers-color-scheme: dark, guarded so a
+    data-theme="light" on :root wins, and again under :root[data-theme="dark"]; no screen reads them
+    yet, which is the point — the variables exist before any screen is restyled for them. */
+ const semantic = tokens.semantic;
+ const roles = semantic.names;
+ const semanticEntries = mode => roles.map(role => [role, semantic[mode][role]]);
+ const semanticCss = mode => semanticEntries(mode).map(([role, { hex }]) => ` --color-${kebab(role)}:${hex.toLowerCase()};`).join('\n');
  const radii = Object.entries(tokens.radius);
  /* The alphas, emitted as alphas. The token file declares charcoalMuted as 0.72 and says in its own
     note why it cannot be a flattened grey: #5C5C5C fails on paleSage at 4.36 and on softSage at
@@ -69,6 +80,7 @@ export function emitTokens(root = '') {
     file for the build to be able to tell that it is stale. */
  const css = banner('css') + ':root{\n'
   + colours.map(([name, hex]) => ` --${kebab(name)}:${hex.toLowerCase()};`).join('\n') + '\n'
+  + semanticCss('light') + '\n'
   + radii.map(([name, value]) => ` --r-${kebab(name)}:${value}px;`).join('\n') + '\n'
   + spacing.map(value => ` --space-${value}:${value}px;`).join('\n') + '\n'
   + Object.entries(tokens.elevation).map(([name, value]) => ` ${cssShadowNames[name] ?? `--shadow-${kebab(name)}`}:${value};`).join('\n') + '\n'
@@ -78,7 +90,9 @@ export function emitTokens(root = '') {
   + ` --t-quick:${tokens.motion.quickMs}ms;\n`
   + ` --t-settle:${tokens.motion.settleMs}ms;\n`
   + ` --t-enter:${tokens.motion.enterMs}ms;\n`
-  + '}\n';
+  + '}\n'
+  + '@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){\n' + semanticCss('dark') + '\n}}\n'
+  + ':root[data-theme="dark"]{\n' + semanticCss('dark') + '\n}\n';
 
  /* ---- iOS ------------------------------------------------------------------------------------
     The hex stays in a trailing comment because that is the number a designer recognises; the three
@@ -86,11 +100,27 @@ export function emitTokens(root = '') {
  const swiftColour = ([name, hex]) => `    static let ${name} = Color(red: ${channel(hex, 0)}, green: ${channel(hex, 1)}, blue: ${channel(hex, 2)})`;
  const swiftColours = colours.map(swiftColour);
  const widest = Math.max(...swiftColours.map(line => line.length));
+ const swiftSemantic = mode => {
+  const lines = semanticEntries(mode).map(([role, { hex }]) => `        static let ${role} = Color(red: ${channel(hex, 0)}, green: ${channel(hex, 1)}, blue: ${channel(hex, 2)})`);
+  const w = Math.max(...lines.map(line => line.length));
+  return lines.map((line, index) => `${line.padEnd(w)} // ${semanticEntries(mode)[index][1].hex}${semanticEntries(mode)[index][1].oklch ? ` ${semanticEntries(mode)[index][1].oklch}` : ''}`).join('\n');
+ };
  const swift = banner('swift') + `
 import SwiftUI
 
 enum ThusoTheme {
 ${swiftColours.map((line, index) => `${line.padEnd(widest)} // ${colours[index][1]}`).join('\n')}
+}
+/// Generation four, the Lovable handoff of 28 September 2026: nineteen roles, each in a light and a
+/// dark value, converted exactly from the handoff's oklch (kept in the trailing comment). Nothing
+/// on iOS reads them yet; they exist so that restyling a screen is a matter of reaching for one.
+enum ThusoSemantic {
+    enum Light {
+${swiftSemantic('light')}
+    }
+    enum Dark {
+${swiftSemantic('dark')}
+    }
 }
 enum ThusoRadius {
 ${radii.map(([name, value]) => `    static let ${name}: CGFloat = ${value}`).join('\n')}
@@ -142,6 +172,17 @@ import androidx.compose.ui.unit.sp
 
 ${colours.map(([name, hex]) => `val ${composeNames[name] ?? pascal(name)} = Color(0xFF${hex.replace('#', '').toUpperCase()})`).join('\n')}
 
+/** Generation four, the Lovable handoff of 28 September 2026: nineteen roles, each in a light and a
+    dark value, converted exactly from the handoff's oklch (kept in the trailing comment). Nothing on
+    Android reads them yet; they exist so that restyling a screen is a matter of reaching for one. */
+object ThusoSemantic {
+    object Light {
+${semanticEntries('light').map(([role, { hex, oklch }]) => `        val ${role} = Color(0xFF${hex.replace('#', '').toUpperCase()})${oklch ? ` // ${oklch}` : ''}`).join('\n')}
+    }
+    object Dark {
+${semanticEntries('dark').map(([role, { hex, oklch }]) => `        val ${role} = Color(0xFF${hex.replace('#', '').toUpperCase()})${oklch ? ` // ${oklch}` : ''}`).join('\n')}
+    }
+}
 object ThusoRadius {
 ${radii.map(([name, value]) => `    val ${name} = ${value}.dp`).join('\n')}
 }

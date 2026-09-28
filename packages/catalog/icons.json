@@ -1,0 +1,169 @@
+{
+ "_note": "The MyThuso icon family: the branded icons the Lovable design handoff of 28 September 2026 drew (src/components/mythuso-icons.tsx in the handoff, adopted exactly on the founder's instruction), as data. One entry per icon, every path, rect and circle with the attributes the handoff gave it, and the lime signal dot every icon carries. The web (apps/web/src/ui/icons/MyThusoIcons.generated.tsx), Android (res/drawable/ic_mythuso_<id>.xml and model/MyThusoIcons.kt) and iOS (Models/MyThusoIconsData.swift) are all generated from this file by scripts/emit-icons.mjs, so a path is typed here and nowhere else — the build fails if a path appears in a .tsx, .swift or .kt outside the generated files.",
+ "_rules": "The family is for primary patient destinations, healthcare actions and branded feature entry points, per the handoff's design guidelines. Lucide stays for universal utility actions only. A concept never has both a generic icon and a MyThuso icon; each icon lists the Lucide names that would say the same thing, and scripts/check-boundaries.mjs fails the build if one file imports both. The signal animation is for live or time-sensitive actions only, and on the web it runs on the motion tokens, gated on the pause flag and removed under reduced motion, like every other endless animation in this tree.",
+ "version": 1,
+ "family": {
+  "name": "MyThuso icon family",
+  "meaning": "Primary patient destinations, healthcare actions and branded feature entry points. Compact rounded geometry, open clinical linework, and a small lime signal point.",
+  "viewBox": "0 0 24 24",
+  "size": 24,
+  "fill": "none",
+  "strokeLinecap": "round",
+  "strokeLinejoin": "round",
+  "_caps": "The handoff's .mythuso-icon rule puts round caps and joins on the whole svg, and a stylesheet rule outranks a presentation attribute, so every stroke in the family renders round whatever its element says. The phones stroke round explicitly for the same result."
+ },
+ "rules": [
+  { "id": "family-for-destinations", "sentence": "Use the MyThuso icon family for primary patient destinations, healthcare actions and branded feature entry points." },
+  { "id": "lucide-for-utility", "sentence": "Use Lucide only for universal utility actions such as search, close, download, arrows and overflow controls." },
+  { "id": "never-both", "sentence": "Never mix a generic icon and a MyThuso icon for the same concept." },
+  { "id": "signal-is-live", "sentence": "The signal animation is for live or time-sensitive actions only. An icon that merely names a place does not pulse." }
+ ],
+ "roles": {
+  "_why": "A class on a path names a role, never a colour, so the family recolours when the tokens do. On the web each role is a token variable; on the phones it is the generated token colour by the same name. currentColor is the text colour of wherever the icon sits, which a vector drawable cannot inherit, so on the phones it is the ink token.",
+  "currentColor": { "css": "currentColor", "token": null, "nativeToken": "brandInk", "className": null },
+  "accent": { "css": "var(--brand-green)", "token": "brandGreen", "nativeToken": "brandGreen", "className": "mythuso-icon__accent", "paints": "stroke" },
+  "primary": { "css": "var(--brand-ink)", "token": "brandInk", "nativeToken": "brandInk", "className": "mythuso-icon__primary", "paints": "stroke" },
+  "highlight": { "css": "var(--brand-lime)", "token": "brandLime", "nativeToken": "brandLime", "className": "mythuso-icon__highlight", "paints": "fill" }
+ },
+ "signal": {
+  "_why": "The lime signal point every icon carries, top right. It is the one thing in the family that may move, and only when the action it marks is live or time-sensitive: a visit that is happening, a result that has just arrived, a message waiting. Scale only, so the icon's box never changes under a thumb.",
+  "className": "mythuso-icon__signal",
+  "kind": "circle",
+  "cx": 18.6,
+  "cy": 5.4,
+  "r": 2.05,
+  "fill": "highlight",
+  "stroke": "primary",
+  "strokeWidth": 1,
+  "pulse": {
+   "property": "transform",
+   "from": 1,
+   "to": 1.25,
+   "durationMs": 1800,
+   "durationFromToken": { "token": "quickMs", "times": 11.25, "_why": "1.8 s is not a motion token and a duration typed into a stylesheet is a second motion system starting, so on the web it is calc(var(--t-quick) * 11.25): 160 ms × 11.25 = 1800 ms exactly. The check recomputes it from tokens.json." },
+   "curve": "easeSoft",
+   "handoffCurve": "ease-in-out",
+   "_curve": "The handoff played it on ease-in-out. This product has one curve, easeSoft in tokens.json, and every animation spends it; the pulse does too.",
+   "loop": "infinite",
+   "gate": "[data-decor=\"on\"]",
+   "reducedMotion": "removed"
+  }
+ },
+ "icons": [
+  {
+   "id": "dashboard",
+   "name": "Dashboard",
+   "component": "MyThusoDashboardIcon",
+   "meaning": "The patient's overview: the home destination, where visits, readings and messages meet.",
+   "neverBeside": ["LayoutDashboard", "LayoutGrid", "LayoutPanelLeft", "Gauge", "House", "Home"],
+   "elements": [
+    { "kind": "path", "d": "M4.25 9.2 12 3.4l7.75 5.8v9.05a2 2 0 0 1-2 2H6.25a2 2 0 0 1-2-2V9.2Z", "stroke": "currentColor", "strokeWidth": 1.8, "strokeLinejoin": "round" },
+    { "kind": "path", "d": "M8 15.5v-3m4 3V9.8m4 5.7v-4.2", "stroke": "accent", "strokeWidth": 2, "strokeLinecap": "round" }
+   ]
+  },
+  {
+   "id": "health",
+   "name": "Health",
+   "component": "MyThusoHealthIcon",
+   "meaning": "The patient's health: the passport, readings and what they mean.",
+   "neverBeside": ["HeartPulse", "Heart", "Activity", "Stethoscope", "HeartHandshake"],
+   "elements": [
+    { "kind": "path", "d": "M12 20s-7.5-4.2-7.5-10.1A4.35 4.35 0 0 1 12 6.8a4.35 4.35 0 0 1 7.5 3.1C19.5 15.8 12 20 12 20Z", "stroke": "currentColor", "strokeWidth": 1.8, "strokeLinejoin": "round" },
+    { "kind": "path", "d": "M7.8 12h2.1l1.1-2.3 2 4.7 1.2-2.4h2", "stroke": "accent", "strokeWidth": 1.8, "strokeLinecap": "round", "strokeLinejoin": "round" }
+   ]
+  },
+  {
+   "id": "visit",
+   "name": "Visit",
+   "component": "MyThusoVisitIcon",
+   "meaning": "A nurse's visit: booking one, the ones coming, and the one happening now.",
+   "neverBeside": ["CalendarDays", "Calendar", "CalendarCheck", "CalendarPlus", "CalendarClock", "CalendarRange", "CalendarHeart"],
+   "elements": [
+    { "kind": "rect", "x": 4, "y": 5.5, "width": 16, "height": 14, "rx": 3, "stroke": "currentColor", "strokeWidth": 1.8 },
+    { "kind": "path", "d": "M8 3.8v3.4m8-3.4v3.4M4 9.5h16", "stroke": "currentColor", "strokeWidth": 1.8, "strokeLinecap": "round" },
+    { "kind": "path", "d": "M12 12v4m-2-2h4", "stroke": "accent", "strokeWidth": 2, "strokeLinecap": "round" }
+   ]
+  },
+  {
+   "id": "quick",
+   "name": "Quick",
+   "component": "MyThusoQuickIcon",
+   "meaning": "A quick action: the shortest way to the thing a patient does most.",
+   "neverBeside": ["Zap", "Bolt", "ZapOff", "Rocket"],
+   "elements": [
+    { "kind": "path", "d": "M13.3 2.8 5.8 13h5l-1 8.2L18.4 10h-5.2l.1-7.2Z", "stroke": "currentColor", "strokeWidth": 1.8, "strokeLinejoin": "round" },
+    { "kind": "path", "d": "m8.1 16.9-2.2 1.5m10-12.8 2.2-1.5", "stroke": "accent", "strokeWidth": 1.8, "strokeLinecap": "round" }
+   ]
+  },
+  {
+   "id": "results",
+   "name": "Results",
+   "component": "MyThusoResultsIcon",
+   "meaning": "Results: a lab order, a reading that has been reviewed, an answer that has come back.",
+   "neverBeside": ["FlaskConical", "FlaskRound", "TestTube", "TestTubes", "TestTubeDiagonal", "Beaker", "Microscope", "ClipboardList"],
+   "elements": [
+    { "kind": "path", "d": "M8 3.5h8v5.2l3.2 7.1a3.2 3.2 0 0 1-2.9 4.5H7.7a3.2 3.2 0 0 1-2.9-4.5L8 8.7V3.5Z", "stroke": "currentColor", "strokeWidth": 1.8, "strokeLinejoin": "round" },
+    { "kind": "path", "d": "M7.1 14.2h9.8", "stroke": "currentColor", "strokeWidth": 1.8 },
+    { "kind": "path", "d": "M9.2 17.1h5.6", "stroke": "accent", "strokeWidth": 2, "strokeLinecap": "round" }
+   ]
+  },
+  {
+   "id": "medication",
+   "name": "Medication",
+   "component": "MyThusoMedicationIcon",
+   "meaning": "Medicines: a prescription, a repeat, a dispensing on its way.",
+   "neverBeside": ["Pill", "PillBottle", "Syringe", "Tablets", "Capsule"],
+   "elements": [
+    { "kind": "path", "d": "m5.4 11.2 5.8-5.8a4.3 4.3 0 0 1 6.1 6.1l-5.8 5.8a4.3 4.3 0 1 1-6.1-6.1Z", "stroke": "currentColor", "strokeWidth": 1.8 },
+    { "kind": "path", "d": "m8.3 8.3 7.4 7.4", "stroke": "currentColor", "strokeWidth": 1.8 },
+    { "kind": "path", "d": "m6.4 14.8 2.8 2.8", "stroke": "accent", "strokeWidth": 2, "strokeLinecap": "round" }
+   ]
+  },
+  {
+   "id": "mind",
+   "name": "Mind",
+   "component": "MyThusoMindIcon",
+   "meaning": "Mind and wellbeing: Live well, a check-in, the crisis lines.",
+   "neverBeside": ["Brain", "BrainCircuit", "BrainCog", "Smile", "Sparkles"],
+   "elements": [
+    { "kind": "path", "d": "M9.2 19.4H8a3 3 0 0 1-2.7-4.3A3.6 3.6 0 0 1 6.6 8.6a4.2 4.2 0 0 1 8-1.3 3.6 3.6 0 0 1 2.8 6.5 3.2 3.2 0 0 1-2.9 5.6h-1.2", "stroke": "currentColor", "strokeWidth": 1.8, "strokeLinecap": "round" },
+    { "kind": "path", "d": "M9 13.2c1.5 1.5 4.5 1.5 6 0M12 10.8v9.3", "stroke": "accent", "strokeWidth": 1.8, "strokeLinecap": "round" }
+   ]
+  },
+  {
+   "id": "messages",
+   "name": "Messages",
+   "component": "MyThusoMessagesIcon",
+   "meaning": "Messages: the thread with a nurse, a note for the visit, a reply waiting.",
+   "neverBeside": ["MessageSquare", "MessageCircle", "MessagesSquare", "MessageSquareText", "MessageSquareMore", "MessageCircleMore", "Mail", "Inbox", "Send"],
+   "elements": [
+    { "kind": "path", "d": "M4 6.2A2.2 2.2 0 0 1 6.2 4h11.6A2.2 2.2 0 0 1 20 6.2v8.1a2.2 2.2 0 0 1-2.2 2.2H11l-4.5 3v-3h-.3A2.2 2.2 0 0 1 4 14.3V6.2Z", "stroke": "currentColor", "strokeWidth": 1.8, "strokeLinejoin": "round" },
+    { "kind": "path", "d": "M8 9.2h8M8 12.5h5", "stroke": "accent", "strokeWidth": 1.8, "strokeLinecap": "round" }
+   ]
+  },
+  {
+   "id": "family",
+   "name": "Family",
+   "component": "MyThusoFamilyIcon",
+   "meaning": "Family: the household, the people a patient cares for and who care for them.",
+   "neverBeside": ["Users", "UsersRound", "UserRound", "User", "Baby", "PersonStanding", "Contact"],
+   "elements": [
+    { "kind": "circle", "cx": 9, "cy": 8, "r": 3, "stroke": "currentColor", "strokeWidth": 1.8 },
+    { "kind": "circle", "cx": 16.5, "cy": 9.5, "r": 2.3, "stroke": "currentColor", "strokeWidth": 1.8 },
+    { "kind": "path", "d": "M3.8 19c.5-3.3 2.3-5.1 5.2-5.1s4.7 1.8 5.2 5.1m-.8-3.4c.8-1.1 1.8-1.6 3.1-1.6 2.1 0 3.4 1.4 3.7 4", "stroke": "currentColor", "strokeWidth": 1.8, "strokeLinecap": "round" },
+    { "kind": "path", "d": "M7.2 8h3.6", "stroke": "accent", "strokeWidth": 1.6, "strokeLinecap": "round" }
+   ]
+  },
+  {
+   "id": "settings",
+   "name": "Settings",
+   "component": "MyThusoSettingsIcon",
+   "meaning": "The patient's own settings destination: privacy, access and preferences. The handoff drew it as a member of the family, so it is one; a gear inside a screen that is merely a utility control stays Lucide.",
+   "neverBeside": ["Settings", "Settings2", "Cog", "SlidersHorizontal", "SlidersVertical", "Wrench"],
+   "elements": [
+    { "kind": "path", "d": "M12 4.2 13.4 3l2.2 1.3.4 1.8 1.8.7 1.4-1 1.8 1.8-1 1.5.7 1.7 1.8.4v2.6l-1.8.4-.7 1.7 1 1.5-1.8 1.8-1.4-1-1.8.7-.4 1.8h-2.6l-.4-1.8-1.8-.7-1.4 1-1.8-1.8 1-1.5-.7-1.7-1.8-.4v-2.6l1.8-.4.7-1.7-1-1.5 1.8-1.8 1.4 1 1.8-.7.4-1.8H12Z", "stroke": "currentColor", "strokeWidth": 1.4, "strokeLinejoin": "round" },
+    { "kind": "circle", "cx": 12, "cy": 12, "r": 3, "stroke": "accent", "strokeWidth": 1.8 }
+   ]
+  }
+ ]
+}
