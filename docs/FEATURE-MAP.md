@@ -2333,3 +2333,28 @@ The founder's ask of 28–29 September 2026: one complaint wired end to end so t
 | **Journey** — `tests/case-pathway.spec.ts` on both viewports: the demo script exactly, in one tab; and a stomach intake that offers no case | Stubs speech; asserts the card carries no finding, no pattern and no pathway name; the plan read back carries neither the assessment nor the diagnosis | `tests/case-pathway.spec.ts`, `tests/symptom-intake.spec.ts` |
 
 **Open.** The routes are proposed, not bound on the engine runtime: an engine store may hold references only, and a case's answers and readings are Passport entries the engine would read through the gateway — a day's work that was not started. Three emergency features (a stiff neck, confusion, weakness on one side) are not in `gilbert-emergency-terms.json`; adding them is a versioned change with a clinical reviewer. No clinician has reviewed the derived questions or the pathway (review pack F4). The phones render no case. The nurse's kit reading is a pair she types off a fictional instrument, not a paired capture.
+
+## Delivered — the full Lovable export preserved, and the provenance of waves 1–6, 29 September 2026 (docs and storage only)
+
+Two Lovable exports exist. Waves 1–6 (2a, 2b, 3a, 3b, 4a–4e, 5a, 5b and the closing CI document) were built
+from `designs/mythuso-claude-handoff.zip` — 35 files, downloaded 28 September 18:56 — whose extracted copy
+and manifest live at `packages/brand/lovable-handoff/`. A second, larger export,
+`mythuso-full-project.zip` — 203 files, 3,702,477 bytes uncompressed, internal stamp 2026-09-29 11:59,
+downloaded 29 September 12:07:41 — arrived after commit `61310305` (10:57:15 +0200) and after the deploy
+whose bundle carries `Last-Modified: Tue, 29 Sep 2026 08:58:09 GMT`, so no session could have built from
+it. It carries what the first did not: 68 role routes (patient 30, nurse 19, doctor 15, partner 4), 17
+showcase screens totalling 2,651 lines, the `ai-elements` set, a Radix-backed `ui/` kit,
+`.lovable/design-system.json` and `.lovable/system.md` (the Careline design language). Its `theme.css` is
+byte-identical to the first export's (SHA-256 prefix `9ecaa125efa3bc61258c`), so the tokens waves 1–6
+implemented are the same tokens this export carries; what is new in it is layout and motion, not colour.
+
+| What landed | What it refuses, and what did not move | Where |
+| --- | --- | --- |
+| **The export, in the repository.** `designs/mythuso-full-project.zip` beside the handoff it supersedes, its own SHA-256 in `designs/mythuso-full-project.sha256`, and a 181-entry manifest of every file inside it in the same `hash  path` form as `packages/brand/lovable-handoff/MANIFEST.sha256`, so a future session can prove what it is reading | Nothing is extracted into `apps/`, `packages/` or any build input. The zip is evidence and source material, not a dependency: no build reads it and no screen renders from it. The older zip and its manifest are untouched | `designs/mythuso-full-project.zip`, `designs/mythuso-full-project.sha256`, `designs/mythuso-full-project.MANIFEST.sha256` |
+| **The provenance, written down.** This section, and `docs/ROADMAP.md`'s "the full Lovable export and the phased port, recorded 29 September 2026", which carries the four-phase plan and its gates | The plan is not started here. Phases B–D remain unwritten code by decision, recorded so the next session can pick them up cold | `docs/FEATURE-MAP.md`, `docs/ROADMAP.md` |
+
+**Open.** The export's stack is not this repo's stack — Tailwind 4, TanStack Start, Radix, `motion`,
+`recharts`, `mapbox-gl` and Supabase against a tree that has none of them and deliberately rebuilt the
+component library without Tailwind — so everything after Phase A is a port, and each phase carries the
+gate the roadmap records.
+
