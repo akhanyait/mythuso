@@ -822,6 +822,17 @@ phantom (31% pixel coverage) and was dropped. The rest of Phase B stands, restat
 the product does not yet have — each with a real player and a test — rather than the handoff's keyframe
 names, and record them in `docs/brand/CI.md` chapter 7.
 
+**Full-gate run before the 29 September deploy.** `npm run check` green; full `npm test` 1155 passed,
+1 failed — `[mobile] tests/control-tower-portal.spec.ts:307`, the accessibility floor's sweep on the
+portal's Finance screen counting two animations running with reduced motion asked for. It is not the
+map slice's: that slice touches only the landing entry, and the portal's code is byte-identical
+between the deployed `61310305` and `8e048357`. The test passes 2/2 re-run in isolation on mobile,
+and the identical assertion failed with the identical message in `test-results-w34b/` — artefacts of
+another session's worktree run on a different code state. It is a load-dependent timing flake in the
+portal's Finance sweep, on the portal's side of the motion work, and it does not gate this deploy.
+Native builds were not re-run: no native input changed — no catalog, no generated client, no
+`apps/ios` or `apps/android` file — and no native artefact is published from the shared box.
+
 
 **Phase C — layout reconciliation.** Diff the 68 routes and 17 showcase screens against the 91 features,
 screen by screen, and classify each as *built*, *deviation* or *not built*, working patient → nurse →
