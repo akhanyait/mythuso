@@ -821,30 +821,26 @@
 }
 
 @media (min-width: 1000px) {
+  /* Only the card's position lives here. Its size is decided once, in the .as-panel block near the
+     end of this sheet, and its border and radius in the base .as-panel rule. A second copy of any of
+     them here would be a number in two places, and the later one would win without saying so. */
   .as-panel {
     inset: auto var(--space-24) var(--space-24) auto;
-    width: 400px;
-    /* 640px was chosen while the panel was a greeting and a few chips. A conversation with an emergency
-     answer in it needs the height, and a desktop that has 1100px of it was handing back 460 of them:
-     the head and the composer are fixed, so every pixel refused here came out of the answer. 760 was
-     the second such number and the notice was still cut — 800 is where a 1100px screen gives the
-     notice its 192px back, and a 768px laptop is the case the calc beside it is for. */
-    height: min(800px, calc(100dvh - 2 * var(--space-24)));
-    border-radius: var(--r-card);
   }
   .as-panel::backdrop {
     background: color-mix(in srgb, var(--brand-ink) 14%, transparent);
   }
   /* The card on a laptop had the same sickness as the sheet on a phone, and the same fix, for the same
-    reason: the head and the composer are both fixed, and at 400x760 they were 334 and 259 — so the
-    contract notice that opens the conversation had 167px and was cut mid-sentence at the composer's
-    top edge, exactly as it was on a phone. The cap rises to 800, which costs a 1100px screen nothing
-    and a 768px screen is where it pays for itself; the character comes down beside the descriptor,
-    and the head sheds the 8px of padding that was air. 167 -> 239px, and the notice is whole with
-    47px to spare. The voice disclosure the founder's decision of 18 September fixed under the input
-    takes about that much again, so the card pays from the same two places the sheet does: the
-    character to 100px, which is now one size on every shell, and one type step on the sentences
-    under the box. */
+    reason: the head and the composer are both fixed, so what the conversation is left with depends on
+    what the chrome around it agrees to give up. At the 400x760 card this was written against they were
+    334 and 259, and the contract notice that opens the conversation had 167px — cut mid-sentence at
+    the composer's top edge, exactly as it was on a phone. The card has grown since, and the one place
+    its size is decided is the .as-panel block near the end of this sheet; what stays here is what the
+    chrome gives up, because that is owed at any size. The character comes down beside the descriptor,
+    and the head sheds the 8px of padding that was air. The voice disclosure the founder's decision of
+    18 September fixed under the input takes about as much again, so the card pays from the same two
+    places the sheet does: the character to 100px, which is now one size on every shell, and one type
+    step on the sentences under the box. */
   .as-head .as-rig {
     --rig: 100px;
   }
@@ -1386,15 +1382,10 @@
 
 /* 1. The card on a laptop was 400x800 inside a 1440x1100 window — 300px of height and most of the
       width handed back to a page nobody is reading while this panel is open. It is the founder's
-      ask answered literally: 460 wide, and as tall as the window allows to 1000. Wider also pays
-      twice, because every wrapped paragraph in the composer's footnotes loses a line. The
-      conversation goes from 250px to about 480. */
-@media (min-width: 1000px) {
-  .as-panel {
-    width: min(460px, calc(100vw - 2 * var(--space-24)));
-    height: min(1000px, calc(100dvh - 2 * var(--space-24)));
-  }
-}
+      ask answered literally, and wider pays twice, because every wrapped paragraph in the composer's
+      footnotes loses a line. The size that answers it is set once, in the .as-panel block near the
+      end of this sheet, and not here: two blocks inside one media query deciding one card's size is
+      how the smaller of them gets read as the truth and quietly is not. */
 
 /* 2. The head's bar. "Pause motion" is a 206px written pill, and beside a 44px close it left the
       titles about 120px on a 390px sheet — so the descriptor, which is a contract sentence and may
@@ -1875,6 +1866,15 @@
 .as-gate-check input {
   accent-color: var(--brand-green);
 }
+/* The one place the card's size on a desktop is decided. Every block above this one that used to set
+   a width or a height for it is gone: three were competing inside one media query, the last was
+   winning, and the first two were read as the truth by anyone who reached them first — which is how
+   the fix that actually landed here spent a session being invisible to the code that explained it.
+   560 wide answers the founder's ask for a card that stops handing the window back to a page nobody
+   is reading while this panel is open. 1020 tall is what a 1100px screen leaves after the 40px of
+   margin, and the calc beside it is the shorter laptop's case. Measured at 1440x1100: the
+   conversation that had 167px at 400x760 and was cut mid-sentence under the composer has 692px, and
+   the emergency notice fits whole. */
 @media (min-width: 1000px) {
   .as-panel {
     width: min(560px, calc(100vw - 48px));
