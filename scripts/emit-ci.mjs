@@ -57,6 +57,7 @@ export const CI_SOURCES = [
  'apps/web/src/shells/shells.css',
  'apps/web/src/features/Landing.tsx',
  'apps/web/package.json',
+ 'packages/brand/lovable-handoff/handoff/src/styles/theme.css',
  'docs/FEATURE-MAP.md',
  'docs/ACCESSIBILITY.md',
  'CLAUDE.md'
@@ -289,6 +290,19 @@ export function emitCi(root = '') {
  }
  const fillPairs = tokens.contrast.pairs.filter(p => /^(light|dark)\./.test(p.foreground) && !surfaces.includes(p.background.split('.')[1]));
 
+ /* The movements, derived from the product's own stylesheets so the record cannot drift from the CSS.
+    Phase B (docs/ROADMAP.md) refused to port the handoff's keyframe names verbatim; this reads what the
+    product actually plays and what the handoff master specified, and reports both by count and by name. */
+ const walkCss = dir => (existsSync(at(dir)) ? readdirSync(at(dir), { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1)).flatMap(e => (e.isDirectory() ? walkCss(join(dir, e.name)) : (/\.css$/.test(e.name) ? [join(dir, e.name)] : []))) : []);
+ const movementFiles = walkCss('apps/web/src').map(f => ({ file: f, names: [...text(f).matchAll(/@keyframes\s+([\w-]+)/g)].map(m => m[1]) })).filter(f => f.names.length > 0).sort((a, b) => (a.file < b.file ? -1 : 1));
+ const productMovements = movementFiles.flatMap(f => f.names);
+ const themeCss = text('packages/brand/lovable-handoff/handoff/src/styles/theme.css');
+ const themeMovements = [...themeCss.matchAll(/@keyframes\s+([\w-]+)/g)].map(m => m[1]);
+ const productNameSet = new Set(productMovements);
+ const sharedMovements = themeMovements.filter(n => productNameSet.has(n));
+ const unportedMovements = themeMovements.filter(n => !productNameSet.has(n));
+ const motionSpecs = walk('tests').filter(f => /(motion|map|patient-pages)\.spec\.ts$/.test(f)).map(f => tick(f));
+
  /* ==== The chapters ============================================================================= */
 
  chapter('who-we-are', '1. Who we are', 'Every surface says what MyThuso is, what GilbertOne is, and that neither is a live service yet — in the same words, because a product that describes itself three different ways has not decided what it is.');
@@ -399,7 +413,11 @@ export function emitCi(root = '') {
  h3('Endless motion, the pause control and reduced motion');
  para(`Nothing on a screen runs for ever except what is explicitly ambient and gated: the signal dot on a live icon, the public page's two loops (its particles and the badge's pulse). Every such animation sits behind ${tick('[data-decor="on"]')} on the document element, so one control — the button labelled ${tick(pauseLabel)} in ${tick('apps/web/src/components/MotionPause.tsx')} — stops all of it, which is what WCAG 2.2.2 asks for. A spinner that spins for as long as a wait lasts is refused outright: the loading arc turns once as it arrives and rests.`);
  para(`${tokens.motion._reducedMotionNote}`);
- para(`Glass: ${tokens.glass.neverOnText} ${tokens.glass.fallbackNote}`);
+ para(`Glass: ${tokens.glass.neverOnText} ${tokens.glass.fallbackNote}`); h3('The movements, named');
+ para(`Chapter 7 logged the motion system's timing and, until this edition, none of its movements — the gap docs/ROADMAP.md's Gap 1 names. It is closed by derivation, not transcription. The handoff master ${tick('packages/brand/lovable-handoff/handoff/src/styles/theme.css')} specifies ${themeMovements.length} named ${tick('@keyframes')}; porting them by name was refused, because the product already speaks the handoff's motion language — one curve, three durations, entrances on ${tick('data-reveal')}, ambient loops gated on ${tick('data-decor')} — and ${unportedMovements.length} orphan keyframes would have been a second motion system wearing the first one's clothes. Only ${sharedMovements.length} of the handoff's names the product carries (${sharedMovements.map(tick).join(' and ')}); the movement it lacked it was given in its own voice, each with a real player on a screen and a test that walks it. ${tick('scripts/check-boundaries.mjs')} refuses a keyframe nothing plays and an endless animation the pause control cannot stop, so no movement below is an orphan.`);
+ para(`The product's own stylesheets carry ${productMovements.length} named movements across ${movementFiles.length} files, on the tokens' curve and durations, finite unless one of the ambient loops the pause control stops, and removed — not shortened — under reduced motion. The motion tests (${motionSpecs.join(', ')}) walk them on both viewports.`);
+ table(['Surface', 'Movements it plays'], movementFiles.map(f => [tick(f.file.replace(/^apps\/web\/src\//, '')), f.names.map(tick).join(' ')]));
+
 
  /* ---- 8. Imagery -------------------------------------------------------------------------------- */
  chapter('imagery', '8. Imagery', 'A photograph is illustrative and says so where it stands; no person shown is presented as a patient or as a MyThuso nurse, no quotation is presented as a testimonial, and nothing on the public page weighs more than the page can afford.');

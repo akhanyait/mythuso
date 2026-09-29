@@ -552,6 +552,36 @@ respectReducedMotion is not a suggestion and not a speed setting. Reduced motion
 
 Glass: A glass panel may not sit on top of text. Blur behind a word is the one place translucency stops being decoration and starts being a legibility problem. backdrop-filter is expensive on the mid-range Android handsets this product is actually for. Where it is unsupported — and inside @media (prefers-reduced-transparency: reduce) — glass resolves to the opaque floor colour, which is exactly the colour every contrast figure was measured against. The fallback is not a degradation; it is the measured case.
 
+### The movements, named
+
+Chapter 7 logged the motion system's timing and, until this edition, none of its movements — the gap docs/ROADMAP.md's Gap 1 names. It is closed by derivation, not transcription. The handoff master `packages/brand/lovable-handoff/handoff/src/styles/theme.css` specifies 33 named `@keyframes`; porting them by name was refused, because the product already speaks the handoff's motion language — one curve, three durations, entrances on `data-reveal`, ambient loops gated on `data-decor` — and 31 orphan keyframes would have been a second motion system wearing the first one's clothes. Only 2 of the handoff's names the product carries (`mythuso-signal` and `impact-halo-pulse`); the movement it lacked it was given in its own voice, each with a real player on a screen and a test that walks it. `scripts/check-boundaries.mjs` refuses a keyframe nothing plays and an endless animation the pause control cannot stop, so no movement below is an orphan.
+
+The product's own stylesheets carry 53 named movements across 21 files, on the tokens' curve and durations, finite unless one of the ambient loops the pause control stops, and removed — not shortened — under reduced motion. The motion tests (`tests/chart-motion.spec.ts`, `tests/gilbertone-motion.spec.ts`, `tests/map.spec.ts`, `tests/motion.spec.ts`, `tests/patient-pages.spec.ts`) walk them on both viewports.
+
+| Surface | Movements it plays |
+| --- | --- |
+| `features/assistant-motion.css` | `as-rise` `as-said-in` `as-settle` `as-listening` `as-dot` `go-float` |
+| `features/booking-look.css` | `booking-fill` |
+| `features/care-tips.css` | `ct-card-in` `ct-words-in` |
+| `features/clinical-deck.css` | `c-card-in` |
+| `features/clinical-intelligence.css` | `ci-row-in` |
+| `features/clinical-records.css` | `cr-rail-in` |
+| `features/patient-pages.css` | `pp-in` |
+| `features/portal/design-widgets.css` | `pt-bar-in` |
+| `features/portal/fields.css` | `fc-tick` `fc-saved-odd` `fc-saved-even` `fc-settle-odd` `fc-settle-even` |
+| `features/portal/portal.css` | `cf-arrive` `cf-unfold` `cf-land` `cf-refused` `cf-fill` `pt-ring-in` |
+| `features/public-assistant.css` | `public-assistant-rise` |
+| `landing.css` | `il-travel` `il-breathe` `impact-halo-pulse` `reveal-rise` `service-settle` `ecg-draw` |
+| `surface/care-journey.css` | `care-detail-in` `al-blink` `al-float` |
+| `surface/clinical.css` | `cl-arrive` `cl-queue-in` |
+| `surface/core.css` | `shimmer` |
+| `surface/motion.css` | `rise` `m-arrive` `m-ring-in` |
+| `surface/nurse-identity.css` | `nurse-draw` `nurse-route` `nurse-pin` `nurse-grow` |
+| `surface/patient-identity.css` | `pd-draw` `pd-fade` |
+| `surface/public-revamp.css` | `hero-rise-in` `hero-line-up` `hero-particle-drift` `hero-signal-pulse` |
+| `ui/icons/icons.css` | `mythuso-signal` |
+| `ui/ui.css` | `ui-turn-once` |
+
 ## 8. Imagery
 
 **The rule.** A photograph is illustrative and says so where it stands; no person shown is presented as a patient or as a MyThuso nurse, no quotation is presented as a testimonial, and nothing on the public page weighs more than the page can afford.
