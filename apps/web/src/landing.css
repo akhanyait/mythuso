@@ -949,6 +949,94 @@ html:has(.landing) {
   font-size: 13px;
   line-height: 1.5;
 }
+/* ---- The network's lines, alive, 29 September 2026 ----
+   The master above is a picture, so its routes cannot move; the overlay in the markup draws over
+   them from the master's own measured pixels. Three disciplines, the same three this page already
+   keeps. The overlay is a picture over a picture: aria-hidden, pointer-events none, and it says
+   nothing about coverage — the words beside the map carry that, exactly as before. It wakes once,
+   as its own section arrives, and then stands still: this page's ambient budget is two loops and
+   both belong to the hero (scripts/check-boundaries.mjs, wave 3a, and tests/motion.spec.ts behind
+   it), so nothing here runs forever — the light travels each route a single time in turn, the
+   halos breathe twice and settle, and the ground glow arrives and stays as a still wash. And only
+   the composited three move — stroke-dashoffset, transform, opacity — so no box anywhere changes
+   while a thumb is travelling towards a button; the plate itself never moves at all. */
+.landing-impact-stage {
+  position: relative;
+}
+.landing-impact-stage::before {
+  content: "";
+  position: absolute;
+  inset: 6%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--color-accent) 20%, transparent),
+    transparent 72%
+  );
+  opacity: 0;
+  pointer-events: none;
+}
+.landing-impact-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.il-route {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 9 91;
+  stroke-dashoffset: 100;
+  opacity: 0;
+}
+.il-node {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 2;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+[data-motion="on"] .landing-impact-map[data-reveal="shown"] .landing-impact-stage::before {
+  animation: impact-halo-pulse calc(var(--t-enter) * 3) var(--ease-soft) both;
+}
+/* Timed against the walk: tests/motion.spec.ts releases every entrance on the way to the foot of the
+   page and then allows motion.enterMs * 7 for it all to stop, so the longest route here — a 2.1s
+   journey plus the last stagger, about 2.9s in total — has to land inside that. It does, with room,
+   and the numbers below are that budget rather than taste. */
+[data-motion="on"] .landing-impact-map[data-reveal="shown"] .il-route {
+  animation: il-travel calc(var(--t-enter) * 3) linear both;
+  animation-delay: calc(var(--t-quick) * 0.55 * var(--il-i));
+}
+[data-motion="on"] .landing-impact-map[data-reveal="shown"] .il-node {
+  animation: il-breathe calc(var(--t-enter) * 1.5) var(--ease-soft) 2 both;
+  animation-delay: calc(var(--t-quick) * 0.5 * var(--il-i));
+}
+/* One light per route, once around: with pathLength 100 and a dash of 9 in a period of 100, walking
+   the offset through one full period carries the single dash from the route's start to its end, and
+   the opacity gates hide it while it stands at either end. It runs once, staggered route by route,
+   so the country lights up in turn and then rests on the master's own still lines. */
+@keyframes il-travel {
+  0% { stroke-dashoffset: 100; opacity: 0; }
+  8% { opacity: 0.8; }
+  46% { opacity: 0.8; }
+  54% { stroke-dashoffset: 0; opacity: 0; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes il-breathe {
+  0% { transform: scale(0.3); opacity: 0.75; }
+  70% { transform: scale(1.15); opacity: 0; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+/* The ground glow arrives with the section and stays: a still wash, not a loop. */
+@keyframes impact-halo-pulse {
+  0% { opacity: 0; transform: scale(0.94); }
+  100% { opacity: 0.4; transform: scale(1); }
+}
 
 /* ---- Questions, and GilbertOne ---- */
 .landing-guide {

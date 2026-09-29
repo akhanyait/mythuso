@@ -805,6 +805,23 @@ Smallest phase, most visible, and it touches no contract and no refusal. **Gate:
 budget, **282.16 kB**, measured the same way — animation CSS is not free, and a rise is a founder decision
 rather than a tidy-up.
 
+**Phase B, first slice delivered — the map's lines, 29 September 2026.** The verbatim port above is the
+wrong shape, and the first attempt at it proved why. `scripts/check-boundaries.mjs` refuses a keyframe
+nothing plays, refuses an endless animation the pause control cannot stop, and — wave 3a — holds the
+landing page's ambient budget at exactly two loops, `hero-particle-drift` and `hero-signal-pulse`, with
+`tests/motion.spec.ts` walking the page to its foot to catch a third. The product already speaks the
+handoff's motion language (one curve, three durations, entrances on `data-reveal`, ambient loops gated
+on `data-decor`), so 32 orphan keyframes would have been a second motion system wearing the first one's
+clothes. What was genuinely missing was the impact map: a brand master whose routes are pixels and
+therefore cannot move. It now carries an overlay measured from the master itself — seven node centres
+and ten cubic routes least-squares-fitted against `south-africa-network-640.webp`'s own pixels, every
+route within about a pixel of the line the picture drew — and a light travels each route once, in turn,
+as the section arrives, then rests: finite, reveal-gated, composited properties only, inside the walk
+test's `motion.enterMs × 7` window. An eleventh route the first trace believed in turned out to be a
+phantom (31% pixel coverage) and was dropped. The rest of Phase B stands, restated: port the movements
+the product does not yet have — each with a real player and a test — rather than the handoff's keyframe
+names, and record them in `docs/brand/CI.md` chapter 7.
+
 
 **Phase C — layout reconciliation.** Diff the 68 routes and 17 showcase screens against the 91 features,
 screen by screen, and classify each as *built*, *deviation* or *not built*, working patient → nurse →

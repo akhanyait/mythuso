@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
 import { ThemeToggle } from '../components/ThemeToggle';
 import {
   Apple,
@@ -144,6 +144,37 @@ const nurseRole = roleById("nurse")!;
    described in adjectives. If a check is added to the contract it appears here; if one is removed,
    the page stops claiming it. */
 const nurseChecks = nurseRole.checks;
+
+/* The impact map's network, measured rather than drawn. The brand master is a picture: its seven
+   nodes and ten routes are pixels, so an overlay that makes them move has to sit on exactly the
+   same geometry or it reads as a second, wrong map beside the first. These are the master's own
+   coordinates — node centres, and cubic control points least-squares-fitted against the pixels of
+   south-africa-network-640.webp in that file's 640 by 480 frame, every route lying within about a
+   pixel of the line the picture drew — so the light travels the routes the picture already drew and
+   the halos breathe on the nodes the picture already lit. The names are the provinces the nodes
+   stand in; they label nothing on the page, they only keep the list readable, and the map still
+   says nothing about coverage that the words beside it do not say. */
+const impactNodes = [
+  { id: "limpopo", x: 448, y: 86 },
+  { id: "gauteng", x: 331, y: 183 },
+  { id: "kwa-zulu", x: 510, y: 221 },
+  { id: "northern-cape", x: 174, y: 257 },
+  { id: "free-state", x: 278, y: 312 },
+  { id: "eastern-cape", x: 426, y: 340 },
+  { id: "western-cape", x: 152, y: 402 },
+] as const;
+const impactRoutes = [
+  "M448 86 C398 102 372 156 331 183",
+  "M448 86 C444 142 514 166 510 221",
+  "M331 183 C386 212 459 178 510 221",
+  "M331 183 C275 197 230 245 174 257",
+  "M331 183 C335 234 294 270 278 312",
+  "M174 257 C213 262 252 283 278 312",
+  "M278 312 C325 333 376 332 426 340",
+  "M278 312 C227 329 190 365 152 402",
+  "M426 340 C436 290 462 244 510 221",
+  "M152 402 C247 404 338 373 426 340",
+] as const;
 const renewal = (months: number | null) =>
   months === null ? "At onboarding" : `Every ${months} months`;
 
@@ -987,16 +1018,51 @@ export function Landing() {
           </ol>
         </div>
         <figure className="landing-impact-map" data-reveal>
-          <img
-            src="/lovable/south-africa-network-640.webp"
-            srcSet="/lovable/south-africa-network-640.webp 640w, /lovable/south-africa-network-1024.webp 1024w"
-            sizes="(min-width: 860px) 560px, 92vw"
-            alt=""
-            width="1024"
-            height="768"
-            loading="lazy"
-            decoding="async"
-          />
+          <div className="landing-impact-stage">
+            <img
+              src="/lovable/south-africa-network-640.webp"
+              srcSet="/lovable/south-africa-network-640.webp 640w, /lovable/south-africa-network-1024.webp 1024w"
+              sizes="(min-width: 860px) 560px, 92vw"
+              alt=""
+              width="1024"
+              height="768"
+              loading="lazy"
+              decoding="async"
+            />
+            {/* The network's lines, alive. The master's routes are pixels and cannot move, so what
+              moves is drawn over them from the master's own measured geometry: a light travelling
+              each route once in turn, and a halo breathing twice at each node, as this section
+              arrives — and then nothing, because this page's ambient budget is the hero's two loops
+              and no third. aria-hidden and pointer-events none: a picture over a picture that says
+              nothing about coverage. Under reduced motion the page's own removal takes all of it
+              away and the master stands still, which is the whole map anyway. */}
+            <svg
+              className="landing-impact-lines"
+              viewBox="0 0 640 480"
+              aria-hidden="true"
+              focusable="false"
+            >
+              {impactRoutes.map((d, i) => (
+                <path
+                  key={d}
+                  className="il-route"
+                  d={d}
+                  pathLength={100}
+                  style={{ "--il-i": i } as CSSProperties}
+                />
+              ))}
+              {impactNodes.map((n, i) => (
+                <circle
+                  key={n.id}
+                  className="il-node"
+                  cx={n.x}
+                  cy={n.y}
+                  r={14}
+                  style={{ "--il-i": i } as CSSProperties}
+                />
+              ))}
+            </svg>
+          </div>
           <figcaption>{stage.impact.mapNote}</figcaption>
         </figure>
       </section>
