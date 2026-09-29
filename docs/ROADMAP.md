@@ -862,9 +862,38 @@ inherit the `screening` capability's block: *no model, no vendor, no licence.*
   actions, and motion short, purposeful and disabled under a reduced-motion preference.
 - GilbertOne's look and feel is settled, and a newer export does not reopen it.
 
-### Not started
+### Phases C, D and B delivered — 29 September 2026
 
-No build was started this session. The working tree was clean at `61310305` and the only change made is
-this section. Phases A–D are each a session's work and Phase D is several. The export is currently
-extracted at `/tmp/lov/mythuso-export`, which is not durable — Phase A exists to fix that.
+Phase C was written into `docs/design-review/LOVABLE-EXPORT-RECONCILIATION.md`: the 68 role routes and 17
+showcase screens classified screen by screen against the 91 features, patient → nurse → doctor → partner,
+confirming the eight patient **not built** rows by finding rather than by count.
+
+Phase D built them. `packages/catalog/patient-pages.json` carries the hub's and eight screens' every word,
+the shared aside and seven derivations; `scripts/emit-patient-pages.mjs` writes the router's two strings per
+page and the words as data for both phones; `apps/web/src/features/PatientPages.tsx` over
+`apps/web/src/lib/patient-pages.ts` renders them behind one `lazy(() => import(...))` in `App.tsx`; the More
+hub's first group gains the "Your health" row and `?open=your-health` is the door everywhere. A new
+patient-pages block in `scripts/check-boundaries.mjs` holds the review gate, the eight screens and hub
+shortcuts, no invented digit but the emergency numbers, the derivations, no typed sentence, no restated
+emergency number, the single dynamic import and the motion rules; `tests/patient-pages.spec.ts` walks eight
+journeys on both viewports, 16/16 green. `symptom-checker` and `risk-assessment` inherit `screening`'s block
+and the checker escalates through `packages/gilbertone`'s intake without diagnosing. No screen shows a number
+the contracts do not hold, and the review notice sits beside every screen until a clinician signs
+(`review.status: awaiting-clinical-review`). The patient entry measured **253.06 kB** gzip -9 across the 15
+files `apps/web/dist/index.html` references — below the 282.16 kB gate, because the entry carries only the
+generated route file and the screens, the contract and the six knowledge JSONs all ride the dynamic import.
+
+Phase B's restated deliverable landed with it. The 32 handoff keyframe names were **not** ported verbatim —
+that would be the second motion system the first slice refused. Instead `docs/brand/CI.md` chapter 7 now
+records "The movements, named": the product's 53 named movements across 21 stylesheets, derived from the CSS
+by `scripts/emit-ci.mjs` so the record cannot drift, beside the handoff master's 33 names and why they were
+left. Phase D's own movement, the cards' `pp-in` entrance, is finite, reveal-gated, transform and opacity
+only, removed under reduced motion and walked by a test; the impact-map slice of 29 September stands.
+
+Verified this session: `npm run check` green and `scripts/check-boundaries.mjs` green including the new
+blocks; the full Playwright suite 1167 passed with 5 failures — `configuration.spec.ts:99` (desktop and
+mobile) and `control-tower-portal.spec.ts:142` (desktop) reproduce at HEAD with none of this work stashed
+away, and `access-settings.spec.ts:85` and `assistant.spec.ts:1604` pass in isolation, so none is a
+regression. No native input changed, so no native build was re-run and nothing is deployed: the standing
+rule holds that a deploy is its own explicitly approved step.
 
