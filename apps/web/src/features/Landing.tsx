@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { ThemeToggle } from '../components/ThemeToggle';
 import {
   Apple,
   ArrowRight,
@@ -533,6 +534,7 @@ export function Landing() {
           ))}
         </nav>
         <MotionPause className="landing-nav-pause" />
+        <ThemeToggle className="landing-nav-theme" />
         <button
           className="primary landing-cta"
           type="button"

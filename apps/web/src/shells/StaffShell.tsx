@@ -1,4 +1,5 @@
 import { ClinicalWorkbench } from '../features/ClinicalWorkbench';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { Wordmark } from '../components/Wordmark';
 import framing from '../../../../packages/catalog/framing.json' with { type: 'json' };
 import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react';
@@ -243,6 +244,7 @@ export default function StaffWorkspace({ role, audience, legacy = false }: { rol
     </div>
     <div className="breadcrumb">{role}<span>/</span><strong>{section}</strong></div>
     <div className="topbar-actions">
+     <ThemeToggle className="topbar-theme"/>
      <button className="icon-button" aria-label="Leave this workspace" onClick={leave}><LogOut size={19}/></button>
     </div>
    </header>

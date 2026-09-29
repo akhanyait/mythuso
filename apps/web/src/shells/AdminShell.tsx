@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { Wordmark } from '../components/Wordmark';
 import { Activity, ArrowRight, BarChart3, BookOpen, Landmark, LayoutGrid, LogOut, Radar, ScrollText, ShieldAlert, ShieldCheck, SlidersHorizontal, TrendingUp } from 'lucide-react';
 import { Modal } from '../components/UI';
@@ -91,6 +92,7 @@ export default function AdminWorkspace({ audience, legacy = false }: { audience:
     <div className="staff-who">{who}</div>
     <div className="breadcrumb">Back office<span>/</span><strong>{tab}</strong></div>
     <div className="topbar-actions">
+     <ThemeToggle className="topbar-theme"/>
      <button className="icon-button" aria-label="Leave the console" onClick={leave}><LogOut size={19}/></button>
     </div>
    </header>

@@ -319,7 +319,7 @@ html:has(.landing) {
   width: 48px;
 }
 /* The page's one pause control, in the bar. Its words go on a narrow screen and stay its name. */
-.landing-nav .landing-nav-pause {
+.landing-nav :is(.landing-nav-pause, .landing-nav-theme) {
   margin-left: auto;
   padding: 0 var(--space-12);
   border-color: var(--color-border);
@@ -327,10 +327,10 @@ html:has(.landing) {
   background: var(--color-surface);
   color: var(--color-foreground);
 }
-.landing-nav .landing-nav-pause:hover {
+.landing-nav :is(.landing-nav-pause, .landing-nav-theme):hover {
   background: var(--color-muted);
 }
-.landing-nav .landing-nav-pause + .landing-cta {
+.landing-nav :is(.landing-nav-pause, .landing-nav-theme) + .landing-cta {
   margin-left: 0;
 }
 
@@ -1259,7 +1259,7 @@ html:has(.landing) {
   }
 }
 @media (max-width: 720px) {
-  .landing-nav .landing-nav-pause span {
+  .landing-nav :is(.landing-nav-pause, .landing-nav-theme) span {
     position: absolute;
     width: 1px;
     height: 1px;

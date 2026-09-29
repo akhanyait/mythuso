@@ -36386,11 +36386,14 @@ console.log(
   const css = read("apps/web/src/tokens.generated.css");
   const swift = read("apps/ios/MyThuso/DesignSystem/Tokens.swift");
   const kotlin = read("apps/android/app/src/main/java/za/co/mythuso/ui/Tokens.kt");
-  const mediaAt = css.indexOf('@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){');
+  /* Since 29 September 2026 the dark values live only under :root[data-theme="dark"]: light is the
+     default whatever the OS says, and dark is a switch a person turns on (founder's decision after
+     seeing the product dark under a dark scheme). A prefers-color-scheme block here would hand that
+     decision back to the OS. */
   const forcedAt = css.indexOf(':root[data-theme="dark"]{');
-  if (mediaAt < 0 || forcedAt < mediaAt)
-    g4("tokens.generated.css no longer carries the dark values under prefers-color-scheme: dark guarded by data-theme=\"light\", followed by :root[data-theme=\"dark\"].");
-  const cssRoot = css.slice(0, mediaAt), cssMedia = css.slice(mediaAt, forcedAt), cssForced = css.slice(forcedAt);
+  if (css.includes("prefers-color-scheme") || forcedAt < 0)
+    g4("tokens.generated.css must carry the dark values under :root[data-theme=\"dark\"] alone — no prefers-color-scheme block: light is the default and dark is the person's switch (29 September 2026).");
+  const cssRoot = css.slice(0, forcedAt), cssForced = css.slice(forcedAt);
   const between = (text, open, close) => {
     const from = text.indexOf(open);
     if (from < 0) g4(`${open.trim()} is missing from a generated file.`);
@@ -36406,9 +36409,9 @@ console.log(
     for (const role of roles) {
       const { hex } = tokens.semantic[mode][role];
       const declaration = ` --color-${toKebab(role)}:${hex};`;
-      for (const [where, text] of mode === "light" ? [[":root", cssRoot]] : [["the prefers-color-scheme block", cssMedia], ["the :root[data-theme=\"dark\"] block", cssForced]])
+      for (const [where, text] of mode === "light" ? [[":root", cssRoot]] : [["the :root[data-theme=\"dark\"] block", cssForced]])
         if (!text.includes(declaration)) g4(`tokens.generated.css does not carry${declaration} in ${where}.`);
-      if (mode === "light" && (cssMedia.includes(declaration) || cssForced.includes(declaration)) && hex !== tokens.semantic.dark[role].hex)
+      if (mode === "light" && cssForced.includes(declaration) && hex !== tokens.semantic.dark[role].hex)
         g4(`tokens.generated.css carries the light ${role} inside a dark block.`);
       if (!new RegExp(`static let ${role} = Color\\(red: [\\d.]+, green: [\\d.]+, blue: [\\d.]+\\)\\s+// ${hex}\\b`).test(swiftMode))
         g4(`Tokens.swift's ThusoSemantic.${Mode}.${role} does not carry ${hex}.`);
@@ -36733,9 +36736,9 @@ console.log(
     return Object.fromEntries([...body.matchAll(/(--ui-[\w-]+)\s*:\s*var\((--[\w-]+)\)/g)].map((m) => [m[1], m[2]]));
   };
   const aliases = { light: blockOf(':root, [data-theme="light"] {'), dark: blockOf('[data-theme="dark"] {') };
-  const mediaDark = blockOf(':root:not([data-theme="light"]) {');
-  for (const [name, value] of Object.entries(aliases.dark))
-    if (mediaDark[name] !== value) uiFail(`${uiSheet}'s prefers-color-scheme block says ${name} is ${mediaDark[name]}; its [data-theme="dark"] block says ${value}.`);
+  /* 29 September 2026: dark is the person's switch, never the OS's, so the sheet carries no
+     prefers-color-scheme block at all — the [data-theme="dark"] block is the only dark one. */
+  if (uiCss.includes("prefers-color-scheme")) uiFail(`${uiSheet} carries a prefers-color-scheme block; dark is only ever [data-theme="dark"], the switch a person turns on.`);
   const resolve = (variable, theme, seen = 0) => {
     if (seen > 4) uiFail(`${variable} resolves in a circle.`);
     if (roleOfVar[variable]) return { hex: uiTokens.semantic[theme][roleOfVar[variable]].hex, role: roleOfVar[variable] };

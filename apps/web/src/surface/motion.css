@@ -115,7 +115,9 @@
    and saying which of the two states pressing it produces. It is rendered only where decorative
    motion exists, and not at all to a reader who has asked their system for less motion — there is
    nothing to pause, and a disabled button that explains an absence is worse than the absence. */
-.m-pause {
+/* The theme switch (components/ThemeToggle.tsx) wears the same face as the pause control, under its own
+   class so a count of pause controls stays a count of pause controls. */
+.m-pause, .m-theme {
  display: inline-flex;
  align-items: center;
  gap: 8px;
@@ -131,9 +133,9 @@
  cursor: pointer;
  transition: background-color var(--t-quick) var(--ease-soft), border-color var(--t-quick) var(--ease-soft);
 }
-.m-pause:hover { background: var(--color-muted); }
-.m-pause:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus), 0 0 0 6px var(--focus-edge); }
-.m-pause svg { flex-shrink: 0; }
+.m-pause:hover, .m-theme:hover { background: var(--color-muted); }
+.m-pause:focus-visible, .m-theme:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus), 0 0 0 6px var(--focus-edge); }
+.m-pause svg, .m-theme svg { flex-shrink: 0; }
 .m-pause span { white-space: nowrap; }
 /* The label stays on a phone. It was hidden below 600px and the control became two grey bars in a
    circle, which is a glyph a reader has to already know — and "Pause motion" is 139px at the

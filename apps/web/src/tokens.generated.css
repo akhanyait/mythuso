@@ -109,27 +109,6 @@
  --t-settle:280ms;
  --t-enter:420ms;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
- --color-background:#00121c;
- --color-foreground:#e3edf0;
- --color-surface:#041c29;
- --color-surface-raised:#092635;
- --color-primary:#189870;
- --color-primary-foreground:#00121c;
- --color-accent:#25c99a;
- --color-accent-foreground:#00121c;
- --color-muted:#182e3a;
- --color-muted-foreground:#93a9b0;
- --color-success:#25c99a;
- --color-warning:#d8f818;
- --color-danger:#ff7b48;
- --color-info:#25c99a;
- --color-highlight:#d8f818;
- --color-coral:#ff7b48;
- --color-border:#243b47;
- --color-input:#28414e;
- --color-ring:#25c99a;
-}}
 :root[data-theme="dark"]{
  --color-background:#00121c;
  --color-foreground:#e3edf0;

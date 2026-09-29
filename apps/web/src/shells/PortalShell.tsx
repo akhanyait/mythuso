@@ -1,4 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState, type ComponentType } from 'react';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { Wordmark } from '../components/Wordmark';
 import { BarChart3, BookOpen, Cpu, FileClock, Info, KeyRound, Landmark, LogOut, ScrollText, ShieldAlert, ShieldCheck, TrendingUp } from 'lucide-react';
 import { AssistantLauncher } from '../components/AssistantLauncher';
@@ -220,6 +221,7 @@ function PortalShell({ audience }: { audience: RoleId }) {
      <div className="breadcrumb"><span className="pt-name">{portalContract.name}</span><span>/</span>{category.label}<span>/</span><strong>{headingOf(tab)}</strong></div>
      <div className="topbar-actions">
       <MotionPause className="pt-pause"/>
+      <ThemeToggle className="pt-pause"/>
       {/* The same door on a phone, where the sidebar's foot is not drawn. */}
       <IconButton variant="ghost" label="Founder sign-in · 2FA" onClick={founderDoor}><KeyRound aria-hidden="true"/></IconButton>
       <IconButton variant="ghost" label="Leave the Control Tower" onClick={leave}><LogOut aria-hidden="true"/></IconButton>

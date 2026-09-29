@@ -49,8 +49,10 @@ export function emitTokens(root = '') {
     and a dark value, rather than a fourth run of flat names. They reach the web as --color-<role>,
     the name the handoff's own @theme block gives them, so they do not overwrite the three
     current-generation names they share a word with (surface, danger, info) on a screen that still
-    reads those. The dark values are emitted under prefers-color-scheme: dark, guarded so a
-    data-theme="light" on :root wins, and again under :root[data-theme="dark"]; no screen reads them
+    reads those. The dark values are emitted only under :root[data-theme="dark"]: on 29 September 2026
+    the founder saw the product dark under a dark OS scheme and decided light is the default and dark
+    an option a person switches on (components/ThemeToggle.tsx). No prefers-color-scheme block, so the
+    OS never decides.
     yet, which is the point — the variables exist before any screen is restyled for them. */
  const semantic = tokens.semantic;
  const roles = semantic.names;
@@ -91,7 +93,6 @@ export function emitTokens(root = '') {
   + ` --t-settle:${tokens.motion.settleMs}ms;\n`
   + ` --t-enter:${tokens.motion.enterMs}ms;\n`
   + '}\n'
-  + '@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){\n' + semanticCss('dark') + '\n}}\n'
   + ':root[data-theme="dark"]{\n' + semanticCss('dark') + '\n}\n';
 
  /* ---- iOS ------------------------------------------------------------------------------------

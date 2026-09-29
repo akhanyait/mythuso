@@ -1,4 +1,5 @@
 import { useLayoutEffect, type CSSProperties, type ReactNode } from 'react';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { Wordmark } from '../components/Wordmark';
 import { Ambulance, ArrowRight, Bell, ChevronDown, CircleHelp, Compass, CreditCard, Ellipsis, Globe, Languages, MapPin, Repeat } from 'lucide-react';
 /* The shared component and the icon family, imported from their own modules rather than the barrel so
@@ -142,6 +143,7 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
     <a className="brand" href="#" onClick={e => { e.preventDefault(); navigate('Overview'); }}><img src="/brand/mythuso-mark.svg" alt="MyThuso"/></a>
     <div className="breadcrumb">{t('shell.breadcrumb')}<span>/</span><strong>{t(`nav.${page}`)}</strong></div>
     <div className="topbar-actions">
+     <ThemeToggle className="topbar-theme"/>
      <button className="location-button" onClick={() => open('Your location')}><MapPin size={16}/><span>{location}</span><ChevronDown size={13}/></button>
      <span className="topbar-divider"/>
      <button className="icon-button notification-button" aria-label="Notifications" onClick={() => open('Notifications')}><Bell size={19}/><i/></button>

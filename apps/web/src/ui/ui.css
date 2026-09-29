@@ -44,15 +44,6 @@
  /* tokens.json#targets.minimum: a control smaller than a fingertip is a control somebody misses. */
  --ui-target: 44px;
 }
-@media (prefers-color-scheme: dark) {
- :root:not([data-theme="light"]) {
-  --ui-danger-ink: var(--color-danger);
-  --ui-warning-ink: var(--color-warning);
-  --ui-success-ink: var(--color-success);
-  --ui-primary-ink: var(--color-accent);
-  --ui-press-mix: var(--color-foreground);
- }
-}
 [data-theme="dark"] {
  --ui-danger-ink: var(--color-danger);
  --ui-warning-ink: var(--color-warning);
