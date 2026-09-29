@@ -680,3 +680,163 @@ extended-scope capture (`5bb98742`) and this gating analysis.
 
 **Recommendation**: option 1 (add `.prettierrc`). It's a small, safe change that prevents the issue going forward, and it makes the code style explicit rather than implicit. The observed code style is: single quotes, no trailing commas in function params, single-space indentation, semicolons, print width ~120.
 
+## Founder-requested — the full Lovable export and the phased port, recorded 29 September 2026
+
+The founder asked why the fresh Lovable design does not appear on `mythuso.co.za`. The answer is not a
+cache, a service worker or a missed deploy. **There are two Lovable exports, and only the smaller one was
+ever implemented.**
+
+| | `mythuso-claude-handoff.zip` | `mythuso-full-project.zip` |
+| --- | --- | --- |
+| Root folder | `mythuso-design-system/` | `mythuso-export/` |
+| Files | 35 | 203 |
+| Uncompressed | — | 3,702,477 bytes |
+| Downloaded | 28 September 18:56 | **29 September 12:07:41** |
+| Internal stamp | 2026-09-28 18:54 | **2026-09-29 11:59** |
+| Carries | `theme.css`, 11 components, 2 logos, 2 illustrations, 12 photographs, the guidelines | all of that, plus 68 role routes, 17 showcase screens, the AI-element set, a Radix-backed `ui/` kit, `.lovable/design-system.json` and `.lovable/system.md` |
+| Status | **implemented — FEATURE-MAP waves 1–6, live** | **never opened by any session** |
+
+The ordering is the whole explanation. The last commit is `61310305` at 10:57:15 +0200 and the deployed
+bundle carries `Last-Modified: Tue, 29 Sep 2026 08:58:09 GMT` (10:58 SAST). The full export's internal
+stamp is 11:59 and it landed in `~/Downloads` at 12:07:41 — **an hour after the work was committed and
+deployed.** No earlier session could have built from a file that did not yet exist.
+
+The share link does not close the gap either. `lovable.dev/projects/6f59c904-…` returns a 48 kB
+JavaScript shell whose entire static text is "Lovable · Skip to chat input · Loading…". Reading the
+project needs an authenticated browser session, not a fetch.
+
+One thing was measured and found sound, so it is not re-litigated here: `theme.css` is **byte-identical**
+across both exports (SHA-256 prefix `9ecaa125efa3bc61258c`) and identical to the copy committed at
+`packages/brand/lovable-handoff/handoff/src/styles/theme.css`. The Careline design language really was
+received and really is live. What was never received is the layouts, and what was received but never used
+is the motion.
+
+### Gap 1 — the animations were delivered and never wired in
+
+`theme.css` defines **33 `@keyframes`**. The deployed stylesheet contains **one** of them,
+`mythuso-signal`. The other **32 are absent from production**: `gilbert-blink`, `gilbert-look`,
+`gilbert-turn`, `hero-float`, `hero-pulse`, `hero-drift`, `patient-rise`, `chart-draw`, `chart-reveal`,
+`chart-point-arrive`, `chart-halo-pulse`, `chart-range-arrive`, `status-breathe`, `nurse-route-draw`,
+`nurse-pin-arrive`, `nurse-location-pulse`, `nurse-orbit`, `nurse-readiness`, `nurse-bar-rise`,
+`nurse-field-enter`, `nurse-schedule-fill`, `notification-ring`, `ring-fill`, `metric-progress`,
+`health-goal-fill`, `health-tab-enter`, `consultation-enter`, `doctor-page-enter`, `impact-rise`,
+`impact-halo-pulse`, `impact-map-float`, `nurse-patient-image`.
+
+The handoff's own README gives the reason: *"Nothing on any screen loads a file from this folder."*
+`theme.css` is a reference master. Wave 1 extracted its **tokens** into `packages/design-tokens/tokens.json`
+and left its **animations** in the reference copy. `docs/brand/CI.md` mentions `@keyframes` zero times —
+chapter 7 records the three durations (quick 160 ms, settle 280 ms, enter 420 ms), the single `easeSoft`
+curve and the older `durationMs` 180 ms, and stops. The brand document therefore logs the *timing* of the
+motion system and not one of its *movements*.
+
+This is not a claim that the product is static. The built CSS carries 51 keyframes of its own from earlier
+work. It is that Careline's named movements were specified and never built, and that `theme.css` already
+carries three `prefers-reduced-motion` blocks whose accessibility handling was specified alongside them
+and never applied.
+
+
+### Gap 2 — the page layouts were never delivered to the build
+
+The full export carries **68 role routes** — patient 30, nurse 19, doctor 15, partner 4 — totalling
+1,148 lines, and **17 showcase screens** totalling 2,651 lines, of which `src/showcase/patient-space.tsx`
+alone is 108,391 bytes. Across `src/` the export holds **10,470 lines** of `.tsx`/`.ts`/`.css`. The repo
+has 91 files under `apps/web/src/features/`. These are not like-for-like counts, and the difference is not
+the finding; the finding is which screens exist on one side only.
+
+Checked against `apps/web/src/features/` and `packages/catalog/`, **five patient pages in the export have
+no counterpart anywhere in the repo** — `health-library`, `health-timeline`, `risk-assessment`,
+`vaccinations`, `symptom-checker`. A further **three have the underlying content but no screen**:
+`community` (material in `Onboarding.tsx`, `Household.tsx`, `vetting.json`, `geography.json`,
+`knowledge/mental-health.json`), `nutrition` (`knowledge/prevention.json`, `maternal.json`,
+`chronic.json`) and `reminders` (`Dashboard.tsx`, `Dispensing.tsx`, `events.json`). None of the eight
+appears in `packages/catalog/capabilities.json`, which holds 23 entries.
+
+These are the "new functionalities and new layout of all pages" the founder asked for. They are not
+partially built and hidden; they are absent.
+
+### Gap 3 — the export's stack is not this repo's stack, so this is a port
+
+`apps/web/package.json` declares four runtime dependencies: `lucide-react ^0.468.0`,
+`maplibre-gl ^6.9.0`, `react ^19.2.0`, `react-dom ^19.2.0`. The export declares thirty-eight. Verified
+absent from every `package.json` in the tree: `tailwindcss`, `motion`, `recharts`, `mapbox-gl`,
+`@supabase/supabase-js`, `@tanstack/react-router`, `@tanstack/react-start`, `@radix-ui/react-dialog`,
+`cmdk`, `zod`.
+
+Three of these deserve naming because they look like near-misses:
+
+- **Tailwind.** The export is Tailwind 4.3.3 throughout. Wave 2b deliberately rebuilt the handoff's
+  component library as `.ui-*` classes *without* Tailwind. Copying a showcase screen would reintroduce
+  the framework the build removed on purpose.
+- **Maps.** The export uses `mapbox-gl 3.9.4`; the repo uses `maplibre-gl ^6.9.0` — the open fork, a
+  different package with a divergent API — behind a hand-rolled `apps/web/src/map/TileMap.tsx` and
+  `mapboxRequests.ts`, over `packages/catalog/geography.json`. Map screens translate; they do not lift.
+- **Icons.** `lucide-react` is the one shared dependency, and even it differs by a major version
+  (`^0.468.0` against `1.48.0`), so icon names are not guaranteed to resolve.
+
+The export also assumes Supabase for data and TanStack Start's file-based routing. Neither exists here:
+truth lives in `packages/catalog/*.json`, routing is the repo's own, and `check-boundaries.mjs` fails the
+build on drift. The governing instruction is already recorded and applies unchanged — *the handoff's look
+wins on every visual question; the build's logic, contracts and refusals win on everything else.*
+
+
+### What is already live, and must not be redone
+
+FEATURE-MAP waves 1–6 (1, 2, 2a, 2b, 3, 3a, 3b, 4, 4a–4e, 5, 5a, 5b, 6) shipped and were verified in
+production: the Careline tokens (radii 20/28/16/16 → 6/8/12, two shadows, three durations), Outfit and
+Figtree self-hosted and serving 200, the 18-component `.ui-*` library byte-identical live, the ten-icon
+family generated to TSX/Swift/Kotlin and wired into `PatientShell` and `PortalShell`, the logos and
+re-encoded WebP photography under `/lovable/`, patient, nurse, doctor, Control Tower, shell, landing and
+GilbertOne restyled, and both native apps on the identity. A port that starts from the export's source
+instead of from this build would throw all of that away.
+
+### The phased plan
+
+**Phase A — preserve the export.** Storage and documentation only; no code. Commit
+`mythuso-full-project.zip` beside the handoff it supersedes, record its SHA-256 and a 203-file manifest the
+way `packages/brand/lovable-handoff/MANIFEST.sha256` does, and note in `docs/FEATURE-MAP.md` that waves
+1–6 were built from the smaller export. Without this the file lives only in `~/Downloads` and the next
+session loses it — which has already happened once.
+
+**Phase B — the motion set.** Port the 32 missing `@keyframes` into the product's own CSS, expressed
+through the existing `--t-quick`/`--t-settle`/`--t-enter` durations and `--ease-soft` rather than through
+hardcoded milliseconds, and carry `theme.css`'s three `prefers-reduced-motion` blocks with them. Then
+record the movements in `docs/brand/CI.md` chapter 7, which documents the timing and none of the motions.
+Smallest phase, most visible, and it touches no contract and no refusal. **Gate:** the patient entry
+budget, **282.16 kB**, measured the same way — animation CSS is not free, and a rise is a founder decision
+rather than a tidy-up.
+
+
+**Phase C — layout reconciliation.** Diff the 68 routes and 17 showcase screens against the 91 features,
+screen by screen, and classify each as *built*, *deviation* or *not built*, working patient → nurse →
+doctor → partner. Written into `docs/design-review/` before any component moves. **Gate:** the standing
+rule against half-migrating a live patient-facing surface. A screen is ported whole or not at all; where
+one cannot be finished in a single pass it stops, states its blast radius, and comes back to the founder.
+
+**Phase D — the new patient capabilities.** The eight pages from Gap 2. Each is a feature rather than a
+reskinning, so each walks the eight steps in `CLAUDE.md:126` and ends at `docs/FEATURE-MAP.md`: a contract
+in `packages/catalog/`, a capability entry, and the boundary checks passing. **Gate:** none of the eight
+may display a number the contracts do not hold. The 25 September ruling — option B, structural and visual
+polish only, no invented numerals, written empty states wherever a number would go — applies to these
+pages exactly as it applies to the Control Tower. `symptom-checker` and `risk-assessment` additionally
+inherit the `screening` capability's block: *no model, no vendor, no licence.*
+
+### Invariants holding over all four phases
+
+- The deterministic half of GilbertOne in `packages/gilbertone` stays on every device — no dependency, no
+  network, no environment variable. The export's `ai-elements/` set (`conversation`, `message`,
+  `prompt-input`, `shimmer`) presents over `motion` and the AI SDK; adopting its look must not make the
+  offline answer depend on either.
+- Affect may never soften a refusal or an emergency. Restyling a refusal is permitted. Making it warmer at
+  the cost of making it less clear is not.
+- `.lovable/system.md`'s hard constraints are compatible with this build and should be adopted as review
+  criteria: no raw colour literals, no gradients, orbs, glass or purple-dominant palettes, compact corners
+  with pills reserved for badges, statuses and compact controls, Lucide only for universal utility
+  actions, and motion short, purposeful and disabled under a reduced-motion preference.
+- GilbertOne's look and feel is settled, and a newer export does not reopen it.
+
+### Not started
+
+No build was started this session. The working tree was clean at `61310305` and the only change made is
+this section. Phases A–D are each a session's work and Phase D is several. The export is currently
+extracted at `/tmp/lov/mythuso-export`, which is not durable — Phase A exists to fix that.
+
