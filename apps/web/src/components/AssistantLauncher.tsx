@@ -51,6 +51,14 @@ export function AssistantLauncher({ openModal, visit, audience }: { openModal?: 
   if (wasOpen.current && !open) button.current?.focus();
   wasOpen.current = open;
  }, [open]);
+ /* A screen can ask for GilbertOne without holding his state: the symptom checker's "Ask GilbertOne"
+   action dispatches this event and the orb opens exactly as a press would. Additive — the launcher
+   is the only listener, and nothing that does not dispatch it is affected. */
+ useEffect(() => {
+  const ask = () => { setOpened(true); setOpen(true); };
+  window.addEventListener('mythuso:ask-assistant', ask);
+  return () => window.removeEventListener('mythuso:ask-assistant', ask);
+ }, []);
 
  return <div className="al-dock">
   <AssistantGreeting open={open} onOpen={() => { setOpened(true); setOpen(true); }}/>

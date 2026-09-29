@@ -82,6 +82,18 @@ const MarketOrderPage = lazy(() => import('./features/MarketOrder').then(m => ({
    different pages, and not one tip is on the patient's first load. */
 const CareTipsPage = lazy(() => import('./features/CareTips').then(m => ({ default: m.CareTips })));
 import { careTipsRoute } from './lib/care-tips-route.generated';
+/* The eight patient pages of the full Lovable export's Phase D and their "Your health" hub, behind one
+   dynamic import for the same reason care tips are: the screens and the six knowledge files they read
+   are nothing a patient needs on the first view. Only each page's name and arrival sentence are here,
+   generated from packages/catalog/patient-pages.json, so the hub, the address and the screen cannot
+   name three different pages, and not one knowledge entry is on the patient's first load. */
+const PatientPagesView = lazy(() => import('./features/PatientPages').then(m => ({ default: m.PatientPages })));
+import { patientPagesHubRoute, patientPageRoutes } from './lib/patient-pages-routes.generated';
+const patientPageNames: string[] = [patientPagesHubRoute.opens, ...Object.values(patientPageRoutes).map(route => route.opens)];
+const patientPageOpenings: Record<string, string> = {
+ [patientPagesHubRoute.opens]: patientPagesHubRoute.opening,
+ ...Object.fromEntries(Object.values(patientPageRoutes).map(route => [route.opens, route.opening])),
+};
 /* The icon family's gallery, at `?open=icons`, in development builds only: every icon of
    packages/catalog/icons.json at two sizes with its signal pulsing, so the family can be looked at and
    tested before a screen wears it. `import.meta.env.DEV` is a constant at build time, so in a production
@@ -146,7 +158,7 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
     hero offers four destinations and two of them are sections rather than the application, so
     `/app/?open=live-well` opens Live well. Read once and never written — see lib/roles.ts for why
     the address stops following a reader the moment they start navigating for themselves. */
- const [page, setPage] = useState(() => sectionFromSearch(window.location.search, [...patientSections, careTipsRoute.opens, ...developmentSections], 'Overview'));
+ const [page, setPage] = useState(() => sectionFromSearch(window.location.search, [...patientSections, careTipsRoute.opens, ...patientPageNames, ...developmentSections], 'Overview'));
  const [modal, setModal] = useState<string | null>(null);
  const [booking, setBooking] = useState<Service | null>(null);
  /* Every visit the app knows about, in one list, because a visit you can look at and never change is
@@ -269,7 +281,8 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
             : page === 'Explore MyThuso' ? <Explore open={setModal} onOnboarding={() => setOnboarding('first-run')} navigate={navigate}/>
              : IconGallery && page === 'Icons' ? <Suspense fallback={<p className="helper" role="status">Opening the icon family.</p>}><IconGallery/></Suspense>
              : UiGallery && page === 'UI' ? <Suspense fallback={<p className="helper" role="status">Opening the shared components.</p>}><UiGallery/></Suspense>
-              : <MoreHub navigate={navigate} open={setModal} onSignOut={signOut}/>}
+              : patientPageNames.includes(page) ? <Suspense fallback={<p className="helper" role="status">{patientPageOpenings[page]}</p>}><PatientPagesView page={page} navigate={navigate} open={setModal}/></Suspense>
+               : <MoreHub navigate={navigate} open={setModal} onSignOut={signOut}/>}
   </PatientShell>
   {booking &&<Modal surface={SURFACE} title="A nurse, at your door." onClose={() => setBooking(null)}><Suspense fallback={<p className="helper" role="status">Opening the booking.</p>}><BookingFlow service={booking} person={forPerson ?? undefined} held={heldHours(rows)} previousNurseFor={person => previousNurseIn(rows, person)} onComplete={v => { setRows([rowFor(v, `VIS-01${rows.length}`), ...rows]); setBooking(null); navigate('My visits'); }}/></Suspense></Modal>}
   {/* Looking at a visit, moving one and standing one down are three screens rather than three

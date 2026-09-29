@@ -11,6 +11,7 @@ import { Metric, Metrics } from '../surface/Surface';
 import { HeroCarousel } from '../components/HeroCarousel';
 import { FamilyScene, PatientPortrait } from '../components/Portraits';
 import { modules, services, money, type Service } from '../lib/catalog';
+import { patientPagesHubRoute } from '../lib/patient-pages-routes.generated';
 import type { DemoVisit } from './Booking';
 import { endTime, isoIn, labels as schedulingLabels, longDateOf, shortDateOf, slots, visitEnds, weekdayOf } from '../lib/scheduling';
 import { holdStatus } from '../lib/interpreting';
@@ -752,7 +753,7 @@ const menuGroups=[
     holds five targets at 320px and the sixth would have come out of the four a person navigates by.
     The sub-line says what the screen is rather than selling it: there is nothing to sell. */
  [['Live well','What you did, in your own words, beside your record',NotebookPen,'Live well'],
-  ['My family','Manage your loved ones',Users,'My family'],['Care plans','Ongoing care and subscriptions',HeartHandshake,'Care plans'],['Thuso Wallet','Balance, activity and sponsored care',CreditCard,'Thuso Wallet']],
+  ['My family','Manage your loved ones',Users,'My family'],['Care plans','Ongoing care and subscriptions',HeartHandshake,'Care plans'],['Thuso Wallet','Balance, activity and sponsored care',CreditCard,'Thuso Wallet'],[patientPagesHubRoute.opens,'Symptom checker, health library, vaccinations and more',Heart,patientPagesHubRoute.opens]],
  [['Care area','Rosebank, Johannesburg',MapPin,'@Your location'],['Notifications','Visit updates and messages',Bell,'@Notifications'],['Privacy & settings','Your data and app preferences',Settings2,'Privacy & settings'],['Language','Read MyThuso your way',Globe,'@Language'],['Language & access','Twelve official languages, and what is honestly offered in each',Languages,'Language & access']],
  /* Emergency first in this group, and in the shell's sidebar as well. It was the fourteenth card
     inside a roadmap page — the most complete journey in the product behind the most clicks in it,

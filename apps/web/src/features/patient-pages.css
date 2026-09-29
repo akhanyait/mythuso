@@ -1,0 +1,601 @@
+/* The eight patient pages and their hub (features/PatientPages.tsx).
+ *
+ * Loaded with the screens, behind their dynamic import, so none of this is on the patient's first view.
+ *
+ * COLOUR. Every fill is a surface token and every word takes --ink or --studio-ink, so no text sits on
+ * a pair the build has not measured. The emergency panel is the one tinted block and it is the danger
+ * token's own soft fill with the ink on it — the colour says "stop" and the words say what to do.
+ *
+ * MOTION. One entrance for the page's cards, finite, transform and opacity only, on the tokens' curve,
+ * gated on [data-motion='on'] which the patient shell sets and never sets under reduced motion. Nothing
+ * is hidden by it that a script has to reveal: before the flag, or under reduced motion, the cards are
+ * simply there. Removal, not shortening, and !important for the reason surface/motion.css gives. */
+
+.pp-screen {
+  display: grid;
+  gap: var(--space-24);
+}
+.pp-layout {
+  display: grid;
+  gap: var(--space-24);
+  align-items: start;
+}
+@media (min-width: 1000px) {
+  .pp-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+    gap: var(--space-40);
+  }
+}
+.pp-main {
+  display: grid;
+  gap: var(--space-20);
+  min-width: 0;
+}
+.pp-subheading {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.pp-note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-8);
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--studio-ink-muted);
+}
+.pp-note svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+/* ---- The hub ------------------------------------------------------------------------------------ */
+.pp-hub {
+  display: grid;
+  gap: var(--space-12);
+}
+@media (min-width: 640px) {
+  .pp-hub {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.pp-shortcut {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  width: 100%;
+  padding: var(--space-16);
+  text-align: left;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  color: var(--ink);
+  transition:
+    border-color var(--t-settle) var(--ease-soft),
+    transform var(--t-quick) var(--ease-soft);
+}
+.pp-shortcut:hover {
+  border-color: var(--sage-slate);
+}
+.pp-shortcut-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-tile);
+  background: var(--accent-soft);
+  color: var(--studio-ink);
+}
+.pp-shortcut-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.pp-shortcut-text strong {
+  font-size: 16px;
+  font-weight: 600;
+}
+.pp-shortcut-text small {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--studio-ink-muted);
+}
+.pp-shortcut > svg:last-child {
+  flex: none;
+  color: var(--studio-ink-muted);
+}
+.pp-review-hub {
+  justify-self: start;
+}
+
+/* ---- The shared aside ---------------------------------------------------------------------------- */
+.pp-about h2 {
+  margin: 0 0 var(--space-12);
+  font-size: 18px;
+}
+.pp-refusals {
+  display: grid;
+  gap: var(--space-12);
+  margin: 0 0 var(--space-20);
+  padding: 0;
+  list-style: none;
+}
+.pp-refusals li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-12);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--studio-ink);
+}
+.pp-refusals svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--studio-ink-muted);
+}
+.pp-review {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-8);
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--studio-ink);
+}
+.pp-review svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+/* ---- Actions ------------------------------------------------------------------------------------ */
+.pp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-12);
+}
+.pp-actions .secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+/* ---- Knowledge cards ---------------------------------------------------------------------------- */
+.pp-entries {
+  display: grid;
+  gap: var(--space-12);
+}
+.pp-entry {
+  padding: var(--space-16);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+}
+.pp-entry-title {
+  margin: 0 0 var(--space-12);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.pp-field {
+  margin: 0 0 var(--space-12);
+}
+.pp-field h4 {
+  margin: 0 0 var(--space-4);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  color: var(--studio-ink-muted);
+}
+.pp-field ul {
+  margin: 0;
+  padding-left: var(--space-20);
+}
+.pp-field li {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--studio-ink);
+}
+.pp-source {
+  margin: var(--space-12) 0 0;
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--studio-ink-muted);
+}
+
+/* ---- Search and tabs ---------------------------------------------------------------------------- */
+.pp-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: 0 var(--space-12);
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  color: var(--studio-ink-muted);
+}
+.pp-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 16px;
+  color: var(--ink);
+}
+.pp-search input:focus {
+  outline: none;
+}
+.pp-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+.pp-tab {
+  min-height: 44px;
+  padding: 0 var(--space-16);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--studio-ink);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color var(--t-settle) var(--ease-soft),
+    color var(--t-settle) var(--ease-soft);
+}
+.pp-tab[aria-selected="true"] {
+  background: var(--studio-ink);
+  border-color: var(--studio-ink);
+  color: var(--studio-paper);
+}
+
+/* ---- Symptom checker ---------------------------------------------------------------------------- */
+.pp-picker-label,
+.pp-question {
+  margin: 0 0 var(--space-12);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--ink);
+}
+.pp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+.pp-chip {
+  min-height: 44px;
+  padding: 0 var(--space-16);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--studio-ink);
+  font-size: 15px;
+  cursor: pointer;
+  transition:
+    border-color var(--t-quick) var(--ease-soft),
+    background-color var(--t-quick) var(--ease-soft);
+}
+.pp-chip:hover {
+  border-color: var(--sage-slate);
+  background: var(--accent-soft);
+}
+.pp-progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  margin: 0 0 var(--space-8);
+  font-size: 13px;
+  color: var(--studio-ink-muted);
+}
+.pp-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--studio-ink);
+}
+.pp-answer {
+  display: flex;
+  gap: var(--space-8);
+}
+.pp-answer input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 var(--space-12);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  font: inherit;
+  font-size: 16px;
+  color: var(--ink);
+}
+.pp-stop {
+  align-self: start;
+  margin-top: var(--space-12);
+  min-height: 44px;
+  padding: 0 var(--space-12);
+  border: 0;
+  border-radius: var(--r-control);
+  background: none;
+  color: var(--studio-ink-muted);
+  font-size: 14px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.pp-emergency {
+  padding: var(--space-20);
+  border-radius: var(--r-card);
+  background: var(--danger-soft);
+}
+.pp-emergency h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin: 0 0 var(--space-8);
+  font-size: 20px;
+  color: var(--ink);
+}
+.pp-emergency p {
+  margin: 0 0 var(--space-16);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink);
+}
+.pp-handover h2 {
+  margin: 0 0 var(--space-8);
+  font-size: 20px;
+  color: var(--ink);
+}
+.pp-handover-detail {
+  margin: 0 0 var(--space-16);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--studio-ink);
+}
+.pp-stopped {
+  margin: 0 0 var(--space-16);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--studio-ink-muted);
+}
+.pp-notes {
+  display: grid;
+  gap: var(--space-8);
+  margin: 0 0 var(--space-16);
+  padding: var(--space-16);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+}
+.pp-notes > div {
+  display: grid;
+  gap: 2px;
+}
+.pp-notes dt {
+  font-size: 13px;
+  color: var(--studio-ink-muted);
+}
+.pp-notes dd {
+  margin: 0;
+  font-size: 15px;
+  color: var(--studio-ink);
+}
+
+/* ---- Risk, timeline, reminders, community ------------------------------------------------------- */
+.pp-blocked {
+  padding: var(--space-16);
+  border-left: 3px solid var(--sage-slate);
+  border-radius: var(--r-control);
+  background: var(--surface);
+}
+.pp-blocked h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin: 0 0 var(--space-8);
+  font-size: 17px;
+  color: var(--ink);
+}
+.pp-blocked p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--studio-ink);
+}
+.pp-rows {
+  display: grid;
+  gap: var(--space-12);
+}
+.pp-row {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-16);
+}
+.pp-row strong {
+  font-size: 16px;
+  color: var(--ink);
+}
+.pp-row small {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--studio-ink-muted);
+}
+.pp-timeline {
+  display: grid;
+  gap: var(--space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pp-timeline-item {
+  position: relative;
+  display: grid;
+  gap: var(--space-4);
+  padding: 0 0 0 var(--space-24);
+}
+.pp-timeline-item::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 6px;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--r-pill);
+  background: var(--sage-slate);
+}
+.pp-timeline-item::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 18px;
+  bottom: -12px;
+  width: 1px;
+  background: var(--line);
+}
+.pp-timeline-item:last-child::after {
+  display: none;
+}
+.pp-timeline-item strong {
+  font-size: 16px;
+  color: var(--ink);
+}
+.pp-timeline-item small {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--studio-ink-muted);
+}
+.pp-empty {
+  padding: var(--space-20);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  text-align: center;
+}
+.pp-empty h3 {
+  margin: 0 0 var(--space-8);
+  font-size: 16px;
+  color: var(--ink);
+}
+.pp-empty p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--studio-ink-muted);
+}
+.pp-record {
+  display: grid;
+  gap: var(--space-12);
+  padding: var(--space-20);
+}
+.pp-record h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin: 0;
+  font-size: 17px;
+  color: var(--ink);
+}
+.pp-record .secondary {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+.pp-helplines {
+  display: grid;
+  gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pp-helplines li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-12);
+  padding: var(--space-12);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--studio-ink);
+}
+.pp-helplines svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--studio-ink-muted);
+}
+.pp-notconnected {
+  padding: var(--space-16);
+}
+.pp-notconnected h2 {
+  margin: 0 0 var(--space-8);
+  font-size: 16px;
+  color: var(--ink);
+}
+.pp-notconnected p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--studio-ink-muted);
+}
+.pp-inline-refusals {
+  display: grid;
+  gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pp-inline-refusals li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-12);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--studio-ink);
+}
+.pp-inline-refusals svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--studio-ink-muted);
+}
+
+/* ---- A page's cards arrive ---------------------------------------------------------------------- */
+@keyframes pp-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, var(--space-12), 0);
+  }
+}
+[data-motion="on"] .pp-entry,
+[data-motion="on"] .pp-shortcut,
+[data-motion="on"] .pp-row,
+[data-motion="on"] .pp-timeline-item {
+  animation: pp-in var(--t-enter) var(--ease-soft) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-entry,
+  .pp-shortcut,
+  .pp-row,
+  .pp-timeline-item {
+    animation: none !important;
+  }
+  .pp-shortcut,
+  .pp-tab,
+  .pp-chip,
+  .pp-actions .secondary {
+    transition: none !important;
+  }
+}

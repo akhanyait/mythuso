@@ -1,0 +1,425 @@
+{
+  "_note": "The eight patient pages of the full Lovable export's Gap 2, as one contract: symptom-checker, risk-assessment, health-library, health-timeline, vaccinations, community, nutrition and reminders, plus the 'Your health' hub that carries them. Recorded by docs/design-review/LOVABLE-EXPORT-RECONCILIATION.md (Phase C) and built under the gates in docs/ROADMAP.md's Phase D. The web reads this file through apps/web/src/lib/patient-pages.ts; scripts/emit-patient-pages.mjs writes the router's two strings per page and the two native data files. Content rows are DERIVED from contracts that already exist — the knowledge base, the symptom intake, the SOS register — and the derivation is held by scripts/check-boundaries.mjs, so this file names sources and never copies their entries.",
+  "_rules": "No screen renders a sentence that is not in this file or in the contract it derives from. No screen displays a number this tree's contracts do not hold: the 25 September ruling (option B) applies — structural and visual honesty, written empty states wherever a number would go. symptom-checker and risk-assessment inherit the screening capability's block: no model, no vendor, no licence. The symptom checker asks symptom-intake.json's set questions and escalates on the emergency words before anything else reads an answer; it sets no priority, names no cause and gives no advice, and the findings case.json works out are for the nurse and never rendered here. Knowledge content shows its own source line and the review notice below sits beside it until a clinician has signed.",
+  "version": 1,
+  "decidedBy": "Founder",
+  "on": "2026-09-29",
+  "changelog": [
+    {
+      "version": 1,
+      "on": "2026-09-29",
+      "what": "The eight pages and their hub, from the full Lovable export's Phase D, with every derivation named."
+    }
+  ],
+  "review": {
+    "reviewedBy": null,
+    "reviewedOn": null,
+    "status": "awaiting-clinical-review",
+    "notice": "This page carries general health information that no registered clinician has signed yet. Your nurse's advice comes first.",
+    "why": "The same posture as care-tips.json: the frame is built and gated, the knowledge entries carry their own sources, and one clinical reviewer must sign before a real patient relies on any of it. Until then every screen in this contract shows this notice."
+  },
+  "aside": {
+    "refusalsHeading": "What these pages will not do",
+    "reviewHeading": "Not signed by a clinician yet"
+  },
+  "hub": {
+    "opens": "Your health",
+    "opening": "Opening your health pages.",
+    "eyebrow": "The full Lovable design, ported",
+    "heading": "Your health, in one place.",
+    "lead": "Eight pages the design asked for and the build did not have. Each says plainly what it holds today and what it is waiting for.",
+    "shortcuts": [
+      {
+        "id": "symptom-checker",
+        "title": "Symptom checker",
+        "sub": "Answer set questions; the notes go to your nurse"
+      },
+      {
+        "id": "risk-assessment",
+        "title": "Risk assessment",
+        "sub": "What it would be, and why no score is computed"
+      },
+      {
+        "id": "health-library",
+        "title": "Health library",
+        "sub": "Sourced general guidance, searchable"
+      },
+      {
+        "id": "health-timeline",
+        "title": "Health timeline",
+        "sub": "Your record over time, through the Passport"
+      },
+      {
+        "id": "vaccinations",
+        "title": "Vaccinations",
+        "sub": "The SA schedule, and your own record when it exists"
+      },
+      {
+        "id": "community",
+        "title": "Community support",
+        "sub": "Clinics, helplines and groups near you"
+      },
+      {
+        "id": "nutrition",
+        "title": "Nutrition",
+        "sub": "General food guidance from the knowledge base"
+      },
+      {
+        "id": "reminders",
+        "title": "Reminders",
+        "sub": "What will remind you, once accounts are live"
+      }
+    ]
+  },
+  "screens": {
+    "symptom-checker": {
+      "opens": "Symptom checker",
+      "opening": "Opening the symptom checker.",
+      "eyebrow": "Notes for your nurse",
+      "heading": "Tell us what is wrong.",
+      "lead": "This is not a diagnosis and it does not score you. It asks the same set questions GilbertOne asks, one at a time, and writes your answers down as a note you hand to your nurse.",
+      "pickerLabel": "What is bothering you most?",
+      "emergency": {
+        "heading": "Stop — this sounds like an emergency.",
+        "detail": "The emergency words come first, before any note is taken. The ambulance number and the crisis lines are on the emergency screen.",
+        "action": "Open Emergency & urgent care",
+        "modal": "Emergency & urgent care"
+      },
+      "progressLabel": "Questions answered",
+      "stopLabel": "I've said enough",
+      "sendLabel": "Next",
+      "handover": {
+        "heading": "Your notes are ready.",
+        "detail": "Nothing is stored and nothing is sent while the identity service is off — there is no account to attach a note to yet. Copy the notes or read them to your nurse at the visit; GilbertOne's intake keeps the same card.",
+        "copyLabel": "Copy the notes",
+        "copiedLabel": "Copied",
+        "againLabel": "Start again"
+      },
+      "stoppedNote": "You stopped early. The answers so far are on the card, and a nurse would rather have half the note than none of it.",
+      "actions": [
+        {
+          "label": "Book a nurse instead",
+          "kind": "navigate",
+          "target": "Book a nurse"
+        },
+        { "label": "Ask GilbertOne", "kind": "assistant" }
+      ]
+    },
+    "risk-assessment": {
+      "opens": "Risk assessment",
+      "opening": "Opening the risk assessment.",
+      "eyebrow": "Screening",
+      "heading": "A risk assessment needs a clinician, not a formula.",
+      "lead": "MyThuso does not compute a risk score. Screening is blocked until there is a model, a vendor and a licence, and a validated score is a clinical judgement this product refuses to fake.",
+      "blocked": {
+        "heading": "Why this page has no score",
+        "detail": "A number here would be read as a verdict about your health. Nothing in this tree holds one: no screening model is licensed, no clinician has ratified a scoring rule, and the frame around a result — provenance, sign-off, conflict resolution — exists precisely so that a score is never shown without them."
+      },
+      "wouldCover": {
+        "heading": "What a ratified assessment would cover",
+        "rows": [
+          {
+            "title": "Your own readings",
+            "detail": "Vitals from a Thuso Kit, validated against the ranges the records contract holds — once a device is paired to a real account."
+          },
+          {
+            "title": "What a clinician finds",
+            "detail": "A nurse's assessment and a doctor's review, each signed, each with the day and the registration on file."
+          },
+          {
+            "title": "What changes over time",
+            "detail": "Trends across visits, on the Health Passport, where the record actually lives."
+          }
+        ]
+      },
+      "actions": [
+        {
+          "label": "Book a nurse",
+          "kind": "navigate",
+          "target": "Book a nurse"
+        },
+        {
+          "label": "Open your Health Passport",
+          "kind": "navigate",
+          "target": "Health Passport"
+        }
+      ]
+    },
+    "health-library": {
+      "opens": "Health library",
+      "opening": "Opening the health library.",
+      "eyebrow": "The knowledge base",
+      "heading": "Trusted guidance, in plain language.",
+      "lead": "Every entry is from the governed South African knowledge base this tree already carries, with the authority it came from beside it. It is general information about health, never advice about you.",
+      "searchLabel": "Search the library",
+      "searchPlaceholder": "Search conditions, prevention, maternal care…",
+      "sourceLine": "Source: {authority} · {jurisdiction} · retrieved {retrievedDate}",
+      "emptyTitle": "Nothing matches that search",
+      "emptyDetail": "Try one word — a condition, a medicine, or 'clinic'.",
+      "fieldLabels": {
+        "who": "Who it is for",
+        "keyPoints": "Key points",
+        "about": "What it is",
+        "symptoms": "Symptoms",
+        "whenToSeeDoctor": "When to see a doctor",
+        "homeCare": "Care at home",
+        "managementGoals": "Management goals",
+        "adherenceTips": "Staying on track",
+        "whenToSeekUrgentCare": "When to seek urgent care",
+        "whenToSeekCare": "When to seek care",
+        "signs": "Signs to watch",
+        "selfHelpStrategies": "What helps",
+        "whenToGetProfessionalHelp": "When to get professional help",
+        "saResources": "South African resources",
+        "practicalTips": "Practical tips"
+      },
+      "tabs": [
+        {
+          "id": "conditions",
+          "label": "Conditions",
+          "file": "conditions.json"
+        },
+        {
+          "id": "prevention",
+          "label": "Prevention",
+          "file": "prevention.json"
+        },
+        { "id": "chronic", "label": "Chronic care", "file": "chronic.json" },
+        {
+          "id": "mental-health",
+          "label": "Mental health",
+          "file": "mental-health.json"
+        },
+        { "id": "maternal", "label": "Maternal", "file": "maternal.json" },
+        {
+          "id": "sa-health-system",
+          "label": "The SA health system",
+          "file": "sa-health-system.json"
+        }
+      ]
+    },
+    "health-timeline": {
+      "opens": "Health timeline",
+      "opening": "Opening your health timeline.",
+      "eyebrow": "Your record over time",
+      "heading": "One line, from your first visit to today.",
+      "lead": "The timeline is a view of the Health Passport — the record service holds the entries, and this page will read them the day the Passport's record service is out of development-only gating. Until then it shows the kinds of entry it will carry, and nothing invented.",
+      "kindsHeading": "What the line will carry",
+      "kinds": [
+        {
+          "title": "Visits and assessments",
+          "detail": "Every nurse visit, its summary and the doctor's reviews of it."
+        },
+        {
+          "title": "Readings",
+          "detail": "Vitals from your Thuso Kit, each with the device it came from."
+        },
+        {
+          "title": "Medicine and dispensing",
+          "detail": "Prescriptions, collections and repeats, from the medicines contract."
+        },
+        {
+          "title": "Laboratory results",
+          "detail": "Released results only, each with the day it was released and by whom."
+        },
+        {
+          "title": "Consents and access",
+          "detail": "Who you shared with, what scope, and every time a record was opened."
+        }
+      ],
+      "emptyTitle": "No entries yet",
+      "emptyDetail": "Nothing is written to a timeline in a design preview: the records live in the Passport's development service and no real patient data exists to read. When the service is live, this line fills from it and from nothing else.",
+      "actions": [
+        {
+          "label": "Open the Health Passport",
+          "kind": "navigate",
+          "target": "Health Passport"
+        },
+        {
+          "label": "See your visits",
+          "kind": "navigate",
+          "target": "My visits"
+        }
+      ]
+    },
+    "vaccinations": {
+      "opens": "Vaccinations",
+      "opening": "Opening vaccinations.",
+      "eyebrow": "Immunisation",
+      "heading": "The South African schedule, and your own record.",
+      "lead": "The schedule below is the knowledge base's immunisation material — the public EPI schedule and the entries beside it — with the authority named on every card. Your personal vaccination record is the empty state underneath it, honestly.",
+      "scheduleHeading": "The schedule (general information)",
+      "record": {
+        "heading": "Your vaccination record",
+        "emptyTitle": "No vaccination record yet",
+        "emptyDetail": "Your own doses belong on the Health Passport, and the Passport's service is in development-only gating — no real record exists to show. A vaccination you invent on a screen is a vaccination a nurse might trust, so this stays empty until the record is real.",
+        "action": "Open the Health Passport",
+        "target": "Health Passport"
+      },
+      "roadToHealth": "A child's doses are also recorded on the Road to Health card the clinic gives at birth — keep it with the birth certificate."
+    },
+    "community": {
+      "opens": "Community support",
+      "opening": "Opening community support.",
+      "eyebrow": "Around you",
+      "heading": "Help that does not need a visit.",
+      "lead": "Public clinics, helplines and the health system's own navigation material, from the knowledge base. What is not here yet is a community of people: that needs accounts and messaging, and both are off.",
+      "nearHeading": "Finding care near you",
+      "helplinesHeading": "Helplines and support groups",
+      "helplinesNote": "These lines are the knowledge base's own entries, with their sources. The emergency number is on the emergency screen and is never restated here.",
+      "notConnected": {
+        "heading": "Groups and neighbours are not connected",
+        "detail": "A community feed needs the identity service and a messaging provider. Neither exists yet, so rather than a simulated feed this page shows what is real: the public system's own material."
+      },
+      "actions": [
+        {
+          "label": "Open Live well",
+          "kind": "navigate",
+          "target": "Live well"
+        },
+        {
+          "label": "Emergency & urgent care",
+          "kind": "modal",
+          "target": "Emergency & urgent care"
+        }
+      ]
+    },
+    "nutrition": {
+      "opens": "Nutrition",
+      "opening": "Opening nutrition.",
+      "eyebrow": "Food and health",
+      "heading": "General guidance, from the governed base.",
+      "lead": "The entries below are the knowledge base's nutrition, lifestyle and feeding material — prevention, maternal and chronic care — each with its source. None of it is a meal plan for you: a diet that treats a condition is a clinician's, not a screen's.",
+      "topicsHeading": "What the base carries",
+      "refusals": [
+        "It does not write a meal plan for a condition — that is a clinician's or a registered dietitian's.",
+        "It does not name amounts, doses or targets for you; the numbers in an entry are the general ones its source published.",
+        "It does not replace the advice on your care plan or from your nurse."
+      ],
+      "actions": [
+        {
+          "label": "Open Live well",
+          "kind": "navigate",
+          "target": "Live well"
+        },
+        {
+          "label": "Open the health library",
+          "kind": "navigate",
+          "target": "Health library"
+        }
+      ]
+    },
+    "reminders": {
+      "opens": "Reminders",
+      "opening": "Opening reminders.",
+      "eyebrow": "Nudges that mean something",
+      "heading": "Reminders need an account, and accounts are off.",
+      "lead": "A reminder is a promise about a real day — your visit, your collection, your check-in. The identity service is deliberately switched off until there is an SMS provider, so nothing here can promise anything yet. What follows is what the page will carry, from the contracts that already hold those events.",
+      "kindsHeading": "What will remind you",
+      "kinds": [
+        {
+          "title": "Before a visit",
+          "detail": "The booking contract's own confirmations and the day-before note, to the phone that booked it."
+        },
+        {
+          "title": "Medicine collection",
+          "detail": "When a prescription is ready and when a repeat is due, from the dispensing contract."
+        },
+        {
+          "title": "Care plan check-ins",
+          "detail": "The routine a plan names — the adherence nudge the funding proposal asks for — on the plan's own cadence."
+        },
+        {
+          "title": "After a visit",
+          "detail": "The visit summary, and the care tips that follow it."
+        }
+      ],
+      "emptyTitle": "No reminders yet",
+      "emptyDetail": "Nothing is scheduled because no account exists to schedule against. This is the intended state, not a fault: reminders arrive with the identity service, and not before.",
+      "actions": [
+        {
+          "label": "See your visits",
+          "kind": "navigate",
+          "target": "My visits"
+        },
+        {
+          "label": "Open your care plans",
+          "kind": "navigate",
+          "target": "Care plans"
+        }
+      ]
+    }
+  },
+  "derivations": {
+    "_why": "Each list a screen renders from another contract, named here so the build can hold the two to each other: every derivation must resolve, and a source that stops carrying what is named here fails the build rather than rendering an empty screen that looks finished.",
+    "libraryTabs": {
+      "sources": [
+        "conditions",
+        "prevention",
+        "chronic",
+        "mental-health",
+        "maternal",
+        "sa-health-system"
+      ],
+      "directory": "packages/catalog/knowledge"
+    },
+    "vaccinationSchedule": {
+      "source": "prevention",
+      "category": "immunisation",
+      "directory": "packages/catalog/knowledge"
+    },
+    "nutritionTopics": {
+      "sources": ["prevention", "maternal", "chronic"],
+      "tags": [
+        "nutrition",
+        "lifestyle",
+        "breastfeeding",
+        "healthy-plate",
+        "salt",
+        "diet",
+        "folate",
+        "iron"
+      ],
+      "directory": "packages/catalog/knowledge"
+    },
+    "communityNavigation": {
+      "source": "sa-health-system",
+      "category": "navigation",
+      "directory": "packages/catalog/knowledge"
+    },
+    "communityHelplines": {
+      "source": "mental-health",
+      "field": "saResources",
+      "limit": 6,
+      "directory": "packages/catalog/knowledge"
+    },
+    "intakeGroups": {
+      "source": "packages/catalog/symptom-intake.json",
+      "section": "groups"
+    },
+    "emergencyNumbers": {
+      "source": "packages/catalog/sos.json",
+      "note": "rendered by the emergency screen this page opens, never restated here"
+    }
+  },
+  "refusals": [
+    {
+      "id": "no-diagnosis",
+      "sentence": "Nothing here diagnoses, scores or triages you. A diagnosis is a clinician's, and screening stays blocked until a model, a vendor and a licence exist."
+    },
+    {
+      "id": "no-invented-numbers",
+      "sentence": "No screen shows a number this tree's contracts do not hold. Where a figure would go, a written empty state says what is missing and why."
+    },
+    {
+      "id": "general-not-personal",
+      "sentence": "The library, nutrition and vaccination material is general information with its source beside it — never advice about you. Your nurse's advice comes first."
+    },
+    {
+      "id": "emergency-first",
+      "sentence": "The emergency words are read before any of it. An emergency answer ends the screen and opens the emergency pathway with 10177 first."
+    }
+  ],
+  "platforms": ["web"],
+  "platformsWhy": "Web first, as with care-tips and the case pathway: the screens are the frame the founder asked to see, and the generated Swift and Kotlin data files carry every word so the native screens are a later wave's assembly rather than a rewrite. symptom-intake.json's own platforms list stays as it is until a native screen renders it."
+}

@@ -3089,6 +3089,13 @@ const generated = [
     command: "npm run care-tips",
     files: (await import("./emit-care-tips.mjs")).emitCareTips(),
   },
+  /* The eight patient pages of the full Lovable export's Phase D and their hub (29 September 2026):
+     the router's two strings per page, and the words as data for the two phones. */
+  {
+    source: "packages/catalog/patient-pages.json",
+    command: "npm run patient-pages",
+    files: (await import("./emit-patient-pages.mjs")).emitPatientPages(),
+  },
   /* The case pathway (29 September 2026): the very-high line read out of the knowledge base's own sentence and
      the entries the headache questions draw on, so the web types neither. One entry per source. */
   ...(await (async () => {
@@ -35865,6 +35872,137 @@ console.log(
     `Care tips and waiting dots · ${ct.tips.length} tips in ${ct.categories.length} categories, unreviewed and saying so on three platforms, no digit or prescription among them, every card on a measured pair, no typed sentence on any tips screen, the stack behind a dynamic import with one finite entrance; one place a reply waits, after the deterministic tier said unmatched, ${terms.length} emergency words that never reach it, and dots that loop only while waiting, only under decor, and never under reduced motion.`,
   );
 }
+
+/* ==== The eight patient pages (Phase D of the full Lovable export) — 29 September 2026 ==============
+   The pages the design asked for and the build did not have, and the "Your health" hub that carries
+   them. Seven things about them are easy to undo in a later edit and would be invisible in a diff, so
+   they are held here rather than left to a reviewer to notice.
+
+   1. Nobody has signed the health material, and the contract may not pretend otherwise.
+   2. The eight screens the reconciliation named all exist, and the hub's shortcuts all resolve.
+   3. No page sentence carries a number the tree's contracts do not hold — the 25 September ruling
+      (option B) is structural honesty, so the only digits a page may say are the emergency numbers
+      sos.json already carries, and even those only in the refusal that points at the emergency screen.
+   4. Every derivation the contract names resolves against the file it names, so a knowledge file that
+      stops carrying what a page renders fails here rather than showing an empty screen that looks done.
+   5. The screen types no sentence of its own and still renders the review notice and the refusals.
+   6. No page restates an emergency number — the pages open the emergency screen, which carries them.
+   7. The screens are behind a dynamic import and the entry carries only the generated route names. */
+{
+  const ppFile = "packages/catalog/patient-pages.json";
+  const pp = JSON.parse(read(ppFile));
+  const ppFail = (why) => {
+    throw new Error(`Patient pages: ${why}`);
+  };
+  const stripJs = (source) => source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const stripCss = (source) => source.replace(/\/\*[\s\S]*?\*\//g, "");
+
+  /* 1. The review gate. */
+  if (!pp.review || typeof pp.review.notice !== "string" || pp.review.notice.trim() === "")
+    ppFail(`${ppFile} has no review block with a notice. General health information nobody has checked says so on the screen, in the contract's words.`);
+  if (pp.review.reviewedBy !== null || pp.review.reviewedOn !== null)
+    ppFail(`${ppFile} names a reviewer (${JSON.stringify(pp.review.reviewedBy)}) or a review day. No registered clinician has signed these pages; a name here is a claim of clinical review the product cannot make. When one does, the sign-off is recorded in docs/governance and this check changes in the same commit.`);
+  if (pp.review.status !== "awaiting-clinical-review")
+    ppFail(`${ppFile}'s review status is "${pp.review.status}" while nobody has reviewed the pages. It is "awaiting-clinical-review" until a reviewer is named.`);
+
+  /* 2. The eight screens and the hub that carries them. */
+  const expected = ["symptom-checker", "risk-assessment", "health-library", "health-timeline", "vaccinations", "community", "nutrition", "reminders"];
+  for (const id of expected)
+    if (!pp.screens[id]) ppFail(`${ppFile} is missing the screen "${id}". Phase D of docs/ROADMAP.md names eight pages; a page dropped here is a page the design asked for and the build still does not have.`);
+  for (const shortcut of pp.hub.shortcuts)
+    if (!pp.screens[shortcut.id]) ppFail(`the hub's shortcut "${shortcut.id}" opens no screen in ${ppFile}.`);
+  if (pp.hub.shortcuts.length !== expected.length)
+    ppFail(`${ppFile}'s hub carries ${pp.hub.shortcuts.length} shortcuts for ${expected.length} screens. The hub is the door to all of them or it is a door to some.`);
+
+  /* 3. No number the contracts do not hold. The emergency numbers sos.json carries are the only digits
+     a page sentence may say, and they appear only in the refusal that points at the emergency screen. */
+  const allowedNumbers = new Set(JSON.stringify(JSON.parse(read("packages/catalog/sos.json"))).match(/\b(?:10177|112|10111)\b/g) ?? []);
+  const pageSentences = [];
+  const collect = (node) => {
+    if (typeof node === "string") pageSentences.push(node);
+    else if (Array.isArray(node)) node.forEach(collect);
+    else if (node && typeof node === "object") Object.values(node).forEach(collect);
+  };
+  collect(pp.screens); collect(pp.hub); collect(pp.refusals); collect(pp.aside);
+  for (const sentence of pageSentences)
+    for (const digits of sentence.match(/\d+/g) ?? [])
+      if (!allowedNumbers.has(digits))
+        ppFail(`a page sentence carries the number "${digits}": "${sentence}". No screen shows a figure this tree's contracts do not hold; where one would go, a written empty state says what is missing and why.`);
+
+  /* 4. Every derivation resolves against the file it names. */
+  const knowledge = (file) => {
+    const parsed = JSON.parse(read(`packages/catalog/knowledge/${file}`));
+    return Array.isArray(parsed) ? parsed : (parsed.entries ?? []);
+  };
+  const d = pp.derivations;
+  for (const tab of pp.screens["health-library"].tabs)
+    if (knowledge(tab.file).length === 0) ppFail(`the library tab "${tab.id}" reads packages/catalog/knowledge/${tab.file}, which carries no entries. The tab would render empty and look finished.`);
+  for (const source of d.libraryTabs.sources)
+    if (!pp.screens["health-library"].tabs.some((t) => t.file === `${source}.json`)) ppFail(`derivations.libraryTabs names "${source}", which no library tab renders.`);
+  if (knowledge("prevention.json").filter((e) => e.category === d.vaccinationSchedule.category).length === 0)
+    ppFail(`derivations.vaccinationSchedule reads prevention's "${d.vaccinationSchedule.category}" entries, and there are none. The vaccination page would show an empty schedule.`);
+  const nutritionTags = new Set(d.nutritionTopics.tags);
+  const nutritionCount = d.nutritionTopics.sources.flatMap((s) => knowledge(`${s}.json`)).filter((e) => (e.tags ?? []).some((t) => nutritionTags.has(t))).length;
+  if (nutritionCount === 0) ppFail(`derivations.nutritionTopics matches no entry across ${d.nutritionTopics.sources.join(", ")} by its tags. The nutrition page would render nothing.`);
+  if (knowledge("sa-health-system.json").filter((e) => e.category === d.communityNavigation.category).length === 0)
+    ppFail(`derivations.communityNavigation reads sa-health-system's "${d.communityNavigation.category}" entries, and there are none.`);
+  const helplines = knowledge("mental-health.json").flatMap((e) => e[d.communityHelplines.field] ?? []);
+  if (helplines.length === 0) ppFail(`derivations.communityHelplines reads mental-health's ${d.communityHelplines.field}, and there are none.`);
+  if (d.communityHelplines.limit > helplines.length) ppFail(`derivations.communityHelplines caps at ${d.communityHelplines.limit} but the base carries ${helplines.length}; the cap promises more than exists.`);
+  if ((JSON.parse(read(d.intakeGroups.source))[d.intakeGroups.section] ?? []).length === 0)
+    ppFail(`derivations.intakeGroups reads ${d.intakeGroups.source}'s ${d.intakeGroups.section}, and there are none.`);
+
+  /* 5. The screen types no sentence, and renders the notice and the refusals. */
+  const screen = stripJs(read("apps/web/src/features/PatientPages.tsx"));
+  const jsxText = [...screen.matchAll(/>([^<>{}]*[A-Za-z][^<>{}]*)</g)].map((m) => m[1].trim()).filter((t) => t && !/^[\w.]+\s*(=>|&&|\?)/.test(t) && !/[;=()]/.test(t));
+  if (jsxText.length)
+    ppFail(`apps/web/src/features/PatientPages.tsx types words onto a screen: ${jsxText.map((t) => JSON.stringify(t)).join(", ")}. Every sentence is ${ppFile}'s or a knowledge entry's, read through apps/web/src/lib/patient-pages.ts.`);
+  if (!/review\.notice/.test(screen)) ppFail("apps/web/src/features/PatientPages.tsx no longer renders the review notice. The pages are unreviewed, and every one of them says so.");
+  if (!/\brefusals\b/.test(screen)) ppFail("apps/web/src/features/PatientPages.tsx no longer renders the contract's refusals beside the pages.");
+  if (!/from ['"]\.\.\/lib\/patient-pages['"]/.test(read("apps/web/src/features/PatientPages.tsx")))
+    ppFail("apps/web/src/features/PatientPages.tsx no longer reads its words through apps/web/src/lib/patient-pages.ts, the only place a derivation is joined to its source.");
+
+  /* 6. No page restates an emergency number; the pages open the emergency screen, which carries them. */
+  for (const file of ["apps/web/src/features/PatientPages.tsx", "apps/web/src/features/patient-pages.css", "apps/web/src/lib/patient-pages.ts"])
+    if (/\b(?:10177|112|10111)\b/.test(read(file)))
+      ppFail(`${file} restates an emergency number. A copy here is a copy that can drift from sos.json; the pages open the emergency screen instead.`);
+
+  /* 7. Behind a dynamic import, and the entry carries only the generated route names. */
+  const app = read("apps/web/src/App.tsx");
+  if (!/const PatientPagesView = lazy\(\(\) => import\('\.\/features\/PatientPages'\)/.test(app))
+    ppFail("apps/web/src/App.tsx no longer loads the patient pages on a dynamic import. A patient on metered data does not download eight screens and six knowledge files she has not opened.");
+  if (!/import \{ patientPagesHubRoute, patientPageRoutes \} from '\.\/lib\/patient-pages-routes\.generated'/.test(app))
+    ppFail("apps/web/src/App.tsx no longer reads the page names from patient-pages-routes.generated.ts, which is generated from the contract.");
+  if (!/patientPageNames\.includes\(page\)/.test(app) || !/\.\.\.patientPageNames/.test(app))
+    ppFail("apps/web/src/App.tsx no longer routes the patient pages by the contract's own names, or ?open= no longer opens them.");
+  for (const entry of ["apps/web/src/App.tsx", "apps/web/src/features/Pages.tsx", "apps/web/src/shells/PatientShell.tsx", "apps/web/src/main.tsx"])
+    if (/^import [^;]*from '[^']*(packages\/catalog\/patient-pages\.json|packages\/catalog\/knowledge\/|lib\/patient-pages'|features\/PatientPages')/m.test(read(entry)))
+      ppFail(`${entry} imports the patient pages, their contract or a knowledge file statically. Each is on the patient's first load, and a JSON module imported there is kept whole in the entry bundle; the router reads patient-pages-routes.generated.ts and the rest arrives on a dynamic import.`);
+
+  /* 8. The pages' motion: one finite entrance on the tokens, no blur, and a removal. */
+  const css = stripCss(read("apps/web/src/features/patient-pages.css"));
+  if (/\d(ms|s)\b(?![a-z-])/.test(css.replace(/var\([^)]*\)/g, "")))
+    ppFail("apps/web/src/features/patient-pages.css types a duration. Durations are var(--t-quick), var(--t-settle) and var(--t-enter), and multiples of them.");
+  if (/cubic-bezier|\bease-(in|out)\b|\blinear\b/.test(css))
+    ppFail("apps/web/src/features/patient-pages.css types a curve. There is one, var(--ease-soft).");
+  if (/filter\s*:\s*[^;]*blur|backdrop-filter/.test(css))
+    ppFail("apps/web/src/features/patient-pages.css blurs something. A blurred frame is a frame nobody can read, and the most expensive thing a mid-range phone can be asked to paint.");
+  const ppFrames = [...css.matchAll(/@keyframes\s+([\w-]+)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g)];
+  for (const [, name, body] of ppFrames)
+    for (const property of [...body.matchAll(/([a-z-]+)\s*:/g)].map((m) => m[1]))
+      if (!/^(transform|opacity)$/.test(property))
+        ppFail(`apps/web/src/features/patient-pages.css: @keyframes ${name} moves ${property}. Only transform and opacity move here.`);
+  if (/\[data-motion=['"]on['"]\][\s\S]*animation:/.test(css) === false)
+    ppFail("The pages' entrance is no longer gated on [data-motion='on']. Ungated, a card waits at opacity 0 for a script, and a reader who asked for stillness gets it too.");
+  const ppReduced = css.slice(css.indexOf("prefers-reduced-motion"));
+  if (!/@media\s*\(prefers-reduced-motion:\s*reduce\)/.test(css) || !/animation:\s*none\s*!important/.test(ppReduced))
+    ppFail("apps/web/src/features/patient-pages.css does not remove its motion under prefers-reduced-motion, with !important so a later sheet cannot put it back.");
+
+  console.log(
+    `Patient pages · the ${expected.length} pages of the full Lovable export's Phase D and their hub, unreviewed and saying so, no number the contracts do not hold, every derivation resolved against its file (${pp.screens["health-library"].tabs.length} library tabs, ${nutritionCount} nutrition entries, ${Math.min(d.communityHelplines.limit, helplines.length)} helplines), no typed sentence on any screen, no emergency number restated, behind one dynamic import with one finite entrance.`,
+  );
+}
+
 
 /* Landing and Control Tower motion — 28 September 2026 */
 /* The founder approved a shortlist from a motion reference for the public page — children rising in
