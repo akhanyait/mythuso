@@ -96,9 +96,31 @@
    focus at all the day somebody renames a token. A pill on a surface has no reason to be special. */
 
 /* ---- Marks ----
-   A marker is a real button: reachable by keyboard, nameable by a screen reader, and 44px of
-   target even though the dot inside it is 14. A canvas-drawn pin is none of those things, which is
-   why these are DOM even though drawing them on the GL layer would be cheaper. */
+   One colour per kind, written once. The schematic's SVG pin, the tile map's DOM marker and the
+   key beside the board all read `--pin`, so a nurse cannot be one green on streets and another on
+   the schematic, and the key cannot describe a colour that is no longer on the board — which is
+   exactly what happened when the three were three lists.
+
+   The vocabulary is the handoff's (packages/brand/lovable-handoff, theme.css: nurse-mapbox-pin,
+   --urgent, --selected, -clinic, -nurse), on this product's tokens rather than its hexes. A visit is
+   the handoff's pin — primary ink, urgent coral while it waits — and a nurse is the handoff's small
+   nurse dot with the accent for free and the muted foreground for busy. A blocked nurse is the one
+   departure from the handoff, and it is a shape rather than a colour: a hollow ring in the danger
+   colour, because a controller who cannot tell coral from green must still see that this nurse may
+   not be sent, and a ring survives a greyscale screen where a tint does not. Shape carries the other
+   difference too: a visit is a square and a nurse is a circle, on both renderings.
+
+   The handoff's location pulse — a ring that animates for ever — is not kept. Motion is the reader's
+   to refuse, and nothing on a board somebody works from all day should be moving on its own. */
+.map-pin.visit-waiting, .key-visit-waiting { --pin: var(--color-coral); }
+.map-pin.visit-assigned, .key-visit-assigned { --pin: var(--color-primary); }
+.map-pin.nurse-free, .key-nurse-free { --pin: var(--color-accent); }
+.map-pin.nurse-busy, .key-nurse-busy { --pin: var(--color-muted-foreground); }
+.map-pin.nurse-blocked, .key-nurse-blocked { --pin: var(--color-danger); }
+
+/* A marker on the tile map is a real button: reachable by keyboard, nameable by a screen reader,
+   and 44px of target however small the face inside it. A canvas-drawn pin is none of those things,
+   which is why these are DOM even though drawing them on the GL layer would be cheaper. */
 .map-marker {
  width: 44px;
  height: 44px;
@@ -110,23 +132,37 @@
  cursor: pointer;
 }
 
+/* The handoff's pin: a 2.25rem face with a two-pixel surface border and the raised shadow, that
+   settles rather than snaps when it is chosen. The duration and the curve are the motion tokens. */
 .map-marker::before {
  content: '';
- width: 14px;
- height: 14px;
+ box-sizing: border-box;
+ width: 2.25rem;
+ height: 2.25rem;
  border-radius: var(--r-pill);
- background: var(--marker);
- box-shadow: 0 0 0 3px var(--surface);
+ border: 2px solid var(--surface);
+ background: var(--pin);
+ box-shadow: var(--shadow-raised);
+ transition: box-shadow var(--motion-duration) var(--ease-soft), border-color var(--motion-duration) var(--ease-soft);
 }
 
-/* A visit is a square and a nurse is a circle. Colour alone never carries the difference: a
-   controller with a colour vision deficiency reads the same board as everyone else. */
+/* The handoff's clinic mark for a visit: a square on the medium radius. */
 .map-marker.visit-waiting::before,
-.map-marker.visit-assigned::before { border-radius: 3px; }
+.map-marker.visit-assigned::before { border-radius: var(--r-md); }
 
-.map-marker.nurse-blocked::before { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--danger); }
+/* The handoff's nurse dot: smaller, with the heavier border. */
+.map-marker.nurse-free::before,
+.map-marker.nurse-busy::before,
+.map-marker.nurse-blocked::before { width: 1.5rem; height: 1.5rem; border-width: 4px; }
 
-.map-marker.selected::before { width: 20px; height: 20px; }
+/* Blocked is a hollow ring: the surface inside, the danger colour as the border. */
+.map-marker.nurse-blocked::before { background: var(--surface); border-color: var(--pin); }
+
+/* The handoff's selected state: the highlight as the border and a soft ring of it outside. */
+.map-marker.selected::before {
+ border-color: var(--color-highlight);
+ box-shadow: 0 0 0 .35rem color-mix(in oklab, var(--color-highlight) 24%, transparent), var(--shadow-raised);
+}
 
 .map-marker:focus-visible { outline: none; }
 .map-marker:focus-visible::before { box-shadow: 0 0 0 3px var(--focus), 0 0 0 6px var(--focus-edge); }
@@ -176,21 +212,20 @@
    Keyed on the mark ids in packages/catalog/geography.json, which is also what the key beside the
    map is built from, so a pin and its legend cannot end up describing different things. They used
    to be a pair of composed class names in styles.css — `.map-pin.nurse.free` — and when the board
-   started reading the contract, every pin silently fell through to the same navy circle. Colour is
-   never the only difference: a nurse is a circle and a visit is a square, so the board reads the
-   same to somebody who cannot tell teal from amber. */
+   started reading the contract, every pin silently fell through to the same navy circle. The colour
+   is `--pin`, set per kind above for both renderings; a kind nobody has named falls to the muted
+   foreground rather than to nothing. Colour is never the only difference: a nurse is a circle and a
+   visit is a square, so the board reads the same to somebody who cannot tell coral from green. */
 .map-pin circle,
-.map-pin rect { fill: var(--faint); }
-.map-pin.nurse-free circle { fill: var(--teal-ink); }
-.map-pin.nurse-busy circle { fill: var(--faint); }
-.map-pin.nurse-blocked circle { fill: var(--danger); }
-.map-pin.visit-waiting rect { fill: var(--mango-ink); }
-.map-pin.visit-assigned rect { fill: var(--indigo); }
+.map-pin rect { fill: var(--pin, var(--color-muted-foreground)); }
+/* Blocked is hollow here too: the surface inside and the danger colour as the ring. */
+.map-pin.nurse-blocked > g > circle { fill: var(--surface); stroke: var(--pin); stroke-width: 1; }
 
-/* Scoped inside .map-pin deliberately: the ring is a child of the pin's group, so the base fill
-   above out-specifies a bare .map-focus and was painting the ring solid — which swallowed the pin
-   it was drawn to point at, and swallowed the nurse standing next to it. */
-.map-pin .map-focus { fill: none; stroke: var(--charcoal); stroke-width: .7; stroke-dasharray: 2 1.6; }
+/* The handoff's selected ring, in the square's units: the highlight, soft, outside the pin. Scoped
+   inside .map-pin deliberately: the ring is a child of the pin's group, so the base fill above
+   out-specifies a bare .map-focus and was painting the ring solid — which swallowed the pin it was
+   drawn to point at, and swallowed the nurse standing next to it. */
+.map-pin .map-focus { fill: color-mix(in oklab, var(--color-highlight) 24%, transparent); stroke: none; }
 
 /* A pin is a control, so it takes focus visibly. Two rings, as everywhere else: no single colour
    clears 3:1 against both a pale zone and a saturated one. */
@@ -225,14 +260,13 @@
 }
 
 /* ---- The key ----
-   One swatch per mark in the contract, sharing the pins' colours and the pins' shapes: round for a
-   nurse, square for a visit. The old key was five hand-written spans in Dispatch.tsx with their own
-   class names, which is how it came to be describing a green that no longer existed. */
-.key-nurse-free { background: var(--teal-ink); }
-.key-nurse-busy { background: var(--faint); }
-.key-nurse-blocked { background: var(--danger); }
-.key-visit-waiting { background: var(--mango-ink); border-radius: 2px !important; }
-.key-visit-assigned { background: var(--indigo); border-radius: 2px !important; }
+   One swatch per mark in the contract, reading the same `--pin` as the pins and sharing their
+   shapes: round for a nurse, square for a visit, hollow for a nurse who may not be sent. The old key
+   was five hand-written spans in Dispatch.tsx with their own class names, which is how it came to be
+   describing a green that no longer existed. */
+.key-nurse-free, .key-nurse-busy, .key-visit-waiting, .key-visit-assigned { background: var(--pin); }
+.key-nurse-blocked { background: var(--surface); box-shadow: inset 0 0 0 3px var(--pin); }
+.key-visit-waiting, .key-visit-assigned { border-radius: 2px !important; }
 
 /* ---- The line an estimate was measured along ----
    Dashed, hairline, and drawn straight through whatever is between the two suburbs — which is the
@@ -255,6 +289,7 @@
 .livemap-canvas.schematic { background: var(--studio-paper, var(--mist)); }
 .livemap-canvas.schematic .map-ground { fill: var(--studio-paper, var(--mist)); }
 .map-pin > g > circle, .map-pin > g > rect { stroke: var(--surface); stroke-width: .6; paint-order: stroke; }
+.map-pin.selected > g > circle, .map-pin.selected > g > rect { stroke: var(--color-highlight); }
 .map-pin > g:focus-visible > circle, .map-pin > g:focus-visible > rect { stroke: var(--focus); stroke-width: 1.6; }
 
 /* The press target under a pin that can be pressed (LiveMap.tsx, Mark): transparent, unstroked, and

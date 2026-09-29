@@ -506,3 +506,6 @@ DELETE /v1/founder/providers/{card}/key@1 919f4b4966bfe8d9
 POST /v1/founder/providers/{card}/enabled@1 82c839da43a784ca
 POST /v1/founder/providers/{card}/test@1 8abbfb7aaba1e0d5
 GET /v1/founder/providers/{card}/logs@1 4ed9dfa8dbeedc06
+POST /v1/clinical/cases@1 ed0ff6eaff3f6768
+GET /v1/clinical/cases/{caseRef}@1 d636e564ef581354
+POST /v1/clinical/cases/{caseRef}/setting@1 145efbf9cbbc8a29

@@ -26,7 +26,8 @@ object ProtocolsData {
         Entry("infection-control-and-sharps", "Infection control and sharps", "care", 1, "draft"),
         Entry("emergency-escalation-and-referral", "Emergency escalation and referral", "safety", 1, "draft"),
         Entry("device-use-and-ai-result-handling", "Device use and AI result handling", "devices", 1, "draft"),
-        Entry("safeguarding-and-mandatory-reporting", "Safeguarding and mandatory reporting", "safety", 1, "draft")
+        Entry("safeguarding-and-mandatory-reporting", "Safeguarding and mandatory reporting", "safety", 1, "draft"),
+        Entry("headache-raised-blood-pressure-pathway", "Headache with raised blood pressure — preview pathway", "clinical", 1, "draft")
     )
 
     val refusals = listOf(

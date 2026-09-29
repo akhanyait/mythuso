@@ -444,7 +444,10 @@ test('POST /v1/core/events@1 refuses a caller publishing an event it does not ow
 test('GET /v1/core/protocols/{protocolVersionId}@1 reads one row of the registry: every protocol today answers draft with no content, and a version the registry does not hold is refused', () => {
  const { runtime } = world();
  const asDoctor = (protocolVersionId: string) => runtime.call(PROTOCOL_READ, { role: 'doctor', ref: 'D-401', purpose: 'treatment', fields: { protocolVersionId } });
- assert.ok(protocolVersions.length > 0 && protocolVersions.every(p => p.status === 'draft' && p.contentRef === null), 'sanity: the registry is twelve drafts with no content, as protocols.json says it is');
+ /* Every row is a draft. Since 29 September 2026 one draft — the preview pathway — carries a contentRef that cites
+    a section of packages/catalog/case.json (protocols.json _previewPathways); the twelve launch protocols carry none. */
+ assert.ok(protocolVersions.length > 0 && protocolVersions.every(p => p.status === 'draft'), 'sanity: every protocol in the registry is a draft, as protocols.json says it is');
+ assert.ok(protocolVersions.every(p => p.contentRef === null || /preview pathway/i.test(p.name)), 'sanity: the only draft with content is a preview pathway, which cites and types no number');
  const first = protocolVersions[0]!;
  const read = asDoctor(`${first.id}@${first.version}`);
  assert.equal(read.status, 200, JSON.stringify(read.body));

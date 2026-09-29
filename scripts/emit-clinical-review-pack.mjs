@@ -615,9 +615,32 @@ export function emitClinicalReviewPack(root = '') {
   line('|---|---|---|');
   for (const q of intake.common.questions) line(`| ${cell(q.ask)} (${tick(q.id)}) | ${cell(q.kind)} | ${cell((q.options ?? []).join('; '))} |`);
   line();
+  /* A group derived from the knowledge base (29 September 2026) prints its derivation: the entries it
+     draws on, and beside each question the entries that question distinguishes — or the reason it is
+     kept with none — so the reviewer reads where every question came from rather than only what it asks. */
+  const conditions = JSON.parse(readFileSync(new URL('../packages/catalog/knowledge/conditions.json', import.meta.url), 'utf8'));
+  const titleOf = id => conditions.find(c => c.id === id)?.title ?? id;
   for (const g of intake.groups) {
    line(`**${cell(g.name)}** (${tick(g.id)}) — opened by: ${g.triggers.map(t => tick(t)).join(', ')}`);
    line();
+   if (Array.isArray(g.questionsFrom)) {
+    line(`Derived from the knowledge base entries that list headache: ${g.questionsFrom.map(id => `${cell(titleOf(id))} (${tick(id)})`).join(', ')}. ${cell(g.questionsFromWhy)}`);
+    line();
+    line('| Question | Kind | Options | Draws on |');
+    line('|---|---|---|---|');
+    for (const q of g.questions) line(`| ${cell(q.ask)} (${tick(q.id)}) | ${cell(q.kind)} | ${cell((q.options ?? []).join('; '))} | ${q.drawsOn ? q.drawsOn.map(id => `${cell(titleOf(id))} (${tick(id)})`).join(', ') : `*None.* ${cell(q.keptBecause ?? '')}`} |`);
+    line();
+    const caseContract = json('case.json');
+    line(`What the answers are consistent with is worked out for the nurse in \`packages/catalog/case.json\` (never shown to the patient), in the wording clinical.json holds every patient-facing sentence to: "${cell(caseContract.findings.sentence)}"`);
+    line();
+    line('| Finding | Behind it | Needs | Never with |');
+    line('|---|---|---|---|');
+    for (const r of caseContract.findings.rules) line(`| ${cell(r.pattern)} (${tick(r.id)}) | ${r.conditionIds.map(id => `${cell(titleOf(id))} (${tick(id)})`).join(', ')} | ${r.atLeast} of ${r.anyOf.map(tick).join(', ')} | ${(r.noneOf ?? []).map(tick).join(', ') || '—'} |`);
+    line();
+    line(`Never questions, because an answer naming one is answered by the emergency words first: ${caseContract.findings.emergencyFeatures.list.map(tick).join(', ')}. ${cell(caseContract.findings.emergencyFeatures.why)}`);
+    line();
+    continue;
+   }
    line('| Question | Kind | Options |');
    line('|---|---|---|');
    for (const q of g.questions) line(`| ${cell(q.ask)} (${tick(q.id)}) | ${cell(q.kind)} | ${cell((q.options ?? []).join('; '))} |`);

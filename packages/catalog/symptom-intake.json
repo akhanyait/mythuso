@@ -1,8 +1,12 @@
 {
   "_note": "Symptom intake: the set questions GilbertOne asks when a patient says what is wrong, as data, so the answers reach the nurse who comes. Not triage. It sets no priority, names no cause, gives no advice; it is a structured set of notes the patient answers for the nurse, one question per turn, every sentence read from here. packages/gilbertone/src/intake.ts reads it and scripts/check-boundaries.mjs holds it; no phone renders it yet — see platforms.",
-  "version": 1,
+  "version": 2,
   "decidedBy": "Founder",
   "on": "2026-09-28",
+  "changelog": [
+    { "version": 1, "on": "2026-09-28", "what": "The set questions, eleven groups." },
+    { "version": 2, "on": "2026-09-29", "what": "The headache group derived from the knowledge base: questionsFrom and drawsOn, ten questions of its own, and the flow fixture answering them. Read by packages/catalog/case.json for what the answers are consistent with." }
+  ],
   "why": "The founder's ask of 28 September 2026: a patient told GilbertOne she had a headache and it could not answer her. GilbertOne does not do diagnosis, but it needs to ask the pertinent questions, so that those questions can be taken to the nurse assigned to the patient — so that when the nurse sees the patient, all of those key questions have already been asked by the bot. Deterministic, predefined questions.",
   "whatItIsNot": [
     "GilbertOne will not say what is causing this. A nurse or a doctor decides that.",
@@ -51,24 +55,78 @@
       "id": "headache",
       "name": "Headache",
       "triggers": ["headache", "headaches", "head is sore", "head hurts", "sore head", "head pain", "migraine", "pain in my head"],
+      "questionsFrom": ["cond-002", "cond-008", "cond-024", "cond-025", "cond-041", "cond-043", "cond-062"],
+      "questionsFromWhy": "Since 29 September 2026 the headache questions are derived from the knowledge base rather than written: questionsFrom names every entry in packages/catalog/knowledge/conditions.json that lists headache among its symptoms, each question names the entries it draws on in drawsOn, and the build holds both lists to each other — every question drawn from an entry, every entry drawn on. A question the base has no entry for says so in keptBecause instead, for the reviewer. Emergency features (a stiff neck, a rash that does not fade, weakness on one side, confusion, the worst headache ever) are never questions: an answer that names one is answered by the emergency words before the intake reads it, and packages/catalog/case.json findings.emergencyFeatures lists them so the build can refuse a question that offers one. What the answers are consistent with is worked out in case.json, for the nurse, never here and never for the patient.",
       "questions": [
         {
           "id": "where",
           "ask": "Where in your head is it?",
           "kind": "chips",
-          "options": ["Front", "Back", "One side", "All over", "Behind my eyes"]
+          "options": ["Front", "Back", "One side", "All over", "Behind my eyes"],
+          "drawsOn": ["cond-024", "cond-025"]
         },
         {
-          "id": "light-noise-sight",
-          "ask": "Is light or noise bothering you, or has anything changed with your sight?",
+          "id": "light-noise",
+          "ask": "Is light or noise bothering you?",
           "kind": "chips",
-          "options": ["Light bothers me", "Noise bothers me", "My sight has changed", "More than one of these", "None of these"]
+          "options": ["Light bothers me", "Noise bothers me", "Both", "Neither"],
+          "drawsOn": ["cond-024", "cond-043"]
+        },
+        {
+          "id": "sick",
+          "ask": "Have you felt sick or vomited with it?",
+          "kind": "chips",
+          "options": ["Felt sick", "Vomited", "Both", "Neither"],
+          "drawsOn": ["cond-024", "cond-041", "cond-043"]
+        },
+        {
+          "id": "sight",
+          "ask": "Has anything changed with your sight?",
+          "kind": "chips",
+          "options": ["Yes", "No"],
+          "drawsOn": ["cond-008", "cond-024"]
+        },
+        {
+          "id": "dizzy",
+          "ask": "Have you felt dizzy with it?",
+          "kind": "chips",
+          "options": ["Yes", "No"],
+          "drawsOn": ["cond-008"]
+        },
+        {
+          "id": "nosebleeds",
+          "ask": "Have you had any nosebleeds lately?",
+          "kind": "chips",
+          "options": ["Yes, in the last week", "Yes, longer ago", "No"],
+          "drawsOn": ["cond-008"]
+        },
+        {
+          "id": "fever-chills",
+          "ask": "Is there fever, chills or a sore throat with it?",
+          "kind": "chips",
+          "options": ["Fever", "Chills", "Sore throat", "More than one of these", "None of these"],
+          "drawsOn": ["cond-002", "cond-041", "cond-043", "cond-062"]
+        },
+        {
+          "id": "malaria-area",
+          "ask": "Have you been in a malaria area in the last few weeks?",
+          "kind": "chips",
+          "options": ["Yes", "No", "Not sure"],
+          "drawsOn": ["cond-041"]
         },
         {
           "id": "knock",
           "ask": "Have you had a knock or a fall onto your head recently?",
           "kind": "chips",
-          "options": ["Yes", "No"]
+          "options": ["Yes", "No"],
+          "keptBecause": "Kept from version one. The knowledge base has no entry for a head injury, so no condition is named behind it; a nurse looks at a knock in person, and the reviewer is asked whether the base should gain the entry or the question should go."
+        },
+        {
+          "id": "blood-pressure",
+          "ask": "Do you know your usual blood pressure, or are you on pills for it?",
+          "kind": "chips",
+          "options": ["I am on pills for blood pressure", "I know my usual blood pressure", "Both", "Neither"],
+          "drawsOn": ["cond-008"]
         }
       ]
     },
@@ -372,8 +430,8 @@
     ],
     "flow": {
       "group": "headache",
-      "answers": ["A few days", "Uncomfortable", "Worse in the afternoon", "Nothing", "None that I know of", "Front", "Light bothers me", "No"],
-      "rows": 8
+      "answers": ["A few days", "Uncomfortable", "Worse in the afternoon", "Nothing", "None that I know of", "One side", "Light bothers me", "Neither", "No", "Yes", "Yes, in the last week", "None of these", "No", "No", "I am on pills for blood pressure"],
+      "rows": 15
     }
   }
 }

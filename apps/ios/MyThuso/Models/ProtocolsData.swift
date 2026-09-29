@@ -27,7 +27,8 @@ enum ProtocolsData {
         Entry(id: "infection-control-and-sharps", name: "Infection control and sharps", engine: "care", version: 1, status: "draft"),
         Entry(id: "emergency-escalation-and-referral", name: "Emergency escalation and referral", engine: "safety", version: 1, status: "draft"),
         Entry(id: "device-use-and-ai-result-handling", name: "Device use and AI result handling", engine: "devices", version: 1, status: "draft"),
-        Entry(id: "safeguarding-and-mandatory-reporting", name: "Safeguarding and mandatory reporting", engine: "safety", version: 1, status: "draft")
+        Entry(id: "safeguarding-and-mandatory-reporting", name: "Safeguarding and mandatory reporting", engine: "safety", version: 1, status: "draft"),
+        Entry(id: "headache-raised-blood-pressure-pathway", name: "Headache with raised blood pressure — preview pathway", engine: "clinical", version: 1, status: "draft")
     ]
 
     static let refusals: [Refusal] = [

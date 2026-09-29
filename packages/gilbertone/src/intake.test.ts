@@ -3,8 +3,12 @@ import assert from "node:assert/strict";
 import {
   answerIntake,
   beginIntake,
+  caseWords,
   currentQuestion,
+  featuresFor,
+  findingsFor,
   intakeConsent,
+  intakeGroupHasPathway,
   intakeContract,
   intakeGroupFor,
   intakeReviewSentence,
@@ -137,4 +141,42 @@ test("consent is the contract's own words, whole message; a group nothing declar
 test("nobody clinical has reviewed the questions, and the sentence says so rather than hiding it", () => {
   assert.equal(intakeContract.review.reviewedBy, null);
   assert.equal(intakeReviewSentence(), intakeContract.review.unreviewed);
+});
+
+/* The pathway's findings (29 September 2026): worked out from packages/catalog/case.json's features and
+   rules, in the contract's "consistent with" form, never a diagnosis, and never from free text. */
+test("the flow fixture's answers set features and findings from case.json, each naming its condition ids, in the consistent-with form", () => {
+  const flow = intakeContract.fixtures.flow;
+  let state = beginIntake(flow.group);
+  for (const answer of flow.answers) {
+    const next = answerIntake(state, answer);
+    assert.equal(next.kind, "intake");
+    if (next.kind !== "intake") return;
+    state = next;
+  }
+  const features = featuresFor(state).map((f) => f.id);
+  assert.ok(features.includes("one-side") && features.includes("dizzy") && features.includes("nosebleed") && features.includes("known-hypertension"));
+  const findings = findingsFor(state);
+  assert.ok(findings.some((f) => f.id === "raised-blood-pressure" && f.conditionIds.includes("cond-008")));
+  for (const finding of findings) {
+    assert.ok(finding.conditionIds.length >= 1, `${finding.id} names the condition ids behind it`);
+    assert.ok(/consistent with/.test(finding.sentence) && !/you have/i.test(finding.sentence), finding.sentence);
+    assert.equal(finding.sentence, caseWords.findings.sentence.replace("{pattern}", caseWords.findings.rules.find((r) => r.id === finding.id)!.pattern).replace("{features}", new Intl.ListFormat("en-GB", { type: "conjunction" }).format(finding.features)));
+  }
+});
+
+test("a typed answer to a chips question sets no feature, so no finding is ever read into free text", () => {
+  let state = beginIntake("headache");
+  const dizzy = questionsFor("headache").findIndex((q) => q.id === "dizzy");
+  for (let i = 0; i < dizzy; i++) {
+    const next = answerIntake(state, "something typed");
+    if (next.kind !== "intake") return;
+    state = next;
+  }
+  const next = answerIntake(state, "yes I think I was dizzy");
+  assert.equal(next.kind, "intake");
+  if (next.kind !== "intake") return;
+  assert.equal(featuresFor(next).some((f) => f.id === "dizzy"), false);
+  assert.equal(intakeGroupHasPathway("headache"), true);
+  assert.equal(intakeGroupHasPathway("stomach"), false);
 });

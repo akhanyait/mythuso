@@ -146,3 +146,7 @@ safeguarding.reported@2 dd815e1078ecb860
 clinical.review_queue.entry_proposed@1 aefb50e31fc28c23
 clinical.review_queue.entry_ratified@1 ad8d729451cbd821
 clinical.review_queue.entry_rejected@1 a4b38b124b257420
+case.opened@1 97d4d31de79fac05
+case.closed@1 af3d889b72736c09
+case.setting_decided@1 9fdaca3a238bb110
+case.handed_over@1 3951e6f0de52904b

@@ -100,8 +100,11 @@ const readingsHeading = 'Readings on record';
    one after another on the tokens, and not at all for a reader who asked for stillness. `line` is the
    teleconsultation's connection ladder, handed in by the call rather than imported from it, because the
    call already imports this file. */
-export function ConsultationComposer({ reference = 'TH-2048', patient = 'Lerato Molefe', seed, readings = [], writer: initialWriter, title = 'Consultation record', line, onClose }:
- { reference?: string; patient?: string; seed?: ConsultationDraft; readings?: SeededObservation[]; writer?: string; title?: string; line?: ReactNode; onClose?: () => void }) {
+/* `onSign` (29 September 2026): the case pathway's doctor signs through the Clinical domain as well as here,
+   so the composer asks the caller first and shows a signature only when the caller says the sign-off
+   stood — a refused sign-off (a required heading missing, no outcome recorded) leaves the draft a draft. */
+export function ConsultationComposer({ reference = 'TH-2048', patient = 'Lerato Molefe', seed, readings = [], writer: initialWriter, title = 'Consultation record', line, onClose, onSign }:
+ { reference?: string; patient?: string; seed?: ConsultationDraft; readings?: SeededObservation[]; writer?: string; title?: string; line?: ReactNode; onClose?: () => void; onSign?: (record: ConsultationDraft) => boolean }) {
  const [writerId, setWriterId] = useState(initialWriter ?? writers[0].id);
  const [view, setView] = useState<'record' | 'soap' | 'read'>('record');
  const [record, setRecord] = useState<ConsultationDraft>(seed ?? {});
@@ -296,7 +299,7 @@ export function ConsultationComposer({ reference = 'TH-2048', patient = 'Lerato 
    <div className="button-row">
     {onClose && <Button variant="secondary" onClick={onClose}>Close</Button>}
     <Button variant="primary" disabled={!mayWrite.allowed || outstanding.length > 0} leadingIcon={<Check aria-hidden="true"/>}
-     onClick={() => setSignature({ name: writer.name, reference: writer.reference, role: role?.name ?? '—', at: new Date().toISOString(), diagnosis: mayDiagnose && !!value(assessmentFields.diagnosis) })}>
+     onClick={() => { if (onSign && !onSign(record)) return; setSignature({ name: writer.name, reference: writer.reference, role: role?.name ?? '—', at: new Date().toISOString(), diagnosis: mayDiagnose && !!value(assessmentFields.diagnosis) }); }}>
      Sign consultation
     </Button>
    </div>

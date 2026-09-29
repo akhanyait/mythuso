@@ -116,6 +116,9 @@ object ApisData {
     val POST_CLINICAL_REVIEW_QUEUE_BY_ENTRY_REF_REVIEW = Route("postClinicalReviewQueueByEntryRefReview", "POST", "/v1/clinical/review-queue/{entryRef}/review", "/v1/clinical/review-queue/{entryRef}/review", 1, "clinical", listOf("doctor"), listOf("audit"), true, "proposed")
     val POST_CLINICAL_REVIEW_QUEUE_BY_ENTRY_REF_SIGN = Route("postClinicalReviewQueueByEntryRefSign", "POST", "/v1/clinical/review-queue/{entryRef}/sign", "/v1/clinical/review-queue/{entryRef}/sign", 1, "clinical", listOf("doctor"), listOf("audit", "treatment"), true, "proposed")
     val POST_CLINICAL_REVIEW_QUEUE_BY_ENTRY_REF_ROLLBACK = Route("postClinicalReviewQueueByEntryRefRollback", "POST", "/v1/clinical/review-queue/{entryRef}/rollback", "/v1/clinical/review-queue/{entryRef}/rollback", 1, "clinical", listOf("doctor", "nurse"), listOf("audit", "treatment"), true, "proposed")
+    val POST_CLINICAL_CASES = Route("postClinicalCases", "POST", "/v1/clinical/cases", "/v1/clinical/cases", 1, "clinical", listOf("patient"), listOf("treatment"), false, "proposed")
+    val GET_CLINICAL_CASES_BY_CASE_REF = Route("getClinicalCasesByCaseRef", "GET", "/v1/clinical/cases/{caseRef}", "/v1/clinical/cases/{caseRef}", 1, "clinical", listOf("patient", "nurse", "doctor"), listOf("treatment"), false, "proposed")
+    val POST_CLINICAL_CASES_BY_CASE_REF_SETTING = Route("postClinicalCasesByCaseRefSetting", "POST", "/v1/clinical/cases/{caseRef}/setting", "/v1/clinical/cases/{caseRef}/setting", 1, "clinical", listOf("nurse"), listOf("treatment"), false, "proposed")
     val GET_SAFETY_CHECKINS = Route("getSafetyCheckins", "GET", "/v1/safety/checkins", "/v1/safety/checkins", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), false, "built")
     val POST_SAFETY_CHECKINS_BY_CHECKIN_REF_EXTEND_V2 = Route("postSafetyCheckinsByCheckinRefExtendV2", "POST", "/v1/safety/checkins/{checkinRef}/extend", "/v1/safety/checkins/{checkinRef}/extend", 2, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "built")
     val POST_SAFETY_CHECKINS_BY_CHECKIN_REF_SAFE = Route("postSafetyCheckinsByCheckinRefSafe", "POST", "/v1/safety/checkins/{checkinRef}/safe", "/v1/safety/checkins/{checkinRef}/safe", 1, "safety", listOf("nurse", "locum", "responder"), listOf("dispatch"), true, "built")
@@ -390,6 +393,9 @@ object ApisData {
         POST_CLINICAL_REVIEW_QUEUE_BY_ENTRY_REF_REVIEW,
         POST_CLINICAL_REVIEW_QUEUE_BY_ENTRY_REF_SIGN,
         POST_CLINICAL_REVIEW_QUEUE_BY_ENTRY_REF_ROLLBACK,
+        POST_CLINICAL_CASES,
+        GET_CLINICAL_CASES_BY_CASE_REF,
+        POST_CLINICAL_CASES_BY_CASE_REF_SETTING,
         GET_SAFETY_CHECKINS,
         POST_SAFETY_CHECKINS_BY_CHECKIN_REF_EXTEND_V2,
         POST_SAFETY_CHECKINS_BY_CHECKIN_REF_SAFE,
@@ -1350,6 +1356,51 @@ object ApisData {
         val entryRef: String,
         val rollbackRef: String,
         val stateCode: String
+    )
+    data class PostClinicalCasesRequest(
+        val subjectRef: String,
+        val groupId: String,
+        val intakeEntryRef: String,
+        val readingRefs: List<String>,
+        val emergencyEnded: Boolean
+    )
+    data class PostClinicalCasesResponse(
+        val caseRef: String,
+        val stateCode: String,
+        val protocolVersionId: String,
+        val protocolRatified: Boolean,
+        val suggestedSettingCode: String,
+        val suggestionRuleId: String
+    )
+    data class GetClinicalCasesByCaseRefRequest(
+        val caseRef: String
+    )
+    data class GetClinicalCasesByCaseRefResponse(
+        val caseRef: String,
+        val subjectRef: String,
+        val stateCode: String,
+        val groupId: String,
+        val intakeEntryRef: String,
+        val readingRefs: List<String>,
+        val patternIds: List<String>,
+        val protocolVersionId: String,
+        val protocolRatified: Boolean,
+        val suggestedSettingCode: String,
+        val suggestionRuleId: String,
+        val decisions: List<Map<String, Any?>>,
+        val consultationRef: String,
+        val outcomeCode: String
+    )
+    data class PostClinicalCasesByCaseRefSettingRequest(
+        val caseRef: String,
+        val settingCode: String,
+        val reason: String? = null
+    )
+    data class PostClinicalCasesByCaseRefSettingResponse(
+        val caseRef: String,
+        val stateCode: String,
+        val overrode: Boolean,
+        val decidedAt: String
     )
     data class GetSafetyCheckinsRequest(
         val appointmentRef: String

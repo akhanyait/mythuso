@@ -137,3 +137,4 @@ GET /v1/founder/settings@1 528a4a2bc2474852
 POST /v1/founder/settings/changes@1 b42f340b268f4a70
 GET /v1/founder/providers@1 4e5c7ad7671ace9b
 GET /v1/founder/providers/{card}/logs@1 e27275675a200335
+GET /v1/clinical/cases/{caseRef}@1 5b4e0e9011b203e8

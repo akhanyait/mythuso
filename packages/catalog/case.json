@@ -1,0 +1,299 @@
+{
+ "_note": "The Case: what GilbertOne gathers from a patient's symptom intake, where a preview pathway suggests the patient is seen, the nurse's decision, the doctor's consultation, and the sentences every screen reads. Under the Clinical engine. NOT triage: clinical.json refuses triage without a ratified protocol and protocols.json refuses a seeded sign-off, so this file is a draft pathway that suggests and a nurse confirms, with the draft named on every screen that shows the pathway. The patient sees only their own answers, their reading with its source, and who has the case — never a finding and never the suggestion. Every number the pathway uses is a citation: the indicative ranges are records.json#observations and the very-high line is the one cond-008 gives in packages/catalog/knowledge/conditions.json; scripts/emit-case.mjs derives both and scripts/check-boundaries.mjs holds this file to typing none. Nothing here is a real service: no case reaches a nurse, no reading reaches a record, no plan reaches a patient.",
+ "version": 1,
+ "engine": "clinical",
+ "api": "packages/catalog/apis/clinical.json",
+ "decidedBy": "Founder",
+ "on": "2026-09-29",
+ "why": "The founder's ask of 28 and 29 September 2026, in their words: \"when I demo the system I can show how it will respond, escalate to treatment. Maybe we can choose one thing like headache and we link it to a high blood pressure which then gets escalated to a nurse and then the doctor … GilbertOne … able to pull all data from a patient for ease of the nurse … determine a case if it will need online or physical treatment\"; and \"there were … live triage features there, please wire all those features and make them work\". The honest design is a Case that GilbertOne gathers, a nurse who decides where the patient is seen, and a doctor who decides what it is.",
+ "whatItIsNot": [
+  "This is not triage. No priority is set, no time to treatment is given, and nothing here runs under a ratified protocol.",
+  "The pathway suggests where a patient might be seen. A nurse decides, and may choose differently with a reason.",
+  "A finding is consistent with something, for a clinician to confirm. It is never a diagnosis, and it is never shown to the patient.",
+  "A reading from the patient's own cuff, or a simulated one, carries no clinical weight. Only a kit instrument's reading does, by the rule in packages/catalog/devices.json."
+ ],
+
+ "states": [
+  { "code": "gathering", "label": "Gathering", "why": "GilbertOne is asking the intake's questions. Nothing is a case yet: the notes are on the patient's screen and nowhere else." },
+  { "code": "opened", "label": "Opened", "why": "The notes are complete and the patient asked for a nurse to look at them. The case is on the nurses' list and nobody has read it." },
+  { "code": "with-nurse", "label": "With a nurse", "why": "A nurse took the case. She reads the answers, the findings and the readings, and decides where the patient is seen." },
+  { "code": "home-visit", "label": "Home visit today", "why": "The nurse decided on a home visit. The Care engine hears case.setting_decided@1 and books it; nothing here dispatches anybody." },
+  { "code": "online", "label": "Video consultation", "why": "The nurse decided on a video consultation with a doctor." },
+  { "code": "self-care", "label": "Self-care with a call back", "why": "The nurse decided the patient can look after this at home, with a call back. A nurse decided it; the pathway only suggested it." },
+  { "code": "with-doctor", "label": "With a doctor", "why": "The nurse asked a doctor to look at the case. It is in the clinical inbox, and the doctor writes the consultation." },
+  { "code": "closed", "label": "Closed", "why": "The doctor signed the consultation and the plan. The patient reads the plan in the doctor's own words." },
+  { "code": "emergency", "label": "Emergency", "why": "From any state. An emergency word was said, or the very-high line was crossed with a warning feature: the emergency answer stands, the numbers are shown, the microphone closes, and the case is kept rather than deleted." }
+ ],
+ "transitions": [
+  { "from": "gathering", "to": ["opened", "emergency"] },
+  { "from": "opened", "to": ["with-nurse", "emergency"] },
+  { "from": "with-nurse", "to": ["home-visit", "online", "self-care", "emergency"] },
+  { "from": "home-visit", "to": ["with-doctor", "emergency"] },
+  { "from": "online", "to": ["with-doctor", "emergency"] },
+  { "from": "self-care", "to": ["with-doctor", "closed", "emergency"] },
+  { "from": "with-doctor", "to": ["closed", "emergency"] },
+  { "from": "closed", "to": [] },
+  { "from": "emergency", "to": [] }
+ ],
+
+ "settings": {
+  "why": "Where a patient is seen, in the four words the pathway suggests and a nurse decides between. Each is mapped onto clinical.json#guidance's four outcomes, which are the only outcome names this codebase has: the mapping is written here once so the doctor's outcome and the nurse's setting cannot be two vocabularies.",
+  "kinds": [
+   { "code": "emergency", "label": "Emergency", "guidanceOutcomeCode": "emergency", "detail": "The emergency answer, with the numbers. Not a booking." },
+   { "code": "home-visit", "label": "A home visit today", "guidanceOutcomeCode": "urgent", "detail": "A nurse at the door today, with a kit instrument to repeat the reading." },
+   { "code": "online", "label": "A video consultation", "guidanceOutcomeCode": "see-a-nurse", "detail": "A doctor on a call, with the case file open." },
+   { "code": "self-care", "label": "Self-care with a call back", "guidanceOutcomeCode": "self-care", "detail": "Looked after at home, and a call back to check." }
+  ]
+ },
+
+ "pathway": {
+  "protocolVersionId": "headache-raised-blood-pressure-pathway@1",
+  "name": "Headache with raised blood pressure — preview pathway",
+  "statusFrom": "packages/catalog/protocols.json",
+  "why": "One complaint, wired end to end so the founder can demonstrate the product responding and escalating: a headache, linked by the knowledge base to raised blood pressure, suggested for a nurse, confirmed by her, and handed to a doctor. It is registered in packages/catalog/protocols.json as a draft, because no clinical governance board has ratified it, and the draft banner below is read on every screen that shows it.",
+  "bands": {
+   "in-range": { "from": "packages/catalog/records.json#observations.measures", "measures": ["systolic", "diastolic"], "why": "Inside both indicative ranges. The ranges are the record's, and records.json's own note says they are indicative and not a validated early-warning score." },
+   "above": { "why": "Either number above its indicative high. Not a grade and not a word about the patient: which paragraph of the pathway applies." },
+   "below": { "why": "Either number below its indicative low." },
+   "very-high": { "from": "packages/catalog/knowledge/conditions.json#cond-008.whenToSeeDoctor", "reads": "the one top-over-bottom pair that sentence gives for urgent care", "why": "The knowledge base's own line, read out of its sentence by scripts/emit-case.mjs rather than typed here, so the line and the sentence a nurse reads cannot disagree. At or above either number." }
+  },
+  "rules": {
+   "why": "In order; the first that matches is the suggestion. The suggestion is made once, when the case opens, from what the patient gave, and is never remade: a nurse's repeat of the reading is recorded beside it, and her decision stands against the suggestion she was shown.",
+   "order": [
+    { "id": "emergency-words", "settingCode": "emergency", "when": { "emergency": true }, "reason": "The intake ended on an emergency word. The emergency answer was given first and still stands." },
+    { "id": "very-high-with-warning", "settingCode": "emergency", "when": { "band": ["very-high"], "anyFeatureKind": "red-flag" }, "reason": "The reading is at or above the line the knowledge base gives for urgent care, with {features}." },
+    { "id": "above-range-with-blood-pressure-feature", "settingCode": "home-visit", "when": { "band": ["above", "very-high"], "anyFeatureKind": "blood-pressure" }, "reason": "The reading is above the indicative range, and the notes carry {features}, which the knowledge base links to blood pressure. A nurse repeats the reading on a kit instrument at the door." },
+    { "id": "unweighted-reading-out-of-range", "settingCode": "home-visit", "when": { "band": ["above", "very-high", "below"], "weightless": true }, "reason": "The reading came from {source} and carries no clinical weight, so it is repeated on a kit instrument at the door before anybody acts on it." },
+    { "id": "injury-or-fever-cluster", "settingCode": "home-visit", "when": { "anyFeatureKind": "at-the-door" }, "reason": "The notes carry {features}, which a nurse looks at in person." },
+    { "id": "pattern-in-range", "settingCode": "online", "when": { "band": ["in-range", "none"], "anyFeatureKind": "pattern" }, "reason": "The notes carry {features}, a pattern for a doctor to see, and the reading is in range or there is none." },
+    { "id": "mild-short-in-range", "settingCode": "self-care", "when": { "band": ["in-range", "none"], "allFeatures": ["mild", "short"] }, "reason": "Mild, recent, and the reading is in range or there is none. A call back checks it did not change." }
+   ],
+   "fallback": { "id": "nothing-matched", "settingCode": "online", "reason": "None of the pathway's patterns matched. A doctor on a call decides." }
+  }
+ },
+
+ "features": {
+  "why": "What an answer means to the pathway, by the option the patient chose. Each feature names the question and the options that set it, the words the reasons and findings use for it, and its kinds: blood-pressure and pattern feed the suggestion, red-flag is what turns a very-high reading into the emergency answer (cond-008's own list: severe headache, vision changes), at-the-door is what a nurse looks at in person. A typed answer to a chips question sets no feature.",
+  "list": [
+   { "id": "severe", "questionId": "how-bad", "options": ["Severe"], "label": "a severe headache", "kinds": ["red-flag"] },
+   { "id": "mild", "questionId": "how-bad", "options": ["Mild"], "label": "a mild headache", "kinds": [] },
+   { "id": "short", "questionId": "since", "options": ["Today", "A few days"], "label": "started recently", "kinds": [] },
+   { "id": "one-side", "questionId": "where", "options": ["One side"], "label": "pain on one side", "kinds": ["pattern"] },
+   { "id": "all-over", "questionId": "where", "options": ["All over"], "label": "pain all over", "kinds": ["pattern"] },
+   { "id": "light-noise", "questionId": "light-noise", "options": ["Light bothers me", "Noise bothers me", "Both"], "label": "light or noise sensitivity", "kinds": ["pattern"] },
+   { "id": "sick", "questionId": "sick", "options": ["Felt sick", "Vomited", "Both"], "label": "nausea or vomiting", "kinds": ["pattern"] },
+   { "id": "sight", "questionId": "sight", "options": ["Yes"], "label": "a change in sight", "kinds": ["blood-pressure", "red-flag", "pattern"] },
+   { "id": "dizzy", "questionId": "dizzy", "options": ["Yes"], "label": "dizziness", "kinds": ["blood-pressure"] },
+   { "id": "nosebleed", "questionId": "nosebleeds", "options": ["Yes, in the last week", "Yes, longer ago"], "label": "a nosebleed", "kinds": ["blood-pressure"] },
+   { "id": "known-hypertension", "questionId": "blood-pressure", "options": ["I am on pills for blood pressure", "Both"], "label": "known hypertension", "kinds": ["blood-pressure"] },
+   { "id": "fever", "questionId": "fever-chills", "options": ["Fever", "Chills", "More than one of these"], "label": "fever or chills", "kinds": ["fever"] },
+   { "id": "sore-throat", "questionId": "fever-chills", "options": ["Sore throat", "More than one of these"], "label": "a sore throat", "kinds": ["fever"] },
+   { "id": "malaria-area", "questionId": "malaria-area", "options": ["Yes", "Not sure"], "label": "a malaria area in the last weeks", "kinds": ["at-the-door"] },
+   { "id": "knock", "questionId": "knock", "options": ["Yes"], "label": "a knock to the head", "kinds": ["at-the-door"] }
+  ]
+ },
+
+ "findings": {
+  "why": "What the notes are consistent with, in the wording clinical.json#wording holds every patient-facing sentence to: consistent with, for a clinician to confirm, never you have. Each rule names the condition ids behind it in packages/catalog/knowledge/conditions.json, so a nurse can open the entry, and the build holds every id to an entry that lists headache. A finding is for the nurse and the doctor; the patient's card never carries one.",
+  "sentence": "Findings consistent with {pattern} ({features}), for a clinician to confirm.",
+  "behind": "Behind it: {conditions}.",
+  "rules": [
+   { "id": "raised-blood-pressure", "pattern": "raised blood pressure", "conditionIds": ["cond-008"], "anyOf": ["dizzy", "nosebleed", "known-hypertension", "sight"], "atLeast": 1 },
+   { "id": "migraine-pattern", "pattern": "a migraine pattern", "conditionIds": ["cond-024"], "anyOf": ["one-side", "light-noise", "sick", "sight"], "atLeast": 2 },
+   { "id": "tension-pattern", "pattern": "a tension-type pattern", "conditionIds": ["cond-025"], "anyOf": ["all-over"], "atLeast": 1, "noneOf": ["sick", "sight", "light-noise"] },
+   { "id": "fever-with-headache", "pattern": "an infection with fever", "conditionIds": ["cond-002", "cond-062"], "anyOf": ["fever", "sore-throat"], "atLeast": 1 },
+   { "id": "fever-light-vomiting", "pattern": "fever with light intolerance and vomiting", "conditionIds": ["cond-043"], "anyOf": ["fever", "light-noise", "sick"], "atLeast": 3 },
+   { "id": "malaria-exposure", "pattern": "a headache after a malaria area", "conditionIds": ["cond-041"], "anyOf": ["malaria-area"], "atLeast": 1 }
+  ],
+  "emergencyFeatures": {
+   "why": "Never questions. Each is an emergency the intake must not ask about, because an answer that names one is answered by the emergency words before the intake reads it (symptom-intake.json order.rule), and a question that offered one as a chip would be a symptom swallowing an emergency. The build refuses a headache question or option that carries any of them. Three of them — stiff neck, confusion and weakness on one side — are not in packages/catalog/gilbert-emergency-terms.json today; adding them is a versioned change to that file with a clinical reviewer, and is recorded as open.",
+   "list": ["stiff neck", "rash that does not fade", "rash does not fade", "weakness on one side", "weak on one side", "confusion", "confused", "worst headache", "worst ever"]
+  }
+ },
+
+ "readings": {
+  "why": "A blood-pressure reading in a case: the pair the patient typed from their own cuff, a simulated one in the preview, or the pair a nurse reads off the kit's cuff. Its source and class are packages/catalog/devices.json's, and whether it carries clinical weight is that contract's rule, worked out by the Devices domain's own arithmetic and never restated here. The patient sees the reading with its source and the mark devices.json gives that source; the nurse and the doctor see its weight.",
+  "measureIds": ["systolic", "diastolic"],
+  "sources": {
+   "patient": ["own-device", "simulator"],
+   "nurse": ["kit-instrument", "simulator"],
+   "why": "Which of devices.json's sources each role may record. A patient's own cuff is a consumer device; the preview's simulator is a simulator; a nurse's repeat is a kit instrument, or the simulator when she is demonstrating without one."
+  },
+  "classBySource": { "own-device": "consumer", "simulator": "simulator", "kit-instrument": "certified" },
+  "qualityBySource": { "own-device": "acceptable", "simulator": "good", "kit-instrument": "good" },
+  "intendedUseBySource": { "own-device": "guidance", "simulator": "guidance", "kit-instrument": "clinical" },
+  "trendNeeds": 3,
+  "trendNeedsWhy": "A trend is drawn through three or more readings. Two points are a line anybody can draw, and a line through two readings tells a doctor nothing a list does not."
+ },
+
+ "events": [
+  {
+   "type": "case.opened",
+   "version": 1,
+   "owner": "clinical",
+   "summary": "A patient asked for a nurse to look at the notes GilbertOne gathered, and a case was opened for them.",
+   "payload": [
+    { "field": "caseRef", "type": "string", "required": true, "why": "The case." },
+    { "field": "intakeEntryRef", "type": "string", "required": true, "why": "The Health Passport entry the answers were written to under the patient's own grant. The answers stay there; nothing about what was said travels here." },
+    { "field": "protocolVersionId", "type": "string", "required": true, "why": "The preview pathway the suggestion was made under, which the register holds as a draft. A subscriber reads its status from packages/catalog/protocols.json, never from this event." }
+   ],
+   "neverCarries": [
+    { "field": "answers", "why": "What the patient said is health information. It is in the Passport entry the event points at." },
+    { "field": "suggestedSetting", "why": "The pathway's suggestion is a draft's opinion. A nurse decides, and case.setting_decided@1 carries her decision." },
+    { "field": "patternIds", "why": "What the notes are consistent with is a finding for a clinician, not news for a bus." }
+   ],
+   "subscribers": ["core"]
+  },
+  {
+   "type": "case.setting_decided",
+   "version": 1,
+   "owner": "clinical",
+   "summary": "A nurse decided where the patient is seen: confirming the preview pathway's suggestion, or choosing differently with a reason.",
+   "payload": [
+    { "field": "caseRef", "type": "string", "required": true, "why": "The case." },
+    { "field": "settingCode", "type": "string", "required": true, "why": "Where the patient is seen, from packages/catalog/case.json settings.kinds. Care books a home visit on hearing it; nothing else is booked by this event." },
+    { "field": "decidedByRole", "type": "string", "required": true, "why": "The role that decided. Always a nurse in this version: software suggests and never decides." },
+    { "field": "overrode", "type": "boolean", "required": true, "why": "Whether the nurse chose differently from the suggestion. Her reason is in the record, not here." }
+   ],
+   "neverCarries": [
+    { "field": "reason", "why": "A nurse's reason for choosing differently is free text about a patient. It is written to the record." },
+    { "field": "suggestedSettingCode", "why": "The draft's suggestion does not travel: a subscriber that acted on it would be acting on a draft." }
+   ],
+   "subscribers": ["core", "care"]
+  },
+  {
+   "type": "case.handed_over",
+   "version": 1,
+   "owner": "clinical",
+   "summary": "A nurse asked a doctor to look at a case. It is in the clinical inbox by reference.",
+   "payload": [
+    { "field": "caseRef", "type": "string", "required": true, "why": "The case." },
+    { "field": "reviewRef", "type": "string", "required": true, "why": "The review opened in the clinical inbox for it." },
+    { "field": "handedOverByRef", "type": "string", "required": true, "why": "The nurse who asked. Her registration answers for what she handed over." }
+   ],
+   "neverCarries": [
+    { "field": "readingRefs", "why": "Which readings the case holds is read from the case, under a grant, by the doctor who opens it." }
+   ],
+   "subscribers": ["core"]
+  },
+  {
+   "type": "case.closed",
+   "version": 1,
+   "owner": "clinical",
+   "summary": "A doctor signed the consultation on a case and recorded its outcome. The plan is in the record, in the doctor's words.",
+   "payload": [
+    { "field": "caseRef", "type": "string", "required": true, "why": "The case." },
+    { "field": "consultationRef", "type": "string", "required": true, "why": "The signed consultation Clinical keeps the reference to. Its words are the Passport's." },
+    { "field": "outcomeCode", "type": "string", "required": true, "why": "The Home Guidance outcome the doctor recorded, from packages/catalog/clinical.json guidance.outcomes. No script is ratified, so no script is read from it." },
+    { "field": "closedByRef", "type": "string", "required": true, "why": "The doctor who signed. Nothing closes a case for them." }
+   ],
+   "neverCarries": [
+    { "field": "plan", "why": "The plan is the consultation's words, in the record under the doctor's signature." },
+    { "field": "diagnosis", "why": "A diagnosis is written in the record by the clinician accountable for it, never on the bus." }
+   ],
+   "subscribers": ["core", "care"]
+  }
+ ],
+
+ "banner": {
+  "draft": "Preview pathway: {protocol} is a draft the clinical governance board has not ratified. It suggests; a nurse decides where the patient is seen, and a doctor decides what it is.",
+  "why": "Read on every screen that shows the pathway — the nurse's case file and the doctor's — with the protocol's name and version filled from the register. The patient's card never shows the pathway, so it never shows this."
+ },
+
+ "screens": {
+  "patient": {
+   "why": "What the patient sees: their own answers, their reading with where it came from, who has the case, and — once a doctor has signed — the plan in the doctor's words. Never a finding, never the suggestion, and the sentence saying so is read on the card.",
+   "heading": "Your case",
+   "answersHeading": "What you told me",
+   "readingHeading": "Your reading",
+   "readingOffer": "I have a reading",
+   "readingLead": "If you have a blood-pressure cuff at home, you can add what it says. A nurse would repeat it with her own instrument; nothing is decided from a home cuff.",
+   "readingAsk": "What does your cuff say? Type the top number over the bottom one, the way the cuff shows it.",
+   "readingSourceAsk": "Where is the reading from?",
+   "readingUnread": "I could not read two numbers there. Type them the way the cuff shows them, or say skip.",
+   "skipWord": "skip",
+   "skipLabel": "No reading",
+   "readingLine": "{value} {unit}, from {source}.",
+   "askNurseLead": "If you would like a nurse to look at these notes today, say so and I will open a case for the nurses' list. Nothing is sent until you do.",
+   "askNurse": "Ask a nurse to look at this",
+   "notNow": "Not now",
+   "notNowSaid": "All right. The notes stay on this screen, and no case was opened.",
+   "opened": "A case is open. It carries your answers and your reading, and nothing else about you.",
+   "who": {
+    "opened": "It is on the nurses' list, and nobody has read it yet.",
+    "with-nurse": "{nurse} has your case and is reading it.",
+    "home-visit": "{nurse} has your case and has arranged a home visit today.",
+    "online": "{nurse} has your case and has arranged a video consultation.",
+    "self-care": "{nurse} has your case and will call you back.",
+    "with-doctor": "{nurse} has asked {doctor} to look at your case.",
+    "closed": "{doctor} has signed a plan. Ask me what the doctor said, or open your Health Passport.",
+    "emergency": "The emergency answer stands. Your case is kept for whoever sees you."
+   },
+   "neverShown": "What I noticed for the nurse, and where I suggested you be seen, are for the nurse and the doctor to read: a pattern is not a diagnosis, and only a clinician may tell you what it means.",
+   "planHeading": "What the doctor said",
+   "planLead": "In the doctor's own words, from the plan they signed:",
+   "planNone": "No doctor has written a plan on your case yet. I will read it here when one has.",
+   "planNoCase": "There is no case open for you. Say what is wrong and I can take notes for a nurse.",
+   "planClose": "That is the plan exactly as the doctor wrote it. If anything in it is unclear, the doctor or the nurse can explain it — I cannot add to it."
+  },
+  "nurse": {
+   "heading": "Cases",
+   "intro": "Cases GilbertOne gathered for you: the patient's answers in your order, what the notes are consistent with, the readings with their source and weight, and where the preview pathway suggests the patient is seen. You decide; the suggestion is not a decision.",
+   "preview": "Every case here is fictional and held in this tab's memory. No patient opened one, no reading reached a record, and nothing you decide reaches anybody.",
+   "empty": "No case is open. A patient opens one from GilbertOne by asking for a nurse to look at their notes.",
+   "take": "Take this case",
+   "taken": "You took this case at {at}.",
+   "answersHeading": "The patient's answers",
+   "findingsHeading": "Consistent with, for you to confirm",
+   "findingsNone": "The notes match none of the pathway's patterns.",
+   "readingsHeading": "Readings",
+   "readingsNone": "No reading was given.",
+   "readingLine": "{value} {unit}",
+   "suggestionHeading": "Where the pathway suggests the patient is seen",
+   "reasonsHeading": "Because",
+   "confirm": "Confirm: {setting}",
+   "override": "Choose a different setting",
+   "overrideLead": "Any setting but the suggested one needs your reason, in your words. It is written on the case.",
+   "overrideReason": "Why you are choosing differently",
+   "overrideReasonRequired": "A different setting needs a reason in your words.",
+   "overrideChoose": "Seen instead by",
+   "keepSuggestion": "Keep the suggestion",
+   "decided": "{setting} — decided by you at {at}.",
+   "overrode": "You chose differently from the pathway: {reason}",
+   "repeatReading": "Repeat the reading",
+   "repeatLead": "Read the pair off the instrument and record it with the instrument it came from. A kit instrument's reading carries clinical weight; a simulated one never does.",
+   "repeatSource": "Which instrument",
+   "repeatTop": "Top number",
+   "repeatBottom": "Bottom number",
+   "repeatRecord": "Record the reading",
+   "repeatUnread": "Two whole numbers, the top and the bottom.",
+   "askDoctor": "Ask the doctor",
+   "askDoctorLead": "Hands the case into the clinical inbox, where a doctor writes the consultation and decides what it is.",
+   "askedDoctor": "Handed to the doctor's inbox at {at}.",
+   "decideFirst": "Decide where the patient is seen before asking the doctor.",
+   "closedByDoctor": "Closed by {doctor} at {at}. The patient can read the plan from GilbertOne.",
+   "wouldPublish": "Would publish: {events}."
+  },
+  "doctor": {
+   "why": "The doctor's side: the same case file, the readings as a trend when there are enough, the nurse's decision, the consultation with the diagnosis field that is the doctor's alone, and the outcome recorded on the case.",
+   "openCase": "Open the case",
+   "caseRow": "Case {ref}, handed over by {nurse}",
+   "heading": "Case {ref}",
+   "intro": "What GilbertOne gathered, what the nurse decided, and the consultation you sign. The assessment and the diagnosis are yours alone; the form says so.",
+   "nurseDecision": "{nurse} decided: {setting}.",
+   "nurseOverrode": "{nurse} chose differently from the pathway: {reason}",
+   "trendHeading": "Readings as a trend",
+   "trendNeeds": "A trend is drawn from {needs} or more readings; this case has {count}.",
+   "outcomeHeading": "Home Guidance outcome",
+   "outcomeLead": "Record the outcome for this case. No script is ratified, so nothing is read to the patient from it; the patient reads your plan in your own words.",
+   "outcomeRecorded": "Outcome recorded: {outcome}.",
+   "outcomeFirst": "Record the outcome before signing.",
+   "signLead": "The consultation below is yours. The case closes when you sign it, and the plan you wrote under P is what the patient reads.",
+   "closed": "Closed at {at}. The patient can read the plan from GilbertOne.",
+   "back": "Back to the inbox"
+  }
+ },
+
+ "platforms": ["web"],
+ "platformsWhy": "No phone renders a case yet. iOS and Android join here when their screens exist, and the boundary check refuses a native file that names the case before this list says so."
+}

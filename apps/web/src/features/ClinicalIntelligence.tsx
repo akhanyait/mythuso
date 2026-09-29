@@ -1,5 +1,6 @@
-import { useId, useState } from 'react';
-import { ClipboardCheck, PenLine, ShieldAlert, Stethoscope } from 'lucide-react';
+import { Suspense, lazy, useId, useState } from 'react';
+import { ClipboardCheck, FolderOpen, PenLine, ShieldAlert, Stethoscope } from 'lucide-react';
+import { useCases, words as caseWords } from '../lib/case';
 import {
  OUTSIDE_PROTOCOL, UNDER_PROTOCOL, episodesNow, fill, frame, frameConsultation, giveGuidance, guidanceOutcomes, inboxNow, listOf, missingIn, notTriaged,
  promDaysNow, promRefusal, protocolName, roleNames, signOffConsultation, signReview, signingModes, startTriage, timeOf, dayOf, triageStages, useClinical, words
@@ -32,6 +33,11 @@ import './clinical-intelligence.css';
  * tokens, and not at all for a reader who asked for stillness.
  */
 
+/* A case a nurse handed over (29 September 2026) is a row in this inbox like any visit, named under the
+   draft pathway, and opens the case file — fetched on a dynamic import, since it carries the composer. */
+const DoctorCase = lazy(() => import('./CaseFile').then(m => ({ default: m.DoctorCase })));
+const isCase = (appointmentRef: string) => appointmentRef.startsWith('CASE-');
+
 const ReviewMarker = ({ setting }: { setting: string }) => {
  useSettingsHistories();
  useSettingsReviews();
@@ -42,10 +48,13 @@ const ReviewMarker = ({ setting }: { setting: string }) => {
 export function ReviewInbox() {
  useClinical();
  useSettingsHistories();
+ useCases();
  const medicines = useMedicines();
  const id = useId();
  const [refused, setRefused] = useState<Record<string, string>>({});
+ const [openCase, setOpenCase] = useState<string | null>(null);
  const inbox = inboxNow();
+ if (openCase) return <Suspense fallback={null}><DoctorCase caseRef={openCase} onBack={() => setOpenCase(null)}/></Suspense>;
  const press = (reviewRef: string, mode: string) => {
   const answer = signReview(reviewRef, mode);
   setRefused(before => ({ ...before, [reviewRef]: answer.ok ? '' : answer.refusal.statement }));
@@ -84,6 +93,9 @@ export function ReviewInbox() {
       {row.protocolVersionId ? `${fill(words.inbox.named, { protocol: `${protocolName(row.protocolVersionId)} (${row.protocolVersionId})` })} · ${row.protocolRatified ? words.inbox.ratified : words.inbox.draft}` : words.inbox.namedNone}</Badge></li>
      <li><Badge size="sm" variant={row.recordComplete ? 'neutral' : 'danger'}>{row.recordComplete ? words.inbox.recordComplete : words.inbox.recordIncomplete}</Badge></li>
     </ul>
+    {isCase(row.appointmentRef) && <div className="button-row">
+     <Button variant="primary" leadingIcon={<FolderOpen aria-hidden="true"/>} onClick={() => setOpenCase(row.appointmentRef)}>{caseWords.screens.doctor.openCase}</Button>
+    </div>}
     {row.signedAs ? <div className="ci-signed" role="status">
      <p><ClipboardCheck size={16} aria-hidden="true"/>{row.signedAs}</p>
      <p className="helper">{fill(words.inbox.signed, { who: row.signedByRef ? whoIs(row.signedByRef, '').subject.name : '', at: timeOf(row.signedAt ?? 0) })}</p>

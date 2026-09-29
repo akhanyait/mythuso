@@ -49,6 +49,7 @@ import {
   intakeConsent,
   intakeContract,
   intakeGroupFor,
+  intakeGroupHasPathway,
   intakeReviewSentence,
   summaryRows,
   type IntakeGroup,
@@ -56,6 +57,20 @@ import {
   type IntakeState,
   type IntakeSummaryRow,
 } from "../../../../packages/gilbertone/src/intake.ts";
+import {
+  latestCaseFor,
+  markSentence,
+  openCase,
+  patientView,
+  readingFrom,
+  sourceLabel,
+  unit as readingUnit,
+  whoHas,
+  words as caseWords,
+  type CaseReading,
+  type PatientCase,
+  type SourceId,
+} from "./case";
 import { evaluateRefusals } from "../../../../packages/gilbertone/src/refusals.ts";
 import { accountHolderMedicines } from "./records";
 
@@ -358,7 +373,21 @@ export type Channel = "typed" | "chosen";
    triage: the reply carries no priority, no cause and no advice, and the words on it are the
    contract's. The phase says which of the four turns this is; the state is the package's own,
    immutable, and the panel holds it nowhere but in the turn. */
-export type IntakePhase = "offer" | "declined" | "question" | "notes";
+/* Since 29 September 2026 the notes on a group with a pathway (symptom-intake.json questionsFrom)
+   go on: "reading" asks for the pair a home cuff shows, "reading-source" asks where it came from,
+   "case" is the card once she asked for a nurse, and "case-declined" is her not-now. Every sentence
+   is packages/catalog/case.json's. The card renders from patientView() — the case with its findings
+   and its suggestion removed — so nothing this reply holds could show her either. */
+export type IntakePhase =
+  | "offer"
+  | "declined"
+  | "question"
+  | "notes"
+  | "reading"
+  | "reading-source"
+  | "case"
+  | "case-declined";
+export type PendingPair = { systolic: number; diastolic: number; said: string };
 export type IntakeReply = {
   kind: "intake";
   phase: IntakePhase;
@@ -366,7 +395,26 @@ export type IntakeReply = {
   state: IntakeState | null;
   question: IntakeQuestion | null;
   rows: IntakeSummaryRow[];
+  /* The pair she typed, waiting for its source; then the reading with its source and its marks. */
+  pending: PendingPair | null;
+  reading: CaseReading | null;
+  caseRef: string | null;
+  /* The contract's sentence for a pair that could not be read, shown once on the reading step. */
+  note: string | null;
 };
+export const caseScreens = caseWords.screens.patient;
+export const SESSION_SUBJECT = "subject-this-session";
+/* The sources a patient may name for her own reading, by devices.json's own labels. */
+export const patientReadingSources = (): { id: SourceId; label: string }[] =>
+  (caseWords.readings.sources.patient as SourceId[]).map((id) => ({ id, label: sourceLabel(id) }));
+/* The reading's line on the card: the pair as she typed it, the unit, the source, and the mark
+   devices.json gives that source. */
+export const readingLine = (reading: CaseReading): string =>
+  fill(caseScreens.readingLine, { value: reading.said, unit: readingUnit(), source: sourceLabel(reading.source).toLowerCase() });
+export const readingMarks = (reading: CaseReading): string[] => reading.marks.map(markSentence).filter(Boolean);
+export const hasPathway = (group: IntakeGroup) => intakeGroupHasPathway(group.id);
+export const caseView = (caseRef: string | null): PatientCase | null => (caseRef ? patientView(caseRef) : null);
+export { whoHas };
 export const intakeWords = intakeContract;
 export const intakeReview = intakeReviewSentence;
 const intakeChipGroup = (): IntakeGroup => {
@@ -377,6 +425,7 @@ const intakeChipGroup = (): IntakeGroup => {
     );
   return group;
 };
+const blank = { pending: null, reading: null, caseRef: null, note: null } as const;
 const intakeOffer = (group: IntakeGroup): IntakeReply => ({
   kind: "intake",
   phase: "offer",
@@ -384,11 +433,12 @@ const intakeOffer = (group: IntakeGroup): IntakeReply => ({
   state: null,
   question: null,
   rows: [],
+  ...blank,
 });
 const intakeStep = (group: IntakeGroup, state: IntakeState): IntakeReply =>
   state.done
-    ? { kind: "intake", phase: "notes", group, state, question: null, rows: summaryRows(state) }
-    : { kind: "intake", phase: "question", group, state, question: currentQuestion(state), rows: [] };
+    ? { kind: "intake", phase: "notes", group, state, question: null, rows: summaryRows(state), ...blank }
+    : { kind: "intake", phase: "question", group, state, question: currentQuestion(state), rows: [], ...blank };
 export type Reply =
   | { kind: "situation"; situation: Situation }
   | { kind: "identity" }
@@ -429,6 +479,9 @@ export type Reply =
   | { kind: "preparation"; answer: PreparationAnswer }
   | { kind: "medicines"; answer: MedicinesAnswer }
   | IntakeReply
+  /* "What did the doctor say?" (29 September 2026): the session's latest case as the patient may
+     read it, or null for none. The plan is the doctor's own words, read from the record. */
+  | { kind: "case"; view: PatientCase | null }
   | {
       kind: "handover";
       rows: SummaryRow[];
@@ -473,6 +526,8 @@ export function replyTo(question: Question, visit: Visit | null = null): Reply {
     /* The chip names no complaint, so the offer opens the contract's general group. */
     case "intake":
       return intakeOffer(intakeChipGroup());
+    case "case":
+      return { kind: "case", view: latestCaseFor(SESSION_SUBJECT) };
     default:
       return { kind: "unmatched" };
   }
@@ -516,6 +571,8 @@ export function pulseOf(reply: Reply): PulseId {
       return answers.medicines.state as PulseId;
     case "intake":
       return answers.intake.state as PulseId;
+    case "case":
+      return answers.case.state as PulseId;
   }
 }
 
@@ -883,10 +940,13 @@ export const outcomeOf = (turn: Turn): string =>
  * turns, ends it, and a conversation that has moved on has no intake to answer into. */
 export function activeIntake(turns: Turn[]): IntakeReply | null {
   const last = turns[turns.length - 1]?.reply;
-  return last?.kind === "intake" &&
-    (last.phase === "offer" || last.phase === "question")
-    ? last
-    : null;
+  if (last?.kind !== "intake") return null;
+  if (last.phase === "offer" || last.phase === "question") return last;
+  /* The notes on a group with a pathway wait for one of three chips — a reading, a nurse, not now —
+     and the two reading steps wait for the pair and its source. Nothing else is open. */
+  if (last.phase === "reading" || last.phase === "reading-source") return last;
+  if (last.phase === "notes" && hasPathway(last.group) && last.state && !last.state.stopped) return last;
+  return null;
 }
 
 /* A message while an intake is open, in the order the contract's `order` rule gives: the emergency
@@ -929,6 +989,48 @@ export function continueIntake(
     );
   }
   if (!active.state) return null;
+  /* The notes, on a group with a pathway: three chips, by their contract labels. A reading opens the
+     reading step; asking for a nurse opens the case, and a case the pathway answers with the
+     emergency setting is the emergency answer, the case kept; anything else is a question. */
+  if (active.phase === "notes") {
+    const said = stems(words).join(" ");
+    if (said === stems(caseScreens.readingOffer).join(" ") && !active.reading)
+      return turn({ ...active, phase: "reading", note: null });
+    if (said === stems(caseScreens.notNow).join(" ")) return turn({ ...active, phase: "case-declined" });
+    if (said === stems(caseScreens.askNurse).join(" ")) {
+      const opened = openCase(active.state, SESSION_SUBJECT, active.reading ? [active.reading] : []);
+      if (!opened.ok) return null;
+      if (opened.value.stateCode === "emergency") return turn({ kind: "emergency", groups: [] });
+      return turn({ ...active, phase: "case", caseRef: opened.value.caseRef });
+    }
+    return null;
+  }
+  /* The pair a home cuff shows, read by the same recogniser that explains a reading — a slash or
+     "over" — and nothing else read into it. The skip word steps back to the notes. */
+  if (active.phase === "reading") {
+    if (stems(words).join(" ") === stems(caseScreens.skipWord).join(" "))
+      return turn({ ...active, phase: "notes", note: null });
+    const found = readingIn(words);
+    const values = found?.measure.pairOfNumbers ? found.values : null;
+    if (!values || !found?.said)
+      return turn({ ...active, phase: "reading", note: caseScreens.readingUnread });
+    const [top, bottom] = found.measure.explains;
+    return turn({
+      ...active,
+      phase: "reading-source",
+      note: null,
+      pending: { systolic: values[top]!, diastolic: values[bottom]!, said: found.said },
+    });
+  }
+  /* Where the pair came from, by devices.json's own label for each source a patient may name. The
+     reading's class, sample, use and marks are the contract's for that source, and its weight is
+     the Devices domain's arithmetic — never carried by a home cuff. */
+  if (active.phase === "reading-source") {
+    const source = patientReadingSources().find((s) => stems(s.label).join(" ") === stems(words).join(" "));
+    if (!source || !active.pending) return null;
+    const reading = readingFrom({ ...active.pending, source: source.id, byRole: "patient" });
+    return turn({ ...active, phase: "notes", pending: null, reading, note: null });
+  }
   const next = answerIntake(active.state, words);
   if (next.kind === "emergency") return turn({ kind: "emergency", groups: [] });
   return turn(intakeStep(active.group, next));
@@ -1068,8 +1170,29 @@ export function spokenOf(turn: Turn, audience: AudienceId): string {
         if (r.question.options) add(`${r.question.options.join(", ")}.`);
       } else if (r.phase === "notes") {
         add(intakeContract.summary.title, ...r.rows.map((row) => `${row.line}.`));
+        if (r.reading) add(readingLine(r.reading), ...readingMarks(r.reading));
         add(r.state?.stopped ? w.stop.stopped : w.closing, intakeReviewSentence(), w.arrangeCare);
+        if (hasPathway(r.group) && !r.state?.stopped) add(caseScreens.readingLead, caseScreens.askNurseLead);
+      } else if (r.phase === "reading") add(r.note ?? caseScreens.readingAsk);
+      else if (r.phase === "reading-source") add(caseScreens.readingSourceAsk);
+      else if (r.phase === "case-declined") add(caseScreens.notNowSaid);
+      else if (r.phase === "case") {
+        const view = caseView(r.caseRef);
+        add(caseScreens.heading, caseScreens.opened);
+        if (view) {
+          add(whoHas(view));
+          if (view.plan) add(caseScreens.planHeading, caseScreens.planLead, view.plan, caseScreens.planClose);
+        }
+        add(caseScreens.neverShown);
       }
+      break;
+    }
+    case "case": {
+      const view = turn.reply.view;
+      add(caseScreens.planHeading);
+      if (!view) add(caseScreens.planNoCase);
+      else if (!view.plan) add(caseScreens.planNone);
+      else add(caseScreens.planLead, view.plan, caseScreens.planClose);
       break;
     }
     case "handover": {

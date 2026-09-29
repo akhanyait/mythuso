@@ -441,13 +441,28 @@
    "id": "mapbox",
    "category": "maps",
    "name": "Mapbox",
-   "buildStatus": "proposed",
+   "detailsFrom": "packages/catalog/map-providers.json#providers mapbox-streets-v12",
+   "buildStatus": "built",
    "statusToday": "not-configured",
-   "environment": [],
-   "codeNames": ["api.mapbox.com", "mapbox-gl"],
+   "adapter": {
+    "file": "apps/web/src/map/mapboxRequests.ts",
+    "symbol": "mapboxRequests"
+   },
+   "environment": [
+    "VITE_MAPBOX_TOKEN"
+   ],
+   "_environmentWhy": "A public pk. token, URL-restricted to mythuso.co.za, read once when the web is built and compiled into the page — the one kind of key that is meant to reach a browser, which is why this card is the exception to no-key-reaches-the-browser and says so. A build made without it draws OpenFreeMap and nothing on screen changes but the credit.",
+   "keyRequired": true,
+   "browserKey": true,
+   "_browserKeyWhy": "The one kind of key that is meant to reach a browser: a public pk. token Mapbox designs to be compiled into a page and restricted by URL to mythuso.co.za in its dashboard. Its name may appear in the web build for that reason alone; its value never appears in the repo, which the map section of scripts/check-boundaries.mjs holds.",
+   "calledFrom": "the browser, only in a build made with VITE_MAPBOX_TOKEN set, and only while a map is open with streets on",
+   "telemetry": "none — MapLibre carries no telemetry code, apps/web/index.html's content policy refuses events.mapbox.com, and a build check holds both",
+   "codeNames": [],
    "capabilityRef": "dispatch",
    "feedRef": null,
-   "why": "Named by the plan, and deliberately replaced by MapLibre so no Mapbox token is needed (apps/web/src/map/TileMap.tsx)."
+   "gate": null,
+   "_gateWhy": "No residency gate: a tile request carries the viewport, the internet address and the time and never a field of health information (geography.json, privacy rule nothing-leaves-for-a-tile), so no data flow below names this card. What it does carry is the disclosure the map's switch describes, made to a vendor with terms rather than a donation-funded instance, and there is no operator agreement under POPIA — which is why the source is previewOnly and the token is the founder's to set.",
+   "why": "Named by the plan and replaced by MapLibre so that no token was needed; since 29 September 2026, at the founder's asking, a provider MapLibre can draw from when a token is set at build time. The library did not change: the style is fetched over https and mapboxRequests.ts rewrites the mapbox:// names inside it and appends the token to api.mapbox.com and *.tiles.mapbox.com requests and to nothing else."
   },
   {
    "id": "firebase-cloud-messaging",

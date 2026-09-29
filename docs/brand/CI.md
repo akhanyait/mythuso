@@ -630,6 +630,7 @@ The clinical-delivery register, version 1: `Neutral, clear and unambiguous: the 
 | `preparation` | routine |
 | `medicines` | routine |
 | `intake` | routine |
+| `case` | routine |
 
 Affect never softens a refusal: Affect may never soften a refusal or an emergency. The emergency answer holds the flat, steady face of the one safety cue until the patient's own Start again rests it, and no later answer's warmth displaces it — the same rule the handover carries as neverLowered: an emergency anywhere in a conversation stays an emergency, and a calmer message afterwards lowers neither the urgency nor the face. The answers that refuse — the two that say they cannot assess, and the two that carry this contract's own refusals about what GilbertOne is not and what it keeps — wear flat or concerned faces and never warm ones, because a smile beside a refusal is precisely the softening this sentence exists to prevent.
 
@@ -706,6 +707,7 @@ Which face each kind of answer wears is deterministic from the answer kind alone
 | `preparation` | A13 | warm |
 | `medicines` | A17 | flat |
 | `intake` | A13 | warm |
+| `case` | A13 | warm |
 
 Not wired on the live panel, each for a reason: A04 (A held look at the input field would refuse every reply's cue — activity outranks gesture in the track order — and the field is where the patient is looking, not the face.); A06 (The look-aside gestures belong to action cards; on the live assistant the answer's own cue is the point of each turn.); A06R (The same, to the other side.); A08 (The matcher answers in the moment it is asked, and nothing may add a pause to make an answer look considered — a busy face over an instant answer is the thing A08's own note forbids.); A09 (Phase 1's single default for every answered turn.); A14 (Playful-only, and off by default in care conversations by the document's own rule; no patient surface switches it on.); A15 (The interrupt cue.).
 

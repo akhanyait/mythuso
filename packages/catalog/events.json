@@ -241,7 +241,8 @@
   "sources": [
     "packages/catalog/events.json",
     "packages/catalog/assistant.json",
-    "packages/catalog/trust.json"
+    "packages/catalog/trust.json",
+    "packages/catalog/case.json"
   ],
 
   "badgeEnum": {

@@ -37,13 +37,13 @@ Until a decision is recorded, the app shows "Not clinically reviewed" beside eve
 | Section | What waits on a clinician | Items |
 |---|---|---|
 | A | Settings that carry `reviewRequired` and name no reviewer | 10 |
-| B | Protocols in the registry that are not ratified | 12 |
+| B | Protocols in the registry that are not ratified | 13 |
 | C | GilbertOne's emergency terms | 1 |
 | D | Clinical scopes and proposed clinical roles on the vetting register | 8 |
 | E | Other clinical proposals and safety numbers nobody clinical has decided | 31 |
 | F | Clinical content with no clinical sign-off recorded | 5 |
 | G | Clinical Intelligence's frames and empty registries, waiting on the board | 6 |
-| | **Total** | **73** |
+| | **Total** | **74** |
 
 Each item gives the value in force by default, what an admin may set it to, why it was proposed and by whom,
 the question for the reviewer, and blank sign-off fields.
@@ -535,6 +535,26 @@ From `packages/catalog/protocols.json`. Named and numbered. Not ratified, not in
 | Other contracts that name it | `packages/catalog/sentinel.json` |
 
 **Question for the reviewer:** what must the safeguarding and mandatory reporting protocol contain before it is ratified, who writes it, and should the board ratify it as version 1?
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### B13. Headache with raised blood pressure — preview pathway
+
+| | |
+|---|---|
+| Protocol | `headache-raised-blood-pressure-pathway@1` |
+| Status | Draft. Ratified by: nobody. Content: packages/catalog/case.json#pathway |
+| Engine that would work under it | `clinical` |
+| What ratification would allow | A recommendation or act by the clinical engine may cite `headache-raised-blood-pressure-pathway@1` as the ratified protocol it followed. Until then nothing may claim to follow it. |
+| Other contracts that name it | `packages/catalog/case.json` |
+
+**Question for the reviewer:** what must the headache with raised blood pressure — preview pathway protocol contain before it is ratified, who writes it, and should the board ratify it as version 1?
 
 | Sign-off | |
 |---|---|
@@ -1488,11 +1508,33 @@ Asked of every symptom group first:
 
 **Headache** (`headache`) — opened by: `headache`, `headaches`, `head is sore`, `head hurts`, `sore head`, `head pain`, `migraine`, `pain in my head`
 
-| Question | Kind | Options |
-|---|---|---|
-| Where in your head is it? (`where`) | chips | Front; Back; One side; All over; Behind my eyes |
-| Is light or noise bothering you, or has anything changed with your sight? (`light-noise-sight`) | chips | Light bothers me; Noise bothers me; My sight has changed; More than one of these; None of these |
-| Have you had a knock or a fall onto your head recently? (`knock`) | chips | Yes; No |
+Derived from the knowledge base entries that list headache: Influenza (Flu) (`cond-002`), Hypertension (High Blood Pressure) (`cond-008`), Migraine (`cond-024`), Tension Headache (`cond-025`), Malaria (`cond-041`), Meningitis (`cond-043`), Tonsillitis (`cond-062`). Since 29 September 2026 the headache questions are derived from the knowledge base rather than written: questionsFrom names every entry in packages/catalog/knowledge/conditions.json that lists headache among its symptoms, each question names the entries it draws on in drawsOn, and the build holds both lists to each other — every question drawn from an entry, every entry drawn on. A question the base has no entry for says so in keptBecause instead, for the reviewer. Emergency features (a stiff neck, a rash that does not fade, weakness on one side, confusion, the worst headache ever) are never questions: an answer that names one is answered by the emergency words before the intake reads it, and packages/catalog/case.json findings.emergencyFeatures lists them so the build can refuse a question that offers one. What the answers are consistent with is worked out in case.json, for the nurse, never here and never for the patient.
+
+| Question | Kind | Options | Draws on |
+|---|---|---|---|
+| Where in your head is it? (`where`) | chips | Front; Back; One side; All over; Behind my eyes | Migraine (`cond-024`), Tension Headache (`cond-025`) |
+| Is light or noise bothering you? (`light-noise`) | chips | Light bothers me; Noise bothers me; Both; Neither | Migraine (`cond-024`), Meningitis (`cond-043`) |
+| Have you felt sick or vomited with it? (`sick`) | chips | Felt sick; Vomited; Both; Neither | Migraine (`cond-024`), Malaria (`cond-041`), Meningitis (`cond-043`) |
+| Has anything changed with your sight? (`sight`) | chips | Yes; No | Hypertension (High Blood Pressure) (`cond-008`), Migraine (`cond-024`) |
+| Have you felt dizzy with it? (`dizzy`) | chips | Yes; No | Hypertension (High Blood Pressure) (`cond-008`) |
+| Have you had any nosebleeds lately? (`nosebleeds`) | chips | Yes, in the last week; Yes, longer ago; No | Hypertension (High Blood Pressure) (`cond-008`) |
+| Is there fever, chills or a sore throat with it? (`fever-chills`) | chips | Fever; Chills; Sore throat; More than one of these; None of these | Influenza (Flu) (`cond-002`), Malaria (`cond-041`), Meningitis (`cond-043`), Tonsillitis (`cond-062`) |
+| Have you been in a malaria area in the last few weeks? (`malaria-area`) | chips | Yes; No; Not sure | Malaria (`cond-041`) |
+| Have you had a knock or a fall onto your head recently? (`knock`) | chips | Yes; No | *None.* Kept from version one. The knowledge base has no entry for a head injury, so no condition is named behind it; a nurse looks at a knock in person, and the reviewer is asked whether the base should gain the entry or the question should go. |
+| Do you know your usual blood pressure, or are you on pills for it? (`blood-pressure`) | chips | I am on pills for blood pressure; I know my usual blood pressure; Both; Neither | Hypertension (High Blood Pressure) (`cond-008`) |
+
+What the answers are consistent with is worked out for the nurse in `packages/catalog/case.json` (never shown to the patient), in the wording clinical.json holds every patient-facing sentence to: "Findings consistent with {pattern} ({features}), for a clinician to confirm."
+
+| Finding | Behind it | Needs | Never with |
+|---|---|---|---|
+| raised blood pressure (`raised-blood-pressure`) | Hypertension (High Blood Pressure) (`cond-008`) | 1 of `dizzy`, `nosebleed`, `known-hypertension`, `sight` | — |
+| a migraine pattern (`migraine-pattern`) | Migraine (`cond-024`) | 2 of `one-side`, `light-noise`, `sick`, `sight` | — |
+| a tension-type pattern (`tension-pattern`) | Tension Headache (`cond-025`) | 1 of `all-over` | `sick`, `sight`, `light-noise` |
+| an infection with fever (`fever-with-headache`) | Influenza (Flu) (`cond-002`), Tonsillitis (`cond-062`) | 1 of `fever`, `sore-throat` | — |
+| fever with light intolerance and vomiting (`fever-light-vomiting`) | Meningitis (`cond-043`) | 3 of `fever`, `light-noise`, `sick` | — |
+| a headache after a malaria area (`malaria-exposure`) | Malaria (`cond-041`) | 1 of `malaria-area` | — |
+
+Never questions, because an answer naming one is answered by the emergency words first: `stiff neck`, `rash that does not fade`, `rash does not fade`, `weakness on one side`, `weak on one side`, `confusion`, `confused`, `worst headache`, `worst ever`. Never questions. Each is an emergency the intake must not ask about, because an answer that names one is answered by the emergency words before the intake reads it (symptom-intake.json order.rule), and a question that offered one as a chip would be a symptom swallowing an emergency. The build refuses a headache question or option that carries any of them. Three of them — stiff neck, confusion and weakness on one side — are not in packages/catalog/gilbert-emergency-terms.json today; adding them is a versioned change to that file with a clinical reviewer, and is recorded as open.
 
 **Stomach or belly pain** (`stomach`) — opened by: `stomach pain`, `stomach ache`, `stomach is sore`, `sore stomach`, `stomach hurts`, `tummy`, `belly`, `abdominal pain`, `cramps`, `stomach cramps`
 

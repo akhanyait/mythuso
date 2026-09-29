@@ -1,0 +1,37 @@
+{
+ "_note": "The tile providers a build may choose by token, in full: endpoint, origins, licence, credit, usage policy, label font and the layers a dispatch board hides. packages/catalog/geography.json names each entry (rendering.alternateSources: id, name, the environment variable that chooses it) and that is all a patient's first load carries; this file is read by apps/web/src/map/TileMap.tsx alone, which sits behind a dynamic import and is fetched only when a map is open with streets on. OpenFreeMap, the default, is not here: it is geography.json's rendering.source, where it has always been, and a credit or a licence lives in exactly one of the two files. No value of any token is in this file or anywhere in the repository; the build fails if one appears.",
+ "providers": [
+  {
+   "id": "mapbox-streets-v12",
+   "style": "Mapbox Streets v12",
+   "styleUrl": "https://api.mapbox.com/styles/v1/mapbox/streets-v12?access_token={token}",
+   "styleUrlNote": "The https form, with the token in the query. MapLibre no longer resolves a mapbox:// style URL, so a style named that way loads nothing at all; and the style it fetches still refers to its sources, sprites and glyphs by mapbox:// names, which apps/web/src/map/mapboxRequests.ts rewrites to api.mapbox.com and appends the token to. {token} is replaced at build time from tokenEnv and is never a value in this file.",
+   "host": "api.mapbox.com",
+   "origins": [
+    "https://api.mapbox.com",
+    "https://*.tiles.mapbox.com"
+   ],
+   "originsNote": "The two origins a Mapbox style is drawn from: the API for the style, the TileJSON, the sprite and the glyphs, and the tile hosts the TileJSON names. Both are in apps/web/index.html's content policy under connect-src and img-src, and nowhere else. events.mapbox.com — the address mapbox-gl sends its usage telemetry to — is deliberately not among them: MapLibre carries no telemetry code, this build sends none, and the policy is what makes that a refusal rather than a hope.",
+   "keyRequired": true,
+   "tokenNote": "A public pk. token only, URL-restricted to mythuso.co.za in the Mapbox dashboard, read from the environment when the web is built. It is never committed: a check fails the build if a value with that prefix appears in any tracked file, and its absence is the supported state — OpenFreeMap draws instead and nothing on screen changes but the credit.",
+   "licence": "Map data © OpenStreetMap contributors, under the Open Database Licence. Map design and tiles © Mapbox, under the Mapbox Terms of Service, which also ask for the Mapbox wordmark on a map drawn from its tiles unless the account's plan waives it. MapLibre's own control is off and the wordmark is not drawn, so before Mapbox draws for real patients somebody reads the current terms for the account's plan.",
+   "attribution": "© Mapbox © OpenStreetMap",
+   "attributionUrl": "https://www.mapbox.com/about/maps/",
+   "attributionNote": "Mapbox's own required wording, and the OpenStreetMap credit inside it is a condition of the ODbL. Rendered from this file, under the map, at the type scale's floor, exactly as OpenFreeMap's is — the credit follows whichever source drew.",
+   "usagePolicy": "An account, a token and a billing relationship: free up to a monthly allowance of map loads and metered above it. Requests are logged by Mapbox under its privacy policy, which is the same viewport disclosure the switch describes, made to a vendor with terms rather than to a donation-funded instance. There is no operator agreement under POPIA yet.",
+   "usagePolicyUrl": "https://www.mapbox.com/pricing",
+   "labelFont": "DIN Pro Bold",
+   "labelFontNote": "The glyph server behind a style serves a fixed set of fontstacks, and naming one it does not have loses every label on the board, silently. Positron's serves Noto Sans; Mapbox's serves DIN Pro.",
+   "suppressedLayers": [
+    "country-label",
+    "state-label",
+    "airport-label",
+    "road-number-shield",
+    "path-pedestrian-label"
+   ],
+   "previewOnly": true,
+   "whyPreviewOnly": "Switching to Mapbox is a founder's decision made by setting one environment variable at build time, and it puts a vendor with terms and a billing relationship where a public instance was. Everything the OpenFreeMap entry says about launch still applies: no operator agreement, no residency decision, and an endpoint MyThuso does not run.",
+   "loadTimeoutMs": 8000
+  }
+ ]
+}

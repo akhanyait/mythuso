@@ -53,22 +53,31 @@
    "usagePolicy": "No registration, no API key and no cookies. No limit on the number of map views or requests, and commercial use is allowed — both stated in as many words. There is also no service level: the maintainer says he offers no SLA guarantees or personalised support, and the public instance is funded by donations.",
    "usagePolicyUrl": "https://openfreemap.org/",
    "styleWhy": "Positron is the palest of the four styles offered, and this map has its own things to say. Pins, zones and the straight line are the only saturated marks on the board; a street map that competes with them is a street map that has buried the visit waiting fifty minutes.",
+   "labelFont": "Noto Sans Bold",
    "previewOnly": true,
    "whyPreviewOnly": "A design preview may sit on a free public instance and this one does. A dispatch board a nurse depends on may not: there is no uptime commitment to point at, no operator agreement under POPIA, and no say in where the requests are logged or for how long. Before launch this endpoint is replaced by one MyThuso runs itself, from the planet extracts OpenFreeMap publishes weekly for exactly that purpose. Changing it is an edit to this file.",
    "loadTimeoutMs": 8000,
    "loadTimeoutWhy": "A captive portal does not refuse a request, it answers it with a sign-in page, and a map waiting on that waits for ever. Eight seconds and the schematic comes back."
   },
 
+  "alternateSources": [
+   { "id": "mapbox-streets-v12", "name": "Mapbox", "tokenEnv": "VITE_MAPBOX_TOKEN", "detailsIn": "packages/catalog/map-providers.json" }
+  ],
+  "alternateSourcesNote": "Chosen by token when the web is built, never by edit. Its terms are in detailsIn, carried by the tile chunk alone.",
   "tiles": {
    "default": "off",
    "whyOff": "The default is the setting nobody chooses, so it has to be the one that asks nothing of anybody. A patient opening this screen is watching for a nurse, not deciding about a mapping vendor, and on-by-default would have made the request before she had read the sentence describing it. Off also keeps the map library out of her handset until she asks for it, which on a prepaid bundle is the difference between a screen and a screen plus 1.8 MB.",
    "showLabel": "Show streets",
    "hideLabel": "Hide streets",
-   "offSentence": "Streets are off, so the map is drawn from the coordinates alone and nothing has been asked of anybody. Turning them on asks OpenFreeMap for the streets underneath: it would then see which square of the city is on screen, the internet address that asked, and when. It is never told what is drawn on top.",
-   "onSentence": "Streets are on, so OpenFreeMap has been asked for this part of the city. It can see the square on screen, the internet address that asked and the time — never the visit, never the patient and never the nurse. The closest zoom this map allows makes that square about 1.1 km across: a suburb, not a house.",
+   "offSentence": "Streets are off, so the map is drawn from the coordinates alone and nothing has been asked of anybody. Turning them on asks {provider} for the streets underneath: it would then see which square of the city is on screen, the internet address that asked, and when. It is never told what is drawn on top.",
+   "onSentence": "Streets are on, so {provider} has been asked for this part of the city. It can see the square on screen, the internet address that asked and the time — never the visit, never the patient and never the nurse. The closest zoom this map allows makes that square about 1.1 km across: a suburb, not a house.",
    "notRemembered": "This choice is not remembered. Streets are off again the next time this screen opens.",
    "squareMetres": 1098,
-   "_squareMetresNote": "The width of one tile at the map's maximum zoom, at the latitude of the window centre: 40075017 × cos(lat) ÷ 2^maxZoom metres. It is the finest thing a tile request can distinguish, which is what makes 'a suburb, not a house' a measurement rather than a reassurance. tests/map.spec.ts recomputes it from window.maxZoom and fails if the sentence above and this number stop agreeing."
+   "_squareMetresNote": "The width of one tile at the map's maximum zoom, at the latitude of the window centre: 40075017 × cos(lat) ÷ 2^maxZoom metres. It is the finest thing a tile request can distinguish, which is what makes 'a suburb, not a house' a measurement rather than a reassurance. tests/map.spec.ts recomputes it from window.maxZoom and fails if the sentence above and this number stop agreeing.",
+   "defaultBySurface": { "staff": "on", "patient": "off" },
+   "whyBySurface": "A nurse and a dispatcher asked for the map by opening a workspace whose job is where people are, so streets start on there (the founder, 29 September 2026). A patient's arrival map still asks: the tile request discloses her viewport, and a default nobody chose is not consent. A surface that does not say gets default.",
+   "startedOnSentence": "Streets started on because this workspace's job is where people are. Off draws the same board from the coordinates alone and asks nobody anything.",
+   "notRememberedOn": "This choice is not remembered. Streets are on again the next time this screen opens."
   },
 
   "withoutTiles": {

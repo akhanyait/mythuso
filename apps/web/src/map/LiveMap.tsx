@@ -1,6 +1,6 @@
 import { Component, Suspense, lazy, useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import './map.css';
-import { coverage, place, plot, radiusInBoxUnits, rendering, source, tiles, tilesOffered, tilesStartOn, zones } from '../lib/geography';
+import { coverage, place, plot, radiusInBoxUnits, rendering, say, tiles, tilesDefaultFor, tilesOffered, tilesStartOn, zones, type Credit, type MapSurface } from '../lib/geography';
 import type { LatLng } from '../../../../packages/geo/index.ts';
 /* The map, drawn on real streets when the person looking has asked for them and from the
  * coordinates alone the rest of the time.
@@ -9,9 +9,9 @@ import type { LatLng } from '../../../../packages/geo/index.ts';
  * staff bundle before a nurse could see her first visit of the day. A patient opens this app a few
  * times a month, usually on wifi; a nurse has it open all day, in the field, on a prepaid data
  * bundle she is paying for out of the visit fee, and every screen of her day except this one needs
- * no map at all. So ./TileMap is behind a dynamic import, fetched the first time somebody switches
- * streets on, and in a session where nobody does — which, because streets start off, is most of
- * them — never fetched at all.
+ * no map at all. So ./TileMap is behind a dynamic import, fetched the first time a map is open with
+ * streets on — which on her day is the moment she opens a visit, and not before — and in a patient's
+ * session, where streets start off, never fetched unless she asks.
  *
  * The schematic is not a placeholder. It answers the same question, who is where, from the same
  * contract, and needs no network: a dispatch board that shows a grey rectangle when a provider goes
@@ -19,13 +19,18 @@ import type { LatLng } from '../../../../packages/geo/index.ts';
  * It is what draws when streets are off, when they have been switched off for the whole build, and
  * when they were asked for and did not come.
  *
- * The switch is off to begin with and this file does not remember the answer. That is two decisions.
- * The first is that a tile request discloses something — the square of the city on screen, the
- * address that asked, the time — and a default nobody chose is not consent to disclose it; the
- * sentence saying so is rendered against the switch, because the switch is where the choice is
- * made. The second is that there is nowhere honest to keep the answer: this application persists
- * nothing in a browser, and a preview that started remembering a patient's preferences would be
- * the first thing in it that did.
+ * Where the switch starts is the surface's, and this file does not remember the answer. That is two
+ * decisions. The first is that a tile request discloses something — the square of the city on
+ * screen, the address that asked, the time — and a default nobody chose is not consent to disclose
+ * it; so a patient's arrival map starts off, and the sentence saying so is rendered against the
+ * switch, because the switch is where the choice is made. A staff surface starts on, since 29
+ * September 2026 and at the founder's asking: a nurse and a controller asked for the map by opening
+ * a workspace whose job is where people are, and the same sentence sits beside the same switch so
+ * that off is one press away. The contract states both defaults (geography.json, tiles.
+ * defaultBySurface) and a check holds the patient's to off. The second decision is that there is
+ * nowhere honest to keep the answer on either surface: this application persists nothing in a
+ * browser, and a preview that started remembering a patient's preferences would be the first thing
+ * in it that did.
  *
  * Nothing about the caseload is sent anywhere either way. The tile server is asked for streets by
  * tile coordinate; the zones, the visits and the nurses are drawn on top of tiles that know nothing
@@ -76,23 +81,35 @@ type Props = {
     is obviously not a route, and the same line over real roads is exactly what a reader mistakes
     for one. */
  link?: { from: LatLng; to: LatLng } | null;
+ /* Whose screen this is, which decides where the switch starts. A caller that does not say is
+    treated as a patient's, because off is the default that asks nothing of anybody; a staff surface
+    has to say so, which is the point. */
+ surface?: MapSurface;
 };
 
-export function LiveMap({ markers, summary, height = 340, link = null }: Props) {
- const [wanted, setWanted] = useState(tilesStartOn);
+export function LiveMap({ markers, summary, height = 340, link = null, surface = 'patient' }: Props) {
+ const startsOn = tilesStartOn(surface);
+ const [wanted, setWanted] = useState(startsOn);
  /* Asked for and did not come: the endpoint down, the network gone, or a clinic's wifi answering
     with its own sign-in page. All three land back on the schematic and say which of them happened
     in the contract's words, and the switch goes back to off so that pressing it again is a retry
     rather than a dead control. */
  const [unreachable, setUnreachable] = useState(false);
  const giveUp = useCallback(() => { setUnreachable(true); setWanted(false); }, []);
+ /* The credit's words come from the tile map, which is the only module that knows which provider's
+    entry it drew with — the default's, or the one a token chose. Null until it says, and there is
+    nothing on screen that needs crediting until then: the schematic asks nobody. */
+ const [credit, setCredit] = useState<Credit | null>(null);
  const noteId = useId();
  const live = tilesOffered && wanted && !unreachable;
 
  const note = !tilesOffered ? rendering.withoutTiles.sentence
   : unreachable ? rendering.unreachable.sentence
-   : live ? tiles.onSentence
-    : tiles.offSentence;
+   : live ? say(tiles.onSentence)
+    : say(tiles.offSentence);
+ /* Said only once the person has moved the switch away from the surface's own default: that is the
+    choice that will be forgotten, and the sentence names which way it goes back. */
+ const moved = tilesOffered && !unreachable && wanted !== (tilesDefaultFor(surface) === 'on');
 
  return (
   <div className="livemap">
@@ -101,7 +118,7 @@ export function LiveMap({ markers, summary, height = 340, link = null }: Props) 
     {live
      ? <TilesOrSchematic onFailed={giveUp} fallback={<Schematic markers={markers} summary={summary} link={link}/>}>
         <Suspense fallback={<Schematic markers={markers} summary={summary} link={link}/>}>
-         <TileMap markers={markers} summary={summary} link={link} onTilesFailed={giveUp}/>
+         <TileMap markers={markers} summary={summary} link={link} onTilesFailed={giveUp} onDrawnBy={setCredit}/>
         </Suspense>
        </TilesOrSchematic>
      : <Schematic markers={markers} summary={summary} link={link}/>}
@@ -110,10 +127,11 @@ export function LiveMap({ markers, summary, height = 340, link = null }: Props) 
        draws this data names where it came from and lets a reader reach the licence. It is a strip
        under the map on an opaque ground, not a caption floating over the streets — contrast is a
        measurement and it cannot be measured against a photograph of a city. The words are the
-       contract's, so replacing the provider replaces the credit in the same edit, and it cannot
-       quietly stop appearing because a provider changed what its own tile metadata says. */}
-   {live && <p className="livemap-credit">
-    <a href={source.attributionUrl} target="_blank" rel="noreferrer noopener">{source.attribution}</a>
+       contract's, reported by the tile map from the entry it drew with, so replacing the provider
+       replaces the credit in the same edit, and it cannot quietly stop appearing because a provider
+       changed what its own tile metadata says. */}
+   {live && credit && <p className="livemap-credit">
+    <a href={credit.attributionUrl} target="_blank" rel="noreferrer noopener">{credit.attribution}</a>
    </p>}
    <div className="livemap-foot">
     {tilesOffered && (
@@ -128,7 +146,8 @@ export function LiveMap({ markers, summary, height = 340, link = null }: Props) 
     )}
     <p className="livemap-note" id={noteId}>
      {note}
-     {live && <small>{tiles.notRemembered}</small>}
+     {live && startsOn && <small>{tiles.startedOnSentence}</small>}
+     {moved && <small>{startsOn ? tiles.notRememberedOn : tiles.notRemembered}</small>}
     </p>
    </div>
    {/* Only once streets are drawn, and that is the point of it. The schematic draws five suburbs

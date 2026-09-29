@@ -2,7 +2,7 @@
  "engine": "clinical",
  "_note": "Clinical Intelligence is decision support with a doctor's signature: the clinical inbox, review and sign, structured consultations, triage on ratified protocols, result acknowledgement, Home Guidance and PROMs. Every protocol in packages/catalog/protocols.json is a draft today, so every triage and guidance call is refused in practice until the board ratifies one. Wave 2 contract; built on the engine runtime in Wave 5, when the inbox, the signature, the consultation, triage and outcome questions were withdrawn for versions that refuse what the first could not. packages/catalog/clinical.json holds the frames, registries, words and settings.",
  "version": 1,
- "resources": ["reviews", "consultations", "triage", "results", "guidance", "proms", "settings", "setting-changes", "setting-reviews", "review-confirmers", "review-queue"],
+ "resources": ["reviews", "consultations", "triage", "results", "guidance", "proms", "settings", "setting-changes", "setting-reviews", "review-confirmers", "review-queue", "cases"],
  "doors": ["screening-result", "media-session"],
  "doorsToAdd": [],
  "refusals": [
@@ -698,6 +698,389 @@
    "endpointNamed": null,
    "capabilityNamed": null,
    "status": "proposed"
+  },
+{
+ "method": "POST",
+ "path": "/v1/clinical/cases",
+ "version": 1,
+ "summary": "Open a case from a completed symptom intake: the Passport entry the answers were written to, the readings Devices was asked about, and the preview pathway's suggestion worked out once from them. The patient asked for a nurse to look at the notes; nothing is opened without that.",
+ "callers": [
+  "patient"
+ ],
+ "purpose": [
+  "treatment"
+ ],
+ "request": [
+  {
+   "field": "subjectRef",
+   "type": "string",
+   "required": true,
+   "why": "Whose case, by the patient's opaque reference. The caller's own session must be the subject's."
+  },
+  {
+   "field": "groupId",
+   "type": "string",
+   "required": true,
+   "why": "The intake group the answers were gathered under, from packages/catalog/symptom-intake.json groups. Only a group with questionsFrom opens a case: the pathway is derived from the knowledge base, and a group without that derivation has no pathway."
+  },
+  {
+   "field": "intakeEntryRef",
+   "type": "string",
+   "required": true,
+   "why": "The Health Passport entry the answers were written to under the patient's own grant, through the consent gateway. Clinical reads the answers through the gateway to work out the features and the findings, and keeps the reference."
+  },
+  {
+   "field": "readingRefs",
+   "type": "list",
+   "required": true,
+   "why": "The readings Devices was asked about for this case, by reference, or an empty list. The values are Observations in the Passport; Devices holds each reading's source, quality and marks, which decide its weight."
+  },
+  {
+   "field": "emergencyEnded",
+   "type": "boolean",
+   "required": true,
+   "why": "Whether the intake ended on an emergency word. True opens the case in the emergency state, kept rather than deleted, and the suggestion is the emergency answer."
   }
+ ],
+ "response": [
+  {
+   "field": "caseRef",
+   "type": "string",
+   "required": true,
+   "why": "The case."
+  },
+  {
+   "field": "stateCode",
+   "type": "string",
+   "required": true,
+   "why": "Opened, or emergency, from packages/catalog/case.json states."
+  },
+  {
+   "field": "protocolVersionId",
+   "type": "string",
+   "required": true,
+   "why": "The preview pathway the suggestion was made under."
+  },
+  {
+   "field": "protocolRatified",
+   "type": "boolean",
+   "required": true,
+   "why": "Whether the register holds that pathway as ratified today. False: it is a draft, and every screen says so."
+  },
+  {
+   "field": "suggestedSettingCode",
+   "type": "string",
+   "required": true,
+   "why": "Where the pathway suggests the patient is seen, from packages/catalog/case.json settings.kinds. For the nurse's screen; never returned to a patient's client, which the patient caller's response leaves out by the neverToPatient rule."
+  },
+  {
+   "field": "suggestionRuleId",
+   "type": "string",
+   "required": true,
+   "why": "Which rule of the pathway matched, from packages/catalog/case.json pathway.rules, so the nurse reads the reason in the contract's words."
+  }
+ ],
+ "refusals": [
+  {
+   "id": "group-has-no-pathway",
+   "status": 422,
+   "statement": "That complaint has no pathway yet. The notes stay with the patient for the visit.",
+   "why": "Only a group derived from the knowledge base (symptom-intake.json questionsFrom) carries features and findings a pathway can read. A case on any other group would be a case with nothing in it but answers."
+  },
+  {
+   "id": "intake-not-complete",
+   "status": 409,
+   "statement": "A case opens on a completed intake. Nothing was gathered for a nurse yet.",
+   "why": "The pathway reads every answer. A case opened half-way through the questions would suggest a setting from half the notes."
+  },
+  {
+   "id": "patient-did-not-ask",
+   "status": 403,
+   "statement": "A case is opened by the patient asking for a nurse to look at the notes, and by nothing else.",
+   "why": "The notes are the patient's until they say so. GilbertOne finishing the questions is not the patient asking for a nurse."
+  },
+  {
+   "id": "reading-not-asked",
+   "status": 422,
+   "statement": "A reading in a case is one Devices was asked about, by reference. A value is not accepted here.",
+   "why": "packages/catalog/devices.json whereValuesLive: the value is written to the Passport by the capturer, and Devices keeps the source, the sample and the marks that decide its weight. A case that took a value would be a second store for readings."
+  }
+ ],
+ "emits": [
+  "case.opened@1"
+ ],
+ "idempotent": false,
+ "endpointNamed": null,
+ "capabilityNamed": null,
+ "through": "passport-gateway",
+ "status": "proposed"
+},
+{
+ "method": "GET",
+ "path": "/v1/clinical/cases/{caseRef}",
+ "version": 1,
+ "summary": "Read a case file: its state, its answers by Passport reference, its readings by reference with the weight Devices gives each, what the notes are consistent with, the pathway's suggestion with its reason, every decision with the role that made it, and the consultation reference once a doctor has signed. A patient reads their own case without the findings or the suggestion.",
+ "callers": [
+  "patient",
+  "nurse",
+  "doctor"
+ ],
+ "purpose": [
+  "treatment"
+ ],
+ "request": [
+  {
+   "field": "caseRef",
+   "type": "string",
+   "required": true,
+   "why": "The case."
+  }
+ ],
+ "response": [
+  {
+   "field": "caseRef",
+   "type": "string",
+   "required": true,
+   "why": "The case."
+  },
+  {
+   "field": "subjectRef",
+   "type": "string",
+   "required": true,
+   "why": "Whose case, by opaque reference."
+  },
+  {
+   "field": "stateCode",
+   "type": "string",
+   "required": true,
+   "why": "From packages/catalog/case.json states."
+  },
+  {
+   "field": "groupId",
+   "type": "string",
+   "required": true,
+   "why": "The intake group the answers were gathered under."
+  },
+  {
+   "field": "intakeEntryRef",
+   "type": "string",
+   "required": true,
+   "why": "The Passport entry holding the answers, read under the reader's own grant."
+  },
+  {
+   "field": "readingRefs",
+   "type": "list",
+   "required": true,
+   "why": "The readings in the case, by reference. Their weight is Devices' answer for each, read by reference."
+  },
+  {
+   "field": "patternIds",
+   "type": "list",
+   "required": true,
+   "why": "The finding rules that matched, from packages/catalog/case.json findings.rules, each of which names its condition ids. For a nurse or a doctor; left out of a patient's answer by the neverToPatient rule."
+  },
+  {
+   "field": "protocolVersionId",
+   "type": "string",
+   "required": true,
+   "why": "The preview pathway."
+  },
+  {
+   "field": "protocolRatified",
+   "type": "boolean",
+   "required": true,
+   "why": "False while it is a draft. Every screen reads the banner from it."
+  },
+  {
+   "field": "suggestedSettingCode",
+   "type": "string",
+   "required": true,
+   "why": "Where the pathway suggested. Left out of a patient's answer."
+  },
+  {
+   "field": "suggestionRuleId",
+   "type": "string",
+   "required": true,
+   "why": "The rule that matched. Left out of a patient's answer."
+  },
+  {
+   "field": "decisions",
+   "type": "list",
+   "required": true,
+   "object": true,
+   "why": "Every decision on the case, oldest first, each with the role that made it.",
+   "fields": [
+    {
+     "field": "roleCode",
+     "type": "string",
+     "required": true,
+     "why": "Who decided: patient, nurse or doctor, by role and never by name."
+    },
+    {
+     "field": "actionCode",
+     "type": "string",
+     "required": true,
+     "why": "What was decided: opened, took, confirmed, overrode, repeated-reading, handed-over or closed."
+    },
+    {
+     "field": "settingCode",
+     "type": "string",
+     "required": false,
+     "why": "The setting decided, from packages/catalog/case.json settings.kinds, for a confirmation or an override."
+    },
+    {
+     "field": "reason",
+     "type": "string",
+     "required": false,
+     "why": "The nurse's reason for choosing differently from the suggestion, in her words. Present only on an override."
+    },
+    {
+     "field": "at",
+     "type": "instant",
+     "required": true,
+     "why": "When."
+    }
+   ]
+  },
+  {
+   "field": "consultationRef",
+   "type": "string",
+   "required": true,
+   "nullable": true,
+   "why": "The signed consultation, once a doctor closed the case; null before."
+  },
+  {
+   "field": "outcomeCode",
+   "type": "string",
+   "required": true,
+   "nullable": true,
+   "why": "The Home Guidance outcome the doctor recorded, from packages/catalog/clinical.json guidance.outcomes; null before."
+  }
+ ],
+ "refusals": [
+  {
+   "id": "no-such-case",
+   "status": 404,
+   "statement": "There is no case by that reference.",
+   "why": "A reference nobody opened reads as nothing rather than as an empty case."
+  },
+  {
+   "id": "not-the-subject",
+   "status": 403,
+   "statement": "A patient reads their own case and nobody else's.",
+   "why": "The session's subject must be the case's. A case is a patient's notes about their own body."
+  },
+  {
+   "id": "findings-are-a-clinicians",
+   "status": 403,
+   "statement": "What the notes are consistent with, and where the pathway suggested, are read by a nurse or a doctor. They are not returned to a patient.",
+   "why": "packages/catalog/clinical.json wording: a finding is consistent with something for a clinician to confirm. Returned to a patient it would read as what they have, with nobody accountable for saying so."
+  }
+ ],
+ "emits": [],
+ "emitsNoneBecause": "Reading changes nothing.",
+ "idempotent": false,
+ "endpointNamed": null,
+ "capabilityNamed": null,
+ "through": "passport-gateway",
+ "status": "proposed"
+},
+{
+ "method": "POST",
+ "path": "/v1/clinical/cases/{caseRef}/setting",
+ "version": 1,
+ "summary": "A nurse decides where the patient is seen: confirming the preview pathway's suggestion, or choosing a different setting with her reason. Software suggested; she decides, and the decision is hers by registration.",
+ "callers": [
+  "nurse"
+ ],
+ "purpose": [
+  "treatment"
+ ],
+ "request": [
+  {
+   "field": "caseRef",
+   "type": "string",
+   "required": true,
+   "why": "The case."
+  },
+  {
+   "field": "settingCode",
+   "type": "string",
+   "required": true,
+   "why": "Where the patient is seen, from packages/catalog/case.json settings.kinds."
+  },
+  {
+   "field": "reason",
+   "type": "string",
+   "required": false,
+   "why": "Required when the setting is not the one the pathway suggested. Her words, written on the case."
+  }
+ ],
+ "response": [
+  {
+   "field": "caseRef",
+   "type": "string",
+   "required": true,
+   "why": "The case."
+  },
+  {
+   "field": "stateCode",
+   "type": "string",
+   "required": true,
+   "why": "The state the decision put the case in: home-visit, online, self-care or emergency."
+  },
+  {
+   "field": "overrode",
+   "type": "boolean",
+   "required": true,
+   "why": "Whether she chose differently from the suggestion."
+  },
+  {
+   "field": "decidedAt",
+   "type": "instant",
+   "required": true,
+   "why": "When."
+  }
+ ],
+ "refusals": [
+  {
+   "id": "no-such-case",
+   "status": 404,
+   "statement": "There is no case by that reference.",
+   "why": "As on the read."
+  },
+  {
+   "id": "case-not-with-a-nurse",
+   "status": 409,
+   "statement": "A setting is decided on a case a nurse has taken and nobody has decided yet.",
+   "why": "packages/catalog/case.json transitions: the decision is made once, from with-nurse. A second decision is a new case or a doctor's, never an edit."
+  },
+  {
+   "id": "setting-not-declared",
+   "status": 422,
+   "statement": "That is not a setting a patient can be seen in.",
+   "why": "Only the four packages/catalog/case.json declares. A setting nobody declared has no outcome mapped to it and no words on any screen."
+  },
+  {
+   "id": "override-without-reason",
+   "status": 422,
+   "statement": "A setting other than the suggested one needs the nurse's reason, in her words.",
+   "why": "The suggestion is a draft's; her decision overrides it by her authority, and the record must say why so the doctor and the board can read it."
+  },
+  {
+   "id": "not-a-nurse",
+   "status": 403,
+   "statement": "Only a vetted nurse decides where a patient is seen on a case.",
+   "why": "The founder's design: GilbertOne gathers, the nurse decides where, the doctor decides what. Software never decides this, and a patient does not decide it for themselves here."
+  }
+ ],
+ "emits": [
+  "case.setting_decided@1"
+ ],
+ "idempotent": false,
+ "endpointNamed": null,
+ "capabilityNamed": null,
+ "status": "proposed"
+}
  ]
 }

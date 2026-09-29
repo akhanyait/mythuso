@@ -285,7 +285,7 @@ export function CareVisit({ open, onClose }: { open: (modal: string) => void; on
         are texture, drawn nowhere in particular, and the line between the two pins is the straight
         measurement it always was — it crosses the roads rather than following them, which is the point. */}
     <div className="care-map nurse-map-panel">
-     <LiveMap markers={markers} height={240} link={nurseBase ? { from: nurseBase.at, to: visitZone.at } : null}
+     <LiveMap markers={markers} height={240} surface="staff" link={nurseBase ? { from: nurseBase.at, to: visitZone.at } : null}
       summary={`Schematic map. ${nurseBase ? `You are drawn at the centre of ${nurseBase.name} and this visit at the centre of ${visitZone.name}, joined by a straight dashed line.` : `This visit is drawn at the centre of ${visitZone.name}.`}`}/>
     </div>
     {view.offer && <p className="nurse-fact"><Route aria-hidden="true"/>{view.offer.distanceKm.toFixed(1)} km · {sentences.distanceBasis}</p>}

@@ -118,6 +118,29 @@ export function signReview(reviewRef: string, signingModeCode: string, now = Dat
  return { ok: true };
 }
 
+/* ---- A case handed over (29 September 2026) ---------------------------------------------------------
+   A nurse asking a doctor to look at a case opens a review in this inbox the way Care's handover would:
+   by reference, named under the draft pathway the case ran on, so the row says "Draft, not ratified" in
+   the register's own words and the doctor can sign it only as reviewed outside any protocol. The
+   encounter is the case's; its record is complete when the doctor's consultation on it is signed off. */
+export function openCaseReview(input: { caseRef: string; encounterRef: string; subjectRef: string; protocolVersionId: string }, now = Date.now()): string {
+ const reviewRef = `review-${input.caseRef.toLowerCase()}`;
+ if (store.reviews.some(r => r.reviewRef === reviewRef)) return reviewRef;
+ set({ ...store, reviews: [...store.reviews, openReview({ reviewRef, appointmentRef: input.caseRef, encounterRef: input.encounterRef, subjectRef: input.subjectRef, protocolVersionId: input.protocolVersionId }, now)] });
+ return reviewRef;
+}
+/** A consultation on any encounter, recorded through the domain — a doctor's on a case. The refusals are the route's. */
+export function recordConsultationFor(input: { encounterRef: string; subjectRef: string; sectionsWritten: readonly string[]; signOff: boolean }, now = Date.now()): { readonly ok: true; readonly consultation: Consultation } | { readonly ok: false; readonly refusal: Refusal } {
+ const entryRef = `consultation-entry-${input.encounterRef}`;
+ const recorded = record(store.consultations.find(c => c.consultationEntryRef === entryRef), {
+  consultationRef: `consultation-${input.encounterRef}`, subjectRef: input.subjectRef, encounterRef: input.encounterRef, consultationEntryRef: entryRef,
+  sectionsWritten: input.sectionsWritten, signOff: input.signOff
+ }, { ref: DOCTOR || null }, now);
+ if (!recorded.ok) return recorded;
+ set({ ...store, consultations: [...store.consultations.filter(c => c.consultationEntryRef !== entryRef), recorded.value] });
+ return { ok: true, consultation: recorded.value };
+}
+
 /* ---- The consultation frame ------------------------------------------------------------------------ */
 
 const FRAME_ENTRY = 'consultation-entry-preview-frame';

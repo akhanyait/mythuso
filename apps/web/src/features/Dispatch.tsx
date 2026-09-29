@@ -175,7 +175,7 @@ export function DispatchBoard({ subjects = seededSubjects, heading = true }: { s
    <Card className="oi-map-card">
     <CardHeader><CardTitle>{coverage.city}</CardTitle><CardDescription>{province}</CardDescription></CardHeader>
     <CardContent className="oi-card-body">
-     <LiveMap markers={markers} summary={summary} height={340}/>
+     <LiveMap markers={markers} summary={summary} height={340} surface="staff"/>
      {/* The key is the contract's list of marks, not a second list typed beside the map. The two
          used to be written separately, and when the pins started reading the contract the key went
          on describing colours that were no longer on the board. */}

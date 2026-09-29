@@ -1,0 +1,55 @@
+/* The case file, for the nurse and the doctor (29 September 2026). On the identity: every colour a role
+   from tokens.json#semantic or one of ui.css's measured inks, every word on a ground set from the same
+   roles. The findings are set as sentences, not chips, because a finding is a sentence — "consistent
+   with, for a clinician to confirm" — and a chip would read as a label somebody put on the patient. The
+   suggestion is one badge and its reason in prose; nothing on the file is told by colour alone. */
+.cs-panel { display: grid; gap: var(--space-12); min-width: 0; }
+.cs-case { display: grid; gap: var(--space-16); }
+.cs-block { display: grid; gap: var(--space-8); min-width: 0; }
+.cs-label { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; color: var(--color-muted-foreground); }
+.cs-banner { margin: 0; }
+.cs-answers { display: grid; gap: var(--space-8); margin: 0; }
+.cs-answers div { display: grid; gap: 2px; padding-bottom: var(--space-8); border-bottom: 1px solid var(--color-border); }
+.cs-answers dt { font-size: 13px; font-weight: 600; color: var(--color-muted-foreground); }
+.cs-answers dd { margin: 0; font-size: 15px; color: var(--color-foreground); overflow-wrap: anywhere; }
+.cs-findings { display: grid; gap: var(--space-8); margin: 0; padding: 0; list-style: none; }
+.cs-findings li { display: grid; gap: 2px; padding-left: var(--space-12); border-left: 3px solid var(--color-accent); }
+.cs-findings strong { font-size: 15px; line-height: 1.5; color: var(--color-foreground); }
+.cs-rule { margin: 0; }
+.cs-readings { display: grid; gap: var(--space-8); margin: 0; padding: 0; list-style: none; }
+.cs-reading { display: grid; gap: var(--space-4); padding: var(--space-8) var(--space-12); border: 1px solid var(--color-border); border-radius: var(--r-lg); }
+.cs-reading-value { font-family: var(--font-display); font-size: 20px; font-variant-numeric: tabular-nums; color: var(--color-foreground); }
+.cs-reading-facts { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.cs-reading .helper { margin: 0; }
+.cs-suggestion { padding: var(--space-12); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-muted); }
+.cs-suggested { margin: 0; }
+.cs-reason { margin: 0; font-size: 15px; line-height: 1.5; color: var(--color-foreground); }
+.cs-acts { display: grid; gap: var(--space-8); }
+.cs-acts .helper, .cs-decided { display: flex; align-items: flex-start; gap: var(--space-8); margin: 0; }
+.cs-decided { font-size: 14px; font-weight: 600; color: var(--color-foreground); }
+.cs-decided svg { flex: 0 0 auto; margin-top: 2px; color: var(--ui-success-ink); }
+.cs-override, .cs-repeat { display: grid; gap: var(--space-8); padding: var(--space-12); border: 1px dashed var(--color-border); border-radius: var(--r-lg); }
+.cs-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8); }
+.cs-events { font-variant-numeric: tabular-nums; }
+.cs-consultation { overflow: hidden; }
+.cs-doctor .button-row { flex-wrap: wrap; }
+.cs-doctor .button-row .ui-button { white-space: normal; text-align: left; }
+
+/* The trend: two lines, the top measure heavier than the bottom, labelled in words at the right and
+   valued at every point. The line colours are the foreground and the accent; the labels say which is which. */
+.cs-trend { display: grid; gap: var(--space-4); margin: 0; }
+.cs-trend-title { font-size: 13px; font-weight: 600; color: var(--color-muted-foreground); }
+.cs-trend svg { width: 100%; height: auto; max-width: 480px; overflow: visible; }
+.cs-trend-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.cs-trend-line.is-top, .cs-trend-dot.is-top { stroke: var(--color-foreground); fill: var(--color-foreground); }
+.cs-trend-line.is-bottom, .cs-trend-dot.is-bottom { stroke: var(--color-accent); fill: var(--color-accent); }
+.cs-trend-line.is-bottom { stroke-dasharray: 4 3; }
+.cs-trend-value { font-size: 10px; font-weight: 600; fill: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.cs-trend-label { font-size: 10px; fill: var(--color-muted-foreground); }
+
+@media (max-width: 600px) {
+ .cs-case { padding: var(--space-16); }
+ .cs-pair { grid-template-columns: 1fr; }
+ .cs-acts .button-row { flex-direction: column; align-items: stretch; }
+ .cs-acts .button-row .ui-button { white-space: normal; text-align: left; justify-content: flex-start; min-height: var(--ui-target, 44px); }
+}

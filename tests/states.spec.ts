@@ -192,14 +192,19 @@ test('a nurse downloads no map she is never shown', async ({ page }) => {
 test('and the controller who is shown one still gets it', async ({ page }) => {
   const asked: string[] = [];
   page.on('request', r => { if (mapTraffic.test(r.url())) asked.push(r.url()); });
+  /* The tile host refused, as a clinic's wifi or a down endpoint would refuse it. */
+  await page.route(`**${geography.rendering.source.host}/**`, route => route.abort());
   await openWorkspace(page, 'Control Tower');
-  /* Streets are off until somebody asks for them, so the schematic is what a controller is handed —
-     from the same coordinates, with no network at all. The board is never empty for want of a
-     provider, and opening it has told no tile server that a dispatch board in Johannesburg is
-     open. */
+  /* Streets start on for a controller since 29 September 2026 — the board is a workspace whose job
+     is where people are, and opening it is the ask (packages/catalog/geography.json,
+     tiles.defaultBySurface) — so this is the session that does fetch the map chunk. What it must
+     still be true of: the board is never empty for want of a provider. When the streets do not
+     arrive the schematic is what a controller is handed, from the same coordinates, and the only
+     party asked was the host the contract names — tests/map.spec.ts holds the rest. */
   await expect(page.locator('.livemap-canvas.schematic')).toBeVisible();
   await expect(page.locator('.map-pin').first()).toBeVisible();
-  expect(asked, `the dispatch board fetched a map nobody asked it for: ${asked.join(', ')}`).toEqual([]);
+  const strangers = asked.filter(url => !/\/src\/map\/|maplibre|TileMap/.test(url) && !url.includes(geography.rendering.source.host));
+  expect(strangers, `the dispatch board asked a party the contract does not name: ${strangers.join(', ')}`).toEqual([]);
 });
 
 /* What a patient downloads, and what a clinician downloads.

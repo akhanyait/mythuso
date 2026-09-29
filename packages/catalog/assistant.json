@@ -312,6 +312,16 @@
       "platforms": ["web"],
       "triggers": ["take notes for my nurse", "notes for my nurse", "notes for the nurse", "i have a symptom", "i dont feel well", "i feel unwell", "im not feeling well", "something is wrong"],
       "why": "The founder's ask of 28 September 2026: a patient who says what is wrong is offered packages/catalog/symptom-intake.json's set questions for it, one per turn, and a card of her answers to show the nurse. These triggers are the offer's own words — the chip's and the general ways of saying something is wrong. A complaint the intake's groups know by name (a headache, a sore stomach) reaches the same offer without a trigger here: lib/assistant.ts asks the intake's own matcher after the emergency words and the refusal policies, before anything is unmatched. Not triage: no priority, no cause, no advice, and every answer she gives passes through the emergency words first."
+    },
+    {
+      "id": "case-plan",
+      "asks": "What did the doctor say?",
+      "group": "situations",
+      "answer": "case",
+      "audiences": ["patient"],
+      "platforms": ["web"],
+      "triggers": ["what did the doctor say", "what the doctor said", "what did the doctor write", "the doctor said", "my plan from the doctor", "read me the plan", "what is my plan"],
+      "why": "The case pathway of 29 September 2026: once a doctor has signed the consultation on a patient's case, the plan is read back to her from the record in the doctor's own words — packages/catalog/case.json screens.patient planHeading, planLead and planClose around the plan itself — and never added to. With no case, or no signed plan yet, the contract's own sentence says so. Web only, like the intake it follows; a phone renders no case yet."
     }
   ],
   "questionGroups": [
@@ -617,6 +627,10 @@
     "intake": {
       "state": "guiding",
       "why": "The symptom intake of 28 September 2026. Every sentence it reads — the offer, each question and its options, the notes card, the closing — is packages/catalog/symptom-intake.json's; this entry carries only the state, so the panel and the voice treat it like every other kind. It is guiding, never escalate: the intake sets no urgency, and an emergency word in any answer is answered by the emergency kind, not by this one."
+    },
+    "case": {
+      "state": "guiding",
+      "why": "The case pathway of 29 September 2026. Every sentence it reads \u2014 the case card, who has the case, the plan in the doctor's words \u2014 is packages/catalog/case.json's; this entry carries only the state. Guiding, never escalate: a case in the emergency state is answered by the emergency kind, not by this one."
     }
   },
   "silenceIsNotSafety": "GilbertOne not recognising an emergency does not mean there is not one. If you think it is an emergency, call {ambulance}, or {mobile} from a mobile.",
@@ -701,7 +715,8 @@
       "reading": "routine",
       "preparation": "routine",
       "medicines": "routine",
-      "intake": "routine"
+      "intake": "routine",
+      "case": "routine"
     },
     "surfaces": {
       "demonstrator": "patient-general",
@@ -791,6 +806,11 @@
         "cue": "A13",
         "posture": "warm",
         "why": "Taking notes for the nurse is a routine kindness, the same warm face the situations and the preparation list wear: nothing is refused, nothing is interpreted, and the questions are the ones a nurse would ask on arrival. The sentence saying no clinician has reviewed the questions is a disclosure, not a refusal, and does not change the face. An emergency word in any answer leaves this kind altogether for the emergency answer and the safety face, so nothing here can soften one."
+      },
+      "case": {
+        "cue": "A13",
+        "posture": "warm",
+        "why": "Reading a case back \u2014 what she told GilbertOne, who has it, and the plan the doctor signed \u2014 is the same routine kindness as taking the notes, and wears the same warm face. Nothing here is refused and nothing interpreted: a finding never reaches this kind, and an emergency leaves it for the safety face."
       }
     },
     "conversation": {

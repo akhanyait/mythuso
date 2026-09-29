@@ -896,6 +896,54 @@ export interface PostClinicalReviewQueueByEntryRefRollbackResponse {
  readonly stateCode: string;
 }
 
+export interface PostClinicalCasesRequest {
+ readonly subjectRef: string;
+ readonly groupId: string;
+ readonly intakeEntryRef: string;
+ readonly readingRefs: readonly string[];
+ readonly emergencyEnded: boolean;
+}
+export interface PostClinicalCasesResponse {
+ readonly caseRef: string;
+ readonly stateCode: string;
+ readonly protocolVersionId: string;
+ readonly protocolRatified: boolean;
+ readonly suggestedSettingCode: string;
+ readonly suggestionRuleId: string;
+}
+
+export interface GetClinicalCasesByCaseRefRequest {
+ readonly caseRef: string;
+}
+export interface GetClinicalCasesByCaseRefResponse {
+ readonly caseRef: string;
+ readonly subjectRef: string;
+ readonly stateCode: string;
+ readonly groupId: string;
+ readonly intakeEntryRef: string;
+ readonly readingRefs: readonly string[];
+ readonly patternIds: readonly string[];
+ readonly protocolVersionId: string;
+ readonly protocolRatified: boolean;
+ readonly suggestedSettingCode: string;
+ readonly suggestionRuleId: string;
+ readonly decisions: ReadonlyArray<Readonly<Record<string, unknown>>>;
+ readonly consultationRef: string;
+ readonly outcomeCode: string;
+}
+
+export interface PostClinicalCasesByCaseRefSettingRequest {
+ readonly caseRef: string;
+ readonly settingCode: string;
+ readonly reason?: string;
+}
+export interface PostClinicalCasesByCaseRefSettingResponse {
+ readonly caseRef: string;
+ readonly stateCode: string;
+ readonly overrode: boolean;
+ readonly decidedAt: string;
+}
+
 export interface GetSafetyCheckinsRequest {
  readonly appointmentRef: string;
 }
@@ -2834,6 +2882,9 @@ export const apiRoutes = {
  postClinicalReviewQueueByEntryRefReview: { name: "postClinicalReviewQueueByEntryRefReview", method: "POST", path: "/v1/clinical/review-queue/{entryRef}/review", mountedPath: "/v1/clinical/review-queue/{entryRef}/review", version: 1, engine: "clinical", callers: ["doctor"], purpose: ["audit"], idempotent: true, status: "proposed" },
  postClinicalReviewQueueByEntryRefSign: { name: "postClinicalReviewQueueByEntryRefSign", method: "POST", path: "/v1/clinical/review-queue/{entryRef}/sign", mountedPath: "/v1/clinical/review-queue/{entryRef}/sign", version: 1, engine: "clinical", callers: ["doctor"], purpose: ["audit","treatment"], idempotent: true, status: "proposed" },
  postClinicalReviewQueueByEntryRefRollback: { name: "postClinicalReviewQueueByEntryRefRollback", method: "POST", path: "/v1/clinical/review-queue/{entryRef}/rollback", mountedPath: "/v1/clinical/review-queue/{entryRef}/rollback", version: 1, engine: "clinical", callers: ["doctor","nurse"], purpose: ["audit","treatment"], idempotent: true, status: "proposed" },
+ postClinicalCases: { name: "postClinicalCases", method: "POST", path: "/v1/clinical/cases", mountedPath: "/v1/clinical/cases", version: 1, engine: "clinical", callers: ["patient"], purpose: ["treatment"], idempotent: false, status: "proposed" },
+ getClinicalCasesByCaseRef: { name: "getClinicalCasesByCaseRef", method: "GET", path: "/v1/clinical/cases/{caseRef}", mountedPath: "/v1/clinical/cases/{caseRef}", version: 1, engine: "clinical", callers: ["patient","nurse","doctor"], purpose: ["treatment"], idempotent: false, status: "proposed" },
+ postClinicalCasesByCaseRefSetting: { name: "postClinicalCasesByCaseRefSetting", method: "POST", path: "/v1/clinical/cases/{caseRef}/setting", mountedPath: "/v1/clinical/cases/{caseRef}/setting", version: 1, engine: "clinical", callers: ["nurse"], purpose: ["treatment"], idempotent: false, status: "proposed" },
  getSafetyCheckins: { name: "getSafetyCheckins", method: "GET", path: "/v1/safety/checkins", mountedPath: "/v1/safety/checkins", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: false, status: "built" },
  postSafetyCheckinsByCheckinRefExtendV2: { name: "postSafetyCheckinsByCheckinRefExtendV2", method: "POST", path: "/v1/safety/checkins/{checkinRef}/extend", mountedPath: "/v1/safety/checkins/{checkinRef}/extend", version: 2, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "built" },
  postSafetyCheckinsByCheckinRefSafe: { name: "postSafetyCheckinsByCheckinRefSafe", method: "POST", path: "/v1/safety/checkins/{checkinRef}/safe", mountedPath: "/v1/safety/checkins/{checkinRef}/safe", version: 1, engine: "safety", callers: ["nurse","locum","responder"], purpose: ["dispatch"], idempotent: true, status: "built" },

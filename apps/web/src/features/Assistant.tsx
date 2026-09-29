@@ -55,18 +55,27 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { crisisLines, showsCrisisLines } from "../lib/crisis-lines";
+import { latestCaseFor, useCases } from "../lib/case";
 import {
   affect,
   answers,
   audienceOf,
   choose,
   consent,
+  caseScreens,
+  caseView,
   continueIntake,
   conversation,
   cueOf,
+  hasPathway,
   intakeReview,
   intakeWords,
   notesText,
+  patientReadingSources,
+  readingLine,
+  readingMarks,
+  SESSION_SUBJECT,
+  whoHas,
   emergencyAnswer,
   emergencyIn,
   handOver,
@@ -223,9 +232,9 @@ const QUESTION_ICONS: Record<string, typeof Ambulance> = {
   preparation: ClipboardList,
   medicines: Pill,
   intake: NotebookPen,
+  "case-plan": FileText,
 };
 
-const SESSION_SUBJECT = "subject-this-session";
 type Sent = { handover: Handover; sentNow: boolean };
 
 /* The panel's own view of a turn: a Turn plus the two facts the bridge attaches to a model answer —
@@ -282,6 +291,9 @@ export default function Assistant({
      what it opens with are the contract's, never this component's defaults. */
   const audience = audienceOf(audienceId);
   const [turns, setTurns] = useState<PanelTurn[]>(() => opening(audienceId));
+  /* The case card and the plan chip follow the store: a nurse taking the case or a doctor signing it,
+     in another role in this same tab, changes what the patient's card says. */
+  useCases();
   const [draft, setDraft] = useState("");
   const [pendingReplies, setPendingReplies] = useState<Set<number>>(
     () => new Set(),
@@ -999,7 +1011,8 @@ export default function Assistant({
                               (q.answer === "preparation" && visit !== null) ||
                               q.answer === "reading" ||
                               q.answer === "medicines" ||
-                              q.answer === "intake",
+                              q.answer === "intake" ||
+                              (q.answer === "case" && latestCaseFor(SESSION_SUBJECT) !== null),
                           )
                           .sort(
                             (a, b) =>
@@ -1721,6 +1734,86 @@ function ReplyBody({
     case "intake": {
       const w = intakeWords;
       if (reply.phase === "declined") return <p>{w.answer.consent.declined}</p>;
+      /* The three steps after the notes on a group with a pathway (29 September 2026), every word
+         packages/catalog/case.json's: the pair a home cuff shows, where it came from (devices.json's
+         own source labels, as 44-pixel chips), and the case card once she asked for a nurse. The card
+         draws from caseView(), which is the case with its findings and its suggestion removed. */
+      if (reply.phase === "case-declined") return <p>{caseScreens.notNowSaid}</p>;
+      if (reply.phase === "reading")
+        return (
+          <>
+            <p className="as-headline">{caseScreens.readingAsk}</p>
+            {reply.note && <p className="as-quiet">{reply.note}</p>}
+            {onIntake && (
+              <>
+                <p className="as-quiet">{w.answer.typeHint}</p>
+                <div className="as-intake-chips">
+                  <Button variant="secondary" className="as-option" onClick={() => onIntake(caseScreens.skipWord)}>
+                    {caseScreens.skipLabel}
+                  </Button>
+                </div>
+              </>
+            )}
+          </>
+        );
+      if (reply.phase === "reading-source")
+        return (
+          <>
+            <p className="as-headline">{caseScreens.readingSourceAsk}</p>
+            {onIntake && (
+              <div className="as-intake-chips" role="group" aria-label={caseScreens.readingSourceAsk}>
+                {patientReadingSources().map((source) => (
+                  <Button variant="secondary" className="as-option" key={source.id} onClick={() => onIntake(source.label)}>
+                    {source.label}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </>
+        );
+      if (reply.phase === "case") {
+        const view = caseView(reply.caseRef);
+        return (
+          <>
+            <Card className="as-notes as-case" padding="sm">
+              <p className="as-headline">{caseScreens.heading}</p>
+              <p className="as-quiet">{caseScreens.answersHeading}</p>
+              <dl className="as-summary">
+                {reply.rows.map((row) => (
+                  <div key={row.label}>
+                    <dt>{row.label}</dt>
+                    <dd>{row.value}</dd>
+                  </div>
+                ))}
+              </dl>
+              {reply.reading && (
+                <>
+                  <p className="as-quiet">{caseScreens.readingHeading}</p>
+                  <p className="as-case-reading">{readingLine(reply.reading)}</p>
+                  {readingMarks(reply.reading).map((mark) => (
+                    <p className="as-quiet" key={mark}>{mark}</p>
+                  ))}
+                </>
+              )}
+            </Card>
+            <p>{caseScreens.opened}</p>
+            {view && (
+              <p className="as-case-who" role="status">
+                {whoHas(view)}
+              </p>
+            )}
+            {view?.plan && (
+              <div className="as-case-plan" role="status">
+                <p className="as-headline">{caseScreens.planHeading}</p>
+                <p className="as-quiet">{caseScreens.planLead}</p>
+                <p className="as-case-plan-words">{view.plan}</p>
+                <p className="as-quiet">{caseScreens.planClose}</p>
+              </div>
+            )}
+            <p className="as-quiet as-provenance">{caseScreens.neverShown}</p>
+          </>
+        );
+      }
       if (reply.phase === "offer")
         return (
           <>
@@ -1790,9 +1883,37 @@ function ReplyBody({
               ))}
             </dl>
           </Card>
+          {reply.reading && (
+            <p className="as-case-reading">{readingLine(reply.reading)}</p>
+          )}
+          {reply.reading &&
+            readingMarks(reply.reading).map((mark) => (
+              <p className="as-quiet" key={mark}>{mark}</p>
+            ))}
           <p>{reply.state?.stopped ? w.answer.stop.stopped : w.answer.closing}</p>
           <p className="as-quiet as-provenance">{intakeReview()}</p>
           <p>{w.answer.arrangeCare}</p>
+          {/* A group with a pathway offers a reading and a nurse; the chips press into onIntake by
+              their contract labels, and only on the latest turn. */}
+          {hasPathway(reply.group) && !reply.state?.stopped && onIntake && (
+            <>
+              {!reply.reading && <p className="as-quiet">{caseScreens.readingLead}</p>}
+              <p>{caseScreens.askNurseLead}</p>
+              <div className="as-intake-chips" role="group" aria-label={caseScreens.askNurseLead}>
+                {!reply.reading && (
+                  <Button variant="secondary" className="as-option" onClick={() => onIntake(caseScreens.readingOffer)}>
+                    {caseScreens.readingOffer}
+                  </Button>
+                )}
+                <Button variant="primary" className="as-option" onClick={() => onIntake(caseScreens.askNurse)}>
+                  {caseScreens.askNurse}
+                </Button>
+                <Button variant="secondary" className="as-option" onClick={() => onIntake(caseScreens.notNow)}>
+                  {caseScreens.notNow}
+                </Button>
+              </div>
+            </>
+          )}
           <div className="as-actions">
             {typeof navigator !== "undefined" && navigator.clipboard && (
               <Button
@@ -1811,6 +1932,27 @@ function ReplyBody({
               </button>
             )}
           </div>
+        </>
+      );
+    }
+    /* "What did the doctor say?": the plan in the doctor's own words, or the contract's sentence for
+       no case and for no plan yet. Nothing is added to it. */
+    case "case": {
+      const view = reply.view;
+      return (
+        <>
+          <p className="as-headline">{caseScreens.planHeading}</p>
+          {!view ? (
+            <p>{caseScreens.planNoCase}</p>
+          ) : !view.plan ? (
+            <p>{caseScreens.planNone}</p>
+          ) : (
+            <div className="as-case-plan" role="status">
+              <p className="as-quiet">{caseScreens.planLead}</p>
+              <p className="as-case-plan-words">{view.plan}</p>
+              <p className="as-quiet">{caseScreens.planClose}</p>
+            </div>
+          )}
         </>
       );
     }

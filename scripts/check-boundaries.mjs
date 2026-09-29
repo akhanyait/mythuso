@@ -38,7 +38,8 @@ import {
   sharedRefusalEntries,
 } from "./api-locks.mjs";
 import { emitConsentGrants } from "./emit-consent-grants.mjs";
-import { emitProtocols } from "./emit-protocols.mjs";
+import { emitProtocols, previewPathwayOf } from "./emit-protocols.mjs";
+import { checkCasePathway } from "./check-case-pathway.mjs";
 import { emitLocales } from "./emit-locales.mjs";
 import { emitDispensing } from "./emit-dispensing.mjs";
 import { emitProgrammes } from "./emit-programmes.mjs";
@@ -3088,6 +3089,12 @@ const generated = [
     command: "npm run care-tips",
     files: (await import("./emit-care-tips.mjs")).emitCareTips(),
   },
+  /* The case pathway (29 September 2026): the very-high line read out of the knowledge base's own sentence and
+     the entries the headache questions draw on, so the web types neither. One entry per source. */
+  ...(await (async () => {
+    const files = (await import("./emit-case.mjs")).emitCase();
+    return ["packages/catalog/case.json", "packages/catalog/knowledge/conditions.json", "packages/catalog/symptom-intake.json"].map((source) => ({ source, command: "npm run case", files }));
+  })()),
   /* Hands-free conversation mode (28 September 2026): the pause, the caps and the sentences, so neither phone types them. */
   {
     source: "packages/catalog/conversation-mode.json",
@@ -4465,10 +4472,22 @@ for (const { source, command, files } of generated) {
         throw new Error(
           `${where} is a draft that says who ratified it. ${protocolRefusal("no-ratification-without-a-signature").statement}`,
         );
-      if (p.contentRef !== null)
-        throw new Error(
-          `${where} is a draft with content. ${protocolRefusal("a-draft-carries-nothing").why}`,
-        );
+      /* A draft's contentRef is null, with one kind of exception since 29 September 2026: a preview
+         pathway, which cites a section of a contract that itself types no number (protocols.json
+         _previewPathways; the predicate is the generator's, so the phones' copy and this check agree).
+         It belongs to the Clinical engine, because a pathway that suggests where a patient is seen is
+         decision support and nothing else. */
+      if (p.contentRef !== null) {
+        const preview = previewPathwayOf(p);
+        if (!preview)
+          throw new Error(
+            `${where} is a draft with content. ${protocolRefusal("a-draft-carries-nothing").why}`,
+          );
+        if (p.engine !== "clinical")
+          throw new Error(
+            `${where} is a preview pathway on the ${p.engine} engine. A pathway that suggests where a patient is seen is Clinical Intelligence's decision support, and no other engine's.`,
+          );
+      }
       for (const key of GOVERNANCE_KEYS) {
         const value = p[key];
         if (!(value === null || (Array.isArray(value) && value.length === 0)))
@@ -4505,9 +4524,16 @@ for (const { source, command, files } of generated) {
   }
   const blueprintProtocols = 12;
   const protocolIds = new Set(protocolContract.protocols.map((p) => p.id));
-  if (protocolIds.size !== blueprintProtocols)
+  /* The twelve launch protocols are the rows with no content; a preview pathway is a thirteenth kind
+     of row and never one of the twelve, so adding one cannot quietly grow the launch scope. */
+  const launchIds = new Set(protocolContract.protocols.filter((p) => !previewPathwayOf(p)).map((p) => p.id));
+  if (launchIds.size !== blueprintProtocols)
     throw new Error(
-      `packages/catalog/protocols.json registers ${protocolIds.size} protocols. The Master Blueprint Part F names twelve launch protocols; one added or lost here is a launch scope nobody agreed.`,
+      `packages/catalog/protocols.json registers ${launchIds.size} launch protocols. The Master Blueprint Part F names twelve launch protocols; one added or lost here is a launch scope nobody agreed.`,
+    );
+  if (!protocolContract._previewPathways && protocolIds.size !== launchIds.size)
+    throw new Error(
+      "packages/catalog/protocols.json registers a preview pathway and no longer says what one is (_previewPathways).",
     );
 
   /* Nothing outside the registry invents a version. A reference is an id@number token: any whose id is
@@ -15163,7 +15189,7 @@ const answerKinds = new Set([
    both phones' AssistantData, because their reply builders answer a kind they have never met with
    "I can't assess that". The day a phone renders one, its kind moves up into answerKinds in the
    same change that removes the platforms field. */
-const WEB_ONLY_ANSWER_KINDS = new Set(["reading", "preparation", "medicines", "intake"]);
+const WEB_ONLY_ANSWER_KINDS = new Set(["reading", "preparation", "medicines", "intake", "case"]);
 for (const question of gilbertContract.questions) {
   if (WEB_ONLY_ANSWER_KINDS.has(question.answer)) {
     if (JSON.stringify(question.platforms) !== JSON.stringify(["web"]))
@@ -33037,9 +33063,19 @@ const p2Summary = {};
         throw new Error(
           `${r.method} ${r.path}@${r.version} returns "${f.field}" (${f.type}). The Overview and the Model Providers screen read this route; it carries presence as booleans and a mode, never a value from a credentials file.`,
         );
+  /* A card may say its key is a browser key — a public, URL-restricted token the provider designs to be
+     compiled into a page (Mapbox's pk. token, 29 September 2026). It says so with browserKey: true and a
+     _browserKeyWhy, and only that card's variable may be named in the web; the map section holds that no
+     value ever is. Everything else stays the rule below: a key's name in the bundle is the first step to
+     its value in it. */
+  const browserKeyVars = new Set(
+    p2.registry.cards
+      .filter((c) => c.browserKey === true && typeof c._browserKeyWhy === "string" && c._browserKeyWhy.length > 40)
+      .flatMap((c) => c.environment ?? []),
+  );
   const credentialVars = p2.registry.cards
     .flatMap((c) => c.environment ?? [])
-    .filter((v) => /KEY|SECRET|TOKEN|ENDPOINT|URL/.test(v));
+    .filter((v) => /KEY|SECRET|TOKEN|ENDPOINT|URL/.test(v) && !browserKeyVars.has(v));
   const web = [...files("apps/web/src").filter((f) => /\.(ts|tsx)$/.test(f)), "apps/web/vite.config.ts"];
   for (const f of web) {
     const text = p2Code(read(f));
@@ -33047,7 +33083,7 @@ const p2Summary = {};
       if (text.includes(v))
         throw new Error(`${f} names ${v}. The web bundle is public; a provider credential's name in it is the first step to its value in it.`);
     const exposed = text.match(/VITE_[A-Z0-9_]*(KEY|SECRET|TOKEN|PASSWORD)\b/);
-    if (exposed)
+    if (exposed && !browserKeyVars.has(exposed[0]))
       throw new Error(`${f} reads ${exposed[0]}. Vite writes every VITE_ variable into the public bundle, so a key named that way is a key published.`);
   }
 }
@@ -35398,9 +35434,14 @@ console.log(
         `${intakeFile}'s group "${group.id}" asks ${group.questions.length} question of its own. A group is a label for the questions pertinent to that complaint; with only the common ones it is a label for nothing the nurse did not already ask.`,
       );
     const total = commonIntake.length + group.questions.length;
-    if (total < 5 || total > 8)
+    /* A written group asks five to eight. A group derived from the knowledge base (questionsFrom, since
+       29 September 2026) asks as many as its entries need — every question earns its place by naming
+       the entry it distinguishes, which the case-pathway block below holds it to — under a ceiling a
+       phone can still answer. */
+    const derived = Array.isArray(group.questionsFrom);
+    if (total < 5 || total > (derived ? 15 : 8))
       throw new Error(
-        `${intakeFile}'s group "${group.id}" asks ${total} questions with the common ones. Five to eight: fewer is not worth a nurse's reading, more is not answered on a phone.`,
+        `${intakeFile}'s group "${group.id}" asks ${total} questions with the common ones. ${derived ? "Five to fifteen for a group derived from the knowledge base" : "Five to eight"}: fewer is not worth a nurse's reading, more is not answered on a phone.`,
       );
   }
 
@@ -36816,7 +36857,10 @@ console.log(
     /* Wave 4b, the nurse's screens on the identity: every one behind the staff shell's dynamic import, or behind a
        dynamic import of its own (KitDeck and Devices from Thuso Kit, DeviceLab from the Control Tower, VerifyInService
        from the arrival and the day). Kit.tsx and KitCapture.tsx are on the patient's entry and import none of it. */
-    "apps/web/src/features/VisitQueue.tsx", "apps/web/src/features/KitDeck.tsx", "apps/web/src/features/CareVisit.tsx", "apps/web/src/features/FieldSafety.tsx", "apps/web/src/features/Devices.tsx", "apps/web/src/features/DeviceLab.tsx", "apps/web/src/features/Earnings.tsx", "apps/web/src/features/VerifyInService.tsx", "apps/web/src/features/NurseTools.tsx", "apps/web/src/features/Dispensing.tsx"];
+    "apps/web/src/features/VisitQueue.tsx", "apps/web/src/features/KitDeck.tsx", "apps/web/src/features/CareVisit.tsx", "apps/web/src/features/FieldSafety.tsx", "apps/web/src/features/Devices.tsx", "apps/web/src/features/DeviceLab.tsx", "apps/web/src/features/Earnings.tsx", "apps/web/src/features/VerifyInService.tsx", "apps/web/src/features/NurseTools.tsx", "apps/web/src/features/Dispensing.tsx",
+    /* The case pathway (29 September 2026): behind the staff shell's dynamic import from the nurse's Cases and the
+       doctor's inbox. The patient's entry measured 258.71 kB gzip -9 after it landed, against 258.19 before. */
+    "apps/web/src/features/CaseFile.tsx"];
   for (const f of files("apps/web/src").filter((f) => /\.tsx?$/.test(f) && !f.startsWith(`${uiDir}/`) && !adopters.includes(f))) {
     const code = uncommented(read(f));
     if (/from\s+['"][./]*(?:\.\.\/)*ui(?:\/(?!icons\/)[\w]+)?['"]/.test(code) || /features\/UiGallery/.test(code) && f !== "apps/web/src/App.tsx")
@@ -37889,4 +37933,168 @@ console.log(
   if (/GilbertOne|gilbert-one/.test(read(`${ios}/Assets.xcassets/AppIcon.appiconset/Contents.json`))) w5a("the app icon is not MyThuso's.");
 
   console.log(`Wave 5a, iOS on the identity · ${faces.length} faces bundled, licensed and registered through UIAppFonts and the merged Info.plist; ${restyled.length} component and screen files on the roles alone with no colour literal, no system text style and no typed system size; ${Object.keys(components).length} components mirroring the web's by name, the spinner turning once; the GilbertOne logo the master to the byte with the descriptor beside it; the patient's four places on the MyThuso family and the app icon MyThuso's.`);
+}
+
+/* Streets on for staff, and Mapbox as a provider — 29 September 2026 */
+/* The founder asked for the map's Mapbox wiring to work, and for the streets he had never seen to
+   show. Both landed as data: a second tile source chosen by a token set at build time and never by
+   an edit, and a default per surface — on for the dispatch board and the care visit, whose job is
+   where people are; off for a patient's arrival map, whose viewport is hers to disclose. The second
+   source is split across two files on purpose: geography.json, which every patient's first load
+   carries, names it and the key that chooses it; packages/catalog/map-providers.json, which only the
+   tile chunk carries, holds its endpoint, licence and credit. What follows holds the seven things
+   that would quietly stop being true: a source without its licence, a provider's terms riding in the
+   patient's first load, a token in a tracked file, a patient surface that starts streets on,
+   telemetry that came in with the token, a content policy that let a provider run code, and a pin
+   drawn in a colour or a duration typed rather than tokened. */
+{
+  const w = (message) => { throw new Error(`Streets on for staff, and Mapbox as a provider: ${message}`); };
+  const geo = JSON.parse(read("packages/catalog/geography.json"));
+  const rendering = geo.rendering;
+  const pointers = rendering.alternateSources ?? [];
+  const mapboxPointer = pointers.find((s) => s.tokenEnv === "VITE_MAPBOX_TOKEN");
+  if (!mapboxPointer) w("geography.json has no rendering.alternateSources entry keyed by VITE_MAPBOX_TOKEN. Mapbox is chosen by that token and by nothing else.");
+
+  /* 1. Every alternate is a pointer here and an entry there, and every entry — the default's
+     included — carries the three things a map may not be drawn without. A mapbox:// style URL is
+     the one that loads nothing at all in MapLibre, so it is refused here rather than discovered on a
+     dispatch board. */
+  const entries = [];
+  for (const pointer of pointers) {
+    for (const key of ["id", "name", "tokenEnv", "detailsIn"]) if (!pointer[key]) w(`alternate source ${pointer.id ?? "(unnamed)"} has no ${key}. The pointer carries the name and the key's name; everything else lives in detailsIn.`);
+    if (Object.keys(pointer).length > 4) w(`alternate source ${pointer.id} carries more than its id, name, tokenEnv and detailsIn in geography.json. That file rides in every patient's first load; a provider's terms belong in ${pointer.detailsIn}.`);
+    if (!existsSync(pointer.detailsIn)) w(`alternate source ${pointer.id} points at ${pointer.detailsIn}, which does not exist.`);
+    const entry = JSON.parse(read(pointer.detailsIn)).providers?.find((p) => p.id === pointer.id);
+    if (!entry) w(`${pointer.detailsIn} has no providers entry "${pointer.id}", which geography.json names.`);
+    if (entry.name) w(`${pointer.detailsIn}'s "${pointer.id}" carries a name, which geography.json already holds. One name, one place.`);
+    entries.push(entry);
+  }
+  for (const src of [rendering.source, ...entries]) {
+    for (const key of ["id", "styleUrl", "host", "licence", "attribution", "attributionUrl", "labelFont", "loadTimeoutMs"])
+      if (!src[key]) w(`tile source ${src.id ?? "(unnamed)"} has no ${key}. The credit and the licence travel with the source that drew, or the wrong provider gets credited the day the token is set.`);
+    if (!src.attribution.includes("OpenStreetMap")) w(`tile source ${src.id}'s attribution does not credit OpenStreetMap. Both providers draw ODbL data and the credit is a condition of it.`);
+  }
+  const mapbox = entries.find((e) => e.id === mapboxPointer.id);
+  if (!mapbox.styleUrl.startsWith("https://api.mapbox.com/")) w(`the Mapbox source's styleUrl is ${mapbox.styleUrl}. MapLibre does not resolve mapbox://; the style is fetched over https and its inner names are rewritten by apps/web/src/map/mapboxRequests.ts.`);
+  if (!mapbox.styleUrl.includes("{token}")) w("the Mapbox source's styleUrl carries no {token} placeholder, so either it carries a value — never — or the style would be fetched without one and refused.");
+  if (mapbox.keyRequired !== true) w("the Mapbox source says no key is required. It is, and saying so is what makes the token's absence a supported state rather than a surprise.");
+  for (const origin of ["https://api.mapbox.com", "https://*.tiles.mapbox.com"])
+    if (!(mapbox.origins ?? []).includes(origin)) w(`the Mapbox source's origins do not name ${origin}; the content policy below is held to this list.`);
+  if ((mapbox.origins ?? []).some((o) => /events\.mapbox\.com/.test(o))) w("the Mapbox source names events.mapbox.com, mapbox-gl's telemetry endpoint. MapLibre sends nothing there and the policy must not let anything.");
+  for (const key of ["offSentence", "onSentence"])
+    if (!rendering.tiles[key].includes("{provider}")) w(`tiles.${key} does not say {provider}. A disclosure that named OpenFreeMap while Mapbox drew would name the wrong party.`);
+  const liveMapSource = read("apps/web/src/map/LiveMap.tsx");
+  if (!/say\(tiles\.onSentence\)/.test(liveMapSource) || !/say\(tiles\.offSentence\)/.test(liveMapSource)) w("LiveMap.tsx renders a disclosure sentence without say(), so {provider} would reach the screen as a placeholder rather than as the chosen source's name.");
+
+  /* 2. The provider's terms never ride in the patient's first load, and the credit is the words of
+     whichever entry drew. map-providers.json is imported by the tile chunk and by nothing else;
+     LiveMap renders the credit the tile map reports rather than a copy of its own. */
+  const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:"'`\\])\/\/[^\n]*/g, "$1");
+  for (const f of files("apps/web/src").filter((f) => /\.tsx?$/.test(f) && !f.endsWith("map/TileMap.tsx")))
+    if (/map-providers\.json/.test(strip(read(f)))) w(`${f} imports packages/catalog/map-providers.json. Only map/TileMap.tsx, behind its dynamic import, may: the entry's terms are half a kilobyte a patient would otherwise download for a provider her screen never asks.`);
+  const tileMap = read("apps/web/src/map/TileMap.tsx");
+  if (!/from '\.\.\/\.\.\/\.\.\/\.\.\/packages\/catalog\/map-providers\.json'/.test(tileMap)) w("TileMap.tsx no longer reads packages/catalog/map-providers.json, so an alternate source chosen by token has no endpoint to draw from.");
+  if (!/drawnBy\.current\(\{ attribution: drawnWith\.attribution, attributionUrl: drawnWith\.attributionUrl \}\)/.test(tileMap)) w("TileMap.tsx no longer reports the credit of the entry it drew with before its first request.");
+  if (!/onDrawnBy=\{setCredit\}/.test(liveMapSource) || !/\{live && credit && <p className="livemap-credit">/.test(liveMapSource)) w("LiveMap.tsx no longer renders the credit the tile map reports. A credit typed beside the map is a credit that names the vendor before last.");
+
+  /* 3. No token value anywhere in the tree git tracks. A public pk. token is URL-restricted, but a
+     key in source is a key in every fork, and the .env.example beside it is the only place the
+     variable's name may appear with nothing after the equals sign. */
+  const { execFileSync } = await import("node:child_process");
+  const tracked = execFileSync("git", ["ls-files", "-z"], { encoding: "utf8" }).split("\0").filter(Boolean);
+  const textual = /\.(?:ts|tsx|js|mjs|cjs|json|md|html|css|swift|kt|kts|xml|yml|yaml|sh|conf|txt|example|env|plist|gradle|py|svg|lock)$|^[^.]+$|\/\.env[^/]*$|\/[^/.]+$/;
+  const tokenShape = /\bpk\.[A-Za-z0-9_-]{20,}/;
+  for (const file of tracked) {
+    if (!textual.test(file) || !existsSync(file) || statSync(file).size > 4_000_000) continue;
+    const hit = read(file).match(tokenShape);
+    if (hit) w(`${file} carries what looks like a Mapbox token (${hit[0].slice(0, 6)}…). The token is read from VITE_MAPBOX_TOKEN when the web is built and is never a value in this repository.`);
+  }
+  if (read("packages/catalog/map-providers.json").match(tokenShape)) w("packages/catalog/map-providers.json carries a token value.");
+  const envExample = read("apps/web/.env.example");
+  if (!/^VITE_MAPBOX_TOKEN=\s*$/m.test(envExample)) w("apps/web/.env.example does not carry an empty VITE_MAPBOX_TOKEN= line. The name is documented there; the value never is.");
+  if (!/\bpk\.\s/.test(envExample) || !/mythuso\.co\.za/.test(envExample)) w("apps/web/.env.example no longer says that only a public pk. token, URL-restricted to mythuso.co.za, may be used.");
+  for (const ignored of [".env", ".env.local"])
+    if (!read(".gitignore").split("\n").some((line) => line.trim() === ignored)) w(`.gitignore no longer ignores ${ignored}, which is where a token would be written.`);
+
+  /* 4. The patient surface never starts streets on. The contract's plain default stays off and is
+     what a caller that does not say gets; staff is the one opt-in, named by the two screens whose
+     job is where people are and by no other file. */
+  if (rendering.tiles.default !== "off") w("tiles.default is not off. It is what a surface that does not say gets, and it has to ask nothing of anybody.");
+  if (rendering.tiles.defaultBySurface?.patient !== "off") w("tiles.defaultBySurface.patient is not off. A patient's arrival map discloses her viewport, and a default nobody chose is not consent.");
+  if (rendering.tiles.defaultBySurface?.staff !== "on") w("tiles.defaultBySurface.staff is not on. The founder asked on 29 September 2026 that the dispatch board and the care visit open on streets.");
+  if (!rendering.tiles.whyBySurface) w("tiles.defaultBySurface has lost its why. Turning streets on for anybody was an edit that had to be justified in the contract.");
+  for (const key of ["startedOnSentence", "notRememberedOn", "notRemembered"])
+    if (!rendering.tiles[key]) w(`tiles.${key} is missing; the staff surface has to say why streets started on and that switching them off is not kept.`);
+  if (!/surface = 'patient'/.test(liveMapSource)) w("LiveMap's surface prop no longer defaults to 'patient'. A caller that does not say must get the default that asks nothing.");
+  if (!/useState\(startsOn\)/.test(liveMapSource) || !/const startsOn = tilesStartOn\(surface\)/.test(liveMapSource)) w("LiveMap no longer takes where the switch starts from tilesStartOn(surface), the contract's per-surface default.");
+  const staffScreens = ["apps/web/src/features/Dispatch.tsx", "apps/web/src/features/CareVisit.tsx"];
+  for (const f of staffScreens) if (!/<LiveMap[^>]*surface="staff"/.test(read(f))) w(`${f} no longer opens its map as a staff surface, so a nurse or a controller gets the schematic they did not ask for.`);
+  if (!/<LiveMap[^>]*surface="patient"/.test(read("apps/web/src/features/Arrival.tsx"))) w("Arrival.tsx no longer says its map is a patient's. It must say so rather than rely on the default, because the default is the one thing a later edit would change.");
+  for (const f of files("apps/web/src").filter((f) => /\.tsx$/.test(f) && !staffScreens.includes(f)))
+    if (/surface="staff"/.test(read(f))) w(`${f} opens a map as a staff surface, which starts streets on. Only the dispatch board and the care visit may; a third screen is added to this check by somebody who has decided it should be.`);
+  const geographyLib = read("apps/web/src/lib/geography.ts");
+  if (!/export const tilesStartOn = \(surface: MapSurface\) => tilesOffered && tilesDefaultFor\(surface\) === 'on'/.test(geographyLib)) w("lib/geography.ts no longer derives tilesStartOn from the contract's per-surface default.");
+  for (const f of files("apps/web/src/map").filter((f) => /\.(tsx?|css)$/.test(f)))
+    if (/\b(localStorage|sessionStorage|indexedDB|document\.cookie)\b/.test(read(f))) w(`${f} remembers something in the browser. Where the switch starts is the contract's and where it ends is forgotten.`);
+
+  /* 5. Telemetry did not come in with the token. The library is MapLibre and not mapbox-gl; nothing
+     in the map module names mapbox-gl's events endpoint; the request rewriter appends the token to
+     the two Mapbox host families and to nothing else; and the tile chunk is reached by one dynamic
+     import, so a patient who never asks for streets never downloads a map library. */
+  const webDeps = JSON.parse(read("apps/web/package.json"));
+  if ({ ...webDeps.dependencies, ...webDeps.devDependencies }["mapbox-gl"]) w("apps/web depends on mapbox-gl, which reports usage to events.mapbox.com. MapLibre draws Mapbox tiles without it.");
+  const rewriter = read("apps/web/src/map/mapboxRequests.ts");
+  for (const [f, code] of [["TileMap.tsx", tileMap], ["mapboxRequests.ts", rewriter], ["LiveMap.tsx", liveMapSource], ["lib/geography.ts", geographyLib]])
+    if (/events\.mapbox\.com|EVENTS_URL|mapboxgl\.config|sendTurnstile|postTurnstileEvent/.test(strip(code))) w(`${f} names mapbox-gl's telemetry. MapLibre has none and this build adds none.`);
+  if (!/transformRequest: source\.token \? mapboxRequests\(source\.token\) : undefined/.test(tileMap)) w("TileMap.tsx no longer rewrites requests only for a source chosen by token. OpenFreeMap's requests go as the style wrote them.");
+  if (!/export const isMapboxHost = \(host: string\) => host === 'api\.mapbox\.com' \|\| \/\^\[a-z0-9-\]\+\\\.tiles\\\.mapbox\\\.com\$\/\.test\(host\);/.test(rewriter)) w("mapboxRequests.ts no longer limits the token to api.mapbox.com and *.tiles.mapbox.com. A token on a request to any other host is a leaked credential.");
+  if (/\bsku\b/.test(strip(rewriter))) w("mapboxRequests.ts attaches a sku parameter, which is how mapbox-gl meters a session. MapLibre is not asked to account for one.");
+  if (!/lazy\(\(\) => import\('\.\/TileMap'\)/.test(liveMapSource)) w("LiveMap.tsx no longer reaches TileMap through a dynamic import; the map library would be in the patient's first load.");
+  for (const f of files("apps/web/src").filter((f) => /\.tsx?$/.test(f) && !f.endsWith("map/LiveMap.tsx")))
+    if (/from ['"][^'"]*\/TileMap['"]/.test(strip(read(f)))) w(`${f} imports TileMap statically. The 1.8 MB library is fetched only when a map screen opens with streets on.`);
+
+  /* 6. The content policy names the Mapbox origins under connect-src and img-src, and under nothing
+     else — a provider is a place to fetch tiles from, never a place to run code from — and names no
+     telemetry endpoint. The pages with no map name no provider. */
+  const policy = read("apps/web/index.html").match(/Content-Security-Policy" content="([^"]+)"/)?.[1] ?? "";
+  const directives = new Map(policy.split(";").map((part) => part.trim()).filter(Boolean).map((part) => [part.split(/\s+/)[0], part.split(/\s+/).slice(1)]));
+  for (const origin of mapbox.origins) {
+    for (const allowed of ["connect-src", "img-src"])
+      if (!(directives.get(allowed) ?? []).includes(origin)) w(`apps/web/index.html's ${allowed} does not allow ${origin}, so a build with VITE_MAPBOX_TOKEN set would fall back to the schematic without saying why.`);
+  }
+  for (const [name, values] of directives)
+    if (values.some((v) => /mapbox/.test(v)) && !["connect-src", "img-src"].includes(name)) w(`apps/web/index.html's ${name} names a Mapbox origin. Only connect-src and img-src may; script-src and worker-src stay 'self'.`);
+  if (/events\.mapbox\.com/.test(policy)) w("apps/web/index.html's content policy allows events.mapbox.com, mapbox-gl's telemetry endpoint. Nothing here sends telemetry and the policy is what makes that a refusal.");
+  if (!(directives.get("script-src") ?? []).every((v) => v === "'self'")) w("apps/web/index.html's script-src is no longer 'self' alone.");
+  for (const entry of ["landing.html", "status.html", "shop.html"])
+    if (existsSync(`apps/web/${entry}`) && /mapbox\.com/.test(read(`apps/web/${entry}`))) w(`apps/web/${entry} names a Mapbox origin and draws no map with a provider chosen by token.`);
+
+  /* 7. The pins are the handoff's vocabulary on this product's tokens: no hex, no literal duration,
+     no animation that never ends, one colour per kind under --pin read by both renderings and the
+     key, and a DOM marker that stays a 44-pixel target however small its face. */
+  const css = read("apps/web/src/map/map.css");
+  const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, " ");
+  const hex = cssCode.match(/#[0-9a-fA-F]{3,8}\b/);
+  if (hex) w(`map.css writes a colour of its own (${hex[0]}). Every colour on the map is a token.`);
+  const ms = cssCode.match(/\b\d+m?s\b/);
+  if (ms) w(`map.css writes a duration of its own (${ms[0]}). Motion is --motion-duration and --ease-soft.`);
+  if (/infinite/.test(cssCode)) w("map.css animates something for ever. The handoff's location pulse was not kept: nothing on a board somebody works from all day moves on its own.");
+  for (const kind of geo.marks.map((m) => m.id).filter((id) => id !== "zone"))
+    if (!new RegExp(`\\.map-pin\\.${kind}, \\.key-${kind} \\{ --pin: var\\(--[a-z-]+\\); \\}`).test(cssCode)) w(`map.css no longer gives the mark "${kind}" one --pin colour shared by the schematic, the tile marker and the key.`);
+  if (!/\.map-marker \{\s*width: 44px;\s*height: 44px;/.test(cssCode)) w("map.css no longer keeps a tile marker 44 pixels square. The face may be small; the target may not.");
+  if (!/\.map-marker::before \{[^}]*background: var\(--pin\)/.test(cssCode) || !/\.map-pin rect \{ fill: var\(--pin/.test(cssCode)) w("map.css no longer draws the tile marker and the schematic pin from the same --pin.");
+  if (/--marker\b/.test(tileMap)) w("TileMap.tsx sets a marker colour of its own. The colour is map.css's --pin, by kind, for both renderings.");
+
+  console.log(`Streets on for staff, and Mapbox as a provider · ${1 + entries.length} tile sources each with a licence, a credit and a label font, the Mapbox one a pointer in geography.json and an entry in map-providers.json that only the tile chunk reads, keyed by VITE_MAPBOX_TOKEN over https; the credit under the map is what the tile map reports it drew with; ${tracked.length} tracked files carry no token; the patient surface and the plain default start off and the two staff screens alone start on; no mapbox-gl, no telemetry endpoint, no sku, the token appended to two host families only, the tile chunk behind one dynamic import; index.html allows the Mapbox origins under connect-src and img-src alone; every pin on tokens, one --pin per kind, no literal duration, nothing endless.`);
+}
+
+/* The case pathway — 29 September 2026 */
+/* The founder's demonstration: a headache gathered by GilbertOne, linked by the knowledge base to raised
+   blood pressure, suggested for a nurse by a draft pathway, confirmed by her, handed to a doctor, and the
+   plan read back in the doctor's words. The checks live in scripts/check-case-pathway.mjs so that each one
+   can be proven to fire in isolation (scripts/prove-case-pathway.mjs hands the module broken files); they
+   are called here with the same read, files and stems every other block uses. */
+{
+  const { stems: stemsOf, hasSequence: sequenceIn } = await import("../packages/gilbertone/src/stems.ts");
+  console.log(checkCasePathway({ read, files, stems: stemsOf, hasSequence: sequenceIn, existsSync }));
 }

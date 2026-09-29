@@ -81,24 +81,70 @@ export function suburbPin(areaName: string): LatLng | undefined {
 
 /* The tile source, and the fact that drawing from it is somebody's decision rather than a default.
  *
- * There is no key to read any more. MapLibre draws from an openly licensed endpoint that wants no
- * account, so the question stopped being "does this build have a token" and became "has the person
- * looking at this screen asked for streets" — which is a better question, because it is the one
- * with a privacy answer. A tile request tells its server which square of the city is open, the
- * internet address that asked, and when; over a visit that is roughly which suburb a patient is in
- * and roughly when somebody came to the house. That is small, it is real, and until this map drew
- * streets nobody had had to disclose it. So the default is off, the switch is on the map, and the
- * sentence describing the request sits beside the switch that causes it. */
-export const source = rendering.source;
+ * MapLibre draws from an openly licensed endpoint that wants no account, so the question stopped
+ * being "does this build have a token" and became "has the person looking at this screen asked for
+ * streets" — which is a better question, because it is the one with a privacy answer. A tile request
+ * tells its server which square of the city is open, the internet address that asked, and when;
+ * over a visit that is roughly which suburb a patient is in and roughly when somebody came to the
+ * house. That is small, it is real, and until this map drew streets nobody had had to disclose it.
+ * So the switch is on the map, the sentence describing the request sits beside the switch that
+ * causes it, and where the switch starts is the surface's decision below, not this file's.
+ *
+ * A token came back on 29 September 2026, as a choice rather than a requirement. The contract names
+ * a second provider beside OpenFreeMap — Mapbox, keyed by VITE_MAPBOX_TOKEN — and this is the one
+ * place that chooses between them: the token is read when the web is built, and if it is set the
+ * Mapbox entry draws. If it is not set, nothing changes. No token is committed to this repository; a
+ * check fails the build if a value with the pk. prefix appears in any tracked file, and every test
+ * runs without one.
+ *
+ * What this file knows about the alternate is its name and the key's name, and that is deliberate.
+ * This module rides in every patient's first load — Arrival draws a LiveMap — and a provider's
+ * endpoint, licence, credit, usage policy and layer list are half a kilobyte of English she would
+ * download on every visit to a screen that, by default, never asks that provider for anything. So
+ * geography.json carries the pointer and packages/catalog/map-providers.json carries the entry,
+ * read by map/TileMap.tsx alone, which is behind a dynamic import and fetched only when a map is
+ * open with streets on. The credit under the map is rendered from what the tile map reports it drew
+ * with, for the same reason: the words belong to the chunk that made the request. */
+export type TileSource = {
+ id: string; styleUrl: string; host: string; keyRequired: boolean;
+ licence: string; attribution: string; attributionUrl: string; loadTimeoutMs: number; labelFont: string;
+ /** The layers the board hides; the default source's list is rendering.suppressedLayers. */
+ suppressedLayers?: string[];
+};
+/** What a credit under the map needs, reported by the tile map from the source it actually drew with. */
+export type Credit = { attribution: string; attributionUrl: string };
+
+/* Vite substitutes a literal for `import.meta.env.VITE_MAPBOX_TOKEN` at build time, which is what
+   makes the choice a build's rather than a page's: the token is not fetched, not configurable from
+   a screen and not present in a build that was made without it. Read once, trimmed, never logged. */
+const mapboxToken = String(import.meta.env?.VITE_MAPBOX_TOKEN ?? '').trim();
+const chosenAlternate = mapboxToken ? rendering.alternateSources.find(s => s.tokenEnv === 'VITE_MAPBOX_TOKEN') : undefined;
+
+/** The source this build draws from: the alternate's pointer with its token, or the default entry. */
+export const source: { id: string; name: string; token?: string } = chosenAlternate
+ ? { id: chosenAlternate.id, name: chosenAlternate.name, token: mapboxToken }
+ : { id: rendering.source.id, name: rendering.source.name };
 export const tiles = rendering.tiles;
+
+/* The disclosure names whoever will be asked. The sentences are the contract's and say {provider},
+   because a sentence that named OpenFreeMap while Mapbox drew would be a disclosure about the wrong
+   party — the one thing a disclosure may not be. */
+export const say = (sentence: string) => sentence.replace('{provider}', source.name);
 
 /* One escape hatch, at build time: VITE_MAP_TILES=off builds a preview with no tile source at all.
    The switch then does not appear and the schematic is the whole map — the state both native apps
    are permanently in, and the one a deployment behind a firewall that blocks the endpoint should
    ship rather than offering a switch that cannot work. */
 const tileSwitch = ((import.meta.env?.VITE_MAP_TILES as string | undefined) ?? '').toLowerCase();
-export const tilesOffered = tileSwitch !== 'off' && Boolean(source.styleUrl);
+export const tilesOffered = tileSwitch !== 'off' && Boolean(rendering.source.styleUrl);
 
-/* Off, and stated in the contract so that turning it on is an edit somebody has to justify rather
-   than a boolean somebody flips. */
-export const tilesStartOn = tilesOffered && tiles.default === 'on';
+/* Where the switch starts is the surface's, and the surfaces are two. A staff surface — the dispatch
+   board, the care visit — is a workspace whose job is where people are, and a nurse or a controller
+   asked for the map by opening it, so streets start on there. A patient's arrival map asks first:
+   the tile request discloses her viewport, and a default nobody chose is not consent. The contract
+   states both, so turning one on was an edit somebody had to justify rather than a boolean somebody
+   flipped; a surface that does not say gets `default`, which is off. */
+export type MapSurface = 'staff' | 'patient';
+export const tilesDefaultFor = (surface: MapSurface): 'on' | 'off' =>
+ (tiles.defaultBySurface[surface] ?? tiles.default) === 'on' ? 'on' : 'off';
+export const tilesStartOn = (surface: MapSurface) => tilesOffered && tilesDefaultFor(surface) === 'on';

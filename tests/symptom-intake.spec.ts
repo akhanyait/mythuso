@@ -14,6 +14,11 @@ const json = (path: string) =>
   JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"));
 const gilbert = json("../packages/catalog/assistant.json");
 const intake = json("../packages/catalog/symptom-intake.json");
+/* The case pathway (29 September 2026): the notes on a group derived from the knowledge base go on to
+   offer a reading and a nurse, in packages/catalog/case.json's patient sentences and devices.json's
+   source labels. They are allowed on the card, and nothing else is. */
+const caseContract = json("../packages/catalog/case.json");
+const devices = json("../packages/catalog/devices.json");
 const sos = json("../packages/catalog/sos.json");
 const ambulance: string = sos.emergency.numbers.find(
   (n: { id: string }) => n.id === "ambulance",
@@ -130,7 +135,11 @@ test("a headache is offered notes for the nurse, never the waiting dots, and the
   await expect(notes).toContainText(intake.answer.closing);
   await expect(notes).toContainText(intake.review.unreviewed);
   await expect(notes).toContainText(intake.answer.arrangeCare);
-  await expect(notes.locator(".as-intake-chips")).toHaveCount(0);
+  /* The question chips are gone; what stays on a headache card since 29 September 2026 are the case
+     pathway's three chips — a reading, a nurse, not now — by packages/catalog/case.json's own labels. */
+  const caseChips = new Set<string>([caseContract.screens.patient.readingOffer, caseContract.screens.patient.askNurse, caseContract.screens.patient.notNow]);
+  for (const label of await notes.locator(".as-intake-chips button").allInnerTexts())
+    expect(caseChips.has(label.trim()), `${label} is a case chip`).toBe(true);
   await expect(
     notes.getByRole("button", {
       name: gilbert.answers.unmatched.handoverLabel,
@@ -177,6 +186,8 @@ test("a headache is offered notes for the nurse, never the waiting dots, and the
       for (const value of Object.values(node)) walk(value);
   };
   walk(intake.answer);
+  walk(caseContract.screens.patient);
+  for (const source of devices.sources) allowed.add(source.label);
   const texts = await panel(page)
     .locator(".as-reply-intake")
     .locator("p, li, dt, dd, button, .as-who")

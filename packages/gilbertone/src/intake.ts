@@ -1,4 +1,5 @@
 import contract from "../../catalog/symptom-intake.json" with { type: "json" };
+import caseContract from "../../catalog/case.json" with { type: "json" };
 import { classifyMessage } from "./engine.ts";
 import { checkEscalation } from "./escalation.ts";
 import { hasSequence, stems } from "./stems.ts";
@@ -166,3 +167,70 @@ export function intakeReviewSentence(): string {
 }
 
 export const intakeContract = contract;
+
+/* ---- What the answers are consistent with (29 September 2026) ------------------------------------
+   The founder's pathway: a headache linked by the knowledge base to raised blood pressure. The
+   features an answer sets and the rules that turn features into findings are packages/catalog/case.json's
+   (features.list, findings.rules), under the Clinical engine, and every finding is worded the way
+   clinical.json#wording holds a patient-facing sentence — "consistent with … for a clinician to
+   confirm" — and names the condition ids behind it. This is worked out for the nurse and the doctor.
+   It is NEVER shown to the patient, and nothing here decides where the patient is seen: that is the
+   pathway's suggestion in apps/web/src/lib/case.ts, and a nurse's decision after it.
+
+   A feature is set only by a chips option chosen word for word — a typed answer to a chips question
+   sets none — so a finding can never be read into free text. */
+
+export type IntakeFeature = (typeof caseContract.features.list)[number];
+export type IntakeFinding = {
+  id: string;
+  /* The finding's sentence, in the contract's "consistent with" form. */
+  sentence: string;
+  /* The features the sentence names, in the contract's words. */
+  features: readonly string[];
+  conditionIds: readonly string[];
+};
+
+/* The features the answers set, in the contract's order. */
+export function featuresFor(state: IntakeState): IntakeFeature[] {
+  const chosen = new Map(state.answers.map((a) => [a.questionId, a.answer]));
+  return caseContract.features.list.filter((feature) =>
+    feature.options.includes(chosen.get(feature.questionId) ?? ""),
+  );
+}
+
+const listOf = (items: readonly string[]) =>
+  new Intl.ListFormat("en-GB", { type: "conjunction" }).format(items);
+
+/* The findings the features support, each rule read as the contract writes it: at least `atLeast` of
+   its anyOf features present and none of its noneOf. The sentence is the contract's template, filled
+   with the pattern and the features' own labels; nothing is composed here. */
+export function findingsFor(state: IntakeState): IntakeFinding[] {
+  const present = featuresFor(state);
+  const ids = new Set(present.map((f) => f.id));
+  const out: IntakeFinding[] = [];
+  for (const rule of caseContract.findings.rules) {
+    const matched = rule.anyOf.filter((id) => ids.has(id));
+    if (matched.length < rule.atLeast) continue;
+    const noneOf: readonly string[] = ("noneOf" in rule && rule.noneOf) || [];
+    if (noneOf.some((id) => ids.has(id))) continue;
+    const features = matched.map(
+      (id) => caseContract.features.list.find((f) => f.id === id)?.label ?? id,
+    );
+    out.push({
+      id: rule.id,
+      sentence: fill(caseContract.findings.sentence, {
+        pattern: rule.pattern,
+        features: listOf(features),
+      }),
+      features,
+      conditionIds: rule.conditionIds,
+    });
+  }
+  return out;
+}
+
+/* Whether a group's questions are derived from the knowledge base — the only groups a case can open on. */
+export const intakeGroupHasPathway = (groupId: string): boolean =>
+  Array.isArray((groupOf(groupId) as { questionsFrom?: unknown }).questionsFrom);
+
+export const caseWords = caseContract;

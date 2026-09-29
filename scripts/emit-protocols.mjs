@@ -15,10 +15,32 @@
    Escaping: Swift needs its quotes escaped; Kotlin needs backslash, quote and dollar, because a
    lone $ starts a template. */
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const SOURCE = 'packages/catalog/protocols.json';
+
+/* A draft with a contentRef is a preview pathway (protocols.json _previewPathways, 29 September 2026)
+   or it is refused. The register's rule that a draft carries no content stands: what a preview pathway
+   may carry is a citation — a section of a contract under packages/catalog whose bands point at
+   records.json and the knowledge base — and that section may type no number of its own. Digits are
+   allowed only inside a citation (a catalog path, a cond-nnn id, an id@version), so the only way a
+   threshold gets into a preview pathway is by pointing at the one place it already lives. Read here by
+   the generator and by scripts/check-boundaries.mjs, so the two cannot disagree about what a draft may
+   hold. Returns the citation for a preview pathway, null for an ordinary draft, and throws for a draft
+   that carries anything else. */
+export function previewPathwayOf(p, root = '') {
+ if (p.status !== 'draft' || p.contentRef === null) return null;
+ const cited = /^(packages\/catalog\/[a-z-]+\.json)#([A-Za-z]+)$/.exec(String(p.contentRef));
+ if (!cited) throw new Error(`The draft protocol ${p.id} carries content: "${p.contentRef}" is not a section of a contract under packages/catalog. A draft holds a name and a number.`);
+ if (!/preview pathway/i.test(String(p.name))) throw new Error(`The draft protocol ${p.id} carries a contentRef and is not named as a preview pathway. Only a preview pathway cites content, and it says so in its name so every screen that names it says so too.`);
+ if (!existsSync(root + cited[1])) throw new Error(`The preview pathway ${p.id} cites ${cited[1]}, which does not exist.`);
+ const section = JSON.parse(readFileSync(root + cited[1], 'utf8'))[cited[2]];
+ if (section === undefined) throw new Error(`The preview pathway ${p.id} cites ${p.contentRef}, and ${cited[1]} has no section "${cited[2]}".`);
+ const typed = JSON.stringify(section).replace(/packages\/catalog\/[^"]+/g, '').replace(/\bcond-\d{3}\b/g, '').replace(/@\d+\b/g, '');
+ if (/\d/.test(typed)) throw new Error(`The preview pathway ${p.id} cites ${p.contentRef}, which types a number. A draft carries no threshold, even a preview one: it cites records.json and the knowledge base, and the numbers stay there.`);
+ return { file: cited[1], section: cited[2] };
+}
 
 const swift = value => `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 const kotlin = value => `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\$/g, '\\$')}"`;
@@ -26,7 +48,7 @@ const kotlin = value => `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').re
 export function emitProtocols(root = '') {
  const contract = JSON.parse(readFileSync(root + SOURCE, 'utf8'));
  for (const p of contract.protocols) {
-  if (p.status === 'draft' && p.contentRef !== null) throw new Error(`The draft protocol ${p.id} carries content. A draft holds a name and a number.`);
+  previewPathwayOf(p, root);
  }
 
  const banner = [

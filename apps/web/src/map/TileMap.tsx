@@ -2,7 +2,9 @@ import { useEffect, useRef } from 'react';
 import { MapLibreMap, Marker, NavigationControl, setWorkerUrl } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import mapWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
-import { mapWindow, place, rendering, source, view, zones } from '../lib/geography';
+import { mapWindow, place, rendering, source, view, zones, type Credit, type TileSource } from '../lib/geography';
+import providers from '../../../../packages/catalog/map-providers.json';
+import { mapboxRequests } from './mapboxRequests';
 import type { LatLng } from '../../../../packages/geo/index.ts';
 import type { MapMarker } from './LiveMap';
 /* The tile map, and the only module in this application that imports a map library.
@@ -15,11 +17,17 @@ import type { MapMarker } from './LiveMap';
  * streets, and never in a session where nobody does — which, because streets are off by default, is
  * most of them.
  *
- * MapLibre rather than mapbox-gl. Same API, same size, no account: mapbox-gl needs a pk. token, and
- * a token is a billing relationship, a procurement queue and a key whose expiry turns a dispatch
- * board into a grey rectangle. The endpoint it draws from, the licence, the credit and the usage
- * policy are all packages/catalog/geography.json rather than constants here, so replacing the
- * provider is a data change and the attribution cannot drift from the source it credits.
+ * MapLibre rather than mapbox-gl, whichever provider draws. Same API, same size, no account needed
+ * for the default: mapbox-gl needs a pk. token, and a token is a billing relationship, a procurement
+ * queue and a key whose expiry turns a dispatch board into a grey rectangle. Since 29 September 2026
+ * Mapbox is a provider this library can draw from — chosen in lib/geography.ts by a token set when
+ * the web is built, never by an edit here — and the library did not change to allow it: MapLibre
+ * fetches the Mapbox style over https and ./mapboxRequests rewrites the mapbox:// names inside it.
+ * What did not come with the token is mapbox-gl's telemetry. MapLibre has no code that reports to
+ * events.mapbox.com, this file adds none, and the page's content policy names no such origin. The
+ * endpoint, the licence, the credit, the label font and the layers hidden are all the chosen
+ * source's in packages/catalog/geography.json rather than constants here, so replacing the provider
+ * is a data change and the attribution cannot drift from the source it credits.
  *
  * What this file must never do is send anything about the caseload. The tile server is asked for
  * streets by tile coordinate. The zones, the visits, the nurses and the line between two suburbs
@@ -35,6 +43,14 @@ import type { MapMarker } from './LiveMap';
    It is also what keeps the page's Content-Security-Policy honest: the worker is served from this
    origin, so worker-src stays 'self' rather than being opened to blob:. */
 setWorkerUrl(mapWorkerUrl);
+
+/* The source this chunk draws with, in full. lib/geography.ts chose it by token and knows its name;
+   the endpoint, the licence, the credit, the label font and the layer list are read here, from
+   packages/catalog/map-providers.json for an alternate and from geography.json's own entry for the
+   default — so a patient who never asks for streets never downloads a provider's terms. A pointer
+   whose entry is missing falls back to the default rather than to a grey rectangle. */
+const drawnWith: TileSource = (source.token && providers.providers.find(p => p.id === source.id)) || rendering.source;
+const styleUrl = source.token ? drawnWith.styleUrl.replace('{token}', source.token) : drawnWith.styleUrl;
 
 // Resolve CSS colour mixes to sRGB before passing them to the map style parser.
 const cssVar = (name: string) => {
@@ -53,13 +69,8 @@ const cssVar = (name: string) => {
 /* The palette comes from the same generated tokens as everything else, read at runtime rather than
    restated here, so a map cannot be the one surface that kept the old colours. */
 const paint = () => ({
- indigo: cssVar('--indigo') || '#1e3a8a',
- indigoDeep: cssVar('--indigo-deep') || '#172f6f',
  teal: cssVar('--teal') || '#14b8a6',
  tealInk: cssVar('--teal-ink') || '#0f766e',
- mangoInk: cssVar('--mango-ink') || '#8a4b00',
- danger: cssVar('--danger') || '#b42318',
- faint: cssVar('--faint') || '#5d6b80',
  charcoal: cssVar('--charcoal') || '#1f2733',
  surface: cssVar('--surface') || '#ffffff',
  paper: cssVar('--studio-paper') || '#f6f5ef',
@@ -92,18 +103,13 @@ const straightLine = (link: { from: LatLng; to: LatLng } | null): GeoJSON.Featur
   : []
 });
 
-const markerColour = (kind: MapMarker['kind'], c: ReturnType<typeof paint>) =>
- kind === 'nurse-free' ? c.tealInk
-  : kind === 'nurse-busy' ? c.faint
-  : kind === 'nurse-blocked' ? c.danger
-  : kind === 'visit-assigned' ? c.indigo
-  : c.mangoInk;
-
-export function TileMap({ markers, summary, link, onTilesFailed }: {
+export function TileMap({ markers, summary, link, onTilesFailed, onDrawnBy }: {
  markers: MapMarker[];
  summary: string;
  link: { from: LatLng; to: LatLng } | null;
  onTilesFailed: () => void;
+ /** Told, before the first request, which source's credit belongs under this map. */
+ onDrawnBy: (credit: Credit) => void;
 }) {
  const host = useRef<HTMLDivElement>(null);
  const map = useRef<MapLibreMap | null>(null);
@@ -115,17 +121,26 @@ export function TileMap({ markers, summary, link, onTilesFailed }: {
     tile server asked for the same square over and over. They are held rather than depended on. */
  const failed = useRef(onTilesFailed);
  failed.current = onTilesFailed;
+ const drawnBy = useRef(onDrawnBy);
+ drawnBy.current = onDrawnBy;
  const route = useRef(link);
  route.current = link;
 
  useEffect(() => {
   if (!host.current || map.current) return;
   const c = paint();
+  /* The credit before the request, so that no tile is ever on screen without the words its licence
+     asks for. LiveMap renders them; this is the only place that knows which entry drew. */
+  drawnBy.current({ attribution: drawnWith.attribution, attributionUrl: drawnWith.attributionUrl });
   const instance = new MapLibreMap({
    container: host.current,
    maxPitch: 0,
    dragRotate: false,
-   style: source.styleUrl,
+   style: styleUrl,
+   /* Only for a source chosen by token. OpenFreeMap's requests go exactly as the style wrote them;
+      Mapbox's mapbox:// names are rewritten and the token is appended to its two host families and
+      to nothing else. `undefined` here is MapLibre's own "leave it alone". */
+   transformRequest: source.token ? mapboxRequests(source.token) : undefined,
    center: [mapWindow.centre.lng, mapWindow.centre.lat],
    zoom: view.zoom,
    minZoom: view.minZoom,
@@ -172,7 +187,7 @@ export function TileMap({ markers, summary, link, onTilesFailed }: {
      a reason to take a working board away from the person reading it. */
   let settled = false;
   const fail = () => { if (!settled) { settled = true; failed.current(); } };
-  const clock = setTimeout(fail, source.loadTimeoutMs);
+  const clock = setTimeout(fail, drawnWith.loadTimeoutMs);
   instance.on('error', fail);
   instance.on('load', () => {
    settled = true;
@@ -183,7 +198,7 @@ export function TileMap({ markers, summary, link, onTilesFailed }: {
       and province a controller is already standing in, American route shields, airports and
       footpath names go. The list is the contract's, because it belongs to the style rather than to
       this file, and changing style means changing it in the same edit. */
-   for (const layer of rendering.suppressedLayers) {
+   for (const layer of drawnWith.suppressedLayers ?? rendering.suppressedLayers) {
     if (instance.getLayer(layer)) instance.setLayoutProperty(layer, 'visibility', 'none');
    }
 
@@ -235,7 +250,7 @@ export function TileMap({ markers, summary, link, onTilesFailed }: {
    instance.addLayer({
     id: 'zone-name', type: 'symbol', source: 'zones',
     layout: {
-     'text-field': ['get', 'name'], 'text-size': 13, 'text-font': ['Noto Sans Bold'],
+     'text-field': ['get', 'name'], 'text-size': 13, 'text-font': [drawnWith.labelFont],
      'text-offset': [0, -1.4], 'text-allow-overlap': true
     },
     paint: { 'text-color': c.charcoal, 'text-halo-color': c.surface, 'text-halo-width': 1.8 }
@@ -256,19 +271,20 @@ export function TileMap({ markers, summary, link, onTilesFailed }: {
  }, [link?.from.lat, link?.from.lng, link?.to.lat, link?.to.lng]);
 
  /* Markers are DOM, not a layer: each one is a button a controller can reach with the keyboard and
-    a screen reader can name. A canvas-drawn pin is invisible to both. */
+    a screen reader can name. A canvas-drawn pin is invisible to both. A marker carries `map-pin` and
+    its kind exactly as the schematic's group does, and no colour of its own: map.css gives each kind
+    one colour under `--pin`, which both renderings and the key beside the map read, so a pin cannot
+    be one colour on streets and another on the schematic. */
  useEffect(() => {
   const instance = map.current;
   if (!instance) return;
-  const c = paint();
   for (const pin of pins.current) pin.remove();
   pins.current = markers.flatMap(marker => {
    const placement = place(marker.at);
    if (!placement.drawn) return [];
    const el = document.createElement('button');
    el.type = 'button';
-   el.className = `map-marker ${marker.kind}${marker.selected ? ' selected' : ''}`;
-   el.style.setProperty('--marker', markerColour(marker.kind, c));
+   el.className = `map-marker map-pin ${marker.kind}${marker.selected ? ' selected' : ''}`;
    el.setAttribute('aria-label', marker.label);
    el.setAttribute('aria-pressed', String(Boolean(marker.selected)));
    if (marker.onSelect) el.addEventListener('click', marker.onSelect);

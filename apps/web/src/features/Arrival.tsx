@@ -159,7 +159,7 @@ export function Arrival({ row, navigate, view }: {
   <div className="arrival-columns">
    {to && <section className="panel arrival-map">
     <div className="section-title"><h2>{from ? `${from.name} to ${to.name}` : to.name}</h2></div>
-    <LiveMap markers={markers} summary={summary} height={320} link={from ? { from: from.at, to: to.at } : null}/>
+    <LiveMap markers={markers} summary={summary} height={320} surface="patient" link={from ? { from: from.at, to: to.at } : null}/>
     <div className="map-key">
      {from && key('nurse-free', `${nurse.name} · ${from.name}`)}
      {key('visit-assigned', `Your visit · ${to.name}`)}

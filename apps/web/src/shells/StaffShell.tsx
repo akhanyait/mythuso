@@ -3,7 +3,7 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import { Wordmark } from '../components/Wordmark';
 import framing from '../../../../packages/catalog/framing.json' with { type: 'json' };
 import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react';
-import { Activity, ArrowRight, ArrowUpRight, BarChart3, Bluetooth, BookOpen, CalendarDays, CalendarRange, ClipboardPlus, CreditCard, FileText, FlaskConical, LogOut, Package, Radar, Repeat, ShieldAlert, ShieldCheck, Siren, Truck, Video } from 'lucide-react';
+import { Activity, ArrowRight, ArrowUpRight, BarChart3, Bluetooth, BookOpen, CalendarDays, CalendarRange, ClipboardPlus, CreditCard, FileText, FlaskConical, FolderOpen, LogOut, Package, Radar, Repeat, ShieldAlert, ShieldCheck, Siren, Truck, Video } from 'lucide-react';
 import { Modal, SectionTitle } from '../components/UI';
 import { ReadOnly } from '../components/ReadOnly';
 import { AssistantLauncher } from '../components/AssistantLauncher';
@@ -57,6 +57,9 @@ const KitHealth = lazy(() => import('../features/Devices').then(m => ({ default:
 const DeviceRegistryDesk = lazy(() => import('../features/Devices').then(m => ({ default: m.DeviceRegistryDesk })));
 /* The HL7 v2 quarantine, a development operator's view (Wave 5): its own import, fetched when the Control Tower opens it. */
 const Hl7Quarantine = lazy(() => import('../features/Hl7Quarantine').then(m => ({ default: m.Hl7Quarantine })));
+/* The nurse's cases (29 September 2026): the case file GilbertOne gathered, fetched when she opens Cases and not
+   before — it carries the case contract, the Devices domain and the consultation composer. */
+const NurseCases = lazy(() => import('../features/CaseFile').then(m => ({ default: m.NurseCases })));
 /* Device Lab: the synthetic vital-sign simulator, staff only, fetched when the Control Tower opens it. */
 const DeviceLab = lazy(() => import('../features/DeviceLab').then(m => ({ default: m.DeviceLab })));
 /* The parallel run's notice, fetched only at ?legacy=1: it reads the portal's contract, which nobody
@@ -112,6 +115,7 @@ const workspaces = {
  Nurse: { subjectId: 'N-205', sections: [
   { id: 'Schedule', short: 'Schedule', icon: CalendarDays },
   { id: 'Assessments', short: 'Assess', icon: ClipboardPlus },
+  { id: 'Cases', short: 'Cases', icon: FolderOpen },
   { id: 'Thuso Kit', short: 'Kit', icon: Bluetooth },
   { id: 'Earnings & payouts', short: 'Earnings', icon: CreditCard },
   { id: 'Vetting', short: 'Vetting', icon: ShieldCheck }
@@ -304,6 +308,7 @@ function renderSection(role: StaffRole, section: string, open: (m: string) => vo
  const head = <SectionHead role={role} section={section}/>;
  if (role === 'Nurse') {
   if (section === 'Assessments') return <OnDeck role={role}><VisitAssessment onClose={home}/><TriageStart/><GuidanceStart/><Suspense fallback={null}><SafeguardingReport workspace="nurse"/></Suspense>{ride('nurse')}</OnDeck>;
+  if (section === 'Cases') return <OnDeck role={role}><Suspense fallback={null}><NurseCases/></Suspense></OnDeck>;
   if (section === 'Thuso Kit') return <OnDeck role={role}><ThusoKit/><Suspense fallback={null}><KitHealth/><SentinelState workspace="nurse"/></Suspense></OnDeck>;
   if (section === 'Earnings & payouts') return <OnDeck role={role}><Earnings/></OnDeck>;
   if (section === 'Vetting') return <OnDeck role={role}><VettingApplication roleId="nurse" onClose={home}/></OnDeck>;

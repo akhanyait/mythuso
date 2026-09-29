@@ -116,6 +116,9 @@ enum ApisData {
     static let postClinicalReviewQueueByEntryRefReview = Route(id: "postClinicalReviewQueueByEntryRefReview", method: "POST", path: "/v1/clinical/review-queue/{entryRef}/review", mountedPath: "/v1/clinical/review-queue/{entryRef}/review", version: 1, engine: "clinical", callers: ["doctor"], purpose: ["audit"], idempotent: true, status: "proposed")
     static let postClinicalReviewQueueByEntryRefSign = Route(id: "postClinicalReviewQueueByEntryRefSign", method: "POST", path: "/v1/clinical/review-queue/{entryRef}/sign", mountedPath: "/v1/clinical/review-queue/{entryRef}/sign", version: 1, engine: "clinical", callers: ["doctor"], purpose: ["audit", "treatment"], idempotent: true, status: "proposed")
     static let postClinicalReviewQueueByEntryRefRollback = Route(id: "postClinicalReviewQueueByEntryRefRollback", method: "POST", path: "/v1/clinical/review-queue/{entryRef}/rollback", mountedPath: "/v1/clinical/review-queue/{entryRef}/rollback", version: 1, engine: "clinical", callers: ["doctor", "nurse"], purpose: ["audit", "treatment"], idempotent: true, status: "proposed")
+    static let postClinicalCases = Route(id: "postClinicalCases", method: "POST", path: "/v1/clinical/cases", mountedPath: "/v1/clinical/cases", version: 1, engine: "clinical", callers: ["patient"], purpose: ["treatment"], idempotent: false, status: "proposed")
+    static let getClinicalCasesByCaseRef = Route(id: "getClinicalCasesByCaseRef", method: "GET", path: "/v1/clinical/cases/{caseRef}", mountedPath: "/v1/clinical/cases/{caseRef}", version: 1, engine: "clinical", callers: ["patient", "nurse", "doctor"], purpose: ["treatment"], idempotent: false, status: "proposed")
+    static let postClinicalCasesByCaseRefSetting = Route(id: "postClinicalCasesByCaseRefSetting", method: "POST", path: "/v1/clinical/cases/{caseRef}/setting", mountedPath: "/v1/clinical/cases/{caseRef}/setting", version: 1, engine: "clinical", callers: ["nurse"], purpose: ["treatment"], idempotent: false, status: "proposed")
     static let getSafetyCheckins = Route(id: "getSafetyCheckins", method: "GET", path: "/v1/safety/checkins", mountedPath: "/v1/safety/checkins", version: 1, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: false, status: "built")
     static let postSafetyCheckinsByCheckinRefExtendV2 = Route(id: "postSafetyCheckinsByCheckinRefExtendV2", method: "POST", path: "/v1/safety/checkins/{checkinRef}/extend", mountedPath: "/v1/safety/checkins/{checkinRef}/extend", version: 2, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: true, status: "built")
     static let postSafetyCheckinsByCheckinRefSafe = Route(id: "postSafetyCheckinsByCheckinRefSafe", method: "POST", path: "/v1/safety/checkins/{checkinRef}/safe", mountedPath: "/v1/safety/checkins/{checkinRef}/safe", version: 1, engine: "safety", callers: ["nurse", "locum", "responder"], purpose: ["dispatch"], idempotent: true, status: "built")
@@ -390,6 +393,9 @@ enum ApisData {
         postClinicalReviewQueueByEntryRefReview,
         postClinicalReviewQueueByEntryRefSign,
         postClinicalReviewQueueByEntryRefRollback,
+        postClinicalCases,
+        getClinicalCasesByCaseRef,
+        postClinicalCasesByCaseRefSetting,
         getSafetyCheckins,
         postSafetyCheckinsByCheckinRefExtendV2,
         postSafetyCheckinsByCheckinRefSafe,
@@ -1350,6 +1356,51 @@ enum ApisData {
         let entryRef: String
         let rollbackRef: String
         let stateCode: String
+    }
+    struct PostClinicalCasesRequest {
+        let subjectRef: String
+        let groupId: String
+        let intakeEntryRef: String
+        let readingRefs: [String]
+        let emergencyEnded: Bool
+    }
+    struct PostClinicalCasesResponse {
+        let caseRef: String
+        let stateCode: String
+        let protocolVersionId: String
+        let protocolRatified: Bool
+        let suggestedSettingCode: String
+        let suggestionRuleId: String
+    }
+    struct GetClinicalCasesByCaseRefRequest {
+        let caseRef: String
+    }
+    struct GetClinicalCasesByCaseRefResponse {
+        let caseRef: String
+        let subjectRef: String
+        let stateCode: String
+        let groupId: String
+        let intakeEntryRef: String
+        let readingRefs: [String]
+        let patternIds: [String]
+        let protocolVersionId: String
+        let protocolRatified: Bool
+        let suggestedSettingCode: String
+        let suggestionRuleId: String
+        let decisions: [[String: Any]]
+        let consultationRef: String
+        let outcomeCode: String
+    }
+    struct PostClinicalCasesByCaseRefSettingRequest {
+        let caseRef: String
+        let settingCode: String
+        let reason: String?
+    }
+    struct PostClinicalCasesByCaseRefSettingResponse {
+        let caseRef: String
+        let stateCode: String
+        let overrode: Bool
+        let decidedAt: String
     }
     struct GetSafetyCheckinsRequest {
         let appointmentRef: String

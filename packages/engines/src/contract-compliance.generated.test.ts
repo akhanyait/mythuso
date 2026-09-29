@@ -663,7 +663,10 @@ const PROPOSED: Record<string, string[]> = {
   'POST /v1/access/tools/{tool}@1',
  ],
  clinical: [
+  'GET /v1/clinical/cases/{caseRef}@1',
   'GET /v1/clinical/review-queue@1',
+  'POST /v1/clinical/cases/{caseRef}/setting@1',
+  'POST /v1/clinical/cases@1',
   'POST /v1/clinical/review-queue/{entryRef}/review@1',
   'POST /v1/clinical/review-queue/{entryRef}/rollback@1',
   'POST /v1/clinical/review-queue/{entryRef}/sign@1',

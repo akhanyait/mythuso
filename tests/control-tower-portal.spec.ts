@@ -163,9 +163,13 @@ test.describe('the addresses that must keep working', () => {
   await expect(kept).toHaveAttribute('disabled');
   await expect(kept.locator('button').first()).toBeDisabled();
   /* And the controls a screen draws for itself — the board's map pins — are stopped as well. */
-  const pin = kept.locator('[role="button"][aria-pressed="false"]').first();
-  await pin.click();
-  await expect(pin).toHaveAttribute('aria-pressed', 'false');
+  /* Since streets start on for staff (29 September 2026) the board's pins are the tile map's real
+     <button>s, which a disabled fieldset disables outright; the schematic's pins are SVG groups the
+     fieldset cannot disable, so those are pressed and must stay unselected. Either way: stopped. */
+  const pin = kept.locator('[aria-pressed="false"]').first();
+  await expect(pin).toBeAttached();
+  if (await pin.evaluate(el => el instanceof HTMLButtonElement)) await expect(pin).toBeDisabled();
+  else { await pin.click(); await expect(pin).toHaveAttribute('aria-pressed', 'false'); }
   await notice.getByRole('link', { name: portal.legacy.linkLabel }).click();
   await expect(selectedCategory(page)).toHaveText(portalCategory('dispatch').label);
 
