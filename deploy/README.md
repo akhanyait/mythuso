@@ -58,30 +58,69 @@ That check is the point of the script. Do not skip it by running the steps by ha
 | `/app/`                        | The product — runs with no backend, exactly as it does locally. Patients and families with no role on the address; the clinical workspaces and the back office behind `?role=`, from the demo login in the bar at the top of every screen                                                                                                                          |
 | `/staff/`, `/admin/`           | 301s to `/app/`. They were applications of their own until 12 September; an old bookmark lands on the one door rather than on a 404                                                                                                                                                                                                                                |
 | `/status/`                     | What is connected and what is not. Fifteen capabilities, none of them live. The page a funder or a clinician is sent to when they want to know whether any of this is real                                                                                                                                                                                         |
+| `/shop/`                       | The storefront — monitors, dressings and what a household keeps between visits. Its own entry for the same reason `/status/` is one: a different audience on a different errand, and the entry most likely to grow (images, a basket, a checkout), so keeping that growth out of `index.html` is what protects the patient's first load. No `/api/` behind it — nothing here is purchased |
 | `/assets/`                     | Hashed bundles, cached for a year; HTML is never cached                                                                                                                                                                                                                                                                                                            |
 | `/opt/mythuso/ops`             | The scheduled jobs and their systemd units, reinstalled on every deploy                                                                                                                                                                                                                                                                                            |
-| `/opt/mythuso/assistant`       | The GilbertOne engine — the assistant's own service, not a feature of the web app — as one self-contained JavaScript file: the whole service including its knowledge catalogs, built by `scripts/build-assistant.mjs` before anything on the server is touched. No `node_modules`, nothing to install on the box. Outside the web root because the web root is rsynced with `--delete`, and a service is not a static asset |
+| `/opt/mythuso/assistant`       | The GilbertOne engine — the assistant's own service, not a feature of the web app — as one self-contained JavaScript file: the whole service including its knowledge catalogs, built by `scripts/build-assistant.mjs` before anything on the server is touched. No `node_modules`, nothing to install on the box. Outside the web root because the web root is replaced wholesale on every deploy and is served to the public internet, and a service is not a static asset |
+| `/opt/mythuso/releases`        | The published trees. `/var/www/mythuso` is a symlink to the live one, so a deploy is a rename rather than a copy over the top — see "The publish is a swap". Kept outside the web root because nothing under `root` is secret: inside it, every superseded build would be reachable at `/releases/<stamp>/`. Five are kept (`KEEP_RELEASES`), which is what `deploy/rollback.sh` rolls back through |
 | `/etc/mythuso/host.env`        | The host the health check should be asking about, written by the deploy                                                                                                                                                                                                                                                                                            |
 | `/etc/mythuso/key.fingerprint` | One `name fingerprint` line per key this host holds. Not the keys, and not secret — it is how a key that changed without anybody rotating it becomes visible                                                                                                                                                                                                       |
 | `/etc/mythuso/assistant.env`   | The assistant's Azure credentials — written by hand on the box by `deploy/ops/configure-assistant-env.sh`, `0600 root:root`, never by a deploy, never in this repository                                                                                                                                                                                           |
 
-### Three entries on one host, and the one-line change when DNS moves
+### The publish is a swap
 
-There are three builds — `index.html`, `landing.html` and `status.html`, declared in
+`/var/www/mythuso` is a symlink to `/opt/mythuso/releases/<stamp>`, and a deploy stages the new tree
+and then moves that symlink with one `rename(2)`. It used to be `rsync -az --delete` straight into
+the directory nginx serves, which had two faults that no check in the script could see:
+
+*It was not atomic.* Every asset here has a content hash in its name, so a deploy replaces
+essentially the whole tree, and `--delete` removes files the source no longer has. A patient
+refreshing in the middle of it could be served the new `index.html` before the chunks it names had
+arrived — or the old one after `--delete` had removed the chunk it pointed at. Either way she got a
+page that did not run, and the deploy reported success, because every check in it runs afterwards
+against the finished tree.
+
+*There was nothing to go back to.* `--delete` destroyed the previous version while writing the new
+one, so recovering from a bad publish meant building and deploying again from an older commit — on a
+box that serves five other people's websites, while ours was broken. Now the last five releases are
+on disk and `deploy/rollback.sh` moves the symlink onto one, with no build, no rsync and no nginx
+reload.
+
+Two things this scheme needs that are easy to miss, and are both handled in `deploy.sh`:
+
+- **nginx has to be able to traverse to the files.** It reads them as `www-data`, and the release
+  directories get `755` — but their parents are made by `mkdir -p` under whatever the umask is, and a
+  `750` on `/opt/mythuso` would 403 the entire site *after* the symlink had already been moved. So
+  `/opt/mythuso` and `/opt/mythuso/releases` get `o+x` explicitly. `x` and not `r`: nginx walks
+  through them to reach a file it was told the name of, and listing which releases exist is not
+  something a web server should be able to do.
+- **The migration has to not be a copy.** On a box already deployed the old way, `/var/www/mythuso` is
+  a real directory. Copying it into `/opt` and then linking would cross filesystems, take as long as
+  the tree does, and serve a half-written directory while it ran. Instead the directory is renamed
+  beside itself inside `/var/www` — one `rename(2)`, same filesystem, instant — and the symlink lands
+  on the renamed tree, which is byte-identical to what was being served a moment before. The slow
+  relocation into `/opt/mythuso/releases` happens only after the new release is live and nothing
+  references it any more.
+
+### Four entries on one host, and the one-line change when DNS moves
+
+There are four builds — `index.html`, `landing.html`, `status.html` and `shop.html`, declared in
 `apps/web/vite.config.ts`. **Every one of them needs a `location` in `deploy/nginx/mythuso.conf` and
 a line in `deploy.sh`'s verification, or the entry is a build nobody can open.** `status.html` was
 added, built, published and unreachable, and every check the deploy ran came back green, because
 without a block of its own `/status` fell through to the catch-all and answered with the landing page
 and a 200. That is why the verification now asks each path to prove which entry it served rather than
 only that it answered, and why `scripts/check-boundaries.mjs` reads the entry list out of the Vite
-config and holds nginx, the deploy script _and the dev server's own path map_ to it. A fourth entry
+config and holds nginx, the deploy script _and the dev server's own path map_ to it. A fifth entry
 means a `location`, a `verify_entry` line, a path in the dev map and a row in the table above.
 
 There were five. `staff.html` and `admin.html` were the clinical workspaces and the back office, each
 with a sign-in screen that said there was no account to sign in to and then asked which workspace you
 wanted. The founder replaced all of that with one demo login inside `/app/`, so those two are 301s
 here and lazily-loaded chunks in the bundle. What the split was for survives it: a patient's first
-load is 286.6 kB gzipped, and nothing of a dispatch board is in it.
+load stays under the ceiling `scripts/check-bundle-budget.mjs` enforces, and nothing of a dispatch
+board is in it. The figure itself is in `CLAUDE.md` and in that script — deliberately not restated
+here, so it cannot go stale in a fourth place.
 
 They are served from paths on one host rather
 than from `staff.mythuso.co.za` and `admin.mythuso.co.za` for two reasons that are both temporary:
@@ -395,8 +434,14 @@ bytes, that no version is listed twice, that no two versions hold the same mater
 the same secret rotates nothing — that none of them is the identity service's key, and that
 `MYTHUSO_PROTECTION_KEY_CURRENT` and `MYTHUSO_PROTECTION_INDEX_VERSION` each name a version this
 server actually holds. And about both: that the key material does not appear anywhere under
-`/var/www/mythuso`, which nginx serves to the public internet, or `/var/backups/mythuso`, which is
+`/var/www/mythuso`, which nginx serves to the public internet, or `/opt/mythuso/releases`, which
+holds the superseded builds behind it, or `/var/backups/mythuso`, which is
 the database those keys open.
+
+That scan resolves `/var/www/mythuso` with `readlink -f` before grepping, because it has been a
+symlink since the atomic publish and `grep -r` does not follow a symlink named on the command line.
+Without the resolution this check would have gone blind to the live release in the same deploy that
+moved it — and a leak check that silently stops checking still exits 0.
 
 Two of them are advice rather than refusals, because they have legitimate causes. A fingerprint that
 has changed since the last deploy is reported loudly and not failed — a rotation you performed is a

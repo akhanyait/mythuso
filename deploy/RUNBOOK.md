@@ -778,10 +778,36 @@ again, then `sudo systemctl restart assistant-api.service`.
 
 ---
 
+## Rolling back a bad release
+
+A deploy that published the wrong tree does not need rebuilding. The publish is a symlink swap onto
+a directory under `/opt/mythuso/releases`, and the last few releases are kept there
+(`KEEP_RELEASES` in `deploy/deploy.sh`, five by default), so going back is moving that symlink:
+
+```sh
+./deploy/rollback.sh                 # what is on the box, and which one is live
+./deploy/rollback.sh <release>       # move the live symlink onto it, then verify
+```
+
+It needs no build, no rsync and no nginx reload, and it touches nothing else on the box — which is
+the difference between a rollback you can do calmly while the site is broken on a machine that also
+serves five other people's websites, and one that means rebuilding from an older commit first.
+
+This is the reason the publish changed at all. It used to be `rsync -az --delete` straight into the
+directory nginx serves, which destroyed the previous version as it wrote the new one and was not
+atomic: a patient refreshing mid-deploy could be served the new `index.html` before the hashed assets
+it names had arrived. The deploy still reported success, because every check in it runs afterwards,
+against the finished tree.
+
+What it does **not** roll back: the assistant runtime, the ops scripts, the nginx site file and the
+systemd units. Each has its own mechanism — the runtime keeps `server.mjs.prev`, the site file keeps
+`.mythuso.conf.prev` — and one symlink over the web root does not cover them. If the bad deploy also
+touched those, the sequences are below and under "Backing it out".
+
 ## Backing it out
 
-MyThuso adds one nginx file, one web root and one directory of scheduled jobs. Removing all of it
-leaves the other five sites exactly as they were:
+MyThuso adds one nginx file, one web root, one directory of scheduled jobs and one directory of
+superseded releases. Removing all of it leaves the other five sites exactly as they were:
 
 ```sh
 ssh liqzar-server "rm -f /etc/nginx/sites-enabled/mythuso.conf && nginx -t && systemctl reload nginx"
@@ -794,8 +820,13 @@ want them gone too:
 
 ```sh
 ssh liqzar-server "systemctl disable --now mythuso-healthcheck.timer"
-ssh liqzar-server "rm -rf /var/www/mythuso /opt/mythuso/ops"
+ssh liqzar-server "rm -rf /var/www/mythuso /opt/mythuso/ops /opt/mythuso/releases"
 ```
+
+`/opt/mythuso/releases` is in that list because the publish is a symlink swap: the web root has been
+a symlink since the atomic deploy, and the trees it points at live there. Removing only the web root
+leaves the releases behind — a directory of superseded builds nobody looks at again, on a box five
+other sites share.
 
 Leave `/etc/letsencrypt` alone. Deleting a certificate you may reinstall in an hour is how you meet
 the rate limit.

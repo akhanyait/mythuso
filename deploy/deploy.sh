@@ -2,6 +2,7 @@
 # Publish the MyThuso landing page and app preview to a server.
 #
 # Adds only: /var/www/mythuso, one nginx site file, /opt/mythuso/ops (the scheduled jobs),
+# /opt/mythuso/releases (the published trees, of which /var/www/mythuso is a symlink to one),
 # /opt/mythuso/assistant (the assistant runtime — one self-contained JavaScript file, built by
 # scripts/build-assistant.mjs, no node_modules and nothing installed on the box), and (optionally)
 # the identity service under /opt/mythuso. It never edits another site's
@@ -29,9 +30,24 @@ HOST="${HOST:-mythuso.co.za}"
 # below stays on $HOST alone, because a Host header carries one name.
 ALIASES="${ALIASES:-www.mythuso.co.za}"
 ROOT=/var/www/mythuso
+# What nginx's `root` names, and since the atomic publish below it is a symlink to the release that
+# is live rather than a directory of files. nginx resolves it per request, so deploy/nginx/mythuso.conf
+# needed no change for this and still says `root /var/www/mythuso` — which is the point: a migration
+# that also has to edit and reload the site file on a box serving five other people's websites has
+# two things to get wrong at once instead of one.
+#
+# The releases themselves live outside the web root, for the same reason $ASSISTANT does. Under
+# $ROOT they would be publicly servable: nginx's root is a directory and nothing in it is secret, so
+# every superseded build — and anything accidentally left inside one — would be reachable at
+# /releases/<stamp>/. Outside it they are files on the box and nothing else.
+RELEASES=/opt/mythuso/releases
+# How many superseded releases to keep. Each is a full copy of dist, and a directory of them that
+# nobody prunes is a disk that fills up quietly on a box five other sites depend on. Five is enough
+# to go back through a bad week; the one that is live plus its predecessor are what a rollback needs.
+KEEP_RELEASES="${KEEP_RELEASES:-5}"
 OPS=/opt/mythuso/ops
-# The assistant runtime's home — outside $ROOT on purpose: the web root is rsynced with --delete
-# on every deploy and served to the public internet, and a service's code is neither disposable
+# The assistant runtime's home — outside $ROOT on purpose: the web root is served to the public
+# internet and is replaced wholesale on every deploy, and a service's code is neither disposable
 # per-deploy nor public. One file lives here (server.mjs), owned by root, read by a systemd
 # DynamicUser that exists only while the service runs.
 ASSISTANT=/opt/mythuso/assistant
@@ -203,11 +219,142 @@ say "Publishing to $ROOT"
 # tried to create its own destination would fail in a way that reads as a permissions bug.
 # /var/lib/mythuso is handed to the service user when there is one; before then it is only the
 # health check's state directory.
-ssh "$TARGET" "mkdir -p $ROOT $OPS /etc/mythuso /var/log/mythuso /var/lib/mythuso /var/backups/mythuso
+ssh "$TARGET" "mkdir -p $RELEASES $OPS /etc/mythuso /var/log/mythuso /var/lib/mythuso /var/backups/mythuso
   chmod 700 /var/backups/mythuso
-  id -u mythuso >/dev/null 2>&1 && chown mythuso:mythuso /var/lib/mythuso || true"
-rsync -az --delete --exclude-from="$IGNORE" apps/web/dist/ "$TARGET:$ROOT/"
-ssh "$TARGET" "find $ROOT -type d -exec chmod 755 {} + && find $ROOT -type f -exec chmod 644 {} +"
+  id -u mythuso >/dev/null 2>&1 && chown mythuso:mythuso /var/lib/mythuso || true
+  # nginx reads the live release as www-data, so every directory between / and the files has to be
+  # traversable by it. The release directories themselves get 755 in the chmod below, but their
+  # parents are made here by mkdir -p and inherit the umask — and a 750 on /opt/mythuso would make
+  # the whole site 403 after the swap, at which point the symlink is already moved and the site is
+  # already live. x and not r: nginx needs to walk through these to reach a file it was told the
+  # name of, and listing what releases exist is not something a web server should be able to do.
+  chmod o+x /opt/mythuso /opt/mythuso/releases"
+
+# ── The publish is a swap, not a copy over the top ─────────────────────────────────────────────
+#
+# This used to be `rsync -az --delete apps/web/dist/ "$TARGET:$ROOT/"`, straight into the directory
+# nginx serves. That is not atomic, and the failure it produces is invisible to this script:
+# rsync --delete removes files that are no longer in the source, and every asset here has a content
+# hash in its name, so a deploy replaces essentially the whole tree. A patient who refreshes in the
+# middle of it can be served the new index.html before the assets it names have arrived, or the old
+# index.html after --delete has already removed the chunk it points at. Either way she gets a page
+# that does not run, the deploy reports success, and every check in this file passes — because the
+# checks run afterwards, against the finished tree.
+#
+# So the tree is staged in a directory nothing serves, and $ROOT becomes a symlink moved onto it in
+# one rename(2). Either the old tree answers or the new one does; there is no moment where half of
+# each is on screen.
+#
+# This is also what makes a rollback possible at all. --delete destroyed the previous version as it
+# wrote the new one, so the only way back was to build and publish again from an older commit — on a
+# box that serves five other people's websites, while the site is broken. Now the previous releases
+# are still on disk, and going back to one is a symlink move: deploy/rollback.sh.
+STAMP="$(date -u +%Y%m%dT%H%M%SZ)-$$"
+RELEASE="$RELEASES/$STAMP"
+ssh "$TARGET" "mkdir -p $RELEASE"
+rsync -az --exclude-from="$IGNORE" apps/web/dist/ "$TARGET:$RELEASE/"
+# Permissions are set on the staged directory before anything serves it, so the swap cannot expose a
+# file that is momentarily unreadable by nginx.
+ssh "$TARGET" "find $RELEASE -type d -exec chmod 755 {} + && find $RELEASE -type f -exec chmod 644 {} +"
+
+# What is live now, so a failed verification can be undone by hand even if nothing automatic runs.
+previous=$(ssh "$TARGET" "readlink -f $ROOT 2>/dev/null || true")
+
+# ── The one-time migration, and why its order is what it is ────────────────────────────────────
+#
+# On the box today $ROOT is a real directory full of files, because that is what the rsync above
+# used to write into. It has to become a symlink, and there is no way to replace a directory with a
+# symlink in one syscall — so there is a window, and the whole job here is making it as short as a
+# rename and as harmless as an identical tree.
+#
+# What is not done, because it would be downtime: copying $ROOT to $RELEASES and then linking. That
+# copy crosses filesystems (/var and /opt are not necessarily one), so it is a read-and-write of the
+# whole tree, and any arrangement that points $ROOT at the moving tree serves a half-written one.
+# Relocating the old directory is slow too — and it is done, but strictly after the new release is
+# live and nothing references it any more.
+#
+# So: rename the directory beside itself inside /var/www (one rename(2), same filesystem, instant)
+# and immediately symlink $ROOT onto the renamed tree. The window is between those two, the content
+# on both sides of it is byte-identical, and nginx resolves `root` per request so it follows the
+# link without a reload. The atomic swap below then moves that symlink onto the new release, and
+# only afterwards is the old tree relocated into $RELEASES to become the oldest release — which is
+# also what keeps the rollback list from starting empty under this scheme.
+migrated_from=""
+if ssh "$TARGET" "[ -d $ROOT ] && [ ! -L $ROOT ]"; then
+  echo "   $ROOT is a directory — migrating it to the release layout"
+  migrated_from="$ROOT.old-$STAMP"
+  # A directory cannot become a symlink in one syscall, so this is two, and the second can fail
+  # while the first has already succeeded — which is the only way this migration can leave the box
+  # worse than it found it: $ROOT gone, the site serving nothing, the deploy stopped under set -e,
+  # and the tree named only in a timestamped directory beside it.
+  #
+  # So the postcondition is checked rather than the exit code, because ln's exit code does not mean
+  # what it looks like it means. Both were reproduced rather than reasoned about: `ln -s X Y` exits
+  # 0 when X does not exist, leaving a dangling link that nginx answers with 404s; and it exits 0
+  # when Y is a directory, creating the link *inside* it, leaving $ROOT an empty directory with a
+  # stray symlink in it. An `|| mv` guard catches neither, since neither fails — the first version of
+  # this line had exactly that guard and testing it is what showed it did nothing.
+  #
+  # What is checked is the thing that actually has to be true afterwards: $ROOT is a symlink, and a
+  # request through it reaches a file. On failure the tree is put back by name and the deploy stops,
+  # because continuing would publish onto a path that is not serving what it was a moment ago.
+  ssh "$TARGET" "set -e
+    mv $ROOT $migrated_from
+    ln -s $migrated_from $ROOT
+    if [ ! -L $ROOT ] || [ ! -f $ROOT/index.html ]; then
+      rm -f $ROOT 2>/dev/null || rm -rf $ROOT
+      mv $migrated_from $ROOT
+      echo '!! the symlink did not land — $ROOT is back the way it was, nothing published'
+      exit 1
+    fi"
+  previous=$(ssh "$TARGET" "readlink -f $ROOT 2>/dev/null || true")
+fi
+
+# ln -sfn is not atomic — it unlinks and relinks, with a window where the path is missing. Creating
+# the link beside the target and renaming over it is one syscall, and rename is atomic on the same
+# filesystem, which both are by construction. -T so a trailing $ROOT that is already a directory
+# does not swallow the new link inside itself.
+ssh "$TARGET" "ln -s $RELEASE $ROOT.new && mv -Tf $ROOT.new $ROOT" \
+  || { echo "!! the swap failed — the site is still serving ${previous:-what it was}"; exit 1; }
+
+echo "   release $STAMP is live (previous: ${previous:-none recorded})"
+
+# The migrated tree becomes the oldest release. This is the slow part of the migration — a copy
+# across filesystems when /var and /opt are not one — and it runs here rather than before the swap
+# precisely because the new release is already live: nothing is serving this directory any more, so
+# being slow costs nothing and being interrupted leaves a stale tree beside the web root rather than
+# a site that serves half a file.
+#
+# If the deploy dies before this line, $ROOT.old-$STAMP stays where it is. It is a sibling of the web
+# root and not under it, so nginx cannot serve it — nothing is exposed, and it is still there to
+# recover from or to move by hand:
+#   ssh $TARGET "mv $ROOT.old-<stamp> $RELEASES/migrated-<stamp>"
+if [ -n "$migrated_from" ]; then
+  echo "   relocating the migrated tree into $RELEASES (the slow copy, off the critical path)"
+  ssh "$TARGET" "mv $migrated_from $RELEASES/$STAMP-migrated"
+  # $previous named the tree where the migration left it, and that path no longer exists. Point it at
+  # where the tree went, so the line printed below and anything reading it after a failed verification
+  # names a directory that is really there.
+  #
+  # The stamp comes first because the prune below orders these names lexicographically. A name
+  # starting with "migrated-" would sort above every timestamp — 'm' is above every digit — and the
+  # tree that was live before the release layout existed would then outlive every genuine release and
+  # never be pruned at all. Stamped, it sits exactly where it belongs: just before the release that
+  # replaced it, which is what it is.
+  previous="$RELEASES/$STAMP-migrated"
+fi
+
+# Keep enough to go back through, and no more: each release is a full copy of dist, and a directory
+# of them that nobody prunes is a disk that fills up quietly on a box five other sites depend on.
+# The live release is excluded by name rather than trusted to sort newest-first, because a prune
+# that can delete the tree nginx is serving is a prune that eventually will — the day a clock is
+# wrong or an mtime is touched.
+ssh "$TARGET" "cd $RELEASES && live=\$(basename \$(readlink -f $ROOT))
+  for d in */; do d=\${d%/}
+    [ \"\$d\" = \"\$live\" ] && continue
+    echo \"\$d\"
+  done | sort -r | tail -n +$KEEP_RELEASES | xargs -r rm -rf"
+
 
 # ── The assistant runtime, under its own roof ──────────────────────────────────────────────────
 #
@@ -539,7 +686,22 @@ key_bytes() { # material on stdin -> byte count
 }
 fingerprint_of() { printf '%s' "$1" | sha256sum | cut -c1-16; }
 leaked() { # material -> true if it appears where it must never be
-  printf '%s\n' "$1" | grep -rqaFf - /var/www/mythuso /var/backups/mythuso 2>/dev/null
+  # /var/www/mythuso is a symlink since the atomic publish, and `grep -r` does not follow a symlink
+  # named on the command line — it was verified to skip it rather than assumed to descend into it.
+  # Left as it was, this check would have quietly stopped covering the live release the first time
+  # the migration ran, and a leak check that goes blind in the same deploy that moves the files is
+  # the worst version of the bug: it still exits 0.
+  #
+  # So the path is resolved to the directory it points at before it is scanned, which is also what
+  # makes the answer independent of which grep is installed. $RELEASES is scanned as a directory in
+  # its own right: it holds up to KEEP_RELEASES superseded builds, and a key that reached the bundle
+  # reached every one of them. They are not served any more, but "it was public while it was live" is
+  # precisely what this check exists to raise.
+  #
+  # readlink -f of a missing path yields nothing, so a root that does not exist yet is dropped from
+  # the argument list rather than handed to grep as an empty name.
+  local web; web=$(readlink -f /var/www/mythuso 2>/dev/null || true)
+  printf '%s\n' "$1" | grep -rqaFf - ${web:+"$web"} /opt/mythuso/releases /var/backups/mythuso 2>/dev/null
 }
 note_fingerprint() { # <name> <fingerprint>
   local was; was=$(sed -n "s/^$1 //p" "$recorded" 2>/dev/null | tail -1)
@@ -574,7 +736,8 @@ else
         echo "   Generate one with: openssl rand -hex 32"
         problems=$((problems + 1))
       elif leaked "$key"; then
-        echo "!! MYTHUSO_ENCRYPTION_KEY appears in a file under /var/www/mythuso or /var/backups/mythuso."
+        echo "!! MYTHUSO_ENCRYPTION_KEY appears in a published file — under the web root, in a kept"
+        echo "   release, or in /var/backups/mythuso."
         echo "   The web root is served to the public internet and the backups are the database this"
         echo "   key opens. Treat it as disclosed and rotate, then find what put it there."
         problems=$((problems + 1))
@@ -646,7 +809,8 @@ else
       bad=1; continue
     fi
     if leaked "$m"; then
-      echo "!! protection key version $v appears under /var/www/mythuso or /var/backups/mythuso —"
+      echo "!! protection key version $v appears in a published file — under the web root, in a kept"
+      echo "   release, or in /var/backups/mythuso —"
       echo "   treat it as disclosed and read the compromise section of docs/DATA-PROTECTION.md"
       bad=1; continue
     fi

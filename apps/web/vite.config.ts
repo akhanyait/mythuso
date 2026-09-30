@@ -83,6 +83,49 @@ export default defineConfig({
         next();
       });
     }
+  }, {
+    /* `ws:` leaves the policy on the way out, and only on the way out.
+     *
+     * The entries declare connect-src with ws: in them because Vite's hot-reload socket is a
+     * websocket to the dev server, and a page whose policy does not allow it loses live reload
+     * silently — you edit a file, nothing happens, and the only evidence is a line in the console
+     * most people have closed. So it has to be in the HTML on disk.
+     *
+     * In production it is pure downside. Nothing in apps/web/src opens a socket — there is no
+     * WebSocket anywhere in the app, and the panel reaches the assistant over same-origin fetch,
+     * which is why connect-src 'self' has been enough for it all along. What ws: does allow, on
+     * four pages served to the public internet, is a socket to any host: an injected script could
+     * stream the page's contents out over one, and no other directive would stop it. A policy is
+     * worth what its widest source is, and this was the widest source on the page.
+     *
+     * Stripped at build time rather than edited out of the HTML, for the same reason the rest of
+     * this file derives rather than restates: the source keeps HMR working, the published page does
+     * not carry a door nobody opened deliberately, and there is no second copy of the policy to
+     * drift. apply: 'build' is what makes it one-sided — the dev server serves the HTML unmodified. */
+    name: 'mythuso-no-ws-in-production',
+    apply: 'build',
+    transformIndexHtml(html) {
+      /* Parse the directive rather than match the word. A regex that replaces `ws:` has two ways to
+         be wrong, and the obvious test does not catch either: stripping it from the middle of a
+         directive leaves `'self'https://tiles...` glued together and breaks the tile fetch, and
+         requiring a space after it misses `connect-src 'self' ws:;`, where ws: is last — which is
+         two of the four entries. So this reads the policy, drops the token, and rejoins, which is
+         correct wherever ws: sits. */
+      return html.replace(
+        /(<meta http-equiv="Content-Security-Policy" content=")([^"]*)(")/g,
+        (_match, before: string, policy: string, after: string) => {
+          const directives = policy
+            .split(';')
+            .map((directive) => directive.trim())
+            .filter(Boolean)
+            .map((directive) => {
+              const sources = directive.split(/\s+/);
+              return sources.filter((source) => source !== 'ws:').join(' ');
+            });
+          return `${before}${directives.join('; ')}${after}`;
+        }
+      );
+    }
   }],
   server: {
     host: '0.0.0.0',

@@ -13,6 +13,18 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check && npm run build
+      # The patient entry's weight, measured against the ceiling in CLAUDE.md. After the build and
+      # not before it: it measures bytes that only exist once apps/web/dist has been written, and a
+      # check that fails because nobody built yet is a check people learn to ignore. It is its own
+      # script rather than a rule in check-boundaries.mjs for the same reason — those read the
+      # source tree and need no build, so folding this in would make `npm run check` depend on one.
+      #
+      # This is the gate that keeps the dynamic-import discipline from eroding one import at a time.
+      # Eleven engines of product across two waves cost the patient's first view nothing because
+      # every one of them is behind a lazy import, and the mechanism that undoes it is invisible in
+      # review: a static import of a shell from anything this entry already reaches pulls the whole
+      # workspace back into the first load, and the build still succeeds.
+      - run: node scripts/check-bundle-budget.mjs
       - run: npx playwright install --with-deps chromium
       - run: npm test
       - run: npm audit --audit-level=high
