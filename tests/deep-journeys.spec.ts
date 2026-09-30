@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import { noticeFor } from './notices';
 import { goSection, goConsole, openAdminConsole, openFirstRun, openWorkspace } from './nav';
 /* Tab-bar labels are translated, so the phone path addresses tabs by position, not by text. */
@@ -164,7 +165,16 @@ test('partner orders show chain of custody and every integration state', async (
   await page.getByRole('button', { name: /^LAB-0023/ }).click();
   await page.getByRole('button', { name: 'Open the laboratory order' }).click();
   await expect(dialog.getByText('SEAL-77341 · Intact on receipt')).toBeVisible();
-  await expect(dialog.getByRole('row', { name: /Fasting glucose/ })).toContainText('High');
+  /* It asserted a typed "High" beside a typed fasting glucose until 30 September 2026. No contract holds a
+     laboratory reference range, and the synthetic laboratory answers with a reference and never a value
+     (packages/catalog/medicines.json#labs), so the order names the tests it asked for, says what comes back
+     and flags nothing — and the laboratory's own notice, not the pharmacy's, stands over it. */
+  const tests = dialog.getByRole('list', { name: 'Tests ordered' });
+  await expect(tests.getByRole('listitem').filter({ hasText: 'Fasting glucose' })).toHaveCount(1);
+  const medicines = JSON.parse(readFileSync(new URL('../packages/catalog/medicines.json', import.meta.url), 'utf8'));
+  await expect(dialog.getByText(medicines.screen.results.ordered)).toBeVisible();
+  await expect(dialog.locator('.not-connected')).toContainText(noticeFor('laboratory-results'));
+  await expect(dialog.getByText(/mmol\/L|Within range|\bHigh\b/)).toHaveCount(0);
   await dialog.getByRole('button', { name: 'Release with an explanation' }).click();
   await expect(dialog.getByText('Visible in the Health Passport with an explanation')).toBeVisible();
 });

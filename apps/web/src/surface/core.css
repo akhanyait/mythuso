@@ -80,6 +80,9 @@ label>input,label>select,label>textarea,label>.phone-field{margin-top:8px;font-w
    line-height and to 43 under Figtree's, and a target's floor should not depend on a face's metrics. */
 .skip-link{position:fixed;left:16px;top:-100px;display:inline-flex;align-items:center;min-height:44px;background:var(--surface);padding:14px 18px;border-radius:var(--r-control);z-index:100;box-shadow:var(--shadow-raised);font-size:13px;font-weight:600}
 .skip-link:focus{top:14px}
+/* The wordmark's two lockups (components/Wordmark.tsx): the ink one unless the page is dark, as the tokens
+   answer. Important because the sheets that size it set display on `.brand img` at three and four classes. */
+:root:not([data-theme='dark']) .wordmark-reversed,:root[data-theme='dark'] .wordmark-ink{display:none!important}
 /* ---- Buttons ---- */
 .primary,.secondary,.ghost{min-height:50px;border-radius:var(--r-control);display:inline-flex;justify-content:center;align-items:center;gap:9px;padding:13px 16px;font-weight:600;font-size:14px;letter-spacing:-.1px;text-align:center}
 .button-row>.primary,.button-row>.secondary{padding:13px 12px;gap:7px}

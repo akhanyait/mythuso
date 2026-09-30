@@ -212,6 +212,17 @@
 .nurse-readiness__caveat dt { padding-left: var(--space-20); }
 .nurse-readiness__gate { margin: 0; padding-top: var(--space-12); border-top: 1px solid var(--color-border); font-size: 14px; font-weight: 600; line-height: 1.45; color: var(--ui-success-ink); }
 .nurse-readiness__gate.is-refused { color: var(--ui-danger-ink); }
+/* What reached the record, drawn as the readiness ring is but a single ring and smaller, because it stands in the
+   row of the queue's figures rather than beside the lead. Its lit arcs are the primary ink, as the register's are. */
+.nurse-reached .nurse-ring { width: 96px; height: 96px; }
+.nurse-reached .nurse-ring__figure strong { font-size: 22px; }
+.nurse-reached .nurse-readiness__body { gap: var(--space-16); }
+.nurse-ring__arc.is-record.on { stroke: var(--color-primary); }
+.nurse-readiness__key dt i.is-record { background: var(--color-primary); }
+.nurse-reached .nurse-readiness__caveat dt { padding-left: 0; }
+/* A third of the row is too narrow for a label and its count side by side, so here the count sits under its label. */
+.nurse-reached .nurse-readiness__key > div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+.nurse-reached .nurse-readiness__key dd { text-align: left; }
 
 @media (max-width: 599px) {
  .nurse-command__headline { font-size: 24px; }

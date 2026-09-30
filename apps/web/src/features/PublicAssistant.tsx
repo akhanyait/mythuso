@@ -10,6 +10,7 @@ import { useDecor } from '../lib/motion';
 import { affect, conversation, emergencyAnswer, identity, lines, screens, silenceIsNotSafety } from '../lib/assistant';
 import { crisisLines, showsCrisisLines } from '../lib/crisis-lines';
 import { publicAnswer, publicAssistant as copy, type PublicAnswer } from '../lib/public-assistant';
+import { sendOnEnter, useGrowingField } from '../lib/composer';
 import './public-assistant.css';
 
 /* The signed-out sheet's emergency footer, with its numbers as tap-to-call links. The sentence is the
@@ -53,6 +54,10 @@ export default function PublicAssistant({ request = null }: { request?: { questi
  const launcher = useRef<HTMLButtonElement>(null);
  const latest = useRef<HTMLLIElement>(null);
  const scroller = useRef<HTMLDivElement>(null);
+ const field = useRef<HTMLTextAreaElement>(null);
+ /* The field grows with what is written, as the patient's panel's does, and has a layout only while
+    the sheet is open. */
+ useGrowingField(field, draft, open);
  /* The control that opened the sheet from the page rather than from the round button — a question on
     the hero's card, the guide card's action — so closing hands focus back to where the reader was. */
  const opener = useRef<HTMLElement | null>(null);
@@ -87,6 +92,15 @@ export default function PublicAssistant({ request = null }: { request?: { questi
   }
  }, [open]);
  useEffect(() => { latest.current?.scrollIntoView({ block: 'nearest' }); requestAnimationFrame(measure); }, [turns]);
+ /* The conversation's room shrinks without a scroll when the field grows, and the way back is measured
+    again when it does. */
+ useEffect(() => {
+  const box = scroller.current;
+  if (!box || typeof ResizeObserver !== 'function') return;
+  const watch = new ResizeObserver(() => measure());
+  watch.observe(box);
+  return () => watch.disconnect();
+ }, []);
  /* A request from the page: open, and when it carries one of the guide's questions, ask it — the same
     ask a press on the sheet's own question would make, so the answer is the contract's and nothing else. */
  useEffect(() => {
@@ -153,7 +167,7 @@ export default function PublicAssistant({ request = null }: { request?: { questi
     </div>
     <form onSubmit={submit}>
      <label htmlFor="public-assistant-input">{copy.inputLabel}</label>
-     <div><input id="public-assistant-input" value={draft} onChange={e => setDraft(e.target.value)} placeholder={copy.inputHint} maxLength={500} autoComplete="off"/><Button type="submit" className="public-assistant-send">{conversation.sendLabel}</Button></div>
+     <div><textarea ref={field} id="public-assistant-input" rows={1} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={sendOnEnter} placeholder={copy.inputHint} maxLength={500} autoComplete="off"/><Button type="submit" className="public-assistant-send">{conversation.sendLabel}</Button></div>
      <EmergencyFooter/>
     </form>
    </div>

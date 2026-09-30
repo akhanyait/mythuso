@@ -150,6 +150,69 @@ test('an admin change never moves a visit already running or a panic already ope
   await expect(again.getByRole('group', { name: contract.panic.confirmQuestion })).toContainText(fill(contract.panic.whatHappens, { ends: clock(at(longerWindow)) }));
 });
 
+/* The panic she has outside a visit: in the staff shell's top bar on every page, the strip's own confirmation and
+   what the strip shows after a press, word for word, and nothing more — no sentence that help is coming. The desk's
+   queue and the Control Tower's field alert count it exactly as they count a press from inside a visit: one more
+   open panic on each. */
+const portalContract = json('../packages/catalog/control-tower-portal.json');
+const fieldAlertCounts = async (page: Page) => {
+  await goSection(page, 'Dispatch');
+  const alert = page.locator('#pt-category .pt-field-alert');
+  await expect(page.locator('#pt-category .pt-loading')).toHaveCount(0);
+  const panicsOnAlert = await alert.count() ? Number(await alert.locator('li', { hasText: portalContract.fieldAlert.nursePanics }).locator('strong').textContent()) : 0;
+  await goSection(page, 'Incidents');
+  const desk = page.getByRole('region', { name: contract.desk.heading });
+  await expect(desk).toBeVisible();
+  const panicsOnDesk = await desk.locator('.fs-row:not(.is-closed)').filter({ has: page.locator('.fs-row-kind', { hasText: contract.desk.kinds.panic }) }).count();
+  return { panicsOnAlert, panicsOnDesk };
+};
+test('outside a visit the bar\'s panic asks the strip\'s question, shows what the strip shows, and the desk counts it the same', async ({ page }) => {
+  await page.clock.install({ time: START });
+  await openWorkspace(page, 'Control Tower');
+  const before = await fieldAlertCounts(page);
+  expect(before.panicsOnAlert).toBe(before.panicsOnDesk);
+
+  await chooseRole(page, 'Nurse');
+  await goSection(page, 'Academy');
+  const bar = page.locator('.staff-topbar');
+  const press = bar.getByRole('button', { name: contract.panic.press, exact: true });
+  await press.click();
+  const confirm = bar.getByRole('group', { name: contract.panic.confirmQuestion });
+  await expect(confirm).toContainText(fill(contract.panic.whatHappens, { ends: clock(at(window)) }));
+  await expect(confirm).toContainText(fill(contract.panic.whatDoesNotHappen, { police: emergencyNumber('police'), ambulance: emergencyNumber('ambulance') }));
+  await expect(confirm.locator('.not-connected')).toContainText(noticeFor('emergency'));
+  /* Not now and Escape both put it away without pressing anything, and Escape hands focus back to the control. */
+  await confirm.getByRole('button', { name: contract.panic.cancel }).click();
+  await expect(confirm).toHaveCount(0);
+  await press.click();
+  await page.keyboard.press('Escape');
+  await expect(confirm).toHaveCount(0);
+  await expect(press).toBeFocused();
+  await expect(page.locator('.fs-pressed')).toHaveCount(0);
+
+  await press.click();
+  await confirm.getByRole('button', { name: contract.panic.confirm }).click();
+  await expect(confirm).toHaveCount(0);
+  const pressed = page.getByRole('region', { name: 'Waiting for you' }).locator('.fs-pressed');
+  const raised = contract.states.panic.find((s: { id: string }) => s.id === 'raised').label;
+  /* Exactly the strip's two lines after a press, and not a word more. */
+  await expect(pressed.locator('strong')).toHaveText(`${raised} · ${fill(contract.panic.pressedAt, { at: clock(START) })}`);
+  await expect(pressed.locator('p')).toHaveText([fill(contract.panic.sharingUntil, { ends: clock(at(window)) })]);
+  await expect(pressed).not.toContainText(/help is (coming|on (its|the) way)|on (its|their) way|coming to you|has been sent/i);
+  /* On every page she goes to, and a second press while the window is open is the panic she already has. */
+  await goSection(page, 'Team');
+  await expect(pressed).toBeVisible();
+  await page.clock.fastForward(2 * MINUTE);
+  await press.click();
+  await confirm.getByRole('button', { name: contract.panic.confirm }).click();
+  await expect(pressed).toHaveCount(1);
+  await expect(pressed.locator('strong')).toContainText(fill(contract.panic.pressedAt, { at: clock(START) }));
+
+  await chooseRole(page, 'Control Tower');
+  const after = await fieldAlertCounts(page);
+  expect(after).toEqual({ panicsOnAlert: before.panicsOnAlert + 1, panicsOnDesk: before.panicsOnDesk + 1 });
+});
+
 test('the desk sees a nurse and a suburb, never a service, and resolves or closes only with a true reason', async ({ page }) => {
   await page.clock.install({ time: START });
   await openWorkspace(page, 'Control Tower');

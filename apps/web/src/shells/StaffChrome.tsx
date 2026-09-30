@@ -6,6 +6,7 @@ import { standingOf } from '../../../../packages/engines/src/safety/domain/check
 import { NURSE_ON_SHIFT, useFieldSafety } from '../lib/field-safety';
 import { preview as carePreview, tick as careTick, useCareVisit } from '../lib/care-visit';
 import { services } from '../lib/catalog';
+import { ShellPanicPressed } from '../features/FieldSafety';
 
 /* The staff shell's top bar and the band above every page, taken from the Lovable export's arrangement
  * and drawn with what this build can honestly say.
@@ -154,6 +155,8 @@ const SentinelAttention = lazy(() => import('./SentinelAttention'));
 export function StaffAttention({ role, section, go, sentinelLoaded }: { role: string; section: string; go: (id: string) => void; sentinelLoaded: boolean }) {
  if (role !== 'Nurse' && role !== 'Doctor') return null;
  return <div className="staff-attention" aria-label="Waiting for you" role="region">
+  {/* A panic pressed from the top bar says what it did here, first, on whichever page she pressed it from. */}
+  {role === 'Nurse' && <ShellPanicPressed/>}
   {role === 'Nurse' && <NurseAttention section={section} go={go}/>}
   {sentinelLoaded && <Suspense fallback={null}><SentinelAttention workspace={role === 'Nurse' ? 'nurse' : 'doctor'} section={section} go={go}/></Suspense>}
  </div>;

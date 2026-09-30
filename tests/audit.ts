@@ -111,3 +111,46 @@ export const controlSweep = (page: Page) => page.evaluate(() => {
  const running = document.getAnimations().filter(a => a.playState === 'running').length;
  return { nameless, positive, running };
 });
+
+/* Every word on the screen against the ground actually painted behind it, as the browser composites it:
+   each ancestor's background colour laid over the one beneath, from the page down, so a translucent wash
+   is measured over what it washes. Any colour the browser can compute — a color-mix, a colour space — is
+   read back as sRGB through a canvas. The floor is WCAG 2.2 AA: 4.5, or 3 for large text. Skipped are
+   the words nobody sees (hidden, aria-hidden, zero-sized) and a disabled control, which AA exempts.
+   Background images are not composited; a word on a photograph is measured on the colour under it.
+   `notices` counts the measured words inside the contract's not-connected notices, so a journey can
+   say those were among them rather than assume it. First written for tests/dark-theme.spec.ts, where
+   the older sheets' inks had been measured on white only. */
+export const lowContrast = (page: Page) => page.evaluate(() => {
+ const canvas = document.createElement('canvas');
+ canvas.width = canvas.height = 1;
+ const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+ const rgba = (css: string) => { ctx.clearRect(0, 0, 1, 1); ctx.fillStyle = '#000'; ctx.fillStyle = css; ctx.fillRect(0, 0, 1, 1); const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data; return [r / 255, g / 255, b / 255, a / 255]; };
+ const over = (top: number[], under: number[]) => top.slice(0, 3).map((c, i) => c * top[3] + under[i] * (1 - top[3]));
+ const lum = (c: number[]) => c.map(v => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
+ const ratio = (a: number[], b: number[]) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+ /* The patient's ground is a fixed pane of its own behind the shell rather than an ancestor of the words. */
+ const pane = document.querySelector('.patient-ground');
+ const base = over(rgba(getComputedStyle(pane ?? document.documentElement).backgroundColor), over(rgba(getComputedStyle(document.body).backgroundColor), [1, 1, 1]));
+ const failures: string[] = [];
+ let measured = 0, notices = 0;
+ const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+ for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+  const el = node.parentElement;
+  if (!el || !node.textContent!.trim() || el.closest('[hidden], [aria-hidden="true"], .visually-hidden, .sr-only, :disabled, [aria-disabled="true"]')) continue;
+  const box = el.getBoundingClientRect();
+  const style = getComputedStyle(el);
+  if (!box.width || !box.height || style.visibility === 'hidden') continue;
+  const chain: Element[] = [];
+  for (let at: Element | null = el; at && at !== document.documentElement; at = at.parentElement) chain.unshift(at);
+  let ground = base;
+  for (const at of chain) { const bg = rgba(getComputedStyle(at).backgroundColor); if (bg[3] > 0) ground = over(bg, ground); }
+  const size = parseFloat(style.fontSize), bold = Number(style.fontWeight) >= 700;
+  const floor = size >= 24 || (bold && size >= 18.66) ? 3 : 4.5;
+  const r = ratio(over(rgba(style.color), ground), ground);
+  measured++;
+  if (el.closest('.not-connected')) notices++;
+  if (r < floor) failures.push(`"${node.textContent!.trim().slice(0, 48)}" (${el.tagName.toLowerCase()}.${String(el.className).split(' ')[0]}) ${r.toFixed(2)} < ${floor}`);
+ }
+ return { failures, measured, notices };
+});

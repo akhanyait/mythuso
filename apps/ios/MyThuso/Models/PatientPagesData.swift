@@ -9,13 +9,22 @@
 import SwiftUI
 
 enum PatientPagesData {
-    static let version = 2
+    static let version = 4
 
     enum Review {
         /// Nil until a registered clinician has read and signed the pages' health material.
         static let reviewedBy: String? = nil
+        static let status = "awaiting-clinical-review"
         static let notice = "This page carries general health information that no registered clinician has signed yet. Your nurse's advice comes first."
     }
+
+    enum Aside {
+        static let refusalsHeading = "What these pages will not do"
+        static let reviewHeading = "Not signed by a clinician yet"
+    }
+
+    /// A way onward from a page: `kind` is navigate, modal or assistant, `target` the page it opens.
+    struct Action: Hashable { let label: String; let kind: String; let target: String }
 
     enum Hub {
         static let opens = "Your health"
@@ -32,6 +41,112 @@ enum PatientPagesData {
             "Nutrition",
             "Activity",
             "Reminders"
+        ]
+        struct Shortcut: Identifiable, Hashable { let id: String; let title: String; let sub: String }
+        /// The hub's one line about each page — the words a door to that page is described in anywhere.
+        static let shortcuts: [Shortcut] = [
+            Shortcut(id: "symptom-checker", title: "Symptom checker", sub: "Answer set questions; the notes go to your nurse"),
+            Shortcut(id: "risk-assessment", title: "Risk assessment", sub: "What it would be, and why no score is computed"),
+            Shortcut(id: "health-library", title: "Health library", sub: "Sourced general guidance, searchable"),
+            Shortcut(id: "health-timeline", title: "Health timeline", sub: "Your record over time, through the Passport"),
+            Shortcut(id: "vaccinations", title: "Vaccinations", sub: "The SA schedule, and your own record when it exists"),
+            Shortcut(id: "community", title: "Community support", sub: "Clinics, helplines and groups near you"),
+            Shortcut(id: "mental-health", title: "Mental health", sub: "Reading, your own words, helplines and crisis lines"),
+            Shortcut(id: "nutrition", title: "Nutrition", sub: "General food guidance from the knowledge base"),
+            Shortcut(id: "activity", title: "Activity", sub: "What you wrote about moving; nothing is measured"),
+            Shortcut(id: "reminders", title: "Reminders", sub: "What will remind you, once accounts are live")
+        ]
+        static func shortcut(_ id: String) -> Shortcut? { shortcuts.first { $0.id == id } }
+    }
+
+    enum MentalHealth {
+        static let opens = "Mental health"
+        static let eyebrow = "Your mind, too"
+        static let heading = "Support for how you are feeling."
+        static let lead = "Doors to what this phone holds: your own words in Live well, and the crisis lines. There is no counsellor to book here yet and no mood score, and both are said below rather than drawn."
+        /// This page's one line for the row that opens it, in the iPhone's words where drawnOn gives them.
+        static let sub = "Your own words and crisis lines"
+
+        /// `kind` is navigate or anchor; `target` names the page it opens, or the crisis card for an anchor.
+        struct Door: Identifiable, Hashable { let id: String; let title: String; let sub: String; let kind: String; let target: String; let tab: String? }
+        static let doors: [Door] = [
+            Door(id: "library", title: "Read about mental health", sub: "The knowledge base's mental-health entries, each with its source", kind: "navigate", target: "Health library", tab: "mental-health"),
+            Door(id: "journal", title: "Write down how you are", sub: "In a word or two, in Live well. Your words, never a scale", kind: "navigate", target: "Live well", tab: nil),
+            Door(id: "helplines", title: "Helplines and support groups", sub: "The knowledge base's own list, with its sources", kind: "navigate", target: "Community support", tab: nil),
+            Door(id: "crisis", title: "If you are in crisis", sub: "The emergency screen first, then the crisis lines", kind: "anchor", target: "pp-crisis", tab: nil)
+        ]
+        /// The doors drawnOn.ios leaves out, because the page each opens is not on the iPhone.
+        static let doorsLeftOut: Set<String> = ["library", "helplines"]
+        /// The journal habit whose entries the journal door writes in.
+        static let journalHabit = "feeling"
+
+        /* The crisis lines' heading, names and numbers are CrisisLinesData's (Gilbert.Crisis), which
+           emit-crisis-lines.mjs writes; the build fails on a crisis number in any other Swift file, so
+           only each line's "when to use" rides here, keyed by the line's name there. */
+        enum Crisis {
+            static let heading = "If you are in crisis now"
+            static let emergencyFirst = "If a life is in danger now, the ambulance comes first. The emergency screen carries its number, and a crisis line never stands in for it."
+            static let action = "Open Emergency & urgent care"
+            static let modal = "Emergency & urgent care"
+            /// packages/catalog/crisis-lines.json's "when to use" for each line, keyed by the line's name.
+            static let whenToUse: [String: String] = [
+                "SADAG helpline": "Free counselling and referrals, from the South African Depression and Anxiety Group.",
+                "Lifeline South Africa": "24-hour crisis counselling."
+            ]
+            /// packages/catalog/crisis-lines.json's "nothing-dials" refusal, the one that names no emergency number.
+            static let nothingDials = "Nothing here dials a crisis line by itself. The numbers are shown so that you can call them from your own phone."
+        }
+
+        enum Session {
+            static let heading = "A session with a counsellor is not bookable yet"
+            static let detail = "The mental-health check-in is in the service catalogue for a later phase, and nobody can be sent for it until then. The catalogue says which phase."
+            /// The web's catalogue button. drawnOn.ios leaves it out: the iPhone's catalogue has no page that carries this service.
+            static let action = "See it in the catalogue"
+            /// The counselling check-in as packages/catalog/services.json holds it, titled as the web's catalogue dialog is.
+            static let catalogueEntry = "Mental-health check-in · Phase 3"
+        }
+
+        enum Mood {
+            static let heading = "Why there is no mood score"
+            /// The wellbeing refusal of a score, by id: its sentence is WellbeingData's, where the build holds it.
+            static let refusalId = "no-weight-score"
+            /// Why the journal's habit is words and not a scale. WellbeingData has no field for a habit's reason.
+            static let why = "Deliberately not a mood scale from one to ten. A scale invites a trend line, a trend line invites an interpretation, and an interpretation of somebody's mood is a clinical act."
+        }
+    }
+
+    enum Activity {
+        static let opens = "Activity"
+        static let eyebrow = "Moving"
+        static let heading = "How you have been moving, in your own words."
+        static let lead = "This page holds what you wrote under Moving in Live well, newest first. It does not count steps or minutes, because nothing that could count them is connected, and a figure nobody measured is a figure somebody would believe."
+        /// This page's one line for the row that opens it, in the iPhone's words where drawnOn gives them.
+        static let sub = "What you wrote about moving; nothing is measured"
+        /// The wellbeing refusal that nothing here is measured, by id, shown first from WellbeingData.
+        static let noDeviceId = "no-device"
+        /// The journal habit whose entries this page lists and counts.
+        static let habit = "moving"
+
+        /// `value` is a written state, or `countValue`: the entries listed under the tiles, counted.
+        struct Tile: Identifiable, Hashable { let id: String; let label: String; let value: String; let detail: String }
+        static let countValue = "count"
+        static let tiles: [Tile] = [
+            Tile(id: "steps", label: "Steps", value: "Not measured", detail: "A step count needs a device, and none is connected."),
+            Tile(id: "minutes", label: "Active minutes", value: "Not measured", detail: "No watch, band or phone sensor is read."),
+            Tile(id: "entries", label: "Your Moving entries", value: "count", detail: "Counted from the entries listed below.")
+        ]
+        static let entriesHeading = "What you wrote under Moving"
+        static let emptyTitle = "Nothing written under Moving yet"
+        static let emptyDetail = "When you write what you did and how it felt in Live well, it appears here. A day with nothing written is just a day."
+
+        enum Wearable {
+            static let heading = "Linking a phone's health store"
+            static let detail = "Apple Health and Health Connect are not connected. You can record a request to link one, and the request says exactly which readings would be shared; nothing is read until the decisions it waits on are made."
+            static let action = "See connected devices"
+            static let target = "Connected devices"
+        }
+        static let actions: [Action] = [
+            Action(label: "Write in Live well", kind: "navigate", target: "Live well")
         ]
     }
 

@@ -48,6 +48,7 @@ const standing: Record<Role, { before: string; glyph: typeof ArrowRight; after: 
  Partner: { before: 'From prescription', glyph: ArrowRight, after: 'to handover.' }
 };
 const freshnessWord = { missing: 'No reading yet', recent: 'Recent', stale: 'Stale' } as const;
+const requestWord: Record<MedicationRequest['status'], string> = { requested: 'Awaiting verification', verified: 'Verified', held: 'Held', dispensed: 'Dispensed' };
 
 const modeName = (id: string) => visitModes.find(m => m.id === id)?.name ?? id;
 const stateName = (id: string) => visitStates.find(s => s.id === id)?.name ?? id;
@@ -349,7 +350,7 @@ function DispensaryTool({ work }: { work: Work }) {
    <Nothing title="No medication requests for this patient"
     say="Three acts by two registered people, and nobody may perform two of them. Nothing here is dispensed."/>
   </>}
-  {requests.map(request => <RequestChain key={request.id} request={request} role={role} state={state} patientId={patientId} run={run}/>)}
+  {requests.map(request => <RequestChain key={request.id} request={request}/>)}
   {role === 'Doctor' && <form className="iq-compose" onSubmit={event => {
    event.preventDefault();
    if (!consultation) return;
@@ -366,13 +367,12 @@ function DispensaryTool({ work }: { work: Work }) {
  </>;
 }
 
-function RequestChain({ request, role, state, patientId, run }: { request: MedicationRequest; role: Role; state: State; patientId: string; run: Run }) {
+function RequestChain({ request }: { request: MedicationRequest }) {
  const verified = request.status === 'verified' || request.status === 'dispensed';
- const batches = state.stock.filter(batch => batch.item === request.item);
  return <article className={`iq-record is-${request.status}`}>
   <div className="iq-record-head">
    <h4>{request.item}</h4>
-   <span className={`iq-state is-${request.status}`}>{request.status === 'requested' ? 'Awaiting verification' : request.status === 'verified' ? 'Verified' : request.status === 'held' ? 'Held' : 'Dispensed'}</span>
+   <span className={`iq-state is-${request.status}`}>{requestWord[request.status]}</span>
   </div>
   <p className="iq-record-line">{request.directions} · {request.quantity} units · {request.id}</p>
   <ol className="iq-chain">
@@ -393,32 +393,6 @@ function RequestChain({ request, role, state, patientId, run }: { request: Medic
     <div><strong>Handed over</strong><p>{request.status === 'dispensed' ? `Released by ${request.pharmacistId}` : refusal('recipient-unchecked')}</p></div>
    </li>
   </ol>
-  {role === 'Partner' && !verified && request.status !== 'dispensed' && <form className="iq-compose inset" onSubmit={event => {
-   event.preventDefault();
-   run({ type: 'dispensary.verify', patientId, requestId: request.id, batchId: field(event, 'batch'), originalChecked: field(event, 'original') === 'on', allergyChecked: field(event, 'allergies') === 'on' }, 'Pharmacist verification recorded.');
-  }}>
-   <div className="iq-compose-head"><h4>Verify this request</h4><p>Two attestations, each made under your own registration.</p></div>
-   <label><span>Stock batch</span><select name="batch">{batches.map(batch => <option key={batch.id} value={batch.id}>{batch.id} · {batch.quantity} available · expires {dayOf(batch.expiresAt)}</option>)}</select></label>
-   <label className="iq-attest"><input type="checkbox" name="original" required/><span>Original prescription checked</span></label>
-   <label className="iq-attest"><input type="checkbox" name="allergies" required/><span>Allergy record reconciled</span></label>
-   <Button variant="secondary" type="submit">Verify prescription</Button>
-  </form>}
-  {role === 'Partner' && !verified && request.status !== 'dispensed' && <form className="iq-compose inset quiet" onSubmit={event => {
-   event.preventDefault();
-   run({ type: 'dispensary.hold', patientId, requestId: request.id, reason: field(event, 'reason') }, 'Request held. Nothing leaves the shelf.');
-  }}>
-   <div className="iq-compose-head"><h4>Or hold it</h4><p>A held request keeps its place and carries the reason it was stopped.</p></div>
-   <label><span>{label('hold-reason')}</span><textarea name="reason" required maxLength={bounds.noteCharacters.max} rows={2}/></label>
-   <Button variant="secondary" type="submit">Hold this request</Button>
-  </form>}
-  {role === 'Partner' && request.status === 'verified' && <form className="iq-compose inset" onSubmit={event => {
-   event.preventDefault();
-   run({ type: 'dispensary.release', patientId, requestId: request.id, recipientChecked: field(event, 'recipient') === 'on' }, 'Sandbox stock released once; handover recorded.');
-  }}>
-   <div className="iq-compose-head"><h4>Hand it over</h4><p>The last check before the medicine leaves the counter is the only one about who is standing there.</p></div>
-   <label className="iq-attest"><input type="checkbox" name="recipient" required/><span>Recipient identity checked</span></label>
-   <Button variant="primary" type="submit">Record handover</Button>
-  </form>}
  </article>;
 }
 
@@ -504,6 +478,31 @@ const Say = ({ of: Icon }: { of: typeof ArrowRight }) =>
    with a strip of summary figures between them. A clinician opens this to work a queue, so the queue
    is the first thing in the card and the per-patient workspace is what opens beneath it. */
 export function ClinicalWorkbench({ role, worklist }: { role: Role; worklist?: ReactNode }) {
+ /* Two components rather than one with a branch inside it: the partner's bench is a different object, not the
+    patient's workspace with parts hidden, and a role that changed under one mounted component would change the
+    order its hooks run in. */
+ return role === 'Partner' ? <PartnerWorkbench worklist={worklist}/> : <PatientWorkbench role={role} worklist={worklist}/>;
+}
+
+/* The dark band's head, shared by both benches: the eyebrow on the left, the standing on the right, a hairline
+   under both, and then what the band is for. The two dark bands on a clinical screen bracket the work between
+   them, and a reader should be able to see that they are the same object twice rather than two dark rectangles
+   that share a colour. "Fictional sandbox" is the contract's own standing for this workspace and stays visible
+   on every one of them, at every width. */
+function WorkbenchHeading({ role, say }: { role: Role; say: string }) {
+ return <header className="iq-heading">
+  <div className="iq-heading-top">
+   <span className="iq-eyebrow"><Cpu size={16} aria-hidden="true"/> THUSOIQ · CLINICAL WORKSPACE</span>
+   <Badge variant="neutral" dot className="iq-status">Fictional sandbox</Badge>
+  </div>
+  <div className="iq-heading-say">
+   <h2>{standing[role].before} <Say of={standing[role].glyph}/> {standing[role].after}</h2>
+   <p>{say}</p>
+  </div>
+ </header>;
+}
+
+function PatientWorkbench({ role, worklist }: { role: Role; worklist?: ReactNode }) {
  const { state, execute } = useThusoIQ();
  const [patientId, setPatient] = useState(state.patients[0].id);
  const [tool, setTool] = useState<Tool>(role === 'Partner' ? 'Dispensary' : 'Appointments');
@@ -550,22 +549,7 @@ export function ClinicalWorkbench({ role, worklist }: { role: Role; worklist?: R
       the workspace rather than the page. Two h1 elements on one screen is a reader guessing which
       one they are on, and the heading order this way round is h1 then h2. */}
   {worklist && <div className="iq-worklist">{worklist}</div>}
-  {/* The same head the instrument deck at the top of the screen wears: the eyebrow on the left, the
-      standing on the right, a hairline under both, and then what the band is for. The two dark
-      bands on a clinical screen bracket the work between them, and a reader should be able to see
-      that they are the same object twice rather than two dark rectangles that share a colour.
-      "Fictional sandbox" is the contract's own standing for this workspace and stays visible on
-      every one of them, at every width. */}
-  <header className="iq-heading">
-   <div className="iq-heading-top">
-    <span className="iq-eyebrow"><Cpu size={16} aria-hidden="true"/> THUSOIQ · CLINICAL WORKSPACE</span>
-    <Badge variant="neutral" dot className="iq-status">Fictional sandbox</Badge>
-   </div>
-   <div className="iq-heading-say">
-    <h2>{standing[role].before} <Say of={standing[role].glyph}/> {standing[role].after}</h2>
-    <p>One patient. Their appointments, clinical record and next action.</p>
-   </div>
-  </header>
+  <WorkbenchHeading role={role} say="One patient. Their appointments, clinical record and next action."/>
   {role === 'Nurse' && <NursePatientsSummary state={state} onChoose={choosePatient}/>}
   <div className="iq-layout">
    <aside className="iq-patients" aria-label="Clinical patients">
@@ -607,4 +591,138 @@ export function ClinicalWorkbench({ role, worklist }: { role: Role; worklist?: R
    </details>
   </footer>
  </section>;
+}
+
+/* ---- The partner's bench ----------------------------------------------------------------------------
+   A pharmacy is told what to dispense and never who for or why. packages/catalog/medicines.json#partnerQueue
+   lists what its queue carries — references, codes and the moments a request moved — and what it never
+   carries, the patient and their name first. This bench stood under the Orders board, which had its names
+   taken off, and went on drawing a care queue of named people with their initials, the reason each was in
+   care, their allergy record and their open encounter. None of that is a pharmacy's to hold.
+
+   So the partner's bench is not the patient workspace with parts hidden. Its rows are the medication
+   requests themselves, by reference and state; the one opened carries what to dispense, the batch, and the
+   three acts in their order. The patient a request belongs to is still the kernel's business — every command
+   names them, because the kernel checks the allergy record on that patient before a verification stands —
+   but the reference goes into the command and never onto the screen. The prescriber is left off too
+   (prescriberRef is on the same list), and the trail at the foot is the pharmacy's own three acts, since the
+   request's own event is signed by the prescriber. scripts/check-boundaries.mjs holds these three functions
+   to it. */
+const pharmacyActs: readonly Command['type'][] = ['dispensary.verify', 'dispensary.hold', 'dispensary.release'];
+
+function PartnerWorkbench({ worklist }: { worklist?: ReactNode }) {
+ const { state, execute } = useThusoIQ();
+ const requests = state.medicationRequests;
+ const [chosen, setChosen] = useState<string | null>(null);
+ const request = requests.find(r => r.id === chosen) ?? requests[0];
+ const [notice, setNotice] = useState('');
+ const [error, setError] = useState('');
+ const run: Run = (command, message) => {
+  try { execute(command); setError(''); setNotice(message); return true; }
+  catch (e) { setNotice(''); setError(e instanceof Error ? e.message : 'This action could not be completed.'); return false; }
+ };
+ const choose = (id: string) => { setChosen(id); setError(''); setNotice(''); };
+ const trail = state.events.filter(e => pharmacyActs.includes(e.action));
+ const pharmacist = thusoiq.clinicalRoles.find(r => r.id === 'pharmacist');
+ return <section className="iq-workbench" aria-label="ThusoIQ clinical workspace">
+  {worklist && <div className="iq-worklist">{worklist}</div>}
+  {/* What the bench is for, rather than the contract's sentence about what a pharmacy is never told: the Orders
+      panel directly above already says that, and the same line twice on one screen is read as filler. */}
+  <WorkbenchHeading role="Partner" say="One request at a time: what to dispense, and the three acts that release it."/>
+  <div className="iq-layout">
+   <aside className="iq-patients" aria-label="Medication requests">
+    <p className="iq-eyebrow">DISPENSARY QUEUE</p>
+    {requests.map(r => <button key={r.id} className={request?.id === r.id ? 'selected' : ''} aria-pressed={request?.id === r.id} onClick={() => choose(r.id)}>
+     <span className="avatar small" aria-hidden="true"><MyThusoMedicationIcon width={16} height={16}/></span>
+     <span><strong>{r.id}</strong><em>{requestWord[r.status]}</em></span>
+     <ArrowUpRight size={15} aria-hidden="true"/>
+    </button>)}
+    <p className="helper">These requests belong to a separate, in-memory workflow sandbox. No clinical service is delivered here.</p>
+   </aside>
+   <div className="iq-patient-work">
+    <div className="iq-tool-body" key={request?.id ?? 'none'}>
+     <div className="iq-section-head"><h3>Prescription to handover</h3><span>{requests.length} {requests.length === 1 ? 'request' : 'requests'}</span></div>
+     {pharmacist && <p className="iq-hint"><strong>A pharmacy partner:</strong> {pharmacist.may}</p>}
+     {request ? <PartnerRequest request={request} state={state} run={run}/> : <>
+      <ol className="iq-chain">
+       <li className="iq-link"><span className="iq-link-no" aria-hidden="true">1</span><div><strong>Requested</strong><p>A doctor, against a signed consultation.</p></div></li>
+       <li className="iq-link"><span className="iq-link-no" aria-hidden="true">2</span><div><strong>Verified</strong><p>{refusal('checks-outstanding')}</p></div></li>
+       <li className="iq-link"><span className="iq-link-no" aria-hidden="true">3</span><div><strong>Handed over</strong><p>{refusal('recipient-unchecked')}</p></div></li>
+      </ol>
+      <Nothing title="No medication request has reached this dispensary"
+       say="Three acts by two registered people, and nobody may perform two of them. Nothing here is dispensed."/>
+     </>}
+    </div>
+    {error && <p className="iq-message error" role="alert"><AlertTriangle size={16} aria-hidden="true"/><span>{error}</span></p>}
+    {notice && <p className="iq-message" role="status"><Check size={16} aria-hidden="true"/><span>{notice}</span></p>}
+   </div>
+  </div>
+  <footer className="iq-audit">
+   <span><Activity size={15}/> ThusoIQ connection: sandbox adapter</span>
+   <details>
+    <summary>Activity trail · {trail.length} events</summary>
+    <ol>{trail.slice(-12).reverse().map(e => <li key={e.sequence}>{e.action.replaceAll('.', ' · ')} — {e.actorId} · {dateTime(e.at)}</li>)}</ol>
+   </details>
+  </footer>
+ </section>;
+}
+
+/* One request, opened: what to dispense and the three acts, with the pharmacist's own two forms on the act
+   that is hers next. The chain's first link says who may request rather than who did. */
+function PartnerRequest({ request, state, run }: { request: MedicationRequest; state: State; run: Run }) {
+ const verified = request.status === 'verified' || request.status === 'dispensed';
+ const open = !verified && request.status !== 'dispensed';
+ const batches = state.stock.filter(batch => batch.item === request.item);
+ const subject = request.patientId;
+ return <article className={`iq-record is-${request.status}`}>
+  <div className="iq-record-head">
+   <h4>{request.item}</h4>
+   <span className={`iq-state is-${request.status}`}>{requestWord[request.status]}</span>
+  </div>
+  <p className="iq-record-line">{request.directions} · {request.quantity} units · {request.id}</p>
+  <ol className="iq-chain">
+   <li className="iq-link done">
+    <span className="iq-link-no" aria-hidden="true">1</span>
+    <div><strong>Requested</strong><p>A doctor, against a signed consultation.</p></div>
+   </li>
+   <li className={`iq-link${verified ? ' done' : ' now'}`}>
+    <span className="iq-link-no" aria-hidden="true">2</span>
+    <div>
+     <strong>Verified</strong>
+     <p>{verified ? `${request.pharmacistId} · batch ${request.batchId}` : refusal('checks-outstanding')}</p>
+     {request.status === 'held' && request.reason && <p className="iq-held">Held: {request.reason}</p>}
+    </div>
+   </li>
+   <li className={`iq-link${request.status === 'dispensed' ? ' done' : verified ? ' now' : ''}`}>
+    <span className="iq-link-no" aria-hidden="true">3</span>
+    <div><strong>Handed over</strong><p>{request.status === 'dispensed' ? `Released by ${request.pharmacistId}` : refusal('recipient-unchecked')}</p></div>
+   </li>
+  </ol>
+  {open && <form className="iq-compose inset" onSubmit={event => {
+   event.preventDefault();
+   run({ type: 'dispensary.verify', patientId: subject, requestId: request.id, batchId: field(event, 'batch'), originalChecked: field(event, 'original') === 'on', allergyChecked: field(event, 'allergies') === 'on' }, 'Pharmacist verification recorded.');
+  }}>
+   <div className="iq-compose-head"><h4>Verify this request</h4><p>Two attestations, each made under your own registration.</p></div>
+   <label><span>Stock batch</span><select name="batch">{batches.map(batch => <option key={batch.id} value={batch.id}>{batch.id} · {batch.quantity} available · expires {dayOf(batch.expiresAt)}</option>)}</select></label>
+   <label className="iq-attest"><input type="checkbox" name="original" required/><span>Original prescription checked</span></label>
+   <label className="iq-attest"><input type="checkbox" name="allergies" required/><span>Allergy record reconciled</span></label>
+   <Button variant="secondary" type="submit">Verify prescription</Button>
+  </form>}
+  {open && <form className="iq-compose inset quiet" onSubmit={event => {
+   event.preventDefault();
+   run({ type: 'dispensary.hold', patientId: subject, requestId: request.id, reason: field(event, 'reason') }, 'Request held. Nothing leaves the shelf.');
+  }}>
+   <div className="iq-compose-head"><h4>Or hold it</h4><p>A held request keeps its place and carries the reason it was stopped.</p></div>
+   <label><span>{label('hold-reason')}</span><textarea name="reason" required maxLength={bounds.noteCharacters.max} rows={2}/></label>
+   <Button variant="secondary" type="submit">Hold this request</Button>
+  </form>}
+  {request.status === 'verified' && <form className="iq-compose inset" onSubmit={event => {
+   event.preventDefault();
+   run({ type: 'dispensary.release', patientId: subject, requestId: request.id, recipientChecked: field(event, 'recipient') === 'on' }, 'Sandbox stock released once; handover recorded.');
+  }}>
+   <div className="iq-compose-head"><h4>Hand it over</h4><p>The last check before the medicine leaves the counter is the only one about who is standing there.</p></div>
+   <label className="iq-attest"><input type="checkbox" name="recipient" required/><span>Recipient identity checked</span></label>
+   <Button variant="primary" type="submit">Record handover</Button>
+  </form>}
+ </article>;
 }

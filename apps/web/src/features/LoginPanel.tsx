@@ -10,9 +10,9 @@ import './LoginPanel.css';
    are hero.json's `stage.login`, which say what the picker is. The picker is DemoLogin's, untouched — its
    accounts notice and its refusal come with it, word for word.
 
-   The column is a light ground in either scheme (the dialog is core.css's fixed --surface), so it wears the ink
-   wordmark itself rather than Wordmark, whose reversed lockup follows the reader's system scheme and would draw
-   white letters on this light ground under a dark OS.
+   The column is a light ground in either theme (the dialog is core.css's fixed --surface), so it wears the ink
+   wordmark itself rather than Wordmark, whose reversed lockup follows the page's theme and would draw white
+   letters on this light ground in the dark one.
 
    The figure is the hero's own cut-out, fetched lazily: the column is not drawn on a phone, and an image
    that is never drawn is never asked for. */

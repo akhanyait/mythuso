@@ -974,3 +974,35 @@ What is left, in the order it should be taken:
 7. **Words nobody has written:** the patient sidebar's group labels render in English in every locale.
 8. **The phones.** None of this is on iOS or Android. `PatientPagesData` is regenerated for both and read by
    neither.
+
+### What was left, built — 30 September 2026, evening
+
+The founder's answer to the list above was "build all these", and six builders did the same afternoon:
+the patient's name off the partner's screens, the nurse's panic from any page, the kit's ring, the dark
+theme on the older sheets, the wordmark on the app's theme, the More hub in the sidebar's groups, the
+patient's Thuso Kit card onto Connected devices, the laboratory order without typed results, the shared
+components on Privacy, My family and Live well, the assistant's growing composer, and Mental health and
+Activity as native screens on both phones. `docs/FEATURE-MAP.md`'s last section is the record.
+
+What is left now, in the order it should be taken:
+
+1. **The deploy.** `./deploy/deploy.sh` was refused to the session and is the founder's to run.
+   `mythuso.co.za` serves the morning's build until then, and that build names a patient on two of the
+   partner's screens. The assistant's runtime is not changed by this work; the composer is web only.
+2. **Look at the phones.** On Android only the top of Mental health was seen and the instrumented tests
+   were not run; on iOS the dark appearance and the final layout at accessibility sizes were not seen. The
+   machine's disk was full. Boot each with space to spare and walk both pages in both appearances.
+3. **The phones' words for Mental health** are new and on a page awaiting clinical review
+   (`patient-pages.json` `drawnOn.<platform>.words`): the founder has been told, a clinician has not read them.
+4. **The rest of "Your health" on the phones:** the hub and the other eight pages; native screens for the
+   health library and community helplines, which is what the two missing doors wait on.
+5. **The laboratory.** The order's timeline says "Results verified" above a panel that says no test is run;
+   `lib/records.ts` and the HL7 bridge type laboratory ranges in fixtures. A laboratory reference range
+   needs a contract and a clinician before any screen draws a value or a flag.
+6. **The phones against today's rules:** no shell-level panic, partner workbench or kit ring natively, and
+   the native order and dispensing screens were not checked for a typed panel or a patient's name.
+7. **Dark theme, the remainder:** tabs inside screens, the booking steps and the back office's inner tabs
+   were not walked; the category tints are bright on the dark ground and want a design decision.
+8. **Words nobody has written:** the patient sidebar's group labels in the other ten languages.
+9. **Small:** the guardians' invitation list is still the old furniture; the composer has not been tried on
+   a real Android keyboard; comments in four files still say the Thuso Kit is on the patient's entry.

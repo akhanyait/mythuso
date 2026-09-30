@@ -35,6 +35,7 @@ import za.co.mythuso.model.FramingData
 import za.co.mythuso.model.MedicinesData
 import za.co.mythuso.model.Passport
 import za.co.mythuso.model.PassportSharingData
+import za.co.mythuso.model.PatientPagesData
 import za.co.mythuso.model.PreviewStore
 import za.co.mythuso.model.Scheduling
 import za.co.mythuso.model.Earnings
@@ -223,6 +224,12 @@ import za.co.mythuso.model.mokoenaHousehold
             CareCard(padding = ThusoSpacing.space8) {
                 LiveWellRow(open)
                 HorizontalDivider(color = theme.border)
+                /* Two of the web's patient pages, beside the journal they read and write into. This phone has
+                   no "Your health" hub, so the rows are named and described in the hub's own words. */
+                MenuRow(PatientPagesData.MentalHealth.opens, PatientPagesData.MentalHealth.sub, Icons.Outlined.Psychology) { open(PatientPagesData.MentalHealth.opens) }
+                HorizontalDivider(color = theme.border)
+                MenuRow(PatientPagesData.Activity.opens, PatientPagesData.Activity.sub, Icons.AutoMirrored.Outlined.DirectionsWalk) { open(PatientPagesData.Activity.opens) }
+                HorizontalDivider(color = theme.border)
                 MenuRow("My family", "Manage your loved ones", Icons.Outlined.People) { open("My family") }
                 HorizontalDivider(color = theme.border)
                 MenuRow("Care plans", "Ongoing care and subscriptions", Icons.Outlined.FavoriteBorder) { open("Care plans") }
@@ -341,6 +348,10 @@ import za.co.mythuso.model.mokoenaHousehold
            web app keeps them at separate addresses for the same reason. */
         title == "Shop" -> ShopScreen()
         title == "Live well" -> LiveWellScreen(store, open)
+        /* Two of the patient pages, by the generated contract's own names, so a renamed page cannot strand
+           its row. ui/PatientPagesScreens.kt says what they leave out on this phone and why. */
+        title == PatientPagesData.MentalHealth.opens -> MentalHealthScreen(open)
+        title == PatientPagesData.Activity.opens -> ActivityScreen(store, open)
         title == "My family" -> FamilyScreen(store, open)
         /* The payer's own view of what they pay for. Its own route rather than a tab inside the
            family screen: a sponsor is not a guardian, and putting the two behind one door is the

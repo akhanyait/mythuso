@@ -160,6 +160,74 @@ a.primary { text-decoration: none }
  --shadow-raised: 0 4px 16px color-mix(in srgb, var(--studio-ink) 11%, transparent);
 }
 
+/* ---- The older ramps in the dark theme (30 September 2026) --------------------------------------
+
+   Every screen older than the handoff is written in --charcoal, --faint, --surface and their siblings,
+   which have one value each, measured on white; in the dark theme they drew dark ink on the dark ground
+   and white panels under pale words. They answer the theme here, once, as aliases of the --color-*
+   roles tokens.json already carries for dark — no new colour, so nothing to emit, and iOS and Android
+   are untouched. The ink ramps become the foreground roles and the grounds the surface roles, so a pair
+   that was ink on paper stays a pair; where a rule inverted them (paper words on an ink fill) it
+   inverts back, and still reads.
+
+   WHY HERE AND NOT ON :root. The shells re-declare these names on their own element (.app-shell.clinical
+   above, .patient-surface and .clinical's --pane in the surface sheets), and a custom property resolves
+   where it is declared, so the answer has to be given on the regions below the shell. The regions are
+   named rather than the whole shell because GilbertOne's dock sits inside it and is pinned light by
+   decision (features/gilbertone-theme.css), in these same names. Left as they are, on purpose: the
+   category tints, which are fills that set their own ink in the same rule, and the brand colours. */
+:root[data-theme='dark'] .app-shell > :is(.sidebar, .skip-link),
+:root[data-theme='dark'] .app-shell > .workspace > :not(.al-dock),
+:root[data-theme='dark'] dialog.modal {
+ --surface: var(--color-surface); --glass-floor: var(--color-surface); --pane: var(--color-surface); --pane-quiet: var(--color-surface);
+ --canvas: var(--color-surface-raised); --mist: var(--color-surface-raised); --cloud: var(--color-muted); --muted-sage: var(--color-muted);
+ --line: var(--color-border); --stone: var(--color-border); --studio-line: var(--color-border); --glass-edge: var(--color-border);
+ --studio-paper: var(--color-background); --aurora-cool: var(--color-background); --aurora-sage: var(--color-background); --aurora-warm: var(--color-background);
+ --ink: var(--color-foreground); --slate: var(--color-foreground); --charcoal: var(--color-foreground); --indigo: var(--color-foreground); --indigo-deep: var(--color-foreground);
+ --studio-ink: var(--color-foreground); --studio-ink-deep: var(--color-foreground);
+ --body: var(--color-muted-foreground); --faint: var(--color-muted-foreground); --studio-ink-muted: var(--color-muted-foreground);
+ --charcoal-muted-on-surface: var(--color-muted-foreground); --charcoal-muted-on-mist: var(--color-muted-foreground); --charcoal-muted-on-cloud: var(--color-muted-foreground);
+ --charcoal-muted-on-pale-sage: var(--color-muted-foreground); --charcoal-muted-on-soft-sage: var(--color-muted-foreground);
+ --indigo-soft: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface)); --accent-soft: var(--indigo-soft); --pale-sage: var(--indigo-soft); --glass-floor-ground: var(--indigo-soft);
+ --soft-sage: color-mix(in srgb, var(--color-coral) 12%, var(--color-surface)); --indigo-wash: color-mix(in srgb, var(--color-foreground) 7%, transparent);
+ --glow: color-mix(in srgb, var(--color-accent) 20%, var(--color-background));
+ --teal-ink: var(--color-accent); --teal-soft: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+ --muted: var(--color-muted-foreground);
+}
+/* The state washes carry the neutral inks as often as their own (a held interpreter is --ink on
+   --mango-soft), so they darken with the ground and their inks lighten with it: the dark danger role,
+   the amber itself, and the info blue lifted towards the foreground. Not in the sidebar, where the
+   emergency row keeps the light warning pair in both themes by decision (below). */
+:root[data-theme='dark'] .app-shell > .workspace > :not(.al-dock),
+:root[data-theme='dark'] dialog.modal {
+ --danger: var(--color-danger); --danger-soft: color-mix(in srgb, var(--color-danger) 14%, var(--color-surface));
+ --mango-ink: var(--mango); --mango-soft: color-mix(in srgb, var(--mango) 14%, var(--color-surface));
+ --info: color-mix(in srgb, var(--info) 45%, var(--color-foreground)); --info-soft: color-mix(in srgb, var(--info) 18%, var(--color-surface));
+}
+/* The grounds that keep their colour in both themes: the ink panels (the wallet, the passport, the
+   catalogue's photograph, the lead figure) and the tinted fills (a care tip, a board's figures, the
+   clinical mint button). Their words are written in the ramp names above, so inside them the ramps swap
+   back: paper is light, ink is dark, and the pair each was measured as holds. */
+:root[data-theme='dark'] :is(.patient-surface :is(.promo-dark, .passport-hero, .wallet-hero, .stepper .current b), .care-photo-note, .approved-catalog-hero, .approved-catalog .tabs .selected, .ct-screen [data-tint], .clinical :is(.cl-chapter > .s-metrics > .s-metric, .s-metric-chip.flagged, .fulfil-row.is-here .fulfil-when, .onboard-panel, .primary)) {
+ --surface: var(--color-foreground); --studio-paper: var(--color-foreground);
+ --charcoal: var(--color-background); --ink: var(--color-background); --studio-ink: var(--color-background); --studio-ink-deep: var(--color-background);
+}
+/* Grounds typed as a translucent white, which no variable reaches: on dark they take the raised surface,
+   so the ramp's light words read on them. BrandInk letters and icons on a tint of the ground — a
+   monogram, a service's tile — take the accent, the dark theme's primary ink; the amber and red tiles
+   keep their own. */
+:root[data-theme='dark'] :is(.app-shell, dialog.modal) :is(.hero-card, .hero-caption, .demo-pill, .trust-item span, .help-symbol, .hero-play, .onboard-note, .kit-device.paired .service-icon, .plan-card.featured .service-icon, .interp-outcome .tc-avatar) { background: var(--color-surface-raised); border-color: var(--color-border); }
+:root[data-theme='dark'] :is(.app-shell, dialog.modal) :is(.patient-surface :is(.avatar, .service-icon, .tile-icon, .wb-atmosphere > span, .approved-catalog .service-card.later), .clinician-monogram):not(.amber, .menu-list.danger .tile-icon) { color: var(--color-accent); }
+:root[data-theme='dark'] .app-shell > .skip-link { color: var(--color-foreground); }
+/* A dialog's scrim is brandInk at 40%, which over the dark ground lightens the page it is meant to quiet. */
+:root[data-theme='dark'] dialog.modal::backdrop { background: color-mix(in srgb, var(--color-background) 72%, transparent); }
+/* The pointer's light over the patient's ground is --surface at 62% so that it can only lift the ground under
+   a word; on the dark ground the same rule says it may only be the raised surface, which every light word
+   still clears. */
+:root[data-theme='dark'] .patient-ground.m-light::before { background: radial-gradient(closest-side, var(--color-surface-raised), transparent 72%); }
+:root[data-theme='dark'] .clinical .fulfil-row.is-here.is-chosen { color: var(--color-foreground); }
+:root[data-theme='dark'] .clinical .fulfil-row.is-here.is-chosen :is(.fulfil-ref, .fulfil-what small) { color: var(--color-muted-foreground); }
+
 /* ---- The shell on the identity (28 September 2026) -------------------------------------------------
 
    The Lovable handoff's chrome (packages/brand/lovable-handoff): a white sidebar with a hairline at its
@@ -367,14 +435,6 @@ html .app-shell.clinical { background: var(--color-background); background-image
 .app-shell.app-shell .demo-login-all-narrow { color: var(--color-muted-foreground); }
 .app-shell.app-shell .demo-login-all-narrow > b { color: var(--color-foreground); }
 
-/* The heading the shell writes over every page stands on the page ground, not on a panel. clinical.css gives
-   every clinical heading --charcoal, measured on white only, so in the dark scheme "Academy" was dark ink on
-   a dark ground. Here it takes the ground's own roles; the panels below keep their light-only inks. It stays
-   in this sheet rather than staff-chrome.css because the portal's page head is a .page-intro under
-   .app-shell.clinical too, and the portal does not load the staff chunk. */
-:root[data-theme='dark'] .app-shell.clinical main .page-intro h1 { color: var(--color-foreground); }
-:root[data-theme='dark'] .app-shell.clinical main .page-intro :is(.eyebrow, p) { color: var(--color-muted-foreground); }
-
 /* ---- The patient's sidebar in groups (30 September 2026) -------------------------------------------
    The Lovable export's grouped navigation, drawn in the handoff's chrome: the wordmark with the brand's
    tagline under it, headings that fold, rows indented on a hairline so a group reads as one thing, and
@@ -460,3 +520,16 @@ html .app-shell.clinical { background: var(--color-background); background-image
 @media (prefers-reduced-motion: reduce) {
  [data-motion='on'] .patient-surface .notification-button .psb-ring { animation: none !important; }
 }
+
+/* The phone's More hub in the sidebar's groups (Pages.tsx#MoreHub): each group's name over its rows, set as
+   the sidebar and the staff hub set a group's name, and the space above a heading wider than the space
+   below it, so a name reads as belonging to the rows it heads rather than to the list it follows. */
+.patient-surface .more-group .nav-label {
+ margin: var(--space-24) 0 var(--space-8);
+ color: var(--color-muted-foreground);
+ font-size: 13px;
+ font-weight: 600;
+ letter-spacing: .12em;
+ text-transform: uppercase;
+}
+.patient-surface .more-emergency { margin-bottom: 0; }

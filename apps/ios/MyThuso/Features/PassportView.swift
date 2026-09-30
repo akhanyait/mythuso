@@ -395,6 +395,11 @@ struct MoreView: View {
                 }.buttonStyle(.plain)
                 group("Your care") {
                     row("Live well", "What you did, in your own words — and the ten things this will never say about it", "book.closed") { LiveWellView() }
+                    /* Two of the patient pages, beside the journal both of them read. The phone has no
+                       "Your health" hub, so each is described by its own line — the iPhone's, where the
+                       contract gives the phone words for the doors it actually draws. */
+                    row(PatientPagesData.MentalHealth.opens, PatientPagesData.MentalHealth.sub, "lifepreserver") { MentalHealthPageView() }
+                    row(PatientPagesData.Activity.opens, PatientPagesData.Activity.sub, "figure.walk") { ActivityPageView() }
                     row(Gilbert.name, Gilbert.descriptorLine, "sparkles") { AssistantView() }
                     row("My family", "Manage your loved ones", "person.2") { FamilyView() }
                     row("Care you pay for", "What sponsoring somebody's care shows you, and what it never will", "hand.raised.fingers.spread") { SponsoredCareView() }

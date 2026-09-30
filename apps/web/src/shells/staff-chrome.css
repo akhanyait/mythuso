@@ -188,3 +188,18 @@
  text-transform: uppercase;
 }
 .app-shell.clinical .staff-more-leave { margin-top: var(--space-24); }
+
+/* The nurse's panic in the bar (30 September 2026). The last thing in the row at every width, so it is the same
+   corner on every page; outlined in the danger ink as it is on the visit's strip, and filled only on the
+   confirmation under it, so a pocket cannot press the filled one. Below 360px — a small phone, or a phone at 200%
+   zoom — its word leaves the screen and stays its accessible name, because the row has four 44px things to hold
+   and the chip is already down to its disc. The confirmation opens under it against the end of the bar. */
+.app-shell.clinical .staff-panic { position: relative; order: 1; flex: 0 0 auto; }
+.app-shell.clinical .staff-panic__press.ui-button { min-width: 44px; min-height: 44px; border-color: var(--ui-danger-ink); background: var(--color-surface); color: var(--ui-danger-ink); white-space: nowrap; }
+.app-shell.clinical .staff-panic__press.ui-button:hover { background: color-mix(in oklab, var(--color-danger) 10%, var(--color-surface)); }
+@media (max-width: 359px) {
+ .app-shell.clinical .staff-panic__press.ui-button { width: 44px; padding: 0; justify-content: center; }
+ .app-shell.clinical .staff-panic__word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+.app-shell.clinical .staff-panic__panel { position: absolute; top: calc(100% + var(--space-8)); right: 0; z-index: 40; width: min(380px, calc(100vw - var(--space-32))); border-radius: var(--r-lg); box-shadow: var(--shadow-raised); }
+.app-shell.clinical .staff-panic__panel .nurse-actions { flex-wrap: wrap; }

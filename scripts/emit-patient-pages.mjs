@@ -6,10 +6,10 @@
    makes, because a JSON module imported by the entry is kept whole in the entry bundle and the
    patient's first load pays for none of this.
 
-   iOS and Android get the words as data. Neither phone renders a page from it yet (platforms: web,
-   as with care-tips), and that is recorded in the contract's platformsWhy rather than left to
-   surprise somebody: the generated files exist so the native screens are a later wave's assembly
-   and the wording cannot drift between a phone and the web in the meantime.
+   iOS and Android get the words as data. Which pages a phone actually draws from it is the contract's
+   drawnOn, not this file's: the pages a phone draws are emitted whole, with what drawnOn leaves out of
+   them, and the rest carry only their opening words, so a later wave assembles them rather than
+   rewrites them and the wording cannot drift between a phone and the web in the meantime.
 
    Escaping: Swift needs its quotes escaped; Kotlin needs backslash, quote and dollar. */
 
@@ -40,6 +40,12 @@ export function emitPatientPages(root = "") {
   const contract = JSON.parse(readFileSync(root + SOURCE, "utf8"));
   const { hub, screens, review } = contract;
   const ids = Object.keys(screens);
+  /* A phone draws only some of a page's doors, so where a page's own words name the rest, the contract's
+     drawnOn gives that phone its own lead and hub line for the page (version 4); every other word is the
+     page's own. The web reads the page's words, never these. */
+  const phoneWords = (platform, page, key, fallback) =>
+    contract.drawnOn?.[platform]?.words?.[page]?.[key] ?? fallback;
+  const hubSub = (id) => hub.shortcuts.find((s) => s.id === id)?.sub ?? "";
   const reviewedBy =
     review.reviewedBy === null ? "nil" : swift(review.reviewedBy);
   const reviewedByKt =
@@ -59,6 +65,27 @@ export function emitPatientPages(root = "") {
     };
   };
 
+  /* The two pages the iPhone draws (contract version 3): mental health and activity, whole, and the
+     lines they derive from three other contracts — the crisis lines, the journal's habit and refusals,
+     the counselling check-in's catalogue entry — joined here as apps/web/src/lib/patient-pages.ts joins
+     them for the web, so the Swift view reaches into no second contract and types no sentence. What
+     the contract's drawnOn.ios leaves out of a page is emitted as data too, so the view draws what the
+     contract says the phone draws rather than deciding it. */
+  const swDerived = contract.derivations;
+  const swSource = (path) => JSON.parse(readFileSync(root + path, "utf8"));
+  const swCrisis = swSource(swDerived.crisisLines.source);
+  const swWellbeing = swSource(swDerived.activityEntries.source);
+  const swCounselling = swSource(swDerived.counsellingService.source).find(
+    (s) => s.id === swDerived.counsellingService.service,
+  );
+  const swMental = screens["mental-health"];
+  const swActivity = screens.activity;
+  const swLeftOut = contract.drawnOn?.ios?.leftOut?.["mental-health"] ?? {};
+  const swiftActions = (actions) =>
+    actions
+      .map((a) => `            Action(label: ${swift(a.label)}, kind: ${swift(a.kind)}, target: ${swift(a.target ?? "")})`)
+      .join(",\n");
+
   const swiftFile = `${banner()}
 
 import SwiftUI
@@ -69,8 +96,17 @@ enum PatientPagesData {
     enum Review {
         /// Nil until a registered clinician has read and signed the pages' health material.
         static let reviewedBy: String? = ${reviewedBy}
+        static let status = ${swift(review.status)}
         static let notice = ${swift(review.notice)}
     }
+
+    enum Aside {
+        static let refusalsHeading = ${swift(contract.aside.refusalsHeading)}
+        static let reviewHeading = ${swift(contract.aside.reviewHeading)}
+    }
+
+    /// A way onward from a page: \`kind\` is navigate, modal or assistant, \`target\` the page it opens.
+    struct Action: Hashable { let label: String; let kind: String; let target: String }
 
     enum Hub {
         static let opens = ${swift(hub.opens)}
@@ -78,6 +114,97 @@ enum PatientPagesData {
         static let lead = ${swift(hub.lead)}
         static let shortcutTitles = [
 ${hub.shortcuts.map((s) => `            ${swift(s.title)}`).join(",\n")}
+        ]
+        struct Shortcut: Identifiable, Hashable { let id: String; let title: String; let sub: String }
+        /// The hub's one line about each page — the words a door to that page is described in anywhere.
+        static let shortcuts: [Shortcut] = [
+${hub.shortcuts.map((s) => `            Shortcut(id: ${swift(s.id)}, title: ${swift(s.title)}, sub: ${swift(s.sub)})`).join(",\n")}
+        ]
+        static func shortcut(_ id: String) -> Shortcut? { shortcuts.first { $0.id == id } }
+    }
+
+    enum MentalHealth {
+        static let opens = ${swift(swMental.opens)}
+        static let eyebrow = ${swift(swMental.eyebrow)}
+        static let heading = ${swift(swMental.heading)}
+        static let lead = ${swift(phoneWords("ios", "mental-health", "lead", swMental.lead))}
+        /// This page's one line for the row that opens it, in the iPhone's words where drawnOn gives them.
+        static let sub = ${swift(phoneWords("ios", "mental-health", "sub", hubSub("mental-health")))}
+
+        /// \`kind\` is navigate or anchor; \`target\` names the page it opens, or the crisis card for an anchor.
+        struct Door: Identifiable, Hashable { let id: String; let title: String; let sub: String; let kind: String; let target: String; let tab: String? }
+        static let doors: [Door] = [
+${swMental.doors.map((d) => `            Door(id: ${swift(d.id)}, title: ${swift(d.title)}, sub: ${swift(d.sub)}, kind: ${swift(d.kind)}, target: ${swift(d.target)}, tab: ${d.tab ? swift(d.tab) : "nil"})`).join(",\n")}
+        ]
+        /// The doors drawnOn.ios leaves out, because the page each opens is not on the iPhone.
+        static let doorsLeftOut: Set<String> = [${(swLeftOut.doors ?? []).map(swift).join(", ")}]
+        /// The journal habit whose entries the journal door writes in.
+        static let journalHabit = ${swift(swDerived.mentalHealthDoors.journalHabit)}
+
+        /* The crisis lines' heading, names and numbers are CrisisLinesData's (Gilbert.Crisis), which
+           emit-crisis-lines.mjs writes; the build fails on a crisis number in any other Swift file, so
+           only each line's "when to use" rides here, keyed by the line's name there. */
+        enum Crisis {
+            static let heading = ${swift(swMental.crisis.heading)}
+            static let emergencyFirst = ${swift(swMental.crisis.emergencyFirst)}
+            static let action = ${swift(swMental.crisis.action)}
+            static let modal = ${swift(swMental.crisis.modal)}
+            /// ${swDerived.crisisLines.source}'s "when to use" for each line, keyed by the line's name.
+            static let whenToUse: [String: String] = [
+${swCrisis.lines.map((l) => `                ${swift(l.name)}: ${swift(l.whenToUse)}`).join(",\n")}
+            ]
+            /// ${swDerived.crisisLines.source}'s "${swDerived.crisisLines.refusal}" refusal, the one that names no emergency number.
+            static let nothingDials = ${swift(swCrisis.refusals.find((r) => r.id === swDerived.crisisLines.refusal).sentence)}
+        }
+
+        enum Session {
+            static let heading = ${swift(swMental.session.heading)}
+            static let detail = ${swift(swMental.session.detail)}
+            /// The web's catalogue button.${swLeftOut.sessionAction ? " drawnOn.ios leaves it out: the iPhone's catalogue has no page that carries this service." : ""}
+            static let action = ${swift(swMental.session.action)}
+            /// The counselling check-in as ${swDerived.counsellingService.source} holds it, titled as the web's catalogue dialog is.
+            static let catalogueEntry = ${swift(`${swCounselling.name} · Phase ${swCounselling.phase}`)}
+        }
+
+        enum Mood {
+            static let heading = ${swift(swMental.mood.heading)}
+            /// The wellbeing refusal of a score, by id: its sentence is WellbeingData's, where the build holds it.
+            static let refusalId = ${swift(swDerived.mentalHealthDoors.moodRefusal)}
+            /// Why the journal's habit is words and not a scale. WellbeingData has no field for a habit's reason.
+            static let why = ${swift(swWellbeing.habits.find((h) => h.id === swDerived.mentalHealthDoors.journalHabit).why)}
+        }
+    }
+
+    enum Activity {
+        static let opens = ${swift(swActivity.opens)}
+        static let eyebrow = ${swift(swActivity.eyebrow)}
+        static let heading = ${swift(swActivity.heading)}
+        static let lead = ${swift(phoneWords("ios", "activity", "lead", swActivity.lead))}
+        /// This page's one line for the row that opens it, in the iPhone's words where drawnOn gives them.
+        static let sub = ${swift(phoneWords("ios", "activity", "sub", hubSub("activity")))}
+        /// The wellbeing refusal that nothing here is measured, by id, shown first from WellbeingData.
+        static let noDeviceId = ${swift(swDerived.activityEntries.refusal)}
+        /// The journal habit whose entries this page lists and counts.
+        static let habit = ${swift(swDerived.activityEntries.habit)}
+
+        /// \`value\` is a written state, or \`countValue\`: the entries listed under the tiles, counted.
+        struct Tile: Identifiable, Hashable { let id: String; let label: String; let value: String; let detail: String }
+        static let countValue = "count"
+        static let tiles: [Tile] = [
+${swActivity.tiles.map((t) => `            Tile(id: ${swift(t.id)}, label: ${swift(t.label)}, value: ${swift(t.value)}, detail: ${swift(t.detail)})`).join(",\n")}
+        ]
+        static let entriesHeading = ${swift(swActivity.entriesHeading)}
+        static let emptyTitle = ${swift(swActivity.emptyTitle)}
+        static let emptyDetail = ${swift(swActivity.emptyDetail)}
+
+        enum Wearable {
+            static let heading = ${swift(swActivity.wearable.heading)}
+            static let detail = ${swift(swActivity.wearable.detail)}
+            static let action = ${swift(swActivity.wearable.action)}
+            static let target = ${swift(swActivity.wearable.target)}
+        }
+        static let actions: [Action] = [
+${swiftActions(swActivity.actions)}
         ]
     }
 
@@ -97,6 +224,121 @@ ${contract.refusals.map((r) => `        ${swift(r.sentence)}`).join(",\n")}
 }
 `;
 
+  /* ---- Android: the two pages the phone draws (mental health and activity) -------------------------
+     ui/PatientPagesScreens.kt renders these two pages, so the Kotlin carries every word they show — the
+     pages' own panels, the aside, and the sentences their derivations name in other contracts, joined
+     here exactly as apps/web/src/lib/patient-pages.ts joins them for the web. Two things are joined by
+     reference rather than copied: the crisis lines' names and numbers stay in CrisisLinesData (the build
+     fails if a crisis number appears in any Kotlin file emit-crisis-lines.mjs did not write), so only
+     each line's "when to use" rides here, keyed by the line's name; and the wellbeing refusals are named
+     by id, read at runtime from WellbeingData, which already carries them. The feeling habit's reason is
+     carried as a sentence because WellbeingData has no field for a habit's reason. */
+  const ktDerive = contract.derivations;
+  const ktCrisis = JSON.parse(readFileSync(root + ktDerive.crisisLines.source, "utf8"));
+  const ktWellbeing = JSON.parse(readFileSync(root + ktDerive.mentalHealthDoors.habitsSource, "utf8"));
+  const ktServices = JSON.parse(readFileSync(root + ktDerive.counsellingService.source, "utf8"));
+  const ktCounselling = ktServices.find((s) => s.id === ktDerive.counsellingService.service);
+  if (!ktCounselling) throw new Error(`${ktDerive.counsellingService.source} has no service "${ktDerive.counsellingService.service}".`);
+  const ktNothingDials = ktCrisis.refusals.find((r) => r.id === ktDerive.crisisLines.refusal);
+  if (!ktNothingDials) throw new Error(`${ktDerive.crisisLines.source} has no refusal "${ktDerive.crisisLines.refusal}".`);
+  const ktFeeling = ktWellbeing.habits.find((h) => h.id === ktDerive.mentalHealthDoors.journalHabit);
+  if (!ktFeeling) throw new Error(`packages/catalog/wellbeing.json has no habit "${ktDerive.mentalHealthDoors.journalHabit}".`);
+  const ktSub = (id) => hub.shortcuts.find((s) => s.id === id)?.sub ?? "";
+  const ktNullable = (value) => (value === undefined || value === null ? "null" : kotlin(value));
+  const ktMental = screens["mental-health"];
+  const ktActivity = screens.activity;
+  /* What drawnOn.android leaves out of mental health, as the Swift writer reads drawnOn.ios. Absent, nothing
+     is left out by the contract — and model/PatientPages.kt still draws no door without a native screen,
+     while scripts/check-boundaries.mjs holds the two to each other once android is in platforms. */
+  const ktLeftOut = contract.drawnOn?.android?.leftOut?.["mental-health"] ?? {};
+  const kotlinPages = `
+    object Aside {
+        const val refusalsHeading = ${kotlin(contract.aside.refusalsHeading)}
+        const val reviewHeading = ${kotlin(contract.aside.reviewHeading)}
+    }
+
+    /** A way off a page. [kind] is "navigate" (open the screen named [target]) or "anchor" (bring the
+     *  section named [target] on the same page into view); [tab] is the library tab a navigate asks for. */
+    data class Door(val id: String, val title: String, val sub: String, val kind: String, val target: String, val tab: String?)
+    /** A tile on the activity page. [value] is written words, or [Activity.COUNTED] — the rows under it, counted. */
+    data class Tile(val id: String, val label: String, val value: String, val detail: String)
+    data class Action(val label: String, val kind: String, val target: String)
+
+    object MentalHealth {
+        const val opens = ${kotlin(ktMental.opens)}
+        const val opening = ${kotlin(ktMental.opening)}
+        /** The hub's one line about this page, for the row that opens it, in Android's words where drawnOn gives them. */
+        const val sub = ${kotlin(phoneWords("android", "mental-health", "sub", ktSub("mental-health")))}
+        const val eyebrow = ${kotlin(ktMental.eyebrow)}
+        const val heading = ${kotlin(ktMental.heading)}
+        const val lead = ${kotlin(phoneWords("android", "mental-health", "lead", ktMental.lead))}
+        val doors = listOf(
+${ktMental.doors.map((d) => `            Door(${kotlin(d.id)}, ${kotlin(d.title)}, ${kotlin(d.sub)}, ${kotlin(d.kind)}, ${kotlin(d.target)}, ${ktNullable(d.tab)})`).join(",\n")}
+        )
+        /** The doors drawnOn.android leaves out, because the page each opens is not on this phone. */
+        val doorsLeftOut = setOf<String>(${(ktLeftOut.doors ?? []).map(kotlin).join(", ")})
+        object Crisis {
+            const val heading = ${kotlin(ktMental.crisis.heading)}
+            const val emergencyFirst = ${kotlin(ktMental.crisis.emergencyFirst)}
+            const val action = ${kotlin(ktMental.crisis.action)}
+            /** The screen the action opens: the emergency screen, which carries the numbers. */
+            const val modal = ${kotlin(ktMental.crisis.modal)}
+            /** ${ktDerive.crisisLines.source}'s "when to use" for each line, keyed by the line's name in CrisisLinesData. */
+            val whenToUse = mapOf(
+${ktCrisis.lines.map((l) => `                ${kotlin(l.name)} to ${kotlin(l.whenToUse)}`).join(",\n")}
+            )
+            /** ${ktDerive.crisisLines.source}'s "${ktDerive.crisisLines.refusal}" refusal. */
+            const val nothingDials = ${kotlin(ktNothingDials.sentence)}
+        }
+        object Session {
+            const val heading = ${kotlin(ktMental.session.heading)}
+            const val detail = ${kotlin(ktMental.session.detail)}
+            const val action = ${kotlin(ktMental.session.action)}
+            /** False while drawnOn.android leaves the catalogue button out. */
+            const val actionDrawn = ${ktLeftOut.sessionAction ? "false" : "true"}
+            /** The catalogue's entry for the counselling service, as the web's roadmap dialog titles it: its name and its phase. */
+            const val catalogueEntry = ${kotlin(`${ktCounselling.name} · Phase ${ktCounselling.phase}`)}
+        }
+        object Mood {
+            const val heading = ${kotlin(ktMental.mood.heading)}
+            /** An id in wellbeingRefusals, read from WellbeingData. */
+            const val refusal = ${kotlin(ktDerive.mentalHealthDoors.moodRefusal)}
+            /** Why the "${ktFeeling.id}" habit is words and not a scale, from packages/catalog/wellbeing.json. */
+            const val why = ${kotlin(ktFeeling.why)}
+        }
+    }
+
+    object Activity {
+        const val opens = ${kotlin(ktActivity.opens)}
+        const val opening = ${kotlin(ktActivity.opening)}
+        /** The hub's one line about this page, for the row that opens it. */
+        const val sub = ${kotlin(phoneWords("android", "activity", "sub", ktSub("activity")))}
+        const val eyebrow = ${kotlin(ktActivity.eyebrow)}
+        const val heading = ${kotlin(ktActivity.heading)}
+        const val lead = ${kotlin(phoneWords("android", "activity", "lead", ktActivity.lead))}
+        /** The wellbeing habit whose entries this page lists, and the wellbeing refusal it leads with. */
+        const val habit = ${kotlin(ktDerive.activityEntries.habit)}
+        const val refusal = ${kotlin(ktDerive.activityEntries.refusal)}
+        /** The tile value that means "count the entries listed under me". */
+        const val COUNTED = "count"
+        val tiles = listOf(
+${ktActivity.tiles.map((t) => `            Tile(${kotlin(t.id)}, ${kotlin(t.label)}, ${kotlin(t.value)}, ${kotlin(t.detail)})`).join(",\n")}
+        )
+        const val entriesHeading = ${kotlin(ktActivity.entriesHeading)}
+        const val emptyTitle = ${kotlin(ktActivity.emptyTitle)}
+        const val emptyDetail = ${kotlin(ktActivity.emptyDetail)}
+        object Wearable {
+            const val heading = ${kotlin(ktActivity.wearable.heading)}
+            const val detail = ${kotlin(ktActivity.wearable.detail)}
+            const val action = ${kotlin(ktActivity.wearable.action)}
+            const val target = ${kotlin(ktActivity.wearable.target)}
+        }
+        val actions = listOf(
+${ktActivity.actions.map((a) => `            Action(${kotlin(a.label)}, ${kotlin(a.kind)}, ${kotlin(a.target)})`).join(",\n")}
+        )
+    }
+`;
+
   const kotlinFile = `${banner()}
 
 package za.co.mythuso.model
@@ -107,9 +349,10 @@ object PatientPagesData {
     object Review {
         /** Null until a registered clinician has read and signed the pages' health material. */
         val reviewedBy: String? = ${reviewedByKt}
+        const val status = ${kotlin(review.status)}
         const val notice = ${kotlin(review.notice)}
     }
-
+${kotlinPages}
     object Hub {
         const val opens = ${kotlin(hub.opens)}
         const val heading = ${kotlin(hub.heading)}

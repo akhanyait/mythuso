@@ -36,12 +36,15 @@ test('the privacy switches are big enough to hit, and say which way they are set
   /* The switches are the Preferences tab of the one settings page since 30 September (the export's tabs). */
   await page.getByRole('tablist', { name: 'Settings' }).getByRole('tab', { name: 'Preferences' }).click();
   const reminders = page.getByRole('switch', { name: 'Care reminders' });
-  const box = (await reminders.boundingBox())!;
+  /* Since 30 September 2026 the switch is the shared Checkbox with the switch role: a native input whose label
+     is the target a finger finds, 44 tall across the card, and whose checked state is the browser's own — so the
+     label is what is measured and the state is read as checked rather than from an aria-checked attribute. */
+  const box = (await reminders.locator('xpath=ancestor::label[1]').boundingBox())!;
   expect(Math.min(box.width, box.height),
     'a switch a finger has to find is at least 44px on its short side').toBeGreaterThanOrEqual(44);
-  await expect(reminders).toHaveAttribute('aria-checked', 'true');
+  await expect(reminders).toBeChecked();
   await reminders.click();
-  await expect(reminders).toHaveAttribute('aria-checked', 'false');
+  await expect(reminders).not.toBeChecked();
 });
 
 /* Seven rights behind seven identical shields is a list that has to be read word by word. */

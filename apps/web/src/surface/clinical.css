@@ -45,8 +45,9 @@
  * recipe is still two custom properties so every clinical card below reads it, and the blur property
  * is kept, as none, for the sheets outside this one that still name it. A solid surface also costs the
  * mid-range handset nothing, where every backdrop-filter was a compositor pass.
- * The surface is the light-only --surface rather than the theme's --color-surface: the words on these
- * panels are the older inks (--charcoal, --faint) and have been measured on white only. */
+ * The surface is --surface rather than the theme's --color-surface: the words on these panels are the
+ * older inks (--charcoal, --faint), and in the dark theme shells/shells.css answers the panel and its inks
+ * together, so the pair moves as one. */
 .clinical {
  --pane: var(--surface);
  --pane-blur: none;

@@ -73,6 +73,8 @@ enum ReviewScreen {
             case "assistant": AssistantView()
             case "medicines": MedicinesView()
             case "caretips": CareTipsView()
+            case "mentalhealth": MentalHealthPageView()
+            case "activity": ActivityPageView()
             case "visit": CareVisitView()
             case "teleconsult": TeleconsultView()
             case "nurse": WorkspaceShell(role: "Nurse", leave: {})

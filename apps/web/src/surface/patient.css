@@ -343,8 +343,12 @@
 .patient-surface .primary,
 .patient-surface .secondary,
 .patient-surface a.primary { border-radius: var(--r-md); }
-.patient-surface .primary { background: var(--brand-ink); border-color: var(--brand-ink); color: var(--surface); }
-.patient-surface .primary:hover:not(:disabled) { background: color-mix(in srgb, var(--brand-ink) 90%, var(--surface)); color: var(--surface); }
+/* The primary role and its foreground, which are brandInk and white in the light theme — so nothing there
+   moves — and the handoff's green under dark words in the dark one, the shared Button's own pair. Pressed
+   on dark, the fill mixes towards the foreground: towards its own dark words it fell to 4.44. */
+.patient-surface .primary { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-primary-foreground); }
+.patient-surface .primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-primary) 90%, var(--color-primary-foreground)); color: var(--color-primary-foreground); }
+:root[data-theme='dark'] .patient-surface .primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-primary) 90%, var(--color-foreground)); }
 /* The one exception, and the reason is the rule rather than an escape from it. The submit inside the
    search field is a control belonging to the field beside it, not the thing this screen is for — and
    the home has "Book a nurse" three rows below it in the same lime. Two lime pills stacked is a
@@ -461,9 +465,10 @@
 
 /* ---- Charts: a soft sage fill fading to nothing ----
    No gridlines shouting and no axis furniture. The band that marks a reference range is the palest
-   of the four sages, the curve is charcoal, and the value that matters is a filled dot. */
-.patient-surface .chart-area { fill: var(--brand-ink); opacity: .1; }
-.patient-surface .chart-line { stroke: var(--brand-ink); }
+   of the four sages, the curve is charcoal, and the value that matters is a filled dot. The curve and its
+   dots are the primary role, brandInk in the light theme and the green the dark one reads in, at 4.75. */
+.patient-surface .chart-area { fill: var(--color-primary); opacity: .1; }
+.patient-surface .chart-line { stroke: var(--color-primary); }
 .patient-surface .chart-band { fill: var(--brand-lime); opacity: .22; }
 /* The passport's readings are stat tiles on lavender, the ground tokens.json#contrast names for health
    readings (studio ink deep on studio lilac). Everything in the tile inherits that ink, the reference band
@@ -475,7 +480,7 @@
 .patient-surface main > .shortcut-list > .shortcut-row:not(.glass),
 .patient-surface main > .panel:has(> .record-row):not(.glass) { border-radius: var(--r-lg); background: var(--surface); }
 @media (min-width: 1000px) { .patient-surface main > .shortcut-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-12); } }
-.patient-surface .chart-dot { fill: var(--brand-ink); }
+.patient-surface .chart-dot { fill: var(--color-primary); }
 .patient-surface .chart-flag { background: var(--surface); border: 1px solid var(--stone); color: var(--charcoal); }
 
 /* ---- Entrance ----

@@ -9,12 +9,105 @@
 package za.co.mythuso.model
 
 object PatientPagesData {
-    const val version = 2
+    const val version = 4
 
     object Review {
         /** Null until a registered clinician has read and signed the pages' health material. */
         val reviewedBy: String? = null
+        const val status = "awaiting-clinical-review"
         const val notice = "This page carries general health information that no registered clinician has signed yet. Your nurse's advice comes first."
+    }
+
+    object Aside {
+        const val refusalsHeading = "What these pages will not do"
+        const val reviewHeading = "Not signed by a clinician yet"
+    }
+
+    /** A way off a page. [kind] is "navigate" (open the screen named [target]) or "anchor" (bring the
+     *  section named [target] on the same page into view); [tab] is the library tab a navigate asks for. */
+    data class Door(val id: String, val title: String, val sub: String, val kind: String, val target: String, val tab: String?)
+    /** A tile on the activity page. [value] is written words, or [Activity.COUNTED] — the rows under it, counted. */
+    data class Tile(val id: String, val label: String, val value: String, val detail: String)
+    data class Action(val label: String, val kind: String, val target: String)
+
+    object MentalHealth {
+        const val opens = "Mental health"
+        const val opening = "Opening mental health."
+        /** The hub's one line about this page, for the row that opens it, in Android's words where drawnOn gives them. */
+        const val sub = "Your own words and crisis lines"
+        const val eyebrow = "Your mind, too"
+        const val heading = "Support for how you are feeling."
+        const val lead = "Doors to what this phone holds: your own words in Live well, and the crisis lines. There is no counsellor to book here yet and no mood score, and both are said below rather than drawn."
+        val doors = listOf(
+            Door("library", "Read about mental health", "The knowledge base's mental-health entries, each with its source", "navigate", "Health library", "mental-health"),
+            Door("journal", "Write down how you are", "In a word or two, in Live well. Your words, never a scale", "navigate", "Live well", null),
+            Door("helplines", "Helplines and support groups", "The knowledge base's own list, with its sources", "navigate", "Community support", null),
+            Door("crisis", "If you are in crisis", "The emergency screen first, then the crisis lines", "anchor", "pp-crisis", null)
+        )
+        /** The doors drawnOn.android leaves out, because the page each opens is not on this phone. */
+        val doorsLeftOut = setOf<String>("library", "helplines")
+        object Crisis {
+            const val heading = "If you are in crisis now"
+            const val emergencyFirst = "If a life is in danger now, the ambulance comes first. The emergency screen carries its number, and a crisis line never stands in for it."
+            const val action = "Open Emergency & urgent care"
+            /** The screen the action opens: the emergency screen, which carries the numbers. */
+            const val modal = "Emergency & urgent care"
+            /** packages/catalog/crisis-lines.json's "when to use" for each line, keyed by the line's name in CrisisLinesData. */
+            val whenToUse = mapOf(
+                "SADAG helpline" to "Free counselling and referrals, from the South African Depression and Anxiety Group.",
+                "Lifeline South Africa" to "24-hour crisis counselling."
+            )
+            /** packages/catalog/crisis-lines.json's "nothing-dials" refusal. */
+            const val nothingDials = "Nothing here dials a crisis line by itself. The numbers are shown so that you can call them from your own phone."
+        }
+        object Session {
+            const val heading = "A session with a counsellor is not bookable yet"
+            const val detail = "The mental-health check-in is in the service catalogue for a later phase, and nobody can be sent for it until then. The catalogue says which phase."
+            const val action = "See it in the catalogue"
+            /** False while drawnOn.android leaves the catalogue button out. */
+            const val actionDrawn = false
+            /** The catalogue's entry for the counselling service, as the web's roadmap dialog titles it: its name and its phase. */
+            const val catalogueEntry = "Mental-health check-in · Phase 3"
+        }
+        object Mood {
+            const val heading = "Why there is no mood score"
+            /** An id in wellbeingRefusals, read from WellbeingData. */
+            const val refusal = "no-weight-score"
+            /** Why the "feeling" habit is words and not a scale, from packages/catalog/wellbeing.json. */
+            const val why = "Deliberately not a mood scale from one to ten. A scale invites a trend line, a trend line invites an interpretation, and an interpretation of somebody's mood is a clinical act."
+        }
+    }
+
+    object Activity {
+        const val opens = "Activity"
+        const val opening = "Opening activity."
+        /** The hub's one line about this page, for the row that opens it. */
+        const val sub = "What you wrote about moving; nothing is measured"
+        const val eyebrow = "Moving"
+        const val heading = "How you have been moving, in your own words."
+        const val lead = "This page holds what you wrote under Moving in Live well, newest first. It does not count steps or minutes, because nothing that could count them is connected, and a figure nobody measured is a figure somebody would believe."
+        /** The wellbeing habit whose entries this page lists, and the wellbeing refusal it leads with. */
+        const val habit = "moving"
+        const val refusal = "no-device"
+        /** The tile value that means "count the entries listed under me". */
+        const val COUNTED = "count"
+        val tiles = listOf(
+            Tile("steps", "Steps", "Not measured", "A step count needs a device, and none is connected."),
+            Tile("minutes", "Active minutes", "Not measured", "No watch, band or phone sensor is read."),
+            Tile("entries", "Your Moving entries", "count", "Counted from the entries listed below.")
+        )
+        const val entriesHeading = "What you wrote under Moving"
+        const val emptyTitle = "Nothing written under Moving yet"
+        const val emptyDetail = "When you write what you did and how it felt in Live well, it appears here. A day with nothing written is just a day."
+        object Wearable {
+            const val heading = "Linking a phone's health store"
+            const val detail = "Apple Health and Health Connect are not connected. You can record a request to link one, and the request says exactly which readings would be shared; nothing is read until the decisions it waits on are made."
+            const val action = "See connected devices"
+            const val target = "Connected devices"
+        }
+        val actions = listOf(
+            Action("Write in Live well", "navigate", "Live well")
+        )
     }
 
     object Hub {

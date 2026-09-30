@@ -653,7 +653,7 @@ test("the name never prints into the controls, and the conversation keeps room t
         compose: box(".as-compose"),
         silence: box(".as-silence"),
         footnote: box(".as-mic-details > summary"),
-        input: box(".as-field input"),
+        input: box(".as-field textarea"),
         /* The defect itself, in one number: the box around the name was narrower than the name, so the name
       printed past it and into whatever was beside it. */
         nameOverflow: h2.scrollWidth - h2.clientWidth,
@@ -785,6 +785,230 @@ test("the name never prints into the controls, and the conversation keeps room t
       ).toBeGreaterThanOrEqual(floor);
     }
   }
+});
+
+/* The composer grows with the words, since 30 September 2026 — the Lovable handoff's prompt input. The
+   field is a textarea of one row that lib/composer.ts sizes from what is written in it, a line at a time,
+   up to a cap its stylesheet sets: five lines, and three on a screen shorter than 800 pixels. Past the cap
+   it scrolls inside itself, and a send empties it back to one line with the cursor still in it.
+
+   Measured rather than trusted, in the field's own numbers: a line is the field's line height, one line
+   is the floor the single-line field had, and the cap is the floor plus the lines above it. And growth is
+   layout, never motion: nothing on the field transitions its height. */
+const composer = (page: Page) =>
+  field(page).evaluate((el) => {
+    const style = getComputedStyle(el);
+    const props = style.transitionProperty.split(", ");
+    const durations = style.transitionDuration.split(", ");
+    return {
+      /* The layout height, which the sheet's entrance scale does not touch. */
+      height: (el as HTMLElement).offsetHeight,
+      scrollHeight: el.scrollHeight,
+      clientHeight: el.clientHeight,
+      scrollTop: el.scrollTop,
+      line: parseFloat(style.lineHeight),
+      tag: el.tagName,
+      rows: el.getAttribute("rows"),
+      moves: props.filter(
+        (p, i) =>
+          /^(all|height|max-height|block-size)$/.test(p) &&
+          parseFloat(durations[i % durations.length]) > 0,
+      ),
+    };
+  });
+
+test("the composer grows with the words, stops at its cap and scrolls, and shrinks back after a send", async ({
+  page,
+  isMobile,
+}) => {
+  await page.goto("/app/?open=assistant");
+  await expect(panel(page)).toBeVisible();
+  await consent(page);
+  await expect(field(page)).toBeFocused();
+  const empty = await composer(page);
+  expect(empty.tag).toBe("TEXTAREA");
+  expect(empty.rows).toBe("1");
+  /* One line is the single-line field's own floor: 44 on a phone, 48 above 560 pixels. */
+  const floor = isMobile ? 44 : 48;
+  expect(empty.height).toBe(floor);
+  expect(empty.line).toBe(24);
+
+  await field(page).pressSequentially("How do I book");
+  expect((await composer(page)).height).toBe(floor);
+  await page.keyboard.press("Shift+Enter");
+  await field(page).pressSequentially("a nurse");
+  expect((await composer(page)).height).toBe(floor + empty.line);
+  await page.keyboard.press("Shift+Enter");
+  await field(page).pressSequentially("for my mother?");
+  expect((await composer(page)).height).toBe(floor + 2 * empty.line);
+  // nothing was sent by the new lines
+  await expect(log(page).locator(".as-said")).toHaveCount(0);
+
+  for (const words of ["She lives alone", "in Soweto", "and walks slowly", "with a stick"]) {
+    await page.keyboard.press("Shift+Enter");
+    await field(page).pressSequentially(words);
+  }
+  const capped = await composer(page);
+  /* Seven lines written, five shown: the field stopped at its cap and scrolls inside itself, holding the
+     line being written in view. */
+  expect(capped.height).toBe(floor + 4 * empty.line);
+  expect(capped.scrollHeight).toBeGreaterThan(capped.clientHeight);
+  expect(capped.scrollTop + capped.clientHeight).toBeGreaterThanOrEqual(
+    capped.scrollHeight - 1,
+  );
+  expect(capped.moves, "the field's height is animated").toEqual([]);
+  expect(
+    await field(page).evaluate((el) => el.getAnimations().length),
+  ).toBe(0);
+  // the composer is still inside the sheet, with the emergency strip readable under it
+  const { sheet, compose, silence } = await page.evaluate(() => {
+    const r = (s: string) => document.querySelector(s)!.getBoundingClientRect();
+    return {
+      sheet: r("#assistant-panel").bottom,
+      compose: r(".as-compose").bottom,
+      silence: r(".as-silence").bottom,
+    };
+  });
+  expect(Math.round(compose)).toBeLessThanOrEqual(Math.round(sheet));
+  expect(Math.round(silence)).toBeLessThanOrEqual(page.viewportSize()!.height);
+
+  /* Enter sends what was written, lines and all, and the field is one line again with the cursor in it. */
+  await page.keyboard.press("Enter");
+  const said = log(page).locator(".as-said");
+  await expect(said).toHaveCount(1);
+  expect(await said.evaluate((el) => el.innerText)).toContain(
+    "How do I book\na nurse\nfor my mother?",
+  );
+  await expect(field(page)).toHaveValue("");
+  await expect(field(page)).toBeFocused();
+  expect((await composer(page)).height).toBe(floor);
+
+  /* Words set in one go — a paste, or a transcript handed over — grow it the same way, and clearing
+     them shrinks it. */
+  await field(page).fill(
+    "I would like to know how the nurse visit works when my mother is at home and cannot come to the door easily, and whether somebody can explain the steps to her before the visit starts.",
+  );
+  expect((await composer(page)).height).toBeGreaterThan(floor);
+  await field(page).fill("");
+  expect((await composer(page)).height).toBe(floor);
+});
+
+test("Enter sends, Shift+Enter starts a new line, and an Enter that finishes a composition does not send", async ({
+  page,
+}) => {
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  await field(page).pressSequentially("hello");
+  await page.keyboard.press("Shift+Enter");
+  await expect(field(page)).toHaveValue("hello\n");
+  await field(page).pressSequentially("there");
+  /* An IME's Enter — choosing the word on a Japanese or Chinese keyboard — reaches the page as a keydown
+     that is still composing, and Safari reports it as keyCode 229. Neither is a send. Dispatched by hand,
+     because a headless browser has no input method to compose with. */
+  for (const init of [
+    { key: "Enter", isComposing: true },
+    { key: "Enter", keyCode: 229 },
+  ])
+    await field(page).evaluate(
+      (el, init) =>
+        el.dispatchEvent(
+          new KeyboardEvent("keydown", { ...init, bubbles: true, cancelable: true }),
+        ),
+      init,
+    );
+  await expect(log(page).locator(".as-said")).toHaveCount(0);
+  await expect(field(page)).toHaveValue("hello\nthere");
+  /* An empty Enter sends nothing, as an empty Send never did. */
+  await field(page).fill("   ");
+  await page.keyboard.press("Enter");
+  await expect(log(page).locator(".as-said")).toHaveCount(0);
+  await field(page).fill("When is my nurse coming?");
+  await page.keyboard.press("Enter");
+  await expect(log(page).locator(".as-said")).toHaveText([
+    `${gilbert.conversation.youAsked}: When is my nurse coming?`,
+  ]);
+  await expect(field(page)).toHaveValue("");
+  await expect(field(page)).toBeFocused();
+});
+
+test("with the field at its cap the conversation keeps room to be read, at every size the layout test measures", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  /* The layout test above holds the composer in the sheet's lower half with one line written. This holds
+     what the field may cost at its tallest, in the state that leaves the least: a question asked, and the
+     voice's session controls standing in the composer while the reply is about to be read. The cap is
+     five lines, and three below 800 pixels of height, because five left the conversation 75 pixels at 320
+     by 720 and 146 at 1366 by 768. The floors are the measured room less a little, as the layout test's
+     are: 203, 123, 438 and 194. */
+  for (const [width, height, lines, floor] of [
+    [390, 844, 5, 190],
+    [320, 720, 3, 110],
+    [1440, 1100, 5, 420],
+    [1366, 768, 3, 180],
+  ] as const) {
+    const where = `${width}x${height}`;
+    await page.setViewportSize({ width, height });
+    await page.goto("/app/?open=assistant");
+    await expect(panel(page)).toBeVisible();
+    await page.waitForTimeout(500);
+    await consent(page);
+    await ask(page, "my shoulder aches");
+    await field(page).fill(
+      Array.from({ length: 8 }, (_, n) => `Line ${n + 1} of a long message`).join("\n"),
+    );
+    const one = width > 560 ? 48 : 44;
+    const box = await composer(page);
+    expect(box.height, `at ${where} the field's cap`).toBe(one + (lines - 1) * box.line);
+    expect(box.scrollHeight, `at ${where} the field scrolls inside itself`).toBeGreaterThan(box.clientHeight);
+    const room = await page.evaluate(() => {
+      const r = (s: string) => document.querySelector(s)!.getBoundingClientRect();
+      const scroll = document.querySelector(".as-scroll") as HTMLElement;
+      return {
+        conversation: scroll.clientHeight,
+        compose: r(".as-compose").bottom,
+        sheet: r("#assistant-panel").bottom,
+        sideways: [...document.querySelectorAll<HTMLElement>("#assistant-panel, #assistant-panel *")]
+          .filter((el) => el.scrollWidth > el.clientWidth + 1 && !["visible", "hidden", "clip"].includes(getComputedStyle(el).overflowX))
+          .map((el) => el.id || el.className),
+      };
+    });
+    expect(
+      room.conversation,
+      `at ${where} the field at its cap left the conversation ${room.conversation}px`,
+    ).toBeGreaterThanOrEqual(floor);
+    expect(Math.round(room.compose), `at ${where} the composer is off the sheet`).toBeLessThanOrEqual(Math.round(room.sheet));
+    expect(room.sideways, `at ${where} something scrolls sideways`).toEqual([]);
+  }
+});
+
+test("words the microphone caught grow the field the way typing does", async ({
+  page,
+}) => {
+  await watchForRecording(page);
+  await giveVoice(page);
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  const one = (await composer(page)).height;
+  await panel(page)
+    .getByRole("button", { name: gilbert.voice.sentences.talkLabel, exact: true })
+    .click();
+  await agree(page);
+  const long =
+    "I would like to know how the nurse visit works when my mother is at home and cannot come to the door easily";
+  await dictate(page, long);
+  await panel(page)
+    .getByRole("button", { name: gilbert.voice.sentences.stopLabel, exact: true })
+    .click();
+  await expect(field(page)).toHaveValue(long);
+  await expect(field(page)).toBeFocused();
+  const grown = await composer(page);
+  expect(grown.height).toBeGreaterThan(one);
+  // every word is on the screen: the field grew to hold them rather than hiding them behind a scroll
+  expect(grown.scrollHeight).toBeLessThanOrEqual(grown.clientHeight);
+  await page.keyboard.press("Enter");
+  await expect(log(page).locator(".as-said")).toContainText(long);
+  expect((await composer(page)).height).toBe(one);
 });
 
 test("on a wide screen the orb leaves the footer alone and the panel is anchored bottom right", async ({
@@ -1563,7 +1787,9 @@ test("the composer is a text box, and nothing hears before the patient taps the 
       'input:not([type=file]), textarea, [contenteditable="true"]',
     ),
   ).toHaveCount(1);
-  await expect(field(page)).toHaveAttribute("type", "text");
+  /* A plain text field, and since 30 September 2026 a multi-line one: the composer grows with what is
+     written. It was an input of type text until then, and this line said so. */
+  await expect(field(page)).toHaveJSProperty("type", "textarea");
   await expect(field(page)).toHaveAttribute("spellcheck", "false");
   await expect(field(page)).toHaveAttribute("autocorrect", "off");
   await expect(field(page)).toHaveAttribute("autocomplete", "off");

@@ -56,7 +56,7 @@ import { ConsultationComposer, ConsultationRecord } from '../features/Consultati
 import { PatientFile, PrescribingRoute, UploadDocument } from '../features/PatientFile';
 import { LabOrderDetail, PrescriptionDetail } from '../features/Orders';
 import { IncidentDetail, NurseVetting } from '../features/Dispatch';
-import { SafetyDesk } from '../features/FieldSafety';
+import { SafetyDesk, ShellPanic } from '../features/FieldSafety';
 import { SosDesk } from '../features/SosDesk';
 /* The desk's held cash payments sit under the incident register: the desk opens this screen for a panic, and a
    held payment is a phone call that can wait below it. */
@@ -366,6 +366,10 @@ export default function StaffWorkspace({ role, audience, legacy = false }: { rol
     <div className="breadcrumb">{role}<span>/</span><strong>{section}</strong></div>
     <JumpTo className="staff-jump--bar" destinations={destinations} go={go}/>
     <div className="topbar-actions">
+     {/* The nurse's panic, on every page and at every width, in the bar rather than behind More: a nurse walking
+         up to a door has not started a visit, and the strip inside one was the only panic she had. It is the last
+         thing in the bar on both viewports, so it is in the same corner wherever she is. */}
+     {role === 'Nurse' && !legacy && <ShellPanic/>}
      {hasMessages && <button className="icon-button staff-bell" aria-label="Open Messages" title="Open Messages" onClick={() => go('Messages')}><Bell size={19} aria-hidden="true"/></button>}
      <ThemeToggle className="topbar-theme"/>
      <ProfileMenu onLeave={leave} who={{ initials: who.initials, name: who.subject.name, roleName: who.roleName, reference: who.subject.reference,

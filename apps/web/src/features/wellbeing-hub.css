@@ -6,7 +6,9 @@
 .wb-doors { display: grid; gap: var(--space-12); margin: var(--space-16) 0 var(--space-20); }
 .wb-doors > .wb-door { display: flex; align-items: center; gap: var(--space-12); width: 100%; min-height: 44px; padding: var(--space-16); text-align: left; font: inherit; color: var(--color-foreground); cursor: pointer; }
 .wb-door > svg { flex: none; color: var(--color-muted-foreground); }
-.wb-door .tile-icon { flex: none; }
+/* Three classes deep because the doors sit in a <nav>, and the shell's `nav button > span` rule, written for
+   navigation rows, otherwise stretched the icon's tile across half the door. */
+.wb-doors > .wb-door > .tile-icon { flex: none; }
 .wb-door__text { display: grid; gap: var(--space-4); flex: 1; min-width: 0; }
 .wb-door__text strong { font-size: 15px; font-weight: 600; }
 .wb-door__text small { font-size: 13px; line-height: 1.45; color: var(--color-muted-foreground); }

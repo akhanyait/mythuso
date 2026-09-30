@@ -54,7 +54,6 @@ import { Onboarding, SignIn } from './features/Onboarding';
 import { RolePanel, useRole } from './features/DemoLogin';
 import { sectionFromSearch } from './lib/roles';
 import type { RoleId } from './lib/roles';
-import { ThusoKit } from './features/Kit';
 /* Thuso SOS and the next-of-kin settings arrive on a dynamic import. Neither is on a patient's first view, and a patient
    on metered data should not download the pathway, its routing and its engine rules to read their visits. The emergency
    numbers are not allowed to wait for that download, so the fallback is the one block the pathway puts first, read by
@@ -207,6 +206,8 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
  const [signedIn, setSignedIn] = useState(true);
  const [live, setLive] = useState(false);
  const navigate = (p: string) => { if (p !== 'Book a nurse') setForPerson(null); setPage(p); scrollToTop(); };
+ /* A dialog asked for by name, except the kit's: see isKit below for why that one is a page. */
+ const openModal = (m: string) => { if (isKit(m)) { setModal(null); navigate(patientScreenRoutes.devices.opens); } else setModal(m); };
  const bookFor = (person: string) => { setForPerson(person); setModal(null); setViewing(null); setPage('Book a nurse'); scrollToTop(); };
  const track = (id: string) => { setViewing(null); setTracking(id); navigate('Arrival'); };
  /* The demo household, in one place. It was built inline inside the dialog props, which meant the
@@ -288,7 +289,7 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
          : page === 'Thuso Wallet' ? <WalletPage open={setModal} navigate={navigate}/>
           : page === 'Privacy & settings' ? <Privacy key="privacy" open={setModal}/>
            : page === 'Language & access' ? <Privacy key="access" open={setModal} initial="Language & access"/>
-            : page === 'Explore MyThuso' ? <Explore open={setModal} onOnboarding={() => setOnboarding('first-run')} navigate={navigate}/>
+            : page === 'Explore MyThuso' ? <Explore open={openModal} onOnboarding={() => setOnboarding('first-run')} navigate={navigate}/>
              : IconGallery && page === 'Icons' ? <Suspense fallback={<p className="helper" role="status">Opening the icon family.</p>}><IconGallery/></Suspense>
              : UiGallery && page === 'UI' ? <Suspense fallback={<p className="helper" role="status">Opening the shared components.</p>}><UiGallery/></Suspense>
               : page === patientScreenRoutes.devices.opens ? <Suspense fallback={<p className="helper" role="status">{patientScreenOpenings[page]}</p>}><PatientDevicesPage navigate={navigate} open={setModal}/></Suspense>
@@ -315,12 +316,16 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
     : <CancelFlow visit={rowById(managing.id)!.visit} onCancel={reason => { standDown(managing.id, reason); setManaging(null); navigate('My visits'); }}/>}
    </Suspense>
   </Modal>}
-  {modal && <Modal surface={SURFACE} title={modalTitle(modal)} onClose={() => setModal(null)}>{modalBody({ modal, close: () => setModal(null), navigate: (p: string) => { navigate(p); setModal(null); }, openOnboarding: () => { setModal(null); setOnboarding('first-run'); }, reopen: (m: string) => setModal(m), locale, setLocale, query, setQuery, location, setLocation, people, addMember: (n: string) => { setMembers([...members, n]); setModal(null); navigate('My family'); }, addInvitation: (i: Invitation) => { setInvitations([...invitations, i]); setModal(null); navigate('My family'); }, signOut, rows, invitations, bookFor, viewVisit: (id: string) => { setModal(null); setViewing(id); }, revoke: (id: string) => setInvitations(invitations.map(i => i.id === id ? { ...i, status: 'Revoked' } : i)), openRole: (id: RoleId) => { setModal(null); setRole(id); } })}</Modal>}
+  {modal && <Modal surface={SURFACE} title={modalTitle(modal)} onClose={() => setModal(null)}>{modalBody({ modal, close: () => setModal(null), navigate: (p: string) => { navigate(p); setModal(null); }, openOnboarding: () => { setModal(null); setOnboarding('first-run'); }, reopen: openModal, locale, setLocale, query, setQuery, location, setLocation, people, addMember: (n: string) => { setMembers([...members, n]); setModal(null); navigate('My family'); }, addInvitation: (i: Invitation) => { setInvitations([...invitations, i]); setModal(null); navigate('My family'); }, signOut, rows, invitations, bookFor, viewVisit: (id: string) => { setModal(null); setViewing(id); }, revoke: (id: string) => setInvitations(invitations.map(i => i.id === id ? { ...i, status: 'Revoked' } : i)), openRole: (id: RoleId) => { setModal(null); setRole(id); } })}</Modal>}
  </>;
 }
-/* Four doors into the same surface: the passport's device tab, the roadmap tile, the connection
-   card and the kit's own name. They are one screen because they are one question — where did this
-   reading come from — and four copies of it would drift. */
+/* The kit's names, which on the patient's side open the Connected devices page rather than the kit.
+   They used to open the nurse's capture tool in a dialog — "Capturing as: Nurse", a pairing surface and a
+   reading form — handed to a patient from the roadmap's Thuso Kit card, because the kit was one screen
+   for everybody. A patient does not capture readings: the nurse brings the kit, and what a patient can ask
+   of it is what it would read and where a reading came from, which is what Connected devices answers
+   (lib/patient-screens-routes.ts). The capture tool is the nurse's, in her workspace (shells/StaffShell.tsx),
+   and it left the patient's first load with this. */
 const isKit = (modal: string) => modal === 'Diagnostic kit' || modal === 'Thuso Kit';
 /* The three device permission screens, opened from the passport's device tab. "Thuso Kit connection"
    used to be a fourth door into the kit's capture screen, which answers a different question: the
@@ -346,7 +351,6 @@ function modalTitle(modal: string) {
  if (modal === 'Sponsor care') return 'Sponsor somebody’s care';
  if (modal.startsWith('Prescription ')) return 'Prescription';
  if (modal.startsWith('Laboratory order ')) return 'Laboratory order';
- if (isKit(modal)) return 'Thuso Kit';
  if (integrationIn(modal)) return `${integrationIn(modal)} access`;
  if (modal === 'Thuso SOS' || modal === 'Emergency & urgent care') return 'Thuso SOS';
  if (modal === 'Next of kin') return 'Next of kin';
@@ -383,7 +387,6 @@ function modalBody(p: BodyProps) {
  if (modal.startsWith('Prescription ') || modal === 'Pharmacy orders') return <PrescriptionDetail reference={modal.replace('Prescription ', '')}/>;
  if (modal.startsWith('Laboratory order ') || modal === 'Laboratory results') return <LabOrderDetail reference={modal.replace('Laboratory order ', '')}/>;
  if (modal === 'medicine-collection') return <Suspense fallback={<p className="helper" role="status">{capability('medicine-collection').name}</p>}><AuthoriseCollectorFlow/></Suspense>;
- if (isKit(modal)) return <ThusoKit onClose={p.close}/>;
  /* Three integrations that could not be opened at all. Each one now says what would be read, what
     would never be, and — from the contract rather than from a paragraph of its own — that no device
     has been contacted and no Bluetooth permission is declared. */

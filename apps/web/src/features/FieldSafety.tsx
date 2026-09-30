@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Clock3, LogOut, MapPin, ShieldCheck, Siren, TimerReset } from 'lucide-react';
 import { NotConnected } from '../components/NotConnected';
 import { Button, Select } from '../ui';
@@ -7,7 +7,8 @@ import { MINUTE, clockOf, fieldSafety, fill, positionDecimals, refusal, whatPani
 import { extensionLeft, minutesLeft, standingOf, stepsOffered } from '../../../../packages/engines/src/safety/domain/checkins.ts';
 import { isSharing, sharingEndsAt, standingOf as panicStandingOf } from '../../../../packages/engines/src/safety/domain/panics.ts';
 import { deskCounts, type DeskItem } from '../../../../packages/engines/src/safety/domain/desk.ts';
-import { checkInSafe, checkOut, closeOverdue, deskRows, extendVisit, panicFor, pickUp, positionOf, pressPanic, resolvePanic, timerFor, useFieldSafety } from '../lib/field-safety';
+import { NURSE_ON_SHIFT, checkInSafe, checkOut, closeOverdue, deskRows, extendVisit, panicFor, pickUp, positionOf, pressPanic, resolvePanic, timerFor, useFieldSafety } from '../lib/field-safety';
+import type { Panic } from '../../../../packages/engines/src/safety/domain/panics.ts';
 import { panicWindowNow, useSettingsHistories } from '../lib/settings';
 
 /* The nurse safety suite's two screens: the strip a nurse keeps on the visit she is in, and the queue
@@ -103,28 +104,91 @@ export function VisitSafety({ reference }: { reference: string }) {
    <p className="helper">{offered.length ? fill(say.extendLeft, { minutes: String(extensionLeft(timer)) }) : refusal('extension-limit').statement}</p>
   </fieldset>}
 
-  {confirming && <div className="nurse-safety__confirm" id={id + '-panic'} role="group" aria-labelledby={id + '-confirm'}>
-   <strong id={id + '-confirm'}>{panicSay.confirmQuestion}</strong>
-   <p>{fill(panicSay.whatHappens, { ends: clockOf(s.now + panicWindowNow().minutes * MINUTE) })}</p>
-   <p>{whatPanicDoesNotDo()}</p>
-   <NotConnected of="emergency" tone="inline"/>
-   <div className="nurse-actions">
-    <Button variant="secondary" onClick={() => setConfirming(false)}>{panicSay.cancel}</Button>
-    <Button variant="destructive" leadingIcon={<Siren aria-hidden="true"/>} autoFocus onClick={() => act(pressPanic(reference), () => setConfirming(false))}>{panicSay.confirm}</Button>
-   </div>
-  </div>}
+  {confirming && <PanicConfirm id={id + '-panic'} now={s.now} onCancel={() => setConfirming(false)}
+   onConfirm={() => act(pressPanic(reference), () => setConfirming(false))}/>}
 
-  {panic && !confirming && <div className="fs-pressed nurse-safety__pressed" role="status">
-   <Siren aria-hidden="true"/>
-   <div>
-    <strong>{labelOf(fieldSafety.states.panic, panicStandingOf(panic))} · {fill(panicSay.pressedAt, { at: clockOf(panic.raisedAt) })}</strong>
-    <p>{sharing ? fill(panicSay.sharingUntil, { ends: clockOf(sharingEndsAt(panic)) }) : fill(panicSay.sharingStopped, { ended: clockOf(sharingEndsAt(panic)) })}</p>
-    {!sharing && !panic.resolved && <p>{panicSay.pressAgain}</p>}
-   </div>
-  </div>}
+  {panic && !confirming && <PanicPressed panic={panic} now={s.now}/>}
 
   {refused && <p className="nurse-refusal-line" role="alert">{refused.statement}</p>}
  </section>;
+}
+
+/* ---- Panic, wherever she is ------------------------------------------------------------------------
+   The one confirmation and what a press shows afterwards, as two parts that the visit's strip and the staff
+   shell both mount. The strip exists only once a visit has started, so a nurse walking up to a door had no
+   panic at all; the route's appointmentRef was always optional and pressPanic(null) was always the engine's
+   answer to her. Two copies of this block would be two places the window, the sentence about who decides
+   and the emergency notice could drift apart, on the one screen where that must not happen. */
+function PanicConfirm({ id, now, onCancel, onConfirm, refused }: { id: string; now: number; onCancel: () => void; onConfirm: () => void; refused?: Refusal | null }) {
+ return <div className="nurse-safety__confirm" id={id} role="group" aria-labelledby={id + '-q'}>
+  <strong id={id + '-q'}>{panicSay.confirmQuestion}</strong>
+  <p>{fill(panicSay.whatHappens, { ends: clockOf(now + panicWindowNow().minutes * MINUTE) })}</p>
+  <p>{whatPanicDoesNotDo()}</p>
+  <NotConnected of="emergency" tone="inline"/>
+  <div className="nurse-actions">
+   <Button variant="secondary" onClick={onCancel}>{panicSay.cancel}</Button>
+   <Button variant="destructive" leadingIcon={<Siren aria-hidden="true"/>} autoFocus onClick={onConfirm}>{panicSay.confirm}</Button>
+  </div>
+  {refused && <p className="nurse-refusal-line" role="alert">{refused.statement}</p>}
+ </div>;
+}
+
+/* What a press shows: the panic's state and when it was pressed, and until when the desk can see her. It says
+   nothing about help being on its way, because nothing here sends anybody: a person at the desk decides. */
+function PanicPressed({ panic, now }: { panic: Panic; now: number }) {
+ const sharing = isSharing(panic, now);
+ return <div className="fs-pressed nurse-safety__pressed" role="status">
+  <Siren aria-hidden="true"/>
+  <div>
+   <strong>{labelOf(fieldSafety.states.panic, panicStandingOf(panic))} · {fill(panicSay.pressedAt, { at: clockOf(panic.raisedAt) })}</strong>
+   <p>{sharing ? fill(panicSay.sharingUntil, { ends: clockOf(sharingEndsAt(panic)) }) : fill(panicSay.sharingStopped, { ended: clockOf(sharingEndsAt(panic)) })}</p>
+   {!sharing && !panic.resolved && <p>{panicSay.pressAgain}</p>}
+  </div>
+ </div>;
+}
+
+/* The panic she presses from outside a visit: pressPanic(null), the nurse on shift and no appointment. The
+   desk's queue and the Control Tower's field alert both count every panic the store holds, so this one lands
+   on the same row and in the same count as a press from inside a visit. */
+const shellPanicOf = (panics: readonly Panic[]) => [...panics].reverse().find(p => p.nurseRef === NURSE_ON_SHIFT && p.appointmentRef === null);
+
+/* The control, in the staff shell's top bar on every page and at every width. It opens the same confirmation
+   as a disclosure under itself, closed by Not now, by Escape (focus back on the control) or by a press
+   outside it — and never by the press itself failing, so a refusal is read where it was asked. */
+export function ShellPanic() {
+ const s = useFieldSafety();
+ useSettingsHistories();
+ const id = useId();
+ const [confirming, setConfirming] = useState(false);
+ const [refused, setRefused] = useState<Refusal | null>(null);
+ const box = useRef<HTMLDivElement>(null);
+ const control = useRef<HTMLButtonElement>(null);
+ useEffect(() => {
+  if (!confirming) return;
+  const outside = (e: PointerEvent) => { if (!box.current?.contains(e.target as Node)) setConfirming(false); };
+  const escape = (e: KeyboardEvent) => { if (e.key === 'Escape') { setConfirming(false); control.current?.focus(); } };
+  document.addEventListener('pointerdown', outside);
+  document.addEventListener('keydown', escape);
+  return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', escape); };
+ }, [confirming]);
+ const press = () => { const outcome = pressPanic(null); setRefused(outcome); if (!outcome) setConfirming(false); };
+ return <div className="staff-panic nurse-ui" ref={box}>
+  <Button ref={control} variant="secondary" className="staff-panic__press" leadingIcon={<Siren aria-hidden="true"/>}
+   aria-expanded={confirming} aria-controls={id + '-panic'} onClick={() => { setConfirming(!confirming); setRefused(null); }}>
+   <span className="staff-panic__word">{panicSay.press}</span>
+  </Button>
+  {confirming && <div className="staff-panic__panel">
+   <PanicConfirm id={id + '-panic'} now={s.now} refused={refused} onCancel={() => { setConfirming(false); control.current?.focus(); }} onConfirm={press}/>
+  </div>}
+ </div>;
+}
+
+/* And what the press shows, in the band above every page, exactly as the strip shows it after a press inside
+   a visit. It stays for as long as the preview holds the panic, resolved included, because the strip does too. */
+export function ShellPanicPressed() {
+ const s = useFieldSafety();
+ const panic = shellPanicOf(s.panics);
+ return panic ? <div className="nurse-ui staff-panic__pressed"><PanicPressed panic={panic} now={s.now}/></div> : null;
 }
 
 export function SafetyDesk() {

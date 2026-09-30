@@ -1,7 +1,7 @@
 {
   "_note": "The eight patient pages of the full Lovable export's Gap 2, as one contract: symptom-checker, risk-assessment, health-library, health-timeline, vaccinations, community, nutrition and reminders, plus the 'Your health' hub that carries them. Recorded by docs/design-review/LOVABLE-EXPORT-RECONCILIATION.md (Phase C) and built under the gates in docs/ROADMAP.md's Phase D. The web reads this file through apps/web/src/lib/patient-pages.ts; scripts/emit-patient-pages.mjs writes the router's two strings per page and the two native data files. Content rows are DERIVED from contracts that already exist — the knowledge base, the symptom intake, the SOS register — and the derivation is held by scripts/check-boundaries.mjs, so this file names sources and never copies their entries.",
   "_rules": "No screen renders a sentence that is not in this file or in the contract it derives from. No screen displays a number this tree's contracts do not hold: the 25 September ruling (option B) applies — structural and visual honesty, written empty states wherever a number would go. symptom-checker and risk-assessment inherit the screening capability's block: no model, no vendor, no licence. The symptom checker asks symptom-intake.json's set questions and escalates on the emergency words before anything else reads an answer; it sets no priority, names no cause and gives no advice, and the findings case.json works out are for the nurse and never rendered here. Knowledge content shows its own source line and the review notice below sits beside it until a clinician has signed.",
-  "version": 2,
+  "version": 4,
   "decidedBy": "Founder",
   "on": "2026-09-29",
   "changelog": [
@@ -14,6 +14,16 @@
       "version": 2,
       "on": "2026-09-30",
       "what": "Two pages the Lovable export draws and the build did not have — mental health and activity — in the export's arrangement, each holding only what another contract holds: four doors and the crisis lines on the first, the journal's Moving entries and written empty tiles on the second. The health timeline stops saying it has no entries while the Health Passport's care timeline lists them: it becomes the door to that one history. The vaccination record gains the export's 'Book vaccination' action, onto the injection-and-vaccination service the catalogue already carries. The vaccination record moves above the schedule, as the export draws it, and the lead says so. The hub's lead no longer counts its pages, and every page carries a way back to the hub."
+    },
+    {
+      "version": 3,
+      "on": "2026-09-30",
+      "what": "Not a word of any page changes. The iPhone and Android draw mental health and activity from the generated Swift and Kotlin, so platforms names ios and android beside web, and drawnOn records which pages each platform draws and which parts of a page a platform leaves out because the screen it would open does not exist there. On both phones that is the library and helplines doors and the catalogue button of mental health, and the hub; the eight other pages stay web-only."
+    },
+    {
+      "version": 4,
+      "on": "2026-09-30",
+      "what": "Mental health's lead and its hub line name all four doors, and a phone draws two of them, so each phone's drawnOn entry carries its own lead and line for that page, restating only the doors it draws: your own words in Live well, and the crisis lines. The web's words are unchanged. Nothing else on either page changes."
     }
   ],
   "review": {
@@ -560,6 +570,61 @@
       "sentence": "The emergency words are read before any of it. An emergency answer ends the screen and opens the emergency pathway with 10177 first."
     }
   ],
-  "platforms": ["web"],
-  "platformsWhy": "Web first, as with care-tips and the case pathway: the screens are the frame the founder asked to see, and the generated Swift and Kotlin data files carry every word so the native screens are a later wave's assembly rather than a rewrite. symptom-intake.json's own platforms list stays as it is until a native screen renders it."
+  "platforms": ["web", "ios", "android"],
+  "platformsWhy": "Web first, as with care-tips and the case pathway: the web draws the hub and all ten pages. Since version 3 both phones draw mental health and activity, the two the founder asked to have on them, every word from the generated PatientPagesData.swift and PatientPagesData.kt; neither draws the hub, so the pages are reached from More and carry no way back to one. The other eight pages are web-only, and the generated Swift and Kotlin carry their opening words so a later wave assembles rather than rewrites them. symptom-intake.json's own platforms list stays as it is until a native screen renders it.",
+  "drawnOn": {
+    "_why": "Which pages each platform in platforms actually draws, and what a platform leaves out of a page it draws because the screen that part would open does not exist there. A door to nowhere is not drawn and nothing stands in for it — no web view, no copy of a screen the phone does not have. Where a page's own words name what a platform leaves out, that platform's words replace them here, restating only what it draws. scripts/check-boundaries.mjs holds this to the code: a platform named here must have the file it names, reading the generated data for every page listed, and a platform not named may not read that data at all.",
+    "web": {
+      "file": "apps/web/src/features/PatientPages.tsx",
+      "hub": true,
+      "pages": [
+        "symptom-checker",
+        "risk-assessment",
+        "health-library",
+        "health-timeline",
+        "vaccinations",
+        "community",
+        "nutrition",
+        "reminders",
+        "mental-health",
+        "activity"
+      ]
+    },
+    "ios": {
+      "file": "apps/ios/MyThuso/Features/PatientPagesView.swift",
+      "hub": false,
+      "pages": ["mental-health", "activity"],
+      "leftOut": {
+        "mental-health": {
+          "doors": ["library", "helplines"],
+          "sessionAction": true,
+          "why": "The health library and community support are web pages, so the doors to them are not drawn on the iPhone. The catalogue button is not drawn either: the phone's catalogue carries only the first phase's services, so the counselling check-in's own name and phase are shown where the button would be."
+        }
+      },
+      "words": {
+        "mental-health": {
+          "lead": "Doors to what this phone holds: your own words in Live well, and the crisis lines. There is no counsellor to book here yet and no mood score, and both are said below rather than drawn.",
+          "sub": "Your own words and crisis lines"
+        }
+      }
+    },
+    "android": {
+      "file": "apps/android/app/src/main/java/za/co/mythuso/ui/PatientPagesScreens.kt",
+      "hub": false,
+      "pages": ["mental-health", "activity"],
+      "leftOut": {
+        "mental-health": {
+          "doors": ["library", "helplines"],
+          "sessionAction": true,
+          "why": "The health library and community support are web pages, so the doors to them are not drawn on Android. The catalogue button is not drawn either: no Android screen carries the counselling check-in, so its own name and phase are shown where the button would be."
+        }
+      },
+      "words": {
+        "mental-health": {
+          "lead": "Doors to what this phone holds: your own words in Live well, and the crisis lines. There is no counsellor to book here yet and no mood score, and both are said below rather than drawn.",
+          "sub": "Your own words and crisis lines"
+        }
+      }
+    }
+  }
 }

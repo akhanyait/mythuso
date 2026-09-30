@@ -3508,6 +3508,63 @@ for (const { source, command, files } of generated) {
   );
 }
 
+/* The partner's workbench names no patient — 30 September 2026 */
+/* packages/catalog/medicines.json#partnerQueue says what a pharmacy's queue carries and what it never carries,
+   and the check above holds the queue's own rows to it. The ThusoIQ workbench under the partner's Orders board
+   was the other half of that screen, and it went on drawing a care queue of named patients with their initials,
+   the reason each was in care, the allergy record and the open encounter. It is two functions of its own now,
+   PartnerWorkbench and PartnerRequest in features/ClinicalWorkbench.tsx, and this holds them to the list:
+
+     1. the Partner role is handed to PartnerWorkbench, never to the patient workbench with parts hidden;
+     2. neither function reaches a patient (state.patients, a Patient, a name, initials, the allergy record), the
+        prescriber (prescriberRef is on the list), or any field neverCarries names; the one `reason` either may read
+        is the request's, which is the pharmacy's own words for a hold;
+     3. the patient's reference, which every kernel command must carry, is never interpolated into what is drawn;
+     4. they draw only the components on an allowlist, so the patient workspace's pieces cannot come back through
+        a component that draws them. */
+{
+  const pq = JSON.parse(read("packages/catalog/medicines.json")).partnerQueue;
+  const pw = (message) => { throw new Error(`The partner's workbench: ${message} ${pq.why}`); };
+  const file = "apps/web/src/features/ClinicalWorkbench.tsx";
+  const src = read(file).replace(/\{\s*\/\*(?:(?!\*\/)[\s\S])*\*\/\s*\}/g, " ").replace(/\/\*[\s\S]*?\*\//g, " ");
+  if (!/role === 'Partner' \? <PartnerWorkbench\b/.test(src))
+    pw(`${file} no longer hands the Partner role to PartnerWorkbench.`);
+  const fn = (name) => {
+    const at = src.search(new RegExp(`\\nfunction ${name}\\(`));
+    if (at < 0) pw(`${file} has lost ${name}.`);
+    const rest = src.slice(at + 1);
+    const end = rest.slice(1).search(/\n(?:export )?(?:function|const) /);
+    return end < 0 ? rest : rest.slice(0, end + 1);
+  };
+  /* The contract's names as the kernel spells them, where it spells them differently. */
+  const kernelField = { subjectRef: "patientId", prescriberRef: "prescriberId", collectorRef: "collectorId", patient: "patients?", name: "name" };
+  const allowed = new Set(["WorkbenchHeading", "PartnerRequest", "Nothing", "MyThusoMedicationIcon", "ArrowUpRight", "AlertTriangle", "Check", "Activity", "Button"]);
+  let partnerChecked = 0;
+  for (const name of ["PartnerWorkbench", "PartnerRequest"]) {
+    /* Quoted strings out, so a class name such as "iq-patients" is not read as reaching for one. */
+    const code = fn(name).replace(/"[^"\n]*"|'[^'\n]*'/g, '""');
+    for (const never of pq.neverCarries) {
+      const field = kernelField[never] ?? never;
+      if (never === "subjectRef") continue; // carried into commands, never drawn: rule 3
+      if (never === "reason") {
+        const other = code.match(/\b(?!request\b)\w+\.reason\b/);
+        if (other) pw(`${name} reads ${other[0]}. The only reason on a pharmacy's bench is the one it gave for a hold.`);
+        continue;
+      }
+      const hit = code.match(new RegExp(never === "patient" ? `\\b${field}\\b` : `\\.${field}\\b`));
+      if (hit) pw(`${name} reads "${hit[0]}", and partnerQueue.neverCarries lists ${never}.`);
+    }
+    const person = code.match(/\binitials\(|PatientIdentity|NursePatientsSummary|\.allergies(?:Reviewed)?\b|\.consent\b/);
+    if (person) pw(`${name} reaches the patient through "${person[0]}".`);
+    const drawn = code.match(/\{\s*[\w.]*\b(?:patientId|subject)\s*\}|\$\{\s*[\w.]*\b(?:patientId|subject)\s*\}/);
+    if (drawn) pw(`${name} draws the patient's reference ("${drawn[0]}"). It goes into the kernel's command and nowhere a pharmacy can read it.`);
+    for (const m of code.matchAll(/<([A-Z]\w*)/g))
+      if (!allowed.has(m[1])) pw(`${name} draws <${m[1]}>, which is not on the partner's allowlist. A component of the patient workspace brings the patient with it.`);
+    partnerChecked += 1;
+  }
+  console.log(`The partner's workbench · ${partnerChecked} functions under the Partner role, reaching none of the ${pq.neverCarries.length} things partnerQueue never carries, drawing no patient reference, and only ${allowed.size} components.`);
+}
+
 /* ==== Contracts & Core (Wave 1) ==================================================================
 
    Added by the Contracts & Core lead for three contracts other engines are being written against
@@ -16915,10 +16972,23 @@ for (const phrase of [descriptor]) {
    autocorrect or autocomplete may carry away from something typed. Checkboxes, drawn from the
    consent gate of 20 September 2026, are not fields a keyboard dictates into, and requiring the
    attributes of a box would be noise standing where a real text field should stand out; a typed
-   input, including one whose type is left to the platform, is still held to all three. */
+   input, including one whose type is left to the platform, is still held to all three.
+
+   The composer became a growing textarea on 30 September 2026, so the scan reads textareas too and
+   insists on finding the one the composer types into: a scan that matches nothing passes nothing. A
+   field's opening tag ends at its own "/>", or at the ">" before its closing </textarea>, and never runs
+   on into the next element — or a field written open and closed would borrow its neighbour's attributes. */
 const webPanel = read("apps/web/src/features/Assistant.tsx");
-for (const input of webPanel.match(/<input\b[\s\S]*?\/>/g) ?? []) {
-  if (/\btype="(?:checkbox|radio)"/.test(input)) continue;
+const webPanelFields = (
+  webPanel.match(/<(?:input|textarea)\b(?:[^<]|<(?![A-Za-z/]))*?(?:\/>|>(?=\s*<\/textarea>))/g) ?? []
+).filter(
+  (field) => !/\btype="(?:checkbox|radio)"/.test(field),
+);
+if (!webPanelFields.some((field) => /\bid="as-input"/.test(field)))
+  throw new Error(
+    "apps/web/src/features/Assistant.tsx no longer draws the composer's field as an <input> or <textarea> with id=\"as-input\", so the scan for what a keyboard may carry away from it has nothing to read.",
+  );
+for (const input of webPanelFields) {
   for (const [attribute, why] of [
     [
       /spellCheck=\{false\}/,
@@ -36039,8 +36109,90 @@ console.log(
   if (!/@media\s*\(prefers-reduced-motion:\s*reduce\)/.test(css) || !/animation:\s*none\s*!important/.test(ppReduced))
     ppFail("apps/web/src/features/patient-pages.css does not remove its motion under prefers-reduced-motion, with !important so a later sheet cannot put it back.");
 
+  /* 9. The platforms tell the truth (contract version 3, 30 September 2026). `platforms` names every
+     platform that draws a page and `drawnOn` says which pages each draws and what it leaves out. A
+     platform named must have the file it names, reading the generated data for every page it lists,
+     rendering the review notice and the refusals, and opening every door it does not leave out; a door it
+     leaves out is not opened at all, because the page behind it is not on that platform. A platform not
+     named may not read the generated data anywhere — a phone screen assembled quietly is a contract that
+     says "web" about a page a patient is reading on a phone. */
+  const ppDrawn = pp.drawnOn ?? {};
+  const ppDrawnOn = Object.keys(ppDrawn).filter((k) => !k.startsWith("_")).sort();
+  if (!Array.isArray(pp.platforms) || JSON.stringify([...pp.platforms].sort()) !== JSON.stringify(ppDrawnOn))
+    ppFail(`${ppFile}'s platforms [${pp.platforms}] and drawnOn [${ppDrawnOn}] disagree. Every platform that draws a page is named in both, with the pages it draws.`);
+  if (!pp.platformsWhy) ppFail(`${ppFile} has lost platformsWhy, the sentence that says why a platform draws what it draws.`);
+  if (!ppDrawn.web?.hub || expected.some((id) => !ppDrawn.web.pages.includes(id)))
+    ppFail(`${ppFile}'s drawnOn.web no longer lists the hub and all ${expected.length} pages. The web draws every one of them.`);
+  const ppPascal = (id) => id.replace(/(^|-)(\w)/g, (_, __, c) => c.toUpperCase());
+  const ppNative = {
+    ios: { dir: "apps/ios/MyThuso", ext: ".swift", data: "apps/ios/MyThuso/Models/PatientPagesData.swift", model: "apps/ios/MyThuso/Models/PatientPages.swift" },
+    android: { dir: "apps/android/app/src/main", ext: ".kt", data: "apps/android/app/src/main/java/za/co/mythuso/model/PatientPagesData.kt", model: "apps/android/app/src/main/java/za/co/mythuso/model/PatientPages.kt" },
+  };
+  const ppNativeDrawn = [];
+  for (const [platform, native] of Object.entries(ppNative)) {
+    const drawn = ppDrawn[platform];
+    if (!pp.platforms.includes(platform)) {
+      for (const f of files(native.dir).filter((f) => f.endsWith(native.ext) && f !== native.data))
+        if (/\bPatientPagesData\b/.test(read(f)))
+          ppFail(`${f} reads PatientPagesData, and ${ppFile}'s platforms does not list ${platform}. Add the platform and its pages to platforms and drawnOn in the same change as the screen, or the contract says one thing and the phone another.`);
+      continue;
+    }
+    if (!drawn.file || !existsSync(drawn.file)) ppFail(`drawnOn.${platform} names ${drawn.file ?? "no file"}, which does not exist.`);
+    /* The screen and the hand-written model beside the generated data are read as one: which door a phone
+       opens may be decided in either. */
+    const code = read(drawn.file) + (existsSync(native.model) ? read(native.model) : "");
+    if (!Array.isArray(drawn.pages) || drawn.pages.length === 0) ppFail(`drawnOn.${platform} lists no pages.`);
+    for (const page of drawn.pages) {
+      if (!pp.screens[page]) ppFail(`drawnOn.${platform} lists "${page}", which is not a page in ${ppFile}.`);
+      if (!code.includes(`PatientPagesData.${ppPascal(page)}`))
+        ppFail(`drawnOn.${platform} says ${drawn.file} draws "${page}", and it never reads PatientPagesData.${ppPascal(page)}. A page the contract says a phone draws is drawn from the generated words, or it is not drawn.`);
+    }
+    if (!/Review\.notice/.test(code)) ppFail(`${drawn.file} does not render the review notice. The pages are unreviewed, and every one of them says so, on every platform.`);
+    if (!/PatientPagesData\.refusals/.test(code)) ppFail(`${drawn.file} does not render the contract's refusals beside the pages.`);
+    for (const [page, out] of Object.entries(drawn.leftOut ?? {})) {
+      if (!drawn.pages.includes(page)) ppFail(`drawnOn.${platform}.leftOut names "${page}", which drawnOn.${platform} does not draw.`);
+      if (!out.why) ppFail(`drawnOn.${platform}.leftOut.${page} leaves something out without saying why.`);
+      const doorIds = (pp.screens[page].doors ?? []).map((door) => door.id);
+      for (const id of out.doors ?? []) {
+        if (!doorIds.includes(id)) ppFail(`drawnOn.${platform}.leftOut.${page} leaves out the door "${id}", which ${page} does not have.`);
+        if (new RegExp(`case "${id}"|"${id}"\\s*->`).test(code)) ppFail(`${drawn.file} opens the door "${id}" that drawnOn.${platform} leaves out. Its page is not on ${platform}; the door is not drawn.`);
+      }
+      for (const id of doorIds.filter((id) => !(out.doors ?? []).includes(id)))
+        if (!code.includes(`"${id}"`)) ppFail(`${drawn.file} does not open the door "${id}" on ${page}, and drawnOn.${platform} does not leave it out. A door the contract draws opens something, or the contract says it is left out.`);
+      if (out.sessionAction && /Session\.action\b/.test(code) && !/actionDrawn/.test(code))
+        ppFail(`${drawn.file} draws the catalogue button that drawnOn.${platform} leaves out.`);
+      /* The page's own lead and hub line name every door. A platform that leaves doors out says what it
+         draws in its own words (version 4), or it tells a patient about doors that are not there. */
+      if ((out.doors ?? []).length && !(drawn.words?.[page]?.lead && drawn.words?.[page]?.sub))
+        ppFail(`drawnOn.${platform} leaves doors out of "${page}" and carries no lead and sub of its own for it, so the page's words would name doors ${platform} does not draw.`);
+    }
+    for (const [page, words] of Object.entries(drawn.words ?? {})) {
+      if (!drawn.pages.includes(page)) ppFail(`drawnOn.${platform}.words speaks for "${page}", which drawnOn.${platform} does not draw.`);
+      for (const [key, sentence] of Object.entries(words)) {
+        if (!["lead", "sub"].includes(key)) ppFail(`drawnOn.${platform}.words.${page} carries "${key}". A platform restates a page's lead and hub line and nothing else; every other word is the page's.`);
+        for (const digits of sentence.match(/\d+/g) ?? [])
+          if (!allowedNumbers.has(digits)) ppFail(`drawnOn.${platform}.words.${page}.${key} carries the number "${digits}". No screen shows a figure this tree's contracts do not hold.`);
+        for (const id of drawn.leftOut?.[page]?.doors ?? []) {
+          const door = pp.screens[page].doors.find((d) => d.id === id);
+          if (door && sentence.toLowerCase().includes(door.title.toLowerCase()))
+            ppFail(`drawnOn.${platform}.words.${page}.${key} names "${door.title}", a door ${platform} leaves out.`);
+        }
+      }
+    }
+    if (platform === "ios") {
+      const pbx = read("apps/ios/MyThuso.xcodeproj/project.pbxproj");
+      for (const path of [native.data.replace("apps/ios/", ""), drawn.file.replace("apps/ios/", "")]) {
+        const ref = pbx.match(new RegExp(`(\\w{24}) = \\{ isa = PBXFileReference;[^}]*path = "${path.replace(/[.\/]/g, "\\$&")}"`));
+        const build = ref && pbx.match(new RegExp(`(\\w{24}) = \\{ isa = PBXBuildFile; fileRef = ${ref[1]}; \\}`));
+        if (!build || !new RegExp(`isa = PBXSourcesBuildPhase;[^()]*files = \\([^)]*${build[1]}`).test(pbx))
+          ppFail(`${path} is not compiled into the iOS app: project.pbxproj needs its PBXFileReference, a PBXBuildFile and an entry in the Sources phase. A generated file Xcode does not compile is a file the phone does not read.`);
+      }
+    }
+    ppNativeDrawn.push(`${platform} ${drawn.pages.join(" and ")}`);
+  }
+
   console.log(
-    `Patient pages · the ${expected.length} pages of the full Lovable export's Phase D and version 2 and their hub, the timeline a door to the one history, a vaccination booking and a crisis card that resolve, unreviewed and saying so, no number the contracts do not hold, every derivation resolved against its file (${pp.screens["health-library"].tabs.length} library tabs, ${nutritionCount} nutrition entries, ${Math.min(d.communityHelplines.limit, helplines.length)} helplines), no typed sentence on any screen, no emergency number restated, behind one dynamic import with one finite entrance.`,
+    `Patient pages · drawn on ${["web every page and the hub", ...ppNativeDrawn].join(", ")}, and no other platform reading the generated words; the ${expected.length} pages of the full Lovable export's Phase D and version 2 and their hub, the timeline a door to the one history, a vaccination booking and a crisis card that resolve, unreviewed and saying so, no number the contracts do not hold, every derivation resolved against its file (${pp.screens["health-library"].tabs.length} library tabs, ${nutritionCount} nutrition entries, ${Math.min(d.communityHelplines.limit, helplines.length)} helplines), no typed sentence on any screen, no emergency number restated, behind one dynamic import with one finite entrance.`,
   );
 }
 
@@ -37607,7 +37759,8 @@ console.log(
   const patientShell = w3aRead("apps/web/src/shells/PatientShell.tsx");
   const primary = { Overview: "MyThusoDashboardIcon", "Book a nurse": "MyThusoQuickIcon", "My visits": "MyThusoVisitIcon", "Health Passport": "MyThusoHealthIcon", "Live well": "MyThusoMindIcon", "My family": "MyThusoFamilyIcon" };
   for (const [page, icon] of Object.entries(primary))
-    if (!new RegExp(`\\['${page}', ${icon}\\]`).test(patientShell)) w3a(`the patient's sidebar no longer draws ${page} with ${icon}. The primary destinations wear the MyThuso family.`);
+    /* A row may carry the More hub's line as a third element since 30 September 2026 (Pages.tsx#MoreHub). */
+    if (!new RegExp(`\\['${page}', ${icon}(?:, '[^']*')?\\]`).test(patientShell)) w3a(`the patient's sidebar no longer draws ${page} with ${icon}. The primary destinations wear the MyThuso family.`);
   for (const [page, icon] of [["Overview", "MyThusoDashboardIcon"], ["Book a nurse", "MyThusoQuickIcon"], ["My visits", "MyThusoVisitIcon"], ["Health Passport", "MyThusoHealthIcon"]])
     if (!new RegExp(`\\['${page}', '[^']+', ${icon}\\]`).test(patientShell)) w3a(`the patient's tab bar no longer draws ${page} with ${icon}.`);
   if (!/<NavigationItem key=\{label\} active=\{page === label\}/.test(patientShell)) w3a("the patient's sidebar no longer draws its destinations with the handoff's NavigationItem.");
@@ -37999,7 +38152,7 @@ console.log(
   const restyled = [
     `${android}/java/za/co/mythuso/MainActivity.kt`,
     ...["Theme", "Typography", "Surface", "Components", "SystemStates", "ClinicalChart", "CareScreens", "BookingScreens", "AccountScreens", "PassportScreens",
-      "MedicinesScreens", "CareTipsScreens", "CaptureScreens", "CareVisitScreens", "ClinicalInboxScreens", "ConsultationScreens", "TeleconsultScreens", "GilbertScreens"]
+      "MedicinesScreens", "CareTipsScreens", "CaptureScreens", "CareVisitScreens", "ClinicalInboxScreens", "ConsultationScreens", "TeleconsultScreens", "GilbertScreens", "PatientPagesScreens"]
       .map((f) => `${uiRoot}/${f}.kt`),
   ];
   const components = files(`${uiRoot}/components`).filter((f) => f.endsWith(".kt"));
@@ -38074,6 +38227,59 @@ console.log(
   if (!/ThusoTheme \{/.test(shell)) w5b("MainActivity no longer wraps the app in ThusoTheme.");
 
   console.log(`Wave 5b, Android on the identity · Outfit and Figtree the OFL masters by hash, licensed beside them, routed through ThusoTypography (7 display roles, 8 text roles); ${swept} files on the palette alone with no hex and none of ${retired.length} retired names; ${Object.keys(expected).length} component files with the web's variants, the spinner turning once on the animator scale, availability never colour alone; the GilbertOne logo the master to the byte at ${logoSites} site(s) with the descriptor beside it; the patient's four places on the MyThuso family and ThusoTheme reading all ${tokens.semantic.names.length} roles, light and dark.`);
+}
+
+/* Patient pages on Android — 30 September 2026 */
+/* Mental health and activity, the two of packages/catalog/patient-pages.json's ten pages the Android app draws,
+   in ui/PatientPagesScreens.kt over the generated PatientPagesData.kt. What would let them drift back into a
+   phone that says things the contract does not, or opens a door to nothing:
+     1. The screen types no sentence: every Text(...) and every button label is an expression, never a string
+        literal. The words are the generated contract's, or a line of a contract its derivations name.
+     2. It still renders the review notice and the page refusals, and the crisis card's first control is the
+        door to the emergency screen, written before the crisis lines.
+     3. A door is drawn only where this app has a screen: the targets model/PatientPages.kt routes are the
+        doors the contract does not leave out, and once android is in platforms, drawnOn.android.leftOut
+        lists exactly the doors with no native route, and the catalogue button while there is no catalogue
+        route. A door the contract promises and the phone cannot open, or one the phone hides and the
+        contract does not admit to, fails here. */
+{
+  const ppa = (message) => { throw new Error(`Patient pages on Android: ${message}`); };
+  const pp = JSON.parse(read("packages/catalog/patient-pages.json"));
+  const screenFile = "apps/android/app/src/main/java/za/co/mythuso/ui/PatientPagesScreens.kt";
+  const modelFile = "apps/android/app/src/main/java/za/co/mythuso/model/PatientPages.kt";
+  const strip = (code) => code.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
+  const screen = strip(read(screenFile));
+  const model = strip(read(modelFile));
+
+  /* 1. */
+  const typed = [...screen.matchAll(/\b(Text|ThusoButton|PrimaryAction|MenuRow|StatusPill|ThusoAlert|ThusoAlertText|EmptyStateCard|Heading|Section|RefusedPanel)\(\s*"([^"]*[A-Za-z][^"]*)"/g)];
+  if (typed.length) ppa(`${screenFile} types ${typed.map((m) => JSON.stringify(m[2])).join(", ")} onto a screen. Every sentence is PatientPagesData's, generated from packages/catalog/patient-pages.json.`);
+
+  /* 2. */
+  for (const needle of ["PatientPagesData.Review.notice", "PatientPagesData.refusals", "PatientPagesData.Aside.reviewHeading", "PatientPagesData.Aside.refusalsHeading", "PatientPages.moodRefusal", "PatientPages.noDevice", "Crisis.nothingDials"])
+    if (!screen.includes(needle)) ppa(`${screenFile} no longer renders ${needle}. It is on every page, in the contract's words, until the contract says otherwise.`);
+  const door = screen.indexOf("PrimaryAction(Mental.Crisis.action");
+  const lines = screen.indexOf("CrisisLinesData.lines.forEach");
+  if (door < 0 || lines < 0 || door > lines) ppa(`${screenFile} does not put the door to the emergency screen before the crisis lines. A crisis line is added after the ambulance, never instead of it.`);
+
+  /* 3. */
+  const routesBlock = model.match(/nativeRoutes = mapOf\(([\s\S]*?)\n\s*\)/);
+  if (!routesBlock) ppa(`${modelFile} no longer holds its nativeRoutes map, so nothing says which web pages this phone has a screen for.`);
+  const routed = new Set([...routesBlock[1].matchAll(/"([^"]+)"\s+to\s+"[^"]+"/g)].map((m) => m[1]));
+  const catalogueRouted = !/val catalogueRoute: String\? = null\b/.test(model);
+  const mental = pp.screens["mental-health"];
+  const unrouted = mental.doors.filter((d) => d.kind !== "anchor" && !routed.has(d.target)).map((d) => d.id);
+  for (const [what, target] of [["the crisis card's action", mental.crisis.modal], ["the wearable door", pp.screens.activity.wearable.target], ...pp.screens.activity.actions.map((a) => [`the action "${a.label}"`, a.target])])
+    if (!routed.has(target)) ppa(`${what} opens "${target}", which ${modelFile} routes to no native screen. It would not be drawn, and it is not a part the contract leaves out.`);
+  if ((pp.platforms ?? []).includes("android")) {
+    const left = pp.drawnOn?.android?.leftOut?.["mental-health"];
+    if (!pp.drawnOn?.android) ppa("platforms names android and drawnOn has no android entry saying what it draws and what it leaves out.");
+    const declared = new Set(left?.doors ?? []);
+    for (const id of unrouted) if (!declared.has(id)) ppa(`the mental-health door "${id}" has no native screen on Android and drawnOn.android.leftOut does not say so.`);
+    for (const id of declared) if (!unrouted.includes(id)) ppa(`drawnOn.android.leftOut leaves out the door "${id}", which Android can open. Draw it, or say why in the contract.`);
+    if (Boolean(left?.sessionAction) === catalogueRouted) ppa(`drawnOn.android.leftOut ${left?.sessionAction ? "leaves out" : "draws"} the catalogue button while ${modelFile} ${catalogueRouted ? "has" : "has no"} catalogue route.`);
+  }
+  console.log(`Patient pages on Android · mental health and activity type no sentence, render the review notice and the ${pp.refusals.length} refusals, and open the emergency screen before the crisis lines; ${routed.size} native routes, ${unrouted.length} door(s) with none (${unrouted.join(", ")}) not drawn${(pp.platforms ?? []).includes("android") ? ", as drawnOn.android declares" : " — android is not yet in platforms"}.`);
 }
 
 /* Wave 5a — iOS on the identity */
@@ -38355,4 +38561,38 @@ console.log(
 {
   const { stems: stemsOf, hasSequence: sequenceIn } = await import("../packages/gilbertone/src/stems.ts");
   console.log(checkCasePathway({ read, files, stems: stemsOf, hasSequence: sequenceIn, existsSync }));
+}
+
+/* The laboratory order draws only what a contract holds — 30 September 2026 */
+/* apps/web/src/features/OrderDetails.tsx carried a panel of four typed results, each with a unit, a
+   reference range and, on two of them, a typed "High". A reference range is one of the numbers CLAUDE.md
+   says lives in one place, and no contract holds a laboratory one: records.json#observations holds the
+   ranges for the readings a nurse takes at the door, which are not a laboratory's tests. Nor does a value
+   exist — medicines.json#labs has the synthetic laboratory answer with a reference, never a value. So the
+   order names its tests from the laboratory's menu in vetting.json, says what comes back in the contract's
+   words under the laboratory's own notice, and types no result, unit, range or flag. When a reviewed
+   contract gives a laboratory test its range, the flag is derived from value and range there. */
+{
+  const f = "apps/web/src/features/OrderDetails.tsx";
+  const code = read(f).replace(/\{\/\*[\s\S]*?\*\/\}/g, " ").replace(/\/\*[\s\S]*?\*\//g, " ");
+  const found = [];
+  const unit = code.match(/(?:m?mol|µmol|umol|µg|mg|g)\/(?:L|dL)\b|\b(?:U\/L|fL)\b/);
+  if (unit) found.push(`a laboratory unit (${unit[0]})`);
+  const keyed = code.match(/\b(result|value|range|unit|flag|low|high)\s*:\s*['"`\d<>]/);
+  if (keyed) found.push(`a literal ${keyed[1]}`);
+  const flag = code.match(/['"`](High|Low|Within range|Abnormal)['"`]/);
+  if (flag) found.push(`the flag "${flag[1]}"`);
+  const range = code.match(/['"`][^'"`\n]*(?:\d\s*[–—]\s*\d|[<>≤≥]\s*\d)[^'"`\n]*['"`]/);
+  if (range) found.push(`a range (${range[0]})`);
+  const menu = JSON.parse(read("packages/catalog/vetting.json")).roles.find((r) => r.id === "laboratory")?.scope?.options ?? [];
+  const requested = code.match(/const requested = \[([^\]]*)\];/);
+  if (!requested) found.push("no `requested` list of the tests the order asked for");
+  else for (const [, test] of requested[1].matchAll(/'([^']+)'/g))
+    if (!menu.includes(test)) found.push(`the test "${test}", which is not on the laboratory's menu in packages/catalog/vetting.json`);
+  if (!/scopeFor\('laboratory'\)\?\.options/.test(code)) found.push("tests that are not read from the laboratory's menu");
+  if (!code.includes('<NotConnected of="laboratory-results"')) found.push("no laboratory notice over the order");
+  if (!code.includes("medicinesContract.screen.results.ordered")) found.push("no sentence from packages/catalog/medicines.json saying what the synthetic laboratory returns");
+  if (found.length)
+    throw new Error(`${f}'s laboratory order carries ${found.join("; ")}. No contract holds a laboratory reference range and the synthetic laboratory returns no value, so the order names its tests from the laboratory's menu and types no result, unit, range or flag.`);
+  console.log(`The laboratory order · ${requested[1].match(/'/g).length / 2} tests from the laboratory's menu, no typed result, unit, range or flag, under the laboratory's own notice and in the medicines contract's words.`);
 }

@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { ArrowRight, BadgeCheck, Check, CircleAlert, FlaskConical, Pill as PillIcon, Repeat, ShieldCheck, ShieldX } from 'lucide-react';
 import { NotConnected } from '../components/NotConnected';
-import { Alert, Badge, Button, Card, Checkbox, Field, Select } from '../ui';
+import { Alert, Badge, Button, Card, CardDescription, CardHeader, Checkbox, Field, Select } from '../ui';
 import { OfficeFacts, OfficeNote } from '../surface/Office';
 import { crossReference } from '../lib/dispensing';
-import { can } from '../lib/vetting';
+import { can, scopeFor } from '../lib/vetting';
+import medicinesContract from '../../../../packages/catalog/medicines.json';
 import { subjectsByRole } from '../lib/vetting-fixtures';
 /* The prescription and the lab order a partner fills, on the identity of 28 September 2026 (wave 4d). They
    were in Orders.tsx, which App.tsx imports statically, so every line here and every component it wears was
@@ -102,12 +103,22 @@ export function PrescriptionDetail({ reference = 'RX-0081', open }: { reference?
   <OfficeNote refusal icon={<CircleAlert aria-hidden="true"/>}>Nothing here dispenses anything. No medicine is reserved, no seal is issued, no courier is booked and no patient is told — dispensing is not connected, and the steps above move a picture of a script rather than a script.</OfficeNote>
  </div>;
 }
-const panel = [
- { test: 'Haemoglobin', result: 13.9, unit: 'g/dL', range: '12.0 – 15.5' },
- { test: 'Fasting glucose', result: 6.4, unit: 'mmol/L', range: '3.9 – 5.6', flag: 'High' },
- { test: 'Creatinine', result: 74, unit: 'µmol/L', range: '49 – 90' },
- { test: 'Total cholesterol', result: 5.8, unit: 'mmol/L', range: '< 5.0', flag: 'High' }
-];
+/* What the order asked the laboratory for, and — on purpose — nothing it sent back.
+
+   This was a panel of four typed results, each with a unit, a reference range and, on two of them, a typed
+   "High". No contract holds a laboratory reference range for any of the four. records.json#observations
+   holds the indicative ranges for the readings a nurse takes at the door, and a laboratory's fasting plasma
+   glucose is not the strip in her glucose meter: deciding that one range answers for the other is a clinical
+   decision nobody has made, and it would have turned this "High" into "Within range". Nor does any value
+   exist to show — medicines.json#labs says the synthetic laboratory answers with a reference and never a
+   value, and capabilities.json#laboratory-results that a result shown here is a synthetic reference to
+   nothing. So the tests are the laboratory's own menu in vetting.json, of which this order names the four it
+   asked for; where the results were, the screen says what the synthetic laboratory returns, in the
+   contract's words; and scripts/check-boundaries.mjs fails the build if a result, a unit, a range or a flag
+   is typed here again. When a reviewed laboratory contract gives these tests their ranges, the flag is
+   worked out from the value and the range, never written beside them. */
+const requested = ['Full blood count', 'Fasting glucose', 'Urea and electrolytes', 'Lipogram'];
+const tests = (scopeFor('laboratory')?.options ?? []).filter(test => requested.includes(test));
 export function LabOrderDetail({ reference = 'LAB-0023' }: { reference?: string }) {
  const [released, setReleased] = useState(false);
  const [chosen, setChosen] = useState(laboratories[0].id);
@@ -132,12 +143,11 @@ export function LabOrderDetail({ reference = 'LAB-0023' }: { reference?: string 
    { label: 'Results verified', detail: 'Checked by the laboratory’s reviewing pathologist', at: '5 September, 07:30', state: 'done' },
    { label: 'Released to the patient', detail: released ? 'Visible in the Health Passport with an explanation' : mayRelease.allowed ? 'Held until the requesting doctor releases them' : 'Held. Accreditation lapsed, and a held result stays held', state: released ? 'done' : 'active' }
   ]}/>
-  <NotConnected of="dispensing"/>
-  <Card className="oi-table-wrap"><table className="oi-table">
-   <caption>Reference ranges are indicative and vary by laboratory, age and sex.</caption>
-   <thead><tr><th scope="col">Test</th><th scope="col" className="is-figure">Result</th><th scope="col">Reference range</th><th scope="col">Flag</th></tr></thead>
-   <tbody>{panel.map(r => <tr key={r.test} className={r.flag ? 'is-flagged' : ''}><th scope="row">{r.test}</th><td className="is-figure">{r.result} {r.unit}</td><td>{r.range} {r.unit}</td><td className={r.flag ? 'is-refused' : ''}>{r.flag ?? 'Within range'}</td></tr>)}</tbody>
-  </table></Card>
+  <NotConnected of="laboratory-results"/>
+  <Card>
+   <CardHeader><h4 className="ui-card__title">Tests ordered</h4><CardDescription>{medicinesContract.screen.results.ordered}</CardDescription></CardHeader>
+   <ul className="oi-rows" aria-label="Tests ordered">{tests.map(test => <li key={test}><p className="oi-row"><span className="oi-row__title">{test}</span></p></li>)}</ul>
+  </Card>
   <OfficeNote icon={<CircleAlert aria-hidden="true"/>}>Abnormal results are never pushed to a patient without a clinician’s explanation. Release is a deliberate clinical act, not an automatic notification.</OfficeNote>
   <div className="oi-actions"><Button variant={released ? 'secondary' : 'primary'} disabled={!mayRelease.allowed} aria-describedby={mayRelease.allowed ? undefined : 'release-refusal'} onClick={() => setReleased(!released)} trailingIcon={released ? undefined : <ArrowRight aria-hidden="true"/>}>{released ? 'Withdraw the release' : 'Release with an explanation'}</Button></div>
   {!mayRelease.allowed && <p className="oi-help" id="release-refusal" role="status">Accreditation is not a badge on a partner page. It is the thing that decides whether this button does anything.</p>}

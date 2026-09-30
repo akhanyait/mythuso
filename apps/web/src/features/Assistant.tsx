@@ -59,6 +59,7 @@ import { Card } from "../ui/Card";
 import { IconButton } from "../ui/IconButton";
 import { crisisLines, showsCrisisLines } from "../lib/crisis-lines";
 import { latestCaseFor, useCases } from "../lib/case";
+import { sendOnEnter, useGrowingField } from "../lib/composer";
 import {
   affect,
   answers,
@@ -289,7 +290,7 @@ export default function Assistant({
   const dialog = useRef<HTMLDialogElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const latest = useRef<HTMLLIElement>(null);
-  const field = useRef<HTMLInputElement>(null);
+  const field = useRef<HTMLTextAreaElement>(null);
   /* The transcript's own scroller, and whether the latest answer is out of view in it — above, while
      she reads an older answer, or below, among the chips (30 September 2026, the handoff's scroll
      button). The way back is drawn only then: a control that takes you where you already are does
@@ -347,6 +348,9 @@ export default function Assistant({
   const [consented, setConsented] = useState(!gated);
   const [doctorBox, setDoctorBox] = useState(false);
   const [emergencyBox, setEmergencyBox] = useState(false);
+  /* The composer's field is drawn only once the gate is passed and only has a layout while the panel is
+     open, so both are what it is measured again on, beside the words themselves. */
+  useGrowingField(field, draft, open && consented);
   const conversationRef = useRef(crypto.randomUUID());
   /* Guards the panel's one asynchronous refinement: a counter, bumped on every submit, so a
      service answer that arrives after the conversation has moved on — a second message, a chosen
@@ -568,6 +572,16 @@ export default function Assistant({
       });
     requestAnimationFrame(measure);
   }, [turns, asked, reduced]);
+  /* The conversation's room changes without a scroll — the composer growing with what is written, the
+     voice's controls standing in it — and the way back is measured again when it does, or a field grown
+     over the latest answer would hide it with no button to say so. */
+  useEffect(() => {
+    const box = scroller.current;
+    if (!box || typeof ResizeObserver !== "function") return;
+    const watch = new ResizeObserver(() => measure());
+    watch.observe(box);
+    return () => watch.disconnect();
+  }, [consented]);
   /* The same scroll the effect above makes, on request: only the transcript moves, never the dialog. */
   const toLatest = () => {
     const entry = latest.current;
@@ -588,10 +602,11 @@ export default function Assistant({
        that counts one puts its last entry somewhere focus can never stand — the wrap below then
        never fires and Tab walks out of the modal into the browser's own chrome. The consent gate's
        Accept is disabled until both boxes are ticked, and on 20 September 2026 that was exactly
-       the escape: focus left the panel on the fifth Tab. */
+       the escape: focus left the panel on the fifth Tab. The composer's field is a textarea since it
+       learned to grow on 30 September 2026, and a list that names only inputs would lose it as a stop. */
     const stops = [
       ...dialog.current.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), summary, [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        'button:not([disabled]), summary, [href], input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
       ),
     ].filter((element) => element.getClientRects().length > 0);
     const first = stops[0],
@@ -1340,12 +1355,16 @@ export default function Assistant({
           <form className="as-compose" onSubmit={submit}>
             <label htmlFor="as-input">{conversation.inputLabel}</label>
             <div className="as-field">
-              <input
+              {/* Multi-line since 30 September 2026, the handoff's prompt input: it grows with what is
+                  written, a speech transcript included, to the cap in gilbertone-theme.css, and Enter
+                  still sends (lib/composer.ts). Everything a keyboard may carry away stays off. */}
+              <textarea
                 ref={field}
                 id="as-input"
-                type="text"
+                rows={1}
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={sendOnEnter}
                 placeholder={conversation.inputHint}
                 autoComplete="off"
                 autoCorrect="off"

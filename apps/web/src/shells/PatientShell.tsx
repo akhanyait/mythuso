@@ -72,31 +72,55 @@ export const PATIENT_SURFACE = 'patient-surface';
    the reader's choice, held for the session in memory only, and the group holding the current page
    opens itself again when the page changes.
 
-   To add a row: append `[pageName, Icon]` to the group's `rows`, where pageName is exactly what
-   App.tsx routes on. It becomes a sidebar row and a `?open=` destination together. */
-type NavRow = readonly [string, ComponentType];
+   To add a row: append `[pageName, Icon, line]` to the group's `rows`, where pageName is exactly what
+   App.tsx routes on. It becomes a sidebar row, a row in the phone's More hub (Pages.tsx#MoreHub) and a
+   `?open=` destination together — one table, so the same patient is not shown two maps of one app.
+
+   The third element is the hub's one line under the name, which a phone has the width for and the
+   sidebar does not; the sidebar never draws it. It says what the screen is, never what it promises, and
+   it must not contain another row's name: the hub is searched by a row's words (tests/nav.ts), and a line
+   that names a later row answers for it. tests/patient-shell.spec.ts fails if one does. */
+type NavRow = readonly [string, ComponentType, string?];
 export const navGroups: { id: string; label?: string; rows: NavRow[] }[] = [
  { id: 'overview', rows: [['Overview', MyThusoDashboardIcon]] },
  { id: 'care', label: 'Care', rows: [
-  ['Book a nurse', MyThusoQuickIcon], ['My visits', MyThusoVisitIcon], ['Care plans', Repeat], [patientPageRoutes.reminders.opens, BellRing], [patientScreenRoutes.messages.opens, MyThusoMessagesIcon], [patientScreenRoutes.consultation.opens, Video]
+  ['Book a nurse', MyThusoQuickIcon], ['My visits', MyThusoVisitIcon], ['Care plans', Repeat, 'Ongoing care and subscriptions'],
+  [patientPageRoutes.reminders.opens, BellRing, patientPageRoutes.reminders.sub],
+  [patientScreenRoutes.messages.opens, MyThusoMessagesIcon, 'One thread for each visit, with the nurse on it'],
+  [patientScreenRoutes.consultation.opens, Video, 'When your nurse asks a doctor to join: who, and what you are asked']
  ] },
  { id: 'health', label: 'My Health', rows: [
-  ['Health Passport', MyThusoHealthIcon], [patientPagesHubRoute.opens, BookOpen], [patientScreenRoutes.results.opens, MyThusoResultsIcon], ['Health trends', TrendingUp], ['Care timeline', History],
-  ['Your care team', BadgeCheck], ['What happens to a prescription', MyThusoMedicationIcon], [patientPageRoutes['symptom-checker'].opens, Thermometer],
-  [patientPageRoutes['risk-assessment'].opens, ShieldAlert], [patientPageRoutes.vaccinations.opens, ShieldPlus],
-  [patientPageRoutes['health-timeline'].opens, Milestone], ['Share part of your record', Share2]
+  ['Health Passport', MyThusoHealthIcon], [patientPagesHubRoute.opens, BookOpen, 'The health pages, gathered on one screen'],
+  [patientScreenRoutes.results.opens, MyThusoResultsIcon, 'Your documents, the trend and what readings measure'],
+  ['Health trends', TrendingUp, 'How your readings have changed'], ['Care timeline', History, 'Everything on your record, in order'],
+  ['Your care team', BadgeCheck, 'Who has been in your record'], ['What happens to a prescription', MyThusoMedicationIcon, 'Each step after a doctor signs one'],
+  [patientPageRoutes['symptom-checker'].opens, Thermometer, patientPageRoutes['symptom-checker'].sub],
+  [patientPageRoutes['risk-assessment'].opens, ShieldAlert, patientPageRoutes['risk-assessment'].sub],
+  [patientPageRoutes.vaccinations.opens, ShieldPlus, patientPageRoutes.vaccinations.sub],
+  [patientPageRoutes['health-timeline'].opens, Milestone, patientPageRoutes['health-timeline'].sub],
+  ['Share part of your record', Share2, 'A link that opens part of a grant you made']
  ] },
  { id: 'wellness', label: 'Wellness', rows: [
-  ['Live well', MyThusoMindIcon], [careTipsRoute.opens, Lightbulb], [patientPageRoutes['health-library'].opens, Library],
-  [patientPageRoutes['mental-health'].opens, LifeBuoy], [patientPageRoutes.community.opens, Handshake], [patientPageRoutes.nutrition.opens, Apple], [patientPageRoutes.activity.opens, Footprints]
+  ['Live well', MyThusoMindIcon, 'What you did, in your own words, beside your record'], [careTipsRoute.opens, Lightbulb, 'Short, general tips to read between visits'],
+  [patientPageRoutes['health-library'].opens, Library, patientPageRoutes['health-library'].sub],
+  [patientPageRoutes['mental-health'].opens, LifeBuoy, patientPageRoutes['mental-health'].sub],
+  [patientPageRoutes.community.opens, Handshake, patientPageRoutes.community.sub], [patientPageRoutes.nutrition.opens, Apple, patientPageRoutes.nutrition.sub],
+  [patientPageRoutes.activity.opens, Footprints, patientPageRoutes.activity.sub]
  ] },
  /* The export's "Nurse visit tracker" is the arrival screen, and the export files it with the devices. */
- { id: 'devices', label: 'Devices', rows: [[patientScreenRoutes.devices.opens, Bluetooth], ['Arrival', Navigation]] },
- { id: 'family', label: 'Family & Safety', rows: [['My family', MyThusoFamilyIcon], ['Your emergency card', ShieldCheck], ['Care you sponsor', HandCoins]] },
- { id: 'account', label: 'Account', rows: [
-  ['Thuso Wallet', CreditCard], ['Privacy & settings', MyThusoSettingsIcon], ['Language & access', Languages], ['Help & support', CircleHelp]
+ { id: 'devices', label: 'Devices', rows: [
+  [patientScreenRoutes.devices.opens, Bluetooth, 'The kit a nurse brings, and your phone’s health store'], ['Arrival', Navigation, 'How far along your nurse is by the clock, on the day of a visit']
  ] },
- { id: 'explore', rows: [['Explore MyThuso', Compass]] }
+ { id: 'family', label: 'Family & Safety', rows: [
+  ['My family', MyThusoFamilyIcon, 'Manage your loved ones'], ['Your emergency card', ShieldCheck, 'Allergies and the medicines you take, to show or print'],
+  ['Care you sponsor', HandCoins, 'What has been used, and what it cost']
+ ] },
+ { id: 'account', label: 'Account', rows: [
+  ['Thuso Wallet', CreditCard, 'Balance, activity and sponsored care'], ['Privacy & settings', MyThusoSettingsIcon, 'Your data and app preferences'],
+  ['Language & access', Languages, 'Twelve official languages, and what is honestly offered in each'],
+  ['Help & support', CircleHelp, 'What MyThuso can answer today, and what it cannot']
+ ] },
+ { id: 'explore', rows: [['Explore MyThuso', Compass, 'The full 21-module roadmap']] }
 ];
 /* The sections a link may open. `?open=` on the product's address is how the landing page's hero
    sends a reader to the screen its call to action named, and it is validated against this list
@@ -106,6 +130,8 @@ const tabs = [
  ['Overview', 'Home', MyThusoDashboardIcon], ['Book a nurse', 'Book care', MyThusoQuickIcon], ['My visits', 'Visits', MyThusoVisitIcon],
  ['Health Passport', 'Passport', MyThusoHealthIcon], ['More', 'More', Ellipsis]
 ] as const;
+/* The destinations a phone's tab bar carries, which the More hub leaves out rather than offering twice. */
+export const patientTabSections: readonly string[] = tabs.map(([target]) => target).filter(target => target !== 'More');
 
 type Props = {
  page: string;

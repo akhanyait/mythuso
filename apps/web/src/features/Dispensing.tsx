@@ -137,8 +137,10 @@ export function Dispensing() {
   <NotConnected of="dispensing"/>
   <div className="order-head">
    <span className="service-icon"><PillIcon size={22}/></span>
+   {/* By its reference and the day it was issued, and not by the patient's name and birth date: this screen is the
+       pharmacy's, and medicines.json#partnerQueue says a pharmacy's screen holds no patient (30 September 2026). */}
    <div><h3>{prescription.reference}</h3>
-    <p className="muted">{prescription.patient} · {prescription.patientBorn} · issued {formatDay(prescription.issued)}</p></div>
+    <p className="muted">Issued {formatDay(prescription.issued)}</p></div>
    <Pill tone={open ? 'plain' : 'danger'}>{open ? 'Awaiting handover' : 'Held'}</Pill>
   </div>
 

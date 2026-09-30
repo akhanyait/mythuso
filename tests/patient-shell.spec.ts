@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { goSection } from './nav';
+import { goSection, PATIENT_TAB_LABEL } from './nav';
 
 /* The patient's shell in the Lovable export's arrangement (30 September 2026): the sidebar's labelled groups
  * that fold, the top bar's search and profile chip, Log out at the sidebar's foot, the footer's Privacy, and
@@ -142,4 +142,45 @@ test('nothing in the chrome scrolls sideways at 320px', async ({ page }) => {
   const main = document.querySelector('main')!;
   return document.documentElement.scrollWidth <= window.innerWidth && main.scrollWidth <= main.clientWidth;
  })).toBe(true);
+});
+
+/* One map of the app on both widths (30 September 2026). The phone's More hub draws the sidebar's own table,
+   so the groups and rows it shows are the sidebar's, in its order and under its names, less the four
+   destinations the tab bar carries. Both are read from the page rather than from a list typed here: the
+   sidebar is in the document on a phone, only not displayed, so what is compared is what each one renders. */
+test('the More hub on a phone is the sidebar\'s groups and rows, less the tabs', async ({ page }) => {
+ await page.goto('/app/');
+ test.skip(await isWide(page), 'A wide screen has the sidebar and no More hub.');
+ const tabbed = Object.keys(PATIENT_TAB_LABEL);
+ const sidebarMap = await page.evaluate(() => [...document.querySelectorAll('.psb-nav > div')].map(group => ({
+  label: group.querySelector('.psb-group__toggle span')?.textContent ?? null,
+  rows: [...group.querySelectorAll('.ui-nav-item__label')].map(label => label.textContent ?? '')
+ })));
+ const expected = sidebarMap.map(group => ({ ...group, rows: group.rows.filter(row => !tabbed.includes(row)) })).filter(group => group.rows.length);
+ /* A sidebar that rendered nothing would make the comparison vacuous. */
+ expect(expected.length).toBeGreaterThan(5);
+
+ await page.locator('.tabbar button').last().click();
+ await expect(page.getByRole('heading', { level: 1, name: 'More' })).toBeVisible();
+ const hub = await page.evaluate(() => [...document.querySelectorAll('main .more-group')].map(group => ({
+  label: group.querySelector('h2')?.textContent ?? null,
+  rows: [...group.querySelectorAll('.menu-row strong')].map(name => name.textContent ?? '')
+ })));
+ /* The sidebar's groups first and all of them, then one group of the top bar's and the foot's shortcuts. */
+ expect(hub.slice(0, expected.length)).toEqual(expected);
+ expect(hub).toHaveLength(expected.length + 1);
+ expect(hub.at(-1)!.label).toBe('Shortcuts');
+ for (const name of tabbed) expect(hub.flatMap(group => group.rows)).not.toContain(name);
+ /* The emergency row is not navigation, and on a phone it comes before all of it. */
+ await expect(page.locator('main .menu-row').first()).toContainText('Emergency & urgent care');
+
+ /* Every row is the first one its own name finds, the way tests/nav.ts#goSection looks for it — a line under
+    an earlier row that named a later one would answer for it. Matched as Playwright's hasText matches: case
+    folded, whitespace collapsed, anywhere in the row. */
+ const shadowed = await page.evaluate(names => {
+  const rows = [...document.querySelectorAll('main .menu-row')];
+  const text = (el: Element) => (el.textContent ?? '').replace(/\s+/g, ' ').toLowerCase();
+  return names.filter(name => rows.find(row => text(row).includes(name.toLowerCase()))?.querySelector('strong')?.textContent !== name);
+ }, expected.flatMap(group => group.rows));
+ expect(shadowed).toEqual([]);
 });

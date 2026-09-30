@@ -33,7 +33,7 @@ test('privacy and settings is one page in four tabs, and the profile is the noti
   await expect(page.getByRole('switch', { name: /sms/i })).toHaveCount(0);
 
   await tabs.getByRole('tab', { name: 'Preferences' }).click();
-  await expect(page.getByRole('switch', { name: 'Care reminders' })).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByRole('switch', { name: 'Care reminders' })).toBeChecked();
   expect(await noSidewaysScroll(page)).toEqual([]);
 });
 
@@ -109,4 +109,45 @@ test('live well opens with four doors to real pages and a banner to the care tip
   await page.goto('/app/?open=live-well');
   await page.locator('.wb-banner').getByRole('button').click();
   await expect(page).toHaveTitle(/^Care tips/);
+});
+
+/* The furniture those three screens kept after the morning's rearrangement, gone (30 September 2026): Privacy's
+   panels, switches and rows, My family's pills, note and button, and Live well's panels, field and buttons are the
+   shared components now. What is held is that none of the old classes came back, that the preferences still
+   switch, that the family members are still rows, and that each screen still fits the phone. */
+const legacy = 'main :is(.panel, .switch, .setting-row, .privacy-note, button.primary, button.secondary, .text-button, .pill)';
+test('privacy, my family and live well wear the shared components and none of the old furniture', async ({ page }) => {
+  await page.goto('/app/');
+  await goSection(page, 'Privacy & settings');
+  const tabs = page.getByRole('tablist', { name: 'Settings' });
+  for (const tab of ['Profile', 'Preferences', 'Privacy']) {
+    await tabs.getByRole('tab', { name: tab }).click();
+    await expect(page.getByRole('tabpanel').locator('.ui-card').first()).toBeVisible();
+    await expect(page.locator(legacy), `Privacy & settings · ${tab}`).toHaveCount(0);
+  }
+  await expect(page.locator('main .menu-row')).toHaveCount(0);
+  await expect(page.getByRole('tabpanel').locator('.ui-alert')).toContainText('Controls on a screen are not compliance.');
+  await tabs.getByRole('tab', { name: 'Preferences' }).click();
+  const updates = page.getByRole('switch', { name: 'Product updates' });
+  await expect(updates).not.toBeChecked();
+  await page.locator('.settings-switches .ui-checkbox').filter({ hasText: 'Product updates' }).click();
+  await expect(updates).toBeChecked();
+  expect(await noSidewaysScroll(page)).toEqual([]);
+
+  await goSection(page, 'My family');
+  /* Less the guardians' list, which is Guardian.tsx's InvitationList and was not part of this change: its
+     panel, pills and Revoke buttons are still the old classes, and this says so rather than counting them. */
+  await expect(page.locator(legacy).filter({ hasNot: page.locator('.invitation-row') }).and(page.locator(':not(.invitation-row *)')), 'My family').toHaveCount(0);
+  /* Members of the family stay rows — a recorded decision — and their standing is a badge in words. */
+  await expect(page.locator('.family-member')).toHaveCount(3);
+  await expect(page.locator('.family-member').first().locator('.ui-badge')).toHaveText('Your own record');
+  await expect(page.getByRole('button', { name: 'Invite someone' })).toHaveClass(/ui-button/);
+  expect(await noSidewaysScroll(page)).toEqual([]);
+
+  await goSection(page, 'Live well');
+  await expect(page.locator('.wb-write.ui-card textarea.ui-textarea')).toBeVisible();
+  await expect(page.locator(legacy), 'Live well').toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Write this down' })).toHaveClass(/ui-button/);
+  await expect(page.locator('.wb-remove').first()).toHaveClass(/ui-button/);
+  expect(await noSidewaysScroll(page)).toEqual([]);
 });

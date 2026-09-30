@@ -3,7 +3,7 @@
    each screen over on the first press — see deferred.tsx. */
 import { useId, useRef, useState } from 'react';
 import { ArrowRight, Ban, Brain, CalendarDays, HeartHandshake, Library, Moon, MessageSquareQuote, NotebookPen, PersonStanding, Tablets, Trash2, Utensils } from 'lucide-react';
-import { Button } from '../ui';
+import { Alert, Button, Card, Textarea } from '../ui';
 import { patientPageRoutes } from '../lib/patient-pages-routes.generated';
 import { careTipsRoute } from '../lib/care-tips-route.generated';
 import './wellbeing-hub.css';
@@ -99,9 +99,9 @@ export function LiveWell({ entries, onWrite, onRemove, nextVisit, viewVisit, nav
    <div className="wb-main">
     {/* The sentence the whole feature stands on, above the field rather than in the small print
         under the thing somebody has already typed into it. */}
-    <div className="privacy-note wb-standing"><Ban size={19}/>
-     <span>{refusal('no-diagnosis')} {whatItIs.isNot}</span>
-    </div>
+    {/* The shared Alert in its plain variant rather than a warning: this says what the screen is not, and a
+        person writing about a bad week has not done anything that needs warning about. */}
+    <Alert className="wb-standing" title={refusal('no-diagnosis')} icon={<Ban aria-hidden="true"/>}>{whatItIs.isNot}</Alert>
     <Composer onWrite={onWrite}/>
     <SectionTitle title="What you have written"/>
     <p className="helper wb-record-lead"><CalendarDays size={16}/><span>{timeline.statement}</span></p>
@@ -111,7 +111,7 @@ export function LiveWell({ entries, onWrite, onRemove, nextVisit, viewVisit, nav
     {/* The useful thing a diary does is get read out loud in a room with a nurse in it. So the whole
         of this is a door to the visit, and the sentence under it is the contract's own account of
         how little happens: nothing is copied anywhere until a clinician records it. */}
-    <div className="panel wb-bring">
+    <Card padding="lg" className="wb-bring">
      <div className="wb-bring-head"><span className="tile-icon"><NotebookPen size={19}/></span>
       <div><h3>{takingItToAClinician.statement}</h3><p>{takingItToAClinician.howItWorks}</p></div></div>
      {/* Secondary, both of them. The lime pill is the one bright thing on a screen and it belongs to
@@ -120,7 +120,7 @@ export function LiveWell({ entries, onWrite, onRemove, nextVisit, viewVisit, nav
      {nextVisit
       ? <Button variant="secondary" trailingIcon={<ArrowRight aria-hidden="true"/>} onClick={() => viewVisit(nextVisit)}>Open my next visit</Button>
       : <Button variant="secondary" trailingIcon={<ArrowRight aria-hidden="true"/>} onClick={() => navigate('Book a nurse')}>Book a visit</Button>}
-    </div>
+    </Card>
     <SectionTitle title="What MyThuso will not do here"/>
     {/* Seven of the ten. The other three are rendered where each of them bites — beside the heading,
         beside the field, and above the record — because a refusal read at the foot of a page by
@@ -150,7 +150,7 @@ function Composer({ onWrite }: { onWrite: (habit: string, words: string) => void
   setSaid('Written down. It is at the top of your record.');
   field.current?.focus();
  };
- return <section className="panel glass lead wb-write rise-2">
+ return <Card padding="lg" className="wb-write rise-2">
   <fieldset className="wb-choose">
    <legend>What do you want to write down?</legend>
    <div className="wb-habits">{habits.map(h => {
@@ -165,14 +165,14 @@ function Composer({ onWrite }: { onWrite: (habit: string, words: string) => void
   {/* The prompt is the field's label rather than a heading above it, so a screen reader hears the
       question the contract asks instead of "text field". */}
   <label className="wb-prompt" htmlFor={fieldId}>{chosen.prompt}</label>
-  <textarea id={fieldId} ref={field} value={words}
+  <Textarea id={fieldId} ref={field} value={words}
    onChange={event => { setWords(event.currentTarget.value); setSaid(''); }}/>
   <div className="wb-write-foot">
-   <button className="primary" onClick={submit}>Write this down<ArrowRight size={17}/></button>
+   <Button trailingIcon={<ArrowRight aria-hidden="true"/>} onClick={submit}>Write this down</Button>
    <p className="wb-said" role="status">{said}</p>
   </div>
   <p className="helper wb-private"><Ban size={16}/><span>{refusal('no-sharing-by-default')}</span></p>
- </section>;
+ </Card>;
 }
 
 function Record({ entries, onRemove }: { entries: Entry[]; onRemove: (id: string) => void }) {
@@ -191,10 +191,8 @@ function Record({ entries, onRemove }: { entries: Entry[]; onRemove: (id: string
         {/* At the trailing edge, and the word rather than the icon alone: somebody who cannot take
             back a sentence they wrote about their own body has been given a file rather than a
             diary, and somebody who deletes one by brushing past a bin has been given neither. */}
-        <button className="text-button wb-remove" onClick={() => onRemove(entry.id)}
-         aria-label={`Remove what you wrote about ${habitById(entry.habit).name.toLowerCase()} at ${timeOf(entry.at)}`}>
-         <Trash2 size={15} aria-hidden="true"/>Remove
-        </button></div>
+        <Button variant="ghost" size="sm" className="wb-remove" leadingIcon={<Trash2 aria-hidden="true"/>} onClick={() => onRemove(entry.id)}
+         aria-label={`Remove what you wrote about ${habitById(entry.habit).name.toLowerCase()} at ${timeOf(entry.at)}`}>Remove</Button></div>
        <p>{entry.words}</p>
       </li>)}</ul>
      </section>)}
@@ -208,12 +206,12 @@ export function BroughtToTheVisit({ entries }: { entries: Entry[] }) {
  if (!entries.length) return null;
  return <>
   <SectionTitle title="What you wrote in Live well"/>
-  <div className="panel wb-brought">
+  <Card padding="lg" className="wb-brought">
    <p className="helper"><NotebookPen size={16}/><span>{takingItToAClinician.howItWorks}</span></p>
    <ul>{days(entries).map(day => <li key={day.offset}>
     <span className="wb-brought-day">{dayLabelOf(day.offset)}</span>
     {day.entries.map(entry => <p key={entry.id}><strong>{habitById(entry.habit).name}.</strong> {entry.words}</p>)}
    </li>)}</ul>
-  </div>
+  </Card>
  </>;
 }

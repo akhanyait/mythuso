@@ -120,6 +120,25 @@
   align-items: center;
   gap: var(--space-8);
 }
+/* Below 360 pixels the written Pause motion pill and the close do not fit beside the logo: on a 320-pixel
+   phone the close stood 26 pixels past the sheet's edge, where the sheet's own frame scrolled sideways to
+   reach it. The control keeps its written label as its accessible name and loses it from the screen, the
+   pattern MotionPause.tsx documents and the patient's panel already uses (assistant.css, the head's bar). */
+@media (max-width: 359px) {
+  .public-assistant-controls .m-pause {
+    width: 44px;
+    justify-content: center;
+    padding: 0;
+  }
+  .public-assistant-controls .m-pause span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
 .public-assistant-caption {
   display: grid;
   grid-template-columns: 56px minmax(0, 1fr);
@@ -210,6 +229,8 @@
   border-radius: var(--r-card) var(--r-card) var(--r-sm) var(--r-card);
   background: var(--brand-ink);
   color: var(--surface);
+  /* A question written over several lines in the growing field keeps its lines once it is sent. */
+  white-space: pre-line;
 }
 .public-assistant-answer {
   padding: var(--space-12);
@@ -270,24 +291,51 @@
   color: var(--brand-ink);
   font-weight: 600;
 }
+/* Send stands level with the field's last line, so it stays where the thumb left it while the words grow. */
 .public-assistant form > div {
   display: flex;
+  align-items: flex-end;
   gap: var(--space-8);
   margin-top: var(--space-4);
 }
-.public-assistant input {
+/* The field grows with what is written, 30 September 2026, as the patient's panel's does (lib/composer.ts
+   sets its height): five lines, three on a short screen, then it scrolls inside itself, so the
+   conversation above keeps its room. One line sits centred in the 44-pixel floor the single-line field
+   had, inside its one-pixel border. */
+.public-assistant form {
+  --pa-field-lines: 5;
+}
+@media (max-height: 800px) {
+  .public-assistant form {
+    --pa-field-lines: 3;
+  }
+}
+.public-assistant textarea {
+  display: block;
   width: 100%;
   min-width: 0;
   min-height: 44px;
-  padding: var(--space-8) var(--space-12);
+  max-height: calc(var(--pa-field-lines) * 1.5em + 44px - 1.5em);
+  padding: calc((44px - 1.5em) / 2 - 1px) var(--space-12);
   border: 1px solid var(--pa-line);
   border-radius: var(--r-control);
   background: var(--surface);
   color: var(--brand-ink);
+  font: inherit;
   font-size: 16px;
+  line-height: 1.5;
+  resize: none;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+}
+/* Empty, it is one line: at 320 pixels the hint is wider than the field, and it is cut at the field's
+   edge, as the single-line field cut it, rather than wrapped onto a second line nobody has written. */
+.public-assistant textarea:placeholder-shown {
+  overflow: hidden;
+  white-space: nowrap;
 }
 /* The field's one calm ring, as the panel's composer wears it. */
-.public-assistant input:focus-visible {
+.public-assistant textarea:focus-visible {
   outline: 2px solid var(--brand-green);
   outline-offset: 2px;
   box-shadow: none;

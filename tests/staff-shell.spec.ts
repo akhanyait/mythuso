@@ -136,6 +136,35 @@ for (const role of ['Nurse', 'Doctor'] as const) {
   });
 }
 
+/* A nurse walking up to a door has not started a visit, and the strip inside one was the only panic she had. The
+   bar's panic is on every one of her pages at both widths — never a row in the More hub — and a 44px target. The
+   list of her pages is the jump's, which names every destination the workspace has. */
+test('the nurse has a panic in the bar on every page, never behind More; no other role has one', async ({ page }) => {
+  await openWorkspace(page, 'Nurse');
+  const pages = await page.locator('.staff-jump--bar .staff-jump__option > span').allTextContents();
+  expect(pages.length).toBeGreaterThan(10);
+  const press = page.locator('.staff-topbar').getByRole('button', { name: safety.panic.press, exact: true });
+  for (const name of pages) {
+    await goSection(page, name);
+    await expect(page, `on ${name}`).toHaveTitle(new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} · Nurse`));
+    await expect(press, `on ${name}`).toBeInViewport();
+    const box = await press.boundingBox();
+    expect(box!.width).toBeGreaterThanOrEqual(44);
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+    expect(await noSidewaysScroll(page), `on ${name}`).toEqual([]);
+  }
+  if (await isPhone(page)) {
+    await page.getByRole('navigation', { name: 'Primary' }).getByRole('button', { name: 'More', exact: true }).click();
+    await expect(page.locator('.menu-row').filter({ hasText: safety.panic.press })).toHaveCount(0);
+    await expect(press).toBeInViewport();
+  }
+  for (const role of ['Doctor', 'Pharmacy partner']) {
+    await chooseRole(page, role);
+    await expect(page.locator('.staff-topbar')).toBeVisible();
+    await expect(page.locator('.staff-topbar').getByRole('button', { name: safety.panic.press, exact: true })).toHaveCount(0);
+  }
+});
+
 test('the partner has no bell, because it has no Messages to open', async ({ page }) => {
   await openWorkspace(page, 'Partner');
   await expect(page.getByRole('button', { name: 'Open Messages' })).toHaveCount(0);

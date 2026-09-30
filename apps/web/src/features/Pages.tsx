@@ -1,5 +1,5 @@
 import { Component, createContext, lazy, Suspense, useContext, useState, type CSSProperties, type ReactNode } from 'react';
-import { Ambulance, ArrowRight, ArrowUpRight, Ban, Bell, BookOpen, CalendarClock, Check, ChevronRight, CircleHelp, Clock3, CreditCard, Eye, FileCheck, FileText, Globe, HandCoins, HeartHandshake, History, Languages, LayoutGrid, LockKeyhole, LogOut, MapPin, Navigation, NotebookPen, PenLine, Plus, RefreshCw, Search, Settings2, ShieldCheck, Sparkles, Stethoscope, Trash2, TriangleAlert, UserPlus, Users, Wallet, Zap, MessageSquare, FlaskConical, Bluetooth, LifeBuoy, Footprints, Video } from 'lucide-react';
+import { Ambulance, ArrowRight, ArrowUpRight, Ban, Bell, CalendarClock, Check, ChevronRight, CircleHelp, Clock3, CreditCard, Eye, FileCheck, FileText, Globe, HandCoins, HeartHandshake, History, LockKeyhole, LogOut, MapPin, Navigation, PenLine, Plus, RefreshCw, Search, ShieldCheck, Sparkles, Stethoscope, Trash2, TriangleAlert, UserPlus, Users, Wallet, Zap } from 'lucide-react';
 import { Pill, SectionTitle, ServiceIcon, tintOf } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { EmptyState, Skeleton, StateBlock, useOffline, type LoadState } from '../components/States';
@@ -10,8 +10,6 @@ import { Metric, Metrics } from '../surface/Surface';
 import { HeroCarousel } from '../components/HeroCarousel';
 import { FamilyScene, PatientPortrait } from '../components/Portraits';
 import { modules, services, money, type Service } from '../lib/catalog';
-import { patientPageRoutes, patientPagesHubRoute } from '../lib/patient-pages-routes.generated';
-import { patientScreenRoutes } from '../lib/patient-screens-routes';
 import type { DemoVisit } from './Booking';
 import { endTime, isoIn, labels as schedulingLabels, longDateOf, shortDateOf, slots, visitEnds, weekdayOf } from '../lib/scheduling';
 import { holdStatus } from '../lib/interpreting';
@@ -22,12 +20,15 @@ import { CancelledVisit, PastVisit } from './VisitSummary';
 import { nurseOfVisit } from '../lib/arrival';
 import type { Thread } from '../../../../packages/engines/src/access/domain/thread.ts';
 import { ClinicianProfile } from '../components/ClinicianProfile';
-import { Button, Tab, TabsList } from '../ui';
+import { Alert, Badge, Button, Card, CardContent, CardDescription, CardHeader, Checkbox, Tab, TabsList } from '../ui';
 import { Access } from './Access';
 import { capability } from '../lib/capabilities';
 import { HealthPanel, type PassportTab } from './Passport';
 import businessModel from '../../../../packages/catalog/business-model.json';
 import { OPEN_PARAM, slugOfSection } from '../lib/roles';
+/* The sidebar's table, which the More hub draws on a phone; both modules are on the patient's first load. */
+import { navGroups, patientTabSections } from '../shells/PatientShell';
+import { useT } from '../lib/i18n';
 /* Verify's complaint entry arrives on a dynamic import with its own words, so a past visit does not carry them. */
 const ComplaintEntry = lazy(() => import('./VerifyInService').then(m => ({ default: m.ComplaintEntry })));
 /* One service, one card, one symbol.
@@ -319,8 +320,8 @@ export function Family({open,navigate,members,invitations,onRevoke}:{open:(s:str
   <button className="shortcut-row family-member" key={`${n}-${i}`} onClick={()=>open(`Family profile: ${n}`)}>
    <span className={`avatar ${i===0?'':i%2?'peach':'blue'}`}>{n.split(' ').map(s=>s[0]).slice(0,2).join('')}</span>
    <span className="shortcut-text"><h3>{n}</h3><small>{relationOf(i)}</small></span>
-   <Pill tone={i===0?'teal':'sky'}>{i===0?'Your own record':'Booking only'}</Pill>
-   <ChevronRight size={17}/>
+   <Badge variant={i===0?'primary':'neutral'}>{i===0?'Your own record':'Booking only'}</Badge>
+   <ChevronRight size={17} aria-hidden="true"/>
   </button>)}
   <button className="shortcut-row add-member" onClick={()=>open('Add a family member')}><span className="tile-icon"><Plus size={20}/></span><span className="shortcut-text"><strong>Add a family member</strong><small>Grow your circle of care</small></span><ChevronRight size={17}/></button>
  </div>
@@ -331,14 +332,14 @@ export function Family({open,navigate,members,invitations,onRevoke}:{open:(s:str
  <SectionTitle title="Care you pay for"/>
  <div className="shortcut-list">
   <button className="shortcut-row" onClick={()=>navigate('Care you sponsor')}>
-   <span className="service-icon"><HandCoins size={20}/></span>
+   <span className="tile-icon"><HandCoins size={20}/></span>
    <span className="shortcut-text"><strong>Care you sponsor</strong><small>What has been used, what it cost, and what paying for it does not let you see.</small></span>
    <ChevronRight size={17}/>
   </button>
  </div>
- <div className="section-title space-top"><h2>Guardians and shared access</h2><button className="secondary" onClick={()=>open('Invite a guardian')}><UserPlus size={16}/>Invite someone</button></div>
+ <div className="section-title space-top"><h2>Guardians and shared access</h2><Button variant="secondary" leadingIcon={<UserPlus aria-hidden="true"/>} onClick={()=>open('Invite a guardian')}>Invite someone</Button></div>
  {invitations.length?<InvitationList invitations={invitations} onRevoke={onRevoke}/>:<EmptyState title="Nobody else has access" body="When you invite a guardian or a family member, their access appears here with exactly what they can see and when it ends." action="Invite someone" onAction={()=>open('Invite a guardian')}/>}
- <div className="privacy-note"><LockKeyhole size={19}/>Paying for a family member’s care does not automatically grant access to their health records.</div>
+ <Alert className="family-note" title="Paying for a family member’s care does not automatically grant access to their health records." icon={<LockKeyhole aria-hidden="true"/>}/>
  {/* The export's photo banner, as decoration and nothing else: no caption about anybody, lazy so it is fetched
      only by a reader who scrolls this far, and marked for what it is. The members above stay rows by decision. */}
  <figure className="family-banner"><img src="/banners/family-panorama.webp" alt="" loading="lazy"/><span className="care-photo-note">AI-generated illustrative image</span></figure></>}
@@ -483,9 +484,14 @@ const settingsTabs:SettingsTab[]=['Profile','Preferences','Privacy','Language & 
 export function Privacy({open,initial='Privacy'}:{open:(s:string)=>void;initial?:SettingsTab}) {const [tab,setTab]=useState<SettingsTab>(initial);const [choices,setChoices]=useState<Record<string,boolean>>({'Care reminders':true,'Wearable readings':false,'Product updates':false});const accounts=capability('accounts');return <><PageHeading eyebrow="YOUR PRIVACY MATTERS" title="Your data. Your choices." description="Clear choices about how your information is used."/>
  <TabsList className="settings-tabs" aria-label="Settings">{settingsTabs.map(t=><Tab key={t} id={`settings-tab-${slugOfSection(t)}`} aria-controls="settings-panel" active={tab===t} onClick={()=>setTab(t)}>{t}</Tab>)}</TabsList>
  <div key={tab} id="settings-panel" role="tabpanel" aria-labelledby={`settings-tab-${slugOfSection(tab)}`} className="settings-panel m-stagger">
- {tab==='Profile'?<><NotConnected of="accounts"/><section className="panel settings-profile"><div className="profile-summary"><span className="avatar"><PatientPortrait/></span><div><h2>Lerato Molefe</h2><p>Fictional patient · Personal account</p></div></div><SectionTitle title="Why there is nothing to edit here"/><ul className="settings-reasons">{accounts.blockedBy.map(r=><li key={r}>{r}</li>)}</ul></section></>
- :tab==='Preferences'?<section className="panel"><SectionTitle title="Sharing preferences"/><p className="muted">Clinical processing is a separate purpose with its own lawful basis, and it is not switched by anything on this card.</p>{Object.entries(choices).map(([k,v])=><div className="setting-row" key={k}><span><strong>{k}</strong><small>{k==='Care reminders'?'Visit and care-plan reminders':k==='Wearable readings'?'Optional health trends from your devices':'Optional news and offers'}</small></span><button role="switch" aria-checked={v} aria-label={k} className={`switch ${v?'on':''}`} onClick={()=>setChoices({...choices,[k]:!v})}><span/></button></div>)}</section>
- :tab==='Privacy'?<><section className="panel"><SectionTitle title="You’re in control"/>{rights.map(([label,detail,Icon,target])=><button className="menu-row" key={label} onClick={()=>open(target)}><span className="tile-icon"><Icon size={20}/></span><span><strong>{label}</strong><small>{detail}</small></span><ChevronRight size={17}/></button>)}</section><div className="privacy-note"><LockKeyhole size={19}/>Controls on a screen are not compliance. POPIA also asks for governance, contracts, a lawful basis for each purpose and technical safeguards somebody has verified.</div></>
+ {/* The three panels are the shared Card, the preferences the shared Checkbox and the note the shared Alert
+     (30 September 2026), which is what every settings page in the portal is drawn from — the founder asked for
+     one look across them. A preference keeps the switch role it had: it is a setting that is on or off, and a
+     screen reader says so; the Checkbox is the native input under it, so Space and the announced state are the
+     browser's, and its label is the 44-pixel target rather than the sixteen-pixel box. */}
+ {tab==='Profile'?<><NotConnected of="accounts"/><Card className="settings-profile"><CardContent><div className="profile-summary"><span className="avatar"><PatientPortrait/></span><div><h2>Lerato Molefe</h2><p>Fictional patient · Personal account</p></div></div><h2 className="ui-card__title">Why there is nothing to edit here</h2><ul className="settings-reasons">{accounts.blockedBy.map(r=><li key={r}>{r}</li>)}</ul></CardContent></Card></>
+ :tab==='Preferences'?<Card><CardHeader><h2 className="ui-card__title">Sharing preferences</h2><CardDescription>Clinical processing is a separate purpose with its own lawful basis, and it is not switched by anything on this card.</CardDescription></CardHeader><div className="settings-switches">{Object.entries(choices).map(([k,v])=><Checkbox key={k} role="switch" aria-label={k} aria-describedby={`pref-${slugOfSection(k)}`} checked={v} onChange={e=>setChoices({...choices,[k]:e.target.checked})} label={<span className="settings-switch"><strong>{k}</strong><small id={`pref-${slugOfSection(k)}`}>{k==='Care reminders'?'Visit and care-plan reminders':k==='Wearable readings'?'Optional health trends from your devices':'Optional news and offers'}</small></span>}/>)}</div></Card>
+ :tab==='Privacy'?<><Card><CardHeader><h2 className="ui-card__title">You’re in control</h2></CardHeader><ul className="settings-rows">{rights.map(([label,detail,Icon,target])=><li key={label}><button className="settings-row" onClick={()=>open(target)}><span className="tile-icon"><Icon size={20}/></span><span><strong>{label}</strong><small>{detail}</small></span><ChevronRight size={17} aria-hidden="true"/></button></li>)}</ul></Card><Alert title="Controls on a screen are not compliance." icon={<LockKeyhole aria-hidden="true"/>}>POPIA also asks for governance, contracts, a lawful basis for each purpose and technical safeguards somebody has verified.</Alert></>
  :<Access level={2}/>}
  </div></>}
 /* Money that does not exist, said out loud. The activity list goes through the same StateBlock as
@@ -702,34 +708,34 @@ export function Explore({open,onOnboarding,navigate}:{open:(s:string)=>void;onOn
   <button className="panel module-card highlight" onClick={onOnboarding}><Pill tone="plain">Phase 1</Pill><h3>Set up your account<ArrowUpRight size={17}/></h3><p>Sign-up, the one-time code, your identity number, and how to get back in if you lose the phone.</p><small>Full-screen flow</small></button>
   {modules.map(([n,d,p])=><button className="panel module-card" key={n} onClick={()=>open(n)}><Pill tone="plain">{p}</Pill><h3>{n}<ArrowUpRight size={17}/></h3><p>{d}</p><small>{p==='Phase 1'?'Being built now':'On the roadmap'}</small></button>)}
  </div></>}
-const menuGroups=[
- /* Live well first in this group, because on a phone this hub is the only door to it — the tab bar
-    holds five targets at 320px and the sixth would have come out of the four a person navigates by.
-    The sub-line says what the screen is rather than selling it: there is nothing to sell. */
- [['Live well','What you did, in your own words, beside your record',NotebookPen,'Live well'],
-  ['My family','Manage your loved ones',Users,'My family'],['Care plans','Ongoing care and subscriptions',HeartHandshake,'Care plans'],['Thuso Wallet','Balance, activity and sponsored care',CreditCard,'Thuso Wallet'],[patientPagesHubRoute.opens,'Symptom checker, health library, vaccinations and more',BookOpen,patientPagesHubRoute.opens],
-  /* The screens the Lovable export drew and this build did not have. On a phone this hub is their door, as the
-     sidebar is on a wide screen; the names are the router's, and two of the lines are the Your health hub's. */
-  [patientScreenRoutes.messages.opens,'One thread for each visit, with the nurse on it',MessageSquare,patientScreenRoutes.messages.opens],
-  [patientScreenRoutes.consultation.opens,'When your nurse asks a doctor to join: who, and what you are asked',Video,patientScreenRoutes.consultation.opens],
-  [patientScreenRoutes.results.opens,'Your documents, the trend and what readings measure',FlaskConical,patientScreenRoutes.results.opens],
-  [patientScreenRoutes.devices.opens,'The kit a nurse brings, and your phone\u2019s health store',Bluetooth,patientScreenRoutes.devices.opens],
-  [patientPageRoutes['mental-health'].opens,patientPageRoutes['mental-health'].sub,LifeBuoy,patientPageRoutes['mental-health'].opens],
-  [patientPageRoutes.activity.opens,patientPageRoutes.activity.sub,Footprints,patientPageRoutes.activity.opens]],
- [['Care area','Rosebank, Johannesburg',MapPin,'@Your location'],['Notifications','Visit updates and messages',Bell,'@Notifications'],['Privacy & settings','Your data and app preferences',Settings2,'Privacy & settings'],['Language','Read MyThuso your way',Globe,'@Language'],['Language & access','Twelve official languages, and what is honestly offered in each',Languages,'Language & access']],
- /* Emergency first in this group, and in the shell's sidebar as well. It was the fourteenth card
-    inside a roadmap page — the most complete journey in the product behind the most clicks in it,
-    on the one pathway where a person cannot afford to hunt. */
- [['Emergency & urgent care','The ambulance number first, then what MyThuso can do',Ambulance,'@Emergency & urgent care'],['Explore MyThuso','The full 21-module roadmap',LayoutGrid,'Explore MyThuso'],['Help & support','What MyThuso can answer today, and what it cannot',CircleHelp,'Help & support'],['Demo login','Open MyThuso as a nurse, a doctor, a partner or the back office',Stethoscope,'@Switch workspace']]
-] as const;
+/* The phone's More hub draws the sidebar's own table (shells/PatientShell.tsx#navGroups): its groups, in
+   its order, under its headings, with its names — less the four destinations the tab bar already carries,
+   and less a group those leave empty. Until 30 September it kept a table of its own, grouped differently,
+   so the same patient saw one map of the app on a laptop and another on a phone, and a screen added to the
+   sidebar was not on the phone at all.
+
+   Two things around the groups are not in the sidebar's navigation, because on a wide screen they are not
+   navigation. The emergency row sits in the sidebar's foot, pinned where it is always seen; on a phone the
+   nearest thing to pinned is first, so it comes straight after the profile rather than thirty rows down, on
+   the one pathway where a person cannot afford to hunt. And the shortcuts at the end are the controls a wide
+   screen draws in its top bar and its foot — the care area, the bell, the language and the demo login —
+   which a 390px bar has no room for. */
+const hubShortcuts=[['Care area','Rosebank, Johannesburg',MapPin,'Your location'],['Notifications','Visit updates and messages',Bell,'Notifications'],['Language','Read MyThuso your way',Globe,'Language'],['Demo login','Open MyThuso as a nurse, a doctor, a partner or the back office',Stethoscope,'Switch workspace']] as const;
 export function MoreHub({navigate,open,onSignOut}:{navigate:(s:string)=>void;open:(s:string)=>void;onSignOut:()=>void}){
+ const t=useT();
+ const row=(key:string,title:string,sub:string|undefined,icon:ReactNode,go:()=>void)=>
+  <button className="menu-row" key={key} onClick={go}><span className="tile-icon">{icon}</span><span><strong>{title}</strong>{sub&&<small>{sub}</small>}</span><ChevronRight size={17} aria-hidden="true"/></button>;
  return <>
   <div className="page-intro"><h1>More</h1></div>
   <button className="profile-row" onClick={()=>open('Your profile')}><span className="avatar"><PatientPortrait/></span><span><strong>Lerato Molefe</strong><small>View and edit your profile</small></span><ChevronRight size={18}/></button>
-  {menuGroups.map((group,i)=><div className="menu-list" key={i}>{group.map(([title,sub,Icon,target])=>
-   <button className="menu-row" key={title} onClick={()=>target.startsWith('@')?open(target.slice(1)):navigate(target)}>
-    <span className="tile-icon"><Icon size={19}/></span><span><strong>{title}</strong><small>{sub}</small></span><ChevronRight size={17}/>
-   </button>)}</div>)}
+  <div className="menu-list more-emergency">{row('emergency','Emergency & urgent care','The ambulance number first, then what MyThuso can do',<Ambulance size={19}/>,()=>open('Emergency & urgent care'))}</div>
+  {navGroups.map(group=>{const rows=group.rows.filter(([name])=>!patientTabSections.includes(name));
+   if(!rows.length)return null;
+   const list=<div className="menu-list">{rows.map(([name,Icon,sub])=>row(name,t(`nav.${name}`),sub,<Icon/>,()=>navigate(name)))}</div>;
+   return group.label?<section className="more-group" key={group.id} aria-labelledby={`more-${group.id}`}><h2 className="nav-label" id={`more-${group.id}`}>{t(`nav.${group.label}`)}</h2>{list}</section>:<div className="more-group" key={group.id}>{list}</div>;})}
+  <section className="more-group" aria-labelledby="more-shortcuts"><h2 className="nav-label" id="more-shortcuts">Shortcuts</h2>
+   <div className="menu-list">{hubShortcuts.map(([title,sub,Icon,modal])=>row(title,title,sub,<Icon size={19}/>,()=>open(modal)))}</div>
+  </section>
   <div className="menu-list danger"><button className="menu-row" onClick={onSignOut}><span className="tile-icon"><LogOut size={19}/></span><span><strong>Log out</strong><small>Signs you out and returns to the sign-in screen</small></span></button></div>
   <div className="trust-footer"><span>MyThuso · Akhanya IT Innovations</span><span>Help. Health. Home.</span></div>
  </>}

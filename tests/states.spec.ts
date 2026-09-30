@@ -249,7 +249,10 @@ test('and the controller who is shown one still gets it', async ({ page }) => {
  * well closes it, at 292.1 kB for the patient and a fallback on every patient load, which is the
  * wrong way round for the audience this product is for. Splitting the patient's own screens behind
  * their own dynamic imports closes it for both, and is the fix worth making. */
-const SHARED_BY_BOTH_AUDIENCES = ['DemoLogin', 'Kit', 'KitCapture', 'LiveMap', 'Orders'];
+/* Kit and KitCapture left this list on 30 September 2026. The patient's "Thuso Kit" card opened a dialog
+   holding the nurse's capture tool, which is why a patient downloaded both; the card opens the patient's
+   own Connected devices page now, and only the nurse's workspace loads the kit. */
+const SHARED_BY_BOTH_AUDIENCES = ['DemoLogin', 'LiveMap', 'Orders'];
 /* What a clinical session picks up from the patient application it now shares an entry with, because
    the patient application is statically imported by the door. Ratcheted: a seventeenth name here
    means somebody added a patient screen to the eager graph, which is the thing to look at. Every one

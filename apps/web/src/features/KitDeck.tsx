@@ -20,8 +20,9 @@
  *     decision itself. Nothing is averaged into a score, because "87% ready" is a number nobody measured.
  *   Workload — the readings still on this phone, one bar each, the longest wait longest, each bar carrying
  *     the reading it is.
- *   The queue's three figures — how long the oldest has waited, how old this device's copy is, and what
- *     reached the record.
+ *   The queue's figures — how long the oldest has waited and how old this device's copy is — and what
+ *     reached the record, drawn as the readiness ring is: one arc per reading on this device, lit once it
+ *     is stored, and the two counts beside it in words. Never a share of anything, for the same reason.
  * An overdue calibration marks the readings and never refuses one (devices.json), so the ring never says
  * "not ready": it says which arc is dark and why, and the capability line is the only gate. */
 import { useContext, type CSSProperties } from 'react';
@@ -99,6 +100,36 @@ export function Readiness({ capturerId }: { capturerId: string }) {
  </Card>;
 }
 
+/* What reached the record, as the readiness ring beside it is drawn: one arc per reading this device holds, the
+   stored ones lit and drawn first from the top, so the lit run is the count and the whole ring is the other count.
+   The two numbers are in the key in words, and the ring is hidden from assistive technology for the reason the
+   readiness ring is. A reading waiting on a decision is not lit — it has not reached the record — and the key
+   says how many there are rather than a colour doing it. */
+function Reached({ entries }: { entries: readonly Capture[] }) {
+ const stored = entries.filter(e => e.state === 'stored');
+ const needsDecision = entries.filter(e => e.state === 'conflicted');
+ const lit = [...stored.map(() => true), ...entries.filter(e => e.state !== 'stored').map(() => false)];
+ return <Card padding="md" className="nurse-command__card nurse-readiness nurse-reached">
+  <p className="nurse-eyebrow">Readings that reached the record</p>
+  {entries.length
+   ? <div className="nurse-readiness__body">
+     <div className="nurse-ring">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+       {arcs(lit.length, 44).map((d, i) => <path key={i} d={d} pathLength={1} className={`nurse-ring__arc is-record${lit[i] ? ' on' : ''}`} style={{ '--i': i } as CSSProperties}/>)}
+      </svg>
+      <span className="nurse-ring__figure" aria-hidden="true"><strong>{stored.length}</strong><small>of {entries.length}</small></span>
+     </div>
+     <dl className="nurse-readiness__key">
+      <div><dt><i className="is-record" aria-hidden="true"/>Reached the record</dt><dd>{stored.length} of {entries.length} on this device</dd></div>
+      {needsDecision.length > 0 && <div className="nurse-readiness__caveat">
+       <dt>Waiting on a decision</dt><dd><Badge size="sm" variant="warning">{needsDecision.length} {needsDecision.length === 1 ? 'needs' : 'need'} a decision</Badge></dd>
+      </div>}
+     </dl>
+    </div>
+   : <p className="nurse-command__empty"><MyThusoHealthIcon/>Nothing has been captured on this device.</p>}
+ </Card>;
+}
+
 /* One of the queue's figures, on the metric card's own classes. Not MetricCard itself: its trend line is
    drawn in the success ink, and "1 needs a decision" is not good news. The note here is the quiet ink, and
    a flagged note is the warning ink with the words saying why. */
@@ -115,8 +146,6 @@ export default function KitDeck({ entries, online, onToggle, localCopyAt, captur
 }) {
  const Title = useContext(DeckTitleLevel);
  const waiting = entries.filter(e => e.state === 'captured' || e.state === 'queued' || e.state === 'sending');
- const stored = entries.filter(e => e.state === 'stored');
- const needsDecision = entries.filter(e => e.state === 'conflicted');
  /* Everything that has not reached the record, oldest first, measured in minutes. It is the queue
     on the sheet below, measured — nothing is added to it and nothing is left out of it — and each bar
     carries the reading it is, so "the oldest" names a reading rather than a length. */
@@ -168,8 +197,7 @@ export default function KitDeck({ entries, online, onToggle, localCopyAt, captur
    <div className="nurse-command__figures">
     <Figure label="The oldest of them has waited" value={oldest ? `${oldest.value} ${oldest.unit}` : '—'} note={oldest ? 'Nothing is retried behind your back' : 'Nothing is waiting'}/>
     <Figure label="Since this device wrote its copy of the record" value={`${copyAge.value} ${copyAge.unit}`} note="Served with its age, in words"/>
-    <Figure label="Readings that reached the record" value={String(stored.length)} flagged={needsDecision.length > 0}
-     note={needsDecision.length ? `${needsDecision.length} ${needsDecision.length === 1 ? 'needs' : 'need'} a decision` : `Of ${entries.length} on this device`}/>
+    <Reached entries={entries}/>
    </div>
   </div>
  </section>;
