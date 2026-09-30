@@ -113,3 +113,24 @@ test("the nurse's week counts up to the figure it was counted at, and starts the
  await page.reload();
  await expect(week).toHaveText(settled);
 });
+
+
+/* The one-curve invariant, on the JS side. check-boundaries refuses a cubic-bezier typed into any
+   stylesheet, but it cannot see a curve typed into a Web Animations call, so this is the guard for
+   the half of the motion system that runs in script: the charts must spend --ease-soft, the same
+   single curve every CSS movement and GilbertAvatar's dialog spend, and not a literal of their own.
+   Whitespace is stripped because the browser may normalise the token's cubic-bezier when it hands it
+   back off the animation's timing. */
+test('the charts spend the token curve rather than typing their own', async ({ page }) => {
+ await goSection(page, 'Health Passport');
+ const chart = page.locator('.chart-card').first();
+ await chart.scrollIntoViewIfNeeded();
+ const line = chart.locator('.chart-line');
+ await expect.poll(() => line.evaluate(el => el.getAnimations().length)).toBeGreaterThan(0);
+ const token = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--ease-soft').trim());
+ const easing = await line.evaluate(el => String((el.getAnimations()[0].effect as KeyframeEffect).getTiming().easing));
+ const flat = (v: string) => v.replace(/\s+/g, '');
+ expect(token).not.toBe('');
+ expect(flat(easing)).toBe(flat(token));
+ expect(flat(easing)).not.toBe('cubic-bezier(.2,.7,.2,1)');
+});

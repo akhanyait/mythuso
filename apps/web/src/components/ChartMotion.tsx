@@ -20,8 +20,15 @@ export function ChartMotion() {
    if (!record.visible || record.entered) return;
    record.entered = true;
    if (!allowed()) return;
+   /* The curve is spent from the token, never typed here. This was the one place in the product's
+      motion that read a literal cubic-bezier — and a different one from --ease-soft — so the charts
+      accelerated their own way while every CSS movement and GilbertAvatar's dialog shared the token's
+      single curve, the one the tokens call smooth because it overshoots slightly at the end. With no
+      token there is no motion, rather than a second curve. */
+   const easing = getComputedStyle(document.documentElement).getPropertyValue('--ease-soft').trim();
+   if (!easing) return;
    const animate = (mark: Element, frames: Keyframe[], duration = 700, delay = 0) => {
-    record.animations.push(mark.animate(frames, { duration, delay, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'backwards' }));
+    record.animations.push(mark.animate(frames, { duration, delay, easing, fill: 'backwards' }));
    };
    if (plot.matches('.chart-plot')) {
     plot.querySelectorAll<SVGPathElement>('.chart-line').forEach(line => {
