@@ -105,20 +105,23 @@ panel on vetting, and a **clinician-verify + field-safety** split on visits — 
 as the safety engine's own words (`Sentinel`, `ConcernBoard`, `FieldSafety`), so they are
 adopt-visual on the existing surfaces, not new screens. Deviations (alarms, allocations,
 appointments, login, reports, settings, training) keep repo behaviour. **Login stays the
-authenticator/demo door — gated.** The four **not-built staff screens** are new-capability:
+authenticator/demo door — gated.** The four **not-built staff screens** were assessed in Wave 4;
+each route now carries its delivered disposition rather than its opening classification:
 
 | Export route | Class | Note |
 | --- | --- | --- |
-| `/nurse/messages` | new-capability | `messaging` is contracted; no staff inbox screen |
-| `/nurse/resources` | new-capability | no counterpart |
-| `/nurse/schedule` | new-capability | shift patterns live in `roster.json`/dispatch; no nurse-facing schedule screen |
-| `/nurse/team` | new-capability | no counterpart |
+| `/nurse/messages` | built (Wave 4) | an honest refusal on the `messaging` capability, shared with the doctor: a simulated channel that delivers nothing — no thread, no body, no number and no way to send |
+| `/nurse/resources` | covered + gated | needs no screen of its own: the clinical surfaces it would gather are the protocols board (not formed) and the Academy, both governance-gated, and nothing non-clinical is left to build |
+| `/nurse/schedule` | already built | the nurse-facing schedule screen exists — the `NurseSchedule` section in `Workspaces.tsx` — so the export's route is a second name for it, not a missing capability |
+| `/nurse/team` | built (Wave 4) | a directory of the simulated roster read through `lib/roster.ts` (the one canonical reader): names, SANC, suburb and scope, with no presence, no vetting standing, no booking and no way to reach anybody — nurse only, because the roster is a list of nurses |
 
 ### Doctor — 15 routes (9 built, 4 deviation, 2 not built)
 
 Built screens (triage, teleconsultations, patients, protocols, clinical-notes, records, referrals,
 reports, test-results) take adopt-visual/adopt-layout. **Prescribing stays a pathway — gated.**
-`/doctor/messages` and `/doctor/resources` are new-capability (shared with the nurse surfaces).
+`/doctor/messages` is built (Wave 4) on the same refusal screen the nurse opens; `/doctor/resources`
+stays covered + gated with the nurse's. These two are the doctor's only not-built routes — the team
+directory is the nurse's alone, because the roster it reads is a list of nurses.
 
 ### Partner — 4 routes (2 built, 2 deviation)
 
@@ -143,7 +146,7 @@ order** — screen rebuilds inside each category, never a nav regroup. `/compone
 | Chart language (draw, reveal, point-arrive, range-arrive, halo-pulse) | `charts.tsx`, case pathway, portal widgets | adopt — motion on existing charts | chart surfaces | readings/portal contracts |
 | AI-element conversation styling (message, prompt-input, shimmer, conversation) | `components/ai-elements/` | adopt **around** the assistant, not inside the settled GilbertOne face | assistant chrome | `assistant.json` |
 | Overlay kit (command, dialog, dropdown-menu, hover-card, input-group, button-group, tooltip) | Radix `components/ui/` | conditional new-capability — only where a ported screen needs it | `.ui-*` | n/a (patterns) |
-| Staff messages / resources / schedule / team (nurse + doctor) | nurse/doctor spaces | new-capability (6 screens) | staff chunk | new top-level catalog contracts |
+| Staff messages / resources / schedule / team (nurse + doctor) | nurse/doctor spaces | Wave 4 delivered: messages built as one shared refusal screen (nurse + doctor), team built (nurse only), schedule already built, resources covered + gated with no screen of its own | staff chunk (lazy) | existing `capabilities.json` (`messaging`, `booking`) + `roster.json`; no new top-level contract |
 | Alarm banner / security step-up / clinician-verify panels | nurse space | adopt-visual on existing safety surfaces | staff features | `sentinel.json`, `vetting.json` |
 
 ## Motion reconciliation — 33 named movements, 2 shared, 31 unported
@@ -181,6 +184,18 @@ element and a test**, expressed on `--t-quick`/`--t-settle`/`--t-enter` + `--eas
   adopt-visual/layout on built nurse/doctor/partner screens; build the six new staff screens
   (messages, resources, schedule, team) as contract-driven capabilities. Login and prescribing stay
   gated.
+  - **Delivered (committed by name).** The non-clinical staff surfaces were already faithful
+    contract-driven ports, so no adopt delta was left on them. Of the six not-built screens: the staff
+    **messages** inbox is built as one honest refusal screen on the `messaging` capability for the
+    nurse and the doctor (no thread, no body, no send); the nurse **team** directory is built on the
+    simulated `roster.json` read through `lib/roster.ts` (names, SANC, suburb, scope — no presence, no
+    standing, no booking, no contact); **schedule** was already built (`NurseSchedule`); and
+    **resources** needs no screen of its own, the surfaces it would gather being the protocols board
+    (not formed) and the Academy, both governance-gated. No concept-kit was required — nothing
+    clinical is drawn as real, so there was nothing for the founder to approve. Both new screens ride
+    the lazy staff chunk (patient entry unchanged at ~253 kB). Their FEATURE-MAP rows and ROADMAP
+    delivery record stay deferred to Wave 7, matching waves 0/2/3: FEATURE-MAP is a CI source, so
+    `npm run ci` runs once there rather than once per increment.
 - **Wave 5 — maps and remaining gaps.** Translate the mapbox map layouts onto maplibre `TileMap`;
   wire chart and landing-hero motion; AI-element conversation styling around the settled assistant.
 - **Wave 6 — Control Tower / admin.** adopt-visual within the pinned §5.1 category order; impact
