@@ -56,3 +56,8 @@ test-results/
 packages/engines/.data/
 # Playwright output folders — the default and the per-agent ones (--output test-results-<area>)
 test-results*/
+
+# A scratch extraction of designs/mythuso-full-project.zip, unpacked so a session can read the
+# export's routes beside the build. The zip and its 181-entry manifest are the tracked record;
+# tracking the loose files too would be the second copy the Documentation/*.zip rule refuses.
+.tmp-lovable/
