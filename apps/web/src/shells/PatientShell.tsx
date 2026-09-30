@@ -1,7 +1,7 @@
 import { useLayoutEffect, type CSSProperties, type ReactNode } from 'react';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { Wordmark } from '../components/Wordmark';
-import { Ambulance, ArrowRight, Bell, ChevronDown, CircleHelp, Compass, CreditCard, Ellipsis, Globe, Languages, MapPin, Repeat } from 'lucide-react';
+import { Ambulance, ArrowRight, Bell, BookOpen, ChevronDown, CircleHelp, Compass, CreditCard, Ellipsis, Globe, Languages, MapPin, Repeat } from 'lucide-react';
 /* The shared component and the icon family, imported from their own modules rather than the barrel so
    the patient's entry carries the one component it draws and not the seventeen it does not. */
 import { NavigationItem } from '../ui/NavigationItem';
@@ -41,15 +41,18 @@ import { reducedMotion } from '../lib/motion';
 export const PATIENT_SURFACE = 'patient-surface';
 
 /* The MyThuso family for the destinations it draws — the overview, booking (the quick action: the thing a
-   patient does most), the visits, the passport, Live well and the family — and Lucide for the three it
-   does not: the plans (a repeat, because a plan is the visit that keeps coming), the wallet, and the
-   directory of everything else. One concept, one family: the Lucide glyphs are chosen from outside
-   every MyThuso icon's neverBeside list in packages/catalog/icons.json, so a heart, a grid or a house
+   patient does most), the visits, the passport, Live well and the family — and Lucide for the four it
+   does not: the plans (a repeat, because a plan is the visit that keeps coming), the wallet, the
+   health-pages hub (a book, for the library and the eight pages it gathers — a book and not a heart,
+   because a heart is the health icon's own neverBeside and the passport beside it already wears the
+   family's health mark), and the directory of everything else. One concept, one family: the Lucide
+   glyphs are chosen from outside every MyThuso icon's neverBeside list in packages/catalog/icons.json,
+   so a heart, a grid or a house
    never stands beside the family's own for the same idea. */
 const navigation = [
  ['Overview', MyThusoDashboardIcon], ['Book a nurse', MyThusoQuickIcon], ['My visits', MyThusoVisitIcon], ['Health Passport', MyThusoHealthIcon],
  ['Live well', MyThusoMindIcon], ['My family', MyThusoFamilyIcon], ['Care plans', Repeat], ['Thuso Wallet', CreditCard],
- ['Explore MyThuso', Compass]
+ ['Your health', BookOpen], ['Explore MyThuso', Compass]
 ] as const;
 /* The sections a link may open. `?open=` on the product's address is how the landing page's hero
    sends a reader to the screen its call to action named, and it is validated against this list

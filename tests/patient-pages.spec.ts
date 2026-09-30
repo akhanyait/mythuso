@@ -239,3 +239,19 @@ test('the cards rise once and settle; under reduced motion they are simply there
  expect(await moving()).toEqual([]);
  expect(await page.locator('.pp-shortcut').first().evaluate(el => getComputedStyle(el).opacity)).toBe('1');
 });
+
+
+/* The desktop sidebar carries its own door now (Wave 3): a "Your health" row beside the other
+   destinations, so on a wide screen the eight pages are reachable by name and not only through the
+   address or the phone's More tab — the reason the founder could not see them was that the only
+   click-path was the overflow. Clicking the row opens the same hub the address does. Explore MyThuso
+   stays the last row, because tests/deep-journeys.spec.ts reaches it by position and cannot name it
+   once the shell is in isiZulu. */
+test('the desktop sidebar carries a working door to Your health, and Explore stays last', async ({ page }) => {
+ await page.goto('/app/');
+ const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
+ test.skip(!(await sidebar.isVisible()), 'the sidebar is the desktop door; a phone uses the More tab');
+ await sidebar.getByRole('button', { name: contract.hub.opens, exact: true }).click();
+ await expect(page.getByRole('heading', { level: 1, name: hubHeading() })).toBeVisible();
+ await expect(sidebar.getByRole('button').last()).toContainText(/Explore|Hlola/);
+});
