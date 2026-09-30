@@ -259,5 +259,6 @@ Johannesburg), the dark assistant header (the 28 September identity decision), a
 assistant, the export's endless pulses and orbits, and every figure, person, message, reading or testimonial
 the export invents — its landing copy is written for a hospital product with invented statistics.
 
-**Behind the founder's gate:** the clinical staff screens. The before-and-after page is
-https://claude.ai/artifact/XkdTu2t8QeWpX1qTe4zSob; nothing on them reaches production before an explicit yes.
+**The founder's gate:** the clinical staff screens were shown before and after at
+https://claude.ai/artifact/XkdTu2t8QeWpX1qTe4zSob and the founder answered the same afternoon: publish, with
+the Vetting register card reworded to the words the live screen already used.

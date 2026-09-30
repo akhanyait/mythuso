@@ -956,9 +956,9 @@ six new pages, the landing's layout pieces, the Control Tower's field alert and 
 
 What is left, in the order it should be taken:
 
-1. **The founder's gate on the clinical staff screens**: the before-and-after page
-   (https://claude.ai/artifact/XkdTu2t8QeWpX1qTe4zSob) and four rulings — production, the Vetting card's
-   wording, the composer's title, the patient's name on the partner's Orders page. Push and deploy follow a yes.
+1. **The founder's gate on the clinical staff screens** — answered on 30 September: publish, the Vetting
+   card reworded to the live screen's words, the composer's title accepted, and everything below in this list
+   to be built. The patient's name on the partner's Orders workbench comes off with it.
 2. **Dark theme on the legacy sheets.** `surface/clinical.css` and the patient surface colour headings,
    panels and the not-connected notice with `--charcoal`, `--body` and white, which have no dark values. It was
    already so; the new pages make it show in more places. Move them onto the `--color-*` roles.

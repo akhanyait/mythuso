@@ -566,13 +566,16 @@ export function VettingApplication({ roleId, onClose }: { roleId?: string; onClo
   </> : null}</Card>
   {/* The register, numbered and on every step (30 September 2026), as the export keeps it beside the form: an
       applicant should not have to reach step four to learn what she will be asked for. The evidence step lists
-      the same checks in full and marks them ready, so there it is left out rather than drawn twice. */}
+      the same checks in full and marks them ready, so there it is left out rather than drawn twice. Its words
+      are the ones this screen already used for the same facts — the evidence step's heading, "Issued by", the
+      "Two reviewers" badge, "marked ready" — reworded the same day on the founder's instruction: "Verified
+      with", beside a check's name, read as though the check had been verified. */}
   {role && now !== 'evidence' && <Card padding="md" className="vet-register">
-   <h3 className="oi-section-title">The {role.checks.length} checks, in order</h3>
+   <h3 className="oi-section-title">What we will ask for.</h3>
    <ol>{role.checks.map((check, i) => <li key={check.id}>
     <span className="vet-register__no" aria-hidden="true">{i + 1}</span>
-    <span className="vet-register__say"><strong>{check.name}</strong><small>Verified with {authorityById(check.authority)?.name ?? check.authority}{check.risk === 'high' ? ' · two reviewers' : ''}</small></span>
-    {ready.includes(check.id) && <Badge size="sm" variant="neutral">Document ready</Badge>}
+    <span className="vet-register__say"><strong>{check.name}{check.risk === 'high' && <> <Badge size="sm">Two reviewers</Badge></>}</strong><small>Issued by {authorityById(check.authority)?.name ?? check.authority}</small></span>
+    {ready.includes(check.id) && <Badge size="sm" variant="neutral">Marked ready</Badge>}
    </li>)}</ol>
   </Card>}
  </div>;

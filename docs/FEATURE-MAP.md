@@ -2420,13 +2420,15 @@ and the footer columns.
 | **The galleries** (development only): all nineteen colour roles in both themes and the type scale; the logo with its usage rule, a utility-icon grid and the family at four sizes | The icon gallery reads a checked copy of the logo paragraph (`gilbertone-logo.json`), never a handoff master; the build holds the copy to the guidelines word for word | `apps/web/src/features/UiGallery.tsx`, `IconGallery.tsx`, `packages/catalog/gilbertone-logo.json` |
 | **Build checks.** The hero card's words held to the public assistant contract; the logo copy held to the guidelines; the retired-token scan extended to the portal's markup; the patient-pages block at ten pages; the case-pathway check reading the grouped table; every new screen on the shared-components adopters list; `staff-chrome.css` under the same sheet scans as `shells.css` | Each new check was proved by breaking its source and restoring it. One existing assertion was replaced, deliberately: `care-experience.spec.ts` asserted the empty state "No medicine entries on this record", which was the three-accounts defect, and now counts the dispensing contract's medicine events on the History rail. Every other altered spec changed how a screen is reached and kept its assertions | `scripts/check-boundaries.mjs`, `scripts/check-case-pathway.mjs`, `tests/` |
 
-**Open — the founder's gate.** The approved plan holds the clinical staff screens behind a preview and the
-founder's explicit yes before production; the before-and-after page is
-https://claude.ai/artifact/XkdTu2t8QeWpX1qTe4zSob. Three things on them are more than arrangement and are the founder's to rule on:
-the Vetting screen's new register card types words the live screen does not have ("The 8 checks, in order",
-"Verified with …", "Document ready"), where the live words are "What we will ask for." and "Issued by …"; the
-consultation composer's title became "Write a consultation record" because a list now stands above it; and the
-Protocols page gained three counted labels.
+**The founder's gate, and the answer.** The approved plan holds the clinical staff screens behind a preview
+and the founder's explicit yes before production; the before-and-after page is
+https://claude.ai/artifact/XkdTu2t8QeWpX1qTe4zSob. Three things on them were more than arrangement: the Vetting
+screen's new register card typed words the live screen did not have ("The 8 checks, in order", "Verified with
+…", "Document ready"); the consultation composer's title became "Write a consultation record" because a list now
+stands above it; and the Protocols page gained three counted labels. The founder answered the same afternoon:
+build what was recommended and publish. The register card now uses the words the screen already had for the
+same facts ("What we will ask for.", "Issued by …", the "Two reviewers" badge, "Marked ready"); the composer's
+title and the counted labels stand.
 
 **Open — found, not changed.** The clinical workbench under the partner's Orders board still shows a patient's
 name, as it does live, which the same `neverCarries` rule probably forbids. The patient's "Thuso Kit" card still
