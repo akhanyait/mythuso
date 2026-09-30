@@ -36998,7 +36998,11 @@ console.log(
     "apps/web/src/features/VisitQueue.tsx", "apps/web/src/features/KitDeck.tsx", "apps/web/src/features/CareVisit.tsx", "apps/web/src/features/FieldSafety.tsx", "apps/web/src/features/Devices.tsx", "apps/web/src/features/DeviceLab.tsx", "apps/web/src/features/Earnings.tsx", "apps/web/src/features/VerifyInService.tsx", "apps/web/src/features/NurseTools.tsx", "apps/web/src/features/Dispensing.tsx",
     /* The case pathway (29 September 2026): behind the staff shell's dynamic import from the nurse's Cases and the
        doctor's inbox. The patient's entry measured 258.71 kB gzip -9 after it landed, against 258.19 before. */
-    "apps/web/src/features/CaseFile.tsx"];
+    "apps/web/src/features/CaseFile.tsx",
+    /* Wave 4 of the full Lovable alignment: the nurse's and the doctor's Messages, an honest refusal that reads
+       the messaging capability rather than drawing the export's simulated inbox. Behind the staff shell's dynamic
+       import, so it is off the patient's entry and its Button joins the ui.css the clinical chunk already downloads. */
+    "apps/web/src/features/StaffMessages.tsx"];
   for (const f of files("apps/web/src").filter((f) => /\.tsx?$/.test(f) && !f.startsWith(`${uiDir}/`) && !adopters.includes(f))) {
     const code = uncommented(read(f));
     if (/from\s+['"][./]*(?:\.\.\/)*ui(?:\/(?!icons\/)[\w]+)?['"]/.test(code) || /features\/UiGallery/.test(code) && f !== "apps/web/src/App.tsx")
