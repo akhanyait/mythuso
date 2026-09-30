@@ -37002,7 +37002,12 @@ console.log(
     /* Wave 4 of the full Lovable alignment: the nurse's and the doctor's Messages, an honest refusal that reads
        the messaging capability rather than drawing the export's simulated inbox. Behind the staff shell's dynamic
        import, so it is off the patient's entry and its Button joins the ui.css the clinical chunk already downloads. */
-    "apps/web/src/features/StaffMessages.tsx"];
+    "apps/web/src/features/StaffMessages.tsx",
+    /* Wave 4 of the full Lovable alignment: the nurse's Team, the simulated roster read through lib/roster.ts as
+       a directory of people who do not exist, with no presence, no standing and no way to reach anybody. Behind the
+       staff shell's dynamic import, so it is off the patient's entry and its Button joins the ui.css the clinical
+       chunk already downloads. */
+    "apps/web/src/features/StaffTeam.tsx"];
   for (const f of files("apps/web/src").filter((f) => /\.tsx?$/.test(f) && !f.startsWith(`${uiDir}/`) && !adopters.includes(f))) {
     const code = uncommented(read(f));
     if (/from\s+['"][./]*(?:\.\.\/)*ui(?:\/(?!icons\/)[\w]+)?['"]/.test(code) || /features\/UiGallery/.test(code) && f !== "apps/web/src/App.tsx")

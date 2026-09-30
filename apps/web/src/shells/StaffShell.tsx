@@ -33,6 +33,9 @@ import { Academy, LocumShifts } from '../features/NurseTools';
 /* The nurse's and the doctor's Messages: the honest refusal the export's fake clinical inbox is
    not, reading the messaging capability rather than inventing a thread. A More tool, not a tab. */
 import { StaffMessages } from '../features/StaffMessages';
+/* The nurse's Team: the simulated roster read through lib/roster.ts as a directory of people who
+   do not exist, with no presence, no vetting standing and no way to reach anybody. A More tool, not a tab. */
+import { StaffTeam } from '../features/StaffTeam';
 import { ThusoKit } from '../features/Kit';
 import { Earnings } from '../features/Earnings';
 import { DoctorFees } from '../features/DoctorFees';
@@ -641,6 +644,8 @@ function staffModalBody(modal: string, close: () => void, open: (m: string) => v
  if (modal === 'Academy') return <Academy onClose={close}/>;
  /* Messages, for the two clinical roles the export gives an inbox: one refusal screen, opened from either bar's More tools. */
  if (modal === 'Messages') return <StaffMessages onClose={close}/>;
+ /* Team, for the nurse alone: the roster is a list of nurses, so it reads as a nurse's colleagues and not a doctor's. */
+ if (modal === 'Team') return <StaffTeam onClose={close}/>;
  if (modal === 'Employer programmes' || modal === 'Programme administration') return <Programmes/>;
  if (modal === 'Consultation record') return <ConsultationRecord onClose={close}/>;
  /* The patient file's four actions. Each one carries the name of the file it was pressed on, so a

@@ -50,7 +50,7 @@ export const sectionDoor: Record<string,string> = {
    this to the contract's screens.quarantine.heading word for word, as it holds App.tsx's P1 route names. */
 export const HL7_QUARANTINE_HEADING = 'HL7 quarantine (development)';
 export const roleExtras: Record<string,string[]> = {
- Nurse:['Locum shifts','Academy',medicines.screen.handover.heading,'Messages'],
+ Nurse:['Locum shifts','Academy',medicines.screen.handover.heading,'Messages','Team'],
  Doctor:['Clinical protocols','Referral pathway','Per-case fees','Claim draft',medicines.screen.prescribe.heading,medicines.screen.results.heading,'Messages'],
  Partner:['Prescription RX-0081','Laboratory order LAB-0023',medicines.screen.pharmacy.heading],
  /* The HL7 quarantine is a development operator's view (Wave 5), under its contract heading, which says so. */
