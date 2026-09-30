@@ -897,3 +897,49 @@ away, and `access-settings.spec.ts:85` and `assistant.spec.ts:1604` pass in isol
 regression. No native input changed, so no native build was re-run and nothing is deployed: the standing
 rule holds that a deploy is its own explicitly approved step.
 
+## Founder-requested — the full Lovable design alignment, scoped 30 September 2026
+
+The founder asked to _"adjust the look and feel to the Lovable one, the layout and the elements on all
+screens … all Lovable features must be added if they do not exist but be in scope … have a unified
+UI/UX … the animations must be pulled and be made smooth,"_ and to scope it before building. The
+assessment is `docs/design-review/LOVABLE-FULL-ALIGNMENT.md`; it is the governing document every wave
+reads. Two decisions were taken up front and are not reopened by a later wave: **GilbertOne's own
+look and animation stay settled** (only the chrome around it aligns), and **the export's refusal
+screens keep honest** — the simulated staff login, the raw patient results inbox and the prescribing
+screen take the new look but not the behaviour, and no number is invented.
+
+The assessment's headline finding narrows the work: the identity is already aligned. The export's
+19 semantic colour roles, its radii/shadow/type scale, its 18-component `design-system.json` library
+and its 10-icon `MyThuso*Icon` family are all live from waves 1–6 and match the export byte for byte
+where it matters. What the export carries that the app does not is **layout and element arrangement
+per screen, the named motion set (31 of theme.css's 33 movements unported), the mapbox map layouts, a
+grouped-navigation pattern, and six staff-surface capabilities** (nurse/doctor messages, resources,
+schedule, team). The export's stack — Tailwind, TanStack, Supabase, mapbox-gl, Radix, lucide@1.48 —
+never enters `apps/web`; the look is translated onto `.ui-*` + tokens and maplibre, not lifted.
+
+The wave order, each independently gated and committed by name so a session can stop at any commit
+boundary and resume cold:
+
+- **Wave 0** (this pass) — the assessment and gap register; scope recorded here. No production code.
+- **Wave 1** — design-system reconciliation: verify tokens/components/icons against the export and
+  build only the overlay-kit patterns a later wave first needs. No speculative components.
+- **Wave 2** — motion: port the adopted movements, each with a real player and a test, on the motion
+  tokens, removed under reduced motion, recorded by regenerating `docs/brand/CI.md` chapter 7.
+- **Wave 3** — patient surfaces: adopt-visual across the built screens, adopt-layout on the
+  dashboard/appointments/devices/records, the shared page-intro header, and the "Your health" desktop
+  sidebar door (a tenth navigation row plus a nav key in all eleven locales, "Explore MyThuso" last).
+- **Wave 4** — staff surfaces: concept-kit preview and founder approval first for clinical screens;
+  adopt-visual/layout on the built nurse/doctor/partner screens; build the six new staff screens as
+  contract-driven capabilities. Login and prescribing stay gated.
+- **Wave 5** — maps and remaining gaps: translate the map layouts onto maplibre `TileMap`, wire chart
+  and landing-hero motion, and style the AI-element conversation chrome around the settled assistant.
+- **Wave 6** — Control Tower / admin: adopt-visual within the pinned §5.1 category order (screen
+  rebuilds inside each category, never a nav regroup); impact motion on overview widgets.
+- **Wave 7** — verification, docs, preview, ship: fresh build, patient-entry budget re-measured
+  against 282.16 kB, `npm run check` and `check-boundaries` green under Node 22, the full Playwright
+  suite attributed, FEATURE-MAP and ROADMAP updated, a local preview for founder sign-off, then push
+  (L3 gate first) and deploy each on their own explicit confirmation.
+
+This is a large multi-wave build. Per the standing rule it is written here rather than started near a
+credit cap, so the next session picks it up cold at the next wave boundary. Nothing in Wave 0 touches
+production code, the bundle, or the live site.
