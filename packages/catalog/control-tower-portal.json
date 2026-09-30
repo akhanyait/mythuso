@@ -253,6 +253,14 @@
    "why": "The handoff's look wins every visual question; this build's logic, contracts, refusals, founder gates and sentences win every other. Nothing a settings page says or refuses changed with it."
   }
  },
+ "fieldAlert": {
+  "heading": "Somebody in the field is waiting on the desk.",
+  "nursePanics": "Nurse panics open",
+  "patientSos": "Patient SOS presses not stood down",
+  "overdue": "Visits past check-out",
+  "open": "Go to Incidents",
+  "why": "The handoff's control room opens on a danger banner when a panic is active (30 September 2026). Here it is still — no pulse, no ring, because nothing the Control Tower draws is endless — and it counts only what the Incidents tab's own desks hold open: the field-safety queue's panics and overdue check-ins, and the SOS desk's presses not stood down. Each figure is disprovable by opening Incidents and counting the rows. Nothing is drawn when all three are nought, because a banner that says nothing is wrong is a banner a controller learns to ignore; the desks under Incidents carry their own empty sentences. It opens the Incidents tab and acts on nothing itself: picking up, closing and resolving stay on the rows."
+ },
  "loading": {
   "sentence": "Getting this screen ready. It was not downloaded until you opened it.",
   "why": "Every category is a dynamic import, so a patient never pays for it. A panel that fills is announced; a panel that is filling says so rather than showing a blank region (§5.2)."

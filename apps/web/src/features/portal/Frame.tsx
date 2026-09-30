@@ -16,7 +16,7 @@ import { buttonVariants } from '../../ui/Button';
    A tab whose screen heads itself (the dispatch board, the vetting queue, Quality) gets the eyebrow
    and nothing else, because two <h1> elements on one page is a reader having to guess which one is
    the page. */
-export function Frame({ blurb, status, children }: { blurb?: string; status?: ReactNode; children: ReactNode }) {
+export function Frame({ blurb, status, icon, children }: { blurb?: string; status?: ReactNode; icon?: ReactNode; children: ReactNode }) {
  const { place, go, open } = usePortal();
  const category = categoryById(place.category);
  const tab = tabOf(category, place.tab);
@@ -30,7 +30,7 @@ export function Frame({ blurb, status, children }: { blurb?: string; status?: Re
       PageHead, the one every screen wears; `status` is the category's own line — GilbertOne's build word. */}
   <PageHead className="page-intro pt-intro"
    eyebrow={<><span>{roleOf('control-tower').label.toUpperCase()}</span><span aria-hidden="true">·</span>{marked && <G1Mark className="pt-g1"/>}<span>{category.label}</span></>}
-   title={tab.headsItself ? undefined : headingOf(tab)} lead={sentence} status={status}
+   title={tab.headsItself ? undefined : headingOf(tab)} lead={sentence} status={status} icon={icon}
    nav={tabs.length > 1 ? <Tablist label={`${category.label} tabs`} items={tabs} selected={tab.id}
     onSelect={id => go(category.id, id)} idPrefix="pt-sub" panelId="pt-subpanel" className="pt-subtabs"/> : undefined}/>
   {/* pt-stagger: what a screen draws arrives in three short steps when the screen opens, and a strip of

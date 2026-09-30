@@ -143,6 +143,26 @@
 }
 
 /* ---- The conversation ------------------------------------------------------------------------------ */
+/* The scroll and the way back to the latest answer share a box, so the button can stand over the foot of
+   the conversation without being part of what scrolls. */
+.public-assistant-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* The handoff's scroll button: round, on the surface with the one raised shadow, centred over the foot of
+   the conversation. It is drawn only while the latest answer is out of view, so it is never in the way of
+   reading the answer it points at. */
+.public-assistant .public-assistant-latest {
+  position: absolute;
+  bottom: var(--space-12);
+  left: 50%;
+  translate: -50% 0;
+  border-radius: var(--r-pill);
+  box-shadow: var(--shadow-raised);
+}
 .public-assistant-scroll {
   flex: 1;
   min-height: 0;
@@ -286,6 +306,9 @@
   font-weight: 700;
 }
 @media (max-height: 550px) {
+  .public-assistant-body {
+    flex: 1 0 auto;
+  }
   .public-assistant-scroll {
     flex: 1 0 50dvh;
   }

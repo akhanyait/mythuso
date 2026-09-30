@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { goSection, openWorkspace } from './nav';
+import { goSection, openDestination, openWorkspace } from './nav';
 import { noticeFor } from './notices';
 /* A claim to a medical scheme, on both viewports: the doctor's draft says no code set is adopted and asking for it to be
  * sent is refused in the route's own sentence, and the patient sees the claim's state on her record in plain words,
@@ -27,8 +27,8 @@ test('the doctor\'s claim draft says no adopted code set, and asking for it to b
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
   await openWorkspace(page, 'Doctor');
-  await page.locator('.tool-link').filter({ hasText: 'Claim draft' }).click();
-  const draft = page.getByRole('dialog');
+  /* A destination in the doctor's Practice group since 30 September, where it was a More tool opening a dialog. */
+  const draft = await openDestination(page, 'Claim draft');
   await expect(draft.locator('.claim-no-code')).toHaveText(claims.codeSets.doctorWords);
   await expect(draft.getByText(claims.codeSets.doctorDetail)).toBeVisible();
   await expect(draft.getByText(noticeFor('scheme-claims')!)).toBeVisible();
@@ -48,6 +48,9 @@ test('the doctor\'s claim draft says no adopted code set, and asking for it to b
 test('the patient reads her claim\'s state on her record, agrees to send it, and it is still not sent', async ({ page }) => {
   await page.goto('/app/');
   await goSection(page, 'Health Passport');
+  /* The Passport is tabbed since 30 September (the patient shell's Lovable build), and its doors to the rest of the
+     record are under Records. */
+  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Records' }).click();
   await page.getByRole('button', { name: /Claims to your medical scheme/ }).click();
   const screen = page.locator('.claim-screen');
   await expect(screen.getByRole('heading', { name: claims.screen.patient.heading })).toBeVisible();

@@ -185,3 +185,36 @@ test('patient suggestions answer the six navigation questions and keep extra sym
  await expect(panel.locator('.as-reply').last()).toHaveClass(/as-reply-emergency/);
  await expect(panel.locator('.as-silence')).toBeVisible();
 });
+
+/* The handoff's scroll button in the patient's panel (30 September 2026): drawn only while the latest answer
+   is out of view, a real stop in the panel's own order, and moving only the transcript — never the dialog, so
+   the close control stays where it was. speechSynthesis is stubbed, as every spec that sends a message does,
+   because headless Chromium's own hangs the second reply. */
+test('the patient’s panel offers the way back to the latest answer only when it is out of view', async ({ page }) => {
+ const { latestLabel } = JSON.parse(readFileSync(new URL('../packages/catalog/assistant-chat-ui.json', import.meta.url), 'utf8'));
+ await page.addInitScript(() => {
+  const silent = { speak() {}, cancel() {}, pause() {}, resume() {}, getVoices: () => [], speaking: false, pending: false, paused: false,
+   onvoiceschanged: null, addEventListener() {}, removeEventListener() {}, dispatchEvent: () => true };
+  Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: silent });
+ });
+ await page.goto('/app/?open=assistant');
+ const panel = page.locator('#assistant-panel');
+ await panel.getByRole('checkbox', { name: 'I understand GilbertOne is not a doctor.' }).check();
+ await panel.getByRole('checkbox', { name: 'I know what to do in an emergency.' }).check();
+ await panel.getByRole('button', { name: 'I Accept and Continue' }).click();
+ const back = panel.getByRole('button', { name: latestLabel, exact: true });
+ /* The welcome has no latest answer to go back to. */
+ await expect(back).toHaveCount(0);
+ for (const words of ['write a football poem', 'how do I book a nurse?', 'what does a visit cost?', 'write me a song', 'tell me a joke', 'what is the weather']) {
+  await panel.locator('#as-input').fill(words);
+  await panel.getByRole('button', { name: 'Send', exact: true }).click();
+ }
+ await expect(back).toHaveCount(0);
+ const close = await panel.getByRole('button', { name: 'Close GilbertOne', exact: true }).boundingBox();
+ await panel.locator('.as-scroll').evaluate(el => el.scrollTo({ top: 0 }));
+ await expect(back).toBeVisible();
+ expect(await back.evaluate(el => el.tabIndex)).toBe(0);
+ await back.click();
+ await expect(back).toHaveCount(0);
+ expect(await panel.getByRole('button', { name: 'Close GilbertOne', exact: true }).boundingBox()).toEqual(close);
+});

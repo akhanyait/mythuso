@@ -39,7 +39,8 @@ test('signing out under the same fallback offers the simulated flow, not a call 
  await fallback(page);
  await page.goto('/app/');
  await page.getByRole('button', { name: 'Your profile', exact: true }).click();
- await page.getByRole('button', { name: /^Log out/ }).click();
+ /* The profile dialog's, or the More hub's: the sidebar has its own Log out at its foot since 30 September. */
+ await page.getByRole('dialog').or(page.getByRole('main')).getByRole('button', { name: /^Log out/ }).click();
  await expect(page.getByRole('heading', { name: 'Sign in to MyThuso' })).toBeVisible();
  // the chip that only a genuinely answering service earns must not appear
  await expect(page.getByText('Identity service is answering on this machine')).toHaveCount(0);

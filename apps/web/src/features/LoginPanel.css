@@ -10,5 +10,60 @@
 .central-login .record-row:hover { background: var(--canvas); border-color: var(--brand-green); filter: none; }
 .central-login .role-refuses { font-size: 13px; color: var(--body); }
 .central-login .role-credential svg { vertical-align: middle; margin-right: var(--space-4); }
-.central-login .modal-heading h2 { font-size: 24px; line-height: 1.2; letter-spacing: -.3px; }
+/* The dialog is a light sheet in either theme (core.css's .modal is the fixed --surface and --ink), so its heading
+   is the ink too: under the page's dark theme a heading rule for dark grounds reached it and drew it pale on white. */
+.central-login .modal-heading h2 { font-size: 24px; line-height: 1.2; letter-spacing: -.3px; color: var(--ink); }
 .central-login .record-row > .avatar { background: color-mix(in srgb, var(--brand-green) 12%, var(--surface)); color: var(--brand-ink); }
+
+/* ---- Two columns on a wide screen, 30 September 2026 ----
+   The handoff's access dialog: a brand column on the left beside the picker on the right. The column is
+   the dialog's own light surface washed with the brand green, because the dialog is a light sheet in both
+   schemes (core.css's .modal is the fixed --surface) and the wordmark and the GilbertOne logo are drawn
+   for a light ground. Below 900 pixels there is no room for it beside six roles, and it is not drawn —
+   the picker, its notice and its refusal are the whole of the dialog on a phone, as they were. No blur
+   behind the dialog: the identity refuses glass. */
+.central-login .login-brand { display: none; }
+@media (min-width: 900px) {
+  .central-login[open] {
+    display: grid;
+    grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    max-width: 960px;
+    height: min(92dvh, 860px);
+    padding: 0;
+    overflow: hidden;
+  }
+  .central-login .modal-heading { grid-column: 2; margin: 0; padding: var(--space-32) var(--space-32) var(--space-16); }
+  /* The picker scrolls inside its own column, so the brand column stands whole beside it at any height. */
+  .central-login .login-roles { grid-column: 2; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 var(--space-32) var(--space-32); }
+  .central-login .login-brand {
+    position: relative;
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: var(--space-40);
+    overflow: hidden;
+    background: color-mix(in srgb, var(--brand-green) 10%, var(--surface));
+    color: var(--ink);
+  }
+  .login-brand-mark { display: block; width: auto; height: 32px; }
+  .login-brand-eyebrow { margin: var(--space-12) 0 0; color: var(--brand-ink); font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+  /* The headline in the display face, its last line in the brand ink rather than the green: the green is
+     a large-text colour only, and 36 pixels on a tinted ground is where that measurement gets close. */
+  .login-brand-headline { display: grid; margin: var(--space-40) 0 0; font-family: var(--font-display); font-size: 36px; font-weight: 600; line-height: 1.02; letter-spacing: -.02em; color: var(--ink); }
+  .login-brand-headline .is-accent { color: var(--brand-ink); text-decoration: underline; text-decoration-color: var(--brand-green); text-decoration-thickness: 3px; text-underline-offset: 6px; }
+  .login-brand-body { position: relative; z-index: 1; max-width: 30ch; margin: var(--space-20) 0 0; color: var(--body); font-size: 14px; line-height: 1.6; }
+  /* The halo, the figure and the logo: the hero's still rings, its cut-out on the handoff's slant, and the
+     official logo whole on its own clear space. Nothing here moves. */
+  .login-brand-halo, .login-brand-halo > span { position: absolute; border-radius: var(--r-pill); pointer-events: none; }
+  .login-brand-halo { bottom: -112px; left: -80px; width: 430px; height: 430px; border: 1px solid color-mix(in srgb, var(--brand-green) 20%, transparent); }
+  .login-brand-halo > span:first-child { inset: 12%; border: 1px solid color-mix(in srgb, var(--brand-green) 25%, transparent); }
+  .login-brand-halo > span:last-child { inset: 27%; border: 1px solid color-mix(in srgb, var(--brand-green) 30%, transparent); }
+  /* Sized by the column's height rather than its width, so a short window shrinks the people instead of
+     laying them over the sentence above them. */
+  .login-brand-figure { position: absolute; bottom: 0; left: 0; height: 44%; max-width: 82%; clip-path: polygon(0 8%, 100% 0, 100% 100%, 0 100%); }
+  .login-brand-figure img { display: block; width: auto; max-width: 100%; height: 100%; object-fit: cover; object-position: top; }
+  .login-brand-guide { position: absolute; right: var(--space-20); bottom: var(--space-24); width: 112px; height: auto; padding: var(--space-4); border-radius: var(--r-md); background: var(--surface); box-shadow: var(--shadow); }
+}

@@ -227,3 +227,37 @@ element and a test**, expressed on `--t-quick`/`--t-settle`/`--t-enter` + `--eas
 - The export's stack (Tailwind, TanStack, Supabase, mapbox-gl, Radix, lucide@1.48) — never enters
   `apps/web`; the look is translated, not lifted.
 - Native iOS/Android re-layout — generated word/icon data only where a wave already emits it.
+
+## Correction, and what was then built — 30 September 2026, afternoon
+
+The headline finding above ("the identity is already aligned; the gaps are layout, elements and motion") was
+right about the identity and understated the rest. The founder asked the same day to _"make sure the new changes
+of Lovable are all there but in the current theme"_, and four read-only audits went back over the export and
+the live app element by element, opening each screen as its role. What they found that this register did not
+say:
+
+- **Screens classified _built_ that the role could not reach.** The patient's online consultation, connected
+  devices, mental health and activity pages; the nurse's map and dashboard; the doctor's schedule, reports and
+  settings. The component existed somewhere, or a neighbouring screen covered the ground, and the row read
+  _built_. A row in the tables above is a claim about a file, not about what a person in the role can open.
+- **Navigation.** The export gives the patient, the nurse and the doctor a sidebar of labelled groups with
+  every destination first-class. The live app had a flat list, and up to seven staff screens reachable only as
+  text links at the foot of a board.
+- **Arrangement.** List-beside-detail on the review queue, the patient file and the partner's orders; the
+  tabbed health home; the dashboard's hero and panels; the landing's guide card, impact panel and footer
+  columns. Wave 3's "no adopt delta left" was not true of these.
+
+Seven builders closed the buildable gaps in one change, drawn with the tokens and the `.ui-*` components and
+nothing from the export's stack. `docs/FEATURE-MAP.md` ("the Lovable export's layouts, navigation and missing
+screens, drawn in the live theme") is the record of what landed, what each screen refuses, what was measured
+and what is open. Read that section before trusting a _built_ or _aligned_ row above, and open the screen as
+the role before adding one.
+
+**Still refused, by decision and not by omission:** the hero trust-marks row (removed by the founder on 27
+September; it carries a POPIA and HIPAA readiness claim), a Cape Town photograph in the final band (phase one is
+Johannesburg), the dark assistant header (the 28 September identity decision), a nurse consent gate on the
+assistant, the export's endless pulses and orbits, and every figure, person, message, reading or testimonial
+the export invents — its landing copy is written for a hospital product with invented statistics.
+
+**Behind the founder's gate:** the clinical staff screens. The before-and-after page is
+https://claude.ai/artifact/XkdTu2t8QeWpX1qTe4zSob; nothing on them reaches production before an explicit yes.

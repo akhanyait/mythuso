@@ -36,7 +36,7 @@ const expectTip = async (page: Page, i: number) => {
 test('a completed visit opens the care tips, and the stack is read forwards, backwards and by jumping', async ({ page }) => {
  await page.goto('/app/');
  await openVisits(page);
- await page.getByRole('group', { name: 'Visit status' }).getByRole('button', { name: 'Past' }).click();
+ await page.getByRole('tablist', { name: 'Visit status' }).getByRole('tab', { name: 'Past' }).click();
  await page.getByRole('button', { name: 'View details' }).first().click();
  const visit = page.getByRole('dialog');
  await expect(visit.getByRole('heading', { name: tips.door.heading })).toBeVisible();

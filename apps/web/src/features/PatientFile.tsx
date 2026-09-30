@@ -86,8 +86,13 @@ const rangeOf = (id: string) => [...measureSpec(id).range] as [number, number];
 const dayOf = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-ZA', { day: 'numeric', timeZone: 'UTC' });
 const monthOf = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-ZA', { month: 'short', year: '2-digit', timeZone: 'UTC' });
 
-export function PatientFile({ open }: { open: (s: string) => void }) {
- const [patientId, setPatientId] = useState(patients[0].id);
+/* `patientId`, when given, is the patient a list beside the file chose (the doctor's Patient context,
+   features/DoctorPages.tsx): the file then follows it and drops its own "Open the file of" select, because
+   two controls choosing one patient is two answers to whose file this is. Without it — the nurse's dialog
+   — the file keeps its own select, as before. */
+export function PatientFile({ open, patientId: chosen }: { open: (s: string) => void; patientId?: string }) {
+ const [ownPatientId, setPatientId] = useState(patients[0].id);
+ const patientId = chosen ?? ownPatientId;
  const [viewerId, setViewerId] = useState(viewers[0].id);
  const [tabName, setTabName] = useState(fileTabs[0].name);
  const [notice, setNotice] = useState('');
@@ -122,9 +127,9 @@ export function PatientFile({ open }: { open: (s: string) => void }) {
    lead={<PatientIdentity patient={patient} viewer={viewer}/>}>
    <NotConnected of="clinical-records"/>
    <div className="c-deck-controls" role="group" aria-label="The same file, through different eyes">
-    <label className="c-field">Open the file of
+    {chosen === undefined && <label className="c-field">Open the file of
      <select value={patientId} onChange={e => { setPatientId(e.target.value); setNotice(''); }}>{patients.map(p => <option key={p.id} value={p.id}>{p.name} · {p.id}</option>)}</select>
-    </label>
+    </label>}
     <label className="c-field">Viewing as
      <select value={viewerId} onChange={e => { setViewerId(e.target.value); setNotice(''); }}>{viewers.map(v => <option key={v.id} value={v.id}>{v.name} · {roleById(v.roleId)?.name}</option>)}</select>
     </label>

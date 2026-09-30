@@ -1541,3 +1541,155 @@ html:has(.landing) {
   stroke-dashoffset: 0;
   animation: ecg-draw calc(var(--t-enter) * 3) var(--ease) var(--t-settle) 1 backwards;
 }
+
+/* ---- The handoff's arrangements, 30 September 2026 ----
+   Four compositions from the Lovable export's landing, drawn on this page's roles and scale, each keeping
+   every sentence it already carried. Nothing here moves on its own; the reveals are the page's own.
+
+   The guide card's action. The handoff's GilbertOne card ends in "Start a conversation"; this one opens
+   the same public sheet the round button opens, and says what it does there. */
+.landing-guide .landing-guide-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin-top: var(--space-16);
+}
+.landing-guide .landing-guide-action:hover {
+  border-color: var(--color-accent);
+  background: var(--color-muted);
+  filter: none;
+}
+
+/* Where it starts: the heading above, then the handoff's panel — a wash of the accent holding the map on
+   the left and a white card on the right. The card carries the coverage sentence, the plan note and the
+   openings by name, where the handoff's carried three counts of things that have not happened. On a phone
+   the card comes first, as it does in the document: the words say how little of the map is served before
+   the map is seen. */
+.landing-impact {
+  display: block;
+}
+.landing-impact-head {
+  max-width: 62ch;
+  margin-bottom: var(--space-32);
+}
+.landing-impact-panel {
+  display: grid;
+  gap: var(--space-16);
+  padding: var(--space-16);
+  border-radius: var(--r-lg);
+  background: color-mix(in oklab, var(--color-accent) 10%, var(--color-surface));
+}
+.landing-impact-card {
+  padding: var(--space-24);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+}
+.landing-impact-coverage {
+  margin: 0;
+  color: var(--color-foreground);
+  font-size: 16px;
+  line-height: 1.65;
+}
+.landing-impact-card .landing-impact-plan {
+  margin-top: var(--space-20);
+}
+.landing-impact-panel .landing-impact-map {
+  border: 0;
+}
+
+/* Access and clinical boundaries: the handoff's four-up row, a disc above each heading. The disc is the
+   accent as a wash with the foreground's glyph in it — a mark that repeats the heading, never a word. */
+.landing-refusals li {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+}
+.landing-refusal-disc {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: var(--space-8);
+  border-radius: var(--r-pill);
+  background: color-mix(in oklab, var(--color-accent) 16%, var(--color-surface));
+  color: var(--color-foreground);
+}
+
+/* The footer's link columns: only places that exist. Each link is a 44-pixel row, so a thumb can land on
+   one on the cheapest phone in the house. */
+.landing-footer-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-24);
+}
+.landing .landing-footer-links h2 {
+  margin: 0 0 var(--space-4);
+  font-family: var(--font-text);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.4;
+  color: var(--color-foreground);
+}
+.landing-footer-links ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.landing-footer-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-muted-foreground);
+  font-size: 14px;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 4px;
+  transition: color var(--t-quick) var(--ease), text-decoration-color var(--t-quick) var(--ease);
+}
+.landing-footer-links a:hover {
+  color: var(--color-foreground);
+  text-decoration-color: currentColor;
+}
+
+@media (min-width: 860px) {
+  .landing-impact-panel {
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+    align-items: center;
+    gap: var(--space-24);
+    padding: var(--space-24);
+  }
+  /* The map on the left as the handoff draws it, the card on the right; the document keeps the words
+     first, so this is an arrangement of the page rather than of what a screen reader meets. */
+  .landing-impact-panel .landing-impact-map {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .landing-impact-card {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .landing-refusals ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .landing-footer {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .landing-footer-note {
+    grid-column: 1 / -1;
+  }
+}
+@media (min-width: 1080px) {
+  .landing .landing-refusals ul {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: var(--space-32);
+  }
+  .landing-footer {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.2fr);
+  }
+  .landing-footer-note {
+    grid-column: auto;
+  }
+}

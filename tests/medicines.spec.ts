@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { chooseRole, goSection, openWorkspace } from './nav';
+import { chooseRole, goSection, openDestination, openWorkspace } from './nav';
 import { capabilityOf } from './nav';
 
 /* Medicines & Labs, on both viewports.
@@ -25,6 +25,9 @@ const sentence = (id: string): string => {
   return found.statement;
 };
 
+/* The pharmacy's queue is still one of the partner's More tools and opens as a dialog. The doctor's prescription and
+   results and the nurse's hand-over are destinations in their grouped navigation since 30 September, reached with
+   openDestination and scoped to the page rather than to a dialog; every assertion about them is unchanged. */
 async function tool(page: Page, name: string) {
   await page.locator('.tool-link').filter({ hasText: name }).click();
   const dialog = page.getByRole('dialog');
@@ -35,7 +38,7 @@ const closeDialog = (page: Page) => page.getByRole('button', { name: 'Close dial
 
 test('prescribed against a check that was not run, verified and dispensed, authorised by the patient and handed over against the PIN', async ({ page }) => {
   await openWorkspace(page, 'Doctor');
-  let dialog = await tool(page, words.prescribe.heading);
+  let dialog = await openDestination(page, words.prescribe.heading);
   await expect(dialog).toContainText(medicines.formulary.notice);
   await dialog.getByLabel(words.prescribe.search).fill('Synthetic');
   await dialog.getByRole('radio').first().check();
@@ -47,7 +50,6 @@ test('prescribed against a check that was not run, verified and dispensed, autho
   await dialog.getByRole('checkbox', { name: medicines.interactionChecks.acknowledgement }).check();
   await dialog.getByRole('button', { name: words.prescribe.prescribe, exact: true }).click();
   await expect(dialog).toContainText(words.prescribe.prescribed);
-  await closeDialog(page);
 
   await chooseRole(page, 'Pharmacy partner');
   dialog = await tool(page, words.pharmacy.heading);
@@ -62,7 +64,7 @@ test('prescribed against a check that was not run, verified and dispensed, autho
 
   await chooseRole(page, 'Patient');
   await goSection(page, 'Health Passport');
-  await page.getByRole('group', { name: 'Passport sections' }).getByRole('button', { name: 'Medications' }).click();
+  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Medications' }).click();
   await page.getByRole('button', { name: /What happens after a doctor signs one/ }).click();
   await page.getByRole('button', { name: capabilityOf('medicine-collection').name }).click();
   dialog = page.getByRole('dialog');
@@ -74,7 +76,7 @@ test('prescribed against a check that was not run, verified and dispensed, autho
   await closeDialog(page);
 
   await chooseRole(page, 'Nurse');
-  dialog = await tool(page, words.handover.heading);
+  dialog = await openDestination(page, words.handover.heading);
   await dialog.getByRole('button', { name: words.handover.collect }).click();
   await dialog.getByRole('radio', { name: words.handover.sealIntact }).check();
   const wrong = pin.replace(/\d$/, d => String((Number(d) + 1) % 10));
@@ -90,7 +92,7 @@ test('prescribed against a check that was not run, verified and dispensed, autho
 test('a lab result cannot close until the clinician who ordered it acknowledges it', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-09-15T09:00:00+02:00') });
   await openWorkspace(page, 'Doctor');
-  const dialog = await tool(page, words.results.heading);
+  const dialog = await openDestination(page, words.results.heading);
   await dialog.getByRole('button', { name: words.results.order }).click();
   await expect(dialog).toContainText(words.results.ordered);
   await dialog.getByRole('button', { name: words.results.close, exact: true }).click();

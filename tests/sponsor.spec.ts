@@ -37,7 +37,9 @@ const openSponsorship = async (page: Page) => {
     await page.locator('.tabbar button').last().click();
     await page.locator('.menu-row').filter({ hasText: 'My family' }).first().click();
   }
-  await page.getByRole('button', { name: /Care you sponsor/ }).click();
+  /* Scoped to the screen: the grouped sidebar has a "Care you sponsor" row of its own since 30 September
+     2026, and this journey is about the door on My family. */
+  await page.getByRole('main').getByRole('button', { name: /Care you sponsor/ }).click();
   await expect(page.getByRole('heading', { name: 'Care you pay for.' })).toBeVisible();
 };
 

@@ -84,8 +84,9 @@ export type DeckHeadline = readonly (string | { glyph: DeckGlyph })[];
    Which heading depends on where the screen is standing, and the screen cannot see that: the same
    earnings screen is a page in the workspace and a dialog opened from a More tools link, and a
    dialog already carries its own <h2>. The shell says so through this context, and anything it
-   does not wrap is treated as standing inside something else. */
-export const DeckTitleLevel = createContext<'h1' | 'h3'>('h3');
+   does not wrap is treated as standing inside something else. h2 is a deck standing under a page's own h1 —
+   the doctor's file beside its patient list, the record composer under the records list. */
+export const DeckTitleLevel = createContext<'h1' | 'h2' | 'h3'>('h3');
 
 /** The drawing that belongs to one figure. Every field is counted off the rows the figure counts. */
 export type DeckShape =

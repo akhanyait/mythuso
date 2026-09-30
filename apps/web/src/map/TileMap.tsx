@@ -6,7 +6,7 @@ import { mapWindow, place, rendering, source, view, zones, type Credit, type Til
 import providers from '../../../../packages/catalog/map-providers.json';
 import { mapboxRequests } from './mapboxRequests';
 import type { LatLng } from '../../../../packages/geo/index.ts';
-import type { MapMarker } from './LiveMap';
+import type { MapLink, MapMarker } from './LiveMap';
 /* The tile map, and the only module in this application that imports a map library.
  *
  * It is behind a dynamic import for one reason, and the reason is a person rather than a metric.
@@ -93,27 +93,65 @@ function circle(centre: LatLng, radiusKm: number, steps = 64): GeoJSON.Feature<G
  return { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [ring] } };
 }
 
-/** The straight line an estimate was measured along, or an empty collection when there is nothing to
-    measure — a nurse who is not on the way yet has no line, and an empty source is how you say that
-    without adding and removing a layer. */
-const straightLine = (link: { from: LatLng; to: LatLng } | null): GeoJSON.FeatureCollection => ({
+/** The straight lines an estimate was measured along, one feature per leg, or an empty collection when
+    there is nothing to measure — a nurse who is not on the way yet has no line, and an empty source is
+    how you say that without adding and removing a layer. One feature per leg and never one line through
+    all of them: a polyline through four suburbs is the shape of a route, and a leg is a measurement. */
+const straightLines = (links: readonly MapLink[]): GeoJSON.FeatureCollection => ({
  type: 'FeatureCollection',
- features: link
-  ? [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[link.from.lng, link.from.lat], [link.to.lng, link.to.lat]] } }]
-  : []
+ features: links.map(link => ({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [[link.from.lng, link.from.lat], [link.to.lng, link.to.lat]] } }))
 });
 
-export function TileMap({ markers, summary, link, onTilesFailed, onDrawnBy }: {
+/* A motion token in milliseconds, read from the stylesheet the rest of the product reads, and nought
+   for a reader who asked for less motion — the camera is motion as much as a transition is. */
+const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const msOf = (token: string) => {
+ if (reduced()) return 0;
+ const value = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+ const n = parseFloat(value);
+ return Number.isFinite(n) ? (value.endsWith('ms') ? n : n * 1000) : 0;
+};
+
+/* The bounds of the pins that can be drawn, or null when there are none. */
+const boundsOf = (markers: MapMarker[]): [[number, number], [number, number]] | null => {
+ const at = markers.map(marker => place(marker.at)).filter(p => p.drawn).map(p => (p as { at: LatLng }).at);
+ if (!at.length) return null;
+ const lngs = at.map(p => p.lng), lats = at.map(p => p.lat);
+ return [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]];
+};
+/* Thirteen at the closest, for a day whose pins sit in one suburb: two below the privacy ceiling, and
+   close enough to read the suburbs around it rather than the streets of one. */
+const FIT_MAX_ZOOM = 13;
+/* Fit the pins inside the part of the frame nothing covers: the chosen pin's card sits over the foot of
+   a tall frame on a wide screen, so its height is added to the bottom margin — measured, because the
+   card is as tall as its words. The map is told its own size first; a frame that grew after the map was
+   built would otherwise be fitted as the box it used to be. */
+function fitPins(instance: MapLibreMap, markers: MapMarker[]): boolean {
+ const b = boundsOf(markers);
+ if (!b) return false;
+ instance.resize();
+ const overlay = instance.getContainer().parentElement?.querySelector<HTMLElement>('.livemap-overlay');
+ const covered = overlay && getComputedStyle(overlay).position === 'absolute' ? overlay.offsetHeight + 16 : 0;
+ instance.fitBounds(b, { animate: false, padding: { top: 64, left: 64, right: 72, bottom: 56 + covered }, maxZoom: FIT_MAX_ZOOM });
+ return true;
+}
+
+export function TileMap({ markers, summary, links, fit = 'window', follow = false, onTilesFailed, onDrawnBy }: {
  markers: MapMarker[];
  summary: string;
- link: { from: LatLng; to: LatLng } | null;
+ links: readonly MapLink[];
+ fit?: 'window' | 'markers';
+ follow?: boolean;
  onTilesFailed: () => void;
  /** Told, before the first request, which source's credit belongs under this map. */
  onDrawnBy: (credit: Credit) => void;
 }) {
  const host = useRef<HTMLDivElement>(null);
  const map = useRef<MapLibreMap | null>(null);
- const pins = useRef<Marker[]>([]);
+ /* Each pin by its id, so a re-render moves, relabels or reselects the pin already on the map rather
+    than tearing every one down and building it again — which made each of them arrive again on every
+    click, and asked the browser for a new button under the finger that had just pressed the old one. */
+ const pins = useRef(new Map<string, { marker: Marker; el: HTMLButtonElement; select?: () => void }>());
  const drawn = useRef(false);
  /* The map is built once and never on a re-render. Both of these arrive as a fresh object or a fresh
     closure every time the parent renders, and depending on them tore the whole GL context down and
@@ -123,8 +161,12 @@ export function TileMap({ markers, summary, link, onTilesFailed, onDrawnBy }: {
  failed.current = onTilesFailed;
  const drawnBy = useRef(onDrawnBy);
  drawnBy.current = onDrawnBy;
- const route = useRef(link);
- route.current = link;
+ const route = useRef(links);
+ route.current = links;
+ /* What the camera settles on, held for the same reason: the reset button and the load handler are
+    built once, and must frame the pins on the board now rather than the ones at first render. */
+ const framing = useRef({ fit, markers });
+ framing.current = { fit, markers };
 
  useEffect(() => {
   if (!host.current || map.current) return;
@@ -164,6 +206,9 @@ export function TileMap({ markers, summary, link, onTilesFailed, onDrawnBy }: {
   instance.addControl(new NavigationControl({ showCompass: false }), 'top-right');
   instance.touchZoomRotate.disableRotation();
   const reset = () => {
+   /* Fitted to the pins where the screen asked for that and there are pins to fit; the metro window
+      otherwise, which is also where a day with nobody on it lands. */
+   if (framing.current.fit === 'markers' && fitPins(instance, framing.current.markers)) return;
    const halfLat = (view.spanKm / 2) / 110.574;
    const halfLng = (view.spanKm / 2) / (111.32 * Math.cos((mapWindow.centre.lat * Math.PI) / 180));
    instance.fitBounds(
@@ -232,15 +277,19 @@ export function TileMap({ markers, summary, link, onTilesFailed, onDrawnBy }: {
       map with a straight line on it looks like one, and a reader who takes it for a route has been
       told the nurse is coming down a road nobody has checked. So it is dashed, it is drawn through
       the buildings, and packages/geo refuses to call any of it a route. */
-   instance.addSource('straight', { type: 'geojson', data: straightLine(route.current) });
+   instance.addSource('straight', { type: 'geojson', data: straightLines(route.current) });
    instance.addLayer({
     id: 'straight-line', type: 'line', source: 'straight',
     layout: { 'line-cap': 'round' },
     /* Heavier than the schematic's version of the same line, because it has more to argue with. On a
        plain square nothing suggests a road; over real roads a faint line reads as a route somebody
        has drawn along one, so it is drawn firmly and dashed firmly. */
-    paint: { 'line-color': c.charcoal, 'line-width': 2.5, 'line-opacity': 0.7, 'line-dasharray': [2, 1.6] }
+    paint: { 'line-color': c.charcoal, 'line-width': 2.5, 'line-opacity': 0, 'line-dasharray': [2, 1.6] }
    });
+   /* The lines arrive rather than appear, once, on the product's own entrance duration — a fade the
+      renderer runs and finishes, and nothing at all for a reader who asked for less motion. */
+   instance.setPaintProperty('straight-line', 'line-opacity-transition', { duration: msOf('--t-enter'), delay: 0 });
+   instance.setPaintProperty('straight-line', 'line-opacity', 0.7);
 
    /* Thirteen is the floor of the type scale and a map label is not exempt from it. The fontstack is
       what this style's glyph server actually has; naming one it does not serve loses every label on
@@ -257,18 +306,20 @@ export function TileMap({ markers, summary, link, onTilesFailed, onDrawnBy }: {
    });
   });
 
-  return () => { clearTimeout(clock); drawn.current = false; resetButton.remove(); instance.remove(); map.current = null; };
+  const owned = pins.current;
+  return () => { clearTimeout(clock); drawn.current = false; resetButton.remove(); for (const pin of owned.values()) pin.marker.remove(); owned.clear(); instance.remove(); map.current = null; };
  }, []);
 
  /* The line follows the estimate it was measured from rather than the map's lifetime: a patient
     watching a nurse gets a new pair of suburbs the moment the estimate is recomputed, and rebuilding
     the map to move a line would ask the tile server for the same squares again. */
+ const lineKey = links.map(l => `${l.from.lat},${l.from.lng},${l.to.lat},${l.to.lng}`).join(';');
  useEffect(() => {
   const instance = map.current;
   if (!instance || !drawn.current) return;
   const geojson = instance.getSource('straight');
-  if (geojson && 'setData' in geojson) (geojson as { setData: (d: unknown) => void }).setData(straightLine(link));
- }, [link?.from.lat, link?.from.lng, link?.to.lat, link?.to.lng]);
+  if (geojson && 'setData' in geojson) (geojson as { setData: (d: unknown) => void }).setData(straightLines(links));
+ }, [lineKey]);
 
  /* Markers are DOM, not a layer: each one is a button a controller can reach with the keyboard and
     a screen reader can name. A canvas-drawn pin is invisible to both. A marker carries `map-pin` and
@@ -278,20 +329,79 @@ export function TileMap({ markers, summary, link, onTilesFailed, onDrawnBy }: {
  useEffect(() => {
   const instance = map.current;
   if (!instance) return;
-  for (const pin of pins.current) pin.remove();
-  pins.current = markers.flatMap(marker => {
+  const seen = new Set<string>();
+  /* Two pins on one suburb centre — a nurse's base and her first stop in the same suburb — would be one
+     pin to the eye and one to the finger. The later one steps aside by half a target, so both can be
+     seen and pressed; neither moves off the suburb it is in. */
+  const stacked = new Map<string, number>();
+  for (const marker of markers) {
    const placement = place(marker.at);
-   if (!placement.drawn) return [];
-   const el = document.createElement('button');
-   el.type = 'button';
-   el.className = `map-marker map-pin ${marker.kind}${marker.selected ? ' selected' : ''}`;
-   el.setAttribute('aria-label', marker.label);
-   el.setAttribute('aria-pressed', String(Boolean(marker.selected)));
-   if (marker.onSelect) el.addEventListener('click', marker.onSelect);
-   return [new Marker({ element: el }).setLngLat([placement.at.lng, placement.at.lat]).addTo(instance)];
-  });
-  return () => { for (const pin of pins.current) pin.remove(); pins.current = []; };
+   if (!placement.drawn) continue;
+   seen.add(marker.id);
+   const spot = `${placement.at.lat},${placement.at.lng}`;
+   const under = stacked.get(spot) ?? 0;
+   stacked.set(spot, under + 1);
+   let pin = pins.current.get(marker.id);
+   if (!pin) {
+    const el = document.createElement('button');
+    el.type = 'button';
+    /* `arrives` once, for the pin's first appearance on this map, and never again for the same pin:
+       map.css plays it on the pin's face — the element's own transform is the library's, and is where
+       the pin is. */
+    el.dataset.arrives = '';
+    const created: { marker: Marker; el: HTMLButtonElement; select?: () => void } = { marker: new Marker({ element: el }), el };
+    el.addEventListener('click', () => created.select?.());
+    created.marker.setLngLat([placement.at.lng, placement.at.lat]).addTo(instance);
+    pins.current.set(marker.id, created);
+    pin = created;
+   } else pin.marker.setLngLat([placement.at.lng, placement.at.lat]);
+   pin.marker.setOffset([under * -22, under * 22]);
+   pin.select = marker.onSelect;
+   /* The library's own classes (maplibregl-marker and its anchor) are what position the pin; ours are
+      set beside them and never over them. */
+   const library = [...pin.el.classList].filter(name => name.startsWith('maplibregl-'));
+   pin.el.className = [...library, 'map-marker', 'map-pin', marker.kind, ...(marker.selected ? ['selected'] : []), ...(marker.badge ? ['has-badge'] : [])].join(' ');
+   pin.el.setAttribute('aria-label', marker.label);
+   pin.el.setAttribute('aria-pressed', String(Boolean(marker.selected)));
+   /* The stop's number, and only ever a number: never initials, which would name the person a pin at
+      a suburb centre exists not to name. Hidden from a screen reader, which hears the label. */
+   if (marker.badge) {
+    let face = pin.el.querySelector('span');
+    if (!face) { face = document.createElement('span'); face.setAttribute('aria-hidden', 'true'); pin.el.append(face); }
+    face.textContent = marker.badge;
+   } else pin.el.querySelector('span')?.remove();
+  }
+  for (const [id, pin] of pins.current) if (!seen.has(id)) { pin.marker.remove(); pins.current.delete(id); }
  }, [markers]);
+
+ /* Fit to the pins once the map has loaded and whenever the set of pins changes — a layer switched off
+    or on reframes the board around what is left, and a selection alone does not. */
+ const pinKey = markers.map(m => `${m.id}@${m.at?.lat},${m.at?.lng}`).join(';');
+ useEffect(() => {
+  const instance = map.current;
+  if (!instance || fit !== 'markers') return;
+  const fitNow = () => { fitPins(instance, framing.current.markers); };
+  if (drawn.current) fitNow(); else instance.once('load', fitNow);
+  /* Refitted when the frame changes size — a phone turned, a sidebar folded — until the reader moves
+     the camera herself, after which where she put it is hers. */
+  let moved = false;
+  const byHand = (event: { originalEvent?: unknown }) => { if (event.originalEvent) moved = true; };
+  instance.on('movestart', byHand);
+  const observer = new ResizeObserver(() => { if (!moved && drawn.current) fitNow(); });
+  observer.observe(instance.getContainer());
+  return () => { observer.disconnect(); instance.off('movestart', byHand); };
+ }, [pinKey, fit]);
+
+ /* The chosen pin, brought to the middle — eased on the settle duration, or placed at once for a
+    reader who asked for less motion. Only where the screen asked for it: a controller choosing a
+    visit on the dispatch board keeps the city in view. */
+ const chosen = markers.find(m => m.selected);
+ const chosenAt = chosen ? place(chosen.at) : null;
+ useEffect(() => {
+  const instance = map.current;
+  if (!instance || !follow || !chosenAt?.drawn || !drawn.current) return;
+  instance.easeTo({ center: [chosenAt.at.lng, chosenAt.at.lat], duration: msOf('--t-settle') });
+ }, [follow, chosen?.id]);
 
  return <div ref={host} className="livemap-canvas" role="group" aria-label={summary}/>;
 }

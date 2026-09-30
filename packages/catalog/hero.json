@@ -92,7 +92,25 @@
   "badgeWhy": "The pulse beside it says that something on this page will answer, and something does: the public guide in the corner of the screen. It never says listening. The guide takes typed questions only, and a pulse beside the word listening on a page with no microphone would be a microphone indicator that lies.",
   "guide": {
    "title": "Ask GilbertOne",
-   "line": "GilbertOne is MyThuso’s guide. On this page it answers questions about the service, and the round button in the corner of the screen opens it."
+   "line": "GilbertOne is MyThuso’s guide. On this page it answers questions about the service, and the round button in the corner of the screen opens it.",
+   "action": "Ask a question",
+   "actionWhy": "The handoff's \"Start a conversation\" on its GilbertOne card, in the words of what the sheet behind it does: it answers typed questions about the website and nothing else. It opens the same public sheet the round button opens."
+  },
+  "guideCard": {
+   "label": "MyThuso website guide · no sign-in needed",
+   "questions": [
+    { "id": "about", "question": "What is MyThuso?" },
+    { "id": "availability", "question": "Can I book or sign in yet?" },
+    { "id": "services", "question": "What services are planned?" },
+    { "id": "plans", "question": "Where can I see prices and plans?" }
+   ],
+   "why": "The handoff's hero card for GilbertOne, in its truthful form (30 September 2026). The handoff's card offered four clinical actions — summarise a record, check a guideline, draft a note, answer a clinical question — which the public guide refuses, beside an animated character this build refuses by name. What stands in their place is what the guide on this page actually answers: its own label and four of its own questions, each of which opens the public sheet already asked. Both are copies of packages/catalog/assistant-public.json, word for word and by id, and scripts/check-boundaries.mjs fails the build the moment one differs. They are copied rather than imported for the reason the coverage sentence is: importing the assistant's public contract would put every answer and alias on the landing entry for four lines."
+  },
+  "login": {
+   "eyebrow": "Help. Health. Home.",
+   "headline": ["One address.", "Every role.", "A preview of each."],
+   "body": "Each role opens its own workspace, with fictional profiles in place of people. Choosing one creates no account.",
+   "why": "The brand column the handoff draws beside the role picker on a wide screen (30 September 2026). Its words were an account's — secure access, signed in, a privacy policy agreed to — and there are no accounts: the capability is simulated and the picker under these words carries its notice and its refusal. So the column says what the picker is: one address, a role you choose, and a preview behind each."
   },
   "kit": {
    "title": "What a nurse would carry",

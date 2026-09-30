@@ -231,3 +231,25 @@ test('nothing moves forever, and reduced motion removes the one turn the loading
  expect(await gallery.locator('.ui-spinner').first().evaluate(el => getComputedStyle(el).animationName)).toBe('none');
  expect(parseFloat(await gallery.locator('.ui-button').first().evaluate(el => getComputedStyle(el).transitionDuration))).toBeLessThan(0.001);
 });
+
+/* The handoff's colour and type pages, in the gallery (30 September 2026): every semantic role as a swatch on each
+   pane's own value, and every type role at its own size — both read from tokens.json by the gallery and here. */
+test('each pane draws every colour role on its own value, and every type role at its size', async ({ page }) => {
+ const gallery = await openGallery(page);
+ const names = (tokens.semantic as unknown as { names: string[] }).names;
+ const scale = (JSON.parse(readFileSync(new URL('../packages/design-tokens/tokens.json', import.meta.url), 'utf8')).typography.scale) as Record<string, number>;
+ for (const mode of MODES) {
+  const pane = gallery.locator(`[data-theme-pane="${mode}"]`);
+  const swatches = pane.locator('.ui-gallery-swatches li');
+  await expect(swatches).toHaveCount(names.length);
+  for (const role of names) {
+   const swatch = pane.locator(`.ui-gallery-swatches li[data-role="${role}"]`);
+   await expect(swatch.locator('small')).toHaveText(tokens.semantic[mode][role].hex);
+   expect(await swatch.locator('.ui-gallery-swatch').evaluate(el => getComputedStyle(el).backgroundColor)).toBe(rgbOf(tokens.semantic[mode][role].hex.toLowerCase()));
+  }
+  const samples = pane.locator('.ui-gallery-type-sample');
+  await expect(samples).toHaveCount(Object.keys(scale).length);
+  expect((await samples.evaluateAll(els => els.map(el => parseFloat(getComputedStyle(el).fontSize)))).sort((a, b) => b - a))
+   .toEqual(Object.values(scale).sort((a, b) => b - a));
+ }
+});

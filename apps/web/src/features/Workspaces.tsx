@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { BadgeCheck, ChevronRight, ClipboardList, ClipboardPlus, MapPin } from 'lucide-react';
 import { Pill } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
@@ -11,6 +11,7 @@ import { formatEventTime } from '../lib/vetting';
 import { CareOfferSlot } from './CareVisit';
 import medicines from '../../../../packages/catalog/medicines.json' with { type: 'json' };
 import { NurseDoorCode } from './VerifyInService';
+import { ReviewCasePanel } from './ReviewCase';
 
 /* The four clinical workspaces' own home screens, and the four navigations that reach them.
  *
@@ -49,9 +50,13 @@ export const sectionDoor: Record<string,string> = {
    would split it into a chunk the patient's first load names in its preload list. scripts/check-boundaries.mjs holds
    this to the contract's screens.quarantine.heading word for word, as it holds App.tsx's P1 route names. */
 export const HL7_QUARANTINE_HEADING = 'HL7 quarantine (development)';
+/* Since 30 September 2026 the nurse's and the doctor's tools are destinations in StaffShell.tsx's grouped
+   navigation too, and a link here navigates to the page rather than opening a dialog — one screen, one
+   presentation. The doctor's "Clinical protocols" went: it was a second door into Protocols, which is a
+   destination of its own. The partner's and the Control Tower's still open dialogs. */
 export const roleExtras: Record<string,string[]> = {
  Nurse:['Locum shifts','Academy',medicines.screen.handover.heading,'Messages','Team'],
- Doctor:['Clinical protocols','Referral pathway','Per-case fees','Claim draft',medicines.screen.prescribe.heading,medicines.screen.results.heading,'Messages'],
+ Doctor:['Referral pathway','Per-case fees','Claim draft',medicines.screen.prescribe.heading,medicines.screen.results.heading,'Messages'],
  Partner:['Prescription RX-0081','Laboratory order LAB-0023',medicines.screen.pharmacy.heading],
  /* The HL7 quarantine is a development operator's view (Wave 5), under its contract heading, which says so. */
  'Control Tower':['Nurse onboarding & vetting','Employer programmes',HL7_QUARANTINE_HEADING,'Device Lab']
@@ -161,6 +166,19 @@ const gapText = (minutes: number) => {
 };
 
 export const referenceFor = (shift: Shift) => shift === nurseDay[0] ? 'TH-2048' : `TH-2048 · ${shift.start}`;
+/** Her day as the stops of a route, in order: the same rows the schedule draws, numbered, with what
+    the visit queue says about each. No patient's name travels with a stop — the route map places a
+    visit at its suburb's centre so that it names nobody, and a name beside the pin would undo that. */
+export const nurseDayStops = (queue: Part[]) => nurseDay.map((shift, index) => ({
+ number: index + 1,
+ start: shift.start,
+ end: endTime(shift.start, shift.service.duration),
+ service: shift.service,
+ suburb: shift.suburb,
+ reference: referenceFor(shift),
+ signed: Boolean(signOffFor(queue, referenceFor(shift)))
+}));
+export type NurseStop = ReturnType<typeof nurseDayStops>[number];
 /** The service a visit on this day is, by the reference it opens under. The field-safety timer runs on the
     service's own duration, so a visit says which service it is rather than how long it thinks it takes. */
 export const serviceIdFor = (reference: string) => (nurseDay.find(shift => referenceFor(shift) === reference) ?? nurseDay[0]).service.id;
@@ -200,8 +218,12 @@ export function NurseSchedule({ open }: { open: (s: string) => void }) {
       join. Off duty it shows nothing new; a visit she has already taken still shows. */}
   <CareOfferSlot open={open} available={available}/>
   {/* The code she shows at a door, from Verify. On duty only: off duty she is at nobody's door. */}
-  {available && <NurseDoorCode/>}
-  {available ? <div className="nday">
+  {/* The door code beside the day rather than above it, as the export lays the two out: the day is what she
+      reads first and the code is what she shows at a door, so on a wide screen they stand side by side and on a
+      phone the code comes first, because it is the one she is holding up. */}
+  {available ? <div className="nday-split">
+  <NurseDoorCode/>
+  <div className="nday">
    {/* THE DAY AS ONE RAIL RATHER THAN A CARD AND TWO ROWS.
        It was a lime card, a section heading, two grey rows in a white box and a hairline total —
        four objects with nothing running between them, so the one question a schedule is read for
@@ -278,7 +300,7 @@ export function NurseSchedule({ open }: { open: (s: string) => void }) {
      <strong>{money(day.earned)}</strong>
     </span>
    </div>
-  </div> : <EmptyState title="You are off duty" body="Nothing is sent to a nurse who is off duty, and going off duty never cancels a visit you have already accepted. Turn availability back on when you are ready." action="Go available" onAction={() => setAvailable(true)}/>}
+  </div></div> : <EmptyState title="You are off duty" body="Nothing is sent to a nurse who is off duty, and going off duty never cancels a visit you have already accepted. Turn availability back on when you are ready." action="Go available" onAction={() => setAvailable(true)}/>}
  </>;
 }
 export function ReviewQueue({ open }: { open: (s: string) => void }) {
@@ -297,6 +319,19 @@ export function ReviewQueue({ open }: { open: (s: string) => void }) {
     own: the divisor is the longest row on the screen, so the filter narrowing the list rescales the
     bars with it rather than leaving them measured against a case nobody can see. */
  const longestWait = longest?.minutes ?? 1;
+ /* MASTER AND DETAIL (30 September 2026, the Lovable export's review queue). A row chooses the case
+    and the case stands beside the list — features/ReviewCase.tsx says why the dialog is still where a
+    case is signed. The chosen row is whichever the doctor pressed, while it is on the screen; when the
+    filter hides it the panel follows the list to its first row rather than describing a case nobody
+    can see. On a phone the panel is under the list, so choosing a row brings it into view. */
+ const [chosen, setChosen] = useState(reviewQueue[0].ref);
+ const selected = rows.find(r => r.ref === chosen) ?? rows[0];
+ const panel = useRef<HTMLElement>(null);
+ const choose = (ref: string) => {
+  setChosen(ref);
+  if (window.matchMedia('(max-width: 1279px)').matches)
+   requestAnimationFrame(() => panel.current?.scrollIntoView({ block: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }));
+ };
  return <>
   <div className="shift-head">
    {/* The one line, and it carries the figures now. There used to be a strip of three summary tiles
@@ -321,8 +356,8 @@ export function ReviewQueue({ open }: { open: (s: string) => void }) {
       it is also a rail down the left edge of the row, because a state told in colour alone is a
       state a colour-blind reader is not told. Waiting time is tabular and right-aligned — a queue
       you cannot read down is a queue you work in the order it was drawn. */}
-  {rows.length ? <ol className="review-list">{rows.map(review => <li key={review.ref}>
-   <button className={`review-row${review.flag ? ' is-flagged' : ''}`} onClick={() => open(`Doctor review: ${review.ref}`)}>
+  {rows.length ? <div className="rq-split"><ol className="review-list">{rows.map(review => <li key={review.ref}>
+   <button className={`review-row${review.flag ? ' is-flagged' : ''}${review === selected ? ' is-chosen' : ''}`} aria-pressed={review === selected} onClick={() => choose(review.ref)}>
     <span className="review-face" aria-hidden="true">{initialsOf(review.patient)}</span>
     <span className="review-what">
      <span className="review-ref">{review.ref}</span>
@@ -352,6 +387,7 @@ export function ReviewQueue({ open }: { open: (s: string) => void }) {
     </span>
    </button>
   </li>)}</ol>
+   {selected && <ReviewCasePanel ref={panel} review={selected} open={open}/>}</div>
    : <EmptyState title="Nothing is flagged" body="Every case in the queue is inside its reference range. Switch back to everything to work the queue in the order it arrived." action="Show everything" onAction={() => setFlaggedOnly(false)}/>}
  </>;
 }

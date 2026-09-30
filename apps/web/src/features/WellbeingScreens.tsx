@@ -2,7 +2,11 @@
    2026: none of it is on a patient's first view. Wellbeing.tsx keeps the names the application imports and hands
    each screen over on the first press — see deferred.tsx. */
 import { useId, useRef, useState } from 'react';
-import { ArrowRight, Ban, CalendarDays, Moon, MessageSquareQuote, NotebookPen, PersonStanding, Tablets, Trash2, Utensils } from 'lucide-react';
+import { ArrowRight, Ban, Brain, CalendarDays, HeartHandshake, Library, Moon, MessageSquareQuote, NotebookPen, PersonStanding, Tablets, Trash2, Utensils } from 'lucide-react';
+import { Button } from '../ui';
+import { patientPageRoutes } from '../lib/patient-pages-routes.generated';
+import { careTipsRoute } from '../lib/care-tips-route.generated';
+import './wellbeing-hub.css';
 import { EmptyNote, SectionTitle } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import {
@@ -58,13 +62,39 @@ type Props = {
  navigate: (page: string) => void;
 };
 
+const wellbeingDoors = [
+ { route: patientPageRoutes['mental-health'], Icon: Brain },
+ { route: patientPageRoutes['health-library'], Icon: Library },
+ { route: patientPageRoutes.community, Icon: HeartHandshake },
+ { route: patientPageRoutes.activity, Icon: PersonStanding }
+];
+
 export function LiveWell({ entries, onWrite, onRemove, nextVisit, viewVisit, navigate }: Props) {
  return <>
   <div className="page-intro"><div className="eyebrow">LIVE WELL</div>
    <h1>In your own words</h1>
    <p>{whatItIs.statement}</p></div>
   <NotConnected of={capabilityId}/>
-  <section className="wb-atmosphere"><span aria-hidden="true"><Moon size={28}/></span><div><h2>A moment to check in.</h2><p>Choose a topic below and write what matters to you today.</p></div></section>
+  {/* The export's four doors and its banner, above the journal. Each door is a page that already exists, named
+      and described in patient-pages.json's own words — no mood scale, no "Talk to a professional" nobody is
+      staffing, no crisis number typed here (Mental health carries the crisis lines from their contract). The
+      banner keeps this screen's own invitation rather than the export's slogan: wellbeing.json refuses
+      cheerfulness aimed at somebody whose condition may be getting worse. */}
+  <nav className="wb-doors" aria-label="More for your wellbeing">{wellbeingDoors.map(({ route, Icon }) =>
+   <button key={route.opens} className="ui-card ui-card--interactive wb-door" onClick={() => navigate(route.opens)}>
+    <span className="tile-icon" aria-hidden="true"><Icon size={20}/></span>
+    <span className="wb-door__text"><strong>{route.opens}</strong><small>{route.sub}</small></span>
+    <ArrowRight size={17} aria-hidden="true"/>
+   </button>)}</nav>
+  <section className="wb-banner" aria-labelledby="wb-banner-title">
+   <img src="/banners/everyday-wellbeing.webp" alt="" loading="lazy"/>
+   <div className="wb-banner__copy">
+    <h2 id="wb-banner-title">A moment to check in.</h2>
+    <p>Choose a topic below and write what matters to you today.</p>
+    <Button variant="secondary" size="sm" trailingIcon={<ArrowRight aria-hidden="true"/>} onClick={() => navigate(careTipsRoute.opens)}>Read {careTipsRoute.opens.toLowerCase()}</Button>
+   </div>
+   <span className="care-photo-note">AI-generated illustrative image</span>
+  </section>
   <div className="wb-columns">
    <div className="wb-main">
     {/* The sentence the whole feature stands on, above the field rather than in the small print
@@ -88,8 +118,8 @@ export function LiveWell({ entries, onWrite, onRemove, nextVisit, viewVisit, nav
          the field: a second one here would have a person choosing between writing something down
          and leaving, with the two offers shouting equally. */}
      {nextVisit
-      ? <button className="secondary" onClick={() => viewVisit(nextVisit)}>Open my next visit<ArrowRight size={17}/></button>
-      : <button className="secondary" onClick={() => navigate('Book a nurse')}>Book a visit<ArrowRight size={17}/></button>}
+      ? <Button variant="secondary" trailingIcon={<ArrowRight aria-hidden="true"/>} onClick={() => viewVisit(nextVisit)}>Open my next visit</Button>
+      : <Button variant="secondary" trailingIcon={<ArrowRight aria-hidden="true"/>} onClick={() => navigate('Book a nurse')}>Book a visit</Button>}
     </div>
     <SectionTitle title="What MyThuso will not do here"/>
     {/* Seven of the ten. The other three are rendered where each of them bites — beside the heading,

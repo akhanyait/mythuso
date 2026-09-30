@@ -27,7 +27,7 @@ const closed = (id: string) => thread.closedBecause.find((c: { id: string }) => 
 
 async function openVisit(page: Page, tab: 'Upcoming' | 'Past' | 'Cancelled') {
   await goSection(page, 'My visits');
-  if (tab !== 'Upcoming') await page.locator('.underline-tabs').getByRole('button', { name: tab, exact: true }).click();
+  if (tab !== 'Upcoming') await page.getByRole('tablist', { name: 'Visit status' }).getByRole('tab', { name: tab, exact: true }).click();
   await page.locator('main .visit-actions').first().getByRole('button', { name: 'View details' }).click();
   return page.getByRole('dialog');
 }

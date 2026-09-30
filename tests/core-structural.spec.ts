@@ -18,10 +18,14 @@ const rangeTooWide = coreApi.routes.find(r => r.method === 'GET' && r.path === '
 test('a doctor reads a protocol version from the registry and sees it is a draft with no content', async ({ page }) => {
  await openWorkspace(page, 'Doctor');
  await goSection(page, 'Protocols');
- const select = page.locator('#pr-protocol-select');
- await expect(select).toBeVisible();
- await select.selectOption({ label: `${first.name} · v${first.version}` });
+ /* The registry is a list of rows since 30 September 2026 (the Lovable export's arrangement), not a select:
+    a row is chosen by the version it names, and the read-back it gives is unchanged. Every row reads Draft. */
+ const list = page.getByRole('list', { name: 'Protocol versions' });
+ await expect(list).toBeVisible();
+ await expect(list.getByRole('listitem')).toHaveCount(protocols.protocols.length);
+ await list.getByRole('button', { name: new RegExp(`${first.id}@${first.version}`) }).click();
  await expect(page.locator('.pr-result')).toHaveText(`${first.name} — ${first.status}, no content.`);
+ await expect(list.getByText('Ratified', { exact: true })).toHaveCount(0);
 });
 
 test("the Control Tower's audit export desk accepts a range within the setting's bound and refuses one wider than it", async ({ page }) => {

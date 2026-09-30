@@ -204,10 +204,15 @@ test('the derived pages render their derivations, and the empty states say why',
  await expect(page.locator('.pp-row')).toHaveCount(reminders.kinds.length);
  await expect(page.locator('.pp-empty h3')).toHaveText(reminders.emptyTitle);
 
+ /* The health timeline is the door to the one history the Health Passport keeps (contract version 2). It
+    used to say "No entries yet" beside a care timeline listing the same account's entries; it says what the
+    line carries and opens it, and it never again shows an empty state of its own. */
  const timeline = contract.screens['health-timeline'];
  await page.goto(at(timeline.opens));
  await expect(page.locator('.pp-timeline-item')).toHaveCount(timeline.kinds.length);
- await expect(page.locator('.pp-empty h3')).toHaveText(timeline.emptyTitle);
+ await expect(page.locator('.pp-empty')).toHaveCount(0);
+ await page.getByRole('button', { name: timeline.door.action }).click();
+ await expect(page).toHaveTitle(new RegExp(`^${timeline.door.target} ·`));
 
  const risk = contract.screens['risk-assessment'];
  await page.goto(at(risk.opens));

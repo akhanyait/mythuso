@@ -1,10 +1,11 @@
-import { ArrowRight, Ban, GraduationCap, ShieldCheck, ShieldX } from 'lucide-react';
+import { ArrowRight, Ban, FileBadge, GraduationCap, ShieldCheck, ShieldX } from 'lucide-react';
 import { SectionTitle } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
-import { Button } from '../ui';
+import { Button, Card } from '../ui';
 import { modules, money, services } from '../lib/catalog';
 import { capabilityById, roleById } from '../lib/vetting';
 import careApi from '../../../../packages/catalog/apis/care.json' with { type: 'json' };
+import '../surface/nurse-identity.css';
 
 /* The two tools on a nurse's own home screen with nothing behind them.
  *
@@ -70,6 +71,11 @@ export function Academy({ onClose }: { onClose: () => void }) {
   <NotConnected of="credential-verification"/>
   <p className="muted">Thuso Academy · {phase}. {description}. It is not drawn as a workflow and no course can be started here.</p>
 
+  {/* The export's two columns (30 September 2026): the course list on the left and the CPD record beside it.
+      There is no course to list and no CPD to count, so the left is what the Academy would be and will not
+      do, and the right is an empty record with the two notes on what would count: no points figure and no progress bar. */}
+  <div className="staff-split">
+   <div className="staff-split__main">
   <SectionTitle title="What it would be"/>
   <div className="panel"><dl className="stated">
    <div><dt>Continuing professional development, recorded</dt><dd>What you did, when, how long it took and who ran it — the record a council asks for, kept in the place you already keep your registration.</dd></div>
@@ -84,8 +90,14 @@ export function Academy({ onClose }: { onClose: () => void }) {
    <div><dt>Finishing one clears nothing</dt><dd>{nurse.grants[0].refusal}</dd></div>
    <div><dt>And it is not a route round a lapse</dt><dd>A check that has lapsed is renewed with the body that issued it. Nothing on a training screen shortens that, and nothing on it may be presented as if it had.</dd></div>
   </dl></div>
+   </div>
+   <Card padding="md" className="staff-split__aside">
+    <h2>CPD record</h2>
+    <div className="staff-inbox__empty"><FileBadge aria-hidden="true"/><p><strong>Nothing is recorded.</strong> No course has been taken here, so there is no certificate and no point to count.</p></div>
   <div className="privacy-note"><GraduationCap size={19}/>Where a course does count towards a council’s own CPD requirement, what counts is the council’s decision and the certificate is theirs. MyThuso would record that it happened; it would not decide what it was worth.</div>
   <div className="privacy-note"><ShieldCheck size={19}/>Nothing here is accredited, and nothing on this screen has been read by an education provider or a professional council.</div>
+   </Card>
+  </div>
   <Button variant="primary" className="full" onClick={onClose} trailingIcon={<ArrowRight aria-hidden="true"/>}>Close</Button>
  </div>;
 }

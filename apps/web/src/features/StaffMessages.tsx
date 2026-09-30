@@ -1,8 +1,9 @@
-import { ArrowRight, Ban, MessageCircle, ShieldX } from 'lucide-react';
+import { ArrowRight, Ban, Inbox, MessageCircle, ShieldX } from 'lucide-react';
 import { SectionTitle } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
-import { Button } from '../ui';
+import { Button, Card } from '../ui';
 import { blockedBy, simulationOf } from '../lib/capabilities';
+import '../surface/nurse-identity.css';
 
 /* The nurse's and the doctor's "Messages", and the reason it is not the export's.
  *
@@ -38,6 +39,15 @@ export function StaffMessages({ onClose }: { onClose: () => void }) {
   <NotConnected of="messaging"/>
   <p className="muted">There is no staff messaging channel. A nurse cannot write to the doctor who reviews her visit, a doctor cannot write to the pharmacy or the laboratory an order went to, and the desk cannot write to a nurse already in the field from here. Nothing on this screen is delivered.</p>
 
+  {/* The export's two panes (30 September 2026): the conversation list on the left and the open thread on
+      the right. The list is an empty state, because no thread exists, and the right pane is what this screen
+      always said, because there is no thread to open. There is no reply box under either. */}
+  <div className="staff-inbox">
+   <Card padding="md" className="staff-inbox__threads">
+    <h2>Conversations</h2>
+    <div className="staff-inbox__empty"><Inbox aria-hidden="true"/><p><strong>No conversations.</strong> Nothing has been written to you or by you, because there is no channel to write on.</p></div>
+   </Card>
+   <div className="staff-inbox__pane">
   <SectionTitle title="What it would be"/>
   <div className="panel"><dl className="stated">
    <div><dt>One colleague to another, about a case</dt><dd>The question that used to be a phone call, on the record it is about — a nurse writing to the doctor who reviews her visit, a doctor to the pharmacy filling a prescription, the desk to a nurse in the field.</dd></div>
@@ -58,6 +68,8 @@ export function StaffMessages({ onClose }: { onClose: () => void }) {
       says what would have to change before this screen could carry a real inbox. */}
   <div className="privacy-note alert"><ShieldX size={19}/>None of that is built. {blockedBy('messaging').join(' ')} Nothing here opens a conversation, joins a thread or tells anybody you were here.</div>
   <div className="privacy-note"><MessageCircle size={19}/>When messaging is connected this becomes an inbox a clinician can write from, and every sentence on it is the contract's own rather than a description of one. Until it does, it stays a screen that says what is missing — which is the only version of it that is not a fiction.</div>
+   </div>
+  </div>
   <Button variant="primary" className="full" onClick={onClose} trailingIcon={<ArrowRight aria-hidden="true"/>}>Close</Button>
  </div>;
 }

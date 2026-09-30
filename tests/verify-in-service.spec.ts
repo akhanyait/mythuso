@@ -108,7 +108,7 @@ test('this is not my nurse needs no code, and tells the patient the desk has bee
 test('a complaint about a past visit is refused until it says what it is about, then says when a reviewer reads it', async ({ page }) => {
   await page.goto('/app/');
   await openVisits(page);
-  await page.getByRole('group', { name: 'Visit status' }).getByRole('button', { name: 'Past' }).click();
+  await page.getByRole('tablist', { name: 'Visit status' }).getByRole('tab', { name: 'Past' }).click();
   await page.getByRole('button', { name: 'View details' }).first().click();
   await page.getByRole('dialog').getByRole('button', { name: vis.complaints.patient.open }).click();
   const form = page.getByRole('region', { name: vis.complaints.patient.heading });

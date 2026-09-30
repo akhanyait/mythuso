@@ -71,7 +71,9 @@ test('a roster is listed only to the people on it', async ({ page }) => {
 test('a sponsor is shown a household reference, a state and billing lines, and nothing about the care', async ({ page }) => {
   await page.goto('/app/');
   await goSection(page, 'My family');
-  await page.getByRole('button', { name: /Care you sponsor/ }).click();
+  /* Scoped to the screen: the grouped sidebar has a "Care you sponsor" row of its own since 30 September
+     2026, and this journey is about the door on My family. */
+  await page.getByRole('main').getByRole('button', { name: /Care you sponsor/ }).click();
   /* The sponsor's statement is a shared Card since the identity restyle (ui-card); the roster above is still a panel. */
   const link = page.locator(':is(.panel, .ui-card)').filter({ hasText: household.screen.sponsor.heading });
   await expect(link.getByRole('heading', { name: household.screen.sponsor.heading })).toBeVisible();

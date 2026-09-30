@@ -1,0 +1,5 @@
+{
+ "_why": "The official GilbertOne logo's usage rule, for the development-only icon gallery (30 September 2026). It is the Lovable handoff's design-guidelines paragraph, copied word for word — its American spellings are the handoff's and are quoted, not ours — because no screen may load a file from packages/brand/lovable-handoff. scripts/check-boundaries.mjs fails the build the moment this copy and the paragraph differ. It lives in a file of its own so that the only chunk carrying it is the gallery's, which a production build never emits.",
+ "source": "packages/brand/lovable-handoff/handoff/docs/design-guidelines.md",
+ "usage": "The uploaded `GilbertOne` artwork is the official GilbertOne logo: the complete seated character above the GilbertOne name. Preserve its proportions, colors, transparency, and clear space; never recolor, crop, redraw, rotate, or separate the character from the lettering when used as the logo. The exported animated `GilbertOne` component is a separate in-product assistant expression. Reserve both forms for AI guidance, conversation, and support—not generic decoration or ordinary healthcare actions."
+}

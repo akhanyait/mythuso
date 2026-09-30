@@ -12,6 +12,7 @@ import {
  type CheckRecord, type CheckState, type SubjectStatus, type VettingCheck, type VettingEvent, type VettingEventKind, type VettingSubject
 } from '../lib/vetting';
 import { seededLog, seededSubjects, subjectById } from '../lib/vetting-fixtures';
+import '../surface/nurse-identity.css';
 import { ComplaintsQueue, ShiftStartsBoard, complaintsHeading } from './VerifyInService';
 
 /* Vetting is the gate the whole marketplace rests on, so this is a real queue with real refusals
@@ -563,6 +564,17 @@ export function VettingApplication({ roleId, onClose }: { roleId?: string; onClo
     : 'Re-vetting runs on a schedule, not once at sign-up. A lapsed registration, licence or clearance withdraws this role’s permissions automatically, without anyone here having to notice.'}</OfficeNote>
    {nav(attested, true)}
   </> : null}</Card>
+  {/* The register, numbered and on every step (30 September 2026), as the export keeps it beside the form: an
+      applicant should not have to reach step four to learn what she will be asked for. The evidence step lists
+      the same checks in full and marks them ready, so there it is left out rather than drawn twice. */}
+  {role && now !== 'evidence' && <Card padding="md" className="vet-register">
+   <h3 className="oi-section-title">The {role.checks.length} checks, in order</h3>
+   <ol>{role.checks.map((check, i) => <li key={check.id}>
+    <span className="vet-register__no" aria-hidden="true">{i + 1}</span>
+    <span className="vet-register__say"><strong>{check.name}</strong><small>Verified with {authorityById(check.authority)?.name ?? check.authority}{check.risk === 'high' ? ' · two reviewers' : ''}</small></span>
+    {ready.includes(check.id) && <Badge size="sm" variant="neutral">Document ready</Badge>}
+   </li>)}</ol>
+  </Card>}
  </div>;
 }
 

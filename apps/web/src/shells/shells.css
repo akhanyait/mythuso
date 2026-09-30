@@ -37,17 +37,6 @@ a.primary { text-decoration: none }
 .staff-credential.stop svg { color: var(--danger) }
 .staff-credential.stop { color: var(--danger) }
 
-/* ---- The top bar a tool has, not the one a shop has ----------------------------------------------
-
-   Below 1000px the sidebar is gone, so the identity moves into the top bar and the wordmark leaves
-   it. A nurse opening this at 07:00 knows which app she opened; what she does not know is whether
-   the workspace still thinks she is the same person it thought she was yesterday. One row, three
-   things: who, where, and the way out. */
-.staff-who { display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1 }
-.staff-who > span:nth-child(2) { min-width: 0 }
-.staff-who strong { display: block; font-size: 13px; font-weight: 650; color: var(--slate); overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
-.staff-who small { display: block; font-size: 13px; color: var(--faint); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
-.staff-topbar .topbar-actions { flex: 0 0 auto }
 
 /* ---- The tab bar that stopped wrapping ----------------------------------------------------------
 
@@ -81,12 +70,6 @@ a.primary { text-decoration: none }
 .staff-blank h2 { font-size: 18px; color: var(--slate) }
 .staff-blank p { color: var(--body); margin-top: 8px; max-width: 60ch }
 
-@media (min-width: 1000px) {
- /* The sidebar carries the identity from here up, so the top bar hands its row back to the section
-    the reader is actually in. */
- .staff-who { display: none }
- .staff-topbar .breadcrumb { margin-right: auto }
-}
 
 /* ---- The staff palette is the logo's ------------------------------------------------------------
 
@@ -339,7 +322,7 @@ html .app-shell.clinical { background: var(--color-background); background-image
   -webkit-backdrop-filter: none;
  }
  .app-shell.clinical .staff-id strong { color: var(--color-foreground); }
- .app-shell.clinical :is(.staff-id, .staff-who) small { color: var(--color-muted-foreground); }
+ .app-shell.clinical .staff-id small { color: var(--color-muted-foreground); }
  .app-shell.clinical .staff-credential { color: var(--color-muted-foreground); }
  .app-shell.clinical .staff-credential.stop { color: var(--danger); }
 }
@@ -383,3 +366,97 @@ html .app-shell.clinical { background: var(--color-background); background-image
 .app-shell.app-shell .demo-login-all.is-current { border-color: var(--color-accent); }
 .app-shell.app-shell .demo-login-all-narrow { color: var(--color-muted-foreground); }
 .app-shell.app-shell .demo-login-all-narrow > b { color: var(--color-foreground); }
+
+/* The heading the shell writes over every page stands on the page ground, not on a panel. clinical.css gives
+   every clinical heading --charcoal, measured on white only, so in the dark scheme "Academy" was dark ink on
+   a dark ground. Here it takes the ground's own roles; the panels below keep their light-only inks. It stays
+   in this sheet rather than staff-chrome.css because the portal's page head is a .page-intro under
+   .app-shell.clinical too, and the portal does not load the staff chunk. */
+:root[data-theme='dark'] .app-shell.clinical main .page-intro h1 { color: var(--color-foreground); }
+:root[data-theme='dark'] .app-shell.clinical main .page-intro :is(.eyebrow, p) { color: var(--color-muted-foreground); }
+
+/* ---- The patient's sidebar in groups (30 September 2026) -------------------------------------------
+   The Lovable export's grouped navigation, drawn in the handoff's chrome: the wordmark with the brand's
+   tagline under it, headings that fold, rows indented on a hairline so a group reads as one thing, and
+   the emergency row, the language and Log out held at the foot while the groups scroll between them —
+   thirty rows at 44px is more than a laptop screen, and the foot is the one part that must never
+   scroll away. The rows lose the chevron NavigationItem draws: on thirty rows in one column it is a
+   pattern, not information. Every value is a token; the chevron's turn is a settle, gone under
+   reduced motion. */
+@media (min-width: 1000px) {
+ .app-shell.patient-surface .sidebar { overflow: hidden; }
+ .app-shell.patient-surface .psb-brand { flex: none; margin: 0 var(--space-8) var(--space-12); }
+ .app-shell.patient-surface .psb-brand .brand { margin: 0; }
+ .app-shell.patient-surface .psb-tagline { margin: var(--space-4) 0 0; color: var(--color-muted-foreground); font-size: 13px; }
+ /* The scroll is the navigation's own. Padded by the width of the two focus rings, so a focused row at
+    the edge of a scrolling box is not drawn with half its outline cut off. */
+ .app-shell.patient-surface .sidebar nav.psb-nav {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; gap: 0;
+  margin: 0 calc(-1 * var(--space-8)); padding: var(--space-4) var(--space-8) var(--space-12);
+  border-top: 1px solid var(--color-border);
+ }
+ .app-shell.patient-surface .psb-nav .ui-nav-item__chevron { display: none; }
+ /* A long name wraps rather than ending in an ellipsis: "What happens to a pres…" is a row nobody can
+    read, and a translation is longer still. */
+ .app-shell.app-shell .sidebar nav.psb-nav .ui-nav-item { padding-block: var(--space-8); }
+ .app-shell.patient-surface .psb-nav .ui-nav-item__label { white-space: normal; overflow-wrap: anywhere; }
+ .app-shell.patient-surface .psb-single { display: flex; flex-direction: column; margin: var(--space-8) 0; }
+ .app-shell.patient-surface .psb-group { display: flex; flex-direction: column; }
+ .app-shell.app-shell .sidebar nav .psb-group__toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-8);
+  width: 100%; min-height: 44px; margin: 0; padding: 0 var(--space-12);
+  border: 0; border-radius: var(--r-md); background: transparent; box-shadow: none;
+  color: var(--color-muted-foreground); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; text-align: left;
+ }
+ .app-shell.app-shell .sidebar nav .psb-group__toggle:hover { background: var(--color-muted); color: var(--color-foreground); }
+ .app-shell.patient-surface .psb-group__toggle svg { flex: none; width: var(--space-16); height: var(--space-16); transition: transform var(--t-settle) var(--ease-soft); }
+ .app-shell.patient-surface .psb-group__toggle[aria-expanded='false'] svg { transform: rotate(-90deg); }
+ .app-shell.patient-surface .psb-group__rows { display: flex; flex-direction: column; gap: 2px; margin: 0 0 var(--space-8) var(--space-12); padding-left: var(--space-8); border-left: 1px solid var(--color-border); }
+ .app-shell.patient-surface .psb-group__rows[hidden] { display: none; }
+ .app-shell.patient-surface .sidebar-bottom { flex: none; margin-top: 0; padding-top: var(--space-12); border-top: 1px solid var(--color-border); }
+ .app-shell.patient-surface .sidebar-bottom .sos-link { margin-bottom: var(--space-8); }
+}
+@media (prefers-reduced-motion: reduce) {
+ .app-shell.patient-surface .psb-group__toggle svg { transition: none; }
+}
+
+/* ---- The patient's top bar: search, the profile chip, a bell that rings once ---------------------------
+   The search takes the breadcrumb's place from a tablet up and is not drawn on a phone, where a bar of
+   320px holds the mark and four controls and the home and the service list carry a search of their own.
+   The chip's name is a caption beside the avatar button; the button's ::after is stretched over the
+   chip, so the whole chip is the target while the button keeps the one name it has always had. */
+.app-shell.patient-surface .psb-search { display: none; }
+@media (min-width: 700px) {
+ .app-shell.patient-surface .psb-search { position: relative; display: block; flex: 1 1 auto; min-width: 0; max-width: 480px; margin-right: auto; }
+ .app-shell.patient-surface .psb-search > svg { position: absolute; top: 50%; left: var(--space-12); width: var(--space-16); height: var(--space-16); transform: translateY(-50%); color: var(--color-muted-foreground); pointer-events: none; }
+ .app-shell.patient-surface .psb-search .ui-control { padding-left: var(--space-40); border-color: var(--color-border); background: var(--color-muted); box-shadow: none; }
+}
+.app-shell.patient-surface .psb-profile { position: relative; display: inline-flex; align-items: center; gap: var(--space-8); flex: none; border-radius: var(--r-md); }
+/* Static, and never filtered or moved: a filter or a transform on the button would make it the containing
+   block of its own ::after, and the stretched hit area would shrink back to the avatar the moment the pointer
+   arrived — which is exactly when it is needed. */
+.app-shell.app-shell .topbar .psb-profile > button, .app-shell.app-shell .topbar .psb-profile > button:is(:hover, :active) { position: static; filter: none; transform: none; }
+.app-shell.patient-surface .psb-profile > button::after { content: ''; position: absolute; inset: 0; border-radius: var(--r-md); }
+.app-shell.patient-surface .psb-profile__who, .app-shell.patient-surface .psb-profile__chevron { display: none; }
+@media (min-width: 1000px) {
+ .app-shell.patient-surface .psb-profile { padding-right: var(--space-12); box-shadow: inset 0 0 0 1px var(--color-border); background: var(--color-surface); }
+ .app-shell.patient-surface .psb-profile:hover { background: var(--color-muted); }
+ .app-shell.app-shell .topbar .psb-profile > .avatar.small { border-color: transparent; }
+ .app-shell.patient-surface .psb-profile__who { display: grid; max-width: 160px; line-height: 1.25; }
+ .app-shell.patient-surface .psb-profile__who strong { overflow: hidden; color: var(--color-foreground); font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+ .app-shell.patient-surface .psb-profile__who small { color: var(--color-muted-foreground); font-size: 13px; }
+ .app-shell.patient-surface .psb-profile__chevron { display: block; width: var(--space-16); height: var(--space-16); color: var(--color-muted-foreground); }
+}
+/* The footer's two doors, side by side. */
+.app-shell.patient-surface .psb-footer-links { display: inline-flex; flex-wrap: wrap; gap: var(--space-4) var(--space-16); }
+.app-shell.patient-surface .psb-footer-links svg { width: var(--space-16); height: var(--space-16); }
+
+/* The bell's dot rings once on arrival — a pulse out and back over one entrance — and stops. The export
+   rings it every 3.8 seconds for ever; a notice that keeps moving is a notice that never lets a reader
+   finish reading the screen, and this surface runs nothing endless. Transform only, gated on the flag
+   PatientShell raises only for a reader who has not asked for stillness. */
+@keyframes psb-ring { 40% { transform: scale(1.35); } 70% { transform: scale(.9); } }
+[data-motion='on'] .patient-surface .notification-button .psb-ring { animation: psb-ring var(--t-enter) var(--ease-soft) var(--t-settle) 1; }
+@media (prefers-reduced-motion: reduce) {
+ [data-motion='on'] .patient-surface .notification-button .psb-ring { animation: none !important; }
+}

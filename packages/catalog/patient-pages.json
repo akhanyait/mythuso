@@ -1,7 +1,7 @@
 {
   "_note": "The eight patient pages of the full Lovable export's Gap 2, as one contract: symptom-checker, risk-assessment, health-library, health-timeline, vaccinations, community, nutrition and reminders, plus the 'Your health' hub that carries them. Recorded by docs/design-review/LOVABLE-EXPORT-RECONCILIATION.md (Phase C) and built under the gates in docs/ROADMAP.md's Phase D. The web reads this file through apps/web/src/lib/patient-pages.ts; scripts/emit-patient-pages.mjs writes the router's two strings per page and the two native data files. Content rows are DERIVED from contracts that already exist — the knowledge base, the symptom intake, the SOS register — and the derivation is held by scripts/check-boundaries.mjs, so this file names sources and never copies their entries.",
   "_rules": "No screen renders a sentence that is not in this file or in the contract it derives from. No screen displays a number this tree's contracts do not hold: the 25 September ruling (option B) applies — structural and visual honesty, written empty states wherever a number would go. symptom-checker and risk-assessment inherit the screening capability's block: no model, no vendor, no licence. The symptom checker asks symptom-intake.json's set questions and escalates on the emergency words before anything else reads an answer; it sets no priority, names no cause and gives no advice, and the findings case.json works out are for the nurse and never rendered here. Knowledge content shows its own source line and the review notice below sits beside it until a clinician has signed.",
-  "version": 1,
+  "version": 2,
   "decidedBy": "Founder",
   "on": "2026-09-29",
   "changelog": [
@@ -9,6 +9,11 @@
       "version": 1,
       "on": "2026-09-29",
       "what": "The eight pages and their hub, from the full Lovable export's Phase D, with every derivation named."
+    },
+    {
+      "version": 2,
+      "on": "2026-09-30",
+      "what": "Two pages the Lovable export draws and the build did not have — mental health and activity — in the export's arrangement, each holding only what another contract holds: four doors and the crisis lines on the first, the journal's Moving entries and written empty tiles on the second. The health timeline stops saying it has no entries while the Health Passport's care timeline lists them: it becomes the door to that one history. The vaccination record gains the export's 'Book vaccination' action, onto the injection-and-vaccination service the catalogue already carries. The vaccination record moves above the schedule, as the export draws it, and the lead says so. The hub's lead no longer counts its pages, and every page carries a way back to the hub."
     }
   ],
   "review": {
@@ -27,7 +32,7 @@
     "opening": "Opening your health pages.",
     "eyebrow": "The full Lovable design, ported",
     "heading": "Your health, in one place.",
-    "lead": "Eight pages the design asked for and the build did not have. Each says plainly what it holds today and what it is waiting for.",
+    "lead": "Pages the design asked for and the build did not have. Each says plainly what it holds today and what it is waiting for.",
     "shortcuts": [
       {
         "id": "symptom-checker",
@@ -60,16 +65,27 @@
         "sub": "Clinics, helplines and groups near you"
       },
       {
+        "id": "mental-health",
+        "title": "Mental health",
+        "sub": "Reading, your own words, helplines and crisis lines"
+      },
+      {
         "id": "nutrition",
         "title": "Nutrition",
         "sub": "General food guidance from the knowledge base"
+      },
+      {
+        "id": "activity",
+        "title": "Activity",
+        "sub": "What you wrote about moving; nothing is measured"
       },
       {
         "id": "reminders",
         "title": "Reminders",
         "sub": "What will remind you, once accounts are live"
       }
-    ]
+    ],
+    "back": "Back to Your health"
   },
   "screens": {
     "symptom-checker": {
@@ -203,32 +219,32 @@
       "opening": "Opening your health timeline.",
       "eyebrow": "Your record over time",
       "heading": "One line, from your first visit to today.",
-      "lead": "The timeline is a view of the Health Passport — the record service holds the entries, and this page will read them the day the Passport's record service is out of development-only gating. Until then it shows the kinds of entry it will carry, and nothing invented.",
-      "kindsHeading": "What the line will carry",
+      "lead": "Your history is kept in one place: the care timeline on your Health Passport, which lists the visits, reviews, documents and medicines on your record, newest first. This page is the door to it, so you have one history and not two.",
+      "kindsHeading": "What the line carries",
       "kinds": [
         {
-          "title": "Visits and assessments",
-          "detail": "Every nurse visit, its summary and the doctor's reviews of it."
+          "title": "Nurse visits and their readings",
+          "detail": "Every home visit, with the readings taken at it against their ranges, and who took them."
         },
         {
-          "title": "Readings",
-          "detail": "Vitals from your Thuso Kit, each with the device it came from."
+          "title": "Doctor reviews",
+          "detail": "What the reviewing doctor found, what to do and what happens next, with the registration on file."
         },
         {
-          "title": "Medicine and dispensing",
-          "detail": "Prescriptions, collections and repeats, from the medicines contract."
+          "title": "Documents",
+          "detail": "The visit summary, results and certificates issued out of a visit, each saying whether a doctor has reviewed it."
         },
         {
-          "title": "Laboratory results",
-          "detail": "Released results only, each with the day it was released and by whom."
-        },
-        {
-          "title": "Consents and access",
-          "detail": "Who you shared with, what scope, and every time a record was opened."
+          "title": "Medicines",
+          "detail": "The chronic authorisation and the prescriptions written against it, from the medicines contract."
         }
       ],
-      "emptyTitle": "No entries yet",
-      "emptyDetail": "Nothing is written to a timeline in a design preview: the records live in the Passport's development service and no real patient data exists to read. When the service is live, this line fills from it and from nothing else.",
+      "door": {
+        "heading": "Your care timeline",
+        "detail": "It reads the same sample record as the rest of your Health Passport, and says so at the top. Nothing on this page is a second copy of it.",
+        "action": "Open your care timeline",
+        "target": "Care timeline"
+      },
       "actions": [
         {
           "label": "Open the Health Passport",
@@ -247,14 +263,19 @@
       "opening": "Opening vaccinations.",
       "eyebrow": "Immunisation",
       "heading": "The South African schedule, and your own record.",
-      "lead": "The schedule below is the knowledge base's immunisation material — the public EPI schedule and the entries beside it — with the authority named on every card. Your personal vaccination record is the empty state underneath it, honestly.",
+      "lead": "The schedule below is the knowledge base's immunisation material — the public EPI schedule and the entries beside it — with the authority named on every card. Your personal vaccination record comes first, with the visit that would add to it, and it is empty, honestly.",
       "scheduleHeading": "The schedule (general information)",
       "record": {
         "heading": "Your vaccination record",
         "emptyTitle": "No vaccination record yet",
         "emptyDetail": "Your own doses belong on the Health Passport, and the Passport's service is in development-only gating — no real record exists to show. A vaccination you invent on a screen is a vaccination a nurse might trust, so this stays empty until the record is real.",
         "action": "Open the Health Passport",
-        "target": "Health Passport"
+        "target": "Health Passport",
+        "book": {
+          "label": "Book a vaccination visit",
+          "service": "injection",
+          "why": "A nurse can give an injection or a vaccine at home from the catalogue's first phase. The dose is recorded at the visit, on the visit's own record — never typed here."
+        }
       },
       "roadToHealth": "A child's doses are also recorded on the Road to Health card the clinic gives at birth — keep it with the birth certificate."
     },
@@ -284,6 +305,58 @@
         }
       ]
     },
+    "mental-health": {
+      "opens": "Mental health",
+      "opening": "Opening mental health.",
+      "eyebrow": "Your mind, too",
+      "heading": "Support for how you are feeling.",
+      "lead": "Four doors to what this build actually holds: general reading from the knowledge base, your own words in Live well, the helplines, and the crisis lines. There is no counsellor to book here yet and no mood score, and both are said below rather than drawn.",
+      "doors": [
+        {
+          "id": "library",
+          "title": "Read about mental health",
+          "sub": "The knowledge base's mental-health entries, each with its source",
+          "kind": "navigate",
+          "target": "Health library",
+          "tab": "mental-health"
+        },
+        {
+          "id": "journal",
+          "title": "Write down how you are",
+          "sub": "In a word or two, in Live well. Your words, never a scale",
+          "kind": "navigate",
+          "target": "Live well"
+        },
+        {
+          "id": "helplines",
+          "title": "Helplines and support groups",
+          "sub": "The knowledge base's own list, with its sources",
+          "kind": "navigate",
+          "target": "Community support"
+        },
+        {
+          "id": "crisis",
+          "title": "If you are in crisis",
+          "sub": "The emergency screen first, then the crisis lines",
+          "kind": "anchor",
+          "target": "pp-crisis"
+        }
+      ],
+      "crisis": {
+        "heading": "If you are in crisis now",
+        "emergencyFirst": "If a life is in danger now, the ambulance comes first. The emergency screen carries its number, and a crisis line never stands in for it.",
+        "action": "Open Emergency & urgent care",
+        "modal": "Emergency & urgent care"
+      },
+      "session": {
+        "heading": "A session with a counsellor is not bookable yet",
+        "detail": "The mental-health check-in is in the service catalogue for a later phase, and nobody can be sent for it until then. The catalogue says which phase.",
+        "action": "See it in the catalogue"
+      },
+      "mood": {
+        "heading": "Why there is no mood score"
+      }
+    },
     "nutrition": {
       "opens": "Nutrition",
       "opening": "Opening nutrition.",
@@ -306,6 +379,49 @@
           "label": "Open the health library",
           "kind": "navigate",
           "target": "Health library"
+        }
+      ]
+    },
+    "activity": {
+      "opens": "Activity",
+      "opening": "Opening activity.",
+      "eyebrow": "Moving",
+      "heading": "How you have been moving, in your own words.",
+      "lead": "This page holds what you wrote under Moving in Live well, newest first. It does not count steps or minutes, because nothing that could count them is connected, and a figure nobody measured is a figure somebody would believe.",
+      "tiles": [
+        {
+          "id": "steps",
+          "label": "Steps",
+          "value": "Not measured",
+          "detail": "A step count needs a device, and none is connected."
+        },
+        {
+          "id": "minutes",
+          "label": "Active minutes",
+          "value": "Not measured",
+          "detail": "No watch, band or phone sensor is read."
+        },
+        {
+          "id": "entries",
+          "label": "Your Moving entries",
+          "value": "count",
+          "detail": "Counted from the entries listed below."
+        }
+      ],
+      "entriesHeading": "What you wrote under Moving",
+      "emptyTitle": "Nothing written under Moving yet",
+      "emptyDetail": "When you write what you did and how it felt in Live well, it appears here. A day with nothing written is just a day.",
+      "wearable": {
+        "heading": "Linking a phone's health store",
+        "detail": "Apple Health and Health Connect are not connected. You can record a request to link one, and the request says exactly which readings would be shared; nothing is read until the decisions it waits on are made.",
+        "action": "See connected devices",
+        "target": "Connected devices"
+      },
+      "actions": [
+        {
+          "label": "Write in Live well",
+          "kind": "navigate",
+          "target": "Live well"
         }
       ]
     },
@@ -400,6 +516,30 @@
     "emergencyNumbers": {
       "source": "packages/catalog/sos.json",
       "note": "rendered by the emergency screen this page opens, never restated here"
+    },
+    "mentalHealthDoors": {
+      "libraryTab": "mental-health",
+      "journalHabit": "feeling",
+      "moodRefusal": "no-weight-score",
+      "habitsSource": "packages/catalog/wellbeing.json"
+    },
+    "crisisLines": {
+      "source": "packages/catalog/crisis-lines.json",
+      "refusal": "nothing-dials",
+      "note": "the lines only, after the door to the emergency screen; the refusal that names the emergency numbers is not rendered here, because the pages never restate them"
+    },
+    "counsellingService": {
+      "source": "packages/catalog/services.json",
+      "service": "mental"
+    },
+    "activityEntries": {
+      "source": "packages/catalog/wellbeing.json",
+      "habit": "moving",
+      "refusal": "no-device"
+    },
+    "vaccinationBooking": {
+      "source": "packages/catalog/services.json",
+      "service": "injection"
     }
   },
   "refusals": [

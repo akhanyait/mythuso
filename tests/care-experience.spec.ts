@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import { goSection, confirmBooking } from './nav';
 
 test('booking keeps choices visible and intact through an offline interruption', async ({ page, context }) => {
@@ -61,10 +62,15 @@ test('upcoming care leads to preparation, contact options and source verificatio
  await expect(dialog.getByText(/A reviewing doctor may decide/)).toBeVisible();
 });
 
-test('Passport timeline filters actual records and identifies missing medicine history', async ({ page }) => {
+/* The timeline is the Passport's History tab since the Lovable alignment of 30 September 2026, drawn as a rail.
+   It used to say "No medicine entries on this record" beside a prescription screen counting the repeats left
+   on an authorisation; the medicines are dispensing.json's now, so this counts them from the contract. */
+const dispensing = JSON.parse(readFileSync(new URL('../packages/catalog/dispensing.json', import.meta.url), 'utf8'));
+const passportContract = JSON.parse(readFileSync(new URL('../packages/catalog/passport.json', import.meta.url), 'utf8'));
+test('Passport timeline filters actual records and reads the medicines from the dispensing contract', async ({ page }) => {
  await page.goto('/app/');
  await goSection(page, 'Health Passport');
- await page.locator('.section-title').filter({ hasText: 'Your care timeline' }).getByRole('button', { name: 'See all' }).click();
+ await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'History' }).click();
  await page.getByRole('button', { name: 'Reviews', exact: true }).click();
  await expect(page.locator('.care-timeline .record-row')).toHaveCount(1);
  await expect(page.locator('.timeline-status')).toHaveText('Review completed');
@@ -72,8 +78,11 @@ test('Passport timeline filters actual records and identifies missing medicine h
  await page.getByLabel('Time period').selectOption('30');
  await expect(page.locator('.care-timeline .record-row')).toHaveCount(1);
  await page.getByRole('button', { name: 'Medicines', exact: true }).click();
- await expect(page.getByRole('heading', { name: 'No medicine entries on this record' })).toBeVisible();
- await page.getByRole('button', { name: 'Show all entries' }).click();
- await expect(page.getByLabel('Time period')).toHaveValue('All time');
- await expect(page.locator('.care-timeline .record-row')).toHaveCount(8);
+ await expect(page.locator('.care-timeline .record-row')).toHaveCount(1);
+ await expect(page.locator('.care-timeline .record-row')).toContainText(`Prescription ${dispensing.prescription.reference} issued`);
+ await page.getByLabel('Time period').selectOption('All time');
+ await expect(page.locator('.care-timeline .record-row')).toHaveCount(2);
+ await expect(page.locator('.care-timeline .record-row').last()).toContainText(dispensing.authorisation.reference);
+ await page.getByRole('button', { name: 'All entries', exact: true }).click();
+ await expect(page.locator('.care-timeline .record-row')).toHaveCount(passportContract.readingSets.length + 1 + passportContract.documents.length + 2);
 });

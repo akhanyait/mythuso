@@ -9,7 +9,7 @@
 package za.co.mythuso.model
 
 object PatientPagesData {
-    const val version = 1
+    const val version = 2
 
     object Review {
         /** Null until a registered clinician has read and signed the pages' health material. */
@@ -20,7 +20,7 @@ object PatientPagesData {
     object Hub {
         const val opens = "Your health"
         const val heading = "Your health, in one place."
-        const val lead = "Eight pages the design asked for and the build did not have. Each says plainly what it holds today and what it is waiting for."
+        const val lead = "Pages the design asked for and the build did not have. Each says plainly what it holds today and what it is waiting for."
         val shortcutTitles = listOf(
             "Symptom checker",
             "Risk assessment",
@@ -28,7 +28,9 @@ object PatientPagesData {
             "Health timeline",
             "Vaccinations",
             "Community support",
+            "Mental health",
             "Nutrition",
+            "Activity",
             "Reminders"
         )
     }
@@ -40,7 +42,9 @@ object PatientPagesData {
         "Health timeline",
         "Vaccinations",
         "Community support",
+        "Mental health",
         "Nutrition",
+        "Activity",
         "Reminders"
     )
 

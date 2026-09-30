@@ -2,6 +2,7 @@ import { useState, type ComponentType } from "react";
 import {
   Activity,
   AlertTriangle,
+  Ambulance,
   Apple,
   ArrowRight,
   Ban,
@@ -10,6 +11,8 @@ import {
   Check,
   ClipboardList,
   Copy,
+  Footprints,
+  LifeBuoy,
   MapPin,
   Phone,
   RotateCcw,
@@ -22,6 +25,16 @@ import {
 import {
   aside,
   communityHelplines,
+  counsellingRoadmap,
+  crisis,
+  entryDay,
+  moodRefusal,
+  moodWhy,
+  movingEntries,
+  noDevice,
+  requestLibraryTab,
+  takeRequestedLibraryTab,
+  vaccinationService,
   communityNavigation,
   hub,
   libraryTabs,
@@ -42,6 +55,9 @@ import {
   summaryRows,
   type IntakeState,
 } from "../../../../packages/gilbertone/src/intake.ts";
+import type { Service } from "../lib/catalog";
+import type { Entry as WellbeingEntry } from "../lib/wellbeing";
+import { PatientHeader } from "./PatientHeader";
 import "./patient-pages.css";
 
 /* The eight patient pages of the full Lovable export's Phase D, and the "Your health" hub that carries
@@ -63,33 +79,48 @@ import "./patient-pages.css";
  * says what is missing and why. The emergency number is never restated — the emergency screen this page
  * can open carries it. */
 
-type Nav = { navigate: (page: string) => void; open: (modal: string) => void };
+type Nav = {
+  navigate: (page: string) => void;
+  open: (modal: string) => void;
+  /** Opens the booking for a service, as the catalogue's own cards do. */
+  book?: (service: Service) => void;
+  /** What has been written in Live well, held by App.tsx in memory; the activity page reads Moving. */
+  entries?: readonly WellbeingEntry[];
+};
 type ScreenAction = { label: string; kind: string; target?: string };
 
 const askAssistant = () =>
   window.dispatchEvent(new CustomEvent("mythuso:ask-assistant"));
 
-/* The frame every page shares: its intro, then the page's own content beside the refusals and the
+/* The frame every page shares: the shared patient header (the export's icon tile and its way back to the
+   hub, from PatientHeader.tsx), then the page's own content beside the refusals and the
    review notice. The notice sits in the aside on a wide screen and below the content on a phone, but
    it is on every page, because it is the sentence that qualifies all of them. */
 function PageFrame({
+  id,
   eyebrow,
   heading,
   lead,
+  navigate,
   children,
 }: {
+  id: string;
   eyebrow: string;
   heading: string;
   lead: string;
+  navigate: (page: string) => void;
   children: React.ReactNode;
 }) {
+  const Icon = hubIcons[id] ?? ShieldCheck;
   return (
     <div className="pp-screen">
-      <div className="page-intro">
-        <div className="eyebrow">{eyebrow}</div>
-        <h1>{heading}</h1>
-        <p>{lead}</p>
-      </div>
+      <PatientHeader
+        icon={<Icon size={22} strokeWidth={1.8} />}
+        eyebrow={eyebrow}
+        title={heading}
+        lead={lead}
+        back={{ label: hub.back, go: () => navigate(hub.opens) }}
+      />
       <div className="pp-layout">
         <div className="pp-main">{children}</div>
         <aside className="pp-about panel" aria-labelledby="pp-refusals-heading">
@@ -178,7 +209,7 @@ function EmptyBlock({ title, detail }: { title: string; detail: string }) {
 /* ---- The hub ------------------------------------------------------------------------------------ */
 const hubIcons: Record<
   string,
-  ComponentType<{ size?: number; strokeWidth?: number }>
+  ComponentType<{ size?: number; strokeWidth?: number; width?: number; height?: number }>
 > = {
   "symptom-checker": Stethoscope,
   "risk-assessment": Activity,
@@ -188,6 +219,8 @@ const hubIcons: Record<
   community: Users,
   nutrition: Apple,
   reminders: BellRing,
+  "mental-health": LifeBuoy,
+  activity: Footprints,
 };
 
 function Hub({ navigate }: Nav) {
@@ -408,6 +441,8 @@ function SymptomChecker({ navigate, open }: Nav) {
 
   return (
     <PageFrame
+      id="symptom-checker"
+      navigate={navigate}
       eyebrow={words.eyebrow}
       heading={words.heading}
       lead={words.lead}
@@ -425,6 +460,8 @@ function RiskAssessment({ navigate, open }: Nav) {
   const words = screens["risk-assessment"];
   return (
     <PageFrame
+      id="risk-assessment"
+      navigate={navigate}
       eyebrow={words.eyebrow}
       heading={words.heading}
       lead={words.lead}
@@ -451,14 +488,20 @@ function RiskAssessment({ navigate, open }: Nav) {
 }
 
 /* ---- Health library ----------------------------------------------------------------------------- */
-function HealthLibrary() {
+function HealthLibrary({ navigate }: Nav) {
   const words = screens["health-library"];
-  const [tabId, setTabId] = useState(libraryTabs[0]!.id);
+  /* A door on another page (mental health's "Read about mental health") may ask for a tab; it is taken
+     once, as the library mounts, and the library opens on its first tab otherwise. */
+  const [tabId, setTabId] = useState(
+    () => takeRequestedLibraryTab() ?? libraryTabs[0]!.id,
+  );
   const [query, setQuery] = useState("");
   const tab = libraryTabs.find((t) => t.id === tabId) ?? libraryTabs[0]!;
   const results = searchLibrary(tab, query);
   return (
     <PageFrame
+      id="health-library"
+      navigate={navigate}
       eyebrow={words.eyebrow}
       heading={words.heading}
       lead={words.lead}
@@ -502,11 +545,17 @@ function HealthLibrary() {
   );
 }
 
-/* ---- Health timeline ---------------------------------------------------------------------------- */
+/* ---- Health timeline ----------------------------------------------------------------------------
+   One patient, one history. This page said "No entries yet" while the Health Passport's care timeline
+   listed the same account's visits, reviews, documents and medicines — two answers to "what is on my
+   record", and the wrong one was the page named for it. The entries are built in one place, the
+   Passport's, and this page is the door to them: it says what the line carries and opens it. */
 function HealthTimeline({ navigate, open }: Nav) {
   const words = screens["health-timeline"];
   return (
     <PageFrame
+      id="health-timeline"
+      navigate={navigate}
       eyebrow={words.eyebrow}
       heading={words.heading}
       lead={words.lead}
@@ -520,32 +569,56 @@ function HealthTimeline({ navigate, open }: Nav) {
           </li>
         ))}
       </ol>
-      <EmptyBlock title={words.emptyTitle} detail={words.emptyDetail} />
+      <div className="pp-door panel">
+        <div>
+          <h2>{words.door.heading}</h2>
+          <p>{words.door.detail}</p>
+        </div>
+        <button
+          type="button"
+          className="primary m-press"
+          onClick={() => navigate(words.door.target)}
+        >
+          {words.door.action}
+          <ArrowRight size={16} />
+        </button>
+      </div>
       <Actions actions={words.actions} navigate={navigate} open={open} />
     </PageFrame>
   );
 }
 
 /* ---- Vaccinations ------------------------------------------------------------------------------- */
-function Vaccinations({ navigate }: Nav) {
+/* The personal record first, as the export draws it, with its one action: booking the injection-and-
+   vaccination visit the catalogue carries. The dose is recorded at that visit, never on this screen, so
+   the record under the button stays empty and says why. The general schedule follows it. */
+function Vaccinations({ navigate, book }: Nav) {
   const words = screens["vaccinations"];
   return (
     <PageFrame
+      id="vaccinations"
+      navigate={navigate}
       eyebrow={words.eyebrow}
       heading={words.heading}
       lead={words.lead}
     >
-      <h2 className="pp-subheading">{words.scheduleHeading}</h2>
-      <div className="pp-entries">
-        {vaccinationCards.map((entry) => (
-          <EntryCard key={entry.id} entry={entry} />
-        ))}
-      </div>
       <div className="pp-record panel">
-        <h2>
-          <Syringe size={18} />
-          {words.record.heading}
-        </h2>
+        <div className="pp-record-head">
+          <h2>
+            <Syringe size={18} />
+            {words.record.heading}
+          </h2>
+          <button
+            type="button"
+            className="primary m-press"
+            onClick={() =>
+              book?.(vaccinationService)
+            }
+          >
+            {words.record.book.label}
+            <ArrowRight size={16} />
+          </button>
+        </div>
         <EmptyBlock
           title={words.record.emptyTitle}
           detail={words.record.emptyDetail}
@@ -558,6 +631,12 @@ function Vaccinations({ navigate }: Nav) {
           {words.record.action}
           <ArrowRight size={16} />
         </button>
+      </div>
+      <h2 className="pp-subheading">{words.scheduleHeading}</h2>
+      <div className="pp-entries">
+        {vaccinationCards.map((entry) => (
+          <EntryCard key={entry.id} entry={entry} />
+        ))}
       </div>
       <p className="pp-note">
         <MapPin size={15} aria-hidden="true" />
@@ -572,6 +651,8 @@ function Community({ navigate, open }: Nav) {
   const words = screens["community"];
   return (
     <PageFrame
+      id="community"
+      navigate={navigate}
       eyebrow={words.eyebrow}
       heading={words.heading}
       lead={words.lead}
@@ -606,6 +687,8 @@ function Nutrition({ navigate, open }: Nav) {
   const words = screens["nutrition"];
   return (
     <PageFrame
+      id="nutrition"
+      navigate={navigate}
       eyebrow={words.eyebrow}
       heading={words.heading}
       lead={words.lead}
@@ -634,6 +717,8 @@ function Reminders({ navigate, open }: Nav) {
   const words = screens["reminders"];
   return (
     <PageFrame
+      id="reminders"
+      navigate={navigate}
       eyebrow={words.eyebrow}
       heading={words.heading}
       lead={words.lead}
@@ -653,21 +738,217 @@ function Reminders({ navigate, open }: Nav) {
   );
 }
 
+/* ---- Mental health ------------------------------------------------------------------------------
+   The export's page is a hero offering a session "Available now", a row of five faces from Great to
+   Struggling, and four cards. The session is the catalogue's mental-health check-in, which is a later
+   phase, so it is a door to that entry in the roadmap rather than a booking. The five faces are a mood
+   scale, which the wellbeing contract refuses in its own words — both sentences are shown where the row
+   would have been. The four cards are doors to what exists: the library's mental-health tab, the
+   journal, the helplines, and the crisis card below them.
+
+   The crisis card puts the emergency screen first, as a button, and the crisis lines after it. The lines
+   are crisis-lines.json's own, never typed here; the one refusal that names the ambulance numbers is not
+   rendered, because these pages open the emergency screen rather than restating its numbers. */
+const doorIcons: Record<string, ComponentType<{ size?: number; strokeWidth?: number }>> = {
+  library: BookOpen,
+  journal: ClipboardList,
+  helplines: Phone,
+  crisis: Ambulance,
+};
+
+function MentalHealth({ navigate, open }: Nav) {
+  const words = screens["mental-health"];
+  const go = (door: (typeof words.doors)[number]) => {
+    if (door.kind === "anchor") {
+      document.getElementById(door.target)?.focus();
+      return;
+    }
+    if (door.tab) requestLibraryTab(door.tab);
+    navigate(door.target);
+  };
+  return (
+    <PageFrame
+      id="mental-health"
+      navigate={navigate}
+      eyebrow={words.eyebrow}
+      heading={words.heading}
+      lead={words.lead}
+    >
+      <div className="pp-doors">
+        {words.doors.map((door) => {
+          const Icon = doorIcons[door.id] ?? ArrowRight;
+          return (
+            <button
+              key={door.id}
+              type="button"
+              className="pp-door-card panel m-press"
+              onClick={() => go(door)}
+            >
+              <span className="pp-shortcut-icon" aria-hidden="true">
+                <Icon size={22} strokeWidth={1.7} />
+              </span>
+              <span className="pp-shortcut-text">
+                <strong>{door.title}</strong>
+                <small>{door.sub}</small>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <section
+        className="pp-crisis"
+        id="pp-crisis"
+        tabIndex={-1}
+        aria-labelledby="pp-crisis-heading"
+      >
+        <h2 id="pp-crisis-heading">
+          <LifeBuoy size={20} aria-hidden="true" />
+          {words.crisis.heading}
+        </h2>
+        <p>{words.crisis.emergencyFirst}</p>
+        <button
+          type="button"
+          className="primary m-press"
+          onClick={() => open(words.crisis.modal)}
+        >
+          {words.crisis.action}
+          <ArrowRight size={16} />
+        </button>
+        <p className="pp-crisis-then">{crisis.heading}</p>
+        <ul className="pp-helplines">
+          {crisis.lines.map((line) => (
+            <li key={line.id}>
+              <Phone size={16} aria-hidden="true" />
+              <span>
+                <strong>{line.name}</strong>
+                <span className="pp-number">{line.number}</span>
+                <small>{line.whenToUse}</small>
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className="pp-note">{crisis.nothingDials}</p>
+      </section>
+
+      <div className="pp-blocked" role="note">
+        <h2>
+          <Ban size={18} />
+          {words.session.heading}
+        </h2>
+        <p>{words.session.detail}</p>
+        <button
+          type="button"
+          className="secondary m-press pp-inline-action"
+          onClick={() => open(counsellingRoadmap)}
+        >
+          {words.session.action}
+          <ArrowRight size={16} />
+        </button>
+      </div>
+      <div className="pp-blocked" role="note">
+        <h2>
+          <Ban size={18} />
+          {words.mood.heading}
+        </h2>
+        <p>{moodRefusal}</p>
+        <p>{moodWhy}</p>
+      </div>
+    </PageFrame>
+  );
+}
+
+/* ---- Activity ----------------------------------------------------------------------------------
+   The export's page is three figures — steps, active minutes, weekly movement — a week of bars and a
+   watch that "synced 5 minutes ago". Nothing here can count a step: no watch, band or phone sensor is
+   connected, and the wellbeing contract says so in the sentence rendered first. So the three tiles keep
+   their places and say what is true — two are "Not measured", and the third is a count of the entries
+   listed under it, which anybody can check by counting. The bars are the entries themselves, in the
+   words the person wrote. The sync banner is the door to connected devices, where the one real action,
+   a request to link a phone's store, lives. */
+function ActivityPage({ navigate, open, entries = [] }: Nav) {
+  const words = screens["activity"];
+  const moving = movingEntries(entries);
+  return (
+    <PageFrame
+      id="activity"
+      navigate={navigate}
+      eyebrow={words.eyebrow}
+      heading={words.heading}
+      lead={words.lead}
+    >
+      <p className="pp-note">
+        <Ban size={15} aria-hidden="true" />
+        {noDevice}
+      </p>
+      <div className="pp-tiles" role="list">
+        {words.tiles.map((tile) => (
+          <div className="pp-tile" role="listitem" key={tile.id}>
+            <span className="pp-tile-label">{tile.label}</span>
+            <strong className="pp-tile-value">
+              {tile.value === "count" ? moving.length : tile.value}
+            </strong>
+            <span className="pp-tile-detail">{tile.detail}</span>
+          </div>
+        ))}
+      </div>
+      <h2 className="pp-subheading">{words.entriesHeading}</h2>
+      {moving.length ? (
+        <ol className="pp-timeline">
+          {moving.map((entry) => (
+            <li className="pp-timeline-item" key={entry.id}>
+              <strong>{entryDay(entry)}</strong>
+              <small>{entry.words}</small>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <EmptyBlock title={words.emptyTitle} detail={words.emptyDetail} />
+      )}
+      <div className="pp-door panel">
+        <div>
+          <h2>{words.wearable.heading}</h2>
+          <p>{words.wearable.detail}</p>
+        </div>
+        <button
+          type="button"
+          className="secondary m-press"
+          onClick={() => navigate(words.wearable.target)}
+        >
+          {words.wearable.action}
+          <ArrowRight size={16} />
+        </button>
+      </div>
+      <Actions actions={words.actions} navigate={navigate} open={open} />
+    </PageFrame>
+  );
+}
+
 const screenFor = (page: string, nav: Nav): React.ReactNode => {
   if (page === screens["symptom-checker"].opens)
     return <SymptomChecker {...nav} />;
   if (page === screens["risk-assessment"].opens)
     return <RiskAssessment {...nav} />;
-  if (page === screens["health-library"].opens) return <HealthLibrary />;
+  if (page === screens["health-library"].opens)
+    return <HealthLibrary {...nav} />;
   if (page === screens["health-timeline"].opens)
     return <HealthTimeline {...nav} />;
   if (page === screens.vaccinations.opens) return <Vaccinations {...nav} />;
   if (page === screens.community.opens) return <Community {...nav} />;
   if (page === screens.nutrition.opens) return <Nutrition {...nav} />;
   if (page === screens.reminders.opens) return <Reminders {...nav} />;
+  if (page === screens["mental-health"].opens)
+    return <MentalHealth {...nav} />;
+  if (page === screens.activity.opens) return <ActivityPage {...nav} />;
   return <Hub {...nav} />;
 };
 
-export function PatientPages({ page, navigate, open }: { page: string } & Nav) {
-  return <>{screenFor(page, { navigate, open })}</>;
+export function PatientPages({
+  page,
+  navigate,
+  open,
+  book,
+  entries,
+}: { page: string } & Nav) {
+  return <>{screenFor(page, { navigate, open, book, entries })}</>;
 }

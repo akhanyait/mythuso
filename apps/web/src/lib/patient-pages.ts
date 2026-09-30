@@ -5,6 +5,9 @@ import chronic from "../../../../packages/catalog/knowledge/chronic.json" with {
 import mentalHealth from "../../../../packages/catalog/knowledge/mental-health.json" with { type: "json" };
 import maternal from "../../../../packages/catalog/knowledge/maternal.json" with { type: "json" };
 import saHealthSystem from "../../../../packages/catalog/knowledge/sa-health-system.json" with { type: "json" };
+import { services, type Service } from "./catalog";
+import { crisisLines } from "./crisis-lines";
+import { dayLabelOf, dayOffsetOf, habitById, refusal as wellbeingRefusal, type Entry as WellbeingEntry } from "./wellbeing";
 
 /* The eight patient pages and their hub, as the screens read them.
  *
@@ -170,3 +173,53 @@ export const searchLibrary = (
     terms.every((term) => entry.haystack.includes(term)),
   );
 };
+
+/* ---- Mental health, activity and the vaccination booking (contract version 2) -------------------
+   Each list these pages render from another contract, joined here to the file it comes from and
+   named in the contract's `derivations`, so the screen still reaches into no JSON itself. */
+
+/* The service a page books, by the catalogue id the contract names. Thrown on when it does not resolve,
+   because a Book button that quietly books nothing is the button going missing. */
+export const serviceFor = (id: string): Service => {
+  const found = services.find((service) => service.id === id);
+  if (!found) throw new Error(`No service "${id}" in packages/catalog/services.json`);
+  return found;
+};
+export const vaccinationService = serviceFor(contract.screens.vaccinations.record.book.service);
+
+/* Mental health: the counselling check-in as the catalogue has it (a later phase, so a door to its
+   roadmap entry rather than a booking), the crisis lines after the door to the emergency screen, the
+   one crisis refusal that names no emergency number, and why there is no mood scale — the journal's own
+   sentence for its "How you are" habit, and the wellbeing contract's refusal of a score. */
+const mh = contract.derivations.mentalHealthDoors;
+export const counsellingService = serviceFor(contract.derivations.counsellingService.service);
+/* The title the roadmap dialog answers a planned service by: its name and its phase, as the catalogue
+   holds them. */
+export const counsellingRoadmap = `${counsellingService.name} · Phase ${counsellingService.phase}`;
+export const crisis = {
+  heading: crisisLines.heading,
+  lines: crisisLines.lines,
+  nothingDials: crisisLines.refusals.find((r) => r.id === contract.derivations.crisisLines.refusal)!.sentence,
+};
+export const moodWhy = habitById(mh.journalHabit).why;
+export const moodRefusal = wellbeingRefusal(mh.moodRefusal);
+
+/* Which library tab to open on, handed from a door on another page to the library as it mounts. In this
+   module's memory for the one navigation that sets it, and read once: nothing is stored anywhere. */
+let requestedLibraryTab: string | null = null;
+export const requestLibraryTab = (id: string) => {
+  requestedLibraryTab = id;
+};
+export const takeRequestedLibraryTab = () => {
+  const id = requestedLibraryTab;
+  requestedLibraryTab = null;
+  return id;
+};
+
+/* Activity: the journal's Moving entries, newest first, from the entries the app holds in memory, and the
+   wellbeing contract's own sentence that nothing here is measured. */
+const activity = contract.derivations.activityEntries;
+export const movingEntries = (entries: readonly WellbeingEntry[]) =>
+  entries.filter((entry) => entry.habit === activity.habit).sort((a, b) => b.at - a.at);
+export const noDevice = wellbeingRefusal(activity.refusal);
+export const entryDay = (entry: WellbeingEntry) => dayLabelOf(dayOffsetOf(entry.at));

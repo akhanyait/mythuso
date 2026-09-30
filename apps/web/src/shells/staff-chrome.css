@@ -1,0 +1,190 @@
+/* The staff chrome, in a sheet of its own (30 September 2026).
+
+   These rules were first appended to shells.css, which the patient's entry downloads, and every one of
+   them starts from .app-shell.clinical — a shell no patient opens. Measured, they were 3 kB of the
+   patient's first load spent on a nurse's jump field and a doctor's profile menu. StaffShell.tsx imports
+   this sheet, so it rides the staff chunk with the screens it draws. */
+
+/* ---- The staff chrome after the Lovable export (30 September 2026) ----------------------------------
+
+   The export gives a nurse and a doctor a sidebar of labelled groups, a top bar with a search, a bell and
+   a profile chip, and a band above every page. shells/StaffChrome.tsx says what each of those may honestly
+   be here; this is how they are drawn. Every rule starts from .app-shell.clinical so the patient shell,
+   which shares this sheet, is untouched by any of it. */
+
+/* The grouped rail. The landmark scrolls inside itself, so a role with twelve destinations keeps the
+   identity above it and the way out below it on the screen at any height; the ring a focused row draws
+   2px outside itself is given room by the padding, or a scroll box would clip it. The sidebar itself
+   keeps its own scroll as the last resort on a window too short for even a few rows. */
+@media (min-width: 1000px) {
+ .app-shell.clinical .sidebar > * { flex-shrink: 0; }
+ .app-shell.clinical .sidebar > .staff-nav {
+  flex: 1 1 auto;
+  min-height: calc(var(--space-40) * 4);
+  gap: 0;
+  margin-inline: calc(var(--space-4) * -1);
+  padding: var(--space-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+ }
+ .app-shell.clinical .staff-nav-group { display: flex; flex-direction: column; gap: 2px; }
+ .app-shell.clinical .staff-nav .nav-label { margin: var(--space-16) var(--space-12) var(--space-4); text-transform: uppercase; }
+ .app-shell.clinical .staff-nav-group:first-child .nav-label { margin-top: var(--space-12); }
+}
+
+/* The top bar. From 1000px: where you are, the jump, then the bell, the theme and the chip. Below it the
+   breadcrumb and the jump go — the More hub carries the jump on a phone — and the chip moves to the
+   start of the row and takes what is left, so the name ellipsises before anything overflows. */
+.app-shell.clinical .staff-topbar { position: relative; z-index: 20; gap: var(--space-8); }
+.app-shell.clinical .staff-topbar .topbar-actions { flex: 1 1 auto; min-width: 0; gap: var(--space-8); }
+.app-shell.clinical .staff-jump--bar { display: none; order: 1; }
+/* The theme's word is its accessible name, so on a phone it is taken off the screen rather than out of
+   the button: two lines of "Dark theme" beside a name that has already had to ellipsise is the bar
+   choosing a setting over a person. */
+.app-shell.clinical .staff-topbar .topbar-theme { flex: 0 0 auto; white-space: nowrap; }
+/* The bell never gives up width to the chip: at 200% zoom on a phone the row is 195px wide and a shrinking bell
+   measured 40 by 44. The chip is the one that ellipsises. */
+.app-shell.clinical .staff-topbar .staff-bell { flex: 0 0 auto; min-width: 44px; }
+@media (max-width: 519px) {
+ .app-shell.clinical .staff-topbar .topbar-theme { width: 44px; min-height: 44px; justify-content: center; padding: 0; }
+ .app-shell.clinical .staff-topbar .topbar-theme > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+.app-shell.clinical .staff-profile { position: relative; order: -1; flex: 1 1 auto; min-width: 0; margin-right: auto; }
+@media (min-width: 1000px) {
+ .app-shell.clinical .staff-topbar .breadcrumb { margin-right: auto; }
+ .app-shell.clinical .staff-topbar .topbar-actions { flex: 0 0 auto; }
+ .app-shell.clinical .staff-jump--bar { display: block; width: min(320px, 28vw); }
+ .app-shell.clinical .staff-profile { order: 0; flex: 0 1 auto; margin-right: 0; }
+}
+
+.app-shell.clinical .staff-profile__chip {
+ display: flex;
+ align-items: center;
+ gap: var(--space-8);
+ max-width: 100%;
+ min-height: 44px;
+ padding: 0 var(--space-8) 0 var(--space-4);
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-md);
+ background: var(--color-surface);
+ color: var(--color-foreground);
+ text-align: left;
+}
+.app-shell.clinical .staff-profile__chip:hover { background: var(--color-muted); }
+.app-shell.clinical .staff-profile__chip .avatar.small { flex: 0 0 auto; }
+.app-shell.clinical .staff-profile__who { min-width: 0; }
+.app-shell.clinical .staff-profile__who :is(strong, small) { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; line-height: 1.3; }
+.app-shell.clinical .staff-profile__who strong { font-weight: 650; }
+.app-shell.clinical .staff-profile__who small { color: var(--color-muted-foreground); }
+.app-shell.clinical .staff-profile__chevron { flex: 0 0 auto; color: var(--color-muted-foreground); }
+.app-shell.clinical .staff-profile__chip[aria-expanded='true'] .staff-profile__chevron { transform: rotate(180deg); }
+@media (min-width: 1000px) { .app-shell.clinical .staff-profile__who { max-width: 180px; } }
+
+/* The panel opens under the chip, against the end of the bar on a wide screen and the start on a phone,
+   where the chip is. */
+.app-shell.clinical .staff-profile__panel {
+ position: absolute;
+ top: calc(100% + var(--space-8));
+ left: 0;
+ z-index: 40;
+ width: min(320px, calc(100vw - var(--space-32)));
+ padding: var(--space-16);
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-lg);
+ background: var(--color-surface);
+ box-shadow: var(--shadow-raised);
+ color: var(--color-foreground);
+}
+.app-shell.clinical .staff-profile__panel[hidden] { display: none; }
+@media (min-width: 1000px) { .app-shell.clinical .staff-profile__panel { left: auto; right: 0; } }
+.app-shell.clinical .staff-profile__name strong { display: block; font-size: 14px; font-weight: 650; }
+.app-shell.clinical .staff-profile__name small { display: block; margin-top: var(--space-4); color: var(--color-muted-foreground); font-size: 13px; line-height: 1.4; }
+.app-shell.clinical .staff-profile__panel .staff-credential { margin: var(--space-12) 0 0; padding-bottom: var(--space-12); border-bottom: 1px solid var(--color-border); color: var(--color-muted-foreground); }
+.app-shell.clinical .staff-profile__panel .staff-credential.stop { color: var(--danger); }
+.app-shell.clinical .staff-profile__leave {
+ display: flex;
+ align-items: center;
+ gap: var(--space-8);
+ width: 100%;
+ min-height: 44px;
+ margin-top: var(--space-12);
+ padding: 0 var(--space-12);
+ border-radius: var(--r-md);
+ color: var(--color-foreground);
+ font-size: 14px;
+ font-weight: 600;
+}
+.app-shell.clinical .staff-profile__leave:hover { background: var(--color-muted); }
+
+/* Jump to: a field with its list under it. The option under the keyboard is the muted fill with the
+   heavier weight, the same two differences the rail uses, so it is never colour alone. */
+.app-shell.clinical .staff-jump { position: relative; }
+.app-shell.clinical .staff-jump__icon { position: absolute; left: var(--space-12); top: 22px; transform: translateY(-50%); color: var(--color-muted-foreground); pointer-events: none; }
+.app-shell.clinical .staff-jump__input { padding-left: calc(var(--space-12) + var(--space-24) + var(--space-4)); border-color: var(--color-border); background: var(--color-surface); color: var(--color-foreground); }
+.app-shell.clinical .staff-jump__panel {
+ position: absolute;
+ top: calc(100% + var(--space-4));
+ left: 0;
+ right: 0;
+ z-index: 40;
+ max-height: min(420px, 60vh);
+ overflow-y: auto;
+ padding: var(--space-4);
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-lg);
+ background: var(--color-surface);
+ box-shadow: var(--shadow-raised);
+}
+.app-shell.clinical .staff-jump__panel[hidden] { display: none; }
+/* The list's own indent off, so the options' icons stand on the same edge as the note under them. */
+.app-shell.clinical .staff-jump__list { margin: 0; padding: 0; list-style: none; }
+.app-shell.clinical .staff-jump__option {
+ display: flex;
+ align-items: center;
+ gap: var(--space-12);
+ min-height: 44px;
+ padding: 0 var(--space-12);
+ border-radius: var(--r-md);
+ color: var(--color-foreground);
+ font-size: 14px;
+ cursor: pointer;
+}
+.app-shell.clinical .staff-jump__option > svg { flex: 0 0 auto; color: var(--color-muted-foreground); }
+.app-shell.clinical .staff-jump__option > span { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-shell.clinical .staff-jump__option > small { flex: 0 0 auto; color: var(--color-muted-foreground); font-size: 13px; }
+.app-shell.clinical .staff-jump__option[aria-selected='true'] { background: var(--color-muted); font-weight: 600; }
+.app-shell.clinical :is(.staff-jump__empty, .staff-jump__note) { margin: 0; padding: var(--space-8) var(--space-12); color: var(--color-muted-foreground); font-size: 13px; line-height: 1.45; }
+.app-shell.clinical .staff-jump__note { border-top: 1px solid var(--color-border); margin-top: var(--space-4); }
+.app-shell.clinical .staff-jump--hub { margin-bottom: var(--space-8); }
+/* In the hub the list opens over the hub's own rows, which are later in the page and were painted over it.
+   The list is open exactly while the field has focus, so that is when the field is lifted. */
+.app-shell.clinical .staff-jump--hub:focus-within { z-index: 30; }
+
+/* The band. Absent when nothing is waiting — :empty takes the landmark out of the reading order too.
+   Ordered before the page's own intro, which clinical.css lifts to -2 in main's column, so what is
+   waiting is the first thing on every page, as the export draws it, and first in the reading order. */
+.app-shell.clinical .staff-attention { order: -3; flex: 0 0 auto; display: flex; flex-direction: column; gap: var(--space-8); margin-bottom: var(--space-16); }
+.app-shell.clinical .staff-attention:empty { display: none; }
+.app-shell.clinical .staff-attention__go {
+ display: inline-flex;
+ align-items: center;
+ gap: var(--space-8);
+ min-height: 44px;
+ margin-top: var(--space-4);
+ color: var(--color-foreground);
+ font-size: 14px;
+ font-weight: 600;
+ text-decoration: underline;
+ text-underline-offset: 3px;
+}
+
+/* The phone's More hub: the rail's group labels over the patient hub's rows. */
+.app-shell.clinical .staff-more-group .nav-label {
+ margin: var(--space-16) 0 var(--space-8);
+ color: var(--color-muted-foreground);
+ font-size: 13px;
+ font-weight: 600;
+ letter-spacing: .12em;
+ text-transform: uppercase;
+}
+.app-shell.clinical .staff-more-leave { margin-top: var(--space-24); }

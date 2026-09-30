@@ -4,7 +4,7 @@ import { ClinicianProfile } from '../components/ClinicianProfile';
 import { ArrowLeft, ArrowRight, Ban, Banknote, CalendarDays, CalendarClock, Check, CircleAlert, Clock3, CreditCard, Hourglass, MapPin, ShieldCheck, Undo2, X, Zap } from 'lucide-react';
 import { type Service, money } from '../lib/catalog';
 import { SectionTitle, ServiceIcon } from '../components/UI';
-import { StepHead } from '../components/Steps';
+import { Stepper } from '../components/Steps';
 import { Field, Input, Select } from '../ui';
 import './booking-look.css';
 import { NotConnected } from '../components/NotConnected';
@@ -310,7 +310,7 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
    <div><strong>{service.name}</strong><small>{person.split(' ')[0]} · {service.duration} min{step > 2 && chosen ? ` · ${chosen.name}` : ''}{step > 3 ? ` · ${scheduled ? `${slot}, ${longDateOf(date)}` : 'As soon as available'}` : ''}</small></div>
    <strong>{money(service.price)}</strong>
   </aside>
-  <div ref={stepFocus} tabIndex={-1} className="journey-step-focus"><StepHead step={step + 1} total={stepLabels.length} label={stepLabels[step]}/></div>
+  <div ref={stepFocus} tabIndex={-1} className="journey-step-focus"><Stepper labels={stepLabels} step={step} onStep={setStep}/></div>
   {offline && <div className="journey-connection" role="status"><CircleAlert size={19}/><span>You’re offline. Your choices stay here while this booking is open. Reconnect to confirm; you can continue reviewing your details.</span></div>}
   {step === 0 ? <div className="form-stack">
    <div className="booking-summary"><span className="service-icon"><ServiceIcon name={service.icon}/></span><div><h3>{service.name}</h3><p>{service.duration} min · Registered nurse</p></div><strong>{money(service.price)}</strong></div>

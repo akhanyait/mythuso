@@ -51,7 +51,7 @@ test('family addition, sharing revocation and export',async({page})=>{
   await page.goto('/app/');await page.getByRole('button',{name:'Add a family member',exact:true}).click();
   await page.getByLabel('Display name').fill('Aunt Thandi');await page.getByRole('button',{name:'Add demo member'}).click();
   await expect(page.getByRole('heading',{name:'Aunt Thandi'})).toBeVisible();
-  await navigate(page,'Health Passport');await page.getByRole('button',{name:'Share record'}).click();
+  await navigate(page,'Health Passport');await page.getByRole('tablist',{name:'Passport sections'}).getByRole('tab',{name:'Records'}).click();await page.getByRole('button',{name:'Share record'}).click();
   await page.getByRole('button',{name:'Preview limited sharing'}).click();
   await expect(page.getByText('Demo access active. You can revoke it at any time.')).toBeVisible();
   await page.getByRole('button',{name:'Revoke demo access'}).click();await expect(page.getByText('No active shares.')).toBeVisible();

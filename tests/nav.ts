@@ -55,11 +55,24 @@ export async function goSection(page: Page, name: string) {
     const patientTab = page.locator('.tabbar button').filter({ hasText: short });
     if (await patientTab.count()) { await patientTab.first().click(); return; }
   }
-  /* And on a phone the rest of the patient's sections live behind More. */
+  /* And on a phone the rest of the patient's sections live behind More — and, since 30 September, the
+     nurse's and the doctor's too: their tab bars carry four destinations and a More tab whose hub lists
+     the rest as rows under their group labels, so this fallback reaches every one of them unchanged. */
   await page.locator('.tabbar button').last().click();
   const row = page.locator('.menu-row').filter({ hasText: name });
   await expect(row.first()).toBeVisible();
   await row.first().click();
+}
+
+/* A screen that was a More tool — a text link at the foot of a board that opened a dialog — and is a
+   destination in the nurse's or the doctor's grouped navigation since 30 September 2026. It is reached
+   the way every section is, and the screen is scoped to the section's own content rather than to a
+   dialog: the shell's heading names it, and the attention band above it is not part of it. */
+export async function openDestination(page: Page, name: string): Promise<Locator> {
+  await goSection(page, name);
+  const screen = page.locator('main .cl-chapter');
+  await expect(screen.getByRole('heading', { level: 1, name, exact: true })).toBeVisible();
+  return screen;
 }
 
 /* One application, one address, and a role in the query string.

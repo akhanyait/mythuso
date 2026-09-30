@@ -72,6 +72,17 @@
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
+/* The bar's controls keep their 44-pixel targets however long the signed-in name is: the name gives way and
+   ellipsises, the buttons never shrink. shells.css stopped letting .staff-who shrink on 30 September 2026 (the
+   clinical shells moved to a profile chip), and the portal's bar still carries that identity block, so at 200%
+   zoom the name took the width and squeezed the two icon buttons to 32 pixels. */
+.portal .pt-top .staff-who {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.portal .pt-top .topbar-actions > * {
+  flex-shrink: 0;
+}
 .portal .breadcrumb {
   color: var(--color-muted-foreground);
   font-size: 14px;
@@ -2518,7 +2529,32 @@
 .portal .pt-demo-map-svg {
   display: block;
   width: 100%;
+  max-width: 640px;
   height: auto;
+}
+/* The schematic's zones on the roles, 30 September 2026: low on the muted ground, medium and high with the
+   warning and the danger mixed into the surface, and the high zone's edge in the danger as a mark. Every
+   word is the foreground; the risk is printed in each zone, so the ground is never the only thing that says it. */
+.portal .pt-demo-zone rect {
+  fill: var(--color-muted);
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+.portal .pt-demo-zone.is-medium rect {
+  fill: color-mix(in oklab, var(--color-warning) 26%, var(--color-surface));
+}
+.portal .pt-demo-zone.is-high rect {
+  fill: color-mix(in oklab, var(--color-danger) 16%, var(--color-surface));
+  stroke: var(--color-danger);
+  stroke-width: 2;
+}
+.portal .pt-demo-zone text {
+  fill: var(--color-foreground);
+  font-size: 13px;
+}
+.portal .pt-demo-zone .pt-demo-zone-label {
+  font-size: 14px;
+  font-weight: 600;
 }
 .portal .pt-demo-alert .ui-alert__text p {
   margin: 0;
@@ -2754,4 +2790,79 @@
 /* The Speech settings save bar sits inside its section's card. */
 .portal .g1-change > .fc-savebar {
   margin-top: var(--space-8);
+}
+
+/* ---- The handoff's control room, 30 September 2026 ----
+   Three things from the export's admin route, on the portal's roles: an icon tile on each figure card, an
+   optional tile beside a screen's heading, and the still field alert at the top of Dispatch. Nothing here
+   moves; the alert has no pulse, because nothing the Control Tower draws is endless. */
+.portal .pt-strip-figure.has-icon {
+  position: relative;
+}
+.portal .pt-strip-figure.has-icon .s-metric-label {
+  padding-right: var(--space-40);
+}
+.portal .pt-strip-icon,
+.portal .pt-head-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  border-radius: var(--r-md);
+  background: color-mix(in oklab, var(--color-accent) 14%, var(--color-surface));
+  color: var(--color-foreground);
+}
+.portal .pt-strip-icon {
+  position: absolute;
+  top: var(--space-16);
+  right: var(--space-16);
+  width: var(--space-32);
+  height: var(--space-32);
+}
+.portal .pt-strip-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.portal .pt-head-titled {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-16);
+}
+.portal .pt-head-icon {
+  width: 44px;
+  height: 44px;
+  margin-top: var(--space-4);
+}
+.portal .pt-head-icon svg {
+  width: 24px;
+  height: 24px;
+}
+.portal .pt-field-alert {
+  margin-bottom: var(--space-16);
+}
+/* Each count as a small figure: its name above, its numeral under it, so the words read the same for one
+   row or for twelve and the numerals line up down the banner. */
+.portal .pt-field-alert-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-12) var(--space-32);
+  margin: var(--space-8) 0 var(--space-16);
+  padding: 0;
+  list-style: none;
+}
+.portal .pt-field-alert-counts li {
+  display: grid;
+  gap: var(--space-4);
+}
+.portal .pt-field-alert-counts span {
+  color: var(--color-muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+}
+.portal .pt-field-alert-counts strong {
+  color: var(--color-foreground);
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }

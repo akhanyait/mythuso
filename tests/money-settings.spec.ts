@@ -1,6 +1,6 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { chooseRole, goSection, openAdminConsole } from './nav';
+import { chooseRole, goSection, openAdminConsole, openDestination } from './nav';
 import { fill, openChangeForm, openConfiguration, say, settingsContract } from './safety-settings';
 
 /* Money's settings, changed on the back office and read where they matter, on both viewports.
@@ -120,8 +120,8 @@ test('a fee an admin sets and confirms reaches the doctor’s screen, and a payo
   await confirmChange(confirmForm, confirmed, labelOf(confirmed, false), labelOf(confirmed, true), 'The fee in force is agreed, so doctors may be paid at it.');
 
   await chooseRole(page, 'Doctor');
-  await page.locator('.tool-link').filter({ hasText: 'Per-case fees' }).click();
-  const d = page.getByRole('dialog');
+  /* A destination in the doctor's Practice group since 30 September, where it was a More tool opening a dialog. */
+  const d = await openDestination(page, 'Per-case fees');
   const words = money.doctorFees[0]!;
   await expect(d.locator('.review-line').filter({ hasText: words.name })).toContainText(randOnScreen(to));
   await expect(d.getByText(words.confirmed)).toBeVisible();
@@ -150,8 +150,10 @@ test('a nurse’s share reworded by an admin reaches her earnings, and wording t
 
   await chooseRole(page, 'Nurse');
   /* The nurse workspace arrives on a dynamic import. goSection picks the sidebar or the tab bar by which one
-     is visible, so it is asked only once the workspace has drawn the section it goes to. */
-  await expect(page.getByRole('button', { name: 'Earnings & payouts', exact: true }).first()).toBeVisible();
+     is visible, so it is asked only once the workspace has drawn. It waited for the Earnings tab until 30
+     September, when a phone's tab bar kept four destinations and Earnings moved behind More; the role's
+     first destination is on both viewports, sidebar or tab bar. */
+  await expect(page.getByRole('button', { name: 'Schedule', exact: true }).first()).toBeVisible();
   await goSection(page, 'Earnings & payouts');
   const rule = page.locator('[data-rule="share-is-not-reduced"]');
   await expect(rule).toContainText(reworded);

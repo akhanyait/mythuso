@@ -20,6 +20,8 @@ import {
 import {
   Activity,
   Ambulance,
+  ArrowDown,
+  ArrowUp,
   CalendarDays,
   ClipboardList,
   Pill,
@@ -54,6 +56,7 @@ import {
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
+import { IconButton } from "../ui/IconButton";
 import { crisisLines, showsCrisisLines } from "../lib/crisis-lines";
 import { latestCaseFor, useCases } from "../lib/case";
 import {
@@ -287,6 +290,25 @@ export default function Assistant({
   const close = useRef<HTMLButtonElement>(null);
   const latest = useRef<HTMLLIElement>(null);
   const field = useRef<HTMLInputElement>(null);
+  /* The transcript's own scroller, and whether the latest answer is out of view in it — above, while
+     she reads an older answer, or below, among the chips (30 September 2026, the handoff's scroll
+     button). The way back is drawn only then: a control that takes you where you already are does
+     nothing. */
+  const scroller = useRef<HTMLDivElement>(null);
+  const [away, setAway] = useState<"up" | "down" | null>(null);
+  const measure = () => {
+    const box = scroller.current?.getBoundingClientRect();
+    const last = latest.current?.getBoundingClientRect();
+    setAway(
+      !box || !last
+        ? null
+        : last.bottom < box.top + 24
+          ? "up"
+          : last.top > box.bottom - 24
+            ? "down"
+            : null,
+    );
+  };
   /* The audience's own entry: its simulated label, its voice flag, its two action buttons and
      what it opens with are the contract's, never this component's defaults. */
   const audience = audienceOf(audienceId);
@@ -544,7 +566,21 @@ export default function Assistant({
           viewport.getBoundingClientRect().top,
         behavior: reduced ? "auto" : "smooth",
       });
+    requestAnimationFrame(measure);
   }, [turns, asked, reduced]);
+  /* The same scroll the effect above makes, on request: only the transcript moves, never the dialog. */
+  const toLatest = () => {
+    const entry = latest.current;
+    const viewport = scroller.current;
+    if (entry && viewport)
+      viewport.scrollTo({
+        top:
+          viewport.scrollTop +
+          entry.getBoundingClientRect().top -
+          viewport.getBoundingClientRect().top,
+        behavior: reduced ? "auto" : "smooth",
+      });
+  };
 
   const keepFocus = (event: KeyboardEvent<HTMLDialogElement>) => {
     if (event.key !== "Tab" || !dialog.current) return;
@@ -876,7 +912,12 @@ export default function Assistant({
         </header>
 
         {consented ? (
-          <div className="as-scroll" data-welcome={!asked || undefined}>
+          <div
+            className="as-scroll"
+            data-welcome={!asked || undefined}
+            ref={scroller}
+            onScroll={measure}
+          >
             {/* The welcome introduces GilbertOne by its official logo, with the descriptor that must
                 stand beside the name. A lockup, so it is centred on the logo's own clear space. */}
             {!asked && (
@@ -1271,6 +1312,27 @@ export default function Assistant({
               </section>
             ))}
             </div>
+          </div>
+        )}
+
+        {/* The way back to the latest answer: a real button in the panel's own order, after the
+            conversation and before the composer, so the focus trap counts it like any other stop. It
+            stands over the foot of the transcript from a dock that takes no room. Only once something
+            has been asked: the welcome has no latest answer to go back to. */}
+        {consented && asked && away && (
+          <div className="as-latest-dock">
+            <IconButton
+              label={ui.latestLabel}
+              variant="secondary"
+              className="as-latest"
+              onClick={toLatest}
+            >
+              {away === "up" ? (
+                <ArrowUp aria-hidden="true" />
+              ) : (
+                <ArrowDown aria-hidden="true" />
+              )}
+            </IconButton>
           </div>
         )}
 

@@ -1,7 +1,8 @@
-import { ArrowRight, ShieldX, UserRound, Users } from 'lucide-react';
+import { ArrowRight, ShieldX, Users } from 'lucide-react';
 import { SectionTitle } from '../components/UI';
+import '../surface/nurse-identity.css';
 import { NotConnected } from '../components/NotConnected';
-import { Button } from '../ui';
+import { Badge, Button, Card } from '../ui';
 import { rosterNurses, rosterRefusals } from '../lib/roster';
 
 /* The nurse's "Team", and the reason it is a directory of people who do not exist.
@@ -37,10 +38,18 @@ export function StaffTeam({ onClose }: { onClose: () => void }) {
       into a second copy of a person. A peer sees a colleague's professional facts and nothing more
       — no clearance, no position, no availability — which is the whole of what this screen is. */}
   <SectionTitle title="Who the roster carries"/>
-  <div className="panel">{rosterNurses.map(nurse => <div className="record-row static" key={nurse.id}>
-   <span className="service-icon"><UserRound size={20} aria-hidden="true"/></span>
-   <span><strong>{nurse.name}</strong><small>{nurse.reference} · {nurse.zoneName}</small><small>{nurse.scope.join(' · ')}</small></span>
-  </div>)}</div>
+  {/* The export's card grid (30 September 2026): initials where its photograph was, the registration and
+      suburb under the name, and the scope as badges. Its presence pill and its message and call buttons are
+      not here — there is no presence to show and no channel to reach anybody by. */}
+  <ul className="staff-team-grid">{rosterNurses.map(nurse => <li key={nurse.id}>
+   <Card padding="md" className="staff-team-card">
+    <div className="staff-team-card__head">
+     <span className="staff-team-card__initials" aria-hidden="true">{nurse.initials}</span>
+     <span><strong>{nurse.name}</strong><small>{nurse.reference} · {nurse.zoneName}</small></span>
+    </div>
+    <ul className="staff-team-card__scope" aria-label={`${nurse.name}'s scope`}>{nurse.scope.map(scope => <li key={scope}><Badge size="sm" variant="neutral">{scope}</Badge></li>)}</ul>
+   </Card>
+  </li>)}</ul>
 
   {/* The refusal is the feature, and it runs in the four directions a directory of fictional people
       could otherwise be mistaken for a real one. The booking line is the contract's own sentence,

@@ -35,7 +35,8 @@ const signOut = async (page: Page) => {
   const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
   if (await sidebar.isVisible()) await page.getByRole('button', { name: 'Your profile', exact: true }).click();
   else await page.locator('.tabbar button').nth(4).click();
-  await page.getByRole('button', { name: /^Log out/ }).click();
+  /* The profile dialog's, or the More hub's: the sidebar has its own Log out at its foot since 30 September. */
+  await page.getByRole('dialog').or(page.getByRole('main')).getByRole('button', { name: /^Log out/ }).click();
   await expect(page.getByRole('heading', { name: 'Sign in to MyThuso' })).toBeVisible();
 };
 

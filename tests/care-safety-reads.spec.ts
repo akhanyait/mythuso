@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { chooseRole, goSection, openWorkspace } from './nav';
+import { chooseRole, goSection, openDestination, openWorkspace } from './nav';
 
 /* Wave 6: the four Care reads and Safety's incident register version, on both viewports.
  *
@@ -46,10 +46,10 @@ test('a dispatcher\'s shift board reads every nurse\'s day, and the rural circui
 
 test('a locum reading her shifts is refused in the contract\'s own words while her Trust Score is not current', async ({ page }) => {
   await openWorkspace(page, 'Nurse');
-  await page.getByRole('button', { name: 'Locum shifts', exact: true }).click();
-  const sheet = page.getByRole('dialog');
-  await expect(sheet).toContainText(careRefusal('/v1/care/locum-shifts', 1, 'unverified-locum'));
-  await sheet.getByRole('button', { name: 'Close' }).first().click();
+  /* Locum shifts is a destination in the nurse's grouped navigation since 30 September 2026, not a
+     dialog opened from a link at the foot of a board. The refusal it carries is what is asserted. */
+  const screen = await openDestination(page, 'Locum shifts');
+  await expect(screen).toContainText(careRefusal('/v1/care/locum-shifts', 1, 'unverified-locum'));
 });
 
 test('a door mismatch the patient answers herself still tells her a safety incident was raised', async ({ page }) => {

@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { X } from 'lucide-react';
+import { ArrowDown, ArrowUp, X } from 'lucide-react';
+import { latestLabel } from '../../../../packages/catalog/assistant-chat-ui.json';
 import { GilbertAvatar, GilbertOneLogo, growFrom, useGilbertRig } from './GilbertAvatar';
 import { AssistantGreeting } from '../components/AssistantGreeting';
 import { MotionPause } from '../components/MotionPause';
 import { Button } from '../ui/Button';
+import { IconButton } from '../ui/IconButton';
 import { useDecor } from '../lib/motion';
 import { affect, conversation, emergencyAnswer, identity, lines, screens, silenceIsNotSafety } from '../lib/assistant';
 import { crisisLines, showsCrisisLines } from '../lib/crisis-lines';
@@ -43,13 +45,32 @@ const cueFor = (answer: PublicAnswer) =>
    two hero drifts, nothing else at rest), so the robot on the launcher is still while the sheet is
    closed — no blink, no idle drift, no transition waiting to fire — and moves only once somebody has
    opened him. The sheet grows out of him and shrinks back into him, as the patient's panel does. */
-export default function PublicAssistant() {
+export default function PublicAssistant({ request = null }: { request?: { question?: string; n: number } | null }) {
  const [open, setOpen] = useState(false);
  const [draft, setDraft] = useState('');
  const [turns, setTurns] = useState<Turn[]>([]);
  const dialog = useRef<HTMLDialogElement>(null);
  const launcher = useRef<HTMLButtonElement>(null);
  const latest = useRef<HTMLLIElement>(null);
+ const scroller = useRef<HTMLDivElement>(null);
+ /* The control that opened the sheet from the page rather than from the round button — a question on
+    the hero's card, the guide card's action — so closing hands focus back to where the reader was. */
+ const opener = useRef<HTMLElement | null>(null);
+ /* Whether the conversation is scrolled away from its latest answer — above it, reading an older one, or
+    below it among the questions. Only then is the way back drawn: a button that takes you where you
+    already are is a control that does nothing. */
+ const [away, setAway] = useState<'up' | 'down' | null>(null);
+ const measure = () => {
+  const box = scroller.current?.getBoundingClientRect(), last = latest.current?.getBoundingClientRect();
+  setAway(!box || !last ? null : last.bottom < box.top + 24 ? 'up' : last.top > box.bottom - 24 ? 'down' : null);
+ };
+ /* Only the transcript scrolls: scrollIntoView would also move the frame and take the close control
+    out of view, which is the reason the patient's panel scrolls this way too. */
+ const toLatest = () => {
+  const box = scroller.current, last = latest.current;
+  if (!box || !last) return;
+  box.scrollTo({ top: box.scrollTop + last.getBoundingClientRect().top - box.getBoundingClientRect().top - 12, behavior: reduced ? 'auto' : 'smooth' });
+ };
  const { reduced, playing } = useDecor();
  const rig = useGilbertRig({ reduced, paused: !playing || !open });
  const entrance = useRef<Animation | null>(null);
@@ -58,10 +79,22 @@ export default function PublicAssistant() {
  useEffect(() => {
   const sheet = dialog.current;
   if (!sheet) return;
-  if (open && !sheet.open) { sheet.showModal(); entrance.current = growFrom(launcher.current, sheet, reduced); }
-  else if (!open && sheet.open) { entrance.current?.cancel(); sheet.close(); launcher.current?.focus(); setArrived(null); }
+  if (open && !sheet.open) { sheet.showModal(); entrance.current = growFrom(launcher.current, sheet, reduced); requestAnimationFrame(measure); }
+  else if (!open && sheet.open) {
+   entrance.current?.cancel(); sheet.close();
+   const back = opener.current?.isConnected ? opener.current : launcher.current;
+   opener.current = null; back?.focus(); setArrived(null);
+  }
  }, [open]);
- useEffect(() => { latest.current?.scrollIntoView({ block: 'nearest' }); }, [turns]);
+ useEffect(() => { latest.current?.scrollIntoView({ block: 'nearest' }); requestAnimationFrame(measure); }, [turns]);
+ /* A request from the page: open, and when it carries one of the guide's questions, ask it — the same
+    ask a press on the sheet's own question would make, so the answer is the contract's and nothing else. */
+ useEffect(() => {
+  if (!request) return;
+  opener.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
+  setOpen(true);
+  if (request.question) ask(request.question);
+ }, [request?.n]);
  const ask = (asked: string) => {
   if (!asked.trim()) return;
   const answer = publicAnswer(asked);
@@ -96,7 +129,8 @@ export default function PublicAssistant() {
       <div className="public-assistant-titles"><p>{copy.label}</p><p>{identity.descriptorLine}</p></div>
      </div>
     </header>
-    <div className="public-assistant-scroll">
+    <div className="public-assistant-body">
+    <div className="public-assistant-scroll" ref={scroller} onScroll={measure}>
      <div className="public-assistant-greeting"><p>{copy.welcome}</p><p className="public-assistant-note">{copy.privacy}</p></div>
      <div role="log" aria-label="MyThuso website conversation" aria-live="polite"><ol>
       {turns.map((turn, index) => <li key={index} ref={index === turns.length - 1 ? latest : undefined} data-outcome={turn.answer.kind} data-arrived={index === arrived || undefined}>
@@ -111,6 +145,11 @@ export default function PublicAssistant() {
      <p className="public-assistant-quick">{screens.publicSheet.quickHeading}</p>
      <nav aria-label="MyThuso questions">{copy.questions.map(q => <Button variant="secondary" key={q.id} onClick={() => ask(q.question)}>{q.question}</Button>)}</nav>
      {turns.length > 0 && <Button variant="ghost" className="public-assistant-again" onClick={() => { setTurns([]); setDraft(''); setArrived(null); rig.rest(); }}>{conversation.startAgainLabel}</Button>}
+    </div>
+    {/* The way back to the latest answer, drawn only while it is out of view (the handoff's scroll button).
+        A real button in the sheet's own order, after the conversation and before the composer. */}
+    {away && <IconButton label={latestLabel} variant="secondary" className="public-assistant-latest"
+     onClick={toLatest}>{away === 'up' ? <ArrowUp aria-hidden="true"/> : <ArrowDown aria-hidden="true"/>}</IconButton>}
     </div>
     <form onSubmit={submit}>
      <label htmlFor="public-assistant-input">{copy.inputLabel}</label>

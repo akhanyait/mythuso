@@ -115,7 +115,8 @@ test('the home visit card is the visit you booked, not a fixture', async ({ page
   await confirmBooking(d);
   await d.getByRole('button', { name: 'View my visits' }).click();
   await go(page, 'Overview');
-  const card = page.locator('.visit-card');
+  /* The home's next visit is the export's hero since 30 September 2026, not a .visit-card row. */
+  const card = page.locator('.pd-hero');
   await expect(card).toContainText('Elderly care');
   await expect(card).toContainText('09:00');
 });
@@ -177,7 +178,9 @@ test('a clinical workspace navigates as itself, not as the patient shop', async 
      is in the navigation beside it, and the heading is where the screen says what it is about. */
   for (const [role, first, expected] of [
     // her screen leads with her date, not with the name of the section she is in
-    ['Nurse', /\d{4}$/, 'Earnings & payouts'],
+    /* Thuso Kit rather than Earnings & payouts since 30 September: a phone's tab bar carries four of her destinations and
+       a More tab, and Earnings is behind More. The kit is her own work on either viewport. */
+    ['Nurse', /\d{4}$/, 'Thuso Kit'],
     ['Doctor', 'Review queue', 'Teleconsultation'],
     ['Partner', 'Orders', 'Collections'],
     ['Control Tower', 'Dispatch', 'Incidents']] as const) {

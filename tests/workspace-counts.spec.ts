@@ -135,7 +135,8 @@ test.describe('a workspace figure agrees with the rows beneath it', () => {
        workbench, with the two order groups folded into the top of it — so what is read here is the
        figure the board still carries: the count in each group's own heading, "Prescriptions · 2",
        against the rows under that heading. It is the same property in a smaller place. */
-    const groups = page.locator('.iq-worklist > section');
+    /* The two groups stand in the master column of Orders' master and detail since 30 September 2026. */
+    const groups = page.locator('.iq-worklist section.fulfil-group');
     await expect(groups.first()).toBeVisible();
     expect(await groups.count()).toBeGreaterThan(1);
     for (const group of await groups.all()) {

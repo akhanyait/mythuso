@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { capabilityOf, openWorkspace } from './nav';
+import { capabilityOf, openDestination, openWorkspace } from './nav';
 import { noticeFor } from './notices';
 
 /* The nurse's and the doctor's "Messages", on both viewports.
@@ -12,8 +12,9 @@ import { noticeFor } from './notices';
  * not draw: the 25 September ruling is that nothing simulated is presented as real and no clinical
  * number is invented, and a made-up blood-pressure message somebody can "reply" to is both at once.
  *
- * So this proves the honest screen instead — StaffMessages.tsx, opened from either bar's More tools
- * the way claims.spec opens the doctor's Claim draft. It says what the contract says about a
+ * So this proves the honest screen instead — StaffMessages.tsx, a destination in both roles' Practice
+ * group since 30 September (a More tool opening a dialog until then), reached the way claims.spec
+ * reaches the doctor's Claim draft. It says what the contract says about a
  * simulated channel, it lists the contract's own three refusals, and it offers no way to type or to
  * send. Every sentence asserted here is packages/catalog/capabilities.json's, read rather than
  * typed, so the day a supplier is signed the notice and the refusals change in the contract and
@@ -32,14 +33,10 @@ for (const role of ['Nurse', 'Doctor'] as const) {
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
   await openWorkspace(page, role);
-  /* A More tool, not a section: the nurse's bar already carries six sections, and a simulated inbox
-     is the last thing that should push the work she opened the app for off it. */
-  await page.locator('.tool-link').filter({ hasText: 'Messages' }).click();
-  const sheet = page.getByRole('dialog');
-
-  /* The right screen opened: staffModalTitle leaves an unmapped name as its own title, so the modal
-     is headed "Messages" and nothing on the screen is a thread. */
-  await expect(sheet.getByRole('heading', { name: 'Messages', exact: true })).toBeVisible();
+  /* A destination in the grouped navigation, behind More on a phone: a simulated inbox is the last
+     thing that should push the work she opened the app for off the tab bar. openDestination waits for
+     the page headed "Messages", so the right screen opened and nothing on it is a thread. */
+  const sheet = await openDestination(page, 'Messages');
   /* The notice at the top is the messaging capability's own simulation notice — the same sentence
      the patient's Notifications screen shows, because both read it from the one place that knows. */
   await expect(sheet).toContainText(noticeFor('messaging'));
@@ -53,8 +50,9 @@ for (const role of ['Nurse', 'Doctor'] as const) {
   await expect(sheet.getByRole('textbox')).toHaveCount(0);
   await expect(sheet.getByRole('button', { name: /send/i })).toHaveCount(0);
 
-  /* And it closes from the screen's own button, leaving no dialog behind. */
+  /* And it closes from the screen's own button, back to the screen the role opens on, with no dialog anywhere. */
   await sheet.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Messages', exact: true })).toHaveCount(0);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(errors).toEqual([]);
  });

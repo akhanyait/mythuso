@@ -305,9 +305,13 @@ async function patientSection(page: Page, name: string) {
   if (await sidebar.isVisible()) {
     const entry = sidebar.getByRole('button', { name, exact: true });
     if (await entry.count()) { await entry.click(); return; }
+    /* A row carrying a count, "My visits 3", is found by contained text, as nav.ts's goSection does; the
+       footer holds Privacy & settings beside Help since 30 September, so it is matched by name too. */
+    const counted = sidebar.getByRole('button').filter({ hasText: name });
+    if (await counted.count()) { await counted.first().click(); return; }
     const settings = page.locator('button.settings-link').filter({ hasText: name });
     if (await settings.count()) { await settings.first().click(); return; }
-    await page.locator('.app-footer button').click();
+    await page.locator('.app-footer button').filter({ hasText: name }).first().click();
     return;
   }
   const tab = PATIENT_TABS.indexOf(name);

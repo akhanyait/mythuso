@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { ArrowRight, Ban, History, KeyRound, Link2, Printer, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Ban, Check, History, KeyRound, Link2, Printer, ShieldCheck, Users, X } from 'lucide-react';
 import { Pill } from '../components/UI';
 import { isoIn, longDateOf } from '../lib/scheduling';
 import { qrCode, qrPath, QR_QUIET_ZONE } from '../lib/qr';
+import { Badge, Button, Card } from '../ui';
+import { nextOfKin } from '../../../../packages/catalog/sos-press.json';
 import {
- actionLabel, cardGrant, categoriesSaid, categoryName, defaultScopeNow, emergencyCategories, fill, grants, isSealed, logOf,
+ actionLabel, cardGrant, categoriesSaid, categoryName, defaultScopeNow, emergencyCategories, exportContract, fill, grants, isSealed, logOf,
  makeLink, openLink, outcomeLabel, payersSaid, qrTextFor, refusalOf, revokeLink, roleLabel, say, logWords, scopeName, useSharing, wouldBe,
  type Grant, type Link
 } from '../lib/share-links';
@@ -55,6 +57,9 @@ export function ShareLinks({ navigate }: { navigate: (page: string) => void }) {
  return <>
   <div className="page-intro"><div className="eyebrow">{say.sharing.eyebrow}</div><h1>{say.sharing.title}</h1><p>{say.sharing.intro}</p></div>
   <PreviewNote text={say.sharing.preview}/>
+  {/* The export's two columns: building the link on the left, and on the right what stays private and the
+      formats a record could leave in, as a read-only list — built and not built, each with its reason. */}
+  <div className="ps-columns"><div className="ps-main">
   <section className="panel ps-panel" aria-labelledby="ps-grants">
    <h2 id="ps-grants">{say.sharing.grantsHeading}</h2>
    <div className="ps-grants" role="radiogroup" aria-labelledby="ps-grants">
@@ -80,7 +85,7 @@ export function ShareLinks({ navigate }: { navigate: (page: string) => void }) {
     : <p className="ps-refusal" role="alert"><Ban size={16} aria-hidden="true"/>{refusalOf(terms.refusal)}</p>)}
    <p className="helper">{say.sharing.lifetimeWhy}</p>
    <p className="helper">{fill(say.sharing.neverTo, { payers: payersSaid })}</p>
-   <button className="primary" onClick={make} disabled={!scope.length}><Link2 size={17} aria-hidden="true"/>{say.sharing.make}</button>
+   <Button leadingIcon={<Link2 aria-hidden="true"/>} onClick={make} disabled={!scope.length}>{say.sharing.make}</Button>
    {made && <p className="ps-made" role="status"><KeyRound size={16} aria-hidden="true"/>{made}</p>}
   </section>}
   <section className="panel ps-panel" aria-labelledby="ps-links">
@@ -91,23 +96,48 @@ export function ShareLinks({ navigate }: { navigate: (page: string) => void }) {
       <small>{fill(say.sharing.ends, { when: when(link.terms.expiresAt) })} · {fill(say.sharing.usesLeft, { uses: link.terms.usesAllowed - link.uses })}</small></div>
      {link.revokedAt !== null ? <Pill tone="amber">{say.sharing.revoked}</Pill> : null}
      <div className="ps-actions">
-      <button className="secondary" onClick={() => open(link)}><ArrowRight size={16} aria-hidden="true"/>{fill(say.sharing.openAs, { recipient: link.grant.recipientName })}</button>
-      {link.revokedAt === null && <button className="secondary" onClick={() => revokeLink(link.ref)}><Ban size={16} aria-hidden="true"/>{say.sharing.revoke}</button>}
+      <Button variant="secondary" size="sm" leadingIcon={<ArrowRight aria-hidden="true"/>} onClick={() => open(link)}>{fill(say.sharing.openAs, { recipient: link.grant.recipientName })}</Button>
+      {link.revokedAt === null && <Button variant="secondary" size="sm" leadingIcon={<Ban aria-hidden="true"/>} onClick={() => revokeLink(link.ref)}>{say.sharing.revoke}</Button>}
      </div>
     </li>)}
    </ul>}
    {opened && <p className="ps-made" role="status">{opened}</p>}
   </section>
-  <div className="shortcut-list">
-   <button className="shortcut-row" onClick={() => navigate(say.log.route)}><span className="service-icon"><History size={20}/></span><span className="shortcut-text"><strong>{say.sharing.logLink}</strong></span><ArrowRight size={17}/></button>
-   <button className="shortcut-row" onClick={() => navigate(say.card.route)}><span className="service-icon"><ShieldCheck size={20}/></span><span className="shortcut-text"><strong>{say.sharing.cardLink}</strong></span><ArrowRight size={17}/></button>
   </div>
+  <aside className="ps-aside" aria-label="What a copy of your record leaves out">
+   <Card padding="md" className="ps-aside-card">
+    <h2>What a copy of your record leaves out</h2>
+    <ul className="ps-excluded">{exportContract.exclusions.map(rule => <li key={rule.id}><ShieldCheck size={16} aria-hidden="true"/><span>{rule.sentence}</span></li>)}</ul>
+   </Card>
+   <Card padding="md" className="ps-aside-card">
+    <h2>The formats a copy could take</h2>
+    <p>{exportContract.why}</p>
+    <ul className="ps-formats">{exportContract.formats.map(format => <li key={format.id}>
+     <span className="ps-format-head"><strong>{formatName[format.id] ?? format.id}</strong>
+      <Badge size="sm" variant={format.built ? 'success' : 'neutral'}>{format.built ? <><Check size={12} aria-hidden="true"/>Built</> : <><X size={12} aria-hidden="true"/>Not built</>}</Badge></span>
+     <small>{format.why}</small>
+    </li>)}</ul>
+   </Card>
+   <div className="shortcut-list">
+    <button className="shortcut-row" onClick={() => navigate(say.log.route)}><span className="service-icon"><History size={20}/></span><span className="shortcut-text"><strong>{say.sharing.logLink}</strong></span><ArrowRight size={17}/></button>
+    <button className="shortcut-row" onClick={() => navigate(say.card.route)}><span className="service-icon"><ShieldCheck size={20}/></span><span className="shortcut-text"><strong>{say.sharing.cardLink}</strong></span><ArrowRight size={17}/></button>
+   </div>
+  </aside></div>
  </>;
 }
 
+/* What each export format is called. passport-sharing.json names a format by id and says in its reason what
+   it is; the name a reader scans for is written once here, and an id this map does not know is shown as the
+   id rather than dropped. */
+const formatName: Record<string, string> = { 'fhir-bundle': 'FHIR R4 bundle', ips: 'International Patient Summary', pdf: 'PDF' };
+
 /* ---- The emergency card -------------------------------------------------------------------------- */
 
-export function EmergencyCard({ navigate }: { navigate: (page: string) => void }) {
+/* The export's emergency information: two columns, with the card as the aside. Its form of blood group,
+   allergies and conditions is not here — the card names categories and never carries values, and nothing on
+   this screen stores health information — so the column beside the card is who may be told if you press SOS,
+   a door to the next-of-kin sheet, in Safety's own words. */
+export function EmergencyCard({ navigate, open }: { navigate: (page: string) => void; open?: (modal: string) => void }) {
  const { links } = useSharing();
  const [refused, setRefused] = useState('');
  const card = links.find(link => link.terms.kindCode === 'emergency-card' && link.revokedAt === null) ?? null;
@@ -119,15 +149,24 @@ export function EmergencyCard({ navigate }: { navigate: (page: string) => void }
  return <>
   <div className="page-intro"><div className="eyebrow">{say.card.eyebrow}</div><h1>{say.card.title}</h1><p>{say.card.intro}</p></div>
   <PreviewNote text={say.card.preview}/>
+  <div className="ps-columns ps-columns--card"><div className="ps-main">
+   <Card padding="md" className="ps-aside-card">
+    <h2>{nextOfKin.heading}</h2>
+    <p>{nextOfKin.intro}</p>
+    {open && <Button variant="secondary" leadingIcon={<Users aria-hidden="true"/>} trailingIcon={<ArrowRight aria-hidden="true"/>} onClick={() => open('Next of kin')}>{nextOfKin.heading}</Button>}
+   </Card>
+   <div className="shortcut-list">
+    <button className="shortcut-row" onClick={() => navigate(say.log.route)}><span className="service-icon"><History size={20}/></span><span className="shortcut-text"><strong>{say.sharing.logLink}</strong></span><ArrowRight size={17}/></button>
+   </div>
+  </div>
+  <aside className="ps-aside" aria-label={say.card.title}>
   {!cardGrant ? <p className="muted">{say.card.noGrant}</p> : !card ? <section className="panel ps-panel">
    <p>{fill(say.card.ridesOn, { recipient: cardGrant.recipientName, when: when(cardGrant.expiresAt) })}</p>
    <p className="helper">{fill(say.card.opensOnly, { categories: categoriesSaid(emergencyCategories) })}</p>
-   <button className="primary" onClick={make}><ShieldCheck size={17} aria-hidden="true"/>{say.card.make}</button>
+   <Button leadingIcon={<ShieldCheck aria-hidden="true"/>} onClick={make}>{say.card.make}</Button>
    {refused && <p className="ps-refusal" role="alert">{refused}</p>}
   </section> : <CardFace card={card}/>}
-  <div className="shortcut-list">
-   <button className="shortcut-row" onClick={() => navigate(say.log.route)}><span className="service-icon"><History size={20}/></span><span className="shortcut-text"><strong>{say.sharing.logLink}</strong></span><ArrowRight size={17}/></button>
-  </div>
+  </aside></div>
  </>;
 }
 
@@ -152,7 +191,7 @@ function CardFace({ card }: { card: Link }) {
     <div><dt>{fill(say.card.ridesOn, { recipient: card.grant.recipientName, when: when(card.grant.expiresAt) })}</dt><dd/></div>
    </dl>
   </div>
-  <button className="secondary ps-print" onClick={() => window.print()}><Printer size={17} aria-hidden="true"/>{say.card.print}</button>
+  <Button variant="secondary" className="ps-print" leadingIcon={<Printer aria-hidden="true"/>} onClick={() => window.print()}>{say.card.print}</Button>
  </section>;
 }
 

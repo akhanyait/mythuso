@@ -114,9 +114,12 @@
 }
 
 /* ---- The shared aside ---------------------------------------------------------------------------- */
+/* Ink, as the rest of the panel is: the aside is a .panel, whose ground is --surface in both themes, and a
+   heading left to inherit took the dark theme's light foreground onto that white ground. */
 .pp-about h2 {
   margin: 0 0 var(--space-12);
   font-size: 18px;
+  color: var(--ink);
 }
 .pp-refusals {
   display: grid;
@@ -571,6 +574,177 @@
   color: var(--studio-ink-muted);
 }
 
+/* ---- Contract version 2: doors, the crisis card, the vaccination record's head, activity tiles ------ */
+.pp-screen > .ps-head {
+  margin-bottom: 0;
+}
+.pp-door {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-16);
+  padding: var(--space-20);
+}
+.pp-door > div {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+.pp-door h2 {
+  margin: 0 0 var(--space-4);
+  font-size: 18px;
+  color: var(--ink);
+}
+.pp-door p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--studio-ink-muted);
+}
+.pp-door .primary,
+.pp-door .secondary,
+.pp-record-head .primary,
+.pp-crisis .primary,
+.pp-inline-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: 44px;
+}
+.pp-record-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+}
+.pp-doors {
+  display: grid;
+  gap: var(--space-12);
+}
+@media (min-width: 640px) {
+  .pp-doors {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.pp-door-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-12);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-16);
+  text-align: left;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  color: var(--ink);
+  transition: border-color var(--t-settle) var(--ease-soft);
+}
+.pp-door-card:hover {
+  border-color: var(--sage-slate);
+}
+/* The one block on the page with a coloured ground: it is the one about danger, and its first control is
+   the emergency screen. The words sit on the danger token's soft fill in ink, the pair the build measures. */
+.pp-crisis {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-12);
+  padding: var(--space-20);
+  border-radius: var(--r-card);
+  background: var(--danger-soft);
+}
+.pp-crisis:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+.pp-crisis h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin: 0;
+  font-size: 20px;
+  color: var(--ink);
+}
+.pp-crisis p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink);
+}
+.pp-crisis .pp-note {
+  font-size: 14px;
+  color: var(--ink);
+}
+.pp-crisis-then {
+  font-weight: 600;
+}
+.pp-crisis .pp-helplines {
+  width: 100%;
+}
+.pp-helplines li > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.pp-helplines strong {
+  font-size: 15px;
+  color: var(--ink);
+}
+.pp-number {
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.pp-helplines li small {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--studio-ink-muted);
+}
+.pp-blocked .pp-inline-action {
+  margin-top: var(--space-12);
+}
+.pp-blocked p + p {
+  margin-top: var(--space-8);
+}
+.pp-tiles {
+  display: grid;
+  gap: var(--space-12);
+}
+@media (min-width: 640px) {
+  .pp-tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.pp-tile {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  padding: var(--space-16);
+  border-radius: var(--r-card);
+  background: var(--color-muted);
+}
+.pp-tile-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-muted-foreground);
+}
+.pp-tile-value {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--color-foreground);
+  font-variant-numeric: tabular-nums;
+}
+.pp-tile-detail {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-muted-foreground);
+}
+
 /* ---- A page's cards arrive ---------------------------------------------------------------------- */
 @keyframes pp-in {
   from {
@@ -593,6 +767,7 @@
     animation: none !important;
   }
   .pp-shortcut,
+  .pp-door-card,
   .pp-tab,
   .pp-chip,
   .pp-actions .secondary {

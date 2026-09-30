@@ -345,8 +345,12 @@
   linear-gradient(90deg, color-mix(in oklab, var(--color-border) 45%, transparent) 1px, transparent 1px);
  background-size: auto, auto, auto, 40px 40px, 40px 40px;
 }
-.nurse-map-panel .livemap-frame::before, .nurse-map-panel .livemap-frame::after,
-.nurse-map-panel .livemap-canvas::before, .nurse-map-panel .livemap-canvas::after {
+/* The blocks are the schematic's ground and nobody else's. They were written on the frame and the canvas
+   whatever was drawn in them, so with streets on — the staff default since 29 September — four pale
+   rectangles sat over the real street map, looking like places. Seen on the route map on 30 September
+   and scoped: the frame's pair only while it holds the schematic, the canvas's pair only on the schematic. */
+.nurse-map-panel .livemap-frame:has(> .schematic)::before, .nurse-map-panel .livemap-frame:has(> .schematic)::after,
+.nurse-map-panel .livemap-canvas.schematic::before, .nurse-map-panel .livemap-canvas.schematic::after {
  content: '';
  position: absolute;
  border: 1px solid var(--color-border);
@@ -355,10 +359,10 @@
  opacity: .45;
  pointer-events: none;
 }
-.nurse-map-panel .livemap-frame::before { width: 19%; height: 18%; left: 7%; top: 16%; transform: rotate(-8deg); }
-.nurse-map-panel .livemap-frame::after { width: 24%; height: 16%; right: 9%; top: 11%; transform: rotate(7deg); }
-.nurse-map-panel .livemap-canvas::before { width: 16%; height: 22%; right: 14%; bottom: 21%; transform: rotate(-5deg); }
-.nurse-map-panel .livemap-canvas::after { width: 22%; height: 15%; left: 30%; bottom: 15%; transform: rotate(5deg); }
+.nurse-map-panel .livemap-frame:has(> .schematic)::before { width: 19%; height: 18%; left: 7%; top: 16%; transform: rotate(-8deg); }
+.nurse-map-panel .livemap-frame:has(> .schematic)::after { width: 24%; height: 16%; right: 9%; top: 11%; transform: rotate(7deg); }
+.nurse-map-panel .livemap-canvas.schematic::before { width: 16%; height: 22%; right: 14%; bottom: 21%; transform: rotate(-5deg); }
+.nurse-map-panel .livemap-canvas.schematic::after { width: 22%; height: 15%; left: 30%; bottom: 15%; transform: rotate(5deg); }
 .nurse-map-panel .livemap-canvas { position: relative; border: 0; border-radius: 0; background: transparent; }
 .nurse-map-panel .livemap-canvas.schematic { background: transparent; }
 .nurse-map-panel .livemap-canvas.schematic svg { position: relative; z-index: 1; }
@@ -444,9 +448,263 @@
  .nurse-facts dd { text-align: left; }
 }
 
+/* ---- The route map (30 September 2026) ----------------------------------------------------------
+   The export's map view on the nurse's own day: four counted figures, the map in a card beside the day's
+   list, the chosen stop's card over the foot of the map. A stop's number is the same disc on the pin, in
+   the list and on the card, so the three read as one thing; the chosen stop is the aqua edge and the
+   pressed state, never the tint alone. */
+.nurse-route { display: grid; gap: var(--space-16); min-width: 0; }
+.nurse-route__lead { margin: 0; max-width: 68ch; font-size: 15px; line-height: 1.55; color: var(--color-muted-foreground); }
+.nurse-route__counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); gap: var(--space-12); margin: 0; min-width: 0; }
+.nurse-route__counts > div { display: grid; align-content: start; gap: var(--space-4); padding: var(--space-16); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); min-width: 0; }
+.nurse-route__counts dt { font-size: 13px; color: var(--color-muted-foreground); }
+.nurse-route__counts dd { margin: 0; font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1.1; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.nurse-route__counts small { font-size: 13px; line-height: 1.4; color: var(--color-muted-foreground); }
+.nurse-route__grid { display: grid; gap: var(--space-16); grid-template-columns: minmax(0, 1fr); align-items: start; min-width: 0; }
+@media (min-width: 1100px) { .nurse-route__grid { grid-template-columns: minmax(0, 1fr) minmax(300px, 22rem); } }
+.nurse-route__map, .nurse-route__list { display: grid; gap: var(--space-12); min-width: 0; }
+.nurse-route__map-head, .nurse-route__list-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-8) var(--space-12); }
+.nurse-route .nurse-route__map-head h2, .nurse-route .nurse-route__list-head h2 { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; line-height: 1.35; color: var(--color-foreground); }
+.nurse-route__map-head p, .nurse-route__list-head p { margin: 0; font-size: 13px; color: var(--color-muted-foreground); }
+.nurse-route__refusal { display: flex; gap: var(--space-8); align-items: flex-start; margin: 0; font-size: 13px; line-height: 1.5; color: var(--color-muted-foreground); }
+.nurse-route__refusal svg { flex: none; width: 16px; height: 16px; margin-top: 2px; color: var(--color-primary); }
+
+.nurse-route__num { display: inline-grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: var(--r-md); background: var(--color-primary); color: var(--color-primary-foreground); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.nurse-route__num.is-base { border-radius: var(--r-pill); background: var(--color-muted); color: var(--color-primary); }
+.nurse-route__num svg { width: 16px; height: 16px; }
+
+.nurse-route__card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: var(--space-12); padding: var(--space-12) var(--space-16); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); box-shadow: var(--shadow); }
+.nurse-route__card-say { display: grid; gap: 2px; min-width: 0; }
+.nurse-route .nurse-route__card h3 { margin: 0; font-family: var(--font-display); font-size: 16px; font-weight: 600; line-height: 1.35; color: var(--color-foreground); }
+.nurse-route__card-facts { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-12); margin: 0; font-size: 13px; color: var(--color-muted-foreground); font-variant-numeric: tabular-nums; }
+.nurse-route__card-facts span { display: inline-flex; align-items: center; gap: var(--space-4); }
+.nurse-route__card-facts svg { width: 14px; height: 14px; color: var(--color-primary); }
+.nurse-route__card .ui-badge svg { width: 14px; height: 14px; }
+
+.nurse-route__stops { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-4); }
+.nurse-route__base { display: flex; align-items: center; gap: var(--space-12); min-height: 44px; padding: var(--space-4) var(--space-8); }
+.nurse-route__base strong, .nurse-route__stop-say strong { display: block; font-size: 15px; font-weight: 600; color: var(--color-foreground); }
+.nurse-route__base small, .nurse-route__stop-say small { display: flex; align-items: center; gap: var(--space-4); font-size: 13px; color: var(--color-muted-foreground); }
+.nurse-route__stop-say small svg { width: 13px; height: 13px; }
+.nurse-route__leg { display: flex; align-items: center; gap: var(--space-8); margin: 0; padding: 2px var(--space-8) 2px 23px; font-size: 13px; color: var(--color-muted-foreground); font-variant-numeric: tabular-nums; }
+.nurse-route__leg span { flex: none; width: 2px; height: 20px; margin-right: var(--space-12); background: repeating-linear-gradient(var(--color-border) 0 4px, transparent 4px 7px); }
+.nurse-route__stop { display: flex; align-items: center; gap: var(--space-12); width: 100%; min-height: 56px; padding: var(--space-8); border: 1px solid transparent; border-radius: var(--r-md); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: border-color var(--t-quick) var(--ease-soft); }
+.nurse-route__stop:hover { border-color: var(--color-border); }
+.nurse-route__stop.is-chosen { border-color: var(--color-accent); background: var(--color-surface-raised); }
+.nurse-route__stop.is-signed .nurse-route__num { background: var(--color-muted); color: var(--color-foreground); }
+.nurse-route__stop-say { flex: 1; min-width: 0; }
+
+.nurse-route__weeks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(56px, 1fr)); gap: var(--space-8); align-items: end; }
+.nurse-route__weeks li { display: grid; justify-items: center; gap: var(--space-4); text-align: center; min-width: 0; }
+.nurse-route__week-bar { position: relative; display: block; width: 100%; height: 120px; border-radius: var(--r-sm); background: var(--color-muted); overflow: hidden; }
+.nurse-route__week-bar i { position: absolute; inset: 0; border-radius: inherit; background: var(--color-primary); transform: scaleY(var(--share, 0)); transform-origin: bottom center; animation: nurse-rise var(--t-enter) var(--ease-soft) both; animation-delay: calc(var(--i, 0) * var(--t-quick) / 4); }
+.nurse-route__weeks strong { font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.nurse-route__weeks small { font-size: 13px; line-height: 1.3; color: var(--color-muted-foreground); }
+.nurse-route__note { margin: var(--space-12) 0 0; font-size: 13px; line-height: 1.5; color: var(--color-muted-foreground); }
+.nurse-map-panel .livemap-canvas.schematic .map-straight { animation-delay: calc(var(--i, 0) * var(--t-quick)); }
+@keyframes nurse-rise { from { transform: scaleY(0); } }
+
+@media (max-width: 599px) {
+ .nurse-route__card { grid-template-columns: auto minmax(0, 1fr); }
+ .nurse-route__card > .ui-badge { grid-column: 2; justify-self: start; }
+}
+
+/* ---- The landing: counted tiles and shift actions (30 September 2026) ----------------------------
+   Five white tiles, each a figure off a list elsewhere in the workspace, beside the kit's readiness ring.
+   A tile that has a list to open is a button with the arrow's affordance on hover and a focus ring; one
+   that does not is a plain figure, so nothing looks pressable that is not. The shift actions are the
+   export's cards: an icon tile, a title, one line of what is behind it, and an arrow. They keep the
+   .tool-link class the journeys find them by, so the rule here outranks the pill that class used to draw. */
+.nurse-landing { margin: var(--space-16) 0; min-width: 0; }
+.nurse-landing__grid { display: grid; gap: var(--space-16); grid-template-columns: minmax(0, 1fr); align-items: start; min-width: 0; }
+@media (min-width: 1180px) { .nurse-landing__grid { grid-template-columns: minmax(0, 1fr) minmax(300px, 24rem); } }
+/* The ring's key in a narrower card than the kit's own: each line's words over its count, so neither runs into the other. */
+.nurse-landing .nurse-readiness__key > div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+.nurse-landing .nurse-readiness__key dd { text-align: left; }
+.nurse-tiles { display: grid; gap: var(--space-12); grid-template-columns: repeat(auto-fit, minmax(min(128px, 100%), 1fr)); align-items: stretch; min-width: 0; }
+.nurse-tile { display: grid; align-content: start; justify-items: start; gap: var(--space-4); min-height: 44px; padding: var(--space-16); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); color: var(--color-foreground); font: inherit; text-align: left; min-width: 0; }
+.nurse-tile.is-link { cursor: pointer; transition: border-color var(--t-quick) var(--ease-soft); }
+.nurse-tile.is-link:hover { border-color: var(--color-accent); }
+.nurse-tile__icon { display: inline-grid; place-items: center; width: 36px; height: 36px; margin-bottom: var(--space-8); border-radius: var(--r-md); background: var(--color-muted); color: var(--color-primary); }
+.nurse-tile__icon svg { width: 18px; height: 18px; }
+.nurse-tile__value { font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1.1; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.nurse-tile__label { font-size: 14px; font-weight: 600; color: var(--color-foreground); }
+.nurse-tile__note { font-size: 13px; line-height: 1.4; color: var(--color-muted-foreground); }
+
+.nurse-actions-panel { display: grid; gap: var(--space-12); margin-top: var(--space-24); min-width: 0; }
+.nurse-actions-panel__head h2 { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--color-foreground); }
+.nurse-actions-panel__head p { margin: 0; font-size: 13px; color: var(--color-muted-foreground); }
+.nurse-shift-actions { display: grid; gap: var(--space-12); grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); min-width: 0; }
+.nurse-shift-action { padding: 0; overflow: hidden; }
+.clinical .nurse-shift-action .tool-link { display: flex; align-items: center; gap: var(--space-12); width: 100%; min-height: 64px; padding: var(--space-12) var(--space-16); border: 0; border-radius: 0; background: none; color: var(--color-foreground); font-size: 14px; text-align: left; }
+.clinical .nurse-shift-action .tool-link:hover { background: var(--color-surface-raised); }
+.nurse-shift-action__icon { display: inline-grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: var(--r-md); background: var(--color-muted); color: var(--color-primary); }
+.clinical .nurse-shift-action .nurse-shift-action__icon svg { width: 18px; height: 18px; color: var(--color-primary); }
+.nurse-shift-action__say { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.nurse-shift-action__say strong { font-size: 15px; font-weight: 600; color: var(--color-foreground); }
+.nurse-shift-action__say small { font-size: 13px; line-height: 1.4; font-weight: 400; color: var(--color-muted-foreground); }
+.clinical .nurse-shift-action .nurse-shift-action__go { flex: none; width: 16px; height: 16px; color: var(--color-muted-foreground); transition: transform var(--t-quick) var(--ease-soft); }
+.clinical .nurse-shift-action .tool-link:hover .nurse-shift-action__go { transform: translateX(2px); }
+
+/* ---- Safety & alerts (30 September 2026) ------------------------------------------------------------
+   The timer as a ring beside the strip it restates, a card of what the screen refuses beside it, then
+   Sentinel and the kit. The ring's arc is the minutes left and draws once; overdue is the danger ink and
+   the words under the numeral. */
+.nurse-safety-page { display: grid; gap: var(--space-16); min-width: 0; }
+.nurse-safety-page__grid { display: grid; gap: var(--space-16); grid-template-columns: minmax(0, 1fr); align-items: start; min-width: 0; }
+@media (min-width: 1100px) { .nurse-safety-page__grid { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); } }
+.nurse-safety-page__timer, .nurse-safety-page__refused { display: grid; gap: var(--space-16); min-width: 0; }
+.nurse-safety-page h2 { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; line-height: 1.35; color: var(--color-foreground); }
+.nurse-safety-page__empty { display: flex; gap: var(--space-12); align-items: flex-start; padding: var(--space-16); border: 1px dashed var(--color-border); border-radius: var(--r-md); background: var(--color-surface-raised); }
+.nurse-safety-page__empty svg { flex: none; width: 22px; height: 22px; color: var(--color-primary); }
+.nurse-safety-page__empty p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--color-foreground); }
+.nurse-safety-page__past { list-style: none; margin: 0; padding: 0; display: grid; }
+.nurse-safety-page__past li { display: flex; justify-content: space-between; gap: var(--space-12); padding: var(--space-8) 0; border-top: 1px solid var(--color-border); font-size: 14px; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.nurse-safety-page__refused ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-12); }
+.nurse-safety-page__refused li { display: flex; gap: var(--space-8); align-items: flex-start; font-size: 14px; line-height: 1.5; color: var(--color-foreground); }
+.nurse-safety-page__refused li svg { flex: none; width: 16px; height: 16px; margin-top: 3px; color: var(--ui-danger-ink); }
+.nurse-timer { position: relative; width: 148px; height: 148px; justify-self: center; }
+.nurse-timer svg { display: block; width: 100%; height: 100%; transform: rotate(-90deg); }
+.nurse-timer__track { fill: none; stroke: var(--color-muted); stroke-width: 6; }
+.nurse-timer__arc { fill: none; stroke: var(--color-accent); stroke-width: 8; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: calc(1 - var(--share, 0)); animation: nurse-draw var(--t-enter) var(--ease-soft) both; }
+.nurse-timer.is-overdue .nurse-timer__arc { stroke: var(--ui-danger-ink); }
+.nurse-timer__figure { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; text-align: center; }
+.nurse-timer__figure strong { font-family: var(--font-display); font-size: 32px; font-weight: 600; line-height: 1; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.nurse-timer__figure small { max-width: 9ch; font-size: 13px; line-height: 1.3; color: var(--color-muted-foreground); }
+.nurse-timer.is-overdue .nurse-timer__figure small { color: var(--ui-danger-ink); font-weight: 600; }
+
+/* ---- Patients and appointments (30 September 2026) -------------------------------------------------
+   Four counted tiles and the next care action above the workbench's care queue, a search field at the head
+   of the queue, and the appointments list: time in its own column, the mode's mark, who and how, and the
+   one press or the state's badge at the end, aligned down the list. */
+.nurse-patients { display: grid; gap: var(--space-12); margin: var(--space-16) 0; grid-template-columns: minmax(0, 1fr); min-width: 0; }
+@media (min-width: 1100px) { .nurse-patients { grid-template-columns: minmax(0, 1fr) minmax(260px, 20rem); } }
+.nurse-next-action { display: grid; align-content: start; gap: var(--space-8); border-top: 3px solid var(--color-accent); min-width: 0; }
+.nurse-next-action__what { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; line-height: 1.35; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.nurse-next-action__why { margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-muted-foreground); }
+.nurse-next-action .ui-button { justify-self: start; }
+.clinical .iq-patients .iq-search { display: block; margin-bottom: var(--space-8); }
+.clinical .iq-patients .iq-search input { width: 100%; min-height: 44px; padding: 0 var(--space-12); border: 1px solid var(--color-muted-foreground); border-radius: var(--r-md); background: var(--color-surface); color: var(--color-foreground); font: inherit; font-size: 15px; }
+
+.nurse-appointments { display: grid; gap: var(--space-16); min-width: 0; }
+.nurse-appointments__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-12); }
+.nurse-appointments__head .nurse-route__lead { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
+.nurse-appointments__list { list-style: none; margin: 0; padding: 0; display: grid; }
+.nurse-appointments__list li { display: grid; grid-template-columns: 4.5rem auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-12); padding: var(--space-12) 0; border-top: 1px solid var(--color-border); }
+.nurse-appointments__list li:first-child { border-top: 0; padding-top: 0; }
+.nurse-appointments__list .nurse-tile__icon { margin-bottom: 0; }
+.nurse-appointments__time strong { display: block; font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.nurse-appointments__time small, .nurse-appointments__who small { display: block; font-size: 13px; color: var(--color-muted-foreground); }
+.nurse-appointments__who { min-width: 0; }
+.nurse-appointments__who strong { display: block; font-size: 15px; font-weight: 600; color: var(--color-foreground); }
+.nurse-appointments__said { margin: var(--space-12) 0 0; font-size: 14px; font-weight: 600; color: var(--ui-success-ink); }
+.nurse-appointments__said.is-refused { color: var(--ui-danger-ink); }
+@media (max-width: 599px) {
+ .nurse-appointments__list li { grid-template-columns: 4rem minmax(0, 1fr) auto; }
+ .nurse-appointments__list .nurse-tile__icon { display: none; }
+}
+
+/* ---- The schedule's two columns (30 September 2026) ---------------------------------------------------
+   The day on the left and the door code on the right on a wide screen; the code first on a phone, where it
+   is the thing held up at a door. */
+.nday-split { display: grid; gap: var(--space-16); grid-template-columns: minmax(0, 1fr); align-items: start; min-width: 0; }
+.nday-split > .vis-nurse-code { margin: 0; }
+/* Assessments' three closing panels — triage, home guidance, safeguarding — in one row where there is room. */
+.nurse-closing { display: grid; gap: var(--space-16); grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); align-items: start; margin-top: var(--space-16); min-width: 0; }
+.nurse-closing > * { margin: 0; min-width: 0; }
+@media (min-width: 1200px) {
+ .nday-split { grid-template-columns: minmax(0, 1fr) minmax(280px, 22rem); }
+ .nday-split > .vis-nurse-code { grid-column: 2; grid-row: 1; position: sticky; top: var(--space-16); }
+ .nday-split > .nday { grid-column: 1; grid-row: 1; }
+}
+
+/* ---- Team as a card grid (30 September 2026) -------------------------------------------------------- */
+.staff-team-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-12); grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); }
+.staff-team-card { display: grid; gap: var(--space-12); height: 100%; box-sizing: border-box; }
+.staff-team-card__head { display: flex; align-items: center; gap: var(--space-12); min-width: 0; }
+.staff-team-card__head > span:last-child { display: grid; gap: 2px; min-width: 0; }
+.staff-team-card__head strong { font-size: 15px; font-weight: 600; color: var(--color-foreground); }
+.staff-team-card__head small { font-size: 13px; color: var(--color-muted-foreground); }
+.staff-team-card__initials { display: inline-grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: var(--r-pill); background: var(--color-muted); color: var(--color-primary); font-size: 15px; font-weight: 700; }
+.staff-team-card__scope { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-8); }
+
+/* ---- Vetting's numbered register (30 September 2026) ------------------------------------------------ */
+.vet-register { display: grid; gap: var(--space-12); margin-top: var(--space-16); }
+.vet-register ol { list-style: none; margin: 0; padding: 0; display: grid; }
+.vet-register li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-12); padding: var(--space-8) 0; border-top: 1px solid var(--color-border); }
+.vet-register li:first-child { border-top: 0; }
+.vet-register__no { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: var(--r-pill); background: var(--color-muted); color: var(--color-primary); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.vet-register__say { display: grid; gap: 2px; min-width: 0; }
+.vet-register__say strong { font-size: 15px; font-weight: 600; color: var(--color-foreground); }
+.vet-register__say small { font-size: 13px; color: var(--color-muted-foreground); }
+
+/* ---- Reports, Clinical resources and Settings (30 September 2026) ------------------------------------
+   The export's three Practice and Account pages on the same tiles and cards as the rest of her workspace.
+   Resources is one card: the search, the chips, a count that is the list's length, then each section under
+   its own governance line and rows with the mark, the name over its source, and the status or the Read
+   press at the end, aligned down the list. Settings is two cards side by side where there is room. */
+.nurse-desk { display: grid; gap: var(--space-16); min-width: 0; }
+@media (min-width: 1100px) { .nurse-desk--two { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } }
+.nurse-desk__panel { display: grid; gap: var(--space-12); min-width: 0; }
+.clinical .nurse-desk h2, .nurse-desk h2 { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; line-height: 1.35; color: var(--color-foreground); }
+.nurse-desk__search { display: flex; align-items: center; gap: var(--space-8); min-height: 44px; padding: 0 var(--space-12); border: 1px solid var(--color-muted-foreground); border-radius: var(--r-md); background: var(--color-surface); }
+.nurse-desk__search:focus-within { outline: 2px solid var(--color-ring); outline-offset: 2px; }
+.nurse-desk__search svg { flex: none; width: 16px; height: 16px; color: var(--color-muted-foreground); }
+.nurse-desk .nurse-desk__search input { flex: 1; min-width: 0; min-height: 42px; border: 0; border-radius: 0; box-shadow: none; background: transparent; color: var(--color-foreground); font: inherit; font-size: 15px; outline: none; }
+.nurse-desk .ui-tab { min-width: 44px; }
+.nurse-desk__statuses { display: grid; gap: var(--space-4); margin: 0; }
+.nurse-desk__statuses > div { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-8); font-size: 13px; line-height: 1.5; }
+.nurse-desk__statuses dt { font-weight: 600; color: var(--color-foreground); }
+.nurse-desk__statuses dd { margin: 0; color: var(--color-muted-foreground); }
+.nurse-desk__count { margin: 0; font-size: 13px; color: var(--color-muted-foreground); font-variant-numeric: tabular-nums; }
+.nurse-desk__sections { display: grid; gap: var(--space-24); min-width: 0; }
+.nurse-desk__sections section { display: grid; gap: var(--space-8); min-width: 0; }
+.nurse-desk__governance { display: flex; gap: var(--space-8); align-items: flex-start; margin: 0; max-width: 72ch; font-size: 13px; line-height: 1.5; color: var(--color-muted-foreground); }
+.nurse-desk__governance svg { flex: none; width: 16px; height: 16px; margin-top: 2px; color: var(--color-primary); }
+.nurse-desk__rows { list-style: none; margin: 0; padding: 0; display: grid; }
+.nurse-desk__rows > li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-12); padding: var(--space-12) 0; border-top: 1px solid var(--color-border); }
+.nurse-desk__rows > li:first-child { border-top: 0; }
+.nurse-desk__rows .nurse-tile__icon { margin-bottom: 0; }
+.nurse-desk__say { display: grid; gap: 2px; min-width: 0; }
+.nurse-desk__say strong { font-size: 15px; font-weight: 600; color: var(--color-foreground); }
+.nurse-desk__say small { font-size: 13px; line-height: 1.4; color: var(--color-muted-foreground); overflow-wrap: anywhere; }
+.nurse-desk__entry { grid-column: 2 / -1; display: grid; gap: var(--space-12); margin: 0; padding: var(--space-12) var(--space-16); border-radius: var(--r-md); background: var(--color-surface-raised); }
+.nurse-desk__entry dt { font-size: 13px; font-weight: 600; color: var(--color-muted-foreground); }
+.nurse-desk__entry dd { margin: 2px 0 0; font-size: 14px; line-height: 1.55; color: var(--color-foreground); }
+.nurse-desk__entry ul { margin: 0; padding-left: var(--space-16); }
+.nurse-desk__empty { margin: 0; padding: var(--space-16); border: 1px dashed var(--color-border); border-radius: var(--r-md); background: var(--color-surface-raised); font-size: 14px; line-height: 1.55; color: var(--color-foreground); }
+.nurse-desk__who { display: flex; align-items: center; gap: var(--space-12); min-width: 0; }
+.nurse-desk__who > span:last-child { display: grid; gap: 2px; min-width: 0; }
+.nurse-desk__who strong { font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--color-foreground); }
+.nurse-desk__who small { font-size: 13px; color: var(--color-muted-foreground); }
+.nurse-desk__facts { display: grid; margin: 0; }
+.nurse-desk__facts > div { display: grid; grid-template-columns: minmax(8rem, auto) minmax(0, 1fr); gap: var(--space-12); padding: var(--space-8) 0; border-top: 1px solid var(--color-border); }
+.nurse-desk__facts dt { font-size: 13px; color: var(--color-muted-foreground); }
+.nurse-desk__facts dd { margin: 0; font-size: 14px; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+@media (max-width: 599px) {
+ .nurse-desk__rows > li { grid-template-columns: minmax(0, 1fr) auto; }
+ .nurse-desk__rows .nurse-tile__icon { display: none; }
+ .nurse-desk__entry { grid-column: 1 / -1; }
+ .nurse-desk__facts > div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
+
+/* ---- Messages' two panes and the Academy's two columns (30 September 2026) ---------------------------
+   Both wrap on their own width rather than the viewport's, because both also open as dialogs, where a
+   wide screen can still hold a narrow sheet. The flex basis decides: side by side when both fit, stacked
+   when they do not. */
+.staff-inbox, .staff-split { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--space-16); min-width: 0; }
+.staff-inbox__threads { flex: 1 1 20rem; display: grid; gap: var(--space-12); min-width: 0; }
+.staff-inbox__pane, .staff-split__main { flex: 999 1 28rem; display: grid; gap: var(--space-12); min-width: 0; }
+.staff-split__aside { flex: 1 1 20rem; display: grid; gap: var(--space-12); min-width: 0; }
+.clinical .staff-inbox__threads h2, .clinical .staff-split__aside h2, .staff-inbox__threads h2, .staff-split__aside h2 { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; line-height: 1.35; color: var(--color-foreground); }
+.staff-inbox__empty { display: flex; gap: var(--space-12); align-items: flex-start; padding: var(--space-16); border: 1px dashed var(--color-border); border-radius: var(--r-md); background: var(--color-surface-raised); }
+.staff-inbox__empty svg { flex: none; width: 22px; height: 22px; color: var(--color-primary); }
+.staff-inbox__empty p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--color-foreground); }
+
 @media (prefers-reduced-motion: reduce) {
  .nurse-workload__track i, .nurse-bars__track i, .nurse-ring__arc.on, .nurse-booked__track i, .nurse-trend polyline,
- .nurse-map-panel .livemap-canvas.schematic .map-straight, .nurse-map-panel .map-pin > g { animation: none !important; }
+ .nurse-map-panel .livemap-canvas.schematic .map-straight, .nurse-map-panel .map-pin > g, .nurse-route__week-bar i, .nurse-timer__arc { animation: none !important; }
+ .nurse-route__stop, .nurse-tile.is-link, .clinical .nurse-shift-action .nurse-shift-action__go { transition: none !important; }
  .nurse-booked__track i { transition: none !important; }
  .clinical .vq-strip.nurse-strip i, .nurse-queue-row { transition: none !important; }
 }

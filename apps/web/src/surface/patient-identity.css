@@ -62,13 +62,12 @@
 .pd .pd-chip > span:not(.pd-initials) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pd .pd-chip svg { width: var(--space-16); height: var(--space-16); color: var(--color-muted-foreground); }
 .pd .pd-chip .pd-initials { width: var(--space-24); height: var(--space-24); }
-.pd .pd-next {
- grid-column: 1 / -1; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-16);
- padding: var(--space-16) var(--space-20); border: 1px solid var(--color-border); border-radius: var(--r-md);
- background: color-mix(in oklab, var(--color-surface) 80%, transparent);
+/* The export's handwritten line, on a wide screen only: the brand's tagline in the display face, tilted as
+   the export tilts it. Decoration, and hidden from assistive technology in the markup. */
+.pd .pd-welcome__quote { display: none; }
+@media (min-width: 1280px) {
+ .pd .pd-welcome__quote { display: block; grid-column: 2; align-self: end; justify-self: end; margin: 0; color: var(--ui-primary-ink); font-family: var(--font-display); font-size: 20px; font-style: italic; font-weight: 600; transform: rotate(-3deg); }
 }
-.pd .pd-next h2 { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 600; letter-spacing: 0; line-height: 1.3; }
-.pd .pd-next p { margin: var(--space-4) 0 0; color: var(--color-muted-foreground); font-size: 14px; line-height: 1.45; }
 
 /* ---- The figures -------------------------------------------------------------------------------- */
 .pd .pd-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-16); }
@@ -157,42 +156,92 @@
 .pd .pd-history__item > button:hover, .pd .pd-row:hover { background: var(--color-muted); }
 .pd .pd-history__item time { flex: 0 0 calc(var(--space-32) * 2); color: var(--color-muted-foreground); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .pd .pd-history__item > button > span:nth-child(2), .pd .pd-row > span:nth-child(2) { flex: 1; min-width: 0; }
-.pd :is(.pd-history__item, .pd-row, .pd-journey li) strong { display: block; font-size: 15px; font-weight: 500; line-height: 1.35; }
-.pd :is(.pd-history__item, .pd-row, .pd-journey li) small { display: block; margin-top: 2px; color: var(--color-muted-foreground); font-size: 13px; line-height: 1.45; }
+.pd :is(.pd-history__item, .pd-row) strong { display: block; font-size: 15px; font-weight: 500; line-height: 1.35; }
+.pd :is(.pd-history__item, .pd-row) small { display: block; margin-top: 2px; color: var(--color-muted-foreground); font-size: 13px; line-height: 1.45; }
 .pd .pd-row > svg:last-child { width: var(--space-16); height: var(--space-16); color: var(--color-muted-foreground); }
-.pd .pd-row + .pd-row, .pd .pd-visit .pd-row { border-top: 1px solid var(--color-border); border-radius: 0; }
+.pd .pd-row + .pd-row { border-top: 1px solid var(--color-border); border-radius: 0; }
 .pd .pd-row__figure { display: flex; align-items: baseline; gap: var(--space-4); min-width: var(--space-40); font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
 .pd .pd-row__figure small { font-family: var(--font-text, inherit); font-size: 13px; font-weight: 500; color: var(--color-muted-foreground); }
 .pd .pd-note { display: flex; gap: var(--space-8); margin: var(--space-12) 0 0; color: var(--color-muted-foreground); font-size: 13px; line-height: 1.5; }
 .pd .pd-note svg { width: var(--space-16); height: var(--space-16); margin-top: 2px; }
 
-/* ---- The next visit ------------------------------------------------------------------------------ */
-.patient-surface .pd .visit-card.pd-visit__card {
- display: grid; gap: var(--space-12); width: 100%; margin: 0 0 var(--space-12); padding: 0;
- border: 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--color-foreground); text-align: left; transform: none;
+/* ---- The next visit, as the export's hero ---------------------------------------------------------------
+   The primary role as the ground and its foreground for every word on it, at full strength: in the dark
+   scheme the pair measures 5.22:1 and any tint of the foreground falls under 4.5, so hierarchy here is size and
+   weight, never a paler word. The highlight is spent on icons and the initials' disc, which are shapes. */
+.pd .pd-lead { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 380px); align-items: stretch; gap: var(--space-24); }
+.pd .pd-hero {
+ display: grid; grid-template-columns: minmax(160px, 200px) minmax(0, 1fr) minmax(180px, 220px); overflow: hidden;
+ border-radius: var(--r-lg); background: var(--color-primary); color: var(--color-primary-foreground); box-shadow: var(--shadow);
 }
-.pd .pd-visit__top, .pd .pd-visit__nurse { display: flex; align-items: center; gap: var(--space-12); }
-.pd .pd-visit__top > span:nth-child(2), .pd .pd-visit__nurse > span:nth-child(2) { flex: 1; min-width: 0; }
-.pd .pd-visit__top strong { display: block; font-size: 15px; font-weight: 600; }
-.pd .pd-visit__top small { display: block; margin-top: 2px; color: var(--color-muted-foreground); font-size: 13px; }
-.pd .pd-visit__meta { display: flex; flex-wrap: wrap; gap: var(--space-8) var(--space-16); color: var(--color-muted-foreground); font-size: 13px; }
-.pd .pd-visit__meta > span { display: inline-flex; align-items: center; gap: var(--space-4); }
-.pd .pd-visit__meta svg { width: var(--space-16); height: var(--space-16); }
-.pd .pd-visit__nurse { padding-top: var(--space-12); border-top: 1px solid var(--color-border); }
-.pd .pd-visit__nurse strong { display: block; font-size: 14px; font-weight: 600; }
-.pd .pd-visit__nurse span > span { display: block; color: var(--color-muted-foreground); font-size: 13px; }
-.pd .pd-visit__nurse > svg { width: var(--space-16); height: var(--space-16); color: var(--color-muted-foreground); }
-.pd .pd-visit__hint { color: var(--ui-primary-ink); font-size: 13px; font-weight: 600; }
-.pd .pd-empty { display: grid; justify-items: start; gap: var(--space-8); margin-bottom: var(--space-12); }
-.pd .pd-empty strong { font-size: 16px; font-weight: 600; }
-.pd .pd-empty p { margin: 0 0 var(--space-4); color: var(--color-muted-foreground); font-size: 14px; line-height: 1.5; }
+.pd .pd-hero.is-empty { grid-template-columns: minmax(0, 1fr); }
+.pd .pd-hero > div { display: flex; flex-direction: column; gap: var(--space-12); min-width: 0; padding: var(--space-24); }
+.pd .pd-hero > div + div { border-left: 1px solid color-mix(in oklab, var(--color-primary-foreground) 22%, var(--color-primary)); }
+.pd .pd-hero h2 { margin: 0; color: var(--color-primary-foreground); font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1.2; }
+.pd .pd-hero__eyebrow { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.pd .pd-hero__lead { margin: 0; max-width: 56ch; font-size: 15px; line-height: 1.5; }
+.pd .pd-hero__who { align-items: flex-start; }
+.pd .pd-hero__initials { display: grid; place-items: center; width: calc(var(--space-32) * 2); height: calc(var(--space-32) * 2); border-radius: var(--r-pill); background: var(--color-highlight); color: var(--color-accent-foreground); font-family: var(--font-display); font-size: 24px; font-weight: 600; }
+.pd .pd-hero__who strong { display: block; font-size: 16px; font-weight: 600; }
+.pd .pd-hero__who small { display: block; margin-top: var(--space-4); font-size: 13px; line-height: 1.4; }
+.pd .pd-hero__facts { display: grid; gap: var(--space-8); margin: 0; padding: 0; list-style: none; font-size: 15px; }
+.pd .pd-hero__facts li { display: flex; align-items: center; gap: var(--space-8); min-width: 0; overflow-wrap: anywhere; }
+.pd .pd-hero svg { width: var(--space-16); height: var(--space-16); color: var(--color-highlight); }
+.pd .pd-hero .ui-button { align-self: flex-start; margin-top: auto; }
+.pd .pd-hero .ui-badge { align-self: flex-start; }
+.pd .pd-hero .ui-button svg { color: currentColor; }
+.pd .pd-hero__date { display: grid; justify-items: start; gap: 2px; font-size: 13px; font-weight: 600; text-transform: uppercase; }
+.pd .pd-hero__date strong { font-family: var(--font-display); font-size: 40px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+.pd .pd-hero__time { display: flex; align-items: center; gap: var(--space-8); margin: 0; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pd .pd-hero__actions { display: flex; flex-wrap: wrap; gap: var(--space-8); margin-top: var(--space-8); }
+.pd .pd-hero__actions .ui-button { margin-top: 0; }
+.pd .pd-hero .pd-hero__move { border: 1px solid var(--color-primary-foreground); color: var(--color-primary-foreground); }
+.pd .pd-hero .pd-hero__move:hover { background: color-mix(in oklab, var(--color-primary-foreground) 12%, var(--color-primary)); color: var(--color-primary-foreground); }
+.pd .pd-hero__when .pd-hero__move { align-self: stretch; margin-top: auto; }
+.pd .pd-hero__journey { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-16); margin: auto 0 0; padding: var(--space-20) 0 0; border-top: 1px solid color-mix(in oklab, var(--color-primary-foreground) 22%, var(--color-primary)); list-style: none; }
+.pd .pd-hero__journey li { display: flex; align-items: flex-start; gap: var(--space-12); min-width: 0; }
+.pd .pd-hero__journey svg { flex: none; margin-top: 2px; width: var(--space-20); height: var(--space-20); }
+.pd .pd-hero__journey strong { display: block; font-size: 15px; font-weight: 600; }
+.pd .pd-hero__journey small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.4; }
+.pd .pd-hero__note { margin: 0; font-size: 13px; }
 
-.pd .pd-wellbeing { display: grid; justify-items: start; gap: var(--space-12); }
-.pd .pd-wellbeing p { margin: 0; color: var(--color-muted-foreground); font-size: 14px; line-height: 1.5; }
+/* ---- Quick actions, the care team, the medicine, the doctor's words ------------------------------------ */
+.pd .pd-actions { display: grid; align-content: start; gap: var(--space-8); }
+.pd .pd-actions__list { display: grid; }
+.pd .pd-actions .pd-row { min-height: calc(var(--space-24) * 2); padding-block: var(--space-4); }
+.pd .pd-actions .pd-row > svg:last-child { color: var(--ui-primary-ink); }
+.pd .pd-actions .pd-row--plan { margin-top: var(--space-4); }
+.pd .pd-team .pd-card-head, .pd .pd-said .pd-card-head, .pd .pd-medicine .pd-card-head { margin-bottom: var(--space-8); }
+.pd .pd-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-12); margin: 0 0 var(--space-12); }
+.pd .pd-facts > div { display: grid; gap: var(--space-4); padding: var(--space-12); border: 1px solid var(--color-border); border-radius: var(--r-md); }
+.pd .pd-facts dt { color: var(--color-muted-foreground); font-size: 13px; }
+.pd .pd-facts dd { margin: 0; color: var(--color-muted-foreground); font-size: 14px; }
+.pd .pd-facts strong { color: var(--color-foreground); font-family: var(--font-display); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pd .pd-medicine .pd-card-foot, .pd .pd-said .pd-card-foot { margin-top: var(--space-12); }
+.pd .pd-said__words { margin: 0; padding-left: var(--space-12); border-left: 3px solid var(--color-accent); }
+.pd .pd-said__words p { margin: 0; font-size: 15px; line-height: 1.55; }
+.pd .pd-said__who { display: flex; align-items: center; gap: var(--space-8); margin: var(--space-12) 0 0; color: var(--color-muted-foreground); font-size: 13px; }
+.pd .pd-said__who svg { width: var(--space-16); height: var(--space-16); color: var(--color-accent); }
+
+/* ---- The wellbeing tiles and the tips row ---------------------------------------------------------------- */
+.pd .pd-wellbeing { display: grid; gap: var(--space-12); min-width: 0; }
+.pd .pd-wellbeing__tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-12); }
+.pd .pd-wellbeing .pd-row.pd-wellbeing__tile { padding: var(--space-12); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); box-shadow: var(--shadow); }
+.pd .pd-tips { display: grid; gap: var(--space-12); min-width: 0; }
+.pd .pd-tips .pd-section-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-8); }
+.pd .pd-tips__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: var(--space-12); margin: 0; padding: 0; list-style: none; }
+.pd .pd-tip {
+ display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-12); width: 100%; height: 100%; min-height: calc(var(--space-40) * 2.5);
+ margin: 0; padding: var(--space-16); border: 1px solid var(--color-border); border-radius: var(--r-lg);
+ background: var(--color-surface); box-shadow: var(--shadow); color: var(--color-foreground); font: inherit; text-align: left; cursor: pointer;
+ transition: transform var(--t-settle) var(--ease-soft), border-color var(--t-settle) var(--ease-soft);
+}
+.pd .pd-tip strong { font-size: 15px; font-weight: 600; line-height: 1.35; }
+.pd .pd-tip:hover, .pd .pd-wellbeing .pd-row.pd-wellbeing__tile:hover { border-color: color-mix(in oklab, var(--color-accent) 35%, var(--color-border)); }
+.pd .pd-tip:hover { transform: translateY(-2px); }
+.pd .pd-tips .pd-note { margin-top: 0; }
+
 .pd .pd-urgent .pd-card-title { margin-bottom: var(--space-4); }
-.pd .pd-journey ol { display: grid; margin: var(--space-12) 0 0; padding: 0; list-style: none; }
-.pd .pd-journey li { display: flex; align-items: center; gap: var(--space-12); padding: var(--space-8) 0; }
-.pd .pd-journey li + li { border-top: 1px solid var(--color-border); }
 
 /* ---- Narrower ------------------------------------------------------------------------------------ */
 @media (max-width: 1280px) {
@@ -200,21 +249,32 @@
  .pd .pd-health__panel { grid-template-columns: minmax(0, 1fr); gap: var(--space-16); }
  .pd .pd-health__latest { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
 }
-@media (max-width: 1100px) { .pd .pd-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1100px) {
+ .pd .pd-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+ .pd .pd-lead { grid-template-columns: minmax(0, 1fr); }
+}
 @media (max-width: 999px) {
- .pd .pd-columns { display: flex; flex-direction: column; gap: var(--space-20); }
+ .pd .pd-columns { display: flex; flex-direction: column; align-items: stretch; gap: var(--space-20); }
  .pd .pd-main, .pd .pd-aside { display: contents; }
- .pd .pd-visit { order: 1; } .pd .pd-book { order: 2; } .pd .pd-health { order: 3; } .pd .pd-history { order: 4; }
- .pd .pd-wellbeing { order: 5; } .pd .pd-family { order: 6; } .pd .pd-urgent { order: 7; } .pd .pd-journey { order: 8; }
+ .pd .pd-book { order: 1; } .pd .pd-health { order: 2; } .pd .pd-history { order: 3; } .pd .pd-medicine { order: 4; } .pd .pd-team { order: 5; }
+ .pd .pd-said { order: 6; } .pd .pd-wellbeing { order: 7; } .pd .pd-family { order: 8; } .pd .pd-urgent { order: 9; }
+ /* The hero's three columns become two rows: what is coming over who brings it and when. */
+ .pd .pd-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+ .pd .pd-hero > .pd-hero__body { grid-column: 1 / -1; grid-row: 1; border-left: 0; }
+ .pd .pd-hero > .pd-hero__who, .pd .pd-hero > .pd-hero__when { grid-row: 2; border-top: 1px solid color-mix(in oklab, var(--color-primary-foreground) 22%, var(--color-primary)); }
+ .pd .pd-hero > .pd-hero__who { border-left: 0; }
 }
 @media (max-width: 700px) {
  .pd { gap: var(--space-16); }
  .pd .pd-welcome { grid-template-columns: minmax(0, 1fr); padding: var(--space-20); }
  .pd .pd-welcome__context { justify-content: flex-start; }
  .pd .pd-welcome h1 { font-size: 28px; }
- .pd .pd-next { grid-template-columns: auto minmax(0, 1fr); padding: var(--space-16); }
- .pd .pd-next h2 { font-size: 18px; }
- .pd .pd-next > .ui-button { grid-column: 1 / -1; width: 100%; }
+ .pd .pd-hero > div { padding: var(--space-16); }
+ .pd .pd-hero h2 { font-size: 24px; }
+ .pd .pd-hero .ui-button { align-self: stretch; }
+ .pd .pd-hero__date strong { font-size: 32px; }
+ .pd .pd-wellbeing__tiles, .pd .pd-facts, .pd .pd-hero__journey { grid-template-columns: minmax(0, 1fr); }
+ .pd .pd-tip { min-height: 0; padding: var(--space-12); }
  .pd .pd-metrics { gap: var(--space-12); }
  .pd .pd-metric { padding: var(--space-16); }
  .pd .pd-metric .ui-metric__value { font-size: 28px; }
@@ -228,6 +288,6 @@
 
 @media (prefers-reduced-motion: reduce) {
  .pd .pd-draw, .pd .pd-trend__area, .pd .pd-trend__point { animation: none !important; }
- .pd .pd-metric--action, .patient-surface .pd .shortcut-row.pd-service { transition: none; }
- .pd .pd-metric--action:hover, .patient-surface .pd .shortcut-row.pd-service:hover { transform: none; }
+ .pd .pd-metric--action, .patient-surface .pd .shortcut-row.pd-service, .pd .pd-tip { transition: none; }
+ .pd .pd-metric--action:hover, .patient-surface .pd .shortcut-row.pd-service:hover, .pd .pd-tip:hover { transform: none; }
 }

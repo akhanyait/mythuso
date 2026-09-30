@@ -2,30 +2,37 @@
  * reaches a patient who never opens a booking.
  *
  * The service being booked rides at the top as a white card with its price as the figure, set in the
- * display face; the six steps are a segmented track whose done and current segments are the accent,
- * because the handoff spends it on progress and this is progress; the review is a white card on the
- * dialog, where it was a paper panel on peach. The fill is a transform on a segment with nothing in it,
- * gated on [data-motion='on'] and removed under reduced motion. The "nothing is booked" sentences are
- * untouched and where they were. */
+ * display face; the six steps are the export's numbered stepper (30 September 2026), whose done steps are
+ * the accent because the handoff spends it on progress; the review is a white card on the dialog, where it
+ * was a paper panel on peach. The "nothing is booked" sentences are untouched and where they were. */
 .patient-surface .journey-summary { border: 1px solid var(--stone); border-radius: var(--r-lg); background: var(--surface); color: var(--charcoal); padding: var(--space-16) var(--space-20); box-shadow: var(--shadow); }
 .patient-surface .journey-summary :is(strong, small) { color: inherit; }
 .patient-surface .journey-summary small { color: var(--faint); }
 .patient-surface .journey-summary > strong { font-family: var(--font-display); font-size: 24px; font-weight: 600; letter-spacing: -.5px; font-variant-numeric: tabular-nums; }
 .patient-surface .journey-summary .service-icon { background: var(--glass-floor-ground); color: var(--brand-ink); border-radius: var(--r-md); }
 
-.patient-surface .journey-step-focus .step-head { flex-wrap: wrap; row-gap: var(--space-8); margin: var(--space-16) 0 var(--space-20); }
-.patient-surface .journey-step-focus .step-head span:first-child { color: var(--charcoal); font-weight: 600; }
-.patient-surface .journey-step-focus .step-head em { color: var(--faint); }
-.patient-surface .journey-step-focus .step-dots { order: 3; flex: 1 0 100%; margin: 0; gap: var(--space-4); }
-.patient-surface .journey-step-focus .step-dots i { flex: 1; height: 6px; width: auto; border-radius: var(--r-pill); background: var(--stone); overflow: hidden; }
-.patient-surface .journey-step-focus .step-dots :is(i.on, i.now) { width: auto; background: var(--brand-green); }
-.patient-surface .journey-step-focus .step-dots i.now { transform-origin: left center; }
-@keyframes booking-fill { from { transform: scaleX(0); } }
-[data-motion='on'] .patient-surface .journey-step-focus .step-dots i.now { animation: booking-fill var(--t-settle) var(--ease-soft) both; }
+/* The stepper (components/Steps.tsx#Stepper): six numbered circles on one line with their names under
+   them, joined by a rule. Done is the accent with a tick, now is the primary ring, to come is a muted
+   circle — and each of the three also differs by its mark (tick, number in a ring, number), so colour is
+   never the only thing that says which. A done step is a button back to itself. No motion: the circle
+   changes state, it does not travel. */
+.patient-surface .stepper { margin: var(--space-16) 0 var(--space-20); }
+.patient-surface .stepper__count { margin: 0 0 var(--space-12); font-size: 14px; font-weight: 600; color: var(--color-foreground); }
+.patient-surface .stepper__count em { margin-left: var(--space-8); font-style: normal; font-weight: 500; color: var(--color-muted-foreground); }
+.patient-surface .stepper__track { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); margin: 0; padding: 0; list-style: none; }
+.patient-surface .stepper__step { position: relative; display: flex; justify-content: center; min-width: 0; }
+.patient-surface .stepper__step + .stepper__step::before { content: ''; position: absolute; top: calc(var(--space-16) + var(--space-4) - 1px); right: calc(50% + var(--space-20)); left: calc(-50% + var(--space-20)); height: 2px; border-radius: var(--r-pill); background: var(--color-border); }
+.patient-surface .stepper__step:is(.is-done, .is-now)::before { background: var(--color-accent); }
+.patient-surface .stepper__face { display: grid; justify-items: center; gap: var(--space-4); min-width: var(--ui-target, 44px); min-height: var(--ui-target, 44px); padding: var(--space-4) 0 0; border: 0; border-radius: var(--r-md); background: none; color: var(--color-muted-foreground); font: inherit; }
+.patient-surface button.stepper__face { cursor: pointer; }
+.patient-surface button.stepper__face:hover .stepper__label { color: var(--color-foreground); text-decoration: underline; }
+.patient-surface .stepper__mark { display: grid; place-items: center; width: var(--space-32); height: var(--space-32); border: 2px solid var(--color-border); border-radius: var(--r-pill); background: var(--color-surface); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--color-muted-foreground); }
+.patient-surface .is-done .stepper__mark { border-color: var(--color-accent); background: var(--color-accent); color: var(--color-accent-foreground); }
+.patient-surface .is-now .stepper__mark { border-color: var(--color-primary); color: var(--color-primary); box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 18%, transparent); }
+.patient-surface .stepper__label { max-width: 100%; overflow-wrap: anywhere; text-align: center; font-size: 13px; font-weight: 500; line-height: 1.2; }
+.patient-surface .is-now .stepper__label { color: var(--color-foreground); font-weight: 700; }
 
 .patient-surface .booking-paper { padding: var(--space-4) var(--space-20); border: 1px solid var(--stone); border-radius: var(--r-lg); background: var(--surface); color: var(--charcoal); }
 .patient-surface .booking-paper .review-line:last-child { border-bottom: 0; }
 
-@media (prefers-reduced-motion: reduce) {
- [data-motion='on'] .patient-surface .journey-step-focus .step-dots i.now { animation: none !important; }
-}
+

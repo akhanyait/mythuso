@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { capabilityOf, openWorkspace } from './nav';
+import { capabilityOf, openDestination, openWorkspace } from './nav';
 import { noticeFor } from './notices';
 
 /* The nurse's "Team", on both viewports.
@@ -14,8 +14,9 @@ import { noticeFor } from './notices';
  * to her would be presenting the simulated as the real, which is the one thing the 25 September
  * ruling forbids.
  *
- * So this proves the honest screen instead — StaffTeam.tsx, opened from the nurse's More tools the
- * way staff-messages.spec opens the Messages refusal. It reads the roster through lib/roster.ts and
+ * So this proves the honest screen instead — StaffTeam.tsx, a destination in the nurse's Field
+ * operations group since 30 September (it was a More tool opening a dialog until then), reached the way
+ * staff-messages.spec reaches the Messages refusal. It reads the roster through lib/roster.ts and
  * shows it plainly as the fiction it is: every name below is roster.json's, read rather than typed,
  * and the one thing it refuses in the contract's own words is `booking`'s — that it will not commit a
  * real person to a time. It offers no way to type, to send, to assign or to book, so a directory of
@@ -44,16 +45,13 @@ test(`the nurse's Team is a directory of the simulated roster and offers no way 
  const errors: string[] = [];
  page.on('pageerror', e => errors.push(e.message));
  await openWorkspace(page, 'Nurse');
- /* A More tool, not a section: the nurse's bar already carries six sections, and a directory of
-    fictional colleagues is the last thing that should push the work she opened the app for off it.
-    Team is on the nurse's bar alone — the roster is a list of nurses, so it reads as her colleagues
-    and not a doctor's, which is why this journey opens one workspace rather than looping over two. */
- await page.locator('.tool-link').filter({ hasText: 'Team' }).click();
- const sheet = page.getByRole('dialog');
-
- /* The right screen opened: staffModalTitle leaves an unmapped name as its own title, so the modal is
-    headed "Team" and nothing on the screen is a colleague's presence, standing or inbox. */
- await expect(sheet.getByRole('heading', { name: 'Team', exact: true })).toBeVisible();
+ /* A destination in the nurse's grouped navigation, behind More on a phone rather than on the tab bar:
+    a directory of fictional colleagues is the last thing that should push the work she opened the app
+    for off it. Team is in the nurse's navigation alone — the roster is a list of nurses, so it reads as
+    her colleagues and not a doctor's, which is why this journey opens one workspace rather than two.
+    openDestination waits for the page headed "Team", so the right screen opened and nothing on it is a
+    colleague's presence, standing or inbox. */
+ const sheet = await openDestination(page, 'Team');
  /* The notice at the top is the booking capability's own simulation notice — the same sentence the
     dispatch board and the visits screens show, because all three read it from the one place that knows. */
  await expect(sheet).toContainText(noticeFor('booking'));
@@ -70,8 +68,9 @@ test(`the nurse's Team is a directory of the simulated roster and offers no way 
  await expect(sheet.getByRole('textbox')).toHaveCount(0);
  await expect(sheet.getByRole('button', { name: /send|assign|book/i })).toHaveCount(0);
 
- /* And it closes from the screen's own button, leaving no dialog behind. */
+ /* And it closes from the screen's own button, back to her day, with no dialog anywhere. */
  await sheet.getByRole('button', { name: 'Close', exact: true }).click();
+ await expect(page.getByRole('heading', { level: 1, name: 'Team', exact: true })).toHaveCount(0);
  await expect(page.getByRole('dialog')).toHaveCount(0);
  expect(errors).toEqual([]);
 });

@@ -3,19 +3,25 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import { Wordmark } from '../components/Wordmark';
 import framing from '../../../../packages/catalog/framing.json' with { type: 'json' };
 import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react';
-import { Activity, ArrowRight, ArrowUpRight, BarChart3, Bluetooth, BookOpen, CalendarDays, CalendarRange, ClipboardPlus, CreditCard, FileText, FlaskConical, FolderOpen, LogOut, Package, Radar, Repeat, ShieldAlert, ShieldCheck, Siren, Truck, Video } from 'lucide-react';
+import { Activity, ArrowRight, ArrowUpRight, BadgeCheck, BarChart3, Bell, Bluetooth, BookOpen, Briefcase, CalendarClock, CalendarDays, CalendarRange, ChevronRight, ClipboardPlus, CreditCard, FilePen, FileText, FlaskConical, FolderOpen, GraduationCap, HeartPulse, LayoutGrid, Library, LogOut, MapPin, MessageSquare, Package, PackageCheck, Pill, Radar, Receipt, Repeat, Route, ShieldAlert, ShieldCheck, Siren, TestTube, Truck, UserCog, Users, Video } from 'lucide-react';
 import { Modal, SectionTitle } from '../components/UI';
 import { ReadOnly } from '../components/ReadOnly';
 import { AssistantLauncher } from '../components/AssistantLauncher';
 import { Metric, Metrics } from '../surface/Surface';
 import { NavigationItem } from '../ui/NavigationItem';
+import { JumpTo, ProfileMenu, StaffAttention, type Destination } from './StaffChrome';
 import '../surface/clinical.css';
 /* The clinical feature screens' own sheet. It used to be imported by the staff and admin entries,
    which no longer exist: this shell is reached by a dynamic import now, so both sheets travel in
    that chunk and a patient never downloads either. */
 import '../surface/clinical-screens.css';
+import './staff-chrome.css';
 import { HL7_QUARANTINE_HEADING, NurseSchedule, ReviewQueue, nurseDayCounts, reviewQueueCounts, roleExtras, sectionDoor, sectionWorkflow } from '../features/Workspaces';
 import { SettingReviews } from '../features/SettingReviews';
+/* The doctor's pages from the Lovable export's arrangement (S3, 30 September 2026): each a title, a strip counted off
+   the rows under it, and the rows. */
+import { RepeatsSummary } from '../features/PartnerPages';
+import { DoctorCredentials, DoctorPatients, DoctorPrescriptionsList, DoctorRecordsList, DoctorReferralsList, DoctorReports, DoctorResources, DoctorResultsStrip, DoctorSchedule, DoctorTriage } from '../features/DoctorPages';
 /* Wave 5, Clinical Intelligence: the inbox a review is signed from, the consultation frame, the triage and guidance
    answers where a nurse or a doctor would start one, and outcome questions on the patient's record. */
 import { ConsultationFrame, GuidanceStart, PromSchedule, ReviewInbox, TriageStart } from '../features/ClinicalIntelligence';
@@ -66,6 +72,20 @@ const Hl7Quarantine = lazy(() => import('../features/Hl7Quarantine').then(m => (
 /* The nurse's cases (29 September 2026): the case file GilbertOne gathered, fetched when she opens Cases and not
    before — it carries the case contract, the Devices domain and the consultation composer. */
 const NurseCases = lazy(() => import('../features/CaseFile').then(m => ({ default: m.NurseCases })));
+/* The nurse's route map (S2): it mounts the shared map, so it is fetched when she opens it. */
+const NurseRoute = lazy(() => import('../features/NurseRoute').then(m => ({ default: m.NurseRoute })));
+/* Safety & alerts (S2): the timer, Sentinel and the kit gathered; Sentinel and the registry load behind it. */
+const NurseSafety = lazy(() => import('../features/NurseSafety').then(m => ({ default: m.NurseSafety })));
+/* The care queue's appointments by day (S2), over the ThusoIQ sandbox. */
+const NurseAppointments = lazy(() => import('../features/NursePatients').then(m => ({ default: m.NurseAppointments })));
+/* Her landing's counted tiles and shift actions (S2): they read the case list and the kit's ring, so they arrive with her day. */
+const NurseDayTiles = lazy(() => import('../features/NurseLanding').then(m => ({ default: m.NurseDayTiles })));
+const NurseShiftActions = lazy(() => import('../features/NurseLanding').then(m => ({ default: m.NurseShiftActions })));
+/* Reports, Clinical resources and Settings (S2): counted from her own records, the protocol register and the
+   knowledge base, and her profile read from the vetting register — fetched when one of them is opened. */
+const NurseReports = lazy(() => import('../features/NurseDesk').then(m => ({ default: m.NurseReports })));
+const NurseResources = lazy(() => import('../features/NurseDesk').then(m => ({ default: m.NurseResources })));
+const NurseProfile = lazy(() => import('../features/NurseDesk').then(m => ({ default: m.NurseProfile })));
 /* Device Lab: the synthetic vital-sign simulator, staff only, fetched when the Control Tower opens it. */
 const DeviceLab = lazy(() => import('../features/DeviceLab').then(m => ({ default: m.DeviceLab })));
 /* The parallel run's notice, fetched only at ?legacy=1: it reads the portal's contract, which nobody
@@ -74,9 +94,16 @@ const LegacyNotice = lazy(() => import('../features/portal/LegacyNotice'));
 /* Sentinel and safeguarding arrive when a nurse opens her kit or her assessment, a doctor opens a patient, or the Control
    Tower opens its incidents, and not before: they carry the Safety, Core and Devices domains and every engine's settings
    through lib/settings. Added by the Safety lead, Wave 5. */
-const SentinelState = lazy(() => import('../features/Sentinel').then(m => ({ default: m.SentinelState })));
-const SafeguardingReport = lazy(() => import('../features/Sentinel').then(m => ({ default: m.SafeguardingReport })));
-const SafeguardingDesk = lazy(() => import('../features/Sentinel').then(m => ({ default: m.SafeguardingDesk })));
+/* `sentinelLoaded` is how the shell's attention band knows it may read Sentinel's store: the store starts
+   with no tier raised, and only these screens can raise one, so until one of them has been fetched there is
+   nothing for the band to find and no reason to fetch the store for it (shells/StaffChrome.tsx). */
+let sentinelLoaded = false;
+/* Each loader names the import itself rather than a helper that makes it: the boundary check reads this file for
+   that dynamic import, and a helper hid it. */
+const loaded = <M,>(m: M) => { sentinelLoaded = true; return m; };
+const SentinelState = lazy(() => import('../features/Sentinel').then(m => ({ default: loaded(m).SentinelState })));
+const SafeguardingReport = lazy(() => import('../features/Sentinel').then(m => ({ default: loaded(m).SafeguardingReport })));
+const SafeguardingDesk = lazy(() => import('../features/Sentinel').then(m => ({ default: loaded(m).SafeguardingDesk })));
 /* Thuso Ride and admissions arrive when a clinician opens a patient's context or assessments, or the Control Tower
    opens dispatch, and not before: they carry the Movement contract and every engine's settings through lib/settings. */
 const Movement = lazy(() => import('../features/Movement').then(m => ({ default: m.MovementSurface })));
@@ -112,48 +139,124 @@ import { useReveal } from '../lib/motion';
  * "Your care", nothing addressed to somebody booking a visit.
  */
 
-type Section = { readonly id: string; readonly short: string; readonly icon: typeof CalendarDays };
-type WorkspaceDef = { readonly subjectId: string; readonly sections: readonly Section[] };
+/* `tab` marks the destinations a phone's tab bar carries. A role with none marked has few enough to
+   carry them all; a role with some marked gets those, then a More tab whose hub lists the rest under
+   their group labels, because twelve destinations in 390px is twelve icons nobody can tell apart. */
+type Section = { readonly id: string; readonly short: string; readonly icon: typeof CalendarDays; readonly tab?: boolean };
+type Group = { readonly label: string; readonly items: readonly Section[] };
+type WorkspaceDef = { readonly subjectId: string; readonly groups: readonly Group[] };
 
-/* Each role's first section is the thing it opens the app to do. A nurse opens it for today's
-   visits; the Control Tower opens it for the board. Nothing here leads with a catalogue. */
+/* Each role's first item is the thing it opens the app to do. A nurse opens it for today's visits;
+   the Control Tower opens it for the board. Nothing here leads with a catalogue.
+
+   Grouped since 30 September 2026, following the Lovable export's sidebar: the nurse's and the
+   doctor's More tools were text links at the foot of a board, reachable only from the board and
+   opening as dialogs, and are destinations of their own now, in groups that say what kind of work
+   each one is. The partner's and the legacy Control Tower's keep one group and their links — two of
+   the partner's are example detail dialogs rather than screens.
+
+   REGISTERING A SECTION (S2, S3 and whoever comes after): three edits, all in this file.
+     1. One item in the role's group below — `{ id: 'Visit map', short: 'Map', icon: MapPin }`. The id
+        is the screen's name, shown in the sidebar, the More hub, the heading and document.title, and
+        what tests/nav.ts's goSection(page, id) finds; `short` is the tab label if it gets `tab: true`
+        (at most four per role, the More tab is the fifth).
+     2. One import at the top of the file (behind lazy() if it is heavy — see KitHealth).
+     3. One line in that role's block of renderSection:
+          if (section === 'Visit map') return <>{head}<VisitMap/></>;
+        or <OnDeck role={role}>…</OnDeck> when the screen names itself. Ids already in use stay as they
+        are: specs and goSection name them. */
 const workspaces = {
- Nurse: { subjectId: 'N-205', sections: [
-  { id: 'Schedule', short: 'Schedule', icon: CalendarDays },
-  { id: 'Assessments', short: 'Assess', icon: ClipboardPlus },
-  { id: 'Cases', short: 'Cases', icon: FolderOpen },
-  { id: 'Thuso Kit', short: 'Kit', icon: Bluetooth },
-  { id: 'Earnings & payouts', short: 'Earnings', icon: CreditCard },
-  { id: 'Vetting', short: 'Vetting', icon: ShieldCheck }
+ Nurse: { subjectId: 'N-205', groups: [
+  { label: 'Today', items: [
+   { id: 'Schedule', short: 'Schedule', icon: CalendarDays, tab: true },
+   { id: 'Safety & alerts', short: 'Safety', icon: ShieldAlert }
+  ] },
+  { label: 'Care delivery', items: [
+   { id: 'Assessments', short: 'Assess', icon: ClipboardPlus, tab: true },
+   { id: 'Cases', short: 'Cases', icon: FolderOpen, tab: true },
+   { id: 'Appointments', short: 'Appts', icon: CalendarClock },
+   { id: medicinesWords.handover.heading, short: 'Hand-over', icon: PackageCheck }
+  ] },
+  { label: 'Field operations', items: [
+   { id: 'Route map', short: 'Map', icon: MapPin },
+   { id: 'Thuso Kit', short: 'Kit', icon: Bluetooth, tab: true },
+   { id: 'Locum shifts', short: 'Shifts', icon: Briefcase },
+   { id: 'Team', short: 'Team', icon: Users }
+  ] },
+  { label: 'Practice', items: [
+   { id: 'Earnings & payouts', short: 'Earnings', icon: CreditCard },
+   { id: 'Clinical resources', short: 'Resources', icon: BookOpen },
+   { id: 'Academy', short: 'Academy', icon: GraduationCap },
+   { id: 'Reports', short: 'Reports', icon: BarChart3 },
+   { id: 'Messages', short: 'Messages', icon: MessageSquare }
+  ] },
+  { label: 'Account', items: [
+   { id: 'Vetting', short: 'Vetting', icon: ShieldCheck },
+   { id: 'Settings', short: 'Settings', icon: UserCog }
+  ] }
  ] },
- Doctor: { subjectId: 'D-401', sections: [
-  { id: 'Review queue', short: 'Queue', icon: FileText },
-  { id: 'Teleconsultation', short: 'Consult', icon: Video },
-  { id: 'Patient context', short: 'Patient', icon: Activity },
-  { id: 'Consultation records', short: 'Records', icon: ClipboardPlus },
-  { id: 'Protocols', short: 'Protocols', icon: BookOpen }
+ Doctor: { subjectId: 'D-401', groups: [
+  { label: 'Clinical work', items: [
+   { id: 'Review queue', short: 'Queue', icon: FileText, tab: true },
+   { id: 'Triage', short: 'Triage', icon: HeartPulse },
+   { id: 'Schedule', short: 'Schedule', icon: CalendarDays },
+   { id: 'Teleconsultation', short: 'Consult', icon: Video, tab: true }
+  ] },
+  { label: 'Patient care', items: [
+   { id: 'Patient context', short: 'Patient', icon: Activity, tab: true },
+   { id: 'Consultation records', short: 'Records', icon: ClipboardPlus, tab: true },
+   { id: medicinesWords.prescribe.heading, short: 'Prescribe', icon: Pill },
+   { id: medicinesWords.results.heading, short: 'Results', icon: TestTube },
+   { id: 'Referral pathway', short: 'Referrals', icon: Route }
+  ] },
+  /* Protocols is the one "Clinical protocols" More tool was a second door into, so it is one
+     destination here and the tool is gone rather than listed twice. */
+  { label: 'Practice', items: [
+   { id: 'Protocols', short: 'Protocols', icon: BookOpen },
+   { id: 'Reports', short: 'Reports', icon: BarChart3 },
+   { id: 'Per-case fees', short: 'Fees', icon: Receipt },
+   { id: 'Claim draft', short: 'Claim', icon: FilePen },
+   { id: 'Messages', short: 'Messages', icon: MessageSquare },
+   { id: 'Resources', short: 'Resources', icon: Library }
+  ] },
+  /* The export's Settings, as what the register holds: nothing on it is edited or saved. */
+  { label: 'Account', items: [
+   { id: 'Credentials', short: 'Credentials', icon: BadgeCheck }
+  ] }
  ] },
- Partner: { subjectId: 'P-501', sections: [
-  { id: 'Orders', short: 'Orders', icon: Package },
-  { id: 'Substitution & repeats', short: 'Repeats', icon: Repeat },
-  { id: 'Collections', short: 'Collections', icon: Truck },
-  { id: 'Results', short: 'Results', icon: FlaskConical }
+ Partner: { subjectId: 'P-501', groups: [
+  { label: 'Fulfilment', items: [
+   { id: 'Orders', short: 'Orders', icon: Package },
+   { id: 'Substitution & repeats', short: 'Repeats', icon: Repeat },
+   { id: 'Collections', short: 'Collections', icon: Truck },
+   { id: 'Results', short: 'Results', icon: FlaskConical }
+  ] }
  ] },
- 'Control Tower': { subjectId: 'O-801', sections: [
-  { id: 'Dispatch', short: 'Dispatch', icon: Radar },
-  { id: 'Incidents', short: 'Incidents', icon: Siren },
-  { id: 'Vetting queue', short: 'Vetting', icon: ShieldCheck },
-  /* Employer programmes is not a fifth entry: features/Pages.tsx already lists it among this
-     role's More tools, and two doors into one screen is how a navigation starts disagreeing with
-     itself about what the sections are. */
-  { id: 'Quality', short: 'Quality', icon: BarChart3 },
-  /* GET /v1/core/audit-exports@1's own caller (Wave 6): the operator, and nobody else. */
-  { id: 'Audit exports', short: 'Audit', icon: CalendarRange }
+ 'Control Tower': { subjectId: 'O-801', groups: [
+  { label: 'Workspace', items: [
+   { id: 'Dispatch', short: 'Dispatch', icon: Radar },
+   { id: 'Incidents', short: 'Incidents', icon: Siren },
+   { id: 'Vetting queue', short: 'Vetting', icon: ShieldCheck },
+   /* Employer programmes is not a fifth entry: features/Pages.tsx already lists it among this
+      role's More tools, and two doors into one screen is how a navigation starts disagreeing with
+      itself about what the sections are. */
+   { id: 'Quality', short: 'Quality', icon: BarChart3 },
+   /* GET /v1/core/audit-exports@1's own caller (Wave 6): the operator, and nobody else. */
+   { id: 'Audit exports', short: 'Audit', icon: CalendarRange }
+  ] }
  ] }
 } as const satisfies Record<string, WorkspaceDef>;
 
 export type StaffRole = keyof typeof workspaces;
 export const staffRoles = Object.keys(workspaces) as StaffRole[];
+/* The flat list every older reader wanted, derived rather than kept beside the groups. */
+const sectionsOf = (role: StaffRole): readonly Section[] => (workspaces[role].groups as readonly Group[]).flatMap(g => g.items);
+/* The sections a role reaches as pages rather than as dialogs — what "More tools" links navigate to. */
+const isSection = (role: StaffRole, id: string) => sectionsOf(role).some(s => s.id === id);
+/* The phone's tabs, and whether there is anything left over for a More hub to carry. */
+const tabsOf = (role: StaffRole) => { const all = sectionsOf(role), marked = all.filter(s => s.tab);
+ return marked.length ? { tabs: marked, more: true } : { tabs: all, more: false }; };
+export const MORE_HUB = 'More';
 
 /* How a name is shortened is a rule about names rather than about this sidebar, and lib/roster.ts
    needs the same one. It moved to lib/names.ts, re-exported here so every existing reader keeps
@@ -193,12 +296,18 @@ const signedInAs = (role: StaffRole) => whoIs(workspaces[role].subjectId, 'Dispa
    navigation is not, because comparing needs it. Nothing here acts on anything real either way — the rule
    is about which screen is the one of record. */
 export default function StaffWorkspace({ role, audience, legacy = false }: { role: StaffRole; audience: RoleId; legacy?: boolean }) {
- const { sections } = workspaces[role];
+ const groups = workspaces[role].groups as readonly Group[];
+ const sections = sectionsOf(role);
+ const { tabs, more } = tabsOf(role);
  const [section, setSection] = useState<string>(sections[0].id);
  const [modal, setModal] = useState<string | null>(null);
  const who = signedInAs(role);
- const go = (id: string) => { setSection(id); scrollToTop(); };
+ /* Safety & alerts and the doctor's Triage fetch Sentinel through their own lazy imports, which the loaders
+    above never see, so opening either tells the band the same thing a loader would. */
+ const go = (id: string) => { if (id === 'Safety & alerts' || id === 'Triage') sentinelLoaded = true; setSection(id); scrollToTop(); };
  const home = () => go(sections[0].id);
+ const destinations: Destination[] = groups.flatMap(g => g.items.map(item => ({ id: item.id, group: g.label, icon: item.icon })));
+ const hasMessages = sections.some(s => s.id === 'Messages');
  useEffect(() => { document.title = `${section} · ${role} · MyThuso`; }, [section, role]);
  /* Leaving a workspace lands on the patient application, because that is what this address means
     without a role on it. It is not a sign-out — there was never a session to end beyond whatever the
@@ -229,16 +338,18 @@ export default function StaffWorkspace({ role, audience, legacy = false }: { rol
    <p className={`staff-credential ${stopped ? 'stop' : who.state.status === 'expiring' ? 'due' : ''}`}>
     {stopped ? <ShieldAlert size={15}/> : <ShieldCheck size={15}/>}<span>{who.credential}</span>
    </p>
-   {/* Not the role name: the identity block above already says which register this person is on,
-       and the heading in the main column says it again. Three of the same word on one screen is
-       what a label costs when it is chosen for symmetry rather than for a reader. */}
-   <div className="nav-label">WORKSPACE</div>
    {/* The handoff's NavigationItem, the same one the patient's sidebar uses: the section you are in on
        the accent's tint, in the ink and a heavier weight, so where-you-are is never told by colour
        alone. Lucide glyphs, because these are a clinician's sections and the MyThuso family draws the
-       patient's destinations. */}
-   <nav className="s-nav" aria-label="Main navigation">{sections.map(({ id, icon: Icon }) =>
-    <NavigationItem key={id} icon={<Icon size={20} strokeWidth={1.8}/>} active={section === id} onClick={() => go(id)}>{id}</NavigationItem>)}</nav>
+       patient's destinations. Each group is a labelled list inside the one landmark, so a screen
+       reader hears "Field operations, list, 3 items" before the rows; the landmark scrolls inside
+       itself when a role has twelve of them, and the identity above and the way out below stay put. */}
+   <nav className="s-nav staff-nav" aria-label="Main navigation">{groups.map(group =>
+    <div className="staff-nav-group" key={group.label} role="group" aria-labelledby={`sn-${slug(group.label)}`}>
+     <div className="nav-label" id={`sn-${slug(group.label)}`}>{group.label}</div>
+     {group.items.map(({ id, icon: Icon }) =>
+      <NavigationItem key={id} icon={<Icon size={20} strokeWidth={1.8}/>} active={section === id} onClick={() => go(id)}>{id}</NavigationItem>)}
+    </div>)}</nav>
    <div className="sidebar-bottom">
     {/* No help card, no wallet, no language picker. The shell strings a picker would switch are the
         patient's navigation, and clinical wording is never translated at all — lib/i18n.ts is where
@@ -247,15 +358,18 @@ export default function StaffWorkspace({ role, audience, legacy = false }: { rol
    </div>
   </aside>
   <div className="workspace surface">
+   {/* The export's top bar, honestly: where you are, a jump to this workspace's own screens, a bell
+       that opens Messages with no count on it because nothing is counted, the theme, and who you are as
+       a chip whose panel holds the credential line and the way out. At 390px the breadcrumb and the jump
+       go (the More hub carries the jump there), and the chip keeps its disc and its name. */}
    <header className="topbar staff-topbar">
-    <div className="staff-who">
-     <span className="avatar small">{who.initials}</span>
-     <span><strong>{who.subject.name}</strong><small>{who.roleName} · {who.subject.reference}</small></span>
-    </div>
     <div className="breadcrumb">{role}<span>/</span><strong>{section}</strong></div>
+    <JumpTo className="staff-jump--bar" destinations={destinations} go={go}/>
     <div className="topbar-actions">
+     {hasMessages && <button className="icon-button staff-bell" aria-label="Open Messages" title="Open Messages" onClick={() => go('Messages')}><Bell size={19} aria-hidden="true"/></button>}
      <ThemeToggle className="topbar-theme"/>
-     <button className="icon-button" aria-label="Leave this workspace" onClick={leave}><LogOut size={19}/></button>
+     <ProfileMenu onLeave={leave} who={{ initials: who.initials, name: who.subject.name, roleName: who.roleName, reference: who.subject.reference,
+      credential: who.credential, stopped, due: who.state.status === 'expiring' }}/>
     </div>
    </header>
    {/* The disclosure, and beside it the door. The sentence is the same one every shell shows; the
@@ -263,11 +377,13 @@ export default function StaffWorkspace({ role, audience, legacy = false }: { rol
        of this one asks which. */}
    <DemoBar note={t('shell.previewBadge', 'en-ZA')}/>
    <main id="main" tabIndex={-1}>
+    {!legacy && <StaffAttention role={role} section={section} go={go} sentinelLoaded={sentinelLoaded}/>}
     <div className="cl-chapter" key={section}>
     {legacy
      ? <><Suspense fallback={null}><LegacyNotice surface="control-tower" section={section}/></Suspense>
-        <ReadOnly>{renderSection(role, section, setModal, home)}</ReadOnly></>
-     : renderSection(role, section, setModal, home)}
+        <ReadOnly>{renderSection(role, section, setModal, home, go)}</ReadOnly></>
+     : section === MORE_HUB ? <MoreHub role={role} groups={groups} skip={tabs.map(tab => tab.id)} go={go} destinations={destinations} leave={leave}/>
+     : renderSection(role, section, setModal, home, go)}
     </div>
    </main>
    <footer className="app-footer"><span>© 2026 MyThuso · {role} workspace</span><span>{t('shell.tagline', 'en-ZA')}</span></footer>
@@ -281,13 +397,40 @@ export default function StaffWorkspace({ role, audience, legacy = false }: { rol
    {/* The visible label is the short one and the accessible name is the whole section. Both point
        at the same thing and the short one is a prefix of the long one, so WCAG 2.5.3 is satisfied
        while a screen-reader user hears "Earnings and payouts" rather than "Earnings". */}
-   <nav className="tabbar staff" aria-label="Primary">{sections.map(({ id, short, icon: Icon }) =>
+   {/* The More tab is current whenever the section on the screen is not one of the tabs, so a nurse
+       who reached Academy through the hub can see which tab she is under. */}
+   <nav className="tabbar staff" aria-label="Primary">{tabs.map(({ id, short, icon: Icon }) =>
     <button key={id} aria-label={id} aria-current={section === id ? 'page' : undefined} className={section === id ? 'active' : ''} onClick={() => go(id)}>
      <span className="tab-icon"><Icon size={21} strokeWidth={1.9}/></span><span className="tab-label">{short}</span>
-    </button>)}</nav>
+    </button>)}
+    {more && (() => { const on = !tabs.some(tab => tab.id === section);
+     return <button aria-label={MORE_HUB} aria-current={on ? 'page' : undefined} className={on ? 'active' : ''} onClick={() => go(MORE_HUB)}>
+      <span className="tab-icon"><LayoutGrid size={21} strokeWidth={1.9}/></span><span className="tab-label">{MORE_HUB}</span>
+     </button>; })()}</nav>
   </div>
   {modal && <Modal title={staffModalTitle(modal)} onClose={() => setModal(null)}>{staffModalBody(modal, () => setModal(null), setModal)}</Modal>}
  </div>;
+}
+
+const slug = (label: string) => label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+/* The phone's More hub: every destination the tab bar could not carry, under the same group labels
+   the sidebar gives them, as the patient shell's More page draws its rows. A group whose items are
+   all tabs already is left out rather than drawn as a heading over nothing. */
+function MoreHub({ role, groups, skip, go, destinations, leave }: { role: StaffRole; groups: readonly Group[]; skip: readonly string[]; go: (id: string) => void; destinations: readonly Destination[]; leave: () => void }) {
+ return <>
+  <SectionHead role={role} section="More"/>
+  <JumpTo className="staff-jump--hub" destinations={destinations} go={go}/>
+  {groups.map(group => { const rest = group.items.filter(item => !skip.includes(item.id));
+   return rest.length ? <section className="staff-more-group" key={group.label} aria-labelledby={`sm-${slug(group.label)}`}>
+    <h2 className="nav-label" id={`sm-${slug(group.label)}`}>{group.label}</h2>
+    <div className="menu-list">{rest.map(({ id, icon: Icon }) =>
+     <button className="menu-row" key={id} onClick={() => go(id)}>
+      <span className="tile-icon"><Icon size={19}/></span><span><strong>{id}</strong></span><ChevronRight size={17} aria-hidden="true"/>
+     </button>)}</div>
+   </section> : null; })}
+  <div className="menu-list danger staff-more-leave"><button className="menu-row" onClick={leave}><span className="tile-icon"><LogOut size={19}/></span><span><strong>Leave this workspace</strong></span></button></div>
+ </>;
 }
 
 /* A heading, for the sections that are a whole feature rather than a board the shell composes.
@@ -310,28 +453,60 @@ const OnDeck = ({ role, children }: { role: StaffRole; children: ReactNode }) =>
   {children}
  </DeckTitleLevel.Provider>;
 
-function renderSection(role: StaffRole, section: string, open: (m: string) => void, home: () => void) {
+/* `go` as well as `open`: a board's "More tools" link navigates to a destination where the role has
+   one, and opens a dialog only where it does not. */
+function renderSection(role: StaffRole, section: string, open: (m: string) => void, home: () => void, go: (id: string) => void) {
  const head = <SectionHead role={role} section={section}/>;
  if (role === 'Nurse') {
-  if (section === 'Assessments') return <OnDeck role={role}><VisitAssessment onClose={home}/><TriageStart/><GuidanceStart/><Suspense fallback={null}><SafeguardingReport workspace="nurse"/></Suspense>{ride('nurse')}</OnDeck>;
+  /* The three closing panels side by side, as the export lays them out (S2): triage, home guidance, safeguarding. */
+  if (section === 'Assessments') return <OnDeck role={role}><VisitAssessment onClose={home}/><div className="nurse-closing"><TriageStart/><GuidanceStart/><Suspense fallback={null}><SafeguardingReport workspace="nurse"/></Suspense></div>{ride('nurse')}</OnDeck>;
   if (section === 'Cases') return <OnDeck role={role}><Suspense fallback={null}><NurseCases/></Suspense></OnDeck>;
   if (section === 'Thuso Kit') return <OnDeck role={role}><ThusoKit/><Suspense fallback={null}><KitHealth/><SentinelState workspace="nurse"/></Suspense></OnDeck>;
   if (section === 'Earnings & payouts') return <OnDeck role={role}><Earnings/></OnDeck>;
   if (section === 'Vetting') return <OnDeck role={role}><VettingApplication roleId="nurse" onClose={home}/></OnDeck>;
+  /* The five that were More tools, drawn as pages: the shell's heading over the same component the
+     dialog router mounts, its Close button taking her back to her day. */
+  if (section === medicinesWords.handover.heading) return <>{head}<CollectionHandover/></>;
+  if (section === 'Locum shifts') return <>{head}<LocumShifts onClose={home}/></>;
+  if (section === 'Team') return <>{head}<StaffTeam onClose={home}/></>;
+  if (section === 'Academy') return <>{head}<Academy onClose={home}/></>;
+  if (section === 'Messages') return <>{head}<StaffMessages onClose={home}/></>;
+  /* Builder S2, 30 September 2026: her day on the map, from the same rows as the schedule. */
+  if (section === 'Safety & alerts') return <>{head}<Suspense fallback={null}><NurseSafety/></Suspense></>;
+  if (section === 'Appointments') return <>{head}<Suspense fallback={null}><NurseAppointments/></Suspense></>;
+  if (section === 'Route map') return <>{head}<Suspense fallback={null}><NurseRoute nurseId={workspaces.Nurse.subjectId}/></Suspense></>;
+  if (section === 'Reports') return <>{head}<Suspense fallback={null}><NurseReports/></Suspense></>;
+  if (section === 'Clinical resources') return <>{head}<Suspense fallback={null}><NurseResources/></Suspense></>;
+  if (section === 'Settings') return <>{head}<Suspense fallback={null}><NurseProfile subjectId={workspaces.Nurse.subjectId}/></Suspense></>;
  }
  if (role === 'Doctor') {
-  if (section === 'Protocols') return <OnDeck role={role}><ClinicalProtocols/><TriageStart/><GuidanceStart/></OnDeck>;
+  /* Triage leaves Protocols for a page of its own (S3, the export's live triage), so Protocols is the
+     registry and the ranges, and the triage and guidance answers are on the page that is about them. */
+  if (section === 'Protocols') return <OnDeck role={role}><ClinicalProtocols/></OnDeck>;
   if (section === 'Teleconsultation') return <>{head}<Teleconsult/></>;
-  if (section === 'Patient context') return <OnDeck role={role}><PatientFile open={open}/><PromSchedule/><Suspense fallback={null}><SentinelState workspace="doctor"/><SafeguardingReport workspace="doctor"/></Suspense>{ride('doctor')}</OnDeck>;
-  if (section === 'Consultation records') return <OnDeck role={role}><ConsultationFrame/><ConsultationRecord title="Consultation records"/></OnDeck>;
+  /* The patient list beside the file replaces the file's own select (features/DoctorPages.tsx). */
+  if (section === 'Patient context') return <OnDeck role={role}><DoctorPatients open={open}/><PromSchedule/><Suspense fallback={null}><SentinelState workspace="doctor"/><SafeguardingReport workspace="doctor"/></Suspense>{ride('doctor')}</OnDeck>;
+  /* The list heads the page, so the composer's deck steps down a level under it. */
+  if (section === 'Consultation records') return <OnDeck role={role}><DoctorRecordsList/><DeckTitleLevel.Provider value="h2"><ConsultationFrame/><ConsultationRecord title="Write a consultation record"/></DeckTitleLevel.Provider></OnDeck>;
+  if (section === medicinesWords.prescribe.heading) return <OnDeck role={role}><DoctorPrescriptionsList/><DoctorPrescribe/></OnDeck>;
+  if (section === medicinesWords.results.heading) return <OnDeck role={role}><DoctorResultsStrip/><LabResults/></OnDeck>;
+  if (section === 'Referral pathway') return <OnDeck role={role}><DoctorReferralsList/><ReferralPathway/></OnDeck>;
+  if (section === 'Schedule') return <OnDeck role={role}><DoctorSchedule/></OnDeck>;
+  if (section === 'Triage') return <OnDeck role={role}><DoctorTriage/></OnDeck>;
+  if (section === 'Reports') return <OnDeck role={role}><DoctorReports go={go}/></OnDeck>;
+  if (section === 'Resources') return <OnDeck role={role}><DoctorResources go={go}/></OnDeck>;
+  if (section === 'Credentials') return <OnDeck role={role}><DoctorCredentials/></OnDeck>;
+  if (section === 'Per-case fees') return <>{head}<DoctorFees/></>;
+  if (section === 'Claim draft') return <>{head}<ClaimDraft/></>;
+  if (section === 'Messages') return <>{head}<StaffMessages onClose={home}/></>;
  }
- if (role === 'Partner' && section === 'Substitution & repeats') return <>{head}<Dispensing/></>;
+ if (role === 'Partner' && section === 'Substitution & repeats') return <>{head}<RepeatsSummary/><Dispensing/></>;
  if (role === 'Control Tower') {
   if (section === 'Vetting queue') return <VettingQueue open={open}/>;
   if (section === 'Quality') return <QualityBoard open={open}/>;
   if (section === 'Audit exports') return <AuditExportDesk/>;
  }
- return <StaffSection role={role} section={section} open={open}/>;
+ return <StaffSection role={role} section={section} open={open} go={go}/>;
 }
 
 /* ---- The sections this shell draws itself -------------------------------------------------------
@@ -402,7 +577,10 @@ const metricsOf = (role: StaffRole, queue: Part[]): readonly Figure[] => {
  if (role === 'Partner') { const c = partnerCounts();
   return [{ label: 'Open orders', value: String(c.open), chip: c.pastWindow ? `${c.pastWindow} past its window` : 'All inside their windows', flagged: c.pastWindow > 0 },
           { label: 'Collections', value: String(c.collections), chip: `Next ${c.nextCollection}`, flagged: false },
-          { label: 'Ready for release', value: String(c.readyForRelease), chip: 'Awaiting a clinician', flagged: false }]; }
+          { label: 'Ready for release', value: String(c.readyForRelease), chip: 'Awaiting a clinician', flagged: false },
+          /* The export's fourth tile. partnerCounts() already counted it and nothing drew it: the Orders rows
+             marked Yours, which is the one figure on this strip a pharmacist acts on herself. */
+          { label: 'Yours to act on', value: String(c.here), chip: 'On the Orders board', flagged: false }]; }
  /* The Control Tower's three live in features/Dispatch.tsx now, because the merged portal draws the
     same strip over the same boards and one strip is one place. */
  if (role === 'Control Tower') return controlTowerFigures();
@@ -497,7 +675,7 @@ const deckHead: Partial<Record<StaffRole, { eyebrow: string; headline: DeckHeadl
            note: 'Every figure is counted off the rows below' }
 };
 
-function StaffSection({ role, section, open }: { role: StaffRole; section: string; open: (m: string) => void }) {
+function StaffSection({ role, section, open, go }: { role: StaffRole; section: string; open: (m: string) => void; go: (id: string) => void }) {
  const board = BOARDS.includes(section);
  const workbench = WORKBENCH[role] === section;
  /* The nurse's strip counts how many of her visits are signed off, which is the queue's state and
@@ -537,13 +715,19 @@ function StaffSection({ role, section, open }: { role: StaffRole; section: strin
    : <Metrics>{figures.map((figure, i) =>
       <Metric key={figure.label} label={figure.label} value={figure.value} unit={figure.unit} prefix={figure.prefix}
               chip={figure.chip} flagged={figure.flagged} lead={i === 0}/>)}</Metrics>)}
+  {/* The nurse's counted tiles and the kit's readiness ring under her deck (S2, 30 September 2026). */}
+  {role === 'Nurse' && section === 'Schedule' && <Suspense fallback={null}><NurseDayTiles go={go} nurseId={workspaces.Nurse.subjectId}/></Suspense>}
   {workbench ? <ClinicalWorkbench role={role as 'Nurse' | 'Doctor' | 'Partner'} worklist={sectionBody(section, open)}/> : sectionBody(section, open)}
   {/* Secondary by construction. These were two cards with the same shield on them, the same white
       surface and the same shadow as the queue above — so a screen whose entire purpose is the queue
       ended on two equally-weighted boxes. A list of links is what they are. */}
+  {/* The nurse's More tools are the export's shift-action cards, each going to its destination (S2). */}
+  {role === 'Nurse' ? <Suspense fallback={null}><NurseShiftActions go={go} has={id => isSection(role, id)}/></Suspense> : <>
   <SectionTitle title="More tools"/>
   <div className="tool-links">{(roleExtras[role] ?? []).map(tool =>
-   <button className="tool-link" key={tool} onClick={() => open(tool)}>{tool}<ArrowUpRight size={16}/></button>)}</div>
+   isSection(role, tool)
+    ? <button className="tool-link" key={tool} onClick={() => go(tool)}>{tool}<ArrowRight size={16}/></button>
+    : <button className="tool-link" key={tool} onClick={() => open(tool)}>{tool}<ArrowUpRight size={16}/></button>)}</div></>}
  </>;
 }
 

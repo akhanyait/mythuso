@@ -1,6 +1,6 @@
-import { Component, Suspense, lazy, useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { Component, Suspense, lazy, useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import './map.css';
-import { coverage, place, plot, radiusInBoxUnits, rendering, say, tiles, tilesDefaultFor, tilesOffered, tilesStartOn, zones, type Credit, type MapSurface } from '../lib/geography';
+import { coverage, marks, place, plot, radiusInBoxUnits, rendering, say, tiles, tilesDefaultFor, tilesOffered, tilesStartOn, zones, type Credit, type MapSurface } from '../lib/geography';
 import type { LatLng } from '../../../../packages/geo/index.ts';
 /* The map, drawn on real streets when the person looking has asked for them and from the
  * coordinates alone the rest of the time.
@@ -63,7 +63,14 @@ export type MapMarker = {
  label: string;
  selected?: boolean;
  onSelect?: () => void;
+ /* A short mark written on the pin — a stop's number in the order of somebody's day, and nothing
+    else. Never a person's initials: a pin is at a suburb centre precisely so that it names no one,
+    and two letters on it would undo that. The label above still says the whole of it to a reader. */
+ badge?: string;
 };
+
+/** A straight line between two points, drawn dashed and never as a route. */
+export type MapLink = { from: LatLng; to: LatLng };
 
 type Props = {
  markers: MapMarker[];
@@ -80,14 +87,41 @@ type Props = {
     decision, and putting streets underneath closed it the hard way: a straight line on a schematic
     is obviously not a route, and the same line over real roads is exactly what a reader mistakes
     for one. */
- link?: { from: LatLng; to: LatLng } | null;
+ link?: MapLink | null;
+ /* Several of the same line, leg after leg — a nurse's day from her base through each stop in turn.
+    Every one is the straight measurement `link` is, dashed and drawn through the buildings, and none
+    of them is joined into anything that could be taken for a road. */
+ links?: readonly MapLink[];
  /* Whose screen this is, which decides where the switch starts. A caller that does not say is
     treated as a patient's, because off is the default that asks nothing of anybody; a staff surface
     has to say so, which is the point. */
  surface?: MapSurface;
+ /* What the camera settles on. The metro window is the default and the dispatch board's answer: a
+    controller reads the whole city. A screen about four suburbs asks for its own pins instead, so the
+    three stops of one nurse's day are not a cluster in the middle of twenty-eight kilometres. */
+ fit?: 'window' | 'markers';
+ /* Move the camera to a pin when it is chosen. Streets only — the schematic has no camera — and
+    immediate rather than eased for a reader who asked for less motion. */
+ follow?: boolean;
+ /* One switch per kind of mark on the board, named from geography.json's own key. */
+ layers?: boolean;
+ /* The frame takes its height from map.css rather than from `height`: taller on a screen whose
+    subject is the map, and still short enough on a phone that the list beside it is one scroll away. */
+ tall?: boolean;
+ /* Drawn over the foot of the frame, above the pins — the chosen pin's card, on a screen that has one. */
+ overlay?: ReactNode;
+ /* The words in the heading's left, which name the board. */
+ title?: string;
 };
 
-export function LiveMap({ markers, summary, height = 340, link = null, surface = 'patient' }: Props) {
+export function LiveMap({ markers: all, summary, height = 340, link = null, links, surface = 'patient', fit = 'window', follow = false, layers = false, tall = false, overlay = null, title = 'Service area' }: Props) {
+ /* A kind switched off is taken off both renderings and out of the pins a keyboard reaches, and the
+    list beside the map is untouched: the map is a picture of the list, and hiding a layer of the
+    picture must never hide a row somebody has to act on. */
+ const [hidden, setHidden] = useState<ReadonlySet<string>>(() => new Set());
+ const kinds = useMemo(() => marks.filter(m => all.some(marker => marker.kind === m.id)), [all]);
+ const markers = useMemo(() => hidden.size ? all.filter(marker => !hidden.has(marker.kind)) : all, [all, hidden]);
+ const lines = useMemo<readonly MapLink[]>(() => links ?? (link ? [link] : []), [links, link]);
  const startsOn = tilesStartOn(surface);
  const [wanted, setWanted] = useState(startsOn);
  /* Asked for and did not come: the endpoint down, the network gone, or a clinic's wifi answering
@@ -112,16 +146,28 @@ export function LiveMap({ markers, summary, height = 340, link = null, surface =
  const moved = tilesOffered && !unreachable && wanted !== (tilesDefaultFor(surface) === 'on');
 
  return (
-  <div className="livemap">
-   <div className="livemap-heading"><strong>Service area</strong><span>{live ? 'Street map' : 'Schematic'}</span></div>
-   <div className="livemap-frame" style={{ height }}>
+  <div className={`livemap${tall ? ' livemap--tall' : ''}`}>
+   <div className="livemap-heading">{title ? <strong>{title}</strong> : <span className="visually-hidden">Map</span>}<span>{live ? 'Street map' : 'Schematic'}</span></div>
+   {layers && kinds.length > 0 && <fieldset className="livemap-layers">
+    <legend>Show on the map</legend>
+    {kinds.map(kind => <label key={kind.id} className="livemap-layer">
+     <input type="checkbox" checked={!hidden.has(kind.id)} onChange={() => setHidden(before => {
+      const next = new Set(before);
+      if (next.has(kind.id)) next.delete(kind.id); else next.add(kind.id);
+      return next;
+     })}/>
+     <i aria-hidden="true" className={`key-${kind.id}`}/>{kind.name}
+    </label>)}
+   </fieldset>}
+   <div className="livemap-frame" style={tall ? undefined : { height }}>
     {live
-     ? <TilesOrSchematic onFailed={giveUp} fallback={<Schematic markers={markers} summary={summary} link={link}/>}>
-        <Suspense fallback={<Schematic markers={markers} summary={summary} link={link}/>}>
-         <TileMap markers={markers} summary={summary} link={link} onTilesFailed={giveUp} onDrawnBy={setCredit}/>
+     ? <TilesOrSchematic onFailed={giveUp} fallback={<Schematic markers={markers} summary={summary} links={lines} fit={fit}/>}>
+        <Suspense fallback={<Schematic markers={markers} summary={summary} links={lines} fit={fit}/>}>
+         <TileMap markers={markers} summary={summary} links={lines} fit={fit} follow={follow} onTilesFailed={giveUp} onDrawnBy={setCredit}/>
         </Suspense>
        </TilesOrSchematic>
-     : <Schematic markers={markers} summary={summary} link={link}/>}
+     : <Schematic markers={markers} summary={summary} links={lines} fit={fit}/>}
+    {overlay && <div className="livemap-overlay">{overlay}</div>}
    </div>
    {/* The credit, and it is a licence condition rather than a courtesy: the ODbL asks that whoever
        draws this data names where it came from and lets a reader reach the licence. It is a strip
@@ -170,17 +216,24 @@ export function LiveMap({ markers, summary, height = 340, link = null, surface =
    the later one's circle wins the overlap, and both are still in the list beside the map and reachable
    by keyboard. */
 const TARGET_PX = 44;
-function Mark({ marker, x, y, hit }: { marker: MapMarker; x: number; y: number; hit: number }) {
+/* A pin carrying a number is drawn large enough for the numeral to sit inside it at the type scale's
+   floor: twenty-six pixels of face for thirteen of figure, measured from the drawn square the way the
+   press target is. A plain pin keeps the 4.4 units it always had. */
+const BADGE_PX = 26;
+function Mark({ marker, x, y, hit, size }: { marker: MapMarker; x: number; y: number; hit: number; size: number }) {
+ const half = size / 2;
  const shape = marker.kind.startsWith('visit')
-  ? <rect x={x - 2.2} y={y - 2.2} width="4.4" height="4.4" rx="1.2"/>
-  : <circle cx={x} cy={y} r="2.4"/>;
- if (!marker.onSelect) return <g><title>{marker.label}</title>{shape}</g>;
+  ? <rect x={x - half} y={y - half} width={size} height={size} rx={size * 0.27}/>
+  : <circle cx={x} cy={y} r={half + 0.2}/>;
+ const badge = marker.badge ? <text x={x} y={y} className="map-pin-badge" aria-hidden="true">{marker.badge}</text> : null;
+ if (!marker.onSelect) return <g><title>{marker.label}</title>{shape}{badge}</g>;
  return (
   <g role="button" tabIndex={0} aria-label={marker.label} aria-pressed={Boolean(marker.selected)}
      onClick={marker.onSelect}
      onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); marker.onSelect!(); } }}>
    <circle cx={x} cy={y} r={hit} fill="transparent" className="map-hit"/>
    {shape}
+   {badge}
   </g>
  );
 }
@@ -211,12 +264,31 @@ function useLabelUnits(svg: React.RefObject<SVGSVGElement | null>, onSide?: (sid
  }, [svg, onSide]);
 }
 
-function Schematic({ markers, summary, link }: { markers: MapMarker[]; summary: string; link: { from: LatLng; to: LatLng } | null }) {
+/* The part of the square the schematic shows. The whole window, or — asked to fit its pins — the
+   smallest square around them with a margin, so a day of three suburbs fills the board. Only where
+   things are drawn changes: a pin, a label and a line keep the size they have at any framing, because
+   a pin that grew as the frame tightened would read as a pin that mattered more. */
+type Frame = { x: number; y: number; size: number };
+const WHOLE: Frame = { x: 0, y: 0, size: 100 };
+function frameAround(markers: MapMarker[]): Frame {
+ const points = markers.map(marker => place(marker.at)).filter(p => p.drawn).map(p => plot((p as { at: LatLng }).at));
+ if (!points.length) return WHOLE;
+ const xs = points.map(p => p.x), ys = points.map(p => p.y);
+ const size = Math.min(100, Math.max(28, Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) + 24);
+ const cx = (Math.max(...xs) + Math.min(...xs)) / 2, cy = (Math.max(...ys) + Math.min(...ys)) / 2;
+ return { x: cx - size / 2, y: cy - size / 2, size };
+}
+
+function Schematic({ markers, summary, links, fit }: { markers: MapMarker[]; summary: string; links: readonly MapLink[]; fit: 'window' | 'markers' }) {
  const svg = useRef<SVGSVGElement>(null);
  const [side, setSide] = useState(0);
  useLabelUnits(svg, setSide);
+ const frame = fit === 'markers' ? frameAround(markers) : WHOLE;
+ const zoom = 100 / frame.size;
+ const at = (p: LatLng) => { const q = plot(p); return { x: (q.x - frame.x) * zoom, y: (q.y - frame.y) * zoom }; };
  /* Half a target, in the square's units; before the first measurement, the 340-pixel board's. */
  const hit = ((TARGET_PX / 2) * 100) / (side || 340);
+ const unit = 100 / (side || 340);
  return (
   <div className="livemap-canvas schematic">
    <svg ref={svg} viewBox="0 0 100 100" role="img" aria-label={summary} preserveAspectRatio="xMidYMid meet">
@@ -227,24 +299,28 @@ function Schematic({ markers, summary, link }: { markers: MapMarker[]; summary: 
       <line x1={n} y1="0" x2={n} y2="100" className="map-grid"/>
      </g>
     ))}
-    {zones.map(z => <circle key={z.id} cx={plot(z.at).x} cy={plot(z.at).y} r={radiusInBoxUnits(z.radiusKm)} className="map-zone"/>)}
+    {zones.map(z => <circle key={z.id} cx={at(z.at).x} cy={at(z.at).y} r={radiusInBoxUnits(z.radiusKm) * zoom} className="map-zone"/>)}
     {/* Under the pins, so a mark is never obscured by the line that was measured to it. */}
-    {link && <line x1={plot(link.from).x} y1={plot(link.from).y} x2={plot(link.to).x} y2={plot(link.to).y} className="map-straight"/>}
-    {markers.map(marker => {
+    {links.map((l, i) => <line key={i} x1={at(l.from).x} y1={at(l.from).y} x2={at(l.to).x} y2={at(l.to).y} className="map-straight" style={{ ['--i' as string]: i }}/>)}
+    {markers.map((marker, index) => {
      const placement = place(marker.at);
      if (!placement.drawn) return null;
-     const p = plot(placement.at);
+     /* A pin on the same centre as an earlier one steps aside by half a target, as on the tile map. */
+     const under = markers.slice(0, index).filter(other => { const o = place(other.at); return o.drawn && o.at.lat === placement.at.lat && o.at.lng === placement.at.lng; }).length;
+     const q = at(placement.at);
+     const p = { x: q.x - under * hit, y: q.y + under * hit };
+     const size = marker.badge ? Math.max(4.4, BADGE_PX * unit) : 4.4;
      /* A pin here is the same control it is on the tile map — a button, named, focusable, pressed
         or not. Whether the reader has asked for streets is a preference, and a map must not stop
         being usable with a keyboard because somebody left one switched off. */
      return (
-      <g key={marker.id} className={`map-pin ${marker.kind}${marker.selected ? ' selected' : ''}`}>
-       {marker.selected && <circle cx={p.x} cy={p.y} r="7" className="map-focus"/>}
-       <Mark marker={marker} x={p.x} y={p.y} hit={hit}/>
+      <g key={marker.id} className={`map-pin ${marker.kind}${marker.selected ? ' selected' : ''}${marker.badge ? ' has-badge' : ''}`}>
+       {marker.selected && <circle cx={p.x} cy={p.y} r={Math.max(7, size * 0.95)} className="map-focus"/>}
+       <Mark marker={marker} x={p.x} y={p.y} hit={hit} size={size}/>
       </g>
      );
     })}
-    {zones.map(z => <text key={z.id} x={plot(z.at).x} y={plot(z.at).y - radiusInBoxUnits(z.radiusKm) + 4.4} className="map-label">{z.name}</text>)}
+    {zones.map(z => <text key={z.id} x={at(z.at).x} y={at(z.at).y - radiusInBoxUnits(z.radiusKm) * zoom + 4.4} className="map-label">{z.name}</text>)}
    </svg>
   </div>
  );

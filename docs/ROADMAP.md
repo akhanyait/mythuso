@@ -943,3 +943,34 @@ boundary and resume cold:
 This is a large multi-wave build. Per the standing rule it is written here rather than started near a
 credit cap, so the next session picks it up cold at the next wave boundary. Nothing in Wave 0 touches
 production code, the bundle, or the live site.
+
+### The alignment built in one pass — 30 September 2026, afternoon
+
+The wave order above was overtaken the same day. Audits of the live app against the export found the
+assessment had classified as _built_ screens a role could not reach, and the founder asked for all of the
+export's changes in the current theme. Seven builders closed the buildable gaps in one change: grouped
+navigation in the patient and staff shells, the staff tools as destinations, the nurse's route map and her
+landing, the doctor's and partner's list-beside-detail screens, the patient's tabbed health home, dashboard and
+six new pages, the landing's layout pieces, the Control Tower's field alert and the assistant's composer chrome.
+`docs/FEATURE-MAP.md` holds the record; `docs/design-review/LOVABLE-FULL-ALIGNMENT.md` holds the correction.
+
+What is left, in the order it should be taken:
+
+1. **The founder's gate on the clinical staff screens**: the before-and-after page
+   (https://claude.ai/artifact/XkdTu2t8QeWpX1qTe4zSob) and four rulings — production, the Vetting card's
+   wording, the composer's title, the patient's name on the partner's Orders page. Push and deploy follow a yes.
+2. **Dark theme on the legacy sheets.** `surface/clinical.css` and the patient surface colour headings,
+   panels and the not-connected notice with `--charcoal`, `--body` and white, which have no dark values. It was
+   already so; the new pages make it show in more places. Move them onto the `--color-*` roles.
+3. **`Wordmark.tsx` follows the operating system's scheme**, not the app's theme, and draws the wrong lockup
+   when the two differ.
+4. **The patient's "Thuso Kit" card opens the nurse's capture tool.** Connected devices is now the right
+   destination; `tests/kit-capture.spec.ts` drives the tool through that door and moves to the nurse's
+   workspace with it.
+5. **`OrderDetails.tsx` types its laboratory values and ranges** where a contract should hold them.
+6. **Not built from this pass:** the nurse's shell-level panic (the confirm block is tied to a visit), the
+   Kit screen's "reached the record" ring, the assistant's auto-growing composer, the phone's More hub in the
+   sidebar's groups, the remaining legacy furniture on the patient's Privacy, Family and Live well screens.
+7. **Words nobody has written:** the patient sidebar's group labels render in English in every locale.
+8. **The phones.** None of this is on iOS or Android. `PatientPagesData` is regenerated for both and read by
+   neither.

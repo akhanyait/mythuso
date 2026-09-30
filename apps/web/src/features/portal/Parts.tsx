@@ -207,14 +207,21 @@ export function Region({ title, children, count, why }: { title: string; childre
    one — the status line of the gate or the build that holds it. A screen that heads itself (the dispatch
    board, the vetting queue) passes no title and keeps the eyebrow, because two <h1> elements on one page is
    a reader having to guess which one is the page. Every word is the caller's contract's; this draws them. */
-export function PageHead({ eyebrow, title, titleId, lead, nav, status, className = '' }: {
- eyebrow: ReactNode; title?: string; titleId?: string; lead?: string; nav?: ReactNode; status?: ReactNode; className?: string;
+export function PageHead({ eyebrow, title, titleId, lead, nav, status, icon, className = '' }: {
+ eyebrow: ReactNode; title?: string; titleId?: string; lead?: string; nav?: ReactNode; status?: ReactNode; icon?: ReactNode; className?: string;
 }) {
+ /* `icon`, since 30 September 2026, is the handoff's tile beside its heading: optional, decorative and
+    hidden from a screen reader, because the eyebrow and the heading beside it already say which screen
+    this is. A head without one — or without a title for it to stand beside — is drawn exactly as before. */
+ const tile = icon && title;
  return <header className={`pt-head ${className}`}>
-  <div>
-   <div className="eyebrow pt-head-eyebrow">{eyebrow}</div>
-   {title && <h1 id={titleId}>{title}</h1>}
-   {title && lead && <p className="pt-head-lead">{lead}</p>}
+  <div className={tile ? 'pt-head-titled' : undefined}>
+   {tile && <span className="pt-head-icon" aria-hidden="true">{icon}</span>}
+   <div>
+    <div className="eyebrow pt-head-eyebrow">{eyebrow}</div>
+    {title && <h1 id={titleId}>{title}</h1>}
+    {title && lead && <p className="pt-head-lead">{lead}</p>}
+   </div>
   </div>
   {/* A category's own tabs sit above its status line, so on a phone the way to the next screen is never
       under a paragraph about the category. */}

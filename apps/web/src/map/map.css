@@ -295,3 +295,96 @@
 /* The press target under a pin that can be pressed (LiveMap.tsx, Mark): transparent, unstroked, and
    out-ranking every fill and focus rule above, which would otherwise paint it as a second, larger pin. */
 .map-pin .map-hit.map-hit { fill: transparent; stroke: none; }
+
+/* ---- A numbered pin (30 September 2026) ----
+   A stop in the order of somebody's day carries its number on its face, and only its number: never
+   initials, because a pin sits at a suburb centre so that it names nobody. The face grows to hold a
+   numeral at the floor of the type scale; the target was already 44 and stays so. The numeral is the
+   primary's own foreground on the pin's colour, which is how every filled control in the product
+   carries a word. */
+.map-marker.has-badge::before { width: 2rem; height: 2rem; }
+.map-marker > span {
+ position: absolute;
+ font-size: 13px;
+ font-weight: 700;
+ line-height: 1;
+ color: var(--color-primary-foreground);
+ font-variant-numeric: tabular-nums;
+ pointer-events: none;
+}
+.livemap-canvas.schematic .map-pin-badge {
+ font-size: calc(var(--label-units, 4) * 1px);
+ font-weight: 700;
+ fill: var(--color-primary-foreground);
+ text-anchor: middle;
+ dominant-baseline: central;
+ pointer-events: none;
+}
+
+/* ---- Arrival ----
+   A pin arrives once, on the entrance duration, the first time it is drawn on a map: its face settles
+   from a little above and a little smaller, and rests. The tile marker plays it on its face because the
+   element's own transform is where the library has put it. The straight line fades in on the renderer's
+   own transition (TileMap.tsx). Nothing here repeats, and a reader who asked for less motion gets the
+   board already drawn. */
+.map-marker[data-arrives]::before { animation: map-pin-arrive var(--t-enter) var(--ease-soft) both; }
+@keyframes map-pin-arrive { from { opacity: 0; transform: translateY(-6px) scale(.7); } }
+
+/* ---- Layers ----
+   One switch per kind of mark on the board, named in geography.json's key and wearing the key's own
+   swatch, so a switch and the pin it hides are visibly the same thing. Real checkboxes in 44-pixel rows:
+   the state is the control's own tick, never the tint. */
+.livemap-layers {
+ display: flex;
+ flex-wrap: wrap;
+ gap: var(--space-4) var(--space-12);
+ margin: 0;
+ padding: 0;
+ border: 0;
+ min-width: 0;
+}
+.livemap-layers legend {
+ float: left;
+ width: 100%;
+ padding: 0;
+ font-size: 13px;
+ font-weight: 600;
+ color: var(--color-muted-foreground);
+}
+/* Two classes, so the clinical sheet's label ink (a light-theme charcoal) does not win on a dark page. */
+.livemap-layers .livemap-layer {
+ display: inline-flex;
+ align-items: center;
+ gap: var(--space-8);
+ min-height: 44px;
+ font-size: 14px;
+ color: var(--color-foreground);
+ cursor: pointer;
+}
+.livemap-layer input { width: 18px; height: 18px; min-height: 0; margin: 0; accent-color: var(--color-primary); }
+.livemap-layer i { display: inline-block; width: 12px; height: 12px; border-radius: var(--r-pill); }
+
+/* ---- The taller frame ----
+   Where the screen is the map, the frame takes most of a desktop's height and a good part of a phone's,
+   and still leaves the list beside or under it a scroll away. The overlay is the chosen pin's card, set
+   over the foot of the frame on a wide screen and under it on a phone, where it would cover the pins. */
+.livemap--tall .livemap-frame { position: relative; height: clamp(20rem, 62vh, 36rem); }
+.livemap-frame { position: relative; }
+.livemap-overlay { position: absolute; z-index: 3; left: var(--space-12); right: var(--space-12); bottom: var(--space-12); pointer-events: none; }
+.livemap-overlay > * { pointer-events: auto; }
+@media (max-width: 719px) {
+ .livemap--tall .livemap-frame { height: auto; }
+ .livemap--tall .livemap-frame > .livemap-canvas { flex: none; height: clamp(18rem, 52vh, 26rem); }
+ .livemap-overlay { position: static; margin-top: var(--space-8); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+ .map-marker[data-arrives]::before { animation: none !important; }
+}
+
+/* The coverage sentence under a street map is a direct child of the column, where the foot's
+   `flex: 1 1 15rem` made it fifteen rems tall — a paragraph with a quarter of a screen of nothing under
+   it, on the dispatch board as well as here. In the column it takes the height of its words. */
+.livemap > .livemap-note { flex: none; }
+/* The rendering's chip keeps the right of the heading whether or not the heading names the board. */
+.livemap-heading > span:last-child { margin-left: auto; }

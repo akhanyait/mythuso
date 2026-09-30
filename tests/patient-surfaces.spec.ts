@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { noticeFor } from './notices';
+import { readFileSync } from 'node:fs';
 /* The five patient screens that were left behind when the home was rebuilt.
  *
  * The home got the row, the card padding, the icon size and the status badge; Health Passport, My
@@ -32,6 +33,8 @@ async function navigate(page: Page, name: string) {
 test('the privacy switches are big enough to hit, and say which way they are set', async ({ page }) => {
   await page.goto('/app/');
   await navigate(page, 'Privacy & settings');
+  /* The switches are the Preferences tab of the one settings page since 30 September (the export's tabs). */
+  await page.getByRole('tablist', { name: 'Settings' }).getByRole('tab', { name: 'Preferences' }).click();
   const reminders = page.getByRole('switch', { name: 'Care reminders' });
   const box = (await reminders.boundingBox())!;
   expect(Math.min(box.width, box.height),
@@ -123,18 +126,23 @@ test('the wallet activity list carries the shared error state, and says no money
   await expect(page.getByText('Family care credit')).toBeVisible();
 });
 
-/* An absence of prescriptions is an ordinary state with an ordinary empty state, not a tinted note
-   with a button underneath it that nothing connects to the note. */
-test('the passport uses the shared empty state for prescriptions, and keeps review status on documents', async ({ page }) => {
+/* The Medications tab said "No active prescriptions" beside a prescription screen counting the repeats left
+   on a chronic authorisation — two accounts of one patient's medicines. Since 30 September 2026 it draws the
+   authorisation and the prescription dispensing.json holds, so this asserts those, read from the contract. */
+const dispensingContract = JSON.parse(readFileSync(new URL('../packages/catalog/dispensing.json', import.meta.url), 'utf8'));
+test('the passport reads its medicines from the dispensing contract, and keeps review status on documents', async ({ page }) => {
   await page.goto('/app/');
   await navigate(page, 'Health Passport');
-  await page.getByRole('group', { name: 'Passport sections' }).getByRole('button', { name: 'Medications' }).click();
-  await expect(page.getByRole('heading', { name: 'No active prescriptions' })).toBeVisible();
+  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Medications' }).click();
+  await expect(page.getByText(`${dispensingContract.authorisation.reference} · authorised`)).toBeVisible();
+  await expect(page.getByRole('heading', { name: `Prescription ${dispensingContract.prescription.reference}` })).toBeVisible();
+  await expect(page.locator('.hp-row')).toHaveCount(dispensingContract.prescription.items.length);
+  await expect(page.getByRole('heading', { name: 'No active prescriptions' })).toHaveCount(0);
   await page.getByRole('button', { name: 'See how a prescription reads' }).click();
   await expect(page.getByRole('dialog').getByRole('heading', { name: 'Prescription' })).toBeVisible();
   await page.getByRole('button', { name: 'Close dialog' }).click();
 
-  await page.getByRole('group', { name: 'Passport sections' }).getByRole('button', { name: 'Records' }).click();
+  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Records' }).click();
   const lab = page.locator('.record-row').filter({ hasText: 'Laboratory results' });
   await expect(lab).toContainText('Doctor reviewed');
   /* What this row owes a reader is a review status and an issue date, not one particular day. The
@@ -150,11 +158,19 @@ test('the passport uses the shared empty state for prescriptions, and keeps revi
 test('the passport record actions say what they do before they are pressed', async ({ page }) => {
   await page.goto('/app/');
   await navigate(page, 'Health Passport');
+  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Records' }).click();
   const exportRow = page.locator('.shortcut-row').filter({ hasText: 'Export sample passport' });
   await expect(exportRow).toContainText('Nothing is sent anywhere');
   const box = (await exportRow.boundingBox())!;
   expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(44);
   const download = page.waitForEvent('download');
   await exportRow.click();
-  expect((await download).suggestedFilename()).toBe('mythuso-demo-passport.json');
+  const file = await download;
+  expect(file.suggestedFilename()).toBe('mythuso-demo-passport.json');
+  /* The reading in the file is passport.json's latest set. It was typed as "118/78" beside a record whose
+     last blood pressure was another number — one reading, two copies. */
+  const latest = JSON.parse(readFileSync(new URL('../packages/catalog/passport.json', import.meta.url), 'utf8')).readingSets.at(-1).values;
+  const written = JSON.parse(readFileSync((await file.path())!, 'utf8'));
+  expect(written.readings[0].bloodPressure).toBe(`${latest.systolic}/${latest.diastolic}`);
+  expect(written.readings[0].glucose).toBe(latest.glucose);
 });

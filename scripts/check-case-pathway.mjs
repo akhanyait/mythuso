@@ -241,7 +241,12 @@ export function checkCasePathway({ read, files, stems, hasSequence, existsSync }
   for (const [file, source] of [[libFile, lib], [screenFile, screen], [assistantLib, alib], [panelFile, panel]])
     for (const s of sentences) if (source.includes(s)) fail(`${file} types "${s.slice(0, 50)}…", a sentence of ${CASE} it should be reading.`);
   /* The nurse's section, the doctor's door, the platforms. */
-  if (!/\{ id: 'Cases', short: 'Cases', icon: FolderOpen \}/.test(read("apps/web/src/shells/StaffShell.tsx")) || !/section === 'Cases'/.test(read("apps/web/src/shells/StaffShell.tsx")))
+  /* Since 30 September 2026 each role's sections are items in labelled groups, so the item is looked for inside the
+     nurse's own entry of the table (from `Nurse:` to the next role) — a Cases row under the doctor is not hers — and
+     it may carry `tab: true`, which only says a phone's tab bar holds it. */
+  const staffShell = read("apps/web/src/shells/StaffShell.tsx");
+  const nurseTable = staffShell.match(/\n Nurse: \{ subjectId: [^\n]*groups: \[([\s\S]*?)\n Doctor: \{/)?.[1] ?? "";
+  if (!/\{ id: 'Cases', short: 'Cases', icon: FolderOpen(?:, tab: true)? \}/.test(nurseTable) || !/section === 'Cases'/.test(staffShell))
     fail("The nurse's workspace has no Cases section.");
   if (!/lazy\(\(\) => import\('\.\.\/features\/CaseFile'\)/.test(read("apps/web/src/shells/StaffShell.tsx")) || !/lazy\(\(\) => import\('\.\/CaseFile'\)/.test(read("apps/web/src/features/ClinicalIntelligence.tsx")))
     fail("The case file is imported statically into a chunk the patient's first view names. It arrives on a dynamic import, from the nurse's Cases and the doctor's inbox.");

@@ -13,6 +13,13 @@
  border: 1px solid var(--line, #d9dfdc); border-radius: 12px; background: var(--surface, #fff); cursor: pointer; min-height: 44px;
 }
 .ps-grant.is-chosen { border-color: var(--ink, #1d2b27); box-shadow: inset 0 0 0 1px var(--ink, #1d2b27); }
+/* A shared panel rule stacks a label's text over its control; a choice here reads as the box beside its words. */
+/* A shared rule gives every input a 48px box, which set the tick 15px below its words; the whole row is the
+   target here, so the box is the size of the tick it draws. */
+.ps-scope > label.ps-check, .ps-grants > label.ps-grant { flex-direction: row; align-items: flex-start; }
+.ps-scope > label.ps-check { align-items: center; }
+.ps-scope > label.ps-check > input, .ps-grants > label.ps-grant > input { min-height: 0; margin-block: 0; }
+.ps-grants > label.ps-grant > input { margin-block-start: 3px; }
 .ps-grant input, .ps-check input { margin-block-start: 3px; width: 18px; height: 18px; flex: none; }
 .ps-grant span { display: grid; gap: 2px; }
 .ps-grant small { color: var(--muted, #5a6863); }
@@ -57,4 +64,27 @@
  .emergency-card, .emergency-card * { visibility: visible; }
  .emergency-card { position: absolute; inset-block-start: 0; inset-inline-start: 0; border-color: #000; box-shadow: none; }
  .ps-print { display: none; }
+}
+
+/* The export's two columns (30 September 2026): making a link beside what a copy leaves out and the formats it
+   could take; and the card as the aside beside who may be told if you press SOS. One column under 1000px, where
+   the aside follows what it is beside rather than squeezing it. */
+.ps-columns { display: grid; gap: var(--space-20); min-width: 0; }
+.ps-main, .ps-aside { display: grid; gap: var(--space-16); align-content: start; min-width: 0; }
+.ps-main > .ps-panel, .ps-aside > .ps-panel { margin: 0; }
+.ps-panel > .ui-button { justify-self: start; }
+.ps-aside-card { display: grid; gap: var(--space-12); }
+.ps-aside-card h2 { margin: 0; font-size: 16px; font-weight: 600; color: var(--color-foreground); }
+.ps-aside-card p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-muted-foreground); }
+.ps-aside-card > .ui-button { justify-self: start; }
+.ps-excluded, .ps-formats { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-12); }
+.ps-excluded li { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: var(--space-8); font-size: 14px; line-height: 1.5; color: var(--color-foreground); }
+.ps-excluded svg { margin-top: var(--space-4); color: var(--color-muted-foreground); }
+.ps-formats li { display: grid; gap: var(--space-4); padding-top: var(--space-12); border-top: 1px solid var(--color-border); }
+.ps-formats li:first-child { padding-top: 0; border-top: 0; }
+.ps-format-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-8); font-size: 15px; color: var(--color-foreground); }
+.ps-formats small { font-size: 13px; line-height: 1.5; color: var(--color-muted-foreground); }
+@media (min-width: 1000px) {
+ .ps-columns { grid-template-columns: minmax(0, 1fr) minmax(0, 380px); align-items: start; }
+ .ps-columns--card { grid-template-columns: minmax(0, 1fr) minmax(0, 520px); }
 }

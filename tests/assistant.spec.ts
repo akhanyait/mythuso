@@ -2566,9 +2566,12 @@ test("GilbertOne names the visit the home card shows, not a day of its own", asy
       .getByRole("button", { name: "Overview", exact: true })
       .click();
   else await page.locator(".tabbar button").nth(0).click();
-  const card = page.locator(".visit-card small").first();
-  await expect(card).toContainText("09:00");
-  const cardWhen = (await card.innerText()).split(" – ")[0].trim();
+  /* The home's next visit is the export's hero since 30 September 2026: the day in its date block, the hour
+     on the line under it. Read as text content, so the block's capitals are not what is compared. */
+  const card = page.locator(".pd-hero__when");
+  await expect(card.locator(".pd-hero__time")).toContainText("09:00");
+  const day = (await card.locator(".pd-hero__date > *").allTextContents()).join(" ");
+  const cardWhen = `${day} · ${(await card.locator(".pd-hero__time").innerText()).split(" – ")[0].trim()}`;
   await launcher(page).click();
   await consent(page);
   await ask(page, "when is my nurse coming");

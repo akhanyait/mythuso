@@ -10165,6 +10165,7 @@ for (const sheet of [
   "apps/web/src/surface/clinical.css",
   "apps/web/src/surface/studio.css",
   "apps/web/src/shells/shells.css",
+  "apps/web/src/shells/staff-chrome.css",
 ]) {
   if (!existsSync(sheet)) continue;
   /* Comments stripped first. A CSS comment sitting above a rule is captured as part of that rule's
@@ -10672,6 +10673,8 @@ for (const sheet of [
   "apps/web/src/surface/studio.css",
   "apps/web/src/map/map.css",
   "apps/web/src/surface/motion.css",
+  "apps/web/src/shells/shells.css",
+  "apps/web/src/shells/staff-chrome.css",
 ]) {
   const css = read(sheet);
   const frames = new Map();
@@ -35905,8 +35908,9 @@ console.log(
   if (pp.review.status !== "awaiting-clinical-review")
     ppFail(`${ppFile}'s review status is "${pp.review.status}" while nobody has reviewed the pages. It is "awaiting-clinical-review" until a reviewer is named.`);
 
-  /* 2. The eight screens and the hub that carries them. */
-  const expected = ["symptom-checker", "risk-assessment", "health-library", "health-timeline", "vaccinations", "community", "nutrition", "reminders"];
+  /* 2. The screens and the hub that carries them: Phase D's eight, and the two the export drew that the build
+     did not have (contract version 2, 30 September 2026) — mental health and activity. */
+  const expected = ["symptom-checker", "risk-assessment", "health-library", "health-timeline", "vaccinations", "community", "nutrition", "reminders", "mental-health", "activity"];
   for (const id of expected)
     if (!pp.screens[id]) ppFail(`${ppFile} is missing the screen "${id}". Phase D of docs/ROADMAP.md names eight pages; a page dropped here is a page the design asked for and the build still does not have.`);
   for (const shortcut of pp.hub.shortcuts)
@@ -35951,6 +35955,34 @@ console.log(
   if (d.communityHelplines.limit > helplines.length) ppFail(`derivations.communityHelplines caps at ${d.communityHelplines.limit} but the base carries ${helplines.length}; the cap promises more than exists.`);
   if ((JSON.parse(read(d.intakeGroups.source))[d.intakeGroups.section] ?? []).length === 0)
     ppFail(`derivations.intakeGroups reads ${d.intakeGroups.source}'s ${d.intakeGroups.section}, and there are none.`);
+  /* Version 2's derivations: a Book button that books a service the catalogue does not carry, a crisis card
+     with no lines, or a journal habit that has been renamed would each render as a page that looks done. */
+  const ppServices = JSON.parse(read("packages/catalog/services.json"));
+  for (const key of ["counsellingService", "vaccinationBooking"])
+    if (!ppServices.some((service) => service.id === d[key].service)) ppFail(`derivations.${key} names the service "${d[key].service}", which packages/catalog/services.json does not carry.`);
+  if (pp.screens.vaccinations.record.book.service !== d.vaccinationBooking.service)
+    ppFail(`the vaccination record books "${pp.screens.vaccinations.record.book.service}" while derivations.vaccinationBooking names "${d.vaccinationBooking.service}".`);
+  const ppCrisis = JSON.parse(read(d.crisisLines.source));
+  if (!ppCrisis.lines?.length) ppFail(`derivations.crisisLines reads ${d.crisisLines.source}, which lists no lines. The mental-health page's crisis card would show the emergency door and nothing after it.`);
+  const ppCrisisRefusal = ppCrisis.refusals.find((r) => r.id === d.crisisLines.refusal);
+  if (!ppCrisisRefusal) ppFail(`derivations.crisisLines renders the refusal "${d.crisisLines.refusal}", which ${d.crisisLines.source} does not hold.`);
+  else if (/\{(ambulance|mobile)\}/.test(ppCrisisRefusal.sentence)) ppFail(`derivations.crisisLines renders "${d.crisisLines.refusal}", which names the emergency numbers. These pages open the emergency screen and never restate its numbers.`);
+  const ppWellbeing = JSON.parse(read("packages/catalog/wellbeing.json"));
+  for (const [where, habit] of [["mentalHealthDoors.journalHabit", d.mentalHealthDoors.journalHabit], ["activityEntries.habit", d.activityEntries.habit]])
+    if (!ppWellbeing.habits.some((h) => h.id === habit)) ppFail(`derivations.${where} names the habit "${habit}", which packages/catalog/wellbeing.json does not have.`);
+  for (const [where, id] of [["mentalHealthDoors.moodRefusal", d.mentalHealthDoors.moodRefusal], ["activityEntries.refusal", d.activityEntries.refusal]])
+    if (!ppWellbeing.refusals.some((r) => r.id === id)) ppFail(`derivations.${where} names the wellbeing refusal "${id}", which packages/catalog/wellbeing.json does not hold.`);
+  const ppLibraryDoor = pp.screens["mental-health"].doors.find((door) => door.tab);
+  if (!ppLibraryDoor || ppLibraryDoor.tab !== d.mentalHealthDoors.libraryTab || !pp.screens["health-library"].tabs.some((t) => t.id === ppLibraryDoor.tab))
+    ppFail(`the mental-health page's library door does not open the library tab derivations.mentalHealthDoors names ("${d.mentalHealthDoors.libraryTab}"), or the library has no such tab.`);
+  /* The activity page's tiles: two written states and one count of the rows under it. A tile whose value is a
+     number typed into the contract is a figure nobody measured. */
+  for (const tile of pp.screens.activity.tiles)
+    if (tile.value !== "count" && /\d/.test(tile.value)) ppFail(`the activity tile "${tile.id}" carries a figure. Its value is a written state, or "count" — the entries listed under it, counted.`);
+  /* The health timeline is a door to the Passport's care timeline, and never again a second history that
+     says it is empty while the first one lists the same account's entries. */
+  if (pp.screens["health-timeline"].emptyTitle !== undefined || pp.screens["health-timeline"].door?.target !== "Care timeline")
+    ppFail(`the health timeline no longer opens the Health Passport's care timeline, or it says it has no entries again. One patient has one history.`);
 
   /* 5. The screen types no sentence, and renders the notice and the refusals. */
   const screen = stripJs(read("apps/web/src/features/PatientPages.tsx"));
@@ -35969,6 +36001,15 @@ console.log(
 
   /* 7. Behind a dynamic import, and the entry carries only the generated route names. */
   const app = read("apps/web/src/App.tsx");
+  /* And the four patient screens the export drew outside this family — devices, messages, results, the
+     consultation — each on its own dynamic import, named on the first load only by lib/patient-screens-routes.ts. */
+  for (const [name, file] of [["PatientDevices", "PatientDevices"], ["PatientMessages", "PatientMessages"], ["PatientResults", "PatientResults"], ["PatientConsultation", "PatientConsultation"]]) {
+    if (!new RegExp(`lazy\\(\\(\\) => import\\('\\./features/${file}'\\)`).test(app))
+      ppFail(`apps/web/src/App.tsx no longer loads features/${file}.tsx on a dynamic import. A patient on metered data does not download ${name} before she opens it.`);
+    for (const entry of ["apps/web/src/App.tsx", "apps/web/src/features/Pages.tsx", "apps/web/src/shells/PatientShell.tsx", "apps/web/src/main.tsx"])
+      if (new RegExp(`^import [^;]*from '[^']*features/${file}'`, "m").test(read(entry)))
+        ppFail(`${entry} imports features/${file}.tsx statically, which puts it on the patient's first load.`);
+  }
   if (!/const PatientPagesView = lazy\(\(\) => import\('\.\/features\/PatientPages'\)/.test(app))
     ppFail("apps/web/src/App.tsx no longer loads the patient pages on a dynamic import. A patient on metered data does not download eight screens and six knowledge files she has not opened.");
   if (!/import \{ patientPagesHubRoute, patientPageRoutes \} from '\.\/lib\/patient-pages-routes\.generated'/.test(app))
@@ -35999,7 +36040,7 @@ console.log(
     ppFail("apps/web/src/features/patient-pages.css does not remove its motion under prefers-reduced-motion, with !important so a later sheet cannot put it back.");
 
   console.log(
-    `Patient pages · the ${expected.length} pages of the full Lovable export's Phase D and their hub, unreviewed and saying so, no number the contracts do not hold, every derivation resolved against its file (${pp.screens["health-library"].tabs.length} library tabs, ${nutritionCount} nutrition entries, ${Math.min(d.communityHelplines.limit, helplines.length)} helplines), no typed sentence on any screen, no emergency number restated, behind one dynamic import with one finite entrance.`,
+    `Patient pages · the ${expected.length} pages of the full Lovable export's Phase D and version 2 and their hub, the timeline a door to the one history, a vaccination booking and a crisis card that resolve, unreviewed and saying so, no number the contracts do not hold, every derivation resolved against its file (${pp.screens["health-library"].tabs.length} library tabs, ${nutritionCount} nutrition entries, ${Math.min(d.communityHelplines.limit, helplines.length)} helplines), no typed sentence on any screen, no emergency number restated, behind one dynamic import with one finite entrance.`,
   );
 }
 
@@ -36986,7 +37027,7 @@ console.log(
   const appCode = uncommented(read("apps/web/src/App.tsx"));
   if (!/const UiGallery = import\.meta\.env\.DEV \? lazy\(\(\) => import\('\.\/features\/UiGallery'\)/.test(appCode))
     uiFail("apps/web/src/App.tsx no longer reaches the component gallery behind import.meta.env.DEV and a dynamic import.");
-  const adopters = ["apps/web/src/features/UiGallery.tsx", "apps/web/src/features/portal/Fields.tsx", "apps/web/src/features/Assistant.tsx", "apps/web/src/features/GilbertOneServices.tsx", "apps/web/src/features/PublicAssistant.tsx", "apps/web/src/components/AssistantVoiceButton.tsx", "apps/web/src/features/Dashboard.tsx", "apps/web/src/features/Booking.tsx", "apps/web/src/features/Medicines.tsx", "apps/web/src/shells/PatientShell.tsx", "apps/web/src/shells/StaffShell.tsx", "apps/web/src/shells/AdminShell.tsx", "apps/web/src/shells/PortalShell.tsx", "apps/web/src/surface/Office.tsx", "apps/web/src/features/Admin.tsx", "apps/web/src/features/Dispatch.tsx", "apps/web/src/features/Vetting.tsx", "apps/web/src/features/AuditExports.tsx", "apps/web/src/features/Claims.tsx", "apps/web/src/features/Groups.tsx", "apps/web/src/features/Sponsor.tsx", "apps/web/src/features/OrderDetails.tsx", "apps/web/src/features/SosDesk.tsx", "apps/web/src/features/SosPress.tsx", "apps/web/src/features/UssdSimulator.tsx", "apps/web/src/features/GovernanceReadiness.tsx", "apps/web/src/features/Sentinel.tsx", "apps/web/src/features/AccessPage.tsx",
+  const adopters = ["apps/web/src/features/UiGallery.tsx", "apps/web/src/features/portal/Fields.tsx", "apps/web/src/features/Assistant.tsx", "apps/web/src/features/GilbertOneServices.tsx", "apps/web/src/features/PublicAssistant.tsx", "apps/web/src/components/AssistantVoiceButton.tsx", "apps/web/src/features/Dashboard.tsx", "apps/web/src/features/HomeReads.tsx", "apps/web/src/features/Booking.tsx", "apps/web/src/features/Medicines.tsx", "apps/web/src/shells/PatientShell.tsx", "apps/web/src/shells/StaffShell.tsx", "apps/web/src/shells/AdminShell.tsx", "apps/web/src/shells/PortalShell.tsx", "apps/web/src/surface/Office.tsx", "apps/web/src/features/Admin.tsx", "apps/web/src/features/Dispatch.tsx", "apps/web/src/features/Vetting.tsx", "apps/web/src/features/AuditExports.tsx", "apps/web/src/features/Claims.tsx", "apps/web/src/features/Groups.tsx", "apps/web/src/features/Sponsor.tsx", "apps/web/src/features/OrderDetails.tsx", "apps/web/src/features/SosDesk.tsx", "apps/web/src/features/SosPress.tsx", "apps/web/src/features/UssdSimulator.tsx", "apps/web/src/features/GovernanceReadiness.tsx", "apps/web/src/features/Sentinel.tsx", "apps/web/src/features/AccessPage.tsx",
     /* Wave 4c, the doctor's workspace on the identity: every one behind the staff shell's dynamic import. */
     "apps/web/src/features/ClinicalDeck.tsx", "apps/web/src/features/ClinicalIntelligence.tsx", "apps/web/src/features/ClinicalWorkbench.tsx", "apps/web/src/features/Consultation.tsx", "apps/web/src/features/Teleconsult.tsx", "apps/web/src/features/Clinical.tsx", "apps/web/src/features/SettingReviews.tsx", "apps/web/src/features/DoctorFees.tsx", "apps/web/src/features/ConcernBoard.tsx", "apps/web/src/features/Hl7Results.tsx",
     /* Wave 4e, the Control Tower on the identity: every one behind the portal's dynamic import (the engine-settings
@@ -37007,7 +37048,32 @@ console.log(
        a directory of people who do not exist, with no presence, no standing and no way to reach anybody. Behind the
        staff shell's dynamic import, so it is off the patient's entry and its Button joins the ui.css the clinical
        chunk already downloads. */
-    "apps/web/src/features/StaffTeam.tsx"];
+    "apps/web/src/features/StaffTeam.tsx",
+    /* The Lovable alignment of 30 September 2026, builder S2: the nurse's route map and the screens after it,
+       each behind the staff shell's dynamic import. */
+    "apps/web/src/features/NurseRoute.tsx", "apps/web/src/features/NurseLanding.tsx", "apps/web/src/features/NurseSafety.tsx", "apps/web/src/features/NursePatients.tsx", "apps/web/src/features/NurseDesk.tsx",
+    /* The Lovable alignment of 30 September 2026, builder S3: the case beside the doctor's queue, the doctor's pages,
+       the partner's repeats summary, the patient beside the call and the partner's boards, each behind the staff
+       shell's dynamic import. */
+    "apps/web/src/features/ReviewCase.tsx", "apps/web/src/features/DoctorPages.tsx", "apps/web/src/features/PartnerPages.tsx",
+    "apps/web/src/features/CallSummary.tsx", "apps/web/src/features/Fulfilment.tsx",
+    /* The Lovable alignment of 30 September 2026, builder S1: the staff shell's top bar and attention band, whose
+       band is the shared Alert. Imported only by StaffShell.tsx, so it rides the staff chunk and never the patient's
+       entry, and its Alert joins the ui.css that chunk already downloads. */
+    "apps/web/src/shells/StaffChrome.tsx",
+    /* The Lovable alignment of 30 September 2026, builder P2: the Passport's tabbed home. Pages.tsx is on the
+       patient's entry, which already carries ui.css and these components through Dashboard.tsx; its panels in
+       PassportScreens.tsx are behind the Passport's dynamic import. */
+    "apps/web/src/features/Pages.tsx", "apps/web/src/features/PassportScreens.tsx",
+    /* Arrival's two columns: its buttons and the door card are the shared components, and it is on the same entry. */
+    "apps/web/src/features/Arrival.tsx",
+    /* The share and card screens, Live well's hub and its journal's buttons: all behind their screens' dynamic imports. */
+    "apps/web/src/features/PassportSharing.tsx", "apps/web/src/features/WellbeingScreens.tsx",
+    /* The Lovable alignment of 30 September 2026, builder P3: the four patient screens the export draws and the live
+       app did not have, each behind a dynamic import of its own from App.tsx. The patient's entry already carries
+       ui.css through Dashboard.tsx, so their Buttons, Cards and Tabs add no stylesheet to it. */
+    "apps/web/src/features/PatientDevices.tsx", "apps/web/src/features/PatientMessages.tsx", "apps/web/src/features/PatientResults.tsx",
+    "apps/web/src/features/PatientConsultation.tsx"];
   for (const f of files("apps/web/src").filter((f) => /\.tsx?$/.test(f) && !f.startsWith(`${uiDir}/`) && !adopters.includes(f))) {
     const code = uncommented(read(f));
     if (/from\s+['"][./]*(?:\.\.\/)*ui(?:\/(?!icons\/)[\w]+)?['"]/.test(code) || /features\/UiGallery/.test(code) && f !== "apps/web/src/App.tsx")
@@ -37135,6 +37201,8 @@ console.log(
     "apps/web/src/features/consult-file.css",
     "apps/web/src/features/clinical-records.css",
     "apps/web/src/features/hl7-quarantine.css",
+    /* The doctor's and the partner's pages from the Lovable export's arrangement (30 September 2026, S3). */
+    "apps/web/src/features/doctor-pages.css",
   ];
   /* The product's fourteen steps. tokens.json#typography.scale names eight of them by role and has no list
      of the rest, so the list is written once here until the token file carries it. */
@@ -37432,6 +37500,40 @@ console.log(
     w3a(`packages/catalog/hero.json's stage.impact.coverage is not packages/catalog/geography.json's coverage.sentence, word for word. The map may be the whole country only because this sentence says how little of it is served: "${coverage}"`);
   if (/packages\/catalog\/geography\.json['"]/.test(landing))
     w3a("features/Landing.tsx imports packages/catalog/geography.json, which puts the whole contract on both entries for one sentence. Read the checked copy in hero.json.");
+  /* 2b. The hero's GilbertOne card (30 September 2026) carries the public guide's own label and up to four
+     of its own questions, copied into hero.json for the coverage sentence's reason: importing
+     assistant-public.json would put every answer and alias on the landing entry for four lines. Each copy
+     must be the guide's words, by id, or a row would open the sheet on a question the guide does not
+     answer — and the page must render the copies rather than type them. */
+  {
+    const guide = JSON.parse(w3aRead("packages/catalog/assistant-public.json"));
+    const card = hero.stage.guideCard;
+    if (!card || card.label !== guide.label)
+      w3a(`packages/catalog/hero.json's stage.guideCard.label is not packages/catalog/assistant-public.json's label, word for word: "${guide.label}".`);
+    if (!Array.isArray(card?.questions) || card.questions.length < 1 || card.questions.length > 4)
+      w3a("packages/catalog/hero.json's stage.guideCard offers between one and four of the guide's questions; the handoff's card has four rows and no more.");
+    for (const q of card.questions) {
+      const own = guide.questions.find((g) => g.id === q.id);
+      if (!own) w3a(`packages/catalog/hero.json's stage.guideCard names the question "${q.id}", which packages/catalog/assistant-public.json does not have.`);
+      if (own.question !== q.question) w3a(`packages/catalog/hero.json's stage.guideCard question "${q.id}" reads "${q.question}"; the guide asks "${own.question}". A row that differs opens the sheet on a question it answers as a refusal.`);
+    }
+    if (!/stage\.guideCard\.questions\.map/.test(landing) || !/stage\.guideCard\.label/.test(landing))
+      w3a("features/Landing.tsx no longer renders the hero's GilbertOne card from hero.json's stage.guideCard.");
+    if (/packages\/catalog\/assistant(?:-public)?\.json['"]/.test(landing))
+      w3a("features/Landing.tsx imports an assistant contract, which puts all of it on the landing entry. Read the checked copies in hero.json.");
+  }
+  /* 2c. The official GilbertOne logo's usage rule in the icon gallery (30 September 2026) is the handoff's
+     design-guidelines paragraph, and no screen may load a file from the handoff, so the gallery reads a copy in
+     packages/catalog/gilbertone-logo.json. The copy is the paragraph, word for word, or the gallery states a rule
+     for the logo that its owner never wrote. */
+  {
+    const logoRule = JSON.parse(w3aRead("packages/catalog/gilbertone-logo.json"));
+    const paragraph = w3aRead(logoRule.source).split(/\n\s*\n/).find((p) => /official GilbertOne logo/.test(p))?.trim();
+    if (!paragraph || logoRule.usage !== paragraph)
+      w3a(`packages/catalog/gilbertone-logo.json's usage is not ${logoRule.source}'s paragraph about the official GilbertOne logo, word for word.`);
+    if (!/packages\/catalog\/gilbertone-logo\.json/.test(read("apps/web/src/features/IconGallery.tsx")))
+      w3a("features/IconGallery.tsx no longer reads the logo's usage from packages/catalog/gilbertone-logo.json.");
+  }
 
   /* 3. */
   const stageCode = w3aStrip(stageSheet);
@@ -37605,6 +37707,13 @@ console.log(
     const code = uncommented(read(f));
     const tint = code.match(/\bdata-tint\b|\btintsFor\b|--pt-tint-/);
     if (tint) w4e(`${f} still reaches for ${tint[0]}. The pastel tints are retired; a figure, a register or a section is white, and its name says what it is.`);
+    /* 1., in the markup (30 September 2026). The sheets were scanned for retired variables and the .tsx files
+       were not, so the dispatch demo's schematic map painted with --danger-soft, --mango-soft, --pale-sage
+       and --charcoal through SVG attributes while the check passed. A colour a Control Tower file writes into
+       markup is a --color-* role, or a spacing, corner, motion, shadow or type token — never a name from the
+       generation the identity replaced. */
+    const oldInMarkup = code.match(retired) ?? code.match(/var\(--(?!color-|space-|r-|t-|ease-|shadow|font-|ui-)[a-z][a-z0-9-]*\)/);
+    if (oldInMarkup) w4e(`${f} paints with ${oldInMarkup[0]} in its markup. The Control Tower reads the handoff's --color-* roles; the pastel, studio and pre-identity names are retired in a .tsx as they are in a sheet.`);
     /* 5. */
     const bare = code.match(/className=["{`]+(?:primary|secondary)(?:\s[^"`}]*)?["`}]/);
     if (bare && !/^className="primary g1-live"$/.test(bare[0]))
@@ -38174,7 +38283,9 @@ console.log(
     if (!rendering.tiles[key]) w(`tiles.${key} is missing; the staff surface has to say why streets started on and that switching them off is not kept.`);
   if (!/surface = 'patient'/.test(liveMapSource)) w("LiveMap's surface prop no longer defaults to 'patient'. A caller that does not say must get the default that asks nothing.");
   if (!/useState\(startsOn\)/.test(liveMapSource) || !/const startsOn = tilesStartOn\(surface\)/.test(liveMapSource)) w("LiveMap no longer takes where the switch starts from tilesStartOn(surface), the contract's per-surface default.");
-  const staffScreens = ["apps/web/src/features/Dispatch.tsx", "apps/web/src/features/CareVisit.tsx"];
+  /* The nurse's route map (30 September 2026) is the third: a staff surface whose whole subject is where her
+     day goes, opened under the founder's 29 September ruling that nurses and the desk start on streets. */
+  const staffScreens = ["apps/web/src/features/Dispatch.tsx", "apps/web/src/features/CareVisit.tsx", "apps/web/src/features/NurseRoute.tsx"];
   for (const f of staffScreens) if (!/<LiveMap[^>]*surface="staff"/.test(read(f))) w(`${f} no longer opens its map as a staff surface, so a nurse or a controller gets the schematic they did not ask for.`);
   if (!/<LiveMap[^>]*surface="patient"/.test(read("apps/web/src/features/Arrival.tsx"))) w("Arrival.tsx no longer says its map is a patient's. It must say so rather than rely on the default, because the default is the one thing a later edit would change.");
   for (const f of files("apps/web/src").filter((f) => /\.tsx$/.test(f) && !staffScreens.includes(f)))

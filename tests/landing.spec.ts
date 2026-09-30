@@ -550,3 +550,97 @@ test.describe('when the reader has asked for less motion, the shortlist', () => 
     expect(await page.evaluate(() => document.getAnimations().filter(a => a.playState === 'running').length)).toBe(0);
   });
 });
+
+/* The Lovable alignment of 30 September 2026: the export's arrangements, in the forms this page can keep.
+   Every word is read from the contracts the page reads, so a test cannot pass on a copy of its own. */
+const stage = contract('hero').stage as {
+  guide: { action: string };
+  guideCard: { label: string; questions: { id: string; question: string }[] };
+  impact: { coverage: string; planNote: string };
+};
+const publicGuide: { label: string; questions: { id: string; question: string }[] } = contract('assistant-public');
+
+test('the hero’s GilbertOne card asks the guide’s own questions, and each opens the public sheet already asked', async ({ page }) => {
+  const card = page.locator('.hero-guide');
+  await expect(card.getByRole('img', { name: 'GilbertOne' })).toBeVisible();
+  await expect(card).toContainText(publicGuide.label);
+  /* The card's rows are the guide's questions, word for word and by id — a row that differed would open the
+     sheet on something the guide answers with a refusal. */
+  const rows = card.getByRole('button');
+  await expect(rows).toHaveText(stage.guideCard.questions.map(q => q.question));
+  for (const q of stage.guideCard.questions)
+    expect(publicGuide.questions.find(g => g.id === q.id)?.question, q.id).toBe(q.question);
+  /* Held still: no animated character, and nothing on the card runs once it has arrived. */
+  await expect(card.locator('canvas, video, .gilbert-avatar, [class*="gilbert-one__"]')).toHaveCount(0);
+
+  const row = rows.nth(1);
+  await row.click();
+  const sheet = page.getByRole('dialog', { name: 'GilbertOne' });
+  await expect(sheet).toBeVisible();
+  await expect(sheet.locator('ol > li')).toHaveCount(1);
+  await expect(sheet.locator('ol > li').first()).toHaveAttribute('data-outcome', 'faq');
+  await expect(sheet.locator('.public-assistant-question')).toContainText(stage.guideCard.questions[1].question);
+  /* Closing hands focus back to the row that opened it, not to the round button in the corner. */
+  await page.keyboard.press('Escape');
+  await expect(sheet).not.toBeVisible();
+  await expect(row).toBeFocused();
+});
+
+test('the guide card’s action opens the same public sheet, with nothing asked on her behalf', async ({ page }) => {
+  const action = page.getByRole('button', { name: stage.guide.action, exact: true });
+  await action.scrollIntoViewIfNeeded();
+  await action.click();
+  const sheet = page.getByRole('dialog', { name: 'GilbertOne' });
+  await expect(sheet).toBeVisible();
+  await expect(sheet.locator('ol > li')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(action).toBeFocused();
+});
+
+test('the halo behind the portrait is still, silent and behind the people', async ({ page }) => {
+  const halo = page.locator('.hero-halo');
+  await expect(halo).toHaveAttribute('aria-hidden', 'true');
+  expect(await halo.evaluate(el => [el, ...el.querySelectorAll('*')].map(n => getComputedStyle(n).animationName))).toEqual(['none', 'none', 'none']);
+  const layers = await page.locator('.hero-portrait').evaluate(el => ({
+    halo: Number(getComputedStyle(el.querySelector('.hero-halo')!).zIndex),
+    people: Number(getComputedStyle(el.querySelector('picture')!).zIndex),
+  }));
+  expect(layers.halo).toBeLessThan(layers.people);
+});
+
+test('the impact panel’s card says how little is served, where the handoff counted what has not happened', async ({ page }) => {
+  const card = page.locator('.landing-impact-card');
+  await card.scrollIntoViewIfNeeded();
+  await expect(card.locator('.landing-impact-coverage')).toHaveText(stage.impact.coverage);
+  await expect(card).toContainText(stage.impact.planNote);
+  /* The map and the card share one panel; on a wide screen the map is on the left, and the words stay first
+     in the document either way. */
+  const panel = page.locator('.landing-impact-panel');
+  await expect(panel.locator('.landing-impact-map')).toHaveCount(1);
+  if (page.viewportSize()!.width >= 860) {
+    const [map, words] = await Promise.all([panel.locator('.landing-impact-map').boundingBox(), card.boundingBox()]);
+    expect(map!.x).toBeLessThan(words!.x);
+  }
+});
+
+test('each clinical boundary wears a disc that repeats its heading and never replaces it', async ({ page }) => {
+  const items = page.locator('.landing-refusals li');
+  await expect(items).toHaveCount(4);
+  for (const item of await items.all()) {
+    await expect(item.locator('.landing-refusal-disc')).toHaveAttribute('aria-hidden', 'true');
+    await expect(item.locator('strong')).not.toHaveText('');
+    await expect(item.locator('p')).not.toHaveText('');
+  }
+});
+
+test('the footer’s links go only to places that exist', async ({ page }) => {
+  const links = page.locator('.landing-footer-links a');
+  expect(await links.count()).toBeGreaterThan(0);
+  for (const link of await links.all()) {
+    const href = (await link.getAttribute('href'))!;
+    if (href.startsWith('#')) await expect(page.locator(href), href).toHaveCount(1);
+    else expect(['/?role=patient', '/?role=nurse', '/status/'], href).toContain(href);
+  }
+  /* No newsletter, no privacy or terms page, no sign-up: none of them is there to go to. */
+  await expect(page.locator('.landing-footer')).not.toContainText(/newsletter|subscribe|terms of|privacy policy/i);
+});

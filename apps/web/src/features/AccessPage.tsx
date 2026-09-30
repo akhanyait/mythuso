@@ -32,10 +32,10 @@ import { OfficeHead, OfficeNote } from '../surface/Office';
  * out: a vetted interpreter, a roster, a visit held rather than dispatched, and a wait that says
  * when it does not know. What is still not built is said there rather than here.
  */
-export function AccessPage() {
+export function AccessPage({ level = 1 }: { level?: 1 | 2 }) {
  const drafted = locales.filter(locale => !locale.reviewed);
  return <div className="oi-screen oi-access">
-  <OfficeHead eyebrow="Language and access" title="Twelve official languages, and what is honestly on offer in each" lead={translationHonesty}/>
+  <OfficeHead eyebrow="Language and access" title="Twelve official languages, and what is honestly on offer in each" lead={translationHonesty} level={level}/>
 
   <Card>
    <CardHeader><CardTitle>Written languages</CardTitle><CardDescription>{fallbackRule}</CardDescription></CardHeader>

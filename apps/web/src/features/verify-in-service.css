@@ -37,3 +37,9 @@
 .vis-shown { display: grid; gap: var(--space-4); padding: var(--space-12) var(--space-16); border-radius: var(--r-md); background: var(--color-surface-raised); }
 .vis-digits { font-family: var(--font-display); font-size: 36px; font-weight: 600; letter-spacing: 0.25em; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
 .vis-nurse-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); justify-content: flex-start; }
+
+/* The code as six cells (30 September 2026), the export's arrangement: each digit in a box of its own on the
+   white surface, so a digit read aloud is found by its place. The hide switch sits under them. */
+.vis-digits { display: flex; flex-wrap: wrap; gap: var(--space-8); letter-spacing: 0; }
+.vis-cell { display: inline-grid; place-items: center; width: 44px; height: 56px; border: 1px solid var(--color-border); border-radius: var(--r-md); background: var(--color-surface); font-family: var(--font-display); font-size: 28px; font-weight: 600; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.vis-shown .vis-hide { justify-self: start; }

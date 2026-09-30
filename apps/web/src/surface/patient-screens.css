@@ -236,31 +236,45 @@
    patient's map the swatches arrived as a run-on line with the dots wrapping mid-phrase. It is laid
    out here for the entry that actually renders it. */
 .map-key{display:flex;flex-wrap:wrap;gap:var(--space-8) var(--space-16);font-size:13px;color:var(--body);margin-top:var(--space-8)}
-.arrival-who{display:flex;align-items:center;gap:var(--space-12);min-width:0}
-.arrival-who strong{display:block;font-size:16px;font-weight:600;color:var(--charcoal)}
-.arrival-who small{display:block;font-size:13px;color:var(--faint)}
 .patient-surface .arrival-lead .s-metrics,
 .patient-surface .sponsor-lead .s-metrics{grid-template-columns:repeat(auto-fit,minmax(124px,1fr));gap:var(--space-20) var(--space-16)}
-/* The map is context, not subject: a plain panel on the ground rather than a second lead. A screen
-   where the picture is the largest thing has decided the picture is the answer, and here the answer
-   is the sentence beside it. The schematic is square, so the panel is held near square too —
-   letterboxed across a fifteen-hundred-pixel column it was a small drawing in a field of grey. */
-.arrival-map{display:flex;flex-direction:column;gap:var(--space-8)}
-.arrival-map .livemap{max-width:380px}
-.arrival-columns{display:grid;gap:var(--space-24)}
-.arrival-facts{display:flex;flex-direction:column;gap:var(--space-12);min-width:0}
+/* The export's visit tracker: the figures, the leg and the map in one panel on the left, and who is
+   coming and how to check her at the door as an aside on the right. The map is context, not subject:
+   it sits under the figures inside the lead rather than being a second lead beside them. The schematic
+   is square, so it is held near square — letterboxed across the whole column it was a small drawing in
+   a field of grey. */
+.arrival-lead{display:flex;flex-direction:column;gap:var(--space-16);min-width:0}
+.arrival-lead .lead-head{justify-content:space-between;flex-wrap:wrap;gap:var(--space-8)}
+.arrival-lead .lead-head h2{margin:0;font-size:18px;font-weight:600;color:var(--charcoal);min-width:0}
+.arrival-lead .helper{margin:0}
+.arrival-map{display:flex;flex-direction:column;gap:var(--space-8);padding-top:var(--space-16);border-top:1px solid var(--stone)}
+.arrival-map .livemap{max-width:420px}
+/* The leg as a bar. The fill is scaled rather than sized, so a tick of the clock moves a composited
+   layer and never re-lays the panel; it does not animate between ticks at all, because a bar that glides
+   reads as something being tracked. */
+.arrival-leg{display:flex;flex-direction:column;gap:var(--space-8)}
+.arrival-leg__track{height:8px;border-radius:var(--r-pill);background:var(--stone);overflow:hidden}
+.arrival-leg__track > span{display:block;height:100%;background:var(--color-primary);transform-origin:left center}
+.arrival-leg small{font-size:13px;color:var(--body)}
+.arrival-columns{display:grid;gap:var(--space-20)}
+.arrival-aside{display:flex;flex-direction:column;gap:var(--space-20);min-width:0}
+.arrival-door{display:flex;flex-direction:column;gap:var(--space-12)}
+/* The door card is a shared-library Card, which answers the theme through the --color-* roles, so its words
+   do too; the surface's own charcoal stayed dark on the Card's dark ground. */
+.arrival-door h2{margin:0;font-size:16px;font-weight:600;color:var(--color-foreground)}
+.arrival-door p{margin:0;font-size:14px;line-height:1.5;color:var(--color-muted-foreground)}
+.arrival-facts{display:flex;flex-direction:column;gap:var(--space-12);min-width:0;margin-top:var(--space-24)}
+.arrival-actions{display:flex;flex-wrap:wrap;gap:var(--space-12);margin-top:var(--space-24)}
+.arrival-actions > *{flex:1 1 220px}
 @media(min-width:960px){
- /* Side by side above 960: the picture on the left at the size it is actually drawn, and the four
-    things it is not filling the width that would otherwise be grey. */
- .arrival-columns{grid-template-columns:minmax(0,380px) minmax(0,1fr);align-items:start}
+ /* Side by side above 960, the aside at the width of a profile card and the lead taking the rest. */
+ .arrival-columns{grid-template-columns:minmax(0,1fr) minmax(0,340px);align-items:start}
+ .arrival-actions > *{flex:0 0 auto}
 }
 @media(max-width:520px){
- /* A name, a role and a status chip will not share one line at 390px without the name wrapping into
-    the chip. The chip takes a line of its own instead, under the person it is about. The child
-    selector is deliberate: the shared rule gives every div in a lead head flex:1, and it wins. */
- .patient-surface .arrival-lead .lead-head,
+ /* A heading and a status chip will not share one line at 390px without the words wrapping into the
+    chip. The chip takes a line of its own instead, under what it is about. */
  .patient-surface .sponsor-lead .lead-head{flex-wrap:wrap;gap:var(--space-8)}
- .patient-surface .arrival-lead .lead-head > .arrival-who,
  .patient-surface .sponsor-lead .lead-head > .sponsor-who{flex:1 1 100%}
 }
 
@@ -417,3 +431,48 @@
 @media(prefers-reduced-motion:reduce){
  .wb-habit{transition:none}
 }
+
+/* ---- The Health Passport's frame (Pages.tsx#Passport) -------------------------------------------
+   The export's "My Health": the home's welcome card, the credential, then the tab bar the dashboard's
+   trends wear (the shared Tabs). The panels under it are dressed by features/health-home.css, which arrives
+   with them on their dynamic import. The credential keeps its own look; only the spacing the page's grid
+   now gives it is taken off. */
+.pd.hp .passport-hero{margin-bottom:0}
+.pd.hp .pd-welcome{grid-template-columns:minmax(0,1fr)}
+.pd.hp > .not-connected{margin:0}
+.pd.hp .hp-tabs{justify-self:start}
+@media(max-width:639px){
+ .pd.hp .pd-welcome{padding:var(--space-20)}
+ .pd.hp .pd-welcome h1{font-size:28px}
+ .pd.hp .hp-tabs{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));width:100%}
+}
+
+/* A page heading with the page's one action beside it (PageHeading's `action`), as the export's My visits
+   puts "Book new". It drops under the words on a phone rather than squeezing them. */
+.page-intro.page-intro--action{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--space-16)}
+.page-intro.page-intro--action>div:first-child{flex:1 1 320px;min-width:0}
+/* Seven tabs in three columns leave Records alone on the last row; it takes the row, so it reads as placed. */
+@media(max-width:639px){.pd.hp .hp-tabs>:last-child:nth-child(3n+1){grid-column:1/-1}}
+.page-intro--action .page-intro__action{flex:none}
+@media(max-width:639px){.page-intro--action .page-intro__action,.page-intro--action .page-intro__action .ui-button{width:100%}}
+
+/* ---- Privacy & settings as one page (Pages.tsx#Privacy) -----------------------------------------
+   The export's settings tabs over one panel. Four labels do not fit one row at 390px, and a tab bar that
+   scrolls sideways hides the fourth; below 640 they sit two by two instead, each still a whole target. */
+.settings-tabs{justify-self:start;margin-bottom:var(--space-20);max-width:100%}
+.settings-panel{display:grid;gap:var(--space-20);min-width:0}
+.settings-panel > .not-connected{margin:0}
+.settings-profile .profile-summary{margin-bottom:var(--space-16)}
+.settings-profile .profile-summary h2{margin:0;font-size:18px;font-weight:600;color:var(--charcoal)}
+.settings-reasons{margin:0;padding-left:var(--space-20);display:grid;gap:var(--space-8);font-size:15px;line-height:1.55;color:var(--body)}
+@media(max-width:639px){
+ .settings-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
+}
+/* Drawn as a tab, the language page's heading is under the settings page's own h1, so it steps down a size
+   rather than out-shouting the page it is a part of. */
+.settings-panel .oi-head .oi-title{font-size:24px}
+
+/* My family's photo banner (Pages.tsx#Family), the export's decoration under the circle: the panorama the banner
+   set already has, as a band that closes the page without pushing its words out of view. */
+.family-banner{position:relative;margin:var(--space-24) 0 0;border-radius:var(--r-lg);overflow:hidden;background:var(--stone)}
+.family-banner img{display:block;width:100%;height:220px;object-fit:cover;object-position:80% center}

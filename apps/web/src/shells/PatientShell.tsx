@@ -1,13 +1,22 @@
-import { useLayoutEffect, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useState, type ComponentType, type CSSProperties, type ReactNode } from 'react';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { Wordmark } from '../components/Wordmark';
-import { Ambulance, ArrowRight, Bell, BookOpen, ChevronDown, CircleHelp, Compass, CreditCard, Ellipsis, Globe, Languages, MapPin, Repeat } from 'lucide-react';
+import {
+ Ambulance, Apple, BadgeCheck, Bell, BellRing, BookOpen, ChevronDown, CircleHelp, Compass, CreditCard, Ellipsis, Globe, HandCoins,
+ Handshake, History, Languages, Library, Lightbulb, LogOut, MapPin, Milestone, Navigation, Repeat, Search, Share2, ShieldAlert,
+ ShieldCheck, ShieldPlus, Thermometer, TrendingUp, Bluetooth, Footprints, LifeBuoy, Video
+} from 'lucide-react';
+/* Only the names the router opens, generated from their contracts; the pages and their words stay behind
+   the dynamic imports App.tsx reaches them through. */
+import { patientPageRoutes, patientPagesHubRoute } from '../lib/patient-pages-routes.generated';
+import { careTipsRoute } from '../lib/care-tips-route.generated';
+import { patientScreenRoutes } from '../lib/patient-screens-routes';
 /* The shared component and the icon family, imported from their own modules rather than the barrel so
    the patient's entry carries the one component it draws and not the seventeen it does not. */
 import { NavigationItem } from '../ui/NavigationItem';
 import {
- MyThusoDashboardIcon, MyThusoFamilyIcon, MyThusoHealthIcon, MyThusoMindIcon, MyThusoQuickIcon,
- MyThusoSettingsIcon, MyThusoVisitIcon
+ MyThusoDashboardIcon, MyThusoFamilyIcon, MyThusoHealthIcon, MyThusoMedicationIcon, MyThusoMindIcon, MyThusoQuickIcon,
+ MyThusoSettingsIcon, MyThusoVisitIcon, MyThusoMessagesIcon, MyThusoResultsIcon
 } from '../ui/icons/MyThusoIcons.generated';
 import { DemoBar } from '../features/DemoLogin';
 import { locales, useT, type LocaleCode } from '../lib/i18n';
@@ -49,15 +58,50 @@ export const PATIENT_SURFACE = 'patient-surface';
    glyphs are chosen from outside every MyThuso icon's neverBeside list in packages/catalog/icons.json,
    so a heart, a grid or a house
    never stands beside the family's own for the same idea. */
-const navigation = [
- ['Overview', MyThusoDashboardIcon], ['Book a nurse', MyThusoQuickIcon], ['My visits', MyThusoVisitIcon], ['Health Passport', MyThusoHealthIcon],
- ['Live well', MyThusoMindIcon], ['My family', MyThusoFamilyIcon], ['Care plans', Repeat], ['Thuso Wallet', CreditCard],
- ['Your health', BookOpen], ['Explore MyThuso', Compass]
-] as const;
+/* The sidebar in the Lovable export's arrangement (30 September 2026): labelled groups that fold, in the
+   export's order — Overview, Care, My Health, Wellness, Devices, Family & Safety, Account — holding a row
+   for every patient screen that exists and is reachable by name. The export draws twenty-eight rows;
+   the ones it draws for a screen this build does not have are not here, and its invented counts
+   ("Messages 2", "Devices 1") are not here either — the visit count is, because it is counted from the
+   visit list. A group with one row has no heading: a fold around one destination is a second press for
+   nothing, which is also why Overview stays the first button in the landmark and Explore the last.
+
+   Every group starts open. The export opens only the group you are in; here a folded group would take
+   its rows out of reach of every journey that navigates by the row's name, and a reader arriving from
+   a link would meet five closed headings with the thing they came for inside one of them. Folding is
+   the reader's choice, held for the session in memory only, and the group holding the current page
+   opens itself again when the page changes.
+
+   To add a row: append `[pageName, Icon]` to the group's `rows`, where pageName is exactly what
+   App.tsx routes on. It becomes a sidebar row and a `?open=` destination together. */
+type NavRow = readonly [string, ComponentType];
+export const navGroups: { id: string; label?: string; rows: NavRow[] }[] = [
+ { id: 'overview', rows: [['Overview', MyThusoDashboardIcon]] },
+ { id: 'care', label: 'Care', rows: [
+  ['Book a nurse', MyThusoQuickIcon], ['My visits', MyThusoVisitIcon], ['Care plans', Repeat], [patientPageRoutes.reminders.opens, BellRing], [patientScreenRoutes.messages.opens, MyThusoMessagesIcon], [patientScreenRoutes.consultation.opens, Video]
+ ] },
+ { id: 'health', label: 'My Health', rows: [
+  ['Health Passport', MyThusoHealthIcon], [patientPagesHubRoute.opens, BookOpen], [patientScreenRoutes.results.opens, MyThusoResultsIcon], ['Health trends', TrendingUp], ['Care timeline', History],
+  ['Your care team', BadgeCheck], ['What happens to a prescription', MyThusoMedicationIcon], [patientPageRoutes['symptom-checker'].opens, Thermometer],
+  [patientPageRoutes['risk-assessment'].opens, ShieldAlert], [patientPageRoutes.vaccinations.opens, ShieldPlus],
+  [patientPageRoutes['health-timeline'].opens, Milestone], ['Share part of your record', Share2]
+ ] },
+ { id: 'wellness', label: 'Wellness', rows: [
+  ['Live well', MyThusoMindIcon], [careTipsRoute.opens, Lightbulb], [patientPageRoutes['health-library'].opens, Library],
+  [patientPageRoutes['mental-health'].opens, LifeBuoy], [patientPageRoutes.community.opens, Handshake], [patientPageRoutes.nutrition.opens, Apple], [patientPageRoutes.activity.opens, Footprints]
+ ] },
+ /* The export's "Nurse visit tracker" is the arrival screen, and the export files it with the devices. */
+ { id: 'devices', label: 'Devices', rows: [[patientScreenRoutes.devices.opens, Bluetooth], ['Arrival', Navigation]] },
+ { id: 'family', label: 'Family & Safety', rows: [['My family', MyThusoFamilyIcon], ['Your emergency card', ShieldCheck], ['Care you sponsor', HandCoins]] },
+ { id: 'account', label: 'Account', rows: [
+  ['Thuso Wallet', CreditCard], ['Privacy & settings', MyThusoSettingsIcon], ['Language & access', Languages], ['Help & support', CircleHelp]
+ ] },
+ { id: 'explore', rows: [['Explore MyThuso', Compass]] }
+];
 /* The sections a link may open. `?open=` on the product's address is how the landing page's hero
    sends a reader to the screen its call to action named, and it is validated against this list
    rather than against a second copy of it — a slug nothing here answers to opens the overview. */
-export const patientSections = navigation.map(([page]) => page);
+export const patientSections = navGroups.flatMap(group => group.rows.map(([page]) => page));
 const tabs = [
  ['Overview', 'Home', MyThusoDashboardIcon], ['Book a nurse', 'Book care', MyThusoQuickIcon], ['My visits', 'Visits', MyThusoVisitIcon],
  ['Health Passport', 'Passport', MyThusoHealthIcon], ['More', 'More', Ellipsis]
@@ -76,10 +120,24 @@ type Props = {
      zero-height row whose orb rises from it, so on a phone it always clears the bar at whatever
      height the bar has grown to, with no measuring. */
  assistant?: ReactNode;
+ /** Ends the session — App.tsx's own signOut, the one the profile dialog's Log out calls. */
+ signOut?: () => void;
+ /** The catalogue's search, shared with the home's search field and the service list. */
+ query?: string;
+ setQuery?: (q: string) => void;
 };
 
-export function PatientShell({ page, navigate, open, locale, location, visitCount, children, assistant }: Props) {
+export function PatientShell({ page, navigate, open, locale, location, visitCount, children, assistant, signOut, query, setQuery }: Props) {
  const t = useT();
+ /* Which groups the reader has folded, for this session and in memory only. Opening a page reopens the
+    group it lives in, so where-you-are is never inside a closed heading. */
+ const [folded, setFolded] = useState<string[]>([]);
+ useEffect(() => {
+  const holder = navGroups.find(group => group.rows.some(([name]) => name === page));
+  if (holder) setFolded(current => current.includes(holder.id) ? current.filter(id => id !== holder.id) : current);
+  /* A row far down the list, opened from a link, is scrolled to inside the navigation's own scroll. */
+  document.querySelector('.psb-nav [aria-current="page"]')?.scrollIntoView({ block: 'nearest' });
+ }, [page]);
  /* The flag every entrance on this surface is gated on (surface/motion.css). Set in a layout effect, so
     it is on the document before the first frame is painted and nothing visibly jumps from shown to
     hidden; never set for a reader who asked for less motion, so for them nothing starts at opacity 0.
@@ -101,26 +159,34 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
   <div className="patient-ground aurora m-light" aria-hidden="true"/>
   <a href="#main" className="skip-link">{t('shell.skip')}</a>
   <aside className="sidebar">
-   <a className="brand" href="#" onClick={e => { e.preventDefault(); navigate('Overview'); }}><Wordmark/></a>
-   <div className="nav-label">{t('nav.section')}</div>
+   <div className="psb-brand">
+    <a className="brand" href="#" onClick={e => { e.preventDefault(); navigate('Overview'); }}><Wordmark/></a>
+    <p className="psb-tagline">{t('shell.tagline')}</p>
+   </div>
    {/* The handoff's navigation item: the current destination in the accent's tint, its words in the
        ink and a heavier weight, so where-you-are is never told by colour alone. The visits carry their
-       count in place of the chevron, as text, so it is read with the name. */}
-   <nav aria-label="Main navigation">{navigation.map(([label, Icon]) =>
-    <NavigationItem key={label} active={page === label} icon={<Icon/>}
-     count={label === 'My visits' ? visitCount : undefined} onClick={() => navigate(label)}>
-     {t(`nav.${label}`)}
-    </NavigationItem>)}</nav>
+       count in place of the chevron, as text, so it is read with the name. A group's heading is a real
+       button that says whether it is open, and its rows are hidden rather than removed when it is not,
+       so aria-controls always names something. */}
+   <nav aria-label="Main navigation" className="psb-nav">{navGroups.map(group => {
+    const rows = group.rows.map(([label, Icon]) =>
+     <NavigationItem key={label} active={page === label} icon={<Icon/>}
+      count={label === 'My visits' ? visitCount : undefined} onClick={() => navigate(label)}>
+      {t(`nav.${label}`)}
+     </NavigationItem>);
+    if (!group.label) return <div className="psb-single" key={group.id}>{rows}</div>;
+    const open = !folded.includes(group.id);
+    return <div className="psb-group" key={group.id}>
+     <button type="button" className="psb-group__toggle" aria-expanded={open} aria-controls={`psb-${group.id}`}
+      onClick={() => setFolded(open ? [...folded, group.id] : folded.filter(id => id !== group.id))}>
+      <span>{t(`nav.${group.label}`)}</span><ChevronDown aria-hidden="true"/>
+     </button>
+     <div className="psb-group__rows" id={`psb-${group.id}`} hidden={!open}>{rows}</div>
+    </div>;
+   })}</nav>
+   {/* The help card went when the rows came: Help & support is a row under Account now, and the card was
+       a second door to it standing between the navigation and the emergency row. */}
    <div className="sidebar-bottom">
-    <div className="help-card">
-     <span className="help-symbol"><CircleHelp size={19}/></span>
-     {/* "Let's talk" opened a dialog with a search box and a sentence about live support. There
-         is nobody to talk to — `messaging` is not connected — so the card offers what the screen
-         behind it actually is: an account of what MyThuso can answer without anybody being
-         reachable. */}
-     <h3>A helping hand?</h3><p>What we can answer without anybody to write to.</p>
-     <button onClick={() => navigate('Help & support')}>See what is here<ArrowRight size={15}/></button>
-    </div>
     {/* The emergency pathway, in the chrome rather than fourteen cards deep inside a roadmap page.
         It is a quiet row and not a red button on purpose: the screen it opens leads with 10177 and
         says in its first line that MyThuso is not an ambulance service, and a shouting control in
@@ -132,9 +198,10 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
         is styled to say so. */}
     <button className="sos-link" onClick={() => open('Emergency & urgent care')}><Ambulance size={18}/>Emergency &amp; urgent care</button>
     <button className="settings-link" onClick={() => open('Language')}><Globe size={18}/>{t('shell.language')}: {locales.find(l => l.code === locale)?.native}</button>
-    <button className="settings-link" onClick={() => navigate('Language & access')}><Languages size={18}/>{t('nav.Language & access')}</button>
-    <button className="settings-link" onClick={() => navigate('Privacy & settings')}><MyThusoSettingsIcon/>{t('nav.Privacy & settings')}</button>
-    <button className="profile" onClick={() => open('Your profile')}><span className="avatar small">LM</span><span><strong>Lerato Molefe</strong><small>{t('shell.personal')}</small></span><ChevronDown size={15}/></button>
+    {/* Log out at the foot, where the export pins it, doing what the profile dialog's button does. Who is
+        signed in moved to the top bar's profile chip; Language & access and Privacy & settings are rows
+        under Account. */}
+    {signOut && <button className="settings-link psb-signout" onClick={signOut}><LogOut size={18}/>Log out</button>}
    </div>
   </aside>
   <div className={`workspace ${page === 'Overview' ? 'is-home' : ''}`}>
@@ -144,13 +211,29 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
         below two points — the same defect the iOS toolbar had and the sign-in door had, in its third
         place. icon.svg is the icon out of that same artwork. */}
     <a className="brand" href="#" onClick={e => { e.preventDefault(); navigate('Overview'); }}><img src="/brand/mythuso-mark.svg" alt="MyThuso"/></a>
-    <div className="breadcrumb">{t('shell.breadcrumb')}<span>/</span><strong>{t(`nav.${page}`)}</strong></div>
+    {/* The export's global search, in the place its breadcrumb held — the page's own heading already says
+        where you are. It is the catalogue's search: the same query the home's field and the service list
+        read, so what it finds is care you can book, and Enter opens the list it has filtered. The export
+        promises doctors and clinics as well; there is no directory of either to search. */}
+    {setQuery && <form className="psb-search" role="search" aria-label="Search care" onSubmit={e => { e.preventDefault(); navigate('Book a nurse'); }}>
+     <Search aria-hidden="true"/>
+     <input className="ui-control" type="search" aria-label="Search care and services" placeholder="Search care and services" value={query ?? ''} onChange={e => setQuery(e.target.value)}/>
+    </form>}
     <div className="topbar-actions">
      <ThemeToggle className="topbar-theme"/>
      <button className="location-button" onClick={() => open('Your location')}><MapPin size={16}/><span>{location}</span><ChevronDown size={13}/></button>
      <span className="topbar-divider"/>
-     <button className="icon-button notification-button" aria-label="Notifications" onClick={() => open('Notifications')}><Bell size={19}/><i/></button>
-     <button className="avatar small" aria-label="Your profile" onClick={() => open('Your profile')}>LM</button>
+     {/* The dot rings once when the shell arrives and then holds still (shells.css); the export's ring
+         repeats for ever, which this surface's motion rules refuse. */}
+     <button className="icon-button notification-button" aria-label="Notifications" onClick={() => open('Notifications')}><Bell size={19}/><i className="psb-ring"/></button>
+     {/* The profile chip: the avatar is the button and keeps the name "Your profile"; the name beside it is
+         the chip's caption, and the button's hit area is stretched over the whole chip, so pressing the name
+         opens the profile too without the button being named something it does not say. */}
+     <span className="psb-profile">
+      <button className="avatar small" aria-label="Your profile" onClick={() => open('Your profile')}>LM</button>
+      <span className="psb-profile__who"><strong>Lerato Molefe</strong><small>{t('shell.personal')}</small></span>
+      <ChevronDown aria-hidden="true" className="psb-profile__chevron"/>
+     </span>
     </div>
    </header>
    {/* The disclosure sits outside the action cluster because on a phone it cannot share a row with
@@ -166,7 +249,11 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
    <main id="main" tabIndex={-1}>{children}</main>
    <footer className="app-footer">
     <span>© 2026 MyThuso. {t('shell.tagline')}</span>
-    <button onClick={() => navigate('Help & support')}><CircleHelp size={14}/>{t('shell.help')}</button>
+    {/* The export's Privacy, Terms and Help Centre, less Terms: there is no terms screen to open. */}
+    <span className="psb-footer-links">
+     <button onClick={() => navigate('Privacy & settings')}><MyThusoSettingsIcon/>{t('nav.Privacy & settings')}</button>
+     <button onClick={() => navigate('Help & support')}><CircleHelp size={14}/>{t('shell.help')}</button>
+    </span>
    </footer>
    {assistant}
    <nav className="tabbar" aria-label="Primary" style={{ '--m-tab': tabs.findIndex(([target]) => target === page) } as CSSProperties}>{tabs.map(([target, label, Icon]) =>

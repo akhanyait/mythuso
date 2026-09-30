@@ -9,6 +9,7 @@ import { Badge, Button, StatusIndicator } from '../ui';
 import { NotConnected } from '../components/NotConnected';
 import { CodeInput, StepHead } from '../components/Steps';
 import { ConsultationComposer } from './Consultation';
+import { CallSummary } from './CallSummary';
 import { demoVisitCode } from './Clinical';
 import { initialsOf } from '../lib/names';
 import { subjectById, subjectsByRole } from '../lib/vetting-fixtures';
@@ -510,7 +511,9 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
    </div>
   </div>
 
-  : stage === 3 ? <div className="form-stack tcx-stage">
+  /* The call room: the stage in the middle and, from a wide screen, the patient beside it — the Lovable
+     export's arrangement, without its video stage, its vital signs or its notes box (features/CallSummary.tsx). */
+  : stage === 3 ? <div className="tcx-room"><div className="form-stack tcx-stage">
    <NotConnected of="teleconsultation"/>
 
    <LineInstrument connectionId={connectionId} allowed={allowedNow}/>
@@ -607,6 +610,7 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
    {!mayConclude(connectionId, nursePresent) && <p className="tc-cost" role="status"><WifiOff size={14}/>The line does not currently allow a decision to be reached, so there is no way to close this encounter as a completed consultation.</p>}
    {!consented.doctor && <p className="tc-cost" role="status"><ShieldX size={14}/>Consent to the consultation has been withdrawn. {consentItems.find(c => c.id === 'consult')!.revokedMidCall}</p>}
   </div>
+  <CallSummary patient={patient} rule={ruleById('dropped-is-not-finished').sentence}/></div>
 
   : <div className="form-stack tcx-stage">
    {/* The verdict, as one statement. The outcome, whether it counts, whether it is charged and the

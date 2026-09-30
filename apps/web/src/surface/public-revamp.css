@@ -126,6 +126,11 @@
   width: min(100%, 360px);
   margin: 0 auto;
 }
+/* The panel is what the cards and the particles are placed against, so a figure that grows under it —
+   the guide's card on a phone — never moves them. */
+.landing-portrait-frame {
+  position: relative;
+}
 .hero-portrait {
   background: color-mix(in oklab, var(--color-accent) 10%, var(--color-surface));
   clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%, 0 14%);
@@ -273,6 +278,116 @@
   background: var(--color-coral);
 }
 
+/* ---- The halo, 30 September 2026 ----
+   The handoff's three concentric rings behind its portrait (theme.css `hero-halo`), drawn inside the panel
+   so its slant cuts them as it cuts the wash: between the wash and the people, in front of nothing a
+   reader needs. The accent as a hairline at three strengths, still — the handoff never animated it, and
+   this page's two loops are spent. */
+.hero-portrait {
+  position: relative;
+  isolation: isolate;
+}
+.hero-portrait picture {
+  position: relative;
+  z-index: 1;
+  display: block;
+}
+.hero-halo,
+.hero-halo > span {
+  position: absolute;
+  border-radius: var(--r-pill);
+  pointer-events: none;
+}
+.hero-halo {
+  z-index: 0;
+  top: 5%;
+  left: -4%;
+  width: 84%;
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in oklab, var(--color-accent) 20%, transparent);
+}
+.hero-halo > span:first-child {
+  inset: 12%;
+  border: 1px solid color-mix(in oklab, var(--color-accent) 25%, transparent);
+}
+.hero-halo > span:last-child {
+  inset: 27%;
+  border: 1px solid color-mix(in oklab, var(--color-accent) 30%, transparent);
+}
+
+/* ---- GilbertOne's card, 30 September 2026 ----
+   The handoff's floating assistant card, held still: the official logo on a light plate (its lettering is
+   ink and is never recoloured, so the plate stays light in either scheme), the guide's own label, and its
+   questions as the handoff's action rows — here real buttons, 44 tall, each opening the public sheet with
+   that question asked. On a phone it stands in the flow under the figure; beside a desk's portrait it
+   hangs off the panel's lower right, where the people are their clothes rather than their faces. */
+.hero-guide {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: var(--space-12);
+  margin-top: var(--space-16);
+  padding: var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-raised);
+}
+.hero-guide-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+.hero-guide-head img {
+  display: block;
+  flex: none;
+  width: 72px;
+  height: auto;
+  padding: var(--space-4);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.hero-guide-head p {
+  margin: 0;
+  color: var(--color-foreground);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.hero-guide ul {
+  display: grid;
+  gap: var(--space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hero-guide button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-8) var(--space-12);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-md);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: left;
+  transition: border-color var(--t-quick) var(--ease-soft), background-color var(--t-quick) var(--ease-soft);
+}
+.hero-guide button:hover {
+  border-color: var(--color-accent);
+  background: var(--color-muted);
+  filter: none;
+}
+.hero-guide button svg {
+  flex: none;
+  color: var(--color-muted-foreground);
+}
+
 /* ---- A desk: the words on the left, the portrait on the right ---- */
 @media (min-width: 600px) {
   .landing .landing-hero h1 {
@@ -311,6 +426,36 @@
   .hero-badge {
     top: var(--space-24);
     left: calc(var(--space-40) * -1);
+  }
+  /* The passport card moves to the panel's lower left so the guide's card can hang off its lower right,
+     sharing the panel's grid cell and overhanging its foot as the handoff's floats overhang theirs. The
+     standing lines under the panel move to its left edge, out from under the overhang. */
+  .landing-portrait {
+    display: grid;
+  }
+  .landing-portrait-frame,
+  .hero-guide {
+    grid-area: 1 / 1;
+  }
+  .landing-hero-card.at-foot {
+    right: auto;
+    left: calc(var(--space-40) * -1);
+    bottom: 6%;
+  }
+  .hero-guide {
+    align-self: end;
+    justify-self: end;
+    width: 264px;
+    margin: 0 calc(var(--space-40) * -1) calc(var(--space-40) * -1) 0;
+  }
+  .landing-portrait-place,
+  .landing-portrait figcaption {
+    justify-content: flex-start;
+    text-align: left;
+  }
+  .hero-particle--orange {
+    top: 30%;
+    bottom: auto;
   }
 }
 @media (min-width: 1080px) {
@@ -393,8 +538,11 @@
   html[data-motion="on"] .hero-portrait {
     animation: hero-rise-in calc(var(--t-enter) * 2) var(--ease-soft) both;
   }
-  html[data-motion="on"] :is(.landing-hero-card, .hero-badge) {
+  html[data-motion="on"] :is(.landing-hero-card, .hero-badge, .hero-guide) {
     animation: hero-rise-in calc(var(--t-enter) * 1.5) var(--ease-soft) var(--t-enter) both;
+  }
+  html[data-motion="on"] .hero-guide {
+    animation-delay: calc(var(--t-enter) * 1.6);
   }
   html[data-motion="on"] .landing-hero-card.at-foot {
     animation-delay: calc(var(--t-enter) * 1.3);

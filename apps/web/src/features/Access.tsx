@@ -7,6 +7,7 @@ import { Suspense, lazy } from 'react';
    this is its door: a Suspense boundary whose wait names the page it is fetching rather than drawing nothing. */
 const Page = lazy(() => import('./AccessPage').then(m => ({ default: m.AccessPage })));
 
-export function Access() {
- return <Suspense fallback={<p className="helper" role="status">Opening Language and access…</p>}><Page/></Suspense>;
+/* `level` is 2 when the page is drawn as a tab of Privacy & settings, under that page's own h1. */
+export function Access({ level = 1 }: { level?: 1 | 2 }) {
+ return <Suspense fallback={<p className="helper" role="status">Opening Language and access…</p>}><Page level={level}/></Suspense>;
 }

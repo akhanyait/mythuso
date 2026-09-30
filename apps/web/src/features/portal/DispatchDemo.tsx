@@ -26,20 +26,18 @@ type Alert = {
   time: string;
 };
 
-/* A schematic precinct map drawn as coloured rectangles. Each zone is a token-ground fill based on
-   its risk level; the stones between them are hairlines. No real geography — the approved mockup
-   calls it a schematic, and the demo data holds no coordinates. */
+/* A schematic precinct map drawn as tinted rectangles. Each zone's ground is its risk level's role — the
+   muted ground for low, the warning and the danger mixed into the surface for medium and high — and every
+   word on it is the foreground, because the risk is also printed as a word in each zone and the colour is
+   only its second channel. No real geography — the approved mockup calls it a schematic, and the demo data
+   holds no coordinates.
+
+   Until 30 September 2026 this painted with four variables of the generation the identity retired
+   (--danger-soft, --mango-soft, --pale-sage and --charcoal) and typed 11- and 12-point words; the grounds are
+   the --color-* roles in portal.css now, so the map turns with the rest of the Control Tower in a dark
+   scheme, and scripts/check-boundaries.mjs scans the portal's own .tsx files for retired variables as it
+   already scanned its sheets. */
 function SchematicMap({ precincts }: { precincts: Precinct[] }) {
-  const riskGround = (risk: string) => {
-    if (risk === "high") return "var(--danger-soft)";
-    if (risk === "medium") return "var(--mango-soft)";
-    return "var(--pale-sage)";
-  };
-  const riskInk = (risk: string) => {
-    if (risk === "high") return "var(--danger)";
-    if (risk === "medium") return "var(--ink)";
-    return "var(--charcoal)";
-  };
   return (
     <div
       className="pt-demo-map"
@@ -53,36 +51,15 @@ function SchematicMap({ precincts }: { precincts: Precinct[] }) {
           const x = col * 144 + 4;
           const y = row * 104 + 4;
           return (
-            <g key={p.id}>
-              <rect
-                x={x}
-                y={y}
-                width={132}
-                height={92}
-                rx={8}
-                fill={riskGround(p.risk)}
-                stroke="var(--stone)"
-                strokeWidth={1}
-              />
-              <text
-                x={x + 10}
-                y={y + 22}
-                fill={riskInk(p.risk)}
-                fontSize={14}
-                fontWeight={600}
-              >
+            <g key={p.id} className={`pt-demo-zone is-${p.risk}`}>
+              <rect x={x} y={y} width={132} height={92} rx={8} />
+              <text x={x + 10} y={y + 24} className="pt-demo-zone-label">
                 {p.label}
               </text>
-              <text x={x + 10} y={y + 42} fill={riskInk(p.risk)} fontSize={12}>
+              <text x={x + 10} y={y + 46} className="pt-demo-zone-line">
                 {p.nurses} nurses
               </text>
-              <text
-                x={x + 10}
-                y={y + 60}
-                fill={riskInk(p.risk)}
-                fontSize={11}
-                opacity={0.7}
-              >
+              <text x={x + 10} y={y + 66} className="pt-demo-zone-line">
                 {p.risk} risk
               </text>
             </g>

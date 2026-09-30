@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { goSection, openWorkspace } from './nav';
+import { goSection, openDestination, openWorkspace } from './nav';
 
 /* The HL7 v2 bridge (Wave 5), on both viewports, as the three people it reaches use it.
  *
@@ -35,6 +35,8 @@ test('the patient finds each message a hospital or laboratory sent in the log of
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   await page.goto('/app/');
   await goSection(page, 'Health Passport');
+  /* The Passport is tabbed since 30 September, and Share links is among the doors under Records. */
+  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Records' }).click();
   await page.getByRole('button').filter({ hasText: 'Share links' }).first().click();
   await page.getByRole('button').filter({ hasText: sharing.screens.sharing.logLink }).click();
   await expect(page.getByRole('heading', { name: sharing.screens.log.title })).toBeVisible();
@@ -57,7 +59,8 @@ test('a doctor receives a lab result as an HL7 message, is refused the close unt
   const laboratory = facility('laboratory').label;
   const kind = hl7.messageTypes.find((t: { storesAs?: string }) => t.storesAs === 'DiagnosticReport').code as string;
   await openWorkspace(page, 'Doctor');
-  const dialog = await tool(page, words.heading);
+  /* A destination in the doctor's Patient care group since 30 September, where it was a More tool opening a dialog. */
+  const dialog = await openDestination(page, words.heading);
   await expect(dialog.getByRole('note').filter({ hasText: hl7.screens.results.preview })).toBeVisible();
   await dialog.getByRole('button', { name: words.order }).click();
   await expect(dialog).toContainText(words.ordered);

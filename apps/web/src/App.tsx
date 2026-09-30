@@ -94,6 +94,16 @@ const patientPageOpenings: Record<string, string> = {
  [patientPagesHubRoute.opens]: patientPagesHubRoute.opening,
  ...Object.fromEntries(Object.values(patientPageRoutes).map(route => [route.opens, route.opening])),
 };
+/* The patient screens the Lovable export draws and the live app did not have — connected devices, messages,
+   test results and the consultation's waiting room — each on its own dynamic import, because each carries a
+   different contract (the kit and the device registry, the visit threads, the Passport's results and charts,
+   the consultation) and a patient opening one has no reason to download the other three. Only the names are
+   here, from lib/patient-screens-routes.ts, which the sidebar and the More hub read as well. */
+const PatientDevicesPage = lazy(() => import('./features/PatientDevices').then(m => ({ default: m.PatientDevices })));
+const PatientMessagesPage = lazy(() => import('./features/PatientMessages').then(m => ({ default: m.PatientMessages })));
+const PatientResultsPage = lazy(() => import('./features/PatientResults').then(m => ({ default: m.PatientResults })));
+const PatientConsultationPage = lazy(() => import('./features/PatientConsultation').then(m => ({ default: m.PatientConsultation })));
+import { patientScreenNames, patientScreenOpenings, patientScreenRoutes } from './lib/patient-screens-routes';
 /* The icon family's gallery, at `?open=icons`, in development builds only: every icon of
    packages/catalog/icons.json at two sizes with its signal pulsing, so the family can be looked at and
    tested before a screen wears it. `import.meta.env.DEV` is a constant at build time, so in a production
@@ -115,7 +125,6 @@ function EmergencyWhileSosLoads() {
 import { LabOrderDetail, PrescriptionDetail } from './features/Orders';
 import { AccessHistory, ConsentCentre, InformationOfficer } from './features/Consent';
 import { InviteGuardian, sampleInvitations, type Invitation } from './features/Guardian';
-import { Access } from './features/Access';
 import { LocaleContext, locales, clinicalRule, signLanguage, missingSets, type LocaleCode } from './lib/i18n';
 import { useSaslRequirement } from './lib/interpreting';
 import { currentPerson, endSession, probe } from './lib/auth';
@@ -158,7 +167,7 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
     hero offers four destinations and two of them are sections rather than the application, so
     `/app/?open=live-well` opens Live well. Read once and never written — see lib/roles.ts for why
     the address stops following a reader the moment they start navigating for themselves. */
- const [page, setPage] = useState(() => sectionFromSearch(window.location.search, [...patientSections, careTipsRoute.opens, ...patientPageNames, ...developmentSections], 'Overview'));
+ const [page, setPage] = useState(() => sectionFromSearch(window.location.search, [...patientSections, careTipsRoute.opens, ...patientPageNames, ...patientScreenNames, ...developmentSections], 'Overview'));
  const [modal, setModal] = useState<string | null>(null);
  const [booking, setBooking] = useState<Service | null>(null);
  /* Every visit the app knows about, in one list, because a visit you can look at and never change is
@@ -236,23 +245,24 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
  if (!signedIn) return <SignIn live={live} onSignIn={() => setSignedIn(true)} onCreate={() => setOnboarding('first-run')} onRecover={() => setOnboarding('recovery')}/>;
  return <>
   <PatientShell page={page} navigate={navigate} open={setModal} locale={locale} location={location} visitCount={rows.filter(row => row.group === 'upcoming').length}
+   signOut={signOut} query={query} setQuery={setQuery}
    /* The floating assistant, on every patient page and only on them: its questions are a patient's,
       and the clinical workspaces get nothing until the assistant's scope says what a nurse or a
       doctor could ask it. It sits inside the shell, ahead of the dialogs below, so when the SOS
       handover closes the panel and opens Thuso SOS, focus returns to the orb first and the SOS
       dialog then takes it. */
    assistant={<AssistantLauncher openModal={setModal} visit={booked[0]?.visit ?? null}/>}>
-   {page === 'Overview' ? <Dashboard navigate={navigate} book={setBooking} open={setModal} query={query} setQuery={setQuery} visits={booked.map(row => row.visit)} location={location} viewVisit={() => setViewing(booked[0]?.id ?? null)}/>
+   {page === 'Overview' ? <Dashboard navigate={navigate} book={setBooking} open={setModal} query={query} setQuery={setQuery} visits={booked.map(row => row.visit)} location={location} viewVisit={() => setViewing(booked[0]?.id ?? null)} reschedule={() => { if (booked[0]) manage(booked[0].id, 'reschedule'); }}/>
     : page === 'Book a nurse' ? <Services book={setBooking} open={setModal} navigate={navigate} query={query} forPerson={forPerson} clearPerson={() => setForPerson(null)}/>
      : page === 'My visits' ? <Visits rows={rows} open={setModal} book={() => navigate('Book a nurse')} manage={manage} view={setViewing} track={track}/>
-      : page === 'Health Passport' ? <Passport open={setModal} navigate={navigate}/>
+      : page === 'Health Passport' ? <Passport open={setModal} navigate={navigate} next={booked[0]} view={setViewing} manage={manage}/>
        : page === 'Live well' ? <LiveWell entries={wellbeing} navigate={navigate}
           onWrite={(habit, words) => setWellbeing([write(habit, words), ...wellbeing])}
           onRemove={id => setWellbeing(wellbeing.filter(entry => entry.id !== id))}
           nextVisit={rows.find(row => row.group === 'upcoming')?.id ?? null} viewVisit={setViewing}/>
        : page === 'Health trends' ? <HealthTrends navigate={navigate}/>
        : page === 'Share part of your record' ? <Suspense fallback={<p className="helper" role="status">Opening your share links.</p>}><ShareLinksPage navigate={navigate}/></Suspense>
-       : page === 'Your emergency card' ? <Suspense fallback={<p className="helper" role="status">Opening your emergency card.</p>}><EmergencyCardPage navigate={navigate}/></Suspense>
+       : page === 'Your emergency card' ? <Suspense fallback={<p className="helper" role="status">Opening your emergency card.</p>}><EmergencyCardPage navigate={navigate} open={setModal}/></Suspense>
        : page === 'Who opened your record' ? <Suspense fallback={<p className="helper" role="status">Opening who opened your record.</p>}><PassportLogPage navigate={navigate}/></Suspense>
        : page === 'What readings mean' ? <ReadingsExplained navigate={navigate} open={setModal}/>
        : page === 'Care timeline' ? <CareTimeline navigate={navigate} open={setModal}/>
@@ -276,12 +286,16 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
          : page === careTipsRoute.opens ? <Suspense fallback={<p className="helper" role="status">{careTipsRoute.opening}</p>}><CareTipsPage open={setModal}/></Suspense>
          : page === 'Split a visit between you' ? <Suspense fallback={<p className="helper" role="status">Opening the split.</p>}><BillSplitPage/></Suspense>
          : page === 'Thuso Wallet' ? <WalletPage open={setModal} navigate={navigate}/>
-          : page === 'Privacy & settings' ? <Privacy open={setModal}/>
-           : page === 'Language & access' ? <Access/>
+          : page === 'Privacy & settings' ? <Privacy key="privacy" open={setModal}/>
+           : page === 'Language & access' ? <Privacy key="access" open={setModal} initial="Language & access"/>
             : page === 'Explore MyThuso' ? <Explore open={setModal} onOnboarding={() => setOnboarding('first-run')} navigate={navigate}/>
              : IconGallery && page === 'Icons' ? <Suspense fallback={<p className="helper" role="status">Opening the icon family.</p>}><IconGallery/></Suspense>
              : UiGallery && page === 'UI' ? <Suspense fallback={<p className="helper" role="status">Opening the shared components.</p>}><UiGallery/></Suspense>
-              : patientPageNames.includes(page) ? <Suspense fallback={<p className="helper" role="status">{patientPageOpenings[page]}</p>}><PatientPagesView page={page} navigate={navigate} open={setModal}/></Suspense>
+              : page === patientScreenRoutes.devices.opens ? <Suspense fallback={<p className="helper" role="status">{patientScreenOpenings[page]}</p>}><PatientDevicesPage navigate={navigate} open={setModal}/></Suspense>
+              : page === patientScreenRoutes.messages.opens ? <Suspense fallback={<p className="helper" role="status">{patientScreenOpenings[page]}</p>}><PatientMessagesPage rows={rows} threads={threads} onThread={(id, next) => setThreads(held => ({ ...held, [id]: next }))} view={setViewing} navigate={navigate}/></Suspense>
+              : page === patientScreenRoutes.results.opens ? <Suspense fallback={<p className="helper" role="status">{patientScreenOpenings[page]}</p>}><PatientResultsPage navigate={navigate} open={setModal}/></Suspense>
+              : page === patientScreenRoutes.consultation.opens ? <Suspense fallback={<p className="helper" role="status">{patientScreenOpenings[page]}</p>}><PatientConsultationPage navigate={navigate}/></Suspense>
+              : patientPageNames.includes(page) ? <Suspense fallback={<p className="helper" role="status">{patientPageOpenings[page]}</p>}><PatientPagesView page={page} navigate={navigate} open={setModal} book={setBooking} entries={wellbeing}/></Suspense>
                : <MoreHub navigate={navigate} open={setModal} onSignOut={signOut}/>}
   </PatientShell>
   {booking &&<Modal surface={SURFACE} title="A nurse, at your door." onClose={() => setBooking(null)}><Suspense fallback={<p className="helper" role="status">Opening the booking.</p>}><BookingFlow service={booking} person={forPerson ?? undefined} held={heldHours(rows)} previousNurseFor={person => previousNurseIn(rows, person)} onComplete={v => { setRows([rowFor(v, `VIS-01${rows.length}`), ...rows]); setBooking(null); navigate('My visits'); }}/></Suspense></Modal>}

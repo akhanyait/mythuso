@@ -1,0 +1,213 @@
+/* The doctor's and the partner's pages from the Lovable export's arrangement (30 September 2026): the
+   review queue's case beside the list, the patient list beside the file, and the pages the export draws
+   as a title, a counted strip and a list — Schedule, Triage, Credentials, Reports, Resources, the
+   records list, Prescriptions, Test results, Referrals, the protocol registry and the partner's boards.
+   Fetched with the clinical workspace, never on a patient's first load.
+
+   ON THE IDENTITY. White surfaces on the ground, one hairline, the Card's corner and one shadow at most;
+   every colour a role from tokens.json#semantic or one of ui.css's measured inks, so it holds in either
+   theme. Light-theme pairs as the rest of the doctor's sheets measure them: foreground on surface 16.37,
+   muted-foreground on surface 5.66 and on muted 4.77; the accent is spent only as a mark (3.64) on the
+   chosen row's edge and the lit steps of a track, and a chosen row also differs by its border, its
+   ground and its aria-pressed, so nothing is told by colour alone.
+
+   MOTION. None of its own. The page arrives with the shell's chapter rise and the queue's own stagger
+   (surface/clinical.css); a list here that is new content arrives with the same once-only rise below,
+   on --t-enter and --ease-soft, transform and opacity only, and not at all under reduced motion. */
+
+/* ---- The page's own strip: counted figures, each the length of a list under it ------------------ */
+.dp-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr)); gap: var(--space-12); min-width: 0; margin: 0 0 var(--space-24); }
+.dp-strip .ui-metric { position: relative; overflow: hidden; }
+.dp-strip .ui-metric.is-lead::before { content: ''; position: absolute; inset: 0 0 auto; height: 3px; background: var(--color-accent); }
+.dp-strip .ui-metric__trend { color: var(--color-muted-foreground); font-weight: 500; }
+
+/* ---- A page head: the title, the sentence, and whatever control the page is worked by ----------- */
+.dp-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-12) var(--space-24); margin: 0 0 var(--space-20); }
+.dp-head > div { display: grid; gap: var(--space-4); min-width: 0; max-width: 64ch; }
+.dp-head h1, .dp-head h2 { margin: 0; font-family: var(--font-display); font-weight: 600; color: var(--color-foreground); }
+.dp-head h1 { font-size: 32px; line-height: 1.15; letter-spacing: -.02em; }
+.dp-head h2 { font-size: 22px; line-height: 1.25; }
+.dp-head p { margin: 0; font-size: 15px; line-height: 1.5; color: var(--color-muted-foreground); }
+
+/* A panel on the page: the white card the export calls doctor-panel. */
+.dp-panel { display: grid; gap: var(--space-16); min-width: 0; margin: 0 0 var(--space-24); padding: var(--space-20); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); color: var(--color-foreground); }
+.dp-panel > h2, .dp-panel-head h2 { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 600; line-height: 1.3; }
+.dp-panel-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-8) var(--space-16); }
+.dp-panel-head span { font-size: 14px; color: var(--color-muted-foreground); font-variant-numeric: tabular-nums; }
+.dp-panel p { margin: 0; }
+.dp-note { font-size: 14px; line-height: 1.5; color: var(--color-muted-foreground); }
+
+/* ---- A list of rows: reference, what it is, and its state in a column of its own ---------------- */
+.dp-list { display: grid; gap: var(--space-8); margin: 0; padding: 0; list-style: none; min-width: 0; }
+.dp-row {
+ display: grid;
+ grid-template-columns: auto minmax(0, 1fr) auto;
+ align-items: center;
+ gap: var(--space-12) var(--space-16);
+ width: 100%;
+ min-height: 44px;
+ padding: var(--space-12) var(--space-16);
+ border: 1px solid var(--color-border);
+ border-radius: var(--r-md);
+ background: var(--color-surface);
+ color: var(--color-foreground);
+ font: inherit;
+ text-align: left;
+}
+button.dp-row { cursor: pointer; transition: border-color var(--t-quick) var(--ease-soft), background-color var(--t-quick) var(--ease-soft); }
+button.dp-row:hover { border-color: var(--color-accent); }
+button.dp-row:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; box-shadow: none; }
+.dp-row[aria-pressed='true'] { border-color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface)); box-shadow: inset 3px 0 0 var(--color-accent); }
+.dp-row-mark { display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--r-md); background: var(--color-muted); color: var(--color-foreground); font-size: 14px; font-weight: 700; }
+.dp-row-mark.is-time { width: auto; min-width: 56px; padding: 0 var(--space-8); font-family: var(--font-display); font-size: 16px; font-variant-numeric: tabular-nums; }
+.dp-row-what { display: grid; gap: 2px; min-width: 0; }
+.dp-row-what > strong { font-size: 16px; font-weight: 600; color: var(--color-foreground); overflow-wrap: anywhere; }
+.dp-row-what > small, .dp-row-what > span { font-size: 14px; line-height: 1.45; color: var(--color-muted-foreground); overflow-wrap: anywhere; }
+.dp-row-ref { font-size: 13px; font-weight: 600; letter-spacing: .06em; color: var(--color-muted-foreground); font-variant-numeric: tabular-nums; }
+.dp-row-state { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--space-8); }
+.dp-row-state .ui-badge { white-space: nowrap; }
+.dp-empty { margin: 0; padding: var(--space-16); border: 1px dashed var(--color-border); border-radius: var(--r-lg); font-size: 15px; line-height: 1.5; color: var(--color-muted-foreground); }
+.dp-empty strong { display: block; margin-bottom: var(--space-4); color: var(--color-foreground); }
+
+@keyframes dp-row-in {
+ from { opacity: 0; transform: translate3d(0, var(--space-8), 0); }
+ to { opacity: 1; transform: none; }
+}
+.dp-list > li { animation: dp-row-in var(--t-enter) var(--ease-soft) both; }
+.dp-list > li:nth-child(2) { animation-delay: calc(var(--t-enter) / 6); }
+.dp-list > li:nth-child(3) { animation-delay: calc(var(--t-enter) / 3); }
+.dp-list > li:nth-child(n+4) { animation-delay: calc(var(--t-enter) / 2); }
+
+/* ---- Master and detail ---------------------------------------------------------------------------
+   The list and the thing chosen from it, side by side where there is room and one under the other where
+   there is not. The detail is sticky beside a long list so the case being read does not scroll away. */
+.rq-split, .dp-split { display: grid; gap: var(--space-20); min-width: 0; }
+@media (min-width: 1280px) {
+ .rq-split { grid-template-columns: minmax(0, 1fr) minmax(300px, 22rem); align-items: start; }
+ .rq-split > .rq-case { position: sticky; top: var(--space-16); }
+ .dp-split { grid-template-columns: minmax(260px, 20rem) minmax(0, 1fr); align-items: start; }
+ .dp-split.is-wide-detail { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); }
+ .dp-split > .dp-master { position: sticky; top: var(--space-16); }
+}
+.dp-master, .dp-detail { display: grid; gap: var(--space-12); min-width: 0; align-content: start; }
+.dp-search { display: grid; gap: var(--space-4); }
+.dp-search label { font-size: 14px; font-weight: 600; color: var(--color-foreground); }
+
+/* The chosen queue row: the accent's edge, its tint and its chevron filled — three differences, one of
+   them a shape, over aria-pressed. */
+.clinical .review-list > li > .review-row.is-chosen { border-color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface)); }
+.clinical .review-row.is-chosen .review-go { background: var(--color-foreground); color: var(--color-surface); }
+
+/* The case panel. */
+.rq-case { display: grid; gap: var(--space-16); min-width: 0; padding: var(--space-20); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); color: var(--color-foreground); box-shadow: var(--shadow); }
+.rq-case:focus { outline: none; }
+.rq-case-head { display: grid; gap: var(--space-4); }
+.rq-case-ref { font-size: 13px; font-weight: 600; letter-spacing: .06em; color: var(--color-muted-foreground); }
+.rq-case h2 { margin: 0; font-family: var(--font-display); font-size: 22px; font-weight: 600; line-height: 1.25; }
+.rq-case-standing { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8) var(--space-12); margin-top: var(--space-4); font-size: 14px; color: var(--color-muted-foreground); font-variant-numeric: tabular-nums; }
+.rq-case-facts, .dp-facts { display: grid; gap: var(--space-12); margin: 0; }
+.rq-case-facts > div, .dp-facts > div { display: grid; gap: 2px; min-width: 0; }
+.rq-case-facts dt, .dp-facts dt { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--color-muted-foreground); }
+.rq-case-facts dd, .dp-facts dd { margin: 0; font-size: 15px; line-height: 1.45; color: var(--color-foreground); overflow-wrap: anywhere; }
+.rq-case-modes { display: grid; gap: var(--space-4); padding: var(--space-12) var(--space-16); border-radius: var(--r-md); background: var(--color-muted); }
+.rq-case-modes ul { display: grid; gap: var(--space-4); margin: 0; padding-left: var(--space-20); font-size: 14px; line-height: 1.45; color: var(--color-foreground); }
+.rq-case-label { margin: 0; font-size: 14px; font-weight: 600; color: var(--color-foreground); }
+.rq-case-signed { display: flex; gap: var(--space-8); align-items: flex-start; margin: 0; font-size: 14px; line-height: 1.45; }
+.rq-case-signed svg { flex: none; margin-top: 2px; }
+.rq-case-open { width: 100%; }
+.rq-case-note { margin: 0; font-size: 13px; line-height: 1.45; color: var(--color-muted-foreground); }
+
+.dp-page { min-width: 0; }
+.dp-page > .ui-alert, .dp-page > .not-connected { margin-bottom: var(--space-20); }
+.dp-page > .panel, .dp-page > .ci-panel { margin-bottom: var(--space-24); }
+
+/* ---- Triage: the patients as chips, and how fresh each reading is ------------------------------
+   A chosen chip is the ink ground with the surface's words (16.37 reversed) and aria-pressed; a tile says
+   only how old a reading is, in words, with a rule whose shape — solid, dashed, none — repeats the word. */
+.dp-chips { display: flex; gap: var(--space-8); overflow-x: auto; padding-bottom: var(--space-4); }
+.dp-chip { flex: none; min-height: 44px; padding: 0 var(--space-16); border: 1px solid var(--color-border); border-radius: var(--r-pill); background: var(--color-surface); color: var(--color-foreground); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.dp-chip[aria-pressed='true'] { border-color: var(--color-foreground); background: var(--color-foreground); color: var(--color-surface); }
+.dp-chip:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
+.dp-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: var(--space-12); margin: 0; padding: 0; list-style: none; }
+.dp-tile { display: grid; gap: var(--space-4); padding: var(--space-16); border: 1px solid var(--color-border); border-left-width: 3px; border-radius: var(--r-md); background: var(--color-surface); }
+.dp-tile.is-recent { border-left-color: var(--color-accent); }
+.dp-tile.is-stale { border-left-style: dashed; border-left-color: var(--color-muted-foreground); }
+.dp-tile-label { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--color-muted-foreground); }
+.dp-tile strong { font-family: var(--font-display); font-size: 20px; font-weight: 600; color: var(--color-foreground); }
+.dp-tile small { font-size: 14px; color: var(--color-muted-foreground); }
+
+@media (prefers-reduced-motion: reduce) {
+ .dp-list > li { animation: none; }
+ button.dp-row { transition: none; }
+}
+@media (max-width: 600px) {
+ .dp-head h1 { font-size: 28px; }
+ .dp-row { grid-template-columns: auto minmax(0, 1fr); padding: var(--space-12); }
+ .dp-row-state { grid-column: 2; justify-content: flex-start; }
+ .dp-panel, .rq-case { padding: var(--space-16); }
+}
+
+/* The sandbox's standing, where no capability notice is the right one: the not-connected note's shape. */
+.dp-sandbox { display: flex; align-items: flex-start; gap: var(--space-8); margin: 0 0 var(--space-20); padding: var(--space-12) var(--space-16); border-left: 3px solid var(--color-border); border-radius: var(--r-md); background: var(--color-muted); font-size: 14px; line-height: 1.5; color: var(--color-foreground); }
+.dp-sandbox svg { flex: none; margin-top: 2px; }
+
+/* The triage stages as the export's cards, on the Triage page only: five named stages, numbered in the order
+   the contract runs them, none of them run. The number is the order, never a score. */
+.dp-page .ci-stages { grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: var(--space-12); counter-reset: dp-stage; }
+.dp-page .ci-stages li { counter-increment: dp-stage; align-content: start; gap: var(--space-4); padding: var(--space-16); border: 1px solid var(--color-border); border-radius: var(--r-md); background: var(--color-surface); }
+.dp-page .ci-stages li::before { content: counter(dp-stage); display: grid; place-items: center; width: 28px; height: 28px; margin-bottom: var(--space-4); border-radius: var(--r-pill); background: var(--color-muted); color: var(--color-foreground); font-size: 13px; font-weight: 700; }
+
+/* The protocol registry: thirteen short rows, two to a line where there is room, with the read-back of the
+   chosen one above them rather than under the thirteenth. */
+.pr-list { grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); }
+.pr-panel .dp-strip { margin-bottom: var(--space-12); }
+.dp-page > .dp-list { margin-bottom: var(--space-16); }
+
+/* ---- The partner's boards ---------------------------------------------------------------------
+   The chosen order: the accent's edge and tint, over aria-pressed. The chain beside it is the dispensary's
+   own track — a done step carries a tick AND the words "done" for a screen reader, the next step a ringed
+   number, and the rest a plain one — so where an order is never depends on the colour of a dot. */
+.clinical .fulfil-row.is-chosen { border-color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface)); box-shadow: inset 3px 0 0 var(--color-accent); }
+.fulfil-group + .fulfil-group { margin-top: var(--space-8); }
+.fo-chain { display: grid; gap: var(--space-12); margin: 0; padding: 0; list-style: none; }
+.fo-chain li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: var(--space-12); align-items: start; }
+.fo-chain-no { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--color-border); border-radius: var(--r-pill); background: var(--color-surface); color: var(--color-muted-foreground); font-size: 13px; font-weight: 700; }
+.fo-chain li.is-done .fo-chain-no { border-color: var(--color-foreground); background: var(--color-foreground); color: var(--color-surface); }
+.fo-chain li.is-now .fo-chain-no { border: 2px solid var(--color-accent); color: var(--color-foreground); }
+.fo-chain strong { font-size: 15px; color: var(--color-foreground); }
+.fo-chain p { margin: 2px 0 0; font-size: 14px; line-height: 1.45; color: var(--color-muted-foreground); }
+
+/* A result's track on the board: three steps, the ones reached drawn solid, every step named. */
+.fo-track { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-8); margin-top: var(--space-8); }
+.fo-track > span { display: grid; gap: var(--space-4); font-size: 13px; color: var(--color-muted-foreground); }
+.fo-track > span > i { display: block; height: 4px; border-radius: var(--r-pill); background: var(--color-muted); }
+.fo-track > span.is-lit { color: var(--color-foreground); font-weight: 600; }
+.fo-track > span.is-lit > i { background: var(--color-foreground); }
+
+@media (max-width: 600px) {
+ .dp-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+ .dp-strip .ui-metric { padding: var(--space-12); }
+ .dp-strip .ui-metric__value { font-size: 24px; }
+}
+
+/* Beside the chosen order the list is half the width, so its rows take the board's own phone arrangement
+   (surface/clinical-screens.css) — the reference and whose move on one line, what it is, then its state —
+   rather than five fixed columns squeezed until the words ran over each other. */
+@media (min-width: 1280px) {
+ .clinical .dp-master .fulfil-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "ref when" "what what" "state chev"; row-gap: var(--space-8); align-items: start; }
+ .clinical .dp-master .fulfil-ref { grid-area: ref; }
+ .clinical .dp-master .fulfil-what { grid-area: what; }
+ .clinical .dp-master .fulfil-state { grid-area: state; align-self: center; }
+ .clinical .dp-master .fulfil-when { grid-area: when; justify-self: end; }
+ .clinical .dp-master .fulfil-row > svg:last-child { grid-area: chev; align-self: center; }
+}
+
+/* ---- The call room: the stage and, from a wide screen, the patient beside it ------------------- */
+.tcx-room { display: grid; gap: var(--space-20); min-width: 0; }
+@media (min-width: 1280px) {
+ .tcx-room { grid-template-columns: minmax(0, 1fr) minmax(280px, 21rem); align-items: start; }
+ .tcx-room > .tcx-aside { position: sticky; top: var(--space-16); }
+}
+.tcx-aside-who { display: flex; align-items: center; gap: var(--space-12); }
+.tcx-aside h3 { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 600; line-height: 1.3; }
+.tcx-aside-mark { display: flex; align-items: center; gap: var(--space-4); font-size: 14px; }

@@ -4,7 +4,7 @@ import { startVisit, visitSigned } from '../lib/field-safety';
 import { serviceIdFor } from './Workspaces';
 import { Activity, ArrowLeft, ArrowRight, BadgeCheck, Ban, Building2, CalendarClock, Check, CircleAlert, ClipboardList, CloudOff, FlaskConical, Inbox, KeyRound, Pill as PillIcon, Radio, Repeat, Sigma, Stethoscope, ShieldCheck, ShieldX, Undo2, UserCheck, Video, X } from 'lucide-react';
 import { SectionTitle } from '../components/UI';
-import { Button } from '../ui';
+import { Badge, Button, MetricCard } from '../ui';
 import { NotConnected } from '../components/NotConnected';
 import { ClinicalChart } from '../components/Chart';
 import { CodeInput } from '../components/Steps';
@@ -14,7 +14,8 @@ import { CaptureStanding, WaitingToSend, useSeededQueue, useSignal, useVisitQueu
 import { nextCaptureId, rules, type Capture } from '../lib/capture';
 import { hold, isPending, seal } from '../lib/visit-queue';
 import { can } from '../lib/vetting';
-import { mayConfirmClinicalReview } from '../lib/settings';
+import { mayConfirmClinicalReview, pendingReviewsNow, useSettingsHistories, useSettingsReviews } from '../lib/settings';
+import { whoIs } from '../lib/roles';
 import { subjectById, subjectsByRole } from '../lib/vetting-fixtures';
 import { ConsultationComposer, assessmentFields } from './Consultation';
 import { documentById, refusedDocuments } from '../lib/teleconsult';
@@ -22,6 +23,7 @@ import { ClinicalDeck, type DeckFigure } from './ClinicalDeck';
 import protocolsContract from '../../../../packages/catalog/protocols.json' with { type: 'json' };
 import coreApi from '../../../../packages/catalog/apis/core.json' with { type: 'json' };
 import './clinical-records.css';
+import './doctor-pages.css';
 /* Indicative adult reference ranges, used only to flag a value for the nurse's attention.
    This is not a validated triage or early-warning score and it never decides anything.
 
@@ -561,20 +563,39 @@ const protocolVersionRead = (protocolVersionId: string) => {
  const version = sep > 0 ? Number(protocolVersionId.slice(sep + 1)) : NaN;
  return protocolsContract.protocols.find(p => p.id === id && p.version === version) ?? null;
 };
+/* A list rather than a select (30 September 2026, the Lovable export's registry): thirteen rows a reader can
+   scan, each with the status the registry gives it as a badge — every one reads Draft, the contract's word,
+   because the export's "Ratified · version 3" is a ratification nobody gave. Choosing a row reads it back
+   exactly as the route would. The three figures above it are counted: this doctor's checks off the vetting
+   register, the settings waiting on a clinical review off the settings engine, and the drafts off the
+   registry under them. */
+const statusName = (id: string) => protocolsContract.statuses.find(s => s.id === id)?.name ?? id;
 function ProtocolRegistryLookup() {
+ useSettingsHistories();
+ useSettingsReviews();
  const first = protocolsContract.protocols[0]!;
  const [selected, setSelected] = useState(`${first.id}@${first.version}`);
  const found = protocolVersionRead(selected);
+ const doctor = whoIs(subjectsByRole('doctor')[0]!.id, '');
+ const drafts = protocolsContract.protocols.filter(p => p.status === 'draft').length;
+ const waiting = pendingReviewsNow().length;
  return <div className="cr-panel pr-panel">
   <SectionTitle title="The protocol registry"/>
+  <div className="dp-strip" aria-label="Governance, counted">
+   <MetricCard className="is-lead" label="Checks passing" value={`${doctor.state.passed} of ${doctor.state.total}`} trend={`${doctor.subject.name} · ${doctor.subject.reference}`}/>
+   <MetricCard label="Settings awaiting review" value={String(waiting)} trend={waiting ? 'In force, not clinically reviewed' : 'Nothing is waiting for a clinical review'}/>
+   <MetricCard label="Draft protocols" value={String(drafts)} trend={`Of ${protocolsContract.protocols.length} in the registry · none ratified`}/>
+  </div>
   <p className="helper">packages/catalog/protocols.json: twelve names and version numbers, ratified by a named role and a date once a board exists to give one. Ratifying a version is for the Medical Director alone, and nobody on the vetting register holds that role yet, so every version below reads back exactly what the registry holds and nothing else.</p>
-  <label className="pr-select-label" htmlFor="pr-protocol-select">Protocol version</label>
-  <select id="pr-protocol-select" value={selected} onChange={e => setSelected(e.target.value)}>
-   {protocolsContract.protocols.map(p => <option key={`${p.id}@${p.version}`} value={`${p.id}@${p.version}`}>{p.name} · v{p.version}</option>)}
-  </select>
   {found
    ? <p className="pr-result" role="status">{found.name} — {found.status}, no content.</p>
    : <p className="pr-result pr-refusal" role="alert">{protocolReadRefusal('unknown-version')}</p>}
+  <ol className="dp-list pr-list" aria-label="Protocol versions">{protocolsContract.protocols.map(p => { const key = `${p.id}@${p.version}`;
+   return <li key={key}><button className="dp-row" aria-pressed={key === selected} onClick={() => setSelected(key)}>
+    <span className="dp-row-mark" aria-hidden="true"><ClipboardList size={18}/></span>
+    <span className="dp-row-what"><span className="dp-row-ref">{key}</span><strong>{p.name}</strong><small>Version {p.version} · {p.engine}</small></span>
+    <span className="dp-row-state"><Badge variant="warning">{statusName(p.status)}</Badge></span>
+   </button></li>; })}</ol>
  </div>;
 }
 

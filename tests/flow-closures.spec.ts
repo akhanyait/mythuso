@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 /* Read rather than imported: a JSON import needs an attribute under Node's ESM loader, and every
    other spec in this suite reads its contract the same way. */
 const passport = JSON.parse(readFileSync(new URL('../packages/catalog/passport.json', import.meta.url), 'utf8'));
-import { goSection, openWorkspace } from './nav';
+import { goSection, openDestination, openWorkspace } from './nav';
 
 /* The rows docs/FLOW-COMPLETENESS.md listed as open, held so they cannot re-open.
  *
@@ -64,8 +64,9 @@ test('the care-team row says what help exists rather than opening an unrelated b
 /* ---- The Health Passport's four --------------------------------------------------------------- */
 test('a visit on the care timeline opens on what it recorded', async ({ page }) => {
   await page.goto('/app/');
-  await goPatient(page, 'Health Passport');
-  await page.locator('.record-row').filter({ hasText: 'Nurse home visit' }).first().click();
+  /* The Passport's overview no longer lists three recent events (the timeline is its History tab since
+     30 September 2026), so the timeline's own page is opened by its address. */
+  await page.goto('/app/?open=care-timeline');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Everything on your record.' })).toBeVisible();
 
@@ -85,6 +86,7 @@ test('a visit on the care timeline opens on what it recorded', async ({ page }) 
 test('the care team names who has been in the record and what that does not grant', async ({ page }) => {
   await page.goto('/app/');
   await goPatient(page, 'Health Passport');
+  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Records' }).click();
   await page.locator('.shortcut-row').filter({ hasText: 'Doctors' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Who has been in your record.' })).toBeVisible();
@@ -101,7 +103,7 @@ test('the care team names who has been in the record and what that does not gran
 test('both of the passport documents that had no screen now open', async ({ page }) => {
   await page.goto('/app/');
   await goPatient(page, 'Health Passport');
-  await page.getByRole('group', { name: 'Passport sections' }).getByRole('button', { name: 'Records' }).click();
+  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Records' }).click();
 
   await page.locator('.record-row').filter({ hasText: 'Visit summary' }).click();
   let sheet = page.getByRole('dialog');
@@ -122,7 +124,7 @@ test('both of the passport documents that had no screen now open', async ({ page
 test('the device permission cards are under the notice rather than behind a button that grants nothing', async ({ page }) => {
   await page.goto('/app/');
   await goPatient(page, 'Health Passport');
-  await page.getByRole('group', { name: 'Passport sections' }).getByRole('button', { name: 'More' }).click();
+  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Records' }).click();
   await expect(page.getByRole('button', { name: /Review permission/ })).toHaveCount(0);
   await expect(page.getByText('We need your permission first')).toBeVisible();
   await expect(page.locator('.module-card')).toHaveCount(3);
@@ -131,7 +133,7 @@ test('the device permission cards are under the notice rather than behind a butt
 test('the medications tab explains what happens to a prescription rather than opening the roadmap', async ({ page }) => {
   await page.goto('/app/');
   await goPatient(page, 'Health Passport');
-  await page.getByRole('group', { name: 'Passport sections' }).getByRole('button', { name: 'Medications' }).click();
+  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Medications' }).click();
   await page.getByRole('button', { name: /What happens after a doctor signs one/ }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'What happens to a prescription.' })).toBeVisible();
@@ -197,16 +199,15 @@ test('a signed visit has a state on the nurse\'s day', async ({ page }) => {
 
 test('the nurse\'s two more-tools say what they will not do rather than that they are not drawn', async ({ page }) => {
   await openWorkspace(page, 'Nurse');
-  await page.getByRole('button', { name: 'Locum shifts', exact: true }).click();
-  let sheet = page.getByRole('dialog');
+  /* Both are destinations in her grouped navigation since 30 September, pages rather than dialogs. */
+  let sheet = await openDestination(page, 'Locum shifts');
   await expect(sheet.locator('.staff-blank')).toHaveCount(0);
   /* The share is the catalogue's, not a rate typed onto a marketplace. */
   await expect(sheet).toContainText('75% of the visit');
   await expect(sheet).toContainText('Urgency is not a reason to send somebody');
   await sheet.getByRole('button', { name: 'Close' }).first().click();
 
-  await page.getByRole('button', { name: 'Academy', exact: true }).click();
-  sheet = page.getByRole('dialog');
+  sheet = await openDestination(page, 'Academy');
   await expect(sheet.locator('.staff-blank')).toHaveCount(0);
   /* The line that runs the other way from what a training product usually claims. */
   await expect(sheet).toContainText('A course is never a check');
@@ -238,7 +239,9 @@ test('an applicant can see where the application stands', async ({ page }) => {
 
 test('a prescription\'s state chip moves with the prescription', async ({ page }) => {
   await openWorkspace(page, 'Partner');
+  /* Orders is master and detail since 30 September 2026: the row chooses, the panel opens. */
   await page.locator('.fulfil-row').filter({ hasText: 'RX-0081' }).first().click();
+  await page.getByRole('button', { name: 'Open the prescription to act on it' }).click();
   const sheet = page.getByRole('dialog');
   const chip = sheet.locator('.order-head .pill');
   await expect(chip).toHaveText('Awaiting pharmacist');

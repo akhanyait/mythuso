@@ -222,6 +222,8 @@ export function NurseDoorCode() {
  const row = sampleVisitRows().find(r => r.group === 'upcoming');
  const [shown, setShown] = useState<{ digits: string; expiresAt: number; attemptsAllowed: number } | null>(null);
  const [refusal, setRefusal] = useState<Refusal | null>(null);
+ /* Hidden is hers to choose: a code read across a doorway is also a code read over her shoulder in a taxi. */
+ const [hidden, setHidden] = useState(false);
  if (!row) return null;
  const nurse = nurseOfVisit(row.visit);
  const show = () => {
@@ -240,7 +242,12 @@ export function NurseDoorCode() {
   </div>
   <p className="helper">{say.preview} {row.id} · {nurse.name}</p>
   {shown && <div className="vis-shown">
-   <output className="vis-digits" aria-label={say.heading}>{shown.digits}</output>
+   {/* One cell per digit, as the export draws it, so a digit read aloud is found by its place; the output's
+       text is still the whole code, and hidden it is no code at all rather than a code drawn in bullets. */}
+   <output className="vis-digits" aria-label={say.heading}>{hidden
+    ? <><span className="visually-hidden">Hidden</span>{[...shown.digits].map((_, i) => <span key={i} className="vis-cell" aria-hidden="true">•</span>)}</>
+    : [...shown.digits].map((digit, i) => <span key={i} className="vis-cell">{digit}</span>)}</output>
+   <Button variant="ghost" size="sm" className="vis-hide" aria-pressed={hidden} onClick={() => setHidden(!hidden)}>{hidden ? 'Show the digits' : 'Hide the digits'}</Button>
    <p className="helper">{fill(say.expires, { at: time(shown.expiresAt) })} {fill(say.tries, { attempts: shown.attemptsAllowed })}</p>
   </div>}
   <Refused refusal={refusal}/>

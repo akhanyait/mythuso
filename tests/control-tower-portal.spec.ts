@@ -501,3 +501,51 @@ test.describe('one settings page', () => {
   await expect(head.locator('.pt-head-eyebrow')).toHaveText(portal.name);
  });
 });
+
+/* The handoff's control room, in the forms the Control Tower keeps (30 September 2026). The field alert at the top
+   of Dispatch is still and counts only rows the Incidents tab draws, so every figure on it is disproved or borne out
+   by opening Incidents and counting; the figure cards and the Incidents head wear decorative tiles; and the dispatch
+   demo's schematic map is drawn on the --color-* roles with the risk printed in words in every zone. */
+const fieldSafety = json('../packages/catalog/field-safety.json');
+test.describe('the handoff’s control room', () => {
+ test('the field alert counts what Incidents holds open, opens Incidents, and never moves', async ({ page }) => {
+  await openPortal(page, '?role=back-office&category=dispatch&tab=dispatch');
+  await expect(panel(page).locator('.pt-loading')).toHaveCount(0);
+  const say = portal.fieldAlert as { heading: string; nursePanics: string; patientSos: string; overdue: string; open: string };
+  const alert = panel(page).locator('.pt-field-alert');
+  const shown = await alert.count();
+  const counts: Record<string, number> = {};
+  if (shown) {
+   await expect(alert).toContainText(say.heading);
+   for (const label of [say.nursePanics, say.patientSos, say.overdue])
+    counts[label] = Number(await alert.locator('li', { hasText: label }).locator('strong').textContent());
+   /* Still: it may arrive with the panel's stagger, and nothing on it repeats — no pulse, no ring. */
+   expect(await alert.evaluate(el => el.getAnimations({ subtree: true }).filter(a => a.effect?.getComputedTiming().iterations === Infinity).length)).toBe(0);
+   await alert.getByRole('button', { name: say.open }).click();
+  } else await page.goto('/app/?role=back-office&category=dispatch&tab=incidents');
+  await expect(page).toHaveURL(/tab=incidents/);
+  const open = panel(page).locator('.fs-row:not(.is-closed)');
+  await expect(panel(page).locator('.fs-desk')).toBeVisible();
+  const panics = await open.filter({ has: page.locator('.fs-row-kind', { hasText: fieldSafety.desk.kinds.panic }) }).count();
+  const overdue = await open.filter({ has: page.locator('.fs-row-kind', { hasText: fieldSafety.desk.kinds.overdue }) }).count();
+  const sos = await panel(page).locator('.sos-desk-row:not(.is-closed)').count();
+  if (shown) expect(counts).toEqual({ [say.nursePanics]: panics, [say.patientSos]: sos, [say.overdue]: overdue });
+  else expect(panics + overdue + sos, 'nothing drawn while something is open').toBe(0);
+  /* The Incidents head carries its tile, hidden from a screen reader beside the heading that says the same. */
+  await expect(panel(page).locator('header.pt-head .pt-head-icon')).toHaveAttribute('aria-hidden', 'true');
+ });
+
+ test('the figure cards wear decorative tiles, and the schematic map prints every risk in words', async ({ page }) => {
+  await openPortal(page, '?role=back-office&category=dispatch&tab=dispatch');
+  const tiles = panel(page).locator('.pt-strip-figure .pt-strip-icon svg');
+  await expect(tiles.first()).toBeVisible();
+  for (const svg of await tiles.all()) await expect(svg).toHaveAttribute('aria-hidden', 'true');
+  const map = panel(page).getByRole('img', { name: 'Schematic precinct map, demonstration data' });
+  await map.scrollIntoViewIfNeeded();
+  for (const zone of await map.locator('.pt-demo-zone').all()) {
+   const risk = (await zone.getAttribute('class'))!.match(/is-(\w+)/)![1];
+   await expect(zone).toContainText(`${risk} risk`);
+   expect(await zone.locator('rect').evaluate(el => getComputedStyle(el).fill)).not.toMatch(/^(none|rgb\(0, 0, 0\))$/);
+  }
+ });
+});

@@ -60,7 +60,7 @@ function arcs(count: number, radius: number) {
  });
 }
 
-function Readiness({ capturerId }: { capturerId: string }) {
+export function Readiness({ capturerId }: { capturerId: string }) {
  const capturer = subjectById(capturerId)!;
  const register = summarise(capturer);
  const decision = can(capturer, 'write-clinical-note');

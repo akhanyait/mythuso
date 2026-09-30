@@ -1,0 +1,139 @@
+/* The Health Passport's tabbed home, and the care timeline as a rail (PassportScreens.tsx).
+ *
+ * The export's "My Health" panels drawn on the tokens: white cards on the page's ground, one shadow, the
+ * compact corners (--r-md for a control or a tile, --r-lg for a card), and the accent spent on an icon tile or
+ * a selection rather than on a word. Every colour is a --color-* role, so a panel follows the dark ground.
+ *
+ * HIERARCHY. The panel's first card is the thing the tab is for; everything after it is quieter. The one
+ * filled card is the next visit — the export's dark appointment card on the primary role — because it is the
+ * only thing on the Overview that happens to the reader rather than having happened.
+ *
+ * MOTION. None of its own. A panel is re-keyed when its tab is chosen and arrives through motion.css's
+ * .m-stagger, and the rail's entries through the same class; both are gated on [data-motion='on'], which is
+ * never raised under reduced motion. */
+
+.hp-panel { display: grid; gap: var(--space-24); min-width: 0; }
+.hp-panel:focus-visible { outline-offset: var(--space-4); }
+
+.hp-card { display: grid; gap: var(--space-16); min-width: 0; }
+.hp-card__head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-8) var(--space-16); }
+.hp-card__head > div { flex: 1 1 280px; min-width: 0; }
+.hp-title { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; line-height: 1.3; color: var(--color-foreground); }
+.hp-lead { margin: var(--space-4) 0 0; font-size: 14px; line-height: 1.45; color: var(--color-muted-foreground); }
+
+.hp-tile { display: grid; place-items: center; flex: none; width: var(--space-40); height: var(--space-40); border-radius: var(--r-md); background: var(--color-muted); color: var(--color-primary); }
+
+/* ---- Overview: the figures ------------------------------------------------------------------------ */
+.hp-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-12); margin: 0; padding: 0; list-style: none; }
+.hp-stat { display: grid; gap: var(--space-8); align-content: start; min-width: 0; padding: var(--space-16); border: 1px solid var(--color-border); border-radius: var(--r-md); background: var(--color-surface); }
+.hp-stat__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-8); margin-bottom: var(--space-4); }
+.hp-stat__value { font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1.1; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.hp-stat__value small { font-family: var(--font-text, inherit); font-size: 14px; font-weight: 500; color: var(--color-muted-foreground); }
+.hp-stat__label { font-size: 14px; line-height: 1.35; color: var(--color-muted-foreground); }
+
+/* ---- Overview: the next visit ----------------------------------------------------------------------
+   Three columns at a desk — who, what and where, when — and one on a phone. The words are the primary role's
+   foreground on the primary role, the pair the build measures; nothing on the card is a lighter tint of it. */
+.hp-next {
+ display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(180px, 220px); gap: var(--space-20); align-items: stretch;
+ padding: var(--space-20); border-radius: var(--r-lg); background: var(--color-primary); color: var(--color-primary-foreground); box-shadow: var(--shadow);
+}
+.hp-next__who { display: grid; place-items: center; width: calc(var(--space-40) * 2); height: calc(var(--space-40) * 2); border-radius: var(--r-md); border: 1px solid color-mix(in oklab, var(--color-primary-foreground) 30%, transparent); font-family: var(--font-display); font-size: 28px; font-weight: 600; }
+.hp-next__body { display: grid; align-content: start; gap: var(--space-4); min-width: 0; }
+.hp-next .hp-next__eyebrow { margin-bottom: var(--space-8); font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.hp-next h2 { margin: 0; font-family: var(--font-display); font-size: 22px; font-weight: 600; line-height: 1.25; color: var(--color-primary-foreground); }
+.hp-next p { margin: 0; font-size: 14px; line-height: 1.45; }
+.hp-next ul { display: grid; gap: var(--space-8); margin: var(--space-12) 0 0; padding: 0; list-style: none; font-size: 14px; }
+.hp-next li { display: flex; align-items: flex-start; gap: var(--space-8); overflow-wrap: anywhere; }
+.hp-next li svg { flex: none; margin-top: 2px; }
+.hp-next__when { display: flex; flex-direction: column; gap: var(--space-8); padding: var(--space-16); border-radius: var(--r-md); border: 1px solid color-mix(in oklab, var(--color-primary-foreground) 30%, transparent); }
+.hp-next__date { display: grid; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.hp-next__date strong { font-family: var(--font-display); font-size: 40px; font-weight: 600; line-height: 1.05; letter-spacing: 0; }
+.hp-next__time { display: flex; align-items: center; gap: var(--space-8); padding-top: var(--space-8); border-top: 1px solid color-mix(in oklab, var(--color-primary-foreground) 30%, transparent); font-weight: 600; }
+.hp-next__when small { font-size: 13px; }
+.hp-next__when .ui-button { width: 100%; }
+.hp-next__when .ui-button:first-of-type { margin-top: auto; }
+.hp-next .hp-next__ghost { border: 1px solid color-mix(in oklab, var(--color-primary-foreground) 45%, transparent); color: var(--color-primary-foreground); }
+.hp-next .hp-next__ghost:is(:hover, .is-hover):not(:disabled) { background: color-mix(in oklab, var(--color-primary-foreground) 12%, transparent); }
+.hp-next-empty { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; }
+
+.hp-jumps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-12); }
+.hp-jumps .ui-button, .hp-actions .ui-button { white-space: normal; text-align: left; }
+
+/* ---- Vitals, results, medicines --------------------------------------------------------------------- */
+.hp-card .chart-grid { margin: 0; }
+/* Four charts in the page's three-up grid left one alone on a second row; two by two they read as a set. */
+@media (min-width: 700px) { .hp-card .chart-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.hp-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-12); margin: 0; padding-top: var(--space-16); border-top: 1px solid var(--color-border); }
+.hp-facts > div { display: grid; gap: var(--space-4); min-width: 0; }
+.hp-facts dt { font-size: 13px; color: var(--color-muted-foreground); }
+.hp-facts dd { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.hp-facts dd small { font-family: var(--font-text, inherit); font-size: 13px; font-weight: 500; color: var(--color-muted-foreground); }
+.hp-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+
+.hp-rows { display: grid; gap: var(--space-8); margin: 0; padding: 0; list-style: none; }
+.hp-row {
+ display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: var(--space-12);
+ width: 100%; min-height: var(--ui-target, 44px); padding: var(--space-12); border: 1px solid var(--color-border); border-radius: var(--r-md);
+ background: var(--color-surface); color: var(--color-foreground); font: inherit; text-align: left;
+}
+button.hp-row:hover { border-color: var(--color-accent); }
+.hp-row--static { grid-template-columns: auto minmax(0, 1fr); }
+.hp-row__text { display: grid; gap: var(--space-4); min-width: 0; }
+.hp-row__text strong { font-size: 15px; font-weight: 500; }
+.hp-row__text small { font-size: 13px; color: var(--color-muted-foreground); }
+.hp-row > svg { color: var(--color-muted-foreground); }
+
+/* The results beside the one trend a laboratory result is usually read against; a chart drawn across the
+   whole panel stretched its points into ovals. */
+.hp-split { display: grid; gap: var(--space-24); align-items: start; }
+@media (min-width: 1000px) { .hp-split { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
+.hp-split .chart-card, .hp-split > :last-child { margin: 0; }
+.hp-panel > .section-title { margin: 0; }
+
+/* ---- The timeline's filter chips -------------------------------------------------------------------- */
+.hp-chips { display: flex; flex-wrap: wrap; gap: var(--space-8); flex: 1; }
+
+/* ---- The care timeline, as a rail ------------------------------------------------------------------
+   A date column, a node on a line, and the card. The line is the list's own border drawn behind the nodes'
+   column, so it needs no element; the node's ground is the surface, so the line stops at each node. */
+.hp-rail { position: relative; display: grid; gap: var(--space-12); margin: 0; padding: 0; list-style: none; }
+.hp-rail::before { content: ''; position: absolute; top: var(--space-24); bottom: var(--space-24); left: calc(56px + var(--space-12) + var(--space-20)); width: 1px; background: var(--color-border); }
+.hp-rail__item { position: relative; display: grid; grid-template-columns: 56px var(--space-40) minmax(0, 1fr); gap: var(--space-12); align-items: start; }
+.hp-rail__date { display: grid; justify-items: end; padding-top: var(--space-12); color: var(--color-muted-foreground); font-size: 13px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.hp-rail__date strong { font-family: var(--font-display); font-size: 20px; font-weight: 600; color: var(--color-foreground); }
+.hp-rail__node { position: relative; z-index: 1; display: grid; place-items: center; width: var(--space-40); height: var(--space-40); margin-top: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--r-pill); background: var(--color-surface); color: var(--color-primary); }
+.hp-rail__card { min-width: 0; border: 1px solid var(--color-border); border-radius: var(--r-md); background: var(--color-surface); box-shadow: var(--shadow); }
+.patient-surface .hp-rail__card .explain-row { width: 100%; border: 0; padding: var(--space-12) var(--space-16); background: transparent; }
+.hp-panel .care-timeline-tools { margin: 0; }
+.hp-rail__card .explain-body { padding: 0 var(--space-16) var(--space-16); }
+
+@media (max-width: 899px) {
+ .hp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+ .hp-next { grid-template-columns: auto minmax(0, 1fr); }
+ .hp-next__when { grid-column: 1 / -1; }
+}
+@media (max-width: 639px) {
+ .hp-next { grid-template-columns: minmax(0, 1fr); padding: var(--space-16); }
+ .hp-next__who { width: calc(var(--space-32) * 2); height: calc(var(--space-32) * 2); font-size: 22px; }
+ .hp-next-empty { grid-template-columns: auto minmax(0, 1fr); }
+ .hp-next-empty .ui-button { grid-column: 1 / -1; }
+ .hp-jumps, .hp-facts { grid-template-columns: minmax(0, 1fr); }
+ .hp-stat { padding: var(--space-12); }
+ .hp-stat__value { font-size: 24px; }
+ .hp-row { grid-template-columns: auto minmax(0, 1fr) auto; }
+ .hp-row .ui-badge { grid-column: 2; justify-self: start; }
+ .hp-row > svg { grid-row: 1; grid-column: 3; }
+ .hp-rail::before { left: calc(var(--space-20) - 1px); }
+ .hp-rail__item { grid-template-columns: var(--space-40) minmax(0, 1fr); }
+ .hp-rail__date { grid-column: 2; grid-row: 1; justify-items: start; display: flex; gap: var(--space-4); align-items: baseline; padding-top: var(--space-8); }
+ .hp-rail__date strong { font-size: 16px; }
+ .hp-rail__node { grid-column: 1; grid-row: 1 / span 2; }
+ .hp-rail__card { grid-column: 2; }
+}
+
+/* The prescription's page in the export's three tabs (PassportScreens.tsx#PrescriptionTabs). The tab bar sits
+   at its own width over the panel, as the Passport's does, and the panel keeps the Passport's rhythm. */
+.rx-tabs { display: grid; gap: var(--space-16); min-width: 0; margin-bottom: var(--space-24); }
+.rx-tabs > .ui-tabs { justify-self: start; max-width: 100%; }
+.rx-page-actions { margin-top: var(--space-24); }

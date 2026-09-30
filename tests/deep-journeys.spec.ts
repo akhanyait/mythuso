@@ -148,7 +148,9 @@ test('control tower assigns a nurse and logs an incident action', async ({ page 
 test('partner orders show chain of custody and every integration state', async ({ page }) => {
   await page.goto('/app/');
   await switchRole(page, 'Partner');
+  /* Orders is master and detail since 30 September 2026: a row chooses the order, and the panel opens it. */
   await page.getByRole('button', { name: /^RX-0081/ }).click();
+  await page.getByRole('button', { name: 'Open the prescription to act on it' }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByText('Amlodipine 5 mg')).toBeVisible();
   await expect(dialog.getByText('0 of 2 items checked by the pharmacist')).toBeVisible();
@@ -160,6 +162,7 @@ test('partner orders show chain of custody and every integration state', async (
   await expect(dialog.locator('.not-connected')).toContainText(noticeFor('dispensing'));
   await dialog.getByRole('button', { name: 'Close dialog' }).click();
   await page.getByRole('button', { name: /^LAB-0023/ }).click();
+  await page.getByRole('button', { name: 'Open the laboratory order' }).click();
   await expect(dialog.getByText('SEAL-77341 · Intact on receipt')).toBeVisible();
   await expect(dialog.getByRole('row', { name: /Fasting glucose/ })).toContainText('High');
   await dialog.getByRole('button', { name: 'Release with an explanation' }).click();
@@ -204,7 +207,10 @@ test('an identity number is checked against its own check digit, not just its le
 });
 test('a doctor whose registration has lapsed cannot sign, and is told which check refused it', async ({ page }) => {
   await switchRole(page, 'Doctor');
+  /* The queue is master and detail since 30 September 2026: the row chooses the case and the panel beside it
+     opens it. The review it opens, and everything asserted in it, is unchanged. */
   await page.getByRole('button', { name: /TH-2048/ }).click();
+  await page.getByRole('button', { name: 'Open the case to sign' }).click();
   const dialog = page.getByRole('dialog');
   const sign = dialog.getByRole('button', { name: 'Sign decision' });
   await dialog.getByLabel('Signing doctor').selectOption({ label: 'Dr Sanjay Naidoo · HPCSA MP0559104' });
@@ -221,6 +227,8 @@ test('a doctor whose registration has lapsed cannot sign, and is told which chec
 test('every clinical chart is also available as a table', async ({ page }) => {
   await page.goto('/app/');
   await navigate(page, 'Health Passport');
+  /* The charts are the Passport's Vitals tab since the tabbed health home of 30 September 2026. */
+  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Vitals' }).click();
   const chart = page.locator('.chart-card').filter({ hasText: 'Blood pressure' }).first();
   /* The date is not pinned any more. These readings were four literal arrays typed into the passport
      and dated "12 Aug" through "4 Sep" — labels that were right the week they were written; they are
@@ -259,6 +267,7 @@ test('new surfaces do not overflow the viewport or throw', async ({ page }, test
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('/app/');
   await navigate(page, 'Health Passport');
+  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Vitals' }).click();
   await expect(page.locator('.chart-card').first()).toBeVisible();
   await page.screenshot({ path: `test-results/passport-charts-${testInfo.project.name}.png` });
   await switchRole(page, 'Control Tower');

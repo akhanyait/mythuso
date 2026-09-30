@@ -72,7 +72,8 @@ const openTheDoor = async (page: Page) => {
   const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
   if (await sidebar.isVisible()) await page.getByRole('button', { name: 'Your profile', exact: true }).click();
   else await page.locator('.tabbar button').nth(4).click();
-  await page.getByRole('button', { name: /^Log out/ }).click();
+  /* The profile dialog's, or the More hub's: the sidebar has its own Log out at its foot since 30 September. */
+  await page.getByRole('dialog').or(page.getByRole('main')).getByRole('button', { name: /^Log out/ }).click();
   await expect(page.getByRole('heading', { name: 'Sign in to MyThuso' })).toBeVisible();
 };
 
@@ -120,11 +121,12 @@ test.describe('at a 320px viewport', () => {
     }
   });
 
-  test('the passport reads in all four of its sections', async ({ page }) => {
+  test('the passport reads in all seven of its sections', async ({ page }) => {
     await page.goto('/app/');
     await page.locator('.tabbar button').nth(3).click();
-    for (const section of ['Records', 'Medications', 'More']) {
-      await page.getByRole('group', { name: 'Passport sections' }).getByRole('button', { name: section, exact: true }).click();
+    await audit(page, 'Health Passport · Overview at 320px');
+    for (const section of ['Vitals', 'Results', 'Medications', 'History', 'Goals', 'Records']) {
+      await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: section, exact: true }).click();
       await audit(page, `Health Passport · ${section} at 320px`);
     }
   });
@@ -139,16 +141,17 @@ test.describe('at a 320px viewport', () => {
     await audit(page, 'Help & support at 320px');
 
     await page.locator('.tabbar button').nth(3).click();
-    await page.locator('.record-row').filter({ hasText: 'Nurse home visit' }).first().click();
-    await page.locator('.explain-row').first().click();
+    await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'History' }).click();
+    await page.locator('.explain-row').filter({ hasText: 'Nurse home visit' }).first().click();
     await audit(page, 'Care timeline, a visit open, at 320px');
 
     await page.locator('.tabbar button').nth(3).click();
+    await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Records' }).click();
     await page.locator('.shortcut-row').filter({ hasText: 'Doctors' }).click();
     await audit(page, 'Your care team at 320px');
 
     await page.locator('.tabbar button').nth(3).click();
-    await page.getByRole('group', { name: 'Passport sections' }).getByRole('button', { name: 'Medications' }).click();
+    await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Medications' }).click();
     await page.getByRole('button', { name: /What happens after a doctor signs one/ }).click();
     await audit(page, 'What happens to a prescription at 320px');
   });

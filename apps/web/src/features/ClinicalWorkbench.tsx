@@ -9,6 +9,9 @@ import { bounds, label, latestSample, refusal, sampleFreshness, soapKeys, thusoi
    drifts, and the sentence that drifted would be the one telling a nurse what a diagnosis is. */
 import records from '../../../../packages/catalog/records.json';
 import './clinical-workbench.css';
+/* The nurse's counted tiles, next care action and queue search (S2, 30 September 2026): the export's patients
+   screen over this same sandbox, counted from the state below rather than typed. */
+import { NursePatientsSummary } from './NursePatients';
 
 type Tool = 'Appointments' | 'Consultation' | 'Diagnostic review' | 'Dispensary' | 'Wearables';
 type Role = 'Nurse' | 'Doctor' | 'Partner';
@@ -527,6 +530,12 @@ export function ClinicalWorkbench({ role, worklist }: { role: Role; worklist?: R
  }, [streaming, connection.enabled, connection.consent, patientId, state.revision]);
  useEffect(() => { const timer = window.setInterval(() => setNow(new Date().toISOString()), 15_000); return () => clearInterval(timer); }, []);
  const choosePatient = (id: string) => { setPatient(id); setStreaming(false); setError(''); setNotice(''); };
+ /* A nurse can narrow the care queue by name or reason. The chosen patient stays chosen whether or not the
+    search still shows her, so typing never takes the record she is working out from under her. */
+ const [query, setQuery] = useState('');
+ const queue = role === 'Nurse' && query.trim()
+  ? state.patients.filter(p => `${p.name} ${p.reason}`.toLowerCase().includes(query.trim().toLowerCase()))
+  : state.patients;
  const go = (next: Tool) => { setTool(next); setNotice(''); setError(''); setStreaming(false); };
  const work: Work = { role, state, patientId, patient, consultation, run, go };
  /* The count beside a tool is the number of rows waiting inside it, so the rail says where the work
@@ -557,10 +566,14 @@ export function ClinicalWorkbench({ role, worklist }: { role: Role; worklist?: R
     <p>One patient. Their appointments, clinical record and next action.</p>
    </div>
   </header>
+  {role === 'Nurse' && <NursePatientsSummary state={state} onChoose={choosePatient}/>}
   <div className="iq-layout">
    <aside className="iq-patients" aria-label="Clinical patients">
     <p className="iq-eyebrow">CARE QUEUE</p>
-    {state.patients.map(p => <button key={p.id} className={patientId === p.id ? 'selected' : ''} aria-pressed={patientId === p.id} onClick={() => choosePatient(p.id)}>
+    {role === 'Nurse' && <label className="iq-search"><span className="visually-hidden">Search the care queue</span>
+     <input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search by name or reason"/></label>}
+    {role === 'Nurse' && query.trim() && !queue.length && <p className="helper">Nobody on the care queue matches &ldquo;{query.trim()}&rdquo;.</p>}
+    {queue.map(p => <button key={p.id} className={patientId === p.id ? 'selected' : ''} aria-pressed={patientId === p.id} onClick={() => choosePatient(p.id)}>
      <span className="avatar small">{initials(p.name)}</span>
      <span><strong>{p.name}</strong><small>{p.reason}</small><em>{p.consent ? 'Ready for review' : 'Consent outstanding'}</em></span>
      <ArrowUpRight size={15}/>

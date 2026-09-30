@@ -3,15 +3,22 @@
    design handoff of 28 September 2026. None of them is on a patient's first view, and Passport.tsx, which the
    application imports statically, now hands each of them over on the first press rather than on the first
    load; the home's figures and shared components were paid for with these bytes. */
-import { Suspense, lazy, useState } from 'react';
-import { Activity, Ambulance, ArrowRight, Bluetooth, Check, ChevronDown, Droplets, Heart, LockKeyhole, ShieldCheck, Smartphone, Thermometer, TriangleAlert, Wind } from 'lucide-react';
+import { Suspense, lazy, useState, type ReactNode } from 'react';
+import { Activity, Ambulance, ArrowRight, BookOpen, Bluetooth, CalendarClock, Check, ChevronDown, ChevronRight, Clock3, Download, Droplets, FileCheck, FileText, Heart, History, HeartPulse, LineChart, LockKeyhole, MapPin, Pill as PillIcon, Share2, ShieldCheck, Smartphone, Stethoscope, Target, Thermometer, TriangleAlert, Users, Wind } from 'lucide-react';
 import { ClinicianProfile } from '../components/ClinicianProfile';
 import { EmptyState } from '../components/States';
 import { Pill, SectionTitle } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
 import { ClinicalChart } from '../components/Chart';
 import { Metric, Metrics } from '../surface/Surface';
-import { longDateOf } from '../lib/scheduling';
+import { Badge, Button, Card, Tab, TabsList } from '../ui';
+import { PatientHeader } from './PatientHeader';
+import type { VisitAction, VisitRow } from './Pages';
+import { labels as schedulingLabels, longDateOf, shortDateOf, visitEnds, weekdayOf } from '../lib/scheduling';
+import { nurseOfVisit } from '../lib/arrival';
+import { subjectById } from '../lib/vetting-fixtures';
+import { refusal as wellbeingRefusal } from '../lib/wellbeing';
+import './health-home.css';
 import { provenanceById } from '../lib/capture';
 import { capability } from '../lib/capabilities';
 import { money, services } from '../lib/catalog';
@@ -21,12 +28,12 @@ import { recordById } from '../lib/records';
 import { assignedNurse } from '../lib/arrival';
 import {
  authorisation, authorisedOn, binds, collectionAnswer, expiresOn, formatDay, handover, isFinalRepeat,
- nextCollectionOn, refusalById, repeatsRemaining, ruleById
+ nextCollectionOn, prescription, refusalById, repeatsRemaining, ruleById
 } from '../lib/dispensing';
 import {
  dateOf, documents as passportDocuments, flagFor, formatValue, headlineMeasures, kitInstruments,
  lastReview, latestSet, measureSpec, measuredIn, neverRead, otherMeasures, rangeText,
- readableMeasures, readingSets, reviewedBy, reviewer, seriesFor, type MeasureId
+ readableMeasures, readingSets, refusalById as passportRefusal, reviewedBy, reviewer, seriesFor, type MeasureId
 } from '../lib/passport';
 import { explanations, provenance, urgentConditions } from '../lib/explain';
 /* The request to link Apple Health or Health Connect arrives when the patient opens that screen and not before:
@@ -62,8 +69,8 @@ export function HealthTrends({ navigate }: { navigate: (page: string) => void })
  const measures = measuredIn(latestSet);
  const outside = measures.filter(id => flagFor(id, latestSet.values[id]!) !== 'normal');
  return <>
-  <div className="page-intro"><div className="eyebrow">Health Passport</div><h1>How your readings have changed.</h1>
-   <p>{readingSets.length} home visits over the last {Math.round(Math.abs(readingSets[0].dayOffset) / 30)} months. Every reading is judged against an indicative reference range, which is a guide and not a diagnosis.</p></div>
+  <PatientHeader icon={LineChart} eyebrow="Health Passport" title="How your readings have changed." back={{ label: 'Back to Health Passport', go: () => navigate('Health Passport') }}
+   lead={`${readingSets.length} home visits over the last ${Math.round(Math.abs(readingSets[0].dayOffset) / 30)} months. Every reading is judged against an indicative reference range, which is a guide and not a diagnosis.`}/>
   <NotConnected of="clinical-records"/>
 
   {/* The lead: where things stand today, before any curve. A person opening a trends screen wants
@@ -286,12 +293,11 @@ const flagWord = (flag: ReturnType<typeof flagFor>) =>
  flag === 'normal' ? 'inside the range' : flag === 'high' ? 'above the range' : flag === 'low' ? 'below the range' : 'not measured';
 
 export function ReadingsExplained({ navigate, open }: { navigate: (page: string) => void; open: (modal: string) => void }) {
- const [shown, setShown] = useState<MeasureId | null>(null);
  const measures = measuredIn(latestSet);
  const inside = measures.filter(id => flagFor(id, latestSet.values[id]!) === 'normal').length;
  return <>
-  <div className="page-intro"><div className="eyebrow">Health Passport</div><h1>What your readings mean.</h1>
-   <p>What each measurement is, what a number outside its range may follow from, and who decides what any of it means for you.</p></div>
+  <PatientHeader icon={BookOpen} eyebrow="Health Passport" title="What your readings mean." back={{ label: 'Back to Health Passport', go: () => navigate('Health Passport') }}
+   lead="What each measurement is, what a number outside its range may follow from, and who decides what any of it means for you."/>
   <NotConnected of="screening"/>
 
   {/* The lead is a count and not a verdict. "All inside range" is a fact about seven numbers on one
@@ -306,7 +312,29 @@ export function ReadingsExplained({ navigate, open }: { navigate: (page: string)
   </section>
 
   <SectionTitle title="Choose a reading"/>
-  <div className="panel explain-list">
+  <ExplainList open={open}/>
+
+  {/* Provenance, and it is on the screen rather than in a policy. A reader deciding how much weight
+      to give four paragraphs about their own blood pressure is owed this before the paragraphs. */}
+  <SectionTitle title="Where these words come from"/>
+  <div className="panel"><dl className="stated">
+   <div><dt>Written down, not generated</dt><dd>{provenance.written}</dd></div>
+   <div><dt>No clinician has reviewed this wording</dt><dd>{provenance.unreviewed}</dd></div>
+   <div><dt>The ranges are the nurse’s own</dt><dd>{provenance.ranges}</dd></div>
+   <div><dt>Nothing here changes a medicine</dt><dd>{provenance.neverChange}</dd></div>
+  </dl></div>
+  <div className="privacy-note"><LockKeyhole size={19}/>{capability('screening').blockedBy.join(' ')}</div>
+
+  <button className="primary full" onClick={() => navigate('Health trends')}>See how your readings have changed<ArrowRight size={17}/></button>
+  <button className="secondary full" onClick={() => navigate('Health Passport')}>Back to your Health Passport<ArrowRight size={17}/></button>
+ </>;
+}
+
+/* The explanations, one open at a time, each with its red flags and the door to Thuso SOS. Drawn by the
+   readings screen and by the Passport's Results tab, which is where "what does this result mean" is asked. */
+function ExplainList({ open }: { open: (modal: string) => void }) {
+ const [shown, setShown] = useState<MeasureId | null>(null);
+ return <div className="panel explain-list">
    {explanations.map(explanation => {
     const id = explanation.id;
     const spec = measureSpec(id);
@@ -343,22 +371,7 @@ export function ReadingsExplained({ navigate, open }: { navigate: (page: string)
      </div>}
     </div>;
    })}
-  </div>
-
-  {/* Provenance, and it is on the screen rather than in a policy. A reader deciding how much weight
-      to give four paragraphs about their own blood pressure is owed this before the paragraphs. */}
-  <SectionTitle title="Where these words come from"/>
-  <div className="panel"><dl className="stated">
-   <div><dt>Written down, not generated</dt><dd>{provenance.written}</dd></div>
-   <div><dt>No clinician has reviewed this wording</dt><dd>{provenance.unreviewed}</dd></div>
-   <div><dt>The ranges are the nurse’s own</dt><dd>{provenance.ranges}</dd></div>
-   <div><dt>Nothing here changes a medicine</dt><dd>{provenance.neverChange}</dd></div>
-  </dl></div>
-  <div className="privacy-note"><LockKeyhole size={19}/>{capability('screening').blockedBy.join(' ')}</div>
-
-  <button className="primary full" onClick={() => navigate('Health trends')}>See how your readings have changed<ArrowRight size={17}/></button>
-  <button className="secondary full" onClick={() => navigate('Health Passport')}>Back to your Health Passport<ArrowRight size={17}/></button>
- </>;
+  </div>;
 }
 
 /* ---- The care timeline, the care team and the certificate --------------------------------------
@@ -378,13 +391,20 @@ export function ReadingsExplained({ navigate, open }: { navigate: (page: string)
    people, and a timeline that merges them into "visit" loses the only thing a timeline is for. */
 type TimelineEvent = {
  dayOffset: number;
- kind: 'readings' | 'review' | 'document';
+ kind: 'readings' | 'review' | 'document' | 'medicine';
  title: string;
  by: string;
  /** The reading set this event opens, when it opens one. */
  set?: typeof readingSets[number];
 };
 
+/* The medicines are the dispensing contract's, on the days it gives: the chronic authorisation and the
+   prescription written against it, both by the doctor it names. The Medicines chip used to say "No active
+   prescriptions are recorded in this preview" beside a Medications tab that said the same thing and a
+   prescription screen counting the repeats left on one — three accounts of one patient's medicines. There
+   is one now, and it is dispensing.json's. */
+const prescriber = subjectById(authorisation.reviewedBy);
+const prescribedBy = prescriber ? `${prescriber.name} · ${prescriber.reference}` : authorisation.reviewedBy;
 const timeline = (): TimelineEvent[] => {
  const events: TimelineEvent[] = readingSets.map(set => ({
   dayOffset: set.dayOffset, kind: 'readings' as const,
@@ -392,37 +412,48 @@ const timeline = (): TimelineEvent[] => {
  }));
  events.push({ dayOffset: lastReview.reviewedDayOffset, kind: 'review', title: 'Doctor review completed', by: reviewedBy });
  for (const doc of passportDocuments) events.push({ dayOffset: doc.dayOffset, kind: 'document', title: `${doc.name} issued`, by: reviewedBy });
+ events.push({ dayOffset: authorisation.authorisedByDays, kind: 'medicine', title: `${authorisation.programme} authorisation ${authorisation.reference}`, by: prescribedBy });
+ events.push({ dayOffset: prescription.issuedInDays, kind: 'medicine', title: `Prescription ${prescription.reference} issued`, by: prescribedBy });
  return events.sort((a, b) => b.dayOffset - a.dayOffset);
 };
+const kindIcon = { readings: Stethoscope, review: FileCheck, document: FileText, medicine: PillIcon } as const;
+const filters: [string, TimelineEvent['kind'] | null][] = [['All entries', null], ['Visits', 'readings'], ['Reviews', 'review'], ['Documents', 'document'], ['Medicines', 'medicine']];
 
-export function CareTimeline({ navigate, open }: { navigate: (page: string) => void; open: (modal: string) => void }) {
+/* The care timeline as the export draws it: a rail down the left, a date against each node and a card beside
+   it, arriving in the shell's three-step stagger (motion.css's .m-stagger, gated on reduced motion there).
+   The node's icon says what kind of act it was; the words on the card say it too, so the icon is never the
+   only difference. Each card still opens on what the act produced, in place — the readings as a table, the
+   doctor's words, the document, the medicine — because a rail that only lists is a rail with nowhere to go. */
+function TimelineRail({ navigate, open }: { navigate: (page: string) => void; open: (modal: string) => void }) {
  const [shown, setShown] = useState<string | null>(null);
  const [filter, setFilter] = useState('All entries');
  const [period, setPeriod] = useState('All time');
  const events = timeline();
- const visible = events.filter(event => (filter === 'All entries' || event.kind === ({ Visits: 'readings', Reviews: 'review', Documents: 'document' } as Record<string,string>)[filter]) && (period === 'All time' || event.dayOffset >= -Number(period)));
+ const kind = filters.find(([label]) => label === filter)?.[1] ?? null;
+ const visible = events.filter(event => (kind === null || event.kind === kind) && (period === 'All time' || event.dayOffset >= -Number(period)));
  return <>
-  <div className="page-intro"><div className="eyebrow">Health Passport</div><h1>Everything on your record.</h1>
-   <p>{events.length} entries over {Math.round(Math.abs(readingSets[0].dayOffset) / 30)} months. Each one opens on what it produced, and says who made it.</p></div>
-  <NotConnected of="clinical-records"/>
-
   <div className="care-timeline-tools">
-   <div className="tabs" role="group" aria-label="Timeline entry types">{['All entries','Visits','Reviews','Documents','Medicines'].map(label=><button key={label} className={filter===label?'selected':''} aria-pressed={filter===label} onClick={()=>{setFilter(label);setShown(null);}}>{label}</button>)}</div>
+   <div className="hp-chips" role="group" aria-label="Timeline entry types">{filters.map(([label]) => <Button key={label} size="sm" variant={filter === label ? 'primary' : 'secondary'} aria-pressed={filter === label} onClick={() => { setFilter(label); setShown(null); }}>{label}</Button>)}</div>
    <label>Time period<select value={period} onChange={e=>{setPeriod(e.target.value);setShown(null);}}><option value="All time">All time</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select></label>
   </div>
   <p className="helper" role="status">{visible.length} {visible.length===1?'entry':'entries'} shown · Newest first</p>
-  {!visible.length && <EmptyState title={filter==='Medicines'?'No medicine entries on this record':'No entries in this view'} body={filter==='Medicines'?'A medicine history will appear when prescriptions are recorded. No active prescriptions are recorded in this preview.':'Try a different entry type or widen the time period.'} action="Show all entries" onAction={()=>{setFilter('All entries');setPeriod('All time');}}/>}
-  <div className="panel explain-list care-timeline">{visible.map(event => {
+  {!visible.length && <EmptyState title="No entries in this view" body="Try a different entry type or widen the time period." action="Show all entries" onAction={()=>{setFilter('All entries');setPeriod('All time');}}/>}
+  <ol key={`${filter}-${period}`} className="hp-rail care-timeline m-stagger">{visible.map(event => {
    const key = `${event.kind}-${event.dayOffset}-${event.title}`;
    const isOpen = shown === key;
    const measures = event.set ? measuredIn(event.set) : [];
    const outside = measures.filter(id => flagFor(id, event.set!.values[id]!) !== 'normal');
    const doc = passportDocuments.find(d => `${d.name} issued` === event.title);
-   return <div className={`explain-item${isOpen ? ' open' : ''}`} key={key}>
+   const Icon = kindIcon[event.kind];
+   const [day, month] = shortDateOf(dateOf(event.dayOffset)).split(' ');
+   return <li className="hp-rail__item" key={key}>
+    <time className="hp-rail__date" dateTime={dateOf(event.dayOffset)}><strong>{day}</strong><span>{month}</span></time>
+    <span className="hp-rail__node" aria-hidden="true"><Icon size={18}/></span>
+    <div className={`hp-rail__card explain-item${isOpen ? ' open' : ''}`}>
     <button className="record-row explain-row" aria-expanded={isOpen} onClick={() => setShown(isOpen ? null : key)}>
      <span><strong>{event.title}</strong>
       <small><time dateTime={dateOf(event.dayOffset)}>{longDateOf(dateOf(event.dayOffset))}</time> · {event.by}</small>
-      <small className="timeline-status">{event.kind==='review'?'Review completed':event.kind==='document'?(doc?.reviewed?'Doctor reviewed':'Awaiting review'):event.dayOffset===latestSet.dayOffset?'Doctor review available':'No doctor review recorded'}</small></span>
+      <small className="timeline-status">{event.kind==='review'?'Review completed':event.kind==='medicine'?`${repeatsRemaining} of ${authorisation.repeatsAuthorised} repeats left`:event.kind==='document'?(doc?.reviewed?'Doctor reviewed':'Awaiting review'):event.dayOffset===latestSet.dayOffset?'Doctor review available':'No doctor review recorded'}</small></span>
      {event.kind === 'readings' && <Pill tone={outside.length ? 'amber' : ''}>{outside.length ? `${outside.length} outside range` : `${measures.length} readings`}</Pill>}
      <ChevronDown size={17} className="explain-chevron"/>
     </button>
@@ -462,9 +493,25 @@ export function CareTimeline({ navigate, open }: { navigate: (page: string) => v
       <p className="muted">{doc.kind}, issued out of the visit on {longDateOf(dateOf(event.dayOffset))} and {doc.reviewed ? 'reviewed by a registered doctor' : 'awaiting review'}.</p>
       <button className="secondary full" onClick={() => open(doc.opens ?? doc.name)}>Open the {doc.name.toLowerCase()}<ArrowRight size={16}/></button>
      </>}
+     {event.kind === 'medicine' && <>
+      <p className="muted">{authorisation.note}</p>
+      {event.title.startsWith('Prescription')
+       ? <button className="secondary full" onClick={() => open(`Prescription ${prescription.reference}`)}>See how a prescription reads<ArrowRight size={16}/></button>
+       : <button className="secondary full" onClick={() => navigate('What happens to a prescription')}>What happens after a doctor signs one<ArrowRight size={16}/></button>}
+     </>}
     </div>}
-   </div>;
-  })}</div>
+    </div>
+   </li>;
+  })}</ol>
+ </>;
+}
+
+export function CareTimeline({ navigate, open }: { navigate: (page: string) => void; open: (modal: string) => void }) {
+ return <>
+  <PatientHeader icon={History} eyebrow="Health Passport" title="Everything on your record." back={{ label: 'Back to Health Passport', go: () => navigate('Health Passport') }}
+   lead={`${timeline().length} entries over ${Math.round(Math.abs(Math.min(readingSets[0].dayOffset, authorisation.authorisedByDays)) / 30)} months. Each one opens on what it produced, and says who made it.`}/>
+  <NotConnected of="clinical-records"/>
+  <TimelineRail navigate={navigate} open={open}/>
   <button className="secondary full" onClick={() => navigate('Health Passport')}>Back to your Health Passport<ArrowRight size={17}/></button>
  </>;
 }
@@ -487,8 +534,7 @@ export function CareTeam({ navigate, open }: { navigate: (page: string) => void;
     sees: 'The summary and record for the visit she is attending, and only while she is attending it.' }
  ];
  return <>
-  <div className="page-intro"><div className="eyebrow">Health Passport</div><h1>Who has been in your record.</h1>
-   <p>{contract.summary}</p></div>
+  <PatientHeader icon={Users} eyebrow="Health Passport" title="Who has been in your record." back={{ label: 'Back to Health Passport', go: () => navigate('Health Passport') }} lead={contract.summary}/>
   <NotConnected of="clinical-records"/>
 
   <div className="care-team-grid">{team.map(person => <ClinicianProfile key={person.name} name={person.name} role={person.role} reference={person.reference} detail={person.did} access={person.sees} subject={subjectsByRole(person.name===reviewer.name?'doctor':'nurse').find(subject=>subject.name===person.name)}/>)}</div>
@@ -541,17 +587,12 @@ export function MedicalCertificate({ navigate }: { navigate: (page: string) => v
    they accept, the refusal that stops a silent substitution, and the arithmetic that boxes a
    chronic authorisation by a date and by a count at the same time. It is the same contract read
    from the side of the person the medicine is for. */
-export function PrescriptionJourney({ navigate, open }: { navigate: (page: string) => void; open: (modal: string) => void }) {
+/* The patient's medicines, as the dispensing contract holds them: one chronic authorisation and the
+   prescription written on it. Drawn by the prescription's journey, the Passport's Medications tab and the
+   Prescriptions page alike, so the three cannot give three accounts of one patient's medicines again. */
+export function AuthorisationLead() {
  const answer = collectionAnswer();
- return <>
-  <div className="page-intro"><div className="eyebrow">Health Passport</div><h1>What happens to a prescription.</h1>
-   <p>Once a doctor signs one, five things happen before anything is in your hand — and you may stop it at the fourth.</p></div>
-  <NotConnected of="dispensing"/>
-
-  {/* The lead is the arithmetic, because on a chronic medicine the question is never "how does this
-      work" — it is "when may I fetch the next one, and when does this stop". Both answers are
-      worked out from the authorisation rather than written beside it. */}
-  <section className="panel glass lead rise-2">
+ return <section className="panel glass lead rise-2">
    <div className="lead-head"><div><h2>{authorisation.programme}</h2><p>{authorisation.reference} · authorised {formatDay(authorisedOn)}</p></div>
     <Pill tone={answer.allowed ? 'teal' : 'amber'}>{answer.allowed ? 'Due now' : 'Not due yet'}</Pill></div>
    {/* One figure, not three. A repeat count is a number and belongs in the big thin numeral the
@@ -565,7 +606,23 @@ export function PrescriptionJourney({ navigate, open }: { navigate: (page: strin
    <div className="review-line"><span>The authorisation ends</span><strong>{formatDay(expiresOn)}</strong></div>
    <div className="review-line"><span>Which of the two runs out first</span><strong>{binds === 'date' ? 'The date' : 'The repeats'}</strong></div>
    <p className="helper">{answer.reason}</p>
-  </section>
+  </section>;
+}
+
+export function PrescriptionJourney({ navigate, open }: { navigate: (page: string) => void; open: (modal: string) => void }) {
+ return <>
+  <PatientHeader icon={PillIcon} eyebrow="Health Passport" title="What happens to a prescription." back={{ label: 'Back to Health Passport', go: () => navigate('Health Passport') }}
+   lead="Once a doctor signs one, five things happen before anything is in your hand — and you may stop it at the fourth."/>
+  <NotConnected of="dispensing"/>
+
+  {/* The export's Prescriptions: Current, Past and Requests as peer views. Current leads with the
+      arithmetic, because on a chronic medicine the question is never "how does this work" — it is "when
+      may I fetch the next one, and when does this stop" — and both answers are worked out from the
+      authorisation rather than written beside it. Past and Requests are true empty states: the record
+      holds one authorisation and it has not ended, and a repeat is never asked for from here, in the
+      dispensing contract's own words. No "Request a new prescription", no refill button and no delivery
+      banner — prescribing is refused and dispensing is not connected. */}
+  <PrescriptionTabs open={open}/>
 
   <SectionTitle title="The five things that happen at the counter"/>
   <ol className="timeline">{handover.map(step => <li key={step.id} className="done">
@@ -589,10 +646,270 @@ export function PrescriptionJourney({ navigate, open }: { navigate: (page: strin
   </dl>
   <p className="helper"><ShieldCheck size={14}/>{authorisation.endsWith}</p></div>
 
-  <button className="primary full" onClick={() => open('Prescription RX-0081')}>See how a prescription reads<ArrowRight size={17}/></button>
   {/* Who collects a dispensed bag is the patient's to say. The dialog is named by the capability, and its words and
       rules arrive with it on a dynamic import rather than on this page. */}
-  <button className="secondary full" onClick={() => open('medicine-collection')}>{capability('medicine-collection').name}<ArrowRight size={17}/></button>
-  <button className="secondary full" onClick={() => navigate('Health Passport')}>Back to your Health Passport<ArrowRight size={17}/></button>
+  <div className="hp-actions rx-page-actions">
+   <Button variant="secondary" trailingIcon={<ArrowRight aria-hidden="true"/>} onClick={() => open('medicine-collection')}>{capability('medicine-collection').name}</Button>
+   <Button variant="ghost" trailingIcon={<ArrowRight aria-hidden="true"/>} onClick={() => navigate('Health Passport')}>Back to your Health Passport</Button>
+  </div>
+ </>;
+}
+
+type PrescriptionTab = 'Current' | 'Past' | 'Requests';
+const prescriptionTabs: PrescriptionTab[] = ['Current', 'Past', 'Requests'];
+function PrescriptionTabs({ open }: { open: (modal: string) => void }) {
+ const [tab, setTab] = useState<PrescriptionTab>('Current');
+ return <div className="rx-tabs">
+  <TabsList className="hp-tabs" aria-label="Prescriptions">{prescriptionTabs.map(t => <Tab key={t} id={`rx-tab-${t}`} aria-controls="rx-panel" active={tab === t} onClick={() => setTab(t)}>{t}</Tab>)}</TabsList>
+  <div key={tab} id="rx-panel" role="tabpanel" aria-labelledby={`rx-tab-${tab}`} tabIndex={0} className="hp-panel m-stagger">
+   {tab === 'Current' ? <>
+    <AuthorisationLead/>
+    <PrescriptionItems open={open}/>
+   </> : tab === 'Past'
+    ? <EmptyState title="Nothing has ended yet" body={ruleById('ends-in-a-review').sentence}/>
+    : <EmptyState title="No requests are made from here" body={refusalById('software-renewal').sentence}/>}
+  </div>
+ </div>;
+}
+
+/* ---- The Health Passport's home, in tabs ---------------------------------------------------------
+ *
+ * The export's "My Health": a welcome, then Overview, Vitals, Results, Medications, History and Goals as
+ * peer views of one record, and a seventh — Records — for the documents, the sharing and the devices the
+ * Passport already had and the export draws on a page of its own. Passport (Pages.tsx) owns the tab bar
+ * and the choice; this draws the one panel, re-keyed on the tab so it arrives in the shell's three-step
+ * stagger each time it is chosen.
+ *
+ * WHAT THE EXPORT DRAWS AND THIS DOES NOT. Weight and BMI (the record holds no such measure), a progress bar
+ * under every figure, "Within your range", "Improving", a 30-day average and 7D/30D/6M chips over four
+ * readings in three months, invented result rows marked "Normal", today's medicines with Taken and Take now,
+ * and goals with targets and "On track". Every figure here is counted from rows on the screen or read from
+ * passport.json or dispensing.json, and the Goals tab says, in wellbeing.json's own words, why it is empty. */
+export type PassportTab = 'Overview' | 'Vitals' | 'Results' | 'Medications' | 'History' | 'Goals' | 'Records';
+type PanelProps = {
+ tab: PassportTab;
+ go: (tab: PassportTab) => void;
+ navigate: (page: string) => void;
+ open: (modal: string) => void;
+ panelId: string;
+ labelledBy: string;
+ next?: VisitRow;
+ view?: (id: string) => void;
+ manage?: (id: string, action: VisitAction) => void;
+};
+
+export function HealthPanel({ tab, panelId, labelledBy, ...rest }: PanelProps) {
+ return <div key={tab} id={panelId} role="tabpanel" aria-labelledby={labelledBy} tabIndex={0} className="hp-panel m-stagger">
+  {tab === 'Overview' ? <HealthOverview tab={tab} {...rest}/>
+   : tab === 'Vitals' ? <HealthVitals {...rest}/>
+    : tab === 'Results' ? <HealthResults {...rest}/>
+     : tab === 'Medications' ? <HealthMedications {...rest}/>
+      : tab === 'History' ? <TimelineRail navigate={rest.navigate} open={rest.open}/>
+       : tab === 'Goals' ? <HealthGoals {...rest}/>
+        : <HealthRecords {...rest}/>}
+ </div>;
+}
+
+type Rest = Omit<PanelProps, 'tab' | 'panelId' | 'labelledBy'>;
+const flagChip = (flag: ReturnType<typeof flagFor>) => flag === 'normal' ? 'In range' : flag === 'high' ? 'Above range' : 'Below range';
+
+function CardHead({ title, lead, aside }: { title: string; lead?: string; aside?: ReactNode }) {
+ return <div className="hp-card__head"><div><h2 className="hp-title">{title}</h2>{lead && <p className="hp-lead">{lead}</p>}</div>{aside}</div>;
+}
+
+function HealthOverview({ go, navigate, next, view, manage }: Rest & { tab: PassportTab }) {
+ const measures = measuredIn(latestSet).filter(id => headlineMeasures.includes(id));
+ const outside = measures.filter(id => flagFor(id, latestSet.values[id]!) !== 'normal');
+ return <>
+  {/* The four figures the trends screen leads with, from the last visit's readings. The word under each is
+      where it fell against its own indicative range — a fact about one number on one day, never a verdict. */}
+  <Card className="hp-card" padding="md">
+   <CardHead title="Your latest readings" lead={`Taken at your home visit on ${longDateOf(dateOf(latestSet.dayOffset))}. Sample readings.`}
+    aside={<Badge variant={outside.length ? 'warning' : 'success'} dot>{outside.length ? `${outside.length} outside range` : 'All inside range'}</Badge>}/>
+   <ul className="hp-stats">{measures.map(id => {
+    const flag = flagFor(id, latestSet.values[id]!);
+    const Icon = measureIcon[id] ?? Activity;
+    return <li className="hp-stat" key={id}>
+     <span className="hp-stat__head"><span className="hp-tile"><Icon size={18} aria-hidden="true"/></span><Badge size="sm" variant={flag === 'normal' ? 'success' : 'warning'}>{flagChip(flag)}</Badge></span>
+     <strong className="hp-stat__value">{formatValue(id, latestSet.values[id]!)}<small> {measureSpec(id).unit}</small></strong>
+     <span className="hp-stat__label">{measureSpec(id).label}</span>
+    </li>;
+   })}</ul>
+  </Card>
+  <NextVisitCard next={next} view={view} manage={manage} navigate={navigate}/>
+  <div className="hp-jumps">
+   <Button variant="secondary" leadingIcon={<HeartPulse aria-hidden="true"/>} onClick={() => go('Vitals')}>Review your vitals</Button>
+   <Button variant="secondary" leadingIcon={<FileText aria-hidden="true"/>} onClick={() => go('Results')}>Open your results</Button>
+   <Button variant="secondary" leadingIcon={<History aria-hidden="true"/>} onClick={() => go('History')}>See your care history</Button>
+  </div>
+ </>;
+}
+
+/* The export's dark appointment card, drawn from the visit the person booked: who is coming (the roster's
+   initials, never a photograph of somebody who does not exist), what and where, and the day as a date block.
+   No clinic, no room and no "Join online" — a home visit has none of them. */
+function NextVisitCard({ next, view, manage, navigate }: Pick<Rest, 'next' | 'view' | 'manage' | 'navigate'>) {
+ if (!next) return <Card className="hp-card hp-next-empty" padding="md">
+  <span className="hp-tile"><CalendarClock size={18} aria-hidden="true"/></span>
+  <div><h2 className="hp-title">{schedulingLabels.noUpcoming}</h2><p className="hp-lead">{schedulingLabels.noUpcomingDetail}</p></div>
+  <Button variant="secondary" trailingIcon={<ArrowRight aria-hidden="true"/>} onClick={() => navigate('Book a nurse')}>Book a nurse</Button>
+ </Card>;
+ const v = next.visit;
+ const nurse = nurseOfVisit(v);
+ const [day, month] = v.date ? shortDateOf(v.date).split(' ') : [];
+ return <section className="hp-next" aria-labelledby="hp-next-title">
+  <span className="hp-next__who" aria-hidden="true">{nurse.initials}</span>
+  <div className="hp-next__body">
+   <p className="hp-next__eyebrow">Your next visit</p>
+   <h2 id="hp-next-title">{nurse.name}</h2>
+   <p>{nurse.role} · Sample assignment</p>
+   <ul>
+    <li><Stethoscope size={16} aria-hidden="true"/>{v.service.name}</li>
+    <li><MapPin size={16} aria-hidden="true"/>{v.address} · {v.person}</li>
+   </ul>
+  </div>
+  <div className="hp-next__when">
+   {v.date && v.start ? <>
+    <p className="hp-next__date"><span>{weekdayOf(v.date)}</span><strong>{day}</strong><span>{month}</span></p>
+    <p className="hp-next__time"><Clock3 size={16} aria-hidden="true"/>{v.start} – {visitEnds(v)}</p>
+    <small>{v.service.duration} minutes</small>
+   </> : <p className="hp-next__time"><Clock3 size={16} aria-hidden="true"/>{schedulingLabels.asapPending}</p>}
+   {view && <Button variant="secondary" trailingIcon={<ArrowRight aria-hidden="true"/>} onClick={() => view(next.id)}>View this visit</Button>}
+   {manage && <Button variant="ghost" className="hp-next__ghost" onClick={() => manage(next.id, 'reschedule')}>Reschedule</Button>}
+  </div>
+ </section>;
+}
+
+/* The export's vitals: the charts and a row of facts under them. Its "30-day average" and "Trend: Improving"
+   are not here — four readings over three months have no thirty-day average, and "improving" is an
+   interpretation passport.json refuses in its own words, which the panel prints instead. */
+function HealthVitals({ navigate }: Rest) {
+ const pressure = `${formatValue('systolic', latestSet.values.systolic!)}/${formatValue('diastolic', latestSet.values.diastolic!)}`;
+ return <Card className="hp-card" padding="md">
+  <CardHead title="Vitals" lead={`${readingSets.length} home visits on record, the last on ${longDateOf(dateOf(latestSet.dayOffset))}. Each reading is drawn against its indicative range.`}/>
+  <div className="chart-grid">{headlineMeasures.map(id => {
+   const spec = measureSpec(id);
+   const Icon = measureIcon[id] ?? Activity;
+   return <ClinicalChart key={id} title={spec.label} unit={spec.unit} normal={[spec.range[0], spec.range[1]]}
+    icon={<Icon size={16}/>} format={n => formatValue(id, n)} readings={seriesFor(id)}/>;
+  })}</div>
+  <dl className="hp-facts">
+   <div><dt>Latest blood pressure</dt><dd>{pressure} <small>{measureSpec('systolic').unit}</small></dd></div>
+   <div><dt>Visits with readings</dt><dd>{readingSets.length}</dd></div>
+   <div><dt>Last taken</dt><dd>{longDateOf(dateOf(latestSet.dayOffset))}</dd></div>
+  </dl>
+  <p className="helper"><ShieldCheck size={14}/>{passportRefusal('no-interpretation').sentence}</p>
+  <div className="hp-actions">
+   <Button variant="secondary" trailingIcon={<ArrowRight aria-hidden="true"/>} onClick={() => navigate('Health trends')}>Every reading, as charts and tables</Button>
+   <Button variant="ghost" trailingIcon={<ArrowRight aria-hidden="true"/>} onClick={() => navigate('What readings mean')}>What these readings mean</Button>
+  </div>
+ </Card>;
+}
+
+/* Results reach the record as documents — a laboratory's report, with who issued it and whether a registered
+   doctor has reviewed it — so that is what this lists, not a row per test marked "Normal". A document whose
+   kind names a report is a result; the rest (the visit summary, the certificate) are under Records. */
+const isResult = (kind: string) => /report/i.test(kind);
+function HealthResults({ open }: Rest) {
+ const results = passportDocuments.filter(doc => isResult(doc.kind));
+ const glucose = measureSpec('glucose');
+ return <>
+  <div className="hp-split">
+  <Card className="hp-card" padding="md">
+   <CardHead title="Your results" lead="Every result says who issued it, when, and whether a registered doctor has reviewed it."/>
+   {results.length ? <ul className="hp-rows">{results.map(doc => <li key={doc.name}>
+    <button className="hp-row" onClick={() => open(doc.opens ?? doc.name)}>
+     <span className="hp-tile"><FileText size={18} aria-hidden="true"/></span>
+     <span className="hp-row__text"><strong>{doc.name}</strong><small>{doc.kind} · issued {longDateOf(dateOf(doc.dayOffset))}</small></span>
+     <Badge size="sm" variant={doc.reviewed ? 'primary' : 'warning'}>{doc.reviewed ? 'Doctor reviewed' : 'Awaiting review'}</Badge>
+     <ChevronRight size={17} aria-hidden="true"/>
+    </button></li>)}</ul>
+    : <EmptyState title="No results on your record" body="A result appears here once a laboratory has reported it, with who reviewed it."/>}
+  </Card>
+  <ClinicalChart title={glucose.label} unit={glucose.unit} normal={[glucose.range[0], glucose.range[1]]} icon={<Droplets size={16}/>}
+   format={n => formatValue('glucose', n)} readings={seriesFor('glucose')}/>
+  </div>
+  <SectionTitle title="What a reading means"/>
+  <ExplainList open={open}/>
+  <p className="helper"><ShieldCheck size={14}/>{provenance.whoDecides}</p>
+ </>;
+}
+
+/* What the dispensing contract holds, and nothing a person could take for an adherence record: no "Taken",
+   no "Take now", no refill button. The next collection is a date worked out from the authorisation. */
+function HealthMedications({ navigate, open }: Rest) {
+ return <>
+  <AuthorisationLead/>
+  <PrescriptionItems open={open} navigate={navigate}/>
+ </>;
+}
+
+/* The prescription written on the authorisation, as the doctor wrote it. The Medications tab offers the way
+   to the prescription's journey; the journey's own Current tab is already there, so it does not. */
+function PrescriptionItems({ open, navigate }: { open: (modal: string) => void; navigate?: (page: string) => void }) {
+ return <Card className="hp-card" padding="md">
+  <CardHead title={`Prescription ${prescription.reference}`} lead={`Issued ${formatDay(prescription.issued)} by ${prescribedBy}. ${prescription.items.length} medicines, as the doctor wrote them.`}/>
+  <ul className="hp-rows">{prescription.items.map(item => <li key={item.id} className="hp-row hp-row--static">
+   <span className="hp-tile"><PillIcon size={18} aria-hidden="true"/></span>
+   <span className="hp-row__text"><strong>{item.molecule} {item.strength}</strong><small>{item.dose} · {item.quantity}</small></span>
+  </li>)}</ul>
+  <p className="helper"><ShieldCheck size={14}/>{wellbeingRefusal('no-medicine-advice')}</p>
+  <div className="hp-actions">
+   <Button variant="secondary" trailingIcon={<ArrowRight aria-hidden="true"/>} onClick={() => open(`Prescription ${prescription.reference}`)}>See how a prescription reads</Button>
+   {navigate && <Button variant="ghost" trailingIcon={<ArrowRight aria-hidden="true"/>} onClick={() => navigate('What happens to a prescription')}>What happens after a doctor signs one</Button>}
+  </div>
+ </Card>;
+}
+
+/* The export's goals are targets with progress bars and "On track". wellbeing.json refuses both, so the tab
+   is the refusal, in the contract's words, and a door to where ongoing care is actually arranged. */
+function HealthGoals({ navigate }: Rest) {
+ return <>
+  <EmptyState title="No goals are set for you here" body={wellbeingRefusal('no-target')} action="Open Care plans" onAction={() => navigate('Care plans')}/>
+  <p className="helper"><Target size={14}/>{wellbeingRefusal('no-cheerfulness-about-illness')}</p>
+ </>;
+}
+
+/* The sample export writes the last visit's readings out of passport.json. It typed "118/78" beside a
+   record whose last blood pressure was a different number, which is two copies of one reading. */
+const exportSample = () => {
+ const set = latestSet.values;
+ const blob = new Blob([JSON.stringify({ demo: true, patient: 'Lerato Molefe', readings: [{ day: dateOf(latestSet.dayOffset), bloodPressure: `${formatValue('systolic', set.systolic!)}/${formatValue('diastolic', set.diastolic!)}`, heartRate: set.pulse, glucose: set.glucose }], notice: 'Fictional data. Not a medical record.' }, null, 2)], { type: 'application/json' });
+ const url = URL.createObjectURL(blob);
+ const a = document.createElement('a');
+ a.href = url; a.download = 'mythuso-demo-passport.json'; a.click();
+ setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
+/* What the Passport was before it had tabs, kept whole: the documents, the doors that share or protect the
+   record, and the three device sheets under the permission nobody has given. */
+function HealthRecords({ navigate, open }: Rest) {
+ const shortcuts: [string, string, typeof Share2, () => void][] = [
+  ['Share record', 'Let a verified professional see a limited summary, for a period you set.', Share2, () => open('Share my passport')],
+  ['Share links', 'A link that rides on a grant you made, and ends when it does or sooner.', Share2, () => navigate('Share part of your record')],
+  ['Your emergency card', 'Allergies and medicines on a card you can show or print. A preview.', ShieldCheck, () => navigate('Your emergency card')],
+  ['Who opened your record', 'Every access, allowed or refused, with the reason.', History, () => navigate('Who opened your record')],
+  ['Claims to your medical scheme', 'What was claimed, and whether anything was sent.', FileText, () => navigate('Claims to your medical scheme')],
+  ['Export sample passport', 'Downloads a JSON copy to your device. Nothing is sent anywhere.', Download, exportSample],
+  ['Doctors', 'The clinicians who have reviewed what is on your record.', Users, () => navigate('Your care team')],
+  ['What these readings mean', 'What each measurement is, what a number outside its range may follow from, and who decides.', BookOpen, () => navigate('What readings mean')]
+ ];
+ return <>
+  <SectionTitle title="Your documents"/>
+  <div className="panel document-list">{passportDocuments.map(doc => <button className="record-row" key={doc.name} onClick={() => open(doc.opens ?? doc.name)}><span className="service-icon"><FileText size={20}/></span><span><strong>{doc.name}</strong><small>{doc.kind} · issued {longDateOf(dateOf(doc.dayOffset))}</small></span><Pill>{doc.reviewed ? 'Doctor reviewed' : 'Awaiting review'}</Pill><ChevronRight size={17}/></button>)}</div>
+  <p className="helper"><ShieldCheck size={14}/>Every document says who issued it, when, and whether a registered doctor has reviewed it. A document with no review status is not a reviewed document.</p>
+  <SectionTitle title="Your record"/>
+  <div className="shortcut-list">{shortcuts.map(([title, detail, Icon, act]) =>
+   <button className="shortcut-row" key={title} onClick={act}><span className="service-icon"><Icon size={20}/></span><span className="shortcut-text"><strong>{title}</strong><small>{detail}</small></span><ChevronRight size={17}/></button>)}</div>
+  {/* The one state on the patient side that is true rather than staged: nothing in this build has asked this
+      device for Health Connect or Apple Health, so the permission genuinely has not been granted. The three
+      sheets that say what each would read sit under the block rather than behind a button that grants nothing. */}
+  <SectionTitle title="Connected devices"/>
+  <NotConnected of="devices"/>
+  <div className="state-block denied" role="status">
+   <span className="state-icon"><LockKeyhole size={24}/></span>
+   <div><h3>We need your permission first</h3><p>MyThuso cannot show readings from your connected devices until you allow Apple Health or Health Connect access. You can change your mind at any time, and declining never blocks a visit. Nothing below has been asked for yet.</p></div>
+  </div>
+  <div className="catalog-grid">{(['Apple Health', 'Health Connect', 'Thuso Kit'] as const).map(t => <div className="panel module-card" key={t}><span className="tile-icon"><Bluetooth size={20}/></span><h3>{t}</h3><p>Choose exactly which readings you share, and stop sharing them without losing what is already on your record.</p><Button variant="secondary" className="full" trailingIcon={<ArrowRight aria-hidden="true"/>} onClick={() => open(`${t} connection`)}>What this would read</Button></div>)}</div>
  </>;
 }

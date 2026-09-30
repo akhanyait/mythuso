@@ -24,7 +24,7 @@ async function navigate(page: Page, label: string) {
 }
 const openVisit = async (page: Page, group: 'Past' | 'Cancelled') => {
   await navigate(page, 'My visits');
-  await page.getByRole('group', { name: 'Visit status' }).getByRole('button', { name: group }).click();
+  await page.getByRole('tablist', { name: 'Visit status' }).getByRole('tab', { name: group }).click();
   await page.getByRole('button', { name: 'View details' }).first().click();
   return page.getByRole('dialog');
 };
@@ -107,9 +107,10 @@ test('cancelling a visit records the reason and the side of the window it was on
 test('the trends screen draws every reading against the range the contract holds it to', async ({ page }) => {
   await page.goto('/app/');
   await navigate(page, 'Health Passport');
-  /* Two sections offer "See all" now — the trend charts and the care timeline — so this names the
-     one it means rather than relying on there being only one. */
-  await page.locator('.section-title').filter({ hasText: 'Health trends' }).getByRole('button', { name: /See all/ }).click();
+  /* The trend charts are the Passport's Vitals tab since it took the export's tabs (30 September 2026), and
+     the whole trends screen is the tab's own door. */
+  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Vitals' }).click();
+  await page.getByRole('button', { name: 'Every reading, as charts and tables' }).click();
   await expect(page.getByRole('heading', { name: 'How your readings have changed.' })).toBeVisible();
   await expect(page.getByText(noticeFor('clinical-records'), { exact: false })).toBeVisible();
 
@@ -132,7 +133,7 @@ for (const integration of integrations) {
   test(`the ${integration} permission screen says what would be read and what never would`, async ({ page }) => {
     await page.goto('/app/');
     await navigate(page, 'Health Passport');
-    await page.getByRole('group', { name: 'Passport sections' }).getByRole('button', { name: 'More' }).click();
+    await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Records' }).click();
     /* "Review permission" is gone. It sat on the denied block and flipped this screen's own state to
        ready — a permission control that appeared to grant a permission and opened nothing. The
        three cards that say what each device would read are under the notice rather than behind it,
@@ -212,6 +213,8 @@ test('a preselected patient does not outlive the journey that set it', async ({ 
 test('the passport explains a measurement, refuses to diagnose, and says who decides', async ({ page }) => {
   await page.goto('/app/');
   await navigate(page, 'Health Passport');
+  /* Under Vitals since the Passport took the export's tabs (30 September 2026). */
+  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Vitals' }).click();
   await page.getByRole('button', { name: /What these readings mean/ }).click();
   await expect(page.getByRole('heading', { name: 'What your readings mean.' })).toBeVisible();
   /* The screening capability's own notice, above everything, because this is where screening will

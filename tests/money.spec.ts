@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { openWorkspace } from './nav';
+import { openDestination, openWorkspace } from './nav';
 import { noticeFor } from './notices';
 /* Thuso Money on the patient's booking and the doctor's workspace.
  *
@@ -80,8 +80,8 @@ test('cash is booked as money owed, with a code for the nurse and the contract�
 test('a doctor’s per-case fee is shown as a proposal nobody has confirmed, and scheduling the payout is refused in the contract’s words', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   await openWorkspace(page, 'Doctor');
-  await page.locator('.tool-link').filter({ hasText: 'Per-case fees' }).click();
-  const d = page.getByRole('dialog');
+  /* A destination in the doctor's Practice group since 30 September, where it was a More tool opening a dialog. */
+  const d = await openDestination(page, 'Per-case fees');
   const fee = money.doctorFees[0]!;
   const [low, high] = model.unitEconomics.doctorReviewFee;
   /* The proposal, as the screen formats cents: the whole rand, and the cents only when there are some. */

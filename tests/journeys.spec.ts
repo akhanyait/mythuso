@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
-import { goPortal, openAdminConsole, openWorkspace, portalContract, PATIENT_TAB_LABEL } from './nav';
+import { goPortal, goSection, openAdminConsole, openWorkspace, portalContract, PATIENT_TAB_LABEL } from './nav';
+import { readFileSync } from 'node:fs';
 
 /* Every navigation destination in every application, walked, and asked one question.
  *
@@ -69,11 +70,9 @@ async function goPatient(page: Page, name: string) {
 
 /* The clinical shell draws its sections as a sidebar and as a tab bar whose visible label is short
    and whose accessible name is the whole section, so both are addressed by accessible name. */
-async function goStaff(page: Page, name: string) {
-  const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
-  if (await sidebar.isVisible()) { await sidebar.getByRole('button', { name, exact: true }).click(); return; }
-  await page.locator('.tabbar').getByRole('button', { name, exact: true }).click();
-}
+/* Since 30 September a phone's tab bar carries four of the nurse's and the doctor's destinations and a More
+   tab for the rest, which is the fallback nav.ts's goSection already takes — so this is that helper. */
+const goStaff = goSection;
 
 /* The Control Tower workspace and the back office are one portal since Phase 3, so they are one
    application here: every category and every tab inside it, from the portal's own contract, walked
@@ -86,9 +85,16 @@ const portalDestinations: Destination[] = portalContract.categories.flatMap(cate
 const patientSections = ['Overview', 'Book a nurse', 'My visits', 'Health Passport', 'My family',
                          'Care plans', 'Thuso Wallet', 'Explore MyThuso', 'Language & access', 'Privacy & settings',
                          'Help & support'];
+const medicinesScreen = JSON.parse(readFileSync(new URL('../packages/catalog/medicines.json', import.meta.url), 'utf8')).screen;
 const staffSections: Record<string, string[]> = {
-  Nurse: ['Schedule', 'Assessments', 'Thuso Kit', 'Earnings & payouts', 'Vetting'],
-  Doctor: ['Review queue', 'Teleconsultation', 'Patient context', 'Consultation records', 'Protocols'],
+  /* Every row of each role's grouped navigation since 30 September: the More tools promoted to destinations, and the
+     screens the nurse's and the doctor's builders registered in those groups the same day. */
+  Nurse: ['Schedule', 'Safety & alerts', 'Assessments', 'Cases', 'Appointments', medicinesScreen.handover.heading, 'Route map',
+          'Thuso Kit', 'Locum shifts', 'Team', 'Earnings & payouts', 'Clinical resources', 'Academy', 'Reports', 'Messages',
+          'Vetting', 'Settings'],
+  Doctor: ['Review queue', 'Triage', 'Schedule', 'Teleconsultation', 'Patient context', 'Consultation records',
+           medicinesScreen.prescribe.heading, medicinesScreen.results.heading, 'Referral pathway', 'Protocols', 'Reports',
+           'Per-case fees', 'Claim draft', 'Messages', 'Resources', 'Credentials'],
   Partner: ['Orders', 'Substitution & repeats', 'Collections', 'Results']
 };
 

@@ -1,5 +1,5 @@
-import { Suspense, lazy } from "react";
-import { TimerReset } from "lucide-react";
+import { Suspense, lazy, type ComponentType } from "react";
+import { ArrowRight, Ban, ClipboardList, Siren, TimerReset, TriangleAlert, UserRoundCheck, UserX } from "lucide-react";
 import { Metric, Metrics } from "../../surface/Surface";
 import {
   DispatchBoard,
@@ -24,6 +24,12 @@ import { Ring } from "./Parts";
 import { Card } from "../../ui/Card";
 import { buttonVariants } from "../../ui/Button";
 import { ProvinceDemo } from "./ProvinceDemo";
+import { Alert } from "../../ui/Alert";
+import { Button } from "../../ui/Button";
+import { MyThusoVisitIcon } from "../../ui/icons/MyThusoIcons.generated";
+import { portalContract } from "../../lib/portal";
+import { deskRows, useFieldSafety } from "../../lib/field-safety";
+import { deskRowsOf, useSosDesk } from "../../lib/sos-desk";
 
 /* The four operational categories — Dispatch & Incidents, Vetting, Quality and Audit — drawn from the
  * Control Tower workspace's own screens, unchanged (§6.3: "they move into the merged portal
@@ -57,12 +63,26 @@ const Movement = lazy(() =>
    parallel-run journey reads .s-metric's label, value and chip in the kept workspace and here and fails if
    they differ, so the markup inside the card is the workspace's, and portal.css gives it MetricCard's type. */
 type StripFigure = { label: string; value: string; chip: string; flagged: boolean; share?: number };
+/* The handoff's stat cards each carry an icon tile (30 September 2026). Keyed to the figure's own label,
+   so an icon can never sit on a figure it does not describe; a figure with no entry here simply has no
+   tile, and the label under it is what tells two figures apart, as it always was. Decorative and hidden
+   from a screen reader: the label says the same thing in words. */
+const STRIP_ICONS: Readonly<Record<string, ComponentType<{ "aria-hidden"?: boolean | "true" }>>> = {
+  "Visits on the board": ClipboardList,
+  "Nurses on duty": UserRoundCheck,
+  "Open incidents": TriangleAlert,
+  "Parties blocking work": Ban,
+  "Nurses blocked": UserX,
+};
 function TowerStrip({ extra = [] }: { extra?: StripFigure[] }) {
   const figures: StripFigure[] = [...controlTowerFigures(), ...extra];
   return (
     <Metrics>
-      {figures.map((f, i) => (
-        <Card key={f.label} padding="md" variant={i === 0 ? "elevated" : "default"} className={i === 0 ? "pt-strip-figure is-lead" : "pt-strip-figure"}>
+      {figures.map((f, i) => {
+        const Icon = STRIP_ICONS[f.label];
+        return (
+        <Card key={f.label} padding="md" variant={i === 0 ? "elevated" : "default"} className={`pt-strip-figure${i === 0 ? " is-lead" : ""}${Icon ? " has-icon" : ""}`}>
+          {Icon && <span className="pt-strip-icon"><Icon aria-hidden="true" /></span>}
           <Metric
             label={f.label}
             value={f.value}
@@ -72,8 +92,43 @@ function TowerStrip({ extra = [] }: { extra?: StripFigure[] }) {
             visual={f.share === undefined ? undefined : <Ring share={f.share} size={56} />}
           />
         </Card>
-      ))}
+        );
+      })}
     </Metrics>
+  );
+}
+
+/* The handoff's panic banner, held still, at the top of Dispatch (30 September 2026). Three counts, each
+   read off the same desk state the Incidents tab draws its rows from — the field-safety queue's open
+   panics and overdue check-ins, the SOS desk's presses not stood down — so every figure can be checked by
+   opening Incidents and counting. Nothing is drawn while all three are nought. It takes the controller to
+   Incidents and does nothing else: picking up, closing and resolving stay on the rows, where the reason
+   for each is asked. The words are packages/catalog/control-tower-portal.json#fieldAlert. */
+function FieldAlert() {
+  const { go } = usePortal();
+  const field = deskRows(useFieldSafety()).filter((row) => row.open);
+  const sos = deskRowsOf(useSosDesk()).filter((row) => !row.stoodDown);
+  const say = portalContract.fieldAlert;
+  const counts = [
+    { label: say.nursePanics, value: field.filter((row) => row.kind === "panic").length },
+    { label: say.patientSos, value: sos.length },
+    { label: say.overdue, value: field.filter((row) => row.kind === "overdue").length },
+  ];
+  if (counts.every((c) => c.value === 0)) return null;
+  return (
+    <Alert variant="danger" role="status" className="pt-field-alert" title={say.heading} icon={<Siren aria-hidden="true" />}>
+      <ul className="pt-field-alert-counts">
+        {counts.map((c) => (
+          <li key={c.label}>
+            <span>{c.label}</span>
+            <strong>{c.value}</strong>
+          </li>
+        ))}
+      </ul>
+      <Button variant="destructive" size="sm" className="pt-field-alert-go" trailingIcon={<ArrowRight aria-hidden="true" />} onClick={() => go("dispatch", "incidents")}>
+        {say.open}
+      </Button>
+    </Alert>
   );
 }
 
@@ -89,7 +144,7 @@ export function DispatchCategory() {
 
   if (place.tab === "incidents")
     return (
-      <Frame blurb={framingSection("Incidents")}>
+      <Frame blurb={framingSection("Incidents")} icon={<MyThusoVisitIcon aria-hidden="true" />}>
         <TowerStrip />
         <SafetyDesk />
         <SosDesk />
@@ -122,6 +177,7 @@ export function DispatchCategory() {
     );
   return (
     <Frame>
+      <FieldAlert />
       <TowerStrip
         extra={[
           {

@@ -31,6 +31,12 @@ const semantic = tokens.semantic as unknown as { names: string[] } & Record<Mode
 const kebab = (name: string) => name.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`);
 const themeOf = (mode: Mode) => Object.fromEntries(semantic.names.map(role => [`--color-${kebab(role)}`, semantic[mode][role].hex])) as CSSProperties;
 
+/* The type roles, with the size tokens.json gives each and the face the role is set in: the three that
+   head a screen or state a figure are the display face, the rest the text face. The fourteen-step ladder
+   itself is not in tokens.json — scripts/check-boundaries.mjs holds it as a copy — so the gallery shows
+   the roles, which are. */
+const typeScale = Object.entries(tokens.typography.scale as Record<string, number>).sort(([, a], [, b]) => b - a);
+const DISPLAY_ROLES = new Set(['screenTitle', 'heading', 'metric', 'metricLarge']);
 const VARIANTS: ButtonVariant[] = ['primary', 'accent', 'secondary', 'ghost', 'destructive'];
 const SIZES: Exclude<ButtonSize, 'icon'>[] = ['sm', 'md', 'lg'];
 const BADGES: BadgeVariant[] = ['neutral', 'primary', 'accent', 'success', 'warning', 'danger'];
@@ -70,6 +76,22 @@ function Pane({ mode }: { mode: Mode }) {
  const [destination, setDestination] = useState('overview');
  return <div className="ui-gallery-pane" data-theme={mode} data-theme-pane={mode} style={themeOf(mode)}>
   <h2>{mode === 'light' ? 'Light' : 'Dark'}</h2>
+
+  {/* The handoff's colour page, since 30 September 2026: every one of the nineteen roles as a swatch on this
+      pane's own values, its name and the value tokens.json gives it — read, not typed. */}
+  <Section name="Colour roles" note={`all ${semantic.names.length} semantic roles, ${mode}`}>
+   <ul className="ui-gallery-swatches">{semantic.names.map(role => <li key={role} data-role={role}>
+    <span className="ui-gallery-swatch" style={{ background: `var(--color-${kebab(role)})` }}/>
+    <code>--color-{kebab(role)}</code>
+    <small>{semantic[mode][role].hex}</small>
+   </li>)}</ul>
+  </Section>
+  <Section name="Type scale" note="the type roles of tokens.json, largest first, in the face each is set in">
+   <ul className="ui-gallery-type">{typeScale.map(([role, px]) => <li key={role}>
+    <span className="ui-gallery-type-role">{role} · {px}px</span>
+    <span className={DISPLAY_ROLES.has(role) ? 'ui-gallery-type-sample is-display' : 'ui-gallery-type-sample'} style={{ fontSize: `${px}px` }}>A nurse at your door</span>
+   </li>)}</ul>
+  </Section>
 
   <Section name="Button" note="five variants at size md in each state, then the three sizes with an icon">
    {VARIANTS.map(variant => <Row key={variant} label={`variant="${variant}"`}>

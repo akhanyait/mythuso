@@ -9,7 +9,7 @@
 import SwiftUI
 
 enum PatientPagesData {
-    static let version = 1
+    static let version = 2
 
     enum Review {
         /// Nil until a registered clinician has read and signed the pages' health material.
@@ -20,7 +20,7 @@ enum PatientPagesData {
     enum Hub {
         static let opens = "Your health"
         static let heading = "Your health, in one place."
-        static let lead = "Eight pages the design asked for and the build did not have. Each says plainly what it holds today and what it is waiting for."
+        static let lead = "Pages the design asked for and the build did not have. Each says plainly what it holds today and what it is waiting for."
         static let shortcutTitles = [
             "Symptom checker",
             "Risk assessment",
@@ -28,7 +28,9 @@ enum PatientPagesData {
             "Health timeline",
             "Vaccinations",
             "Community support",
+            "Mental health",
             "Nutrition",
+            "Activity",
             "Reminders"
         ]
     }
@@ -40,7 +42,9 @@ enum PatientPagesData {
         case healthTimeline = "Health timeline"
         case vaccinations = "Vaccinations"
         case community = "Community support"
+        case mentalHealth = "Mental health"
         case nutrition = "Nutrition"
+        case activity = "Activity"
         case reminders = "Reminders"
 
         var opening: String {
@@ -51,7 +55,9 @@ enum PatientPagesData {
             case .healthTimeline: return "Opening your health timeline."
             case .vaccinations: return "Opening vaccinations."
             case .community: return "Opening community support."
+            case .mentalHealth: return "Opening mental health."
             case .nutrition: return "Opening nutrition."
+            case .activity: return "Opening activity."
             case .reminders: return "Opening reminders."
             }
         }

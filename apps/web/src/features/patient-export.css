@@ -1,0 +1,685 @@
+/* The patient screens the Lovable export draws and the live app did not have — connected devices, messages,
+ * test results and the consultation's waiting room — and the page header they share (PatientHeader.tsx).
+ *
+ * Loaded with those screens, behind their dynamic imports, so none of this is on the patient's first view.
+ *
+ * HIERARCHY. One raised card per subject (the ui library's Card), and inside it plain bordered tiles with no
+ * shadow of their own, so the page reads as a few subjects with contents rather than a wall of equal boxes.
+ * The figures at the top are the quietest thing on the page — a muted fill and no border — because on every
+ * one of these screens they are a count or a written state, not news.
+ *
+ * COLOUR. Every word takes --color-foreground or --color-muted-foreground and every fill is a surface or
+ * muted role, so no text sits on a pair the build has not measured, in either theme. The accent only fills
+ * the icon tiles, and never carries a word.
+ *
+ * MOTION. None of its own. The shell's section entrance moves the page as one block; nothing here adds to it. */
+
+.ps-screen {
+  display: grid;
+  gap: var(--space-24);
+  min-width: 0;
+}
+
+/* ---- The header ------------------------------------------------------------------------------- */
+.ps-head {
+  display: grid;
+  gap: var(--space-12);
+  margin-bottom: 0;
+}
+/* Three classes deep because `.patient-surface .text-button` paints every text button --charcoal, which is not
+   redefined for the dark theme; at two classes the back link lost to it and read at under 2:1 on the dark ground. */
+.page-intro.ps-head .ps-back {
+  justify-self: start;
+  min-height: 44px;
+  font-size: 14px;
+  color: var(--color-primary);
+}
+.ps-head-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-16);
+  min-width: 0;
+}
+.ps-head-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-tile);
+  background: color-mix(in oklab, var(--color-accent) 15%, transparent);
+  color: var(--color-foreground);
+}
+.ps-head-text {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.ps-head-text .eyebrow {
+  margin-bottom: var(--space-4);
+}
+.ps-head-text p {
+  margin-top: var(--space-8);
+}
+.ps-head-action {
+  flex: none;
+  align-self: center;
+}
+@media (max-width: 639px) {
+  .ps-head-row {
+    flex-wrap: wrap;
+  }
+  .ps-head-icon {
+    width: 44px;
+    height: 44px;
+  }
+  .ps-head-action {
+    flex-basis: 100%;
+  }
+}
+
+/* A ui-button keeps its words on one line; a label that does not fit a phone wraps instead of pushing the
+   page sideways. */
+.ps-wrap {
+  white-space: normal;
+  text-align: left;
+  line-height: 1.3;
+}
+
+/* ---- Figures ---------------------------------------------------------------------------------- */
+.ps-stats {
+  display: grid;
+  gap: var(--space-12);
+  margin: 0;
+  padding: 0;
+}
+@media (min-width: 640px) {
+  .ps-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.ps-stat {
+  display: grid;
+  align-content: start;
+  gap: var(--space-4);
+  padding: var(--space-16);
+  border-radius: var(--r-card);
+  background: var(--color-muted);
+}
+.ps-stat-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-muted-foreground);
+}
+.ps-stat-value {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--color-foreground);
+  font-variant-numeric: tabular-nums;
+}
+.ps-stat-value small {
+  font-family: var(--font-text);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-muted-foreground);
+}
+.ps-stat-foot {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-muted-foreground);
+}
+
+/* ---- A subject's card ------------------------------------------------------------------------- */
+.ps-panel {
+  display: grid;
+  gap: var(--space-16);
+  min-width: 0;
+}
+.ps-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-12);
+}
+.ps-panel-head > div {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.ps-panel-head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+.ps-panel-head p {
+  margin: var(--space-4) 0 0;
+  max-width: 68ch;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-muted-foreground);
+}
+
+/* ---- Tiles inside a card ---------------------------------------------------------------------- */
+.ps-tile {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-tile);
+  background: color-mix(in oklab, var(--color-accent) 15%, transparent);
+  color: var(--color-foreground);
+}
+.ps-device-grid {
+  display: grid;
+  gap: var(--space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 760px) {
+  .ps-device-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.ps-device {
+  display: grid;
+  align-content: start;
+  gap: var(--space-12);
+  min-width: 0;
+  padding: var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-card);
+  background: var(--color-surface);
+}
+.ps-device-top {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-12);
+  min-width: 0;
+}
+.ps-device-name {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ps-device-name h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-foreground);
+}
+.ps-device-name p {
+  margin: var(--space-4) 0 0;
+  font-size: 13px;
+  color: var(--color-muted-foreground);
+}
+.ps-device-top .ui-badge {
+  flex: none;
+}
+/* On a phone the status goes under the name rather than squeezing it to one word a line. */
+@media (max-width: 479px) {
+  .ps-device-top {
+    flex-wrap: wrap;
+  }
+  .ps-device-top .ui-badge {
+    order: 3;
+    margin-left: calc(44px + var(--space-12));
+  }
+}
+.ps-facts {
+  display: grid;
+  gap: var(--space-8);
+  margin: 0;
+  padding-top: var(--space-12);
+  border-top: 1px solid var(--color-border);
+}
+@media (min-width: 480px) {
+  .ps-facts {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
+}
+.ps-facts div {
+  min-width: 0;
+}
+.ps-facts dt {
+  font-size: 13px;
+  color: var(--color-muted-foreground);
+}
+.ps-facts dd {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-foreground);
+}
+.ps-device-note {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-muted-foreground);
+}
+.ps-device-action {
+  justify-self: start;
+}
+
+/* ---- The closing door ------------------------------------------------------------------------- */
+.ps-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-16);
+  padding: var(--space-20);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-card);
+  background: var(--color-muted);
+}
+.ps-banner > div {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+.ps-banner strong {
+  font-size: 16px;
+  color: var(--color-foreground);
+}
+.ps-banner p {
+  margin: var(--space-4) 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-muted-foreground);
+}
+
+/* ---- Messages: the visits on the left, a visit's thread on the right --------------------------- */
+.ps-inbox {
+  display: grid;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-card);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+@media (min-width: 900px) {
+  .ps-inbox {
+    grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+    min-height: 560px;
+  }
+  .ps-inbox-list {
+    border-right: 1px solid var(--color-border);
+  }
+  .ps-thread-list {
+    display: none;
+  }
+}
+/* On a phone one pane at a time: the list, or the thread that replaced it. */
+@media (max-width: 899px) {
+  .ps-inbox.has-open .ps-inbox-list,
+  .ps-inbox:not(.has-open) .ps-inbox-thread {
+    display: none;
+  }
+}
+.ps-inbox-list {
+  display: grid;
+  align-content: start;
+  min-width: 0;
+}
+.ps-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin: var(--space-16);
+  padding: 0 var(--space-12);
+  min-height: 44px;
+  border: 1px solid var(--color-input);
+  border-radius: var(--r-control);
+  background: var(--color-surface);
+  color: var(--color-muted-foreground);
+}
+.ps-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 42px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 16px;
+  color: var(--color-foreground);
+}
+.ps-search input:focus {
+  outline: none;
+}
+.ps-search:focus-within {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+.ps-inbox-none {
+  margin: 0 var(--space-16) var(--space-16);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-muted-foreground);
+}
+.ps-conversations {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ps-conversation {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-12);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-16);
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ps-conversation:hover {
+  background: var(--color-muted);
+}
+/* The open row says so twice: a bar on its leading edge and its own muted ground, never colour alone. */
+.ps-conversation[aria-current="true"] {
+  background: var(--color-muted);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+.ps-initials {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-pill);
+  background: color-mix(in oklab, var(--color-accent) 15%, transparent);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-foreground);
+}
+.ps-conversation-text {
+  display: grid;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ps-conversation-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-8);
+  min-width: 0;
+}
+.ps-conversation-top strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 15px;
+  font-weight: 600;
+}
+.ps-conversation-top .ui-badge {
+  flex: none;
+}
+.ps-conversation-what,
+.ps-conversation-preview {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-muted-foreground);
+}
+.ps-conversation-preview {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ps-inbox-thread {
+  display: grid;
+  align-content: start;
+  gap: var(--space-16);
+  min-width: 0;
+  padding: var(--space-20);
+}
+.ps-thread-head {
+  display: grid;
+  gap: var(--space-4);
+  padding-bottom: var(--space-16);
+  border-bottom: 1px solid var(--color-border);
+}
+.ps-thread-head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+.ps-thread-head p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-muted-foreground);
+}
+.ps-thread-none {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: var(--space-8);
+  min-height: 320px;
+  color: var(--color-muted-foreground);
+  text-align: center;
+}
+.ps-thread-none p {
+  margin: 0;
+  font-size: 15px;
+}
+.ps-empty {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-8);
+  padding: var(--space-24);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--r-card);
+  background: var(--color-surface);
+}
+.ps-empty h2 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--color-foreground);
+}
+.ps-empty p {
+  margin: 0 0 var(--space-8);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-muted-foreground);
+}
+/* The thread's own way back is a small text link inside a dialog; on this page it opens the visit, and it
+   is the first control in the pane, so it takes the full target. */
+.ps-inbox-thread .thread-back {
+  min-height: 44px;
+}
+
+/* ---- Test results: tabs, document rows, the chart and the written explanations ---------------- */
+.ps-tabs {
+  justify-self: start;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.ps-tabpanel {
+  display: grid;
+  gap: var(--space-16);
+  min-width: 0;
+}
+.ps-rows {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ps-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-12) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.ps-row:last-child {
+  border-bottom: 0;
+}
+.ps-row-text {
+  display: grid;
+  gap: 2px;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.ps-row-text strong {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+.ps-row-text small {
+  font-size: 13px;
+  color: var(--color-muted-foreground);
+}
+.ps-note {
+  margin: 0;
+  max-width: 68ch;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-muted-foreground);
+}
+.ps-start {
+  justify-self: start;
+}
+.ps-explained {
+  display: grid;
+  gap: var(--space-12);
+  margin: 0;
+}
+.ps-explained div {
+  padding: var(--space-12) var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-card);
+}
+.ps-explained dt {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+.ps-explained dd {
+  margin: var(--space-4) 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-muted-foreground);
+}
+
+/* ---- The consultation's waiting room: a still stage, the steps of the wait, who would be there -- */
+.ps-consult {
+  display: grid;
+  gap: var(--space-24);
+  align-items: start;
+}
+@media (min-width: 1000px) {
+  .ps-consult {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+  }
+}
+.ps-consult-main,
+.ps-consult-rail {
+  display: grid;
+  gap: var(--space-24);
+  min-width: 0;
+}
+/* The stage holds no picture and never moves: a muted ground, the sentence, and the state of the question
+   this device has been asked. Its height is the export's stage's, so the arrangement reads the same. */
+.ps-stage {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: var(--space-12);
+  min-height: 280px;
+  padding: var(--space-24);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--r-card);
+  background: var(--color-muted);
+  color: var(--color-muted-foreground);
+}
+.ps-stage p {
+  margin: 0;
+  max-width: 60ch;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--color-foreground);
+}
+.ps-stage-state {
+  margin: 0;
+}
+.ps-stage-state dt {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-muted-foreground);
+}
+.ps-stage-state dd {
+  margin: 2px 0 0;
+  max-width: 60ch;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-muted-foreground);
+}
+.ps-steps,
+.ps-people {
+  display: grid;
+  gap: var(--space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ps-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-12);
+  padding-bottom: var(--space-12);
+  border-bottom: 1px solid var(--color-border);
+}
+.ps-steps li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.ps-steps svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--color-muted-foreground);
+}
+.ps-steps strong,
+.ps-people strong {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+.ps-steps p {
+  margin: var(--space-4) 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-muted-foreground);
+}
+.ps-people li {
+  display: grid;
+  gap: 2px;
+  padding-bottom: var(--space-12);
+  border-bottom: 1px solid var(--color-border);
+}
+.ps-people li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.ps-people small {
+  font-size: 13px;
+  color: var(--color-muted-foreground);
+}
+.ps-question {
+  margin: var(--space-4) 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-foreground);
+}

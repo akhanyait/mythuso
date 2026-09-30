@@ -13,7 +13,9 @@ const overflow = (page: Page) => page.evaluate(() => { const el = document.query
 async function openPrivacy(page: Page) {
   await page.goto('/app/');
   const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
-  if (await sidebar.isVisible()) await page.getByRole('button', { name: 'Privacy & settings' }).click();
+  /* The sidebar's row, by name inside the sidebar: the shell's footer has carried a Privacy & settings button of its
+     own since 30 September, and an unscoped name now matches both. */
+  if (await sidebar.isVisible()) await sidebar.getByRole('button', { name: 'Privacy & settings' }).click();
   else {
     await page.locator('.tabbar button').nth(4).click();
     await page.getByRole('button').filter({ hasText: 'Privacy & settings' }).click();

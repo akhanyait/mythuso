@@ -14,6 +14,7 @@ import { readFileSync } from 'node:fs';
  * exactly how that gets undone. The last test in this file is the one that would catch it. */
 
 const geography = JSON.parse(readFileSync(new URL('../packages/catalog/geography.json', import.meta.url), 'utf8'));
+const roster = JSON.parse(readFileSync(new URL('../packages/catalog/roster.json', import.meta.url), 'utf8'));
 /* The notice is read rather than carried. dispatch went from `absent` to `simulated`, the sentence
    changed from "this is not switched on" to "this is simulated, and here is what it will not do",
    and a spec holding its own copy of it failed for saying the old one — which is the same drift the
@@ -82,6 +83,47 @@ test('the visit that is today says how far away she is, and what the figure is n
   await expect(page.locator('.map-pin')).toHaveCount(2);
   await expect(page.locator('.map-straight')).toHaveCount(1);
 
+  expect(await noSidewaysScroll(page)).toEqual([]);
+});
+
+/* The export's two columns: the figures, the leg and the map on the left, who is coming and the door
+   check on the right. The bar is the leg's own arithmetic — its maximum is the leg's minutes and the
+   words under it say so — and the aside carries the registration reference the roster holds, as a
+   sample profile. What the export also drew is refused: no vehicle, driver or companion (nothing
+   records one), no "verified" (nothing has been checked live) and no code for the patient to show,
+   because the patient types the nurse's code rather than presenting one. */
+test('the tracker is two columns, and its bar is the leg\'s arithmetic rather than a position', async ({ page }) => {
+  await page.goto('/app/');
+  await track(page);
+  const lead = page.locator('.arrival-lead');
+  const bar = lead.getByRole('progressbar');
+  await expect(bar).toBeVisible();
+  const max = Number(await bar.getAttribute('aria-valuemax'));
+  const now = Number(await bar.getAttribute('aria-valuenow'));
+  expect(max).toBeGreaterThan(0);
+  expect(now).toBeGreaterThanOrEqual(0);
+  expect(now).toBeLessThanOrEqual(max);
+  await expect(lead).toContainText(`${now} of ${max} minutes along the straight line — arithmetic on the clock, not her position`);
+  /* The same leg the sentence under it works backwards from, so the bar and the words cannot disagree. */
+  await expect(lead.getByText(new RegExp(`${max}-minute straight line|of ${max} minutes along|is in .* now\\.`)).first()).toBeVisible();
+  await expect(lead.locator('.livemap-canvas.schematic')).toBeVisible();
+
+  const aside = page.getByRole('complementary', { name: 'Your nurse' });
+  const name = (await aside.locator('.clinician-profile h3').textContent())!.trim();
+  const nurse = roster.nurses.find((n: { name: string }) => n.name === name);
+  expect(nurse, `the aside names somebody who is not on the roster: ${name}`).toBeTruthy();
+  await expect(aside).toContainText(nurse.reference);
+  await expect(aside).toContainText(/sample profile/i);
+  await expect(aside.getByRole('button', { name: 'Check the nurse at your door' })).toBeVisible();
+  await expect(aside).not.toContainText(/driver|companion|vehicle/i);
+  /* The fictional check states live behind "View verification record", under the sentence saying no live
+     check was performed; the registration line itself carries no "verified" beside it. */
+  for (const part of ['.clinician-profile > header', '.clinician-facts']) await expect(aside.locator(part)).not.toContainText(/verified/i);
+  await expect(page.locator('main svg[aria-label*="QR" i], main canvas.qr')).toHaveCount(0);
+
+  const [left, right] = [await lead.boundingBox(), await aside.boundingBox()];
+  if ((page.viewportSize()?.width ?? 0) >= 960) expect(right!.x, 'the aside sits beside the lead above 960px').toBeGreaterThan(left!.x + left!.width - 1);
+  else expect(right!.y, 'the aside follows the lead on a phone').toBeGreaterThan(left!.y);
   expect(await noSidewaysScroll(page)).toEqual([]);
 });
 

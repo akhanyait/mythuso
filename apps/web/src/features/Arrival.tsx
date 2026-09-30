@@ -14,7 +14,17 @@ import {
  precisionSentence
 } from '../lib/arrival';
 import type { VisitRow } from './Pages';
-const DoorCheckEntry = lazy(() => import('./VerifyInService').then(m => ({ default: m.DoorCheckEntry })));
+import { ClinicianProfile } from '../components/ClinicianProfile';
+import { Button, Card } from '../ui';
+/* The door check as the aside's second card. Its heading, its one sentence and its button are Verify's
+   own words, and they arrive with Verify's chunk rather than with this screen, which is on the
+   patient's first load: the trust contract is not downloaded by somebody who never opens a visit. */
+const DoorCheckCard = lazy(() => import('./VerifyInService').then(m => import('../../../../packages/engines/src/trust/domain/contract.ts')
+ .then(trust => ({ default: ({ onOpen }: { onOpen: () => void }) => <Card padding="md" className="arrival-door">
+  <h2>{trust.verifyInService.door.patient.heading}</h2>
+  <p>{trust.verifyInService.door.patient.intro}</p>
+  <m.DoorCheckEntry onOpen={onOpen}/>
+ </Card> }))));
 
 /* Where is she now.
  *
@@ -105,91 +115,117 @@ export function Arrival({ row, navigate, view }: {
   ? `Schematic map of ${coverage.city}. Your visit is drawn at the centre of ${to.name}.${from ? ` ${nurse.name} is drawn on a straight line from the centre of ${from.name}, and a dashed line joins the two.` : ' No nurse is drawn, because nobody is on the way yet.'}`
   : `Schematic map of ${coverage.city}.`;
 
+ /* How far along the leg she is, as a bar. It is the same arithmetic as the sentence under it — minutes
+    since the worked-out departure, of the leg's minutes — and it is labelled as that arithmetic, so the
+    bar cannot be read as a device reporting. There is no bar on another day, and none on a leg of no
+    length, where there is nothing to divide. */
+ const leg = arrival.state === 'on-the-day' ? arrival.leg : null;
+ const along = leg && leg.legMinutes > 0 ? Math.min(leg.minutesIn, leg.legMinutes) / leg.legMinutes : null;
+
  return <>
   <div className="page-intro"><div className="eyebrow">YOUR VISIT</div>
    <h1>Where is your nurse?</h1>
    <p>{visit.service.name} for {visit.person}{visit.date ? ` · ${longDateOf(visit.date)}` : ''}</p></div>
   <NotConnected of="dispatch"/>
 
-  {/* The lead, and it is the only panel on the screen that takes the solid glass. What a person came
-      for is one figure; everything under it is the reason that figure is allowed to be shown. */}
-  <section className="panel glass lead arrival-lead rise-2">
-   <div className="lead-head">
-    <div className="arrival-who">
-     <span className="avatar nurse-avatar">{nurse.initials}</span>
-     <div><strong>{nurse.name}</strong><small>{nurse.role}</small></div>
-    </div>
-    <Pill tone={watching ? 'teal' : ''}>{arrival.state === 'on-the-day' && arrival.leg?.onTheWay ? 'On her way' : watching ? 'Coming today' : arrival.state === 'another-day' ? `In ${arrival.days} ${arrival.days === 1 ? 'day' : 'days'}` : 'Not yet'}</Pill>
-   </div>
-
-   {arrival.state === 'on-the-day' ? <>
-    <Metrics>
-     {/* Minutes first and the chip says what they are before the reader reaches them. When there is
-         nothing to divide, the word is "Estimating" — never a dash, which reads as a number to
-         nobody, and never nought, which reads as "she is at the gate". */}
-     {eta && eta.minutes !== null
-      ? <Metric chip="Straight line" value={String(eta.minutes)} unit="min" label={`${arrival.from.name} to ${arrival.to.name}`}/>
-      : <Metric chip="No distance to measure" value="Estimating" label={`${arrival.to.name}`}/>}
-     {eta && eta.distanceKm !== null && <Metric chip="Suburb centres" value={eta.distanceKm.toFixed(1)} unit="km" label="Distance measured"/>}
-     {visit.start && <Metric chip="What you were told" value={visit.start} label={ends ? `Your window, until ${ends}` : 'Your window'}/>}
-    </Metrics>
-    <p className="helper"><Route size={14}/>{eta ? basisSentence(eta) : ''}</p>
-    {/* What is actually moving, said out loud. A figure that changes while somebody watches it is
-        read as a device reporting, and no device is: she is on a straight line between two suburb
-        centres, timed to reach yours at the start of your window, and the sentence carrying the
-        figure says which of those two things is happening. */}
-    {arrival.state === 'on-the-day' && arrival.leg && <p className="helper" role="status"><Navigation size={14}/>{legSentence(arrival.leg, arrival.from.name, arrival.to.name, visit.start)}</p>}
-   </> : <>
-    <Metrics>
-     {arrival.state === 'another-day' && <Metric chip="Your visit" value={String(arrival.days)} unit={arrival.days === 1 ? 'day' : 'days'} label="Until the day"/>}
-     {visit.start && <Metric chip="What you were told" value={visit.start} label={ends ? `Your window, until ${ends}` : 'Your window'}/>}
-     {to && <Metric chip="Where" value={to.name} label="The suburb your visit is in"/>}
-    </Metrics>
-    <p className="helper"><Clock3 size={14}/>{'refusal' in arrival ? arrival.refusal : ''}</p>
-   </>}
-  </section>
-
   {arrival.state === 'outside-coverage' && <div className="privacy-note alert" role="status">
    <MapPin size={19}/>{arrival.refusal} {arrival.why}</div>}
 
-  {/* The picture and the four things it is not, side by side above 960px. The map is context rather
-      than subject — a plain panel on the ground and not a second lead — and the column beside it is
-      the half of this screen that matters most and the half a tracking feature normally leaves out.
-      Each of the four is something a reader could otherwise reasonably assume the opposite of. */}
+  {/* The export's two columns. On the left the figures, the leg and the map in one panel — the lead,
+      and the only panel on the screen that takes the solid glass, because what a person came for is
+      where she is. On the right, who she is and how to check her at the door. What a person came for
+      is one figure; everything under it is the reason that figure is allowed to be shown. */}
   <div className="arrival-columns">
-   {to && <section className="panel arrival-map">
-    <div className="section-title"><h2>{from ? `${from.name} to ${to.name}` : to.name}</h2></div>
-    <LiveMap markers={markers} summary={summary} height={320} surface="patient" link={from ? { from: from.at, to: to.at } : null}/>
-    <div className="map-key">
-     {from && key('nurse-free', `${nurse.name} · ${from.name}`)}
-     {key('visit-assigned', `Your visit · ${to.name}`)}
+   <section className="panel glass lead arrival-lead rise-2">
+    <div className="lead-head">
+     <h2>{from && to ? `${from.name} to ${to.name}` : to ? to.name : coverage.city}</h2>
+     <Pill tone={watching ? 'teal' : ''}>{arrival.state === 'on-the-day' && arrival.leg?.onTheWay ? 'On her way' : watching ? 'Coming today' : arrival.state === 'another-day' ? `In ${arrival.days} ${arrival.days === 1 ? 'day' : 'days'}` : 'Not yet'}</Pill>
     </div>
-    <p className="helper">{precisionSentence}</p>
-   </section>}
-   <div className="arrival-facts">
-    <SectionTitle title="What this is, and what it is not"/>
-    <div className="panel"><dl className="stated">
-     <div><dt>It is not an arrival time</dt><dd>{arrivalRefusals.notAnArrivalTime}</dd>
-      <small>{capability('dispatch').blockedBy.join(' ')}</small></div>
-     <div><dt>Neither pin is a house</dt><dd>{arrivalRefusals.noDoorstep}</dd>
-      <small>{addressRule.why}</small></div>
-     <div><dt>Nowhere she has been</dt><dd>{historyRule.statement}</dd>
-      <small>{historyRule.why}</small></div>
-     <div><dt>You see this on the day and not before</dt><dd>{arrivalRefusals.onlyOnTheDay}</dd></div>
-     {/* And what the simulation standing in for a supplier will not do, in its own words. A screen
-         is never quieter for being simulated than it was for being absent: the notice at the top
-         says the movement is generated on this machine, and this says what generating it refuses. */}
-     <div><dt>What the simulation will not do</dt><dd>{simulationOf('dispatch')!.refuses.join(' ')}</dd>
-      <small>{simulationOf('dispatch')!.supplier}</small></div>
-    </dl></div>
-    <div className="privacy-note"><Radio size={19}/>{arrivalRefusals.nothingIsMeasured}</div>
-    <p className="helper"><ShieldCheck size={14}/>{coverage.sentence}</p>
-   </div>
+
+    {arrival.state === 'on-the-day' ? <>
+     <Metrics>
+      {/* Minutes first and the chip says what they are before the reader reaches them. When there is
+          nothing to divide, the word is "Estimating" — never a dash, which reads as a number to
+          nobody, and never nought, which reads as "she is at the gate". */}
+      {eta && eta.minutes !== null
+       ? <Metric chip="Straight line" value={String(eta.minutes)} unit="min" label={`${arrival.from.name} to ${arrival.to.name}`}/>
+       : <Metric chip="No distance to measure" value="Estimating" label={`${arrival.to.name}`}/>}
+      {eta && eta.distanceKm !== null && <Metric chip="Suburb centres" value={eta.distanceKm.toFixed(1)} unit="km" label="Distance measured"/>}
+      {visit.start && <Metric chip="What you were told" value={visit.start} label={ends ? `Your window, until ${ends}` : 'Your window'}/>}
+     </Metrics>
+     {leg && along !== null && <div className="arrival-leg">
+      <div className="arrival-leg__track" role="progressbar" aria-label="How far along the straight line, by the clock"
+       aria-valuemin={0} aria-valuemax={leg.legMinutes} aria-valuenow={Math.round(Math.min(leg.minutesIn, leg.legMinutes))}
+       aria-valuetext={`${Math.round(Math.min(leg.minutesIn, leg.legMinutes))} of ${leg.legMinutes} minutes`}>
+       <span style={{ transform: `scaleX(${along})` }}/>
+      </div>
+      <small>{Math.round(Math.min(leg.minutesIn, leg.legMinutes))} of {leg.legMinutes} minutes along the straight line — arithmetic on the clock, not her position</small>
+     </div>}
+     <p className="helper"><Route size={14}/>{eta ? basisSentence(eta) : ''}</p>
+     {/* What is actually moving, said out loud. A figure that changes while somebody watches it is
+         read as a device reporting, and no device is: she is on a straight line between two suburb
+         centres, timed to reach yours at the start of your window, and the sentence carrying the
+         figure says which of those two things is happening. */}
+     {arrival.leg && <p className="helper" role="status"><Navigation size={14}/>{legSentence(arrival.leg, arrival.from.name, arrival.to.name, visit.start)}</p>}
+    </> : <>
+     <Metrics>
+      {arrival.state === 'another-day' && <Metric chip="Your visit" value={String(arrival.days)} unit={arrival.days === 1 ? 'day' : 'days'} label="Until the day"/>}
+      {visit.start && <Metric chip="What you were told" value={visit.start} label={ends ? `Your window, until ${ends}` : 'Your window'}/>}
+      {to && <Metric chip="Where" value={to.name} label="The suburb your visit is in"/>}
+     </Metrics>
+     <p className="helper"><Clock3 size={14}/>{'refusal' in arrival ? arrival.refusal : ''}</p>
+    </>}
+
+    {/* The map is context rather than subject, so it sits under the figures inside the same panel
+        instead of being a second lead beside them. */}
+    {to && <div className="arrival-map">
+     <LiveMap markers={markers} summary={summary} height={320} surface="patient" link={from ? { from: from.at, to: to.at } : null}/>
+     <div className="map-key">
+      {from && key('nurse-free', `${nurse.name} · ${from.name}`)}
+      {key('visit-assigned', `Your visit · ${to.name}`)}
+     </div>
+     <p className="helper">{precisionSentence}</p>
+    </div>}
+   </section>
+
+   {/* The aside: who is coming, with the registration reference the vetting register holds (a sample
+       profile, and it says so — there is no "verified" here, because nothing has been checked live),
+       and the door check. No vehicle, driver or companion: nothing in the roster or the field-safety
+       contract records one, so there is nothing true to write. */}
+   <aside className="arrival-aside" aria-label="Your nurse">
+    <ClinicianProfile subject={nurse.roster.subject} name={nurse.name} role={nurse.role} reference={nurse.roster.reference}/>
+    {/* Checking who is at the door, from Verify. The patient types the code the nurse gives her; she
+        never shows one, so there is no code on this screen to photograph. */}
+    <Suspense fallback={null}><DoorCheckCard onOpen={() => navigate('Door check')}/></Suspense>
+   </aside>
   </div>
 
-  {/* Checking who is at the door, from Verify. Its words arrive with its own chunk, so this screen does not carry them. */}
-  <Suspense fallback={null}><DoorCheckEntry onOpen={() => navigate('Door check')}/></Suspense>
-  <button className="primary full" onClick={() => view(row.id)}><CalendarClock size={17}/>Open this visit</button>
-  <button className="secondary full" onClick={() => navigate('My visits')}>Back to your visits<ArrowRight size={17}/></button>
+  {/* The four things the picture is not, and what the simulation refuses, under both columns. Each is
+      something a reader could otherwise reasonably assume the opposite of, and they read best at a
+      full measure rather than squeezed into the aside. */}
+  <div className="arrival-facts">
+   <SectionTitle title="What this is, and what it is not"/>
+   <div className="panel"><dl className="stated">
+    <div><dt>It is not an arrival time</dt><dd>{arrivalRefusals.notAnArrivalTime}</dd>
+     <small>{capability('dispatch').blockedBy.join(' ')}</small></div>
+    <div><dt>Neither pin is a house</dt><dd>{arrivalRefusals.noDoorstep}</dd>
+     <small>{addressRule.why}</small></div>
+    <div><dt>Nowhere she has been</dt><dd>{historyRule.statement}</dd>
+     <small>{historyRule.why}</small></div>
+    <div><dt>You see this on the day and not before</dt><dd>{arrivalRefusals.onlyOnTheDay}</dd></div>
+    {/* And what the simulation standing in for a supplier will not do, in its own words. A screen
+        is never quieter for being simulated than it was for being absent: the notice at the top
+        says the movement is generated on this machine, and this says what generating it refuses. */}
+    <div><dt>What the simulation will not do</dt><dd>{simulationOf('dispatch')!.refuses.join(' ')}</dd>
+     <small>{simulationOf('dispatch')!.supplier}</small></div>
+   </dl></div>
+   <div className="privacy-note"><Radio size={19}/>{arrivalRefusals.nothingIsMeasured}</div>
+   <p className="helper"><ShieldCheck size={14}/>{coverage.sentence}</p>
+  </div>
+
+  <div className="arrival-actions">
+   <Button leadingIcon={<CalendarClock aria-hidden="true"/>} onClick={() => view(row.id)}>Open this visit</Button>
+   <Button variant="secondary" trailingIcon={<ArrowRight aria-hidden="true"/>} onClick={() => navigate('My visits')}>Back to your visits</Button>
+  </div>
  </>;
 }

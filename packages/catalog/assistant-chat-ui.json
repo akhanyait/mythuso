@@ -9,6 +9,8 @@
   "hello": "Hello, I’m",
   "moreHeading": "More ways I can help",
   "minimiseLabel": "Minimise GilbertOne",
+  "latestLabel": "Go to the latest answer",
+  "latestLabelWhy": "The name of the round control that appears over a conversation scrolled away from its latest answer, in the patient's panel and on the public sheet (30 September 2026, the handoff's scroll button). It is drawn only while the latest answer is out of view, because a control that takes you where you already are is one that does nothing.",
   "questionOrder": [
     "visit",
     "result",

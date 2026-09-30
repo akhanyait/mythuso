@@ -23,6 +23,9 @@ const noOverflow = (page: Page) => page.evaluate(() => { const el = document.que
 async function openPassport(page: Page) {
   await page.goto('/app/');
   await goSection(page, 'Health Passport');
+  /* The share links and the card are rows of the Passport's Records tab since the tabbed health home of
+     30 September 2026. */
+  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Records' }).click();
 }
 
 test('a share link rides on a grant, opens until its uses are spent, is revoked, and every act is in the log of who opened the record', async ({ page }) => {

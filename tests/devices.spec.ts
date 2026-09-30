@@ -96,7 +96,7 @@ for (const integration of ['Apple Health', 'Health Connect']) {
  test(`asking to link ${integration} records the request and says, before and after, that nothing is connected`, async ({ page }) => {
   await page.goto('/app/');
   await goSection(page, 'Health Passport');
-  await page.getByRole('group', { name: 'Passport sections' }).getByRole('button', { name: 'More' }).click();
+  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Records' }).click();
   await page.locator('.module-card').filter({ hasText: integration }).getByRole('button').click();
   const sheet = page.getByRole('dialog');
   await expect(sheet.getByText(noticeFor('wearables'), { exact: false }).first()).toBeVisible();

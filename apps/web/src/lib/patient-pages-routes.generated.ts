@@ -2,8 +2,9 @@
 // Do not edit by hand — run `npm run patient-pages`. The build fails if this file and its source disagree,
 // so an edit here is lost rather than merely wrong.
 //
-// Only the routes: the names the router opens and what it says while each screen arrives. Every other
-// word stays in the contract, read by apps/web/src/lib/patient-pages.ts behind dynamic imports.
+// Only the routes: the names the router opens, what it says while each screen arrives, and the hub's one line
+// about each. Every other word stays in the contract, read by apps/web/src/lib/patient-pages.ts behind
+// dynamic imports.
 
 export const patientPagesHubRoute = {
   opens: "Your health",
@@ -14,34 +15,52 @@ export const patientPageRoutes = {
   "symptom-checker": {
     opens: "Symptom checker",
     opening: "Opening the symptom checker.",
+    sub: "Answer set questions; the notes go to your nurse",
   },
   "risk-assessment": {
     opens: "Risk assessment",
     opening: "Opening the risk assessment.",
+    sub: "What it would be, and why no score is computed",
   },
   "health-library": {
     opens: "Health library",
     opening: "Opening the health library.",
+    sub: "Sourced general guidance, searchable",
   },
   "health-timeline": {
     opens: "Health timeline",
     opening: "Opening your health timeline.",
+    sub: "Your record over time, through the Passport",
   },
   "vaccinations": {
     opens: "Vaccinations",
     opening: "Opening vaccinations.",
+    sub: "The SA schedule, and your own record when it exists",
   },
   "community": {
     opens: "Community support",
     opening: "Opening community support.",
+    sub: "Clinics, helplines and groups near you",
+  },
+  "mental-health": {
+    opens: "Mental health",
+    opening: "Opening mental health.",
+    sub: "Reading, your own words, helplines and crisis lines",
   },
   "nutrition": {
     opens: "Nutrition",
     opening: "Opening nutrition.",
+    sub: "General food guidance from the knowledge base",
+  },
+  "activity": {
+    opens: "Activity",
+    opening: "Opening activity.",
+    sub: "What you wrote about moving; nothing is measured",
   },
   "reminders": {
     opens: "Reminders",
     opening: "Opening reminders.",
+    sub: "What will remind you, once accounts are live",
   },
 } as const;
 

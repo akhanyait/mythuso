@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 
 const roles = [
@@ -54,4 +55,32 @@ test('closing login keeps the public site and keyboard focus', async ({ page }) 
  await expect(page.getByRole('dialog')).toHaveCount(0);
  await expect(login).toBeFocused();
  await expect(page).toHaveURL('/');
+});
+
+/* The handoff's two-column access dialog (30 September 2026): a brand column beside the picker where there is
+   room for it, and none on a phone. What the picker says is untouched — the accounts notice comes with it,
+   word for word — and the column says what the picker is rather than what an account would be. */
+const read = (path: string) => JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
+const loginWords: { eyebrow: string; headline: string[]; body: string } = read('packages/catalog/hero.json').stage.login;
+/* NotConnected's own rule (lib/capabilities.ts noticeFor): a simulated capability says its simulation's sentence. */
+const accountsEntry: { notice: string; simulation?: { notice: string } } = read('packages/catalog/capabilities.json').capabilities.find((c: { id: string }) => c.id === 'accounts');
+const accountsNotice = accountsEntry.simulation?.notice ?? accountsEntry.notice;
+
+test('the login dialog stands a brand column beside the picker on a wide screen, and keeps its notice', async ({ page }) => {
+ await page.goto('/');
+ await page.getByRole('button', { name: 'Log in', exact: true }).click();
+ const dialog = page.getByRole('dialog', { name: 'Log in to MyThuso' });
+ await expect(dialog.locator('.not-connected')).toHaveText(accountsNotice);
+ await expect(dialog.locator('.record-row')).toHaveCount(6);
+ const brand = dialog.locator('.login-brand');
+ if (page.viewportSize()!.width >= 900) {
+  await expect(brand).toBeVisible();
+  await expect(brand.locator('.login-brand-headline')).toHaveText(loginWords.headline.join(''));
+  await expect(brand).toContainText(loginWords.body);
+  const [left, right] = await Promise.all([brand.boundingBox(), dialog.locator('.login-roles').boundingBox()]);
+  expect(left!.x + left!.width).toBeLessThanOrEqual(right!.x + 1);
+ } else await expect(brand).toBeHidden();
+ /* There are no accounts, so nothing here may say an account is secure or that anybody is signed in. */
+ await expect(dialog).not.toContainText(/secure|signed in/i);
+ expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
 });

@@ -1,8 +1,7 @@
 import { Component, createContext, lazy, Suspense, useContext, useState, type CSSProperties, type ReactNode } from 'react';
-import { Activity, Ambulance, ArrowRight, ArrowUpRight, Ban, Bell, Bluetooth, BookOpen, CalendarClock, Check, ChevronRight, CircleHelp, Clock3, CreditCard, Download, Droplets, Eye, FileCheck, FileText, Globe, HandCoins, Heart, HeartHandshake, History, Languages, LayoutGrid, LockKeyhole, LogOut, MapPin, Navigation, NotebookPen, PenLine, Plus, RefreshCw, Search, Settings2, Share2, ShieldCheck, Sparkles, Stethoscope, Trash2, TriangleAlert, UserPlus, Users, Wallet, Zap } from 'lucide-react';
+import { Ambulance, ArrowRight, ArrowUpRight, Ban, Bell, BookOpen, CalendarClock, Check, ChevronRight, CircleHelp, Clock3, CreditCard, Eye, FileCheck, FileText, Globe, HandCoins, HeartHandshake, History, Languages, LayoutGrid, LockKeyhole, LogOut, MapPin, Navigation, NotebookPen, PenLine, Plus, RefreshCw, Search, Settings2, ShieldCheck, Sparkles, Stethoscope, Trash2, TriangleAlert, UserPlus, Users, Wallet, Zap, MessageSquare, FlaskConical, Bluetooth, LifeBuoy, Footprints, Video } from 'lucide-react';
 import { Pill, SectionTitle, ServiceIcon, tintOf } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
-import { ClinicalChart } from '../components/Chart';
 import { EmptyState, Skeleton, StateBlock, useOffline, type LoadState } from '../components/States';
 import { InvitationList, scopes, type Invitation } from './Guardian';
 import { BroughtToTheVisit } from './Wellbeing';
@@ -11,20 +10,22 @@ import { Metric, Metrics } from '../surface/Surface';
 import { HeroCarousel } from '../components/HeroCarousel';
 import { FamilyScene, PatientPortrait } from '../components/Portraits';
 import { modules, services, money, type Service } from '../lib/catalog';
-import { patientPagesHubRoute } from '../lib/patient-pages-routes.generated';
+import { patientPageRoutes, patientPagesHubRoute } from '../lib/patient-pages-routes.generated';
+import { patientScreenRoutes } from '../lib/patient-screens-routes';
 import type { DemoVisit } from './Booking';
 import { endTime, isoIn, labels as schedulingLabels, longDateOf, shortDateOf, slots, visitEnds, weekdayOf } from '../lib/scheduling';
 import { holdStatus } from '../lib/interpreting';
 import { activity as walletActivity, balance as walletBalance, topUpAmounts } from '../lib/wallet';
 import type { CancelState } from '../lib/cancelling';
-import {
- dateOf, documents as passportDocuments, headlineMeasures, lastReview, latestSet, measureSpec,
- readingSets, reviewedBy, seriesFor
-} from '../lib/passport';
+import { dateOf, latestSet } from '../lib/passport';
 import { CancelledVisit, PastVisit } from './VisitSummary';
-import { nurseOfVisit, assignedNurse } from '../lib/arrival';
+import { nurseOfVisit } from '../lib/arrival';
 import type { Thread } from '../../../../packages/engines/src/access/domain/thread.ts';
 import { ClinicianProfile } from '../components/ClinicianProfile';
+import { Button, Tab, TabsList } from '../ui';
+import { Access } from './Access';
+import { capability } from '../lib/capabilities';
+import { HealthPanel, type PassportTab } from './Passport';
 import businessModel from '../../../../packages/catalog/business-model.json';
 import { OPEN_PARAM, slugOfSection } from '../lib/roles';
 /* Verify's complaint entry arrives on a dynamic import with its own words, so a past visit does not carry them. */
@@ -154,9 +155,12 @@ export function Visits({rows:all,book,manage,view,track}:{rows:VisitRow[];open:(
  const group:VisitGroup=tab==='Upcoming'?'upcoming':tab==='Past'?'past':'cancelled';
  const rows=all.filter(r=>r.group===group);
  return <>
-  <PageHeading eyebrow="THUSO VISITS" title="Your visits" description="View, book, reschedule or cancel your visits."/>
-  <div className="underline-tabs" role="group" aria-label="Visit status">{['Upcoming','Past','Cancelled'].map(t=><button key={t} className={tab===t?'selected':''} aria-pressed={tab===t} onClick={()=>setTab(t)}>{t}</button>)}</div>
+  {/* The export's "Book new", in the heading where the page's one action belongs; booking used to be offered
+      only by the empty state and the banner at the foot of the list. */}
+  <PageHeading eyebrow="THUSO VISITS" title="Your visits" description="View, book, reschedule or cancel your visits." action={<Button leadingIcon={<Plus aria-hidden="true"/>} onClick={book}>Book new</Button>}/>
+  <TabsList aria-label="Visit status">{['Upcoming','Past','Cancelled'].map(t=><Tab key={t} id={`visits-tab-${t}`} aria-controls="visits-panel" active={tab===t} onClick={()=>setTab(t)}>{t}</Tab>)}</TabsList>
   <NotConnected of="booking"/>
+  <div id="visits-panel" role="tabpanel" aria-labelledby={`visits-tab-${tab}`}>
   <StateBlock state={state} subject="Your visit list" permission="notifications">
    {rows.length?<div className="form-stack">{rows.map(({id,visit:v,status,tone,reason},i)=><div className={`panel${i===0&&group==='upcoming'?' glass lead':''}`} key={id}>
     <div className="visit-row">
@@ -181,23 +185,24 @@ export function Visits({rows:all,book,manage,view,track}:{rows:VisitRow[];open:(
          the day" — which is an answer, and hiding the control until the morning would leave a
          person hunting for it on the one day they are in a hurry. */}
      <div className="visit-actions">
-      <button className="secondary" onClick={()=>manage(id,'reschedule')}>Reschedule</button>
-      <button className="secondary" onClick={()=>manage(id,'cancel')}>Cancel</button>
-      <button className="secondary" onClick={()=>track(id)}>Where is my nurse?</button>
-      <button className="primary" onClick={()=>view(id)}>View details</button>
+      <Button variant="secondary" onClick={()=>manage(id,'reschedule')}>Reschedule</Button>
+      <Button variant="secondary" onClick={()=>manage(id,'cancel')}>Cancel</Button>
+      <Button variant="secondary" onClick={()=>track(id)}>Where is my nurse?</Button>
+      <Button onClick={()=>view(id)}>View details</Button>
      </div>
     </>}
     {group==='past'&&<div className="visit-actions">
-     <button className="secondary" onClick={()=>view(id)}>View details</button>
-     <button className="primary" onClick={book}>Book this again</button>
+     <Button variant="secondary" onClick={()=>view(id)}>View details</Button>
+     <Button onClick={book}>Book this again</Button>
     </div>}
     {group==='cancelled'&&<div className="visit-actions">
-     <button className="secondary" onClick={()=>view(id)}>View details</button>
-     <button className="primary" onClick={book}>Book another visit</button>
+     <Button variant="secondary" onClick={()=>view(id)}>View details</Button>
+     <Button onClick={book}>Book another visit</Button>
     </div>}
    </div>)}</div>
    :<EmptyState title={`No ${tab.toLowerCase()} visits`} body={tab==='Cancelled'?'A visit you cancel stays here with the reason you gave, rather than disappearing.':'When you book a visit it appears here, with the nurse’s name and what to have ready.'} action="Book a nurse" onAction={book}/>}
   </StateBlock>
+  </div>
   {/* Not under a failure. A banner selling another visit, directly beneath "we couldn't load this
       just now", is the app talking over the person it has just let down. It belongs to the state
       where the list actually loaded. */}
@@ -208,7 +213,10 @@ export function Visits({rows:all,book,manage,view,track}:{rows:VisitRow[];open:(
    <div className="promo-art"><FamilyScene/></div>
   </section>}
  </>}
-export function PageHeading({eyebrow,title,description}:{eyebrow:string;title:string;description:string}) {return <div className="page-intro"><div><div className="eyebrow">{eyebrow}</div><h1>{title}</h1><p>{description}</p></div></div>;}
+/* The patient's page heading. The icon tile and the "Back to {parent}" link the export adds live once, in
+   PatientHeader.tsx, which the sub-pages behind a dynamic import use; this one is on the first load, so it
+   carries only the page's one action beside the words (My visits' "Book new") and nothing of that sheet. */
+export function PageHeading({eyebrow,title,description,action}:{eyebrow:string;title:string;description:string;action?:ReactNode}) {return <div className={`page-intro${action?' page-intro--action':''}`}><div><div className="eyebrow">{eyebrow}</div><h1>{title}</h1><p>{description}</p></div>{action&&<div className="page-intro__action">{action}</div>}</div>;}
 /* One visit, opened.
  *
  * This dialog used to be a fixed sentence — "Vitals & chronic check", Sister Naledi, "arrival
@@ -265,17 +273,23 @@ export function VisitDetail({row,manage,navigate,rebook,track,notes=[],thread,on
   <button className="primary full" onClick={()=>navigate('Health Passport')}>Open my Health Passport<ArrowRight size={17}/></button>
  </div>;
 }
-export function Passport({open,navigate}:{open:(s:string)=>void;navigate:(s:string)=>void}) {
- const [tab,setTab]=useState('Overview');
- return <>
-  <PageHeading eyebrow="THUSO PASSPORT" title="Health Passport" description="Your health. Your story. Every visit, reading and result, in one place."/>
+/* The Health Passport as the export's "My Health": a welcome, the credential, and the record as seven peer
+   views on the shared Tabs — Overview, Vitals, Results, Medications, History and Goals as the export has them,
+   and Records for the documents, sharing and devices it keeps on a page of its own. The tab bar and the
+   choice are here; the panel arrives with the Passport's own screens on a dynamic import (Passport.tsx), so
+   none of its charts, figures or the dispensing contract are on a patient's first load. */
+const passportTabs:PassportTab[]=['Overview','Vitals','Results','Medications','History','Goals','Records'];
+export function Passport({open,navigate,next,view,manage}:{open:(s:string)=>void;navigate:(s:string)=>void;next?:VisitRow;view?:(id:string)=>void;manage?:(id:string,action:VisitAction)=>void}) {
+ const [tab,setTab]=useState<PassportTab>('Overview');
+ return <div className="pd hp">
+  <header className="pd-welcome">
+   <span className="pd-welcome__mountain pd-welcome__mountain--one" aria-hidden="true"/>
+   <span className="pd-welcome__mountain pd-welcome__mountain--two" aria-hidden="true"/>
+   <div><p className="pd-eyebrow">THUSO PASSPORT</p><h1>Health Passport</h1><p className="pd-welcome__sub">Your health. Your story. Every visit, reading and result, in one place.</p></div>
+  </header>
   <NotConnected of="clinical-records"/>
-  {/* A credential, composed as one. The largest thing on it used to be the slogan and the smallest
-      was the holder's name, with a cartoon face where the photograph goes — which is the single
-      element on the patient side that most made this look like a mock-up of a health app rather
-      than one. The name leads, the reference number is a labelled field set in tabular figures so
-      it can be read out over a phone, and the face is the same monogram the rest of the app uses
-      for this person. The slogan keeps its words, in the page heading, where a slogan belongs. */}
+  {/* A credential, composed as one: the holder's name leads, the reference is a labelled field in tabular
+      figures so it can be read out over a phone, and the face is the monogram the rest of the app uses. */}
   <section className="passport-hero">
    <span className="passport-portrait" aria-hidden="true">LM</span>
    <div className="passport-identity">
@@ -284,86 +298,9 @@ export function Passport({open,navigate}:{open:(s:string)=>void;navigate:(s:stri
     <dl><div><dt>Passport ID</dt><dd>TH-2048-3920</dd></div><div><dt>Issued</dt><dd>Akhanya IT Innovations</dd></div></dl>
    </div>
   </section>
-  <div className="underline-tabs" role="group" aria-label="Passport sections">{['Overview','Records','Medications','More'].map(t=><button key={t} className={tab===t?'selected':''} aria-pressed={tab===t} onClick={()=>setTab(t)}>{t}</button>)}</div>
-  {tab==='Overview'?<>
-   {/* Three charts drawn from the record rather than from three arrays typed beside them. The
-       labels, the units and the reference ranges all come from lib/passport.ts, which reads the
-       assessment's own observation table — so a range shown to a patient here and a range a nurse is
-       held to at a visit cannot be two different numbers. The dates are day offsets, so "4 Sep" can
-       never be a year old. */}
-   <SectionTitle title="Health trends" action="See all" onClick={()=>navigate('Health trends')}/>
-   <div className="chart-grid">
-    {headlineMeasures.slice(0,3).map(id=><ClinicalChart key={id} title={measureSpec(id).label} unit={measureSpec(id).unit}
-     normal={[measureSpec(id).range[0],measureSpec(id).range[1]]}
-     icon={id==='pulse'?<Activity size={16}/>:id==='glucose'?<Droplets size={16}/>:<Heart size={16}/>}
-     format={n=>measureSpec(id).step<1?n.toFixed(1):String(n)} readings={seriesFor(id)}/>)}
-   </div>
-   {/* Three actions that used to be three tall unlabelled tiles in a row of their own, sitting
-       directly against the next section's heading. They are the home's shortcut row now: same
-       icon tile, same target size, and each one says what it does before you press it — which
-       matters most for the middle one, which puts a file on the reader's device. */}
-   <SectionTitle title="Your record"/>
-   <div className="shortcut-list">
-    <button className="shortcut-row" onClick={()=>open('Share my passport')}><span className="service-icon"><Share2 size={20}/></span><span className="shortcut-text"><strong>Share record</strong><small>Let a verified professional see a limited summary, for a period you set.</small></span><ChevronRight size={17}/></button>
-    {/* Health Passport P1. Three doors to screens behind a dynamic import; their words are passport-sharing.json's
-        and arrive with them, so these labels are the only words of theirs on the first load. */}
-    <button className="shortcut-row" onClick={()=>navigate('Share part of your record')}><span className="service-icon"><Share2 size={20}/></span><span className="shortcut-text"><strong>Share links</strong><small>A link that rides on a grant you made, and ends when it does or sooner.</small></span><ChevronRight size={17}/></button>
-    <button className="shortcut-row" onClick={()=>navigate('Your emergency card')}><span className="service-icon"><ShieldCheck size={20}/></span><span className="shortcut-text"><strong>Your emergency card</strong><small>Allergies and medicines on a card you can show or print. A preview.</small></span><ChevronRight size={17}/></button>
-    <button className="shortcut-row" onClick={()=>navigate('Who opened your record')}><span className="service-icon"><History size={20}/></span><span className="shortcut-text"><strong>Who opened your record</strong><small>Every access, allowed or refused, with the reason.</small></span><ChevronRight size={17}/></button>
-    {/* Claims to a medical scheme, behind their own dynamic import: the state of each claim for a visit, and whether
-        anything has been sent. Nothing is sent without her agreement, and nothing has been. */}
-    <button className="shortcut-row" onClick={()=>navigate('Claims to your medical scheme')}><span className="service-icon"><FileText size={20}/></span><span className="shortcut-text"><strong>Claims to your medical scheme</strong><small>What was claimed, and whether anything was sent.</small></span><ChevronRight size={17}/></button>
-    <button className="shortcut-row" onClick={()=>{const blob=new Blob([JSON.stringify({demo:true,patient:'Lerato Molefe',readings:[{bloodPressure:'118/78',heartRate:72,glucose:5.2}],notice:'Fictional data. Not a medical record.'},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='mythuso-demo-passport.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}}><span className="service-icon"><Download size={20}/></span><span className="shortcut-text"><strong>Export sample passport</strong><small>Downloads a JSON copy to your device. Nothing is sent anywhere.</small></span><ChevronRight size={17}/></button>
-    <button className="shortcut-row" onClick={()=>navigate('Your care team')}><span className="service-icon"><Users size={20}/></span><span className="shortcut-text"><strong>Doctors</strong><small>The clinicians who have reviewed what is on your record.</small></span><ChevronRight size={17}/></button>
-    {/* The ranges have been drawn here since this screen was written and nothing has ever said what
-        one of them measures. The row is on the overview rather than buried under More because "what
-        does this number mean" is the question a person opens a health record with. */}
-    <button className="shortcut-row" onClick={()=>navigate('What readings mean')}><span className="service-icon"><BookOpen size={20}/></span><span className="shortcut-text"><strong>What these readings mean</strong><small>What each measurement is, what a number outside its range may follow from, and who decides.</small></span><ChevronRight size={17}/></button>
-   </div>
-   {/* Dated from the visits they came out of. Three entries that said "4 September" and "28 August"
-       described a record that stopped moving the day somebody typed them. */}
-   {/* Three rows that each opened the roadmap dialog — a paragraph about the functionality phase in
-       answer to "what happened at my visit". They are the record's own three most recent events
-       now, and each one opens on the timeline screen, where the readings, the review and the
-       document behind it are. */}
-   <SectionTitle title="Your care timeline" action="See all" onClick={()=>navigate('Care timeline')}/>
-   <div className="panel">{[['Nurse home visit',latestSet.dayOffset],['Doctor review completed',lastReview.reviewedDayOffset],['Vitals recorded',readingSets[readingSets.length-2].dayOffset]].map(([label,day])=>{
-    const title=`${label} · ${longDateOf(dateOf(day as number))}`;
-    return <button className="record-row" key={title} onClick={()=>navigate('Care timeline')}><span className="service-icon"><FileText size={20}/></span><span><strong>{title}</strong><small>{label==='Doctor review completed'?`Reviewed by ${reviewedBy}`:label==='Nurse home visit'?`Recorded by ${assignedNurse.name} · Doctor review available`:`Recorded by ${assignedNurse.name} · No doctor review recorded`}</small></span><ChevronRight size={18}/></button>;
-   })}</div>
-  </>:tab==='Records'?<>
-   <SectionTitle title="Your documents"/>
-   <div className="panel document-list">{passportDocuments.map(doc=><button className="record-row" key={doc.name} onClick={()=>open(doc.opens??doc.name)}><span className="service-icon"><FileText size={20}/></span><span><strong>{doc.name}</strong><small>{doc.kind} · issued {longDateOf(dateOf(doc.dayOffset))}</small></span><Pill>{doc.reviewed?'Doctor reviewed':'Awaiting review'}</Pill><ChevronRight size={17}/></button>)}</div>
-   <p className="helper"><ShieldCheck size={14}/>Every document says who issued it, when, and whether a registered doctor has reviewed it. A document with no review status is not a reviewed document.</p>
-  </>
-  /* An absence of prescriptions is an ordinary state, not a footnote, so it uses the same empty
-     state as every other list rather than a tinted note of its own. */
-  :tab==='Medications'?<>
-   <SectionTitle title="Your prescriptions"/>
-   <EmptyState title="No active prescriptions" body="Prescriptions appear here once a registered doctor has issued them, with the pharmacy that may fill them and the date they run out." action="See how a prescription reads" onAction={()=>open('Prescription RX-0081')}/>
-   {/* "Explore pharmacy fulfilment" opened the roadmap dialog for the Thuso Pharmacy module. What a
-       person on a medications tab is actually asking is what happens to a prescription once a
-       doctor signs it, and that is a screen the product already has — the same prescription the
-       pharmacist verifies, read from the patient's side. */}
-   <button className="text-button space-top" onClick={()=>navigate('What happens to a prescription')}>What happens after a doctor signs one<ArrowRight size={16}/></button>
-  </>
-  /* The one state on the patient side that is true rather than staged: nothing in this build has
-     asked this device for Health Connect or Apple Health, so the permission genuinely has not been
-     granted and the screen says what a person can do about it. It needs no wire because the answer
-     is already no. */
-  :<><SectionTitle title="Connected devices"/><NotConnected of="devices"/>
-   {/* The denied block used to hide the three cards behind a "Review permission" button that
-       granted nothing and opened nothing — it flipped this screen's own state to ready, which is
-       the one thing a permission control must never appear to do. The permission genuinely has not
-       been given, so the block states that and the three screens that say what each device would
-       read sit under it rather than behind it. Reviewing a permission is reading what it covers,
-       and that is one press away on every card. */}
-   <div className="state-block denied" role="status">
-    <span className="state-icon"><LockKeyhole size={24}/></span>
-    <div><h3>We need your permission first</h3><p>MyThuso cannot show readings from your connected devices until you allow Apple Health or Health Connect access. You can change your mind at any time, and declining never blocks a visit. Nothing below has been asked for yet.</p></div>
-   </div>
-   <div className="catalog-grid">{['Apple Health','Health Connect','Thuso Kit'].map(t=><div className="panel module-card" key={t}><span className="tile-icon"><Bluetooth size={20}/></span><h3>{t}</h3><p>Choose exactly which readings you share, and stop sharing them without losing what is already on your record.</p><button className="secondary full" onClick={()=>open(`${t} connection`)}>What this would read<ArrowRight size={16}/></button></div>)}</div></>}
- </>}
+  <TabsList className="hp-tabs" aria-label="Passport sections">{passportTabs.map(t=><Tab key={t} id={`hp-tab-${t}`} aria-controls="hp-panel" active={tab===t} onClick={()=>setTab(t)}>{t}</Tab>)}</TabsList>
+  <HealthPanel tab={tab} go={setTab} navigate={navigate} open={open} panelId="hp-panel" labelledBy={`hp-tab-${tab}`} next={next} view={view} manage={manage}/>
+ </div>}
 /* What a person may see of somebody else is a status, not a paragraph.
  *
  * These were cards in a two-up grid, which on a 390px phone wrapped "Thabo Molefe" onto two lines,
@@ -401,7 +338,10 @@ export function Family({open,navigate,members,invitations,onRevoke}:{open:(s:str
  </div>
  <div className="section-title space-top"><h2>Guardians and shared access</h2><button className="secondary" onClick={()=>open('Invite a guardian')}><UserPlus size={16}/>Invite someone</button></div>
  {invitations.length?<InvitationList invitations={invitations} onRevoke={onRevoke}/>:<EmptyState title="Nobody else has access" body="When you invite a guardian or a family member, their access appears here with exactly what they can see and when it ends." action="Invite someone" onAction={()=>open('Invite a guardian')}/>}
- <div className="privacy-note"><LockKeyhole size={19}/>Paying for a family member’s care does not automatically grant access to their health records.</div></>}
+ <div className="privacy-note"><LockKeyhole size={19}/>Paying for a family member’s care does not automatically grant access to their health records.</div>
+ {/* The export's photo banner, as decoration and nothing else: no caption about anybody, lazy so it is fetched
+     only by a reader who scrolls this far, and marked for what it is. The members above stay rows by decision. */}
+ <figure className="family-banner"><img src="/banners/family-panorama.webp" alt="" loading="lazy"/><span className="care-photo-note">AI-generated illustrative image</span></figure></>}
 /* MyThuso for Mom arrives when Care plans is opened, not with the patient's first load.
    Imported directly, the panel, its contract and its stylesheet added 3.4 kB gzipped to what every
    patient downloads to open the app, on metered data, for a screen most of them will not open that
@@ -533,7 +473,21 @@ export function Plans({open,family}:{open:(s:string)=>void;family?:PlanFamily}) 
    icon of the thing it does and a line saying what is behind it, in the settings-row pattern the
    More hub already uses — one row idiom on both screens rather than two that nearly match. */
 const rights=[['Who can see my records','Verified professionals, and for how long',Eye,'Share my passport'],['Guardians and shared access','People you have invited, and exactly what they see',UserPlus,'Invite a guardian'],['Next of kin','Who MyThuso may tell, in plain words, that you pressed SOS',Users,'Next of kin'],['My consents, and how to withdraw them','Every purpose you agreed to, and the wording you agreed to',FileCheck,'Your consents'],['View access history','Who opened your record — and who was refused',History,'Access history'],['Request a correction','Ask for inaccurate information about you to be fixed',PenLine,'Request a correction'],['Request account deletion','What can be deleted, and what a retention schedule keeps',Trash2,'Request account deletion'],['Information Officer','Your privacy contact under POPIA',ShieldCheck,'Contact privacy team']] as const;
-export function Privacy({open}:{open:(s:string)=>void}) {const [choices,setChoices]=useState<Record<string,boolean>>({'Care reminders':true,'Wearable readings':false,'Product updates':false});return <><PageHeading eyebrow="YOUR PRIVACY MATTERS" title="Your data. Your choices." description="Clear choices about how your information is used."/><div className="two-column"><section className="panel"><SectionTitle title="Sharing preferences"/><p className="muted">Clinical processing is a separate purpose with its own lawful basis, and it is not switched by anything on this card.</p>{Object.entries(choices).map(([k,v])=><div className="setting-row" key={k}><span><strong>{k}</strong><small>{k==='Care reminders'?'Visit and care-plan reminders':k==='Wearable readings'?'Optional health trends from your devices':'Optional news and offers'}</small></span><button role="switch" aria-checked={v} aria-label={k} className={`switch ${v?'on':''}`} onClick={()=>setChoices({...choices,[k]:!v})}><span/></button></div>)}</section><section className="panel"><SectionTitle title="You’re in control"/>{rights.map(([label,detail,Icon,target])=><button className="menu-row" key={label} onClick={()=>open(target)}><span className="tile-icon"><Icon size={20}/></span><span><strong>{label}</strong><small>{detail}</small></span><ChevronRight size={17}/></button>)}</section></div><div className="privacy-note"><LockKeyhole size={19}/>Controls on a screen are not compliance. POPIA also asks for governance, contracts, a lawful basis for each purpose and technical safeguards somebody has verified.</div></>}
+/* Privacy & settings as one page in the export's tabs: Profile, Preferences, Privacy, and Language & access,
+   which was a page of its own and is now reached as this page with its tab chosen. The profile tab is the
+   accounts capability's notice and why it is off, and nothing to fill in — there is no identity service
+   running, so a form, a photo or a Save would be a promise nothing keeps. No SMS switch: no SMS provider
+   exists, and it is one of the reasons sign-in is off. */
+export type SettingsTab='Profile'|'Preferences'|'Privacy'|'Language & access';
+const settingsTabs:SettingsTab[]=['Profile','Preferences','Privacy','Language & access'];
+export function Privacy({open,initial='Privacy'}:{open:(s:string)=>void;initial?:SettingsTab}) {const [tab,setTab]=useState<SettingsTab>(initial);const [choices,setChoices]=useState<Record<string,boolean>>({'Care reminders':true,'Wearable readings':false,'Product updates':false});const accounts=capability('accounts');return <><PageHeading eyebrow="YOUR PRIVACY MATTERS" title="Your data. Your choices." description="Clear choices about how your information is used."/>
+ <TabsList className="settings-tabs" aria-label="Settings">{settingsTabs.map(t=><Tab key={t} id={`settings-tab-${slugOfSection(t)}`} aria-controls="settings-panel" active={tab===t} onClick={()=>setTab(t)}>{t}</Tab>)}</TabsList>
+ <div key={tab} id="settings-panel" role="tabpanel" aria-labelledby={`settings-tab-${slugOfSection(tab)}`} className="settings-panel m-stagger">
+ {tab==='Profile'?<><NotConnected of="accounts"/><section className="panel settings-profile"><div className="profile-summary"><span className="avatar"><PatientPortrait/></span><div><h2>Lerato Molefe</h2><p>Fictional patient · Personal account</p></div></div><SectionTitle title="Why there is nothing to edit here"/><ul className="settings-reasons">{accounts.blockedBy.map(r=><li key={r}>{r}</li>)}</ul></section></>
+ :tab==='Preferences'?<section className="panel"><SectionTitle title="Sharing preferences"/><p className="muted">Clinical processing is a separate purpose with its own lawful basis, and it is not switched by anything on this card.</p>{Object.entries(choices).map(([k,v])=><div className="setting-row" key={k}><span><strong>{k}</strong><small>{k==='Care reminders'?'Visit and care-plan reminders':k==='Wearable readings'?'Optional health trends from your devices':'Optional news and offers'}</small></span><button role="switch" aria-checked={v} aria-label={k} className={`switch ${v?'on':''}`} onClick={()=>setChoices({...choices,[k]:!v})}><span/></button></div>)}</section>
+ :tab==='Privacy'?<><section className="panel"><SectionTitle title="You’re in control"/>{rights.map(([label,detail,Icon,target])=><button className="menu-row" key={label} onClick={()=>open(target)}><span className="tile-icon"><Icon size={20}/></span><span><strong>{label}</strong><small>{detail}</small></span><ChevronRight size={17}/></button>)}</section><div className="privacy-note"><LockKeyhole size={19}/>Controls on a screen are not compliance. POPIA also asks for governance, contracts, a lawful basis for each purpose and technical safeguards somebody has verified.</div></>
+ :<Access level={2}/>}
+ </div></>}
 /* Money that does not exist, said out loud. The activity list goes through the same StateBlock as
    every other list that will one day be answered by a service somebody else operates — a payment
    provider being down is an ordinary Tuesday, and it is better designed now than improvised then. */
@@ -753,7 +707,15 @@ const menuGroups=[
     holds five targets at 320px and the sixth would have come out of the four a person navigates by.
     The sub-line says what the screen is rather than selling it: there is nothing to sell. */
  [['Live well','What you did, in your own words, beside your record',NotebookPen,'Live well'],
-  ['My family','Manage your loved ones',Users,'My family'],['Care plans','Ongoing care and subscriptions',HeartHandshake,'Care plans'],['Thuso Wallet','Balance, activity and sponsored care',CreditCard,'Thuso Wallet'],[patientPagesHubRoute.opens,'Symptom checker, health library, vaccinations and more',BookOpen,patientPagesHubRoute.opens]],
+  ['My family','Manage your loved ones',Users,'My family'],['Care plans','Ongoing care and subscriptions',HeartHandshake,'Care plans'],['Thuso Wallet','Balance, activity and sponsored care',CreditCard,'Thuso Wallet'],[patientPagesHubRoute.opens,'Symptom checker, health library, vaccinations and more',BookOpen,patientPagesHubRoute.opens],
+  /* The screens the Lovable export drew and this build did not have. On a phone this hub is their door, as the
+     sidebar is on a wide screen; the names are the router's, and two of the lines are the Your health hub's. */
+  [patientScreenRoutes.messages.opens,'One thread for each visit, with the nurse on it',MessageSquare,patientScreenRoutes.messages.opens],
+  [patientScreenRoutes.consultation.opens,'When your nurse asks a doctor to join: who, and what you are asked',Video,patientScreenRoutes.consultation.opens],
+  [patientScreenRoutes.results.opens,'Your documents, the trend and what readings measure',FlaskConical,patientScreenRoutes.results.opens],
+  [patientScreenRoutes.devices.opens,'The kit a nurse brings, and your phone\u2019s health store',Bluetooth,patientScreenRoutes.devices.opens],
+  [patientPageRoutes['mental-health'].opens,patientPageRoutes['mental-health'].sub,LifeBuoy,patientPageRoutes['mental-health'].opens],
+  [patientPageRoutes.activity.opens,patientPageRoutes.activity.sub,Footprints,patientPageRoutes.activity.opens]],
  [['Care area','Rosebank, Johannesburg',MapPin,'@Your location'],['Notifications','Visit updates and messages',Bell,'@Notifications'],['Privacy & settings','Your data and app preferences',Settings2,'Privacy & settings'],['Language','Read MyThuso your way',Globe,'@Language'],['Language & access','Twelve official languages, and what is honestly offered in each',Languages,'Language & access']],
  /* Emergency first in this group, and in the shell's sidebar as well. It was the fourteenth card
     inside a roadmap page — the most complete journey in the product behind the most clicks in it,

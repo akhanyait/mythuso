@@ -75,3 +75,22 @@ test('an icon without a label is hidden from assistive technology, and one with 
  await expect(decorative).toHaveCount(contract.icons.length);
  for (const svg of await decorative.all()) await expect(svg).toHaveAttribute('aria-hidden', 'true');
 });
+
+/* The rest of the handoff's iconography page (30 September 2026), under the family and outside its section so the
+   family's own counts above are untouched: the contract's rules, the official logo whole with its usage sentence,
+   the Lucide utility set — none of it an idea a family icon owns — and one family icon at the four sizes. */
+test('the gallery carries the rules, the logo’s usage, the utility set and the four sizes', async ({ page }) => {
+ const full = JSON.parse(readFileSync(new URL('../packages/catalog/icons.json', import.meta.url), 'utf8')) as { rules: { sentence: string }[]; icons: { neverBeside: string[] }[] };
+ await page.goto('/app/?open=icons');
+ const more = page.getByRole('region', { name: 'Logo, utility icons and sizes' });
+ await expect(more.locator('.icon-gallery-rules li')).toHaveText(full.rules.map(r => r.sentence));
+ await expect(more.getByRole('img', { name: 'GilbertOne' })).toBeVisible();
+ await expect(more.locator('.icon-gallery-logo-rules p')).toContainText('official GilbertOne logo');
+ const owned = new Set(full.icons.flatMap(i => i.neverBeside));
+ const utility = await more.locator('.icon-gallery-utility code').allTextContents();
+ expect(utility.length).toBeGreaterThan(0);
+ for (const name of utility) expect(owned.has(name), `${name} is an idea a family icon owns`).toBe(false);
+ const sizes = await more.locator('.icon-gallery-standard svg').evaluateAll(els => els.map(el => Math.round(el.getBoundingClientRect().width)));
+ expect(sizes).toEqual([16, 20, 24, 32]);
+ expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+});

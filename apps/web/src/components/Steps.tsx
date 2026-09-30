@@ -8,6 +8,27 @@ export function StepHead({ step, total, label }: { step: number; total: number; 
   </span>
  </div>;
 }
+/* The export's booking stepper: every step named, a numbered circle each, a tick on a finished one, and a
+   finished one a press back to itself. The count is still said — "Step 3 of 6" — because a circle's colour
+   is not a way to tell a screen reader where it is, and neither is a tick. A step not yet reached is not a
+   button: jumping ahead would skip the checks the step in between makes. StepHead stays for the screens that
+   have no labels to show (Vetting, Teleconsult). */
+export function Stepper({ labels, step, onStep }: { labels: readonly string[]; step: number; onStep?: (index: number) => void }) {
+ return <div className="stepper">
+  <p className="stepper__count">Step {step + 1} of {labels.length}<em>{labels[step]}</em></p>
+  <ol className="stepper__track" aria-label="Booking steps">
+   {labels.map((label, i) => {
+    const done = i < step, now = i === step;
+    const face = <><span className="stepper__mark" aria-hidden="true">{done ? <Check size={14}/> : i + 1}</span><span className="stepper__label">{label}</span></>;
+    return <li key={label} className={`stepper__step${done ? ' is-done' : ''}${now ? ' is-now' : ''}`} aria-current={now ? 'step' : undefined}>
+     {done && onStep
+      ? <button type="button" className="stepper__face" onClick={() => onStep(i)} aria-label={`${label}: step ${i + 1} of ${labels.length}, done. Return to it`}>{face}</button>
+      : <span className="stepper__face">{face}{done && <span className="visually-hidden">, done</span>}</span>}
+    </li>;
+   })}
+  </ol>
+ </div>;
+}
 /* One box per digit, as the design asks. Each box is a real input so a password manager, an SMS
    autofill and a screen reader all still work; the group carries the label, not each box. */
 export function CodeInput({ value, onChange, length = 6, label, describedBy, invalid, autoFocus }:

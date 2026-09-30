@@ -8,6 +8,8 @@ import {
   CalendarDays,
   ChevronDown,
   Clock3,
+  EyeOff,
+  FileLock2,
   FileText,
   Heart,
   House,
@@ -16,10 +18,13 @@ import {
   Lock,
   MapPin,
   Menu,
+  MessageCircleQuestion,
   MessagesSquare,
   Moon,
+  PenOff,
   PersonStanding,
   ShieldCheck,
+  Signature,
   Stethoscope,
   UserRoundPlus,
   Users,
@@ -180,15 +185,19 @@ const renewal = (months: number | null) =>
 
 /* What the platform refuses, in the contract's own words. These sentences are rendered word for
    word on all three platforms; quoting them here rather than paraphrasing them is the point. */
+/* Each boundary wears a disc with a glyph in it — the handoff's four-up row of discs — and the glyph is
+   a second way of saying the heading beside it, never the only one. Keyed to the capability rather than
+   to a position, so reordering the four cannot put a pen on the record that is about reading. */
 const refusals = (
   [
-    ["nurse", "view-clinical-record"],
-    ["nurse", "view-protected-record"],
-    ["doctor", "sign-clinical-review"],
-    ["nurse", "write-clinical-note"],
+    ["nurse", "view-clinical-record", FileLock2],
+    ["nurse", "view-protected-record", EyeOff],
+    ["doctor", "sign-clinical-review", Signature],
+    ["nurse", "write-clinical-note", PenOff],
   ] as const
-).map(([roleId, capability]) => ({
+).map(([roleId, capability, Icon]) => ({
   capability,
+  Icon,
   title: capabilityById(capability)?.name ?? capability,
   sentence:
     roleById(roleId)?.grants.find((g) => g.capability === capability)
@@ -353,7 +362,7 @@ function useOpening() {
    of sections, the glow behind it and the drift on the photograph went to make room for them — both on
    transform and opacity alone, both behind [data-decor="on"] so the pause control in the top bar stops
    them, and both held still while the stage is off-screen (tests/motion.spec.ts). */
-function Hero() {
+function Hero({ onAsk }: { onAsk: (question: string) => void }) {
   const slide = slides[0];
   const figure = figureFor(slide);
   const { opening, onClick: opened } = useOpening();
@@ -405,6 +414,13 @@ function Hero() {
         <div className="landing-portrait-frame">
           <div key={slide.id} className="landing-slide is-on">
             <div className="hero-portrait">
+              {/* The handoff's halo: three still rings on the panel's wash, behind the people and in
+                front of nothing. It has no animation and no words, so it costs the page's two-loop
+                budget nothing and a screen reader never meets it. */}
+              <span className="hero-halo" aria-hidden="true">
+                <span />
+                <span />
+              </span>
               <picture>
                 <source
                   srcSet={figure.srcSet}
@@ -440,6 +456,11 @@ function Hero() {
               </div>
             ))}
           </div>
+          {/* The particles belong to the panel rather than the figure, so they keep their places when a
+            phone stands the guide's card under the picture and the figure grows. */}
+          <span className="hero-particle hero-particle--lime" aria-hidden="true" />
+          <span className="hero-particle hero-particle--teal" aria-hidden="true" />
+          <span className="hero-particle hero-particle--orange" aria-hidden="true" />
         </div>
         {/* The badge. Words first and the pulse beside them, so the pulse is never the only thing
           saying what it means. The handoff calls this pulse its microphone state; here it names a
@@ -456,9 +477,38 @@ function Hero() {
           {standing.place}
         </p>
         <figcaption>{standing.photographNote}</figcaption>
-        <span className="hero-particle hero-particle--lime" aria-hidden="true" />
-        <span className="hero-particle hero-particle--teal" aria-hidden="true" />
-        <span className="hero-particle hero-particle--orange" aria-hidden="true" />
+        {/* GilbertOne's card, the handoff's, in the form this page can keep. The handoff's offered four
+          clinical actions beside an animated character; this one carries the official logo, the public
+          guide's own label and four of its own questions — hero.json's copies of the guide's contract,
+          held to it word for word by the build — and each row opens the public sheet with that question
+          already asked. It stands still: the page's two loops are the particles and the pulse. */}
+        <div
+          className="hero-guide"
+          role="group"
+          aria-labelledby="hero-guide-logo hero-guide-label"
+        >
+          <div className="hero-guide-head">
+            <img
+              id="hero-guide-logo"
+              src="/lovable/gilbertone-logo-360.webp"
+              alt="GilbertOne"
+              width="360"
+              height="270"
+              decoding="async"
+            />
+            <p id="hero-guide-label">{stage.guideCard.label}</p>
+          </div>
+          <ul>
+            {stage.guideCard.questions.map((q) => (
+              <li key={q.id}>
+                <button type="button" onClick={() => onAsk(q.question)}>
+                  <MessageCircleQuestion size={16} aria-hidden="true" />
+                  <span>{q.question}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       </figure>
     </section>
   );
@@ -494,6 +544,14 @@ function Head({
 export function Landing() {
   const [menu, setMenu] = useState(false);
   const [login, setLogin] = useState(false);
+  /* A request for the public sheet from somewhere on the page other than its own button: the hero card's
+    questions and the guide card's action. `n` counts presses, so asking the same question twice opens
+    the sheet twice rather than being swallowed as no change. */
+  const [guide, setGuide] = useState<{ question?: string; n: number } | null>(
+    null,
+  );
+  const askGuide = (question?: string) =>
+    setGuide((was) => ({ question, n: (was?.n ?? 0) + 1 }));
   const [open, setOpen] = useState<number | null>(0);
   const [serviceQuery, setServiceQuery] = useState("");
   const [serviceCategory, setServiceCategory] = useState("All care");
@@ -591,7 +649,7 @@ export function Landing() {
           <LoginPanel onClose={() => setLogin(false)} />
         </Suspense>
       )}
-      <Hero />
+      <Hero onAsk={askGuide} />
 
       {/* No figures band between the hero and the steps any more. Its four numbers were the fourth
       place on this page the same four numbers appeared, and every one of them is still here: the
@@ -991,6 +1049,9 @@ export function Landing() {
           <ul>
             {refusals.map((r) => (
               <li key={r.capability}>
+                <span className="landing-refusal-disc" aria-hidden="true">
+                  <r.Icon size={20} strokeWidth={2} />
+                </span>
                 <strong>{r.title}</strong>
                 <p>{r.sentence}</p>
               </li>
@@ -1002,14 +1063,22 @@ export function Landing() {
       {/* Where it starts. The handoff's network map of the country, and under it the geography contract's
         own sentence saying how little of it is served — the map may be the whole of South Africa only
         because the words beside it say the service is one city's. */}
+      {/* The handoff's impact panel, since 30 September 2026: the map in a washed panel on the left and a
+        white card beside it on the right. The handoff's card counted facilities, professionals and people
+        reached; nothing has been reached, so this card holds what the section already said — the coverage
+        sentence, the plan note and the openings by name — and the numbers it quotes are the proposal's
+        own point names, not a count. */}
       <section className="landing-section landing-impact" aria-labelledby="impact-title">
-        <div className="reveal-stagger" data-reveal>
+        <div className="landing-impact-head reveal-stagger" data-reveal>
           <p className="landing-eyebrow">
             <i>06</i>
             {stage.impact.eyebrow}
           </p>
           <h2 id="impact-title">{stage.impact.title}</h2>
-          <p className="landing-lede">{stage.impact.coverage}</p>
+        </div>
+        <div className="landing-impact-panel">
+        <div className="landing-impact-card reveal-stagger" data-reveal>
+          <p className="landing-impact-coverage">{stage.impact.coverage}</p>
           <p className="landing-impact-plan">{stage.impact.planNote}</p>
           <ol className="landing-impact-points">
             {openings.map((point) => (
@@ -1065,6 +1134,7 @@ export function Landing() {
           </div>
           <figcaption>{stage.impact.mapNote}</figcaption>
         </figure>
+        </div>
       </section>
 
       <section className="landing-section landing-questions">
@@ -1091,6 +1161,15 @@ export function Landing() {
             <div>
               <h3>{stage.guide.title}</h3>
               <p>{stage.guide.line}</p>
+              <button
+                type="button"
+                className="secondary landing-secondary landing-guide-action"
+                aria-haspopup="dialog"
+                onClick={() => askGuide()}
+              >
+                {stage.guide.action}
+                <ArrowRight size={16} aria-hidden="true" />
+              </button>
             </div>
           </aside>
         </div>
@@ -1135,7 +1214,7 @@ export function Landing() {
       </section>
 
       <Suspense fallback={null}>
-        <PublicAssistant />
+        <PublicAssistant request={guide} />
       </Suspense>
       <footer className="landing-footer">
         <div>
@@ -1146,6 +1225,35 @@ export function Landing() {
             {liveServices.length} of them at launch.
           </p>
         </div>
+        {/* The handoff's link columns, built only from places that exist: the page's own sections, and
+          the three doors this page already opens. No newsletter, no privacy or terms page and no design
+          system link — none of them is there to go to. */}
+        <nav className="landing-footer-links" aria-label="Footer">
+          <div>
+            <h2>On this page</h2>
+            <ul>
+              {sections.map(([id, label]) => (
+                <li key={id}>
+                  <a href={`#${id}`}>{label}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h2>The preview</h2>
+            <ul>
+              <li>
+                <a href={appHref}>Open the app</a>
+              </li>
+              <li>
+                <a href={nurseHref}>The nurse&rsquo;s side</a>
+              </li>
+              <li>
+                <a href={statusHref}>What is connected</a>
+              </li>
+            </ul>
+          </div>
+        </nav>
         <div className="landing-footer-note">
           <p>
             <strong>This is a preview, not a live service.</strong> No visit can

@@ -1,0 +1,27 @@
+/* Live well's hub (WellbeingScreens.tsx#LiveWell): the Lovable export's four doors and its banner above the
+   journal. Imported by WellbeingScreens.tsx alone, so it arrives with the screen's dynamic import and never on the
+   patient's first load. No motion here: the doors answer a pointer with their border, as every interactive card
+   does, and nothing moves by itself. The door is a Card's face on a button, so it is named through its list to
+   win over the card's own layout wherever the two sheets land in the cascade. */
+.wb-doors { display: grid; gap: var(--space-12); margin: var(--space-16) 0 var(--space-20); }
+.wb-doors > .wb-door { display: flex; align-items: center; gap: var(--space-12); width: 100%; min-height: 44px; padding: var(--space-16); text-align: left; font: inherit; color: var(--color-foreground); cursor: pointer; }
+.wb-door > svg { flex: none; color: var(--color-muted-foreground); }
+.wb-door .tile-icon { flex: none; }
+.wb-door__text { display: grid; gap: var(--space-4); flex: 1; min-width: 0; }
+.wb-door__text strong { font-size: 15px; font-weight: 600; }
+.wb-door__text small { font-size: 13px; line-height: 1.45; color: var(--color-muted-foreground); }
+@media (min-width: 640px) { .wb-doors { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* The export's dark banner: the photograph beside the invitation on the primary ground. The words take the
+   primary's own foreground, which the token pair is built to carry, and the photograph says what it is. */
+.wb-banner { position: relative; display: grid; overflow: hidden; margin: 0 0 var(--space-24); border-radius: var(--r-lg); background: var(--color-primary); color: var(--color-primary-foreground); }
+.wb-banner img { display: block; width: 100%; height: 176px; object-fit: cover; }
+.wb-banner__copy { display: grid; gap: var(--space-8); align-content: center; justify-items: start; padding: var(--space-24); }
+.wb-banner__copy h2 { margin: 0; font-family: var(--font-display); font-size: 24px; font-weight: 600; color: inherit; }
+.wb-banner__copy p { margin: 0 0 var(--space-8); font-size: 15px; line-height: 1.5; color: inherit; }
+.wb-banner .care-photo-note { top: var(--space-12); bottom: auto; }
+@media (min-width: 720px) {
+ .wb-banner { grid-template-columns: minmax(0, 240px) minmax(0, 1fr); }
+ .wb-banner img { height: 100%; min-height: 200px; }
+ .wb-banner .care-photo-note { left: var(--space-12); right: auto; top: auto; bottom: var(--space-12); }
+}
