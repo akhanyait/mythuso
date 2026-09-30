@@ -154,7 +154,7 @@ export function Visits({rows:all,book,manage,view,track}:{rows:VisitRow[];open:(
  const group:VisitGroup=tab==='Upcoming'?'upcoming':tab==='Past'?'past':'cancelled';
  const rows=all.filter(r=>r.group===group);
  return <>
-  <div className="page-intro"><h1>Your visits</h1></div>
+  <PageHeading eyebrow="THUSO VISITS" title="Your visits" description="View, book, reschedule or cancel your visits."/>
   <div className="underline-tabs" role="group" aria-label="Visit status">{['Upcoming','Past','Cancelled'].map(t=><button key={t} className={tab===t?'selected':''} aria-pressed={tab===t} onClick={()=>setTab(t)}>{t}</button>)}</div>
   <NotConnected of="booking"/>
   <StateBlock state={state} subject="Your visit list" permission="notifications">
@@ -268,7 +268,7 @@ export function VisitDetail({row,manage,navigate,rebook,track,notes=[],thread,on
 export function Passport({open,navigate}:{open:(s:string)=>void;navigate:(s:string)=>void}) {
  const [tab,setTab]=useState('Overview');
  return <>
-  <div className="page-intro"><h1>Health Passport</h1><p>Your health. Your story. Every visit, reading and result, in one place.</p></div>
+  <PageHeading eyebrow="THUSO PASSPORT" title="Health Passport" description="Your health. Your story. Every visit, reading and result, in one place."/>
   <NotConnected of="clinical-records"/>
   {/* A credential, composed as one. The largest thing on it used to be the slogan and the smallest
       was the holder's name, with a cartoon face where the photograph goes — which is the single
