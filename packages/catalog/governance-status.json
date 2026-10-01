@@ -93,9 +93,10 @@
    "apps/web/src/features/Admin.tsx",
    "scripts/check-boundaries.mjs",
    "tests/governance-readiness.spec.ts",
-   "docs/FEATURE-MAP.md"
+   "docs/FEATURE-MAP.md",
+   "docs/ROADMAP.md"
   ],
-  "readByWhy": "The reasoning, the screen, the console tab that routes the screen and takes its one-line blurb, the check that holds this list, the journey and the feature map. Any other file naming this contract, the module that reads it or the screen, in any tree, fails the build — which is how \"read-only\" stops being a promise in a comment.",
+  "readByWhy": "The reasoning, the screen, the console tab that routes the screen and takes its one-line blurb, the check that holds this list, the journey, the feature map and the roadmap. The two documents are listed because they say what has and has not been decided: the feature map names the register as delivered, and the roadmap names it as missing records the governance work will need (the board's formation and the Medical Director's appointment, which live in packages/catalog/protocols.json#governance and are not here). A document that names a file is not a gate on it — nothing in docs/ can start a service — but it is a file naming this contract, so it is listed rather than left to fail a check it cannot affect. Any other file naming this contract, the module that reads it or the screen, in any tree, fails the build — which is how \"read-only\" stops being a promise in a comment.",
   "neverReadBy": [
    { "tree": "apps/passport", "why": "The Passport's own configuration refuses to start without its development flag, and it must keep refusing on its own terms. A Passport that consulted a register an admin can edit would start because somebody typed a date." },
    { "tree": "deploy", "why": "Nothing in deploy/ may name the Passport, and nothing in deploy/ may name the register that says whether it could be deployed either. The deploy boundary is decided in a commit, not in a preview." },

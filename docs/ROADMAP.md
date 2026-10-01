@@ -1006,3 +1006,131 @@ What is left now, in the order it should be taken:
 8. **Words nobody has written:** the patient sidebar's group labels in the other ten languages.
 9. **Small:** the guardians' invitation list is still the old furniture; the composer has not been tried on
    a real Android keyboard; comments in four files still say the Thuso Kit is on the patient's entry.
+
+---
+
+## What ratifying a triage protocol and appointing a Medical Director actually require — 1 October 2026
+
+**Written, not built.** The founder asked what these two things require. The answer is in the
+contracts and in the build, and four parts of it were proved by breaking the source deliberately and
+reading the failure rather than by reading the check that would produce it. Nothing in this section
+moves a gate; it says what the gates are, what opens them, and in what order.
+
+### 1. Appointing the Medical Director is four fields and one cross-check
+
+`packages/catalog/protocols.json#governance.medicalDirector` holds `name`, `hpcsaRef`, `signedOn` and
+`status`, and `apps/assistant-api/src/lib/triage-gate.ts` reads `status === "appointed"`. The build
+holds the reference honest: a registration number written anywhere under `packages/catalog` must
+already be one the vetting register issued. **Proved** — setting `hpcsaRef` to a number nobody issued
+failed the build with _"the vetting register has never issued it. A clinician carrying a number no
+authority gave them is exactly what vetting exists to catch."_ A Medical Director the register does
+not know is not appointable in this repository, which is the check working rather than obstructing.
+
+The consequence is uncomfortable and should be decided before it is met. The register is two files —
+`apps/web/src/lib/vetting-fixtures.ts` and `packages/catalog/roster.json` — and the doctors in it are
+fixtures. Appointing a real Medical Director means putting a real person's real HPCSA number into a
+file that is otherwise preview data, in a public repository. **That is a
+`docs/PRIVACY-AND-SECURITY.md` question before it is a code question**, and it is not answered today.
+
+### 2. Forming the board is the same shape, and neither is on the governance register
+
+`governance.board` holds `name`, `chairRef`, `quorum`, `meetingCadence` and `status`, read as
+`status === "formed"`. Neither the board nor the Medical Director is a record in
+`packages/catalog/governance-status.json`, which holds the DPIA, the Information Officer and data
+residency and nothing else. So the back office's Governance Readiness screen cannot answer _"has a
+Medical Director been appointed"_ — the question a funder or a regulator asks first — and appointing
+one is an edit to a catalog file rather than a form an accountable person fills in. Adding both as
+records there is small, and belongs before the board sits rather than after.
+
+### 3. Neither appointment ratifies anything by itself
+
+`protocols.json` says no protocol advances beyond `draft` until the board is formed and a Medical
+Director is appointed. A row is ratified only with `status: "ratified"`, a `ratifiedBy` carrying both
+a role and a name, and a `ratifiedOn`. And a draft carries nothing: the five governance fields —
+`reviewHistory`, `safetyCase`, `clinicalEvidence`, `applicableConditions`, `contraindications` — are
+the frame the board fills when it signs, and the build fails a draft holding any of them, or holding
+any digit outside its own version and the one it supersedes. The frame existing is not the content
+arriving, and the check keeps the two apart.
+
+### 4. There is no thirteenth launch protocol, and that is enforced twice over
+
+The build holds the launch scope at the twelve the Master Blueprint Part F names. **Proved twice:**
+adding a new draft row failed with _"registers 13 launch protocols … a launch scope nobody agreed"_,
+and promoting the preview pathway (`headache-raised-blood-pressure-pathway`) to `ratified` failed with
+the same sentence — because `previewPathwayOf` recognises a preview pathway by its being a draft, so
+ratifying it makes it a thirteenth launch protocol.
+
+So a triage protocol is one of the twelve, or the twelve becomes thirteen by a deliberate edit to the
+check that holds it, citing the board's decision. `clinical.json#triage.triageProtocols` already says
+which of the registered protocols are triage protocols is the board's to say, and that none is today.
+The board's first clinical act is probably that designation, and it is a choice among rows that
+already exist.
+
+### 5. The content has nowhere to live, and that is the work
+
+Ratifying fills the five governance fields and names who signed. It does not create the protocol's
+rules. `packages/engines/src/clinical/domain/triage.ts` loads them through a `RuleLoader`, and this
+build's loader is `noRulesInThisBuild`, which loads none — so a ratified protocol whose rules cannot
+be read is still answered `protocol-content-not-in-this-build`. There is no triage content contract
+anywhere under `packages/catalog`: `clinical.json` holds frames, gates, registries and refusals and
+not one clinical word, by its own `_note`.
+
+The protocol's questions, their order, its priority scale, its red flags, its reason codes and its
+dispositions are a **new contract authored by clinicians**. That is the part measured in months. The
+signature is measured in a day, and the signature is the small one.
+
+### 6. The seam must be wired before the designation is written
+
+**Proved:** with the board formed, a Medical Director appointed and a ratified protocol designated in
+`clinical.json`, the build failed with _"the live seam still refuses to ask a question. The gate is
+open, so both triage routes would answer a 500 to a person told they would be assessed."_ The order is
+held by the check in both directions — unratified questions in a live seam fail it too — so it cannot
+be got wrong by accident. Content first, designation second.
+
+### 7. The safety case is a test, not a gate
+
+`validateProtocolReadiness` names three things a triage protocol must carry — a signer, a ratification
+date and a safety case — and it is called from `packages/engines/src/clinical/engine.test.ts` and from
+nowhere else. **Neither runtime gate reads `safetyCase`**: `triage-gate.ts` reads status, signature and
+date, and `triage.ts` reads the register and the loader. A protocol ratified with `safetyCase: null`
+would open both gates in a running service and be caught only by the test suite reading the register.
+That is a real gap, and a cheap one to close — a single call in the gate — but closing it is a code
+change and this section is not one.
+
+### 8. What opens when all of it is done, and what does not
+
+When the board is formed, a Medical Director appointed, a protocol ratified with its content, the seam
+wired and the designation written, the two triage addresses in `apps/assistant-api` answer on the next
+start **with no edit to a handler**, because the gate reads the register rather than a flag. The
+Clinician Review Queue's screen steps aside on its own: the check holding
+`apps/web/src/features/portal/ReviewQueue.tsx` to no action runs only while the board is not formed, so
+forming it is what lets the screen grow a sign control.
+
+What does not open is anything else. The queue's five routes are still `proposed` with no handler. And
+`clinical.json#whereContentLives` means the consultation's words, the reason codes a triage sets and a
+patient's answers go to the Health Passport under its consent gateway — which refuses to start outside
+development until a signed DPIA, a registered Information Officer, a residency decision and KMS or HSM
+custody exist. **A ratified triage protocol with no Passport behind it has nowhere to write what it
+decided.** The clinical track and the privacy track meet here, and `docs/governance/README.md`'s order
+— residency and key custody, then the DPIA, then the Information Officer, with the clinical review
+running in parallel — is the order that stops them meeting too late.
+
+### The order, if it is done
+
+1. Decide who the board is and who the Medical Director is. Both are people; the repository can only
+   record them.
+2. Decide whether a real clinician's registration number may sit in a public repository
+   (`docs/PRIVACY-AND-SECURITY.md`), and only then add the Medical Director to the vetting register.
+3. Write `governance.board` and `governance.medicalDirector` in `protocols.json`, and add both as
+   records in `governance-status.json` so the back office can answer the question out loud.
+4. The board designates which registered protocols are triage protocols
+   (`clinical.json#triage.triageProtocols.ids`), and decides whether the launch scope grows past
+   twelve — which is an edit to the check holding it, citing the decision.
+5. The board authors the protocol's content as a new contract; its five governance fields are filled
+   on ratification and not before.
+6. The seam in `apps/assistant-api` is wired to that content.
+7. The designation is written and the status set to `ratified` with its signature. Step 6 before 7 is
+   enforced, not remembered.
+8. Close the safety-case gap in the gate, and put a Passport behind the record the triage writes.
+
+Steps 1 to 4 are a decision and a day. Step 5 is the work, and steps 6 to 8 are not formalities.
