@@ -9,6 +9,7 @@ import {
   validateCatalog,
   validateEntryCodes,
   validateEntrySource,
+  validateSourceGovernance,
   verhoeffValid,
 } from "./knowledge-codes.mjs";
 
@@ -24,6 +25,22 @@ const readJson = (path: string) =>
   JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"));
 
 const federation = readJson("../packages/catalog/knowledge/federation.json");
+const SOURCE_IDS = [
+  "icd11-who",
+  "openfda",
+  "pubmed-europepmc",
+  "medlineplus-nlm",
+  "cdc-content-services",
+  "ndoh-stg-eml-phc",
+  "sahpra-medicines",
+  "snomed-ct-za",
+  "loinc-regenstrief",
+  "wikidata",
+  "westerncape-health",
+  "ifrc-first-aid-guidelines",
+  "sa-red-cross-first-aid",
+  "st-john-sa-first-aid",
+];
 const catalog: Record<string, unknown[]> = Object.fromEntries(
   KNOWLEDGE_FILES.map((file) => [
     file,
@@ -195,8 +212,8 @@ test("federation.json ships dark and complete: every source off, every field a r
   const sources = federation.sources;
   assert.deepEqual(
     sources.map((source: { id: string }) => source.id),
-    ["icd11-who", "openfda", "pubmed-europepmc"],
-    "the allowlist, in the order the adapters are registered",
+    SOURCE_IDS,
+    "the allowlist: the three with adapters first, in the order they are registered, then the sources assessed on 1 October 2026",
   );
   for (const source of sources) {
     assert.equal(
@@ -266,4 +283,86 @@ test("every abstention kind has its sentence, and the scope says what is out", (
     12,
     "the horizon the catalogue's review dates were computed from",
   );
+});
+
+/* Source governance, added on 1 October 2026 when the allowlist grew past its first three. The real
+   file must pass whole; then each rule is broken on a copy, one at a time, and must be named — the
+   same proof the boundary check's own mutations give, kept here so it runs on every npm test. */
+const copy = () => JSON.parse(JSON.stringify(federation));
+const sourceWithVerdict = (draft: typeof federation, verdict: string) =>
+  draft.sources.find((source: { licensing: { verdict: string } }) => source.licensing.verdict === verdict);
+
+test("every source carries a licence verdict, a residency note and two unsigned signatures, and the file passes whole", () => {
+  assert.deepEqual(validateSourceGovernance(federation), []);
+  const verdicts = federation.licenceVerdicts;
+  for (const source of federation.sources) {
+    assert.equal(source.active, false, `${source.id} ships dark`);
+    assert.ok(verdicts[source.licensing.verdict], `${source.id} has a verdict from the vocabulary`);
+    assert.equal(typeof source.licensing.commercialUse, "boolean", `${source.id} says whether commercial use is allowed`);
+    assert.ok(source.licensing.verifiedFrom.startsWith("https://"), `${source.id} says where its licence was read`);
+    assert.ok(source.dataResidency.notes.includes("POPIA"), `${source.id} records its POPIA position`);
+    assert.deepEqual(source.signOff, { "clinical-reviewer": null, "information-officer": null }, `${source.id} waits on both signatures`);
+  }
+  for (const role of federation.governance.signatures)
+    assert.equal(role.appointed, false, `${role.id}: nobody is appointed yet, so nothing can be signed`);
+  for (const entry of federation.assessedNotAdmitted)
+    assert.equal(verdicts[entry.verdict].mayActivate, false, `${entry.id} was turned away under a verdict that never activates`);
+});
+
+test("a non-commercial source switched on is named for its licence, not merely its flag", () => {
+  const draft = copy();
+  const turned = draft.assessedNotAdmitted.find((entry: { verdict: string }) => entry.verdict === "non-commercial-only");
+  assert.ok(turned, "the register holds at least one non-commercial source");
+  draft.sources.push({
+    ...JSON.parse(JSON.stringify(draft.sources[0])),
+    id: "non-commercial-probe",
+    hosts: ["probe.invalid"],
+    active: true,
+    licensing: { ...draft.sources[0].licensing, verdict: "non-commercial-only", commercialUse: false },
+  });
+  const findings = validateSourceGovernance(draft);
+  assert.ok(findings.some((finding: string) => finding.includes("never permits")), findings.join("\n"));
+  assert.ok(findings.some((finding: string) => finding.includes("without both signatures")), findings.join("\n"));
+});
+
+test("a permission-required source cannot open without its permission record, even with both signatures", () => {
+  const draft = copy();
+  const source = sourceWithVerdict(draft, "permission-required");
+  assert.ok(source, "at least one source waits on written permission");
+  for (const role of draft.governance.signatures) role.appointed = true;
+  source.signOff = {
+    "clinical-reviewer": { signedBy: "Probe", signedOn: "2026-10-01", reference: "probe" },
+    "information-officer": { signedBy: "Probe", signedOn: "2026-10-01", reference: "probe" },
+  };
+  source.active = true;
+  const findings = validateSourceGovernance(draft);
+  assert.ok(findings.some((finding: string) => finding.includes("written permission")), findings.join("\n"));
+  source.licensing.permissionRef = "docs/governance/probe.md";
+  assert.deepEqual(validateSourceGovernance(draft), [], "with both signatures and the permission recorded, the contract allows the flag");
+});
+
+test("a signature recorded before anyone is appointed is named", () => {
+  const draft = copy();
+  draft.sources[0].signOff["information-officer"] = { signedBy: "Probe", signedOn: "2026-10-01", reference: "probe" };
+  assert.ok(validateSourceGovernance(draft).some((finding: string) => finding.includes("nobody has been appointed")));
+});
+
+test("a source with no verdict, no residency note or no hosts is named", () => {
+  const draft = copy();
+  delete draft.sources[1].licensing.verdict;
+  draft.sources[2].dataResidency.notes = "Hosted abroad.";
+  draft.sources[3].hosts = [];
+  const findings = validateSourceGovernance(draft);
+  assert.ok(findings.some((finding: string) => finding.includes(`"${draft.sources[1].id}": licensing.verdict`)));
+  assert.ok(findings.some((finding: string) => finding.includes(`"${draft.sources[2].id}": dataResidency`)));
+  assert.ok(findings.some((finding: string) => finding.includes(`"${draft.sources[3].id}": hosts`)));
+});
+
+test("a host cannot be both admitted and turned away, and a turned-away source keeps a verdict that never opens", () => {
+  const draft = copy();
+  draft.assessedNotAdmitted[0].hosts = [draft.sources[0].hosts[0]];
+  draft.assessedNotAdmitted[1].verdict = "reuse-permitted";
+  const findings = validateSourceGovernance(draft);
+  assert.ok(findings.some((finding: string) => finding.includes("admitted or turned away")));
+  assert.ok(findings.some((finding: string) => finding.includes("never activates")));
 });

@@ -1,10 +1,15 @@
+import { Suspense, lazy } from 'react';
 import pack from '../../../../../packages/catalog/compliance-pack.json' with { type: 'json' };
 import { ClinicalOversight, Catalogue, ControlChecklist, Finance, GovernanceDocuments, Growth, adminTabBlurb } from '../Admin';
 import { contextParam, portalContract, portalRefusal } from '../../lib/portal';
 import { usePortal } from './context';
 import { Frame } from './Frame';
-import { Empty, Region, RovingList } from './Parts';
+import { Empty, Loading, Region, RovingList } from './Parts';
 import { ClinicianReviewQueue } from './ReviewQueue';
+
+/* Governance's Knowledge sources (1 October 2026) arrives on a dynamic import of its own: it reads the
+   whole federation contract, and nobody opening the review queue should download it. */
+const KnowledgeSourcesScreen = lazy(() => import('./KnowledgeSources').then(m => ({ default: m.KnowledgeSourcesScreen })));
 
 /* The back office's categories — Finance, Compliance, Governance, Clinical oversight, Catalogue and
  * Growth — with the console's own panels, unchanged, and the three things §6.2 adds: cost allocation
@@ -93,6 +98,7 @@ export function CompliancePackPreview() {
 export function GovernanceCategory() {
  const { place } = usePortal();
  if (place.tab === 'review-queue') return <Frame><ClinicianReviewQueue/></Frame>;
+ if (place.tab === 'knowledge-sources') return <Frame><Suspense fallback={<Loading/>}><KnowledgeSourcesScreen/></Suspense></Frame>;
  return <Frame blurb={adminTabBlurb.Governance}><GovernanceDocuments/></Frame>;
 }
 

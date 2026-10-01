@@ -257,3 +257,219 @@ export function validateCatalog(catalog, federation) {
   }
   return findings;
 }
+
+/* ==== Source governance: licence verdicts, residency notes and the two signatures ====
+   Added on 1 October 2026, when the founder asked for more first-aid, skin and consumer-health
+   sources and the allowlist grew from three to the sources assessed that day. Every source in
+   federation.json is a proposal awaiting two signatures — the clinical reviewer's and the
+   Information Officer's — and none is switched on. What this function holds is the order of
+   things: the record before the flag, the licence before the record, and a person before a
+   signature. It returns findings rather than throwing, so the boundary check and the catalogue's
+   own tests ask the same question of the real file and of a deliberately broken copy.
+
+     - Every source records a licence verdict from licenceVerdicts, whether commercial reuse and
+       adaptation are allowed, the page that verdict was read from, the hosts it lives on, who it
+       is for, its languages, and a residency note naming the POPIA position it waits on.
+     - A source whose verdict does not permit a commercial service's use can never be switched on,
+       and one whose verdict asks for written permission cannot be switched on without its record.
+     - Neither signature exists until the person who gives it has been appointed, and no source
+       is switched on without both — checked before the dark flag itself, so flipping a
+       non-commercial source reports the licence, not merely the flag.
+     - A source assessed and turned away stays in assessedNotAdmitted with its reason, and never
+       shares a host with a listed source: a licence that forbids commercial use does not become
+       acceptable by being proposed again. */
+export const SIGNATURE_ROLES = ["clinical-reviewer", "information-officer"];
+export const GOVERNANCE_REFUSALS = [
+  "no-activation-without-two-signatures",
+  "no-signature-without-an-appointee",
+  "licence-does-not-permit-activation",
+  "permission-required-before-activation",
+  "a-link-is-not-knowledge",
+  "proposal-kept-in-this-screen-only",
+  "proposal-not-a-link",
+  "proposal-not-https",
+  "proposal-carries-personal-detail",
+  "proposal-already-listed",
+  "proposal-already-proposed",
+  "proposal-assessed-and-not-admitted",
+];
+
+const httpsUrl = (value) =>
+  typeof value === "string" && /^https:\/\/[^\s/]+/.test(value);
+const nonEmptyStrings = (value) =>
+  Array.isArray(value) &&
+  value.length > 0 &&
+  value.every((item) => typeof item === "string" && item.trim().length > 0);
+
+export function validateSourceGovernance(federation) {
+  const findings = [];
+  const at = "packages/catalog/knowledge/federation.json";
+  const verdicts = (federation && federation.licenceVerdicts) || {};
+  for (const id of ["not-assessed", "non-commercial-only"])
+    if (!verdicts[id] || verdicts[id].mayActivate !== false)
+      findings.push(
+        `${at}: licenceVerdicts.${id} must exist with mayActivate false — a licence nobody read, or one that excludes a commercial service, never opens a source`,
+      );
+  for (const [id, verdict] of Object.entries(verdicts))
+    if (
+      typeof verdict.mayActivate !== "boolean" ||
+      !verdict.label ||
+      !verdict.sentence
+    )
+      findings.push(
+        `${at}: licenceVerdicts.${id} needs a label, a sentence and a boolean mayActivate`,
+      );
+  const governance = (federation && federation.governance) || {};
+  const roles = Array.isArray(governance.signatures)
+    ? governance.signatures
+    : [];
+  if (roles.map((role) => role.id).join() !== SIGNATURE_ROLES.join())
+    findings.push(
+      `${at}: governance.signatures must be exactly ${SIGNATURE_ROLES.join(" and ")}, in that order — the two people a source waits on`,
+    );
+  const appointed = new Map(
+    roles.map((role) => [role.id, role.appointed === true]),
+  );
+  for (const role of roles)
+    if (!role.label || !role.signs || typeof role.appointed !== "boolean")
+      findings.push(
+        `${at}: governance.signatures "${role.id}" needs a label, what it signs, and whether its person is appointed`,
+      );
+  const refusals = Array.isArray(governance.refusals)
+    ? governance.refusals
+    : [];
+  for (const id of GOVERNANCE_REFUSALS) {
+    const refusal = refusals.find((r) => r.id === id);
+    if (!refusal || !refusal.statement || !refusal.why)
+      findings.push(
+        `${at}: governance.refusals "${id}" is missing its statement or its why — the screen says a refusal in the contract's words or not at all`,
+      );
+  }
+  const sources = Array.isArray(federation && federation.sources)
+    ? federation.sources
+    : [];
+  const hostOwner = new Map();
+  for (const source of sources) {
+    const where = `${at} source "${source.id ?? "<no id>"}"`;
+    const licensing = source.licensing || {};
+    const verdict = verdicts[licensing.verdict];
+    if (!verdict)
+      findings.push(
+        `${where}: licensing.verdict "${licensing.verdict}" is not in licenceVerdicts — every source carries a verdict on its licence`,
+      );
+    if (typeof licensing.commercialUse !== "boolean")
+      findings.push(
+        `${where}: licensing.commercialUse must say true or false — MyThuso is a commercial service`,
+      );
+    if (typeof licensing.adaptation !== "boolean")
+      findings.push(
+        `${where}: licensing.adaptation must say true or false — an answer rewords what it draws on`,
+      );
+    if (!httpsUrl(licensing.verifiedFrom))
+      findings.push(
+        `${where}: licensing.verifiedFrom must be the https page the licence was read from`,
+      );
+    if (
+      licensing.commercialUse === false &&
+      verdict &&
+      verdict.mayActivate &&
+      !verdict.requiresPermissionRecord
+    )
+      findings.push(
+        `${where}: a licence that does not allow commercial use carries the verdict "${licensing.verdict}", which may activate`,
+      );
+    const residency = source.dataResidency || {};
+    if (
+      !residency.hostedIn ||
+      typeof residency.notes !== "string" ||
+      !residency.notes.includes("POPIA")
+    )
+      findings.push(
+        `${where}: dataResidency needs hostedIn and a note naming the POPIA position it waits on`,
+      );
+    if (!nonEmptyStrings(source.hosts))
+      findings.push(
+        `${where}: hosts must list the hosts the source lives on, so a pasted link can be recognised`,
+      );
+    for (const host of source.hosts || []) {
+      if (hostOwner.has(host))
+        findings.push(
+          `${where}: host ${host} is also ${hostOwner.get(host)}'s`,
+        );
+      hostOwner.set(host, source.id);
+    }
+    if (!source.audience)
+      findings.push(`${where}: audience must say who the source is for`);
+    if (!nonEmptyStrings(source.languages))
+      findings.push(`${where}: languages must list what it is published in`);
+    const signOff = source.signOff;
+    if (
+      !signOff ||
+      typeof signOff !== "object" ||
+      Object.keys(signOff).sort().join() !== [...SIGNATURE_ROLES].sort().join()
+    ) {
+      findings.push(
+        `${where}: signOff must hold exactly ${SIGNATURE_ROLES.join(" and ")} (null until signed)`,
+      );
+      continue;
+    }
+    for (const role of SIGNATURE_ROLES) {
+      const signature = signOff[role];
+      if (signature === null) continue;
+      if (!appointed.get(role))
+        findings.push(
+          `${where}: signOff.${role} is recorded and nobody has been appointed to give it — a signature without a signatory is a forgery with good intentions`,
+        );
+      if (
+        !signature ||
+        !signature.signedBy ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(String(signature.signedOn)) ||
+        !signature.reference
+      )
+        findings.push(
+          `${where}: signOff.${role} needs signedBy, signedOn (a day) and a reference to the signed record`,
+        );
+    }
+    if (source.active === true) {
+      if (!verdict || !verdict.mayActivate)
+        findings.push(
+          `${where}: switched on under the verdict "${licensing.verdict}", which never permits it — a licence that does not cover a commercial service is not cured by a flag`,
+        );
+      else if (verdict.requiresPermissionRecord && !licensing.permissionRef)
+        findings.push(
+          `${where}: switched on without the written permission its verdict requires (licensing.permissionRef)`,
+        );
+      if (SIGNATURE_ROLES.some((role) => !signOff[role]))
+        findings.push(
+          `${where}: switched on without both signatures — the clinical reviewer's and the Information Officer's`,
+        );
+    }
+  }
+  const sourceIds = new Set(sources.map((source) => source.id));
+  const turnedAway = Array.isArray(federation && federation.assessedNotAdmitted)
+    ? federation.assessedNotAdmitted
+    : [];
+  for (const entry of turnedAway) {
+    const where = `${at} assessedNotAdmitted "${entry.id ?? "<no id>"}"`;
+    if (sourceIds.has(entry.id))
+      findings.push(`${where}: is also a listed source`);
+    if (!entry.name || !entry.licence || !entry.reason)
+      findings.push(`${where}: needs a name, the licence read, and the reason`);
+    if (!httpsUrl(entry.verifiedFrom))
+      findings.push(
+        `${where}: verifiedFrom must be the https page the licence was read from`,
+      );
+    if (!verdicts[entry.verdict] || verdicts[entry.verdict].mayActivate)
+      findings.push(
+        `${where}: verdict "${entry.verdict}" must be a verdict that never activates — it was turned away`,
+      );
+    if (!nonEmptyStrings(entry.hosts))
+      findings.push(`${where}: hosts must be listed, so a paste is recognised`);
+    for (const host of entry.hosts || [])
+      if (hostOwner.has(host))
+        findings.push(
+          `${where}: host ${host} belongs to the listed source ${hostOwner.get(host)} — one host is admitted or turned away, not both`,
+        );
+  }
+  return findings;
+}

@@ -1,12 +1,26 @@
 {
-  "version": 1,
+  "version": 2,
   "name": "MyThuso governed knowledge federation",
-  "compiledOn": "2026-09-21",
+  "compiledOn": "2026-10-01",
+  "changelog": [
+    {
+      "version": 1,
+      "on": "2026-09-21",
+      "change": "Three external sources allowlisted, all dark: the ICD-11 WHO API, openFDA and Europe PMC, each with its licence, rate limit, residency and use boundaries."
+    },
+    {
+      "version": 2,
+      "on": "2026-10-01",
+      "by": "Knowledge-governance engineer (Claude), on the founder's ask for more first-aid, skin and consumer-health sources",
+      "change": "Eleven sources added, all dark and with no adapter: MedlinePlus, CDC Content Services, the NDoH PHC STGs/EML, SAHPRA's register and directory, SNOMED CT under South Africa's national licence, LOINC, Wikidata, the Western Cape Government's health pages, the IFRC first-aid guidelines 2025, the South African Red Cross Society and St John South Africa. Every source gained a licence verdict, whether commercial use and adaptation are allowed, the page the licence was read from, its hosts, its audience, its languages and two unsigned signatures. Twelve publishers assessed and turned away are recorded in assessedNotAdmitted with their reasons, among them the NHS content API, WHO fact sheets, DermNet, the American Academy of Dermatology and Cochrane. The governance section carries the two signatories, the words of Governance · Knowledge sources and its refusals.",
+      "verifiedFrom": "docs/governance/KNOWLEDGE-SOURCES.md"
+    }
+  ],
   "reviewHorizonMonths": 12,
   "policy": {
     "darkByDefault": true,
-    "statement": "Every external source below starts dark: \"active\": false. Nothing in apps/assistant-api calls one until a deliberate edit flips a single source's flag, with the licence, rate limit and POPIA cross-border position reviewed and recorded first. The adapters in apps/assistant-api/src/lib/sources refuse to operate while their source is dark, so an accident of wiring cannot spend data or reputation either.",
-    "activationRequires": "1) A recorded decision against the source's licence and the POPIA s72 cross-border position; 2) credentials, where the source needs any, set in the deployment environment and never in this file; 3) one deliberate commit editing that source's \"active\" to true.",
+    "statement": "Every external source below starts dark: \"active\": false. Nothing in apps/assistant-api calls one until a deliberate edit flips a single source's flag, with the licence, rate limit and POPIA cross-border position reviewed and recorded first and both signatures — the clinical reviewer's and the Information Officer's — given. The adapters in apps/assistant-api/src/lib/sources refuse to operate while their source is dark, so an accident of wiring cannot spend data or reputation either; the sources added on 1 October 2026 have no adapter at all.",
+    "activationRequires": "1) Both signatures — the clinical reviewer's and the Information Officer's — recorded in the source's signOff by people appointed to give them; 2) a licence verdict that covers a commercial service, with the owner's written permission recorded in licensing.permissionRef where the verdict asks for it, and a recorded decision on the POPIA s72 cross-border position; 3) credentials, where the source needs any, set in the deployment environment and never in this file; 4) an adapter, where the source has none, reviewed like any production change; 5) one deliberate commit editing that source's \"active\" to true.",
     "patientDataLeavesThisDeployment": false,
     "popiaNote": "No patient identifiers are ever sent to an external source: a federated lookup carries only the topic words of a question. Even so, activation stays gated on a recorded cross-border transfer assessment, because a topic can be personal in context."
   },
@@ -14,6 +28,44 @@
     "guideline": "Clinical or public-health guidance issued by a named authority — SA NDoH, WHO, NICD, SAHPRA, or a professional society whose guidance the catalogue cites.",
     "regulatory-label": "Wording drawn from a regulator's product label, paired with its South African treatment-guideline counterpart (the drug-interaction entries: OpenFDA / SA NDoH Standard Treatment Guidelines).",
     "not-assessed": "Service navigation, programme or directory information carried for completeness — no clinical evidence assessment has been performed on the entry, and none is implied."
+  },
+  "licenceVerdicts": {
+    "reuse-permitted": {
+      "label": "Reuse permitted",
+      "mayActivate": true,
+      "sentence": "The licence allows a commercial service to use and adapt the content. Attribution is kept where it is not required, as a habit."
+    },
+    "reuse-with-conditions": {
+      "label": "Reuse with conditions",
+      "mayActivate": true,
+      "sentence": "The licence allows a commercial service's use under conditions recorded with the source — attribution, no derivatives, unchanged text, a registration or a national licence — which the Information Officer confirms are met before the flag moves."
+    },
+    "permission-required": {
+      "label": "Written permission required",
+      "mayActivate": true,
+      "requiresPermissionRecord": true,
+      "sentence": "The published terms do not cover a commercial service. The source may be cited and linked to today, and drawn on only once the owner's written permission is recorded against it."
+    },
+    "non-commercial-only": {
+      "label": "Non-commercial only",
+      "mayActivate": false,
+      "sentence": "MyThuso is a commercial service, and a non-commercial licence does not cover it, whatever one answer costs the patient. Never switched on; recorded so it is not proposed again without new terms."
+    },
+    "no-reuse": {
+      "label": "No reuse permitted",
+      "mayActivate": false,
+      "sentence": "All rights are reserved, or reuse is forbidden outright, and no permission route is worth taking today. A person may name it and link to it; GilbertOne never draws on it."
+    },
+    "outside-licence-scope": {
+      "label": "Outside the licence's scope",
+      "mayActivate": false,
+      "sentence": "The licence is open only to users, places or organisations MyThuso is not — a territory, a national health system, or a member society — so no signature can bring it within scope."
+    },
+    "not-assessed": {
+      "label": "Licence not assessed",
+      "mayActivate": false,
+      "sentence": "Nobody has read this source's licence yet. A proposal starts here, and stays here until the Information Officer records a verdict in the contract."
+    }
   },
   "abstention": {
     "no-evidence": "MyThuso's approved knowledge base has nothing that speaks to this question. Rather than guess, it says so plainly — a nurse or doctor can help where the records cannot.",
@@ -64,17 +116,40 @@
       },
       "licensing": {
         "licence": "CC BY-ND 3.0 IGO",
+        "verdict": "reuse-with-conditions",
+        "commercialUse": true,
+        "adaptation": false,
         "attributionRequired": true,
-        "notes": "ICD-11 is WHO copyright, licensed CC BY-ND 3.0 IGO: no derivatives. ICD-11 content would be presented unmodified and attributed, never folded into an edited derivative."
+        "notes": "ICD-11 is WHO copyright, licensed CC BY-ND 3.0 IGO: no derivatives. ICD-11 content would be presented unmodified and attributed, never folded into an edited derivative. The API itself is under WHO's ICD-11 software licence, which lets an application that incorporates it be offered for commercial and non-commercial purposes provided each code, title and URI is kept intact and attributed. Mapping, crosswalks and translations — an isiZulu, Afrikaans or Sesotho rendering included — need a separate written agreement with WHO.",
+        "verifiedFrom": "https://icd.who.int/en/docs/icd11-license.pdf",
+        "verifiedOn": "2026-10-01"
       },
       "dataResidency": {
-        "hostedIn": "WHO (Geneva, Switzerland)",
+        "hostedIn": "WHO (Geneva, Switzerland); the API answers from Microsoft-hosted addresses registered in the Netherlands, and WHO offers a local deployment that would run inside MyThuso's own",
         "patientDataShared": false,
         "crossBorderTransferApproved": false,
         "notes": "A lookup sends only the topic words of a question, never a patient identifier; the request still crosses the border, so activation waits on a recorded POPIA s72 assessment."
       },
       "useFor": "Validating and enriching the terminology codes the catalogue maps to its own entries.",
-      "notFor": "Clinical decision support, diagnosis lookup on behalf of a patient, or answering a person's question directly."
+      "notFor": "Clinical decision support, diagnosis lookup on behalf of a patient, or answering a person's question directly.",
+      "hosts": [
+        "id.who.int",
+        "icd.who.int",
+        "icdaccessmanagement.who.int"
+      ],
+      "audience": "Terminology — the codes behind the catalogue's own entries; a code title is never an answer by itself",
+      "languages": [
+        "English",
+        "Arabic",
+        "Chinese",
+        "French",
+        "Russian",
+        "Spanish"
+      ],
+      "signOff": {
+        "clinical-reviewer": null,
+        "information-officer": null
+      }
     },
     {
       "id": "openfda",
@@ -98,8 +173,13 @@
       },
       "licensing": {
         "licence": "Public domain (US Government work)",
+        "verdict": "reuse-permitted",
+        "commercialUse": true,
+        "adaptation": true,
         "attributionRequired": false,
-        "notes": "openFDA data is a public-domain US Government dataset; MyThuso would still record its origin on every result, because attribution is a habit, not a requirement."
+        "notes": "openFDA's content, data and documentation are dedicated to the public domain under CC0 1.0 unless otherwise noted; copies of copyrightable works that private parties gave the FDA are the exception, and no use may imply FDA endorsement. MyThuso would still record its origin on every result, because attribution is a habit, not a requirement.",
+        "verifiedFrom": "https://open.fda.gov/terms/",
+        "verifiedOn": "2026-10-01"
       },
       "dataResidency": {
         "hostedIn": "United States (api.fda.gov)",
@@ -108,7 +188,19 @@
         "notes": "A lookup sends a medicine's generic name, never a patient; the request still crosses the border, so activation waits on a recorded POPIA s72 assessment."
       },
       "useFor": "Checking the catalogue's recorded drug-interaction warnings against the regulator's own label text.",
-      "notFor": "Presenting US label wording to a South African patient as though it were SA guidance without the SA NDoH treatment-guideline line beside it, or any dose, diagnosis or prescribing answer."
+      "notFor": "Presenting US label wording to a South African patient as though it were SA guidance without the SA NDoH treatment-guideline line beside it, or any dose, diagnosis or prescribing answer.",
+      "hosts": [
+        "api.fda.gov",
+        "open.fda.gov"
+      ],
+      "audience": "Clinician reference — US labelling, always beside its South African guideline counterpart; never a South African patient's dose",
+      "languages": [
+        "English"
+      ],
+      "signOff": {
+        "clinical-reviewer": null,
+        "information-officer": null
+      }
     },
     {
       "id": "pubmed-europepmc",
@@ -130,8 +222,13 @@
       },
       "licensing": {
         "licence": "Per-record",
+        "verdict": "reuse-with-conditions",
+        "commercialUse": true,
+        "adaptation": false,
         "attributionRequired": true,
-        "notes": "Metadata and abstracts are served by Europe PMC; each article's full text keeps its own licence (CC BY, CC BY-NC or publisher terms), so only identifiers, titles and abstract openings would ever be carried, each attributed to its journal."
+        "notes": "Metadata and abstracts are served by Europe PMC under EMBL-EBI's terms, which add no restriction beyond the data owner's and expect attribution. Each article keeps its own licence, returned in the record's license field: only CC BY and CC0 text may ever be shown or reworded; CC BY-NC is not for a commercial service and CC BY-ND may not be adapted. Identifiers, titles and abstract openings only, each attributed to its journal.",
+        "verifiedFrom": "https://www.ebi.ac.uk/about/terms-of-use",
+        "verifiedOn": "2026-10-01"
       },
       "dataResidency": {
         "hostedIn": "EMBL-EBI (Hinxton, United Kingdom)",
@@ -140,7 +237,831 @@
         "notes": "A lookup sends only a topic string, never a patient; the request still crosses the border, so activation waits on a recorded POPIA s72 assessment."
       },
       "useFor": "Finding published literature that speaks to a question, always by a checkable identifier, the same discipline the literature_search tool already follows.",
-      "notFor": "Treating a search hit as clinical evidence by itself, or carrying any conclusion beyond the paper's own title and abstract opening."
+      "notFor": "Treating a search hit as clinical evidence by itself, or carrying any conclusion beyond the paper's own title and abstract opening.",
+      "hosts": [
+        "europepmc.org",
+        "ebi.ac.uk"
+      ],
+      "audience": "Clinician reference — published evidence by a checkable identifier; not written for patients",
+      "languages": [
+        "English"
+      ],
+      "signOff": {
+        "clinical-reviewer": null,
+        "information-officer": null
+      }
+    },
+    {
+      "id": "medlineplus-nlm",
+      "name": "MedlinePlus health topics (US National Library of Medicine)",
+      "authority": "US National Library of Medicine (NIH)",
+      "role": "consumer-health-information",
+      "jurisdiction": "United States",
+      "active": false,
+      "activation": "No credentials. Activation needs both signatures, the US-to-South-African adaptation layer the clinical reviewer asks for (emergency numbers, medicine names, services), a recorded POPIA review, an adapter or a reviewed local copy of the daily health-topic XML, and this flag edited to true. No adapter exists for this source; one would be written and reviewed like any production change.",
+      "endpoint": "https://wsearch.nlm.nih.gov/ws/query",
+      "auth": {
+        "type": "none",
+        "notes": "No key and no registration. A descriptive User-Agent identifies the deployment."
+      },
+      "rateLimit": {
+        "requestsPerMinute": 60,
+        "maxConcurrent": 1,
+        "basis": "Self-imposed, below the published limits: the Web Service allows 85 requests a minute per IP address and MedlinePlus Connect 100, with a five-minute block for going over and results cached for 12 to 24 hours. The daily health-topic XML file is the preferred route, because no question leaves the deployment at all."
+      },
+      "licensing": {
+        "licence": "Public domain (US federal work), with copyrighted exceptions",
+        "verdict": "reuse-with-conditions",
+        "commercialUse": true,
+        "adaptation": true,
+        "attributionRequired": true,
+        "notes": "Health topic summaries are US Government works and may be reproduced and redistributed. The A.D.A.M. Medical Encyclopedia, the ASHP drug monographs and most images are copyrighted and may only be linked to, never ingested or branded in a health IT system — so only the health-topic summaries would ever be carried. Attributed as \"Source: MedlinePlus, National Library of Medicine\", with no logo and no suggestion of endorsement.",
+        "verifiedFrom": "https://medlineplus.gov/about/using/usingcontent/",
+        "verifiedOn": "2026-10-01"
+      },
+      "dataResidency": {
+        "hostedIn": "United States (NLM, on Amazon Web Services)",
+        "patientDataShared": false,
+        "crossBorderTransferApproved": false,
+        "notes": "A lookup would send only the topic words of a question, never a patient identifier or a patient's own words; the request would still cross the border, so activation waits on a recorded POPIA s72 assessment. Holding a reviewed local copy instead avoids the transfer."
+      },
+      "useFor": "Plain-language background on a condition or a test, in English, beside the catalogue's own reviewed entry, once a South African reviewer has checked it reads true here.",
+      "notFor": "First-aid steps, emergency numbers, US medicine names or doses presented to a South African patient, or any A.D.A.M. or ASHP text.",
+      "hosts": [
+        "medlineplus.gov",
+        "wsearch.nlm.nih.gov"
+      ],
+      "audience": "Patients — plain-language consumer health summaries, US-written",
+      "languages": [
+        "English",
+        "Spanish"
+      ],
+      "signOff": {
+        "clinical-reviewer": null,
+        "information-officer": null
+      }
+    },
+    {
+      "id": "cdc-content-services",
+      "name": "CDC Content Services API (US Centers for Disease Control and Prevention)",
+      "authority": "US Centers for Disease Control and Prevention",
+      "role": "consumer-health-information",
+      "jurisdiction": "United States",
+      "active": false,
+      "activation": "No credentials. Activation needs both signatures, an item-by-item check that what is carried is CDC's own public-domain material and not a third party's, a recorded POPIA review, an adapter, and this flag edited to true. No adapter exists for this source; one would be written and reviewed like any production change.",
+      "endpoint": "https://tools.cdc.gov/api/v2/resources/media",
+      "auth": {
+        "type": "none",
+        "notes": "No key is described in CDC's API documentation."
+      },
+      "rateLimit": {
+        "requestsPerMinute": 30,
+        "maxConcurrent": 1,
+        "basis": "Self-imposed. CDC's own API reference publishes no rate limit (a figure of 300 a minute circulates only in secondary summaries and is not relied on here)."
+      },
+      "licensing": {
+        "licence": "Public domain (US federal work), with exceptions",
+        "verdict": "reuse-with-conditions",
+        "commercialUse": true,
+        "adaptation": false,
+        "attributionRequired": true,
+        "notes": "Most CDC material is in the public domain and may be used without permission. Contractors', grantees', licensed third parties' and state governments' material is not, and CDC's logos never are. CDC's conditions forbid changing the substantive content and require \"Source: CDC\" with a statement that the use does not imply endorsement by CDC, HHS or the US Government.",
+        "verifiedFrom": "https://www.cdc.gov/other/agencymaterials.html",
+        "verifiedOn": "2026-10-01"
+      },
+      "dataResidency": {
+        "hostedIn": "United States (CDC, served through a content delivery network)",
+        "patientDataShared": false,
+        "crossBorderTransferApproved": false,
+        "notes": "A lookup would send only the topic words of a question, never a patient identifier or a patient's own words; the request would still cross the border, so activation waits on a recorded POPIA s72 assessment. Holding a reviewed local copy instead avoids the transfer."
+      },
+      "useFor": "Unchanged public-health background — hand hygiene, vaccination, infection prevention — attributed and placed beside the South African guidance that applies.",
+      "notFor": "First aid (coverage is thin), anything reworded in substance, US services or numbers presented to a South African patient, or any third-party item.",
+      "hosts": [
+        "cdc.gov"
+      ],
+      "audience": "Patients and the public — US-written",
+      "languages": [
+        "English",
+        "Spanish",
+        "Chinese",
+        "Haitian Creole",
+        "Korean",
+        "Vietnamese"
+      ],
+      "signOff": {
+        "clinical-reviewer": null,
+        "information-officer": null
+      }
+    },
+    {
+      "id": "ndoh-stg-eml-phc",
+      "name": "NDoH Primary Health Care Standard Treatment Guidelines and Essential Medicines List",
+      "authority": "SA National Department of Health, Essential Drugs Programme",
+      "role": "treatment-guideline",
+      "jurisdiction": "South Africa",
+      "active": false,
+      "activation": "No credentials. Activation needs the Department's written permission for use inside a commercial service, recorded in licensing.permissionRef, both signatures, and this flag edited to true. The Knowledge Hub's terms forbid automated collection without the Department's written consent, so nothing would ever be scraped. No adapter exists for this source; one would be written and reviewed like any production change.",
+      "endpoint": "https://www.health.gov.za/nhi-edp-stgs-eml/",
+      "auth": {
+        "type": "none",
+        "notes": "Published as PDF chapters and a spreadsheet; no API."
+      },
+      "rateLimit": {
+        "requestsPerMinute": 1,
+        "maxConcurrent": 1,
+        "basis": "No API: documents are retrieved by hand, one at a time, by the person preparing an entry for review. The figure is a ceiling for any future fetcher, far below anything the publisher could notice."
+      },
+      "licensing": {
+        "licence": "© National Department of Health; reproduction and adaptation permitted free of charge and not for profit",
+        "verdict": "permission-required",
+        "commercialUse": false,
+        "adaptation": true,
+        "attributionRequired": true,
+        "notes": "The 8th edition (2024) allows any part to be reproduced, copied or adapted to meet local needs without permission, provided what is reproduced is distributed free of charge, not for profit. MyThuso is a commercial service, so drawing on it needs the Department's written permission; citing it and linking to it do not. The Knowledge Hub's own terms reserve all rights and forbid scraping.",
+        "verifiedFrom": "https://www.health.gov.za/nhi-edp-stgs-eml/",
+        "verifiedOn": "2026-10-01"
+      },
+      "dataResidency": {
+        "hostedIn": "South Africa (www.health.gov.za, on a Microsoft address registered in South Africa; region not confirmed)",
+        "patientDataShared": false,
+        "crossBorderTransferApproved": false,
+        "notes": "Held as a reviewed local copy, the guideline never leaves South Africa and no lookup is made; a live request would carry only topic words. The POPIA s72 position is recorded anyway, because the Knowledge Hub answers from an address registered in the United States."
+      },
+      "useFor": "The South African line beside every clinical answer: what the public-sector standard says a nurse does at primary care level, cited by edition and chapter.",
+      "notFor": "A patient-facing answer in its own words (it is written for clinicians), any dose or prescribing answer to a patient, or any use before the permission is on file.",
+      "hosts": [
+        "health.gov.za"
+      ],
+      "audience": "Clinician reference — nurses and doctors at primary care level; not written for patients",
+      "languages": [
+        "English"
+      ],
+      "signOff": {
+        "clinical-reviewer": null,
+        "information-officer": null
+      }
+    },
+    {
+      "id": "sahpra-medicines",
+      "name": "SAHPRA medicine register and Online Medicines Directory (PI and PIL)",
+      "authority": "South African Health Products Regulatory Authority",
+      "role": "regulatory-label",
+      "jurisdiction": "South Africa",
+      "active": false,
+      "activation": "No credentials and no API. Activation needs SAHPRA's written permission — and, for a leaflet's text, very likely its registration holder's — recorded in licensing.permissionRef, both signatures, and this flag edited to true. Linking to a product's entry and citing its registration number need neither. No adapter exists for this source; one would be written and reviewed like any production change.",
+      "endpoint": "https://medsinfo.sahpra.org.za",
+      "auth": {
+        "type": "none",
+        "notes": "Search forms only; no API and no published terms of use for either service."
+      },
+      "rateLimit": {
+        "requestsPerMinute": 1,
+        "maxConcurrent": 1,
+        "basis": "No API: documents are retrieved by hand, one at a time, by the person preparing an entry for review. The figure is a ceiling for any future fetcher, far below anything the publisher could notice."
+      },
+      "licensing": {
+        "licence": "© SAHPRA, all rights reserved; leaflet text very likely the registration holder's",
+        "verdict": "permission-required",
+        "commercialUse": false,
+        "adaptation": false,
+        "attributionRequired": true,
+        "notes": "Both services carry SAHPRA's all-rights-reserved notice, and SAHPRA does not warrant the register free of error. Who owns each professional information and patient information leaflet's text is not stated; it is very likely the holder of the certificate of registration. The Online Medicines Directory covers schedule 0, 1 and 2 medicines only.",
+        "verifiedFrom": "https://www.sahpra.org.za/disclaimer/",
+        "verifiedOn": "2026-10-01"
+      },
+      "dataResidency": {
+        "hostedIn": "South Africa (medsinfo on a South African host; medapps on a South African host)",
+        "patientDataShared": false,
+        "crossBorderTransferApproved": false,
+        "notes": "A lookup would stay in South Africa and carry only a medicine's name; no POPIA s72 transfer arises while the service is hosted here, and the position is recorded rather than assumed."
+      },
+      "useFor": "Pointing a person or a nurse to the regulator's own leaflet for an over-the-counter medicine, by link and registration number.",
+      "notFor": "Reproducing or rewording a leaflet before permission is on file, any prescription medicine (the directory does not carry them), or any dose answer.",
+      "hosts": [
+        "sahpra.org.za"
+      ],
+      "audience": "Patients (leaflets) and clinicians (professional information)",
+      "languages": [
+        "English"
+      ],
+      "signOff": {
+        "clinical-reviewer": null,
+        "information-officer": null
+      }
+    },
+    {
+      "id": "snomed-ct-za",
+      "name": "SNOMED CT, South African national licence",
+      "authority": "SNOMED International, through the SA National Release Centre (NDoH)",
+      "role": "terminology-lookup",
+      "jurisdiction": "International (South Africa a member since May 2026)",
+      "active": false,
+      "activation": "Requires registration of MyThuso's use with the South African National Release Centre (NDoH, coding@health.gov.za), acceptance of the SNOMED CT Affiliate Licence, a release held inside the deployment, both signatures, and this flag edited to true. The Centre was still being established at last report. No adapter exists for this source; one would be written and reviewed like any production change.",
+      "endpoint": "https://www.snomed.org/get-snomed",
+      "auth": {
+        "type": "national-licence-registration",
+        "notes": "No key: a release is downloaded under the Affiliate Licence once use is registered with the national release centre, and run locally."
+      },
+      "rateLimit": {
+        "requestsPerMinute": 1,
+        "maxConcurrent": 1,
+        "basis": "Not a lookup service: a release is downloaded and held locally, so the figure only bounds how often a release could be fetched."
+      },
+      "licensing": {
+        "licence": "SNOMED CT Affiliate Licence (no charge in member countries)",
+        "verdict": "reuse-with-conditions",
+        "commercialUse": true,
+        "adaptation": false,
+        "attributionRequired": true,
+        "notes": "South Africa joined SNOMED International on 14 May 2026, and its membership extends access to public and private providers alike; use must be registered with the national release centre. The Affiliate Licence's own clauses on attribution, translation and extension were not read, and the Information Officer reads them before signing.",
+        "verifiedFrom": "https://www.snomed.org/get-snomed",
+        "verifiedOn": "2026-10-01"
+      },
+      "dataResidency": {
+        "hostedIn": "Held locally: a release runs inside MyThuso's own deployment",
+        "patientDataShared": false,
+        "crossBorderTransferApproved": false,
+        "notes": "No lookup leaves the deployment once a release is held locally, so no POPIA s72 transfer arises in use; downloading a release carries no personal information. The position is recorded rather than assumed."
+      },
+      "useFor": "The SNOMED CT identifiers the catalogue already carries, checked against a licensed release rather than a public browser, and synonyms for matching a question to an entry.",
+      "notFor": "Patient-facing wording (descriptions are written for clinicians), diagnosis, or any South African extension before the release centre publishes one.",
+      "hosts": [
+        "snomed.org"
+      ],
+      "audience": "Terminology — clinical codes behind the catalogue; never an answer by itself",
+      "languages": [
+        "English"
+      ],
+      "signOff": {
+        "clinical-reviewer": null,
+        "information-officer": null
+      }
+    },
+    {
+      "id": "loinc-regenstrief",
+      "name": "LOINC terminology and FHIR server (Regenstrief Institute)",
+      "authority": "Regenstrief Institute",
+      "role": "terminology-lookup",
+      "jurisdiction": "International",
+      "active": false,
+      "activation": "Requires a free LOINC account, its username and password set in the deployment environment as LOINC_USERNAME and LOINC_PASSWORD and never in this file, the licence read in full by the Information Officer, both signatures, and this flag edited to true. A local copy of the release is the preferred route. No adapter exists for this source; one would be written and reviewed like any production change.",
+      "endpoint": "https://fhir.loinc.org",
+      "auth": {
+        "type": "account",
+        "usernameEnv": "LOINC_USERNAME",
+        "passwordEnv": "LOINC_PASSWORD",
+        "notes": "HTTP Basic with a LOINC account's username (not its email address)."
+      },
+      "rateLimit": {
+        "requestsPerMinute": 30,
+        "maxConcurrent": 1,
+        "basis": "Self-imposed: Regenstrief publishes no rate limit for its FHIR terminology server."
+      },
+      "licensing": {
+        "licence": "LOINC licence (free, with its notice)",
+        "verdict": "reuse-with-conditions",
+        "commercialUse": true,
+        "adaptation": false,
+        "attributionRequired": true,
+        "notes": "Free in perpetuity for commercial and non-commercial use, with LOINC's copyright notice carried wherever its content appears. The content and codes may not be changed. The licence page sat behind an automated-access block and was read only through search excerpts, so the Information Officer reads it in full before signing.",
+        "verifiedFrom": "https://loinc.org/kb/license/",
+        "verifiedOn": "2026-10-01"
+      },
+      "dataResidency": {
+        "hostedIn": "United States (Regenstrief's FHIR server, on Amazon Web Services)",
+        "patientDataShared": false,
+        "crossBorderTransferApproved": false,
+        "notes": "A lookup would send only the topic words of a question, never a patient identifier or a patient's own words; the request would still cross the border, so activation waits on a recorded POPIA s72 assessment. Holding a reviewed local copy instead avoids the transfer."
+      },
+      "useFor": "The LOINC codes the catalogue and the vital-sign contract already carry, checked against the issuing authority's own server or release.",
+      "notFor": "Interpreting a result for a patient, or any answer by itself.",
+      "hosts": [
+        "loinc.org"
+      ],
+      "audience": "Terminology — laboratory and observation codes; never an answer by itself",
+      "languages": [
+        "English"
+      ],
+      "signOff": {
+        "clinical-reviewer": null,
+        "information-officer": null
+      }
+    },
+    {
+      "id": "wikidata",
+      "name": "Wikidata (Wikimedia Foundation)",
+      "authority": "Wikimedia Foundation and the Wikidata community",
+      "role": "terminology-lookup",
+      "jurisdiction": "International",
+      "active": false,
+      "activation": "No credentials. Activation needs both signatures, a User-Agent that names the deployment and a contact address as Wikimedia's policy requires, a recorded POPIA review or a local copy of the data, and this flag edited to true. No adapter exists for this source; one would be written and reviewed like any production change.",
+      "endpoint": "https://query.wikidata.org/sparql",
+      "auth": {
+        "type": "none",
+        "notes": "No key. Wikimedia's User-Agent policy requires a descriptive agent with contact details; generic agents may be blocked without notice."
+      },
+      "rateLimit": {
+        "requestsPerMinute": 10,
+        "maxConcurrent": 1,
+        "basis": "Self-imposed, well inside the query service's limits: one client may use 60 seconds of processing in each 60, five parallel queries and 30 failing queries a minute, beyond which it is answered 429."
+      },
+      "licensing": {
+        "licence": "CC0 1.0 (structured data)",
+        "verdict": "reuse-permitted",
+        "commercialUse": true,
+        "adaptation": true,
+        "attributionRequired": false,
+        "notes": "Wikidata's structured data is dedicated to the public domain under CC0; other namespaces are CC BY-SA 4.0 and would not be carried. Crowd-sourced, so it is a source of labels and cross-references, never of clinical authority.",
+        "verifiedFrom": "https://www.wikidata.org/wiki/Wikidata:Licensing",
+        "verifiedOn": "2026-10-01"
+      },
+      "dataResidency": {
+        "hostedIn": "Wikimedia Foundation (United States origin; the query service answered from a European edge)",
+        "patientDataShared": false,
+        "crossBorderTransferApproved": false,
+        "notes": "A lookup would send only the topic words of a question, never a patient identifier or a patient's own words; the request would still cross the border, so activation waits on a recorded POPIA s72 assessment. Holding a reviewed local copy instead avoids the transfer."
+      },
+      "useFor": "isiZulu, Afrikaans and Sesotho labels and synonyms for terms the catalogue already holds, and cross-references between ICD, SNOMED CT and MeSH identifiers — each label checked by a first-language reviewer before it reaches a person.",
+      "notFor": "Any health statement, advice or fact presented to a person; it is crowd-sourced and is not a clinical authority.",
+      "hosts": [
+        "wikidata.org"
+      ],
+      "audience": "Terminology — multilingual labels and cross-references; never an answer by itself",
+      "languages": [
+        "Multilingual, including isiZulu, Afrikaans and Sesotho labels (medical coverage thin, not measured)"
+      ],
+      "signOff": {
+        "clinical-reviewer": null,
+        "information-officer": null
+      }
+    },
+    {
+      "id": "westerncape-health",
+      "name": "Western Cape Government health pages",
+      "authority": "Western Cape Government",
+      "role": "consumer-health-information",
+      "jurisdiction": "South Africa",
+      "active": false,
+      "activation": "No credentials and no API. Activation needs the Western Cape Government's written permission for commercial use (requested from service@westerncape.gov.za), recorded in licensing.permissionRef, both signatures, and this flag edited to true. No adapter exists for this source; one would be written and reviewed like any production change.",
+      "endpoint": "https://www.westerncape.gov.za/",
+      "auth": {
+        "type": "none",
+        "notes": "Web pages only."
+      },
+      "rateLimit": {
+        "requestsPerMinute": 1,
+        "maxConcurrent": 1,
+        "basis": "No API: documents are retrieved by hand, one at a time, by the person preparing an entry for review. The figure is a ceiling for any future fetcher, far below anything the publisher could notice."
+      },
+      "licensing": {
+        "licence": "© Western Cape Government; non-commercial reproduction with acknowledgement",
+        "verdict": "permission-required",
+        "commercialUse": false,
+        "adaptation": false,
+        "attributionRequired": true,
+        "notes": "Non-commercial reproduction is free if accurate and acknowledged with the page's address and copyright status; commercial reproduction may be granted on written request. Third parties' material on the site is excluded.",
+        "verifiedFrom": "https://www.westerncape.gov.za/copyright",
+        "verifiedOn": "2026-10-01"
+      },
+      "dataResidency": {
+        "hostedIn": "South African publisher; the site answers from a Microsoft address registered in the United States (region not confirmed)",
+        "patientDataShared": false,
+        "crossBorderTransferApproved": false,
+        "notes": "A lookup would send only the topic words of a question, never a patient identifier or a patient's own words; the request would still cross the border, so activation waits on a recorded POPIA s72 assessment. Holding a reviewed local copy instead avoids the transfer."
+      },
+      "useFor": "South African patient health pages, and the most promising route found to Afrikaans and isiXhosa patient text, once permission is on file.",
+      "notFor": "Anything before written permission is recorded, or any third party's material the site carries.",
+      "hosts": [
+        "westerncape.gov.za"
+      ],
+      "audience": "Patients — South African public health pages",
+      "languages": [
+        "English",
+        "Afrikaans",
+        "isiXhosa (where the province provides it)"
+      ],
+      "signOff": {
+        "clinical-reviewer": null,
+        "information-officer": null
+      }
+    },
+    {
+      "id": "ifrc-first-aid-guidelines",
+      "name": "IFRC International First Aid, Resuscitation and Education Guidelines 2025",
+      "authority": "International Federation of Red Cross and Red Crescent Societies (Global First Aid Reference Centre)",
+      "role": "first-aid-guideline",
+      "jurisdiction": "International",
+      "active": false,
+      "activation": "No credentials and no API. Activation needs the IFRC's written permission for commercial reproduction (secretariat@ifrc.org), best sought with the South African Red Cross Society as the national society, recorded in licensing.permissionRef, both signatures, and this flag edited to true. The Universal First Aid app's content is licensed only to National Societies, so it is not part of this source. No adapter exists for this source; one would be written and reviewed like any production change.",
+      "endpoint": "https://www.ifrc.org/sites/default/files/2026-03/IFRC%20International%20First%20Aid,%20Resuscitation%20and%20Education%20Guidelines%202025.pdf",
+      "auth": {
+        "type": "none",
+        "notes": "A PDF; no API. The 2025 edition supersedes 2020's."
+      },
+      "rateLimit": {
+        "requestsPerMinute": 1,
+        "maxConcurrent": 1,
+        "basis": "No API: documents are retrieved by hand, one at a time, by the person preparing an entry for review. The figure is a ceiling for any future fetcher, far below anything the publisher could notice."
+      },
+      "licensing": {
+        "licence": "© IFRC; copies for non-commercial use with acknowledgement",
+        "verdict": "permission-required",
+        "commercialUse": false,
+        "adaptation": false,
+        "attributionRequired": true,
+        "notes": "Copies of all or part may be made for non-commercial use with the source acknowledged; commercial reproduction is by request to the IFRC. Photographs are the IFRC's. The guidelines are written to be contextualised by National Societies, which is why the South African Red Cross Society is the natural partner for a South African version.",
+        "verifiedFrom": "https://www.ifrc.org/sites/default/files/2026-03/IFRC%20International%20First%20Aid,%20Resuscitation%20and%20Education%20Guidelines%202025.pdf",
+        "verifiedOn": "2026-10-01"
+      },
+      "dataResidency": {
+        "hostedIn": "IFRC (Geneva, Switzerland); served through a content delivery network",
+        "patientDataShared": false,
+        "crossBorderTransferApproved": false,
+        "notes": "Held as a reviewed local copy, nothing is looked up and no POPIA s72 transfer arises; the position is recorded rather than assumed."
+      },
+      "useFor": "The evidence behind the catalogue's own first-aid entries, cited by recommendation, so a clinical reviewer can check each step against the international consensus.",
+      "notFor": "Reproducing its text to a patient before permission is on file, or replacing South African emergency numbers and services with any other country's.",
+      "hosts": [
+        "ifrc.org"
+      ],
+      "audience": "Clinician and educator reference — first-aid programme designers and trainers; not patient text",
+      "languages": [
+        "English"
+      ],
+      "signOff": {
+        "clinical-reviewer": null,
+        "information-officer": null
+      }
+    },
+    {
+      "id": "sa-red-cross-first-aid",
+      "name": "South African Red Cross Society first aid",
+      "authority": "South African Red Cross Society",
+      "role": "first-aid-guideline",
+      "jurisdiction": "South Africa",
+      "active": false,
+      "activation": "No credentials and no API. Activation needs a written content licence or partnership with the Society, recorded in licensing.permissionRef, both signatures, and this flag edited to true. No adapter exists for this source; one would be written and reviewed like any production change.",
+      "endpoint": "https://redcross.org.za/",
+      "auth": {
+        "type": "none",
+        "notes": "Web pages only; no terms of use or licence page found."
+      },
+      "rateLimit": {
+        "requestsPerMinute": 1,
+        "maxConcurrent": 1,
+        "basis": "No API: documents are retrieved by hand, one at a time, by the person preparing an entry for review. The figure is a ceiling for any future fetcher, far below anything the publisher could notice."
+      },
+      "licensing": {
+        "licence": "© South African Red Cross Society, all rights reserved",
+        "verdict": "permission-required",
+        "commercialUse": false,
+        "adaptation": false,
+        "attributionRequired": true,
+        "notes": "The site reserves all rights and publishes no licence, so South African copyright law's default applies. As the IFRC's national society, the Society is the natural route to IFRC-based first aid written for South Africa, possibly in South African languages.",
+        "verifiedFrom": "https://redcross.org.za/",
+        "verifiedOn": "2026-10-01"
+      },
+      "dataResidency": {
+        "hostedIn": "South Africa (a Johannesburg host)",
+        "patientDataShared": false,
+        "crossBorderTransferApproved": false,
+        "notes": "A licensed copy would be held locally and a lookup would stay in South Africa; no POPIA s72 transfer arises, and the position is recorded rather than assumed."
+      },
+      "useFor": "Patient-facing first-aid wording written for South Africa, under a licence, once both signatures are given.",
+      "notFor": "Anything before a licence is on file.",
+      "hosts": [
+        "redcross.org.za"
+      ],
+      "audience": "Patients and the public — South African first aid",
+      "languages": [
+        "English (South African languages not confirmed)"
+      ],
+      "signOff": {
+        "clinical-reviewer": null,
+        "information-officer": null
+      }
+    },
+    {
+      "id": "st-john-sa-first-aid",
+      "name": "St John South Africa first aid",
+      "authority": "The Priory of St John, South Africa",
+      "role": "first-aid-guideline",
+      "jurisdiction": "South Africa",
+      "active": false,
+      "activation": "No credentials and no API. Activation needs a written content licence or partnership with St John, recorded in licensing.permissionRef, both signatures, and this flag edited to true. No adapter exists for this source; one would be written and reviewed like any production change.",
+      "endpoint": "https://stjohn.org.za/",
+      "auth": {
+        "type": "none",
+        "notes": "Web pages only; no terms of use or licence page found."
+      },
+      "rateLimit": {
+        "requestsPerMinute": 1,
+        "maxConcurrent": 1,
+        "basis": "No API: documents are retrieved by hand, one at a time, by the person preparing an entry for review. The figure is a ceiling for any future fetcher, far below anything the publisher could notice."
+      },
+      "licensing": {
+        "licence": "© The Priory of St John, South Africa (no licence published)",
+        "verdict": "permission-required",
+        "commercialUse": false,
+        "adaptation": false,
+        "attributionRequired": true,
+        "notes": "The site carries a copyright notice and no terms of use or licence, so all rights are reserved by default. A second South African first-aid partner beside the Red Cross Society.",
+        "verifiedFrom": "https://stjohn.org.za/",
+        "verifiedOn": "2026-10-01"
+      },
+      "dataResidency": {
+        "hostedIn": "South African publisher; the site answers from a host located in the United Kingdom",
+        "patientDataShared": false,
+        "crossBorderTransferApproved": false,
+        "notes": "A licensed copy held locally would avoid any lookup; a live request would cross the border, so the POPIA s72 position is recorded before anything else."
+      },
+      "useFor": "Patient-facing first-aid wording written for South Africa, under a licence, once both signatures are given.",
+      "notFor": "Anything before a licence is on file.",
+      "hosts": [
+        "stjohn.org.za"
+      ],
+      "audience": "Patients and the public — South African first aid",
+      "languages": [
+        "English"
+      ],
+      "signOff": {
+        "clinical-reviewer": null,
+        "information-officer": null
+      }
+    }
+  ],
+  "governance": {
+    "statement": "Every source in this file is a proposal awaiting two signatures, and a link pasted in the Control Tower becomes one more, held on the screen and nowhere else. Governance · Knowledge sources (apps/web/src/features/portal/KnowledgeSources.tsx) reads this section; nothing on it switches a source on.",
+    "signatures": [
+      {
+        "id": "clinical-reviewer",
+        "label": "Clinical reviewer",
+        "appointed": false,
+        "appointmentRecord": "docs/governance/CLINICAL-REVIEW-PROCESS.md",
+        "signs": "That the source is a named authority, current, and fit for exactly the use recorded in useFor; that where it and the South African NDoH guideline both speak they agree, or the difference is recorded; that notFor is complete; and, for anything a patient will read, that it is written for a patient and reads true in South Africa."
+      },
+      {
+        "id": "information-officer",
+        "label": "Information Officer",
+        "appointed": false,
+        "appointmentRecord": "docs/governance/INFORMATION-OFFICER.md",
+        "signs": "That the licence verdict is right and its conditions are met — attribution, no derivatives, unchanged text, a registration, or the owner's written permission on file; that the POPIA section 72 position for where the source is hosted is assessed and recorded; that no patient identifier or patient wording can ride a lookup; and that any credential lives in the deployment environment, never in this file."
+      }
+    ],
+    "words": {
+      "signersHeading": "Who signs",
+      "sourcesHeading": "Sources in the contract",
+      "proposeHeading": "Propose a source",
+      "notAdmittedHeading": "Assessed and not admitted",
+      "refusalsHeading": "What this screen refuses",
+      "authority": "Authority",
+      "licence": "Licence",
+      "verdict": "Licence verdict",
+      "residency": "Residency",
+      "audience": "Who it is for",
+      "languages": "Languages",
+      "useFor": "Use for",
+      "notFor": "Never for",
+      "signatures": "Signatures",
+      "link": "Link",
+      "awaiting": "Awaiting two signatures",
+      "proposed": "Proposed",
+      "appointed": "Appointed",
+      "notAppointed": "Not appointed, so nothing can be signed",
+      "notSigned": "Not signed",
+      "signedBy": "Signed by",
+      "switchOn": "Switch on",
+      "withdraw": "Withdraw",
+      "linkLabel": "Link to the source",
+      "linkHint": "The publisher's https page or API documentation. It is not opened, fetched or kept.",
+      "proposeButton": "Propose",
+      "proposedNow": "Proposed. It is held on this screen only, awaiting two signatures.",
+      "noProposals": "Nothing is proposed on this screen. A proposal lasts until you leave it.",
+      "whereProposed": "A source is proposed, and what its two signatures cover is read, in Governance · Knowledge sources. This screen lists the sources and keeps no control."
+    },
+    "refusals": [
+      {
+        "id": "no-activation-without-two-signatures",
+        "statement": "No source is switched on without two signatures: the clinical reviewer's and the Information Officer's.",
+        "why": "The clinical reviewer answers for what a source would tell a person; the Information Officer answers for its licence and for what crosses the border. Neither can answer for the other, and neither has been appointed yet."
+      },
+      {
+        "id": "no-signature-without-an-appointee",
+        "statement": "No signature is recorded before the person who gives it has been appointed.",
+        "why": "A signature is a named, accountable person's decision. Recording one for a role nobody holds would be a forgery with good intentions, and the build refuses it."
+      },
+      {
+        "id": "licence-does-not-permit-activation",
+        "statement": "A source whose licence does not cover a commercial service is never switched on — not by a signature, and not by a flag.",
+        "why": "MyThuso is a commercial service. Non-commercial, all-rights-reserved, out-of-scope and unread licences are recorded so they are not proposed again, and that is all they are for."
+      },
+      {
+        "id": "permission-required-before-activation",
+        "statement": "A source whose terms need the owner's written permission is not switched on until that permission is recorded against it.",
+        "why": "Citing and linking need no permission; drawing on a source inside a commercial service does, and it is kept where the contract can point to it."
+      },
+      {
+        "id": "a-link-is-not-knowledge",
+        "statement": "A pasted link is a proposed source, never knowledge: GilbertOne does not read it, and it is not opened, fetched or sent anywhere.",
+        "why": "What GilbertOne may draw on is decided by a licence verdict, two signatures and a reviewed commit to the contract, in that order. A link is where that work starts."
+      },
+      {
+        "id": "proposal-kept-in-this-screen-only",
+        "statement": "A proposal is held on this screen only, and it is gone when you leave it. To keep it, the source is written into packages/catalog/knowledge/federation.json in a reviewed commit.",
+        "why": "The preview keeps nothing a person types, and a list of proposals kept in a browser would be a second register that nobody reviews."
+      },
+      {
+        "id": "proposal-not-a-link",
+        "statement": "That is not a link. Paste the publisher's full address, beginning https://.",
+        "why": "A proposal names a publisher's page so a reviewer can read its terms; words alone give them nothing to read."
+      },
+      {
+        "id": "proposal-not-https",
+        "statement": "Only an https link can be proposed.",
+        "why": "A source GilbertOne might one day ask is reached over an encrypted connection, or a lookup would cross the border in the clear."
+      },
+      {
+        "id": "proposal-carries-personal-detail",
+        "statement": "That link carries what looks like an ID number or an email address, so it is refused. Propose the publisher's page, never a link about a person.",
+        "why": "A source is about a publisher, never about a patient. A link with a person's detail in it is personal information, and this screen does not hold it."
+      },
+      {
+        "id": "proposal-already-listed",
+        "statement": "That publisher is already in the contract, awaiting its signatures:",
+        "why": "One source, one record, one pair of signatures. The listed record is where its review happens."
+      },
+      {
+        "id": "proposal-already-proposed",
+        "statement": "That link is already proposed on this screen.",
+        "why": "One proposal per link, so the list a reviewer is shown has no echoes in it."
+      },
+      {
+        "id": "proposal-assessed-and-not-admitted",
+        "statement": "That publisher was assessed and turned away:",
+        "why": "A licence that excludes a commercial service does not become acceptable by being proposed again. New terms from the owner reopen it, recorded in the contract."
+      }
+    ]
+  },
+  "assessedNotAdmitted": [
+    {
+      "id": "nhs-website-content",
+      "name": "NHS website content API",
+      "owner": "NHS England, for the Department of Health and Social Care",
+      "hosts": [
+        "nhs.uk",
+        "digital.nhs.uk",
+        "api.service.nhs.uk"
+      ],
+      "licence": "NHS Online Connection Agreement v2 (the API); Open Government Licence v3 (the website)",
+      "verdict": "outside-licence-scope",
+      "reason": "The API's licence covers only users located in the United Kingdom under English law, for direct care or England's health system, and forbids mixing its content with other sources unless each is clearly identified; the website's own terms say it is for people who live in England. South African patients are outside both.",
+      "verifiedFrom": "https://digital.nhs.uk/developer/guides-and-documentation/online-connection-agreement",
+      "assessedOn": "2026-10-01"
+    },
+    {
+      "id": "who-fact-sheets-iris",
+      "name": "WHO fact sheets and IRIS publications",
+      "owner": "World Health Organization",
+      "hosts": [
+        "who.int"
+      ],
+      "licence": "CC BY-NC-SA 3.0 IGO (IRIS publications); WHO website terms of use (fact sheets)",
+      "verdict": "non-commercial-only",
+      "reason": "Commercial use of WHO material needs WHO's prior written permission, and fact sheets are population-level, not first-aid steps. Worth a permission request only if the South African sources cannot cover a topic. (WHO's ICD-11 API is listed separately under its own licence.)",
+      "verifiedFrom": "https://www.who.int/about/policies/publishing/copyright",
+      "assessedOn": "2026-10-01"
+    },
+    {
+      "id": "dermnet-nz",
+      "name": "DermNet",
+      "owner": "DermNet (New Zealand)",
+      "hosts": [
+        "dermnetnz.org"
+      ],
+      "licence": "Text: written permission only. Images: CC BY-NC-ND 4.0 with watermark, or a paid per-image licence",
+      "verdict": "non-commercial-only",
+      "reason": "Commercial use of the text needs DermNet's written permission and of the images a paid licence; its terms forbid automated harvesting, and its images may not be used to train or test artificial intelligence. Never to be drawn on by GilbertOne or placed near the photo skin-check.",
+      "verifiedFrom": "https://dermnetnz.org/image-licence",
+      "assessedOn": "2026-10-01"
+    },
+    {
+      "id": "dermnet-com",
+      "name": "Dermnet.com",
+      "owner": "Dermnet.com (ownership not confirmed)",
+      "hosts": [
+        "dermnet.com"
+      ],
+      "licence": "All rights reserved",
+      "verdict": "no-reuse",
+      "reason": "All rights reserved, with no licence published; not the same site as DermNet New Zealand.",
+      "verifiedFrom": "https://dermnet.com/",
+      "assessedOn": "2026-10-01"
+    },
+    {
+      "id": "aad-public",
+      "name": "American Academy of Dermatology public pages",
+      "owner": "American Academy of Dermatology",
+      "hosts": [
+        "aad.org"
+      ],
+      "licence": "All rights reserved (AAD terms of use); paid licensing available",
+      "verdict": "no-reuse",
+      "reason": "Commercial reproduction is prohibited without written permission, and incorporation into an artificial intelligence model without attribution is prohibited; patient photographs are never reusable. A paid patient-education licence exists if the founder ever wants one.",
+      "verifiedFrom": "https://www.aad.org/terms-use",
+      "assessedOn": "2026-10-01"
+    },
+    {
+      "id": "cochrane-pls",
+      "name": "Cochrane plain language summaries",
+      "owner": "Cochrane, published by John Wiley & Sons",
+      "hosts": [
+        "cochranelibrary.com",
+        "cochrane.org"
+      ],
+      "licence": "All rights reserved, including text and data mining and AI training (Wiley); reuse through RightsLink for a fee",
+      "verdict": "no-reuse",
+      "reason": "Reuse is licensed for a fee, free republication is only for registered Cochrane groups, and Wiley reserves text-and-data-mining and AI-training rights. Clinicians may read and cite it behind MyThuso's own reviewed text.",
+      "verifiedFrom": "https://www.cochranelibrary.com/help/permissions",
+      "assessedOn": "2026-10-01"
+    },
+    {
+      "id": "gcis-gov-za",
+      "name": "South African Government website (gov.za)",
+      "owner": "Government Communication and Information System",
+      "hosts": [
+        "gov.za"
+      ],
+      "licence": "gov.za terms of use: non-commercial informational or reference use only",
+      "verdict": "non-commercial-only",
+      "reason": "Commercial use needs GCIS's prior written permission, and the site carries little health content the Department of Health's own guidelines do not. (The Department's guidelines and the Western Cape's pages are listed separately.)",
+      "verifiedFrom": "https://www.gov.za/terms-and-conditions-use-0",
+      "assessedOn": "2026-10-01"
+    },
+    {
+      "id": "health-e-news",
+      "name": "Health-e News",
+      "owner": "Health-e News Service",
+      "hosts": [
+        "health-e.org.za"
+      ],
+      "licence": "Content-use policy: not free for commercial use",
+      "verdict": "no-reuse",
+      "reason": "Not free for commercial organisations, no syndication to apps and no automated republishing; it is health journalism, not clinical guidance.",
+      "verifiedFrom": "https://health-e.org.za/about-health-e-news/contentuse/",
+      "assessedOn": "2026-10-01"
+    },
+    {
+      "id": "hesperian",
+      "name": "Hesperian Health Guides",
+      "owner": "Hesperian Health Guides",
+      "hosts": [
+        "hesperian.org"
+      ],
+      "licence": "Open copyright for not-for-profit use",
+      "verdict": "non-commercial-only",
+      "reason": "Translation and adaptation without royalties are only for not-for-profit use. It carries isiZulu material, which makes a permission request worth considering later; it is not usable as published.",
+      "verifiedFrom": "https://languages.hesperian.org/pages/zu/find_books.html",
+      "assessedOn": "2026-10-01"
+    },
+    {
+      "id": "healthdirect-au",
+      "name": "Healthdirect Australia",
+      "owner": "Healthdirect Australia",
+      "hosts": [
+        "healthdirect.gov.au"
+      ],
+      "licence": "Terms of use: no modification, publication or derivative works without written permission",
+      "verdict": "no-reuse",
+      "reason": "Reuse, derivatives and commercial use of the information are barred without written permission.",
+      "verifiedFrom": "https://www.healthdirect.gov.au/terms-of-use",
+      "assessedOn": "2026-10-01"
+    },
+    {
+      "id": "mayo-clinic",
+      "name": "Mayo Clinic",
+      "owner": "Mayo Foundation for Medical Education and Research",
+      "hosts": [
+        "mayoclinic.org"
+      ],
+      "licence": "Terms of use: personal, non-commercial copies only; licensed content sold separately",
+      "verdict": "no-reuse",
+      "reason": "Personal non-commercial copies only, with data mining and robots forbidden; its content is sold under licence.",
+      "verifiedFrom": "https://www.mayoclinic.org/about-this-site/terms-use-licensed-content",
+      "assessedOn": "2026-10-01"
+    },
+    {
+      "id": "merck-manuals",
+      "name": "Merck Manuals consumer edition",
+      "owner": "Merck & Co.",
+      "hosts": [
+        "merckmanuals.com"
+      ],
+      "licence": "All rights reserved; written permission for any public or commercial use",
+      "verdict": "no-reuse",
+      "reason": "No distribution, modification or commercial use without written permission, and the site is intended for United States residents.",
+      "verifiedFrom": "https://www.merckmanuals.com/",
+      "assessedOn": "2026-10-01"
     }
   ]
 }

@@ -541,7 +541,7 @@
    "codeNames": [],
    "capabilityRef": null,
    "feedRef": null,
-   "why": "WHO ICD-11, openFDA and Europe PMC, each with its licence, rate limit, residency and use boundaries in federation.json. One card here points at them rather than copying three."
+   "why": "Every source in federation.json — WHO ICD-11, openFDA and Europe PMC with adapters, and the sources assessed on 1 October 2026 with none — each with its licence verdict, rate limit, residency, use boundaries and the two signatures it waits on. One card here points at them rather than copying them; Governance · Knowledge sources lists them."
   }
  ],
 

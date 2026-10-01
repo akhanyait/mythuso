@@ -31950,8 +31950,11 @@ console.log(
     ABSTENTION_KINDS,
     validateEntrySource,
     validateEntryCodes,
+    validateSourceGovernance,
   } = await import("./knowledge-codes.mjs");
   const knowledgeDir = "packages/catalog/knowledge";
+  /* The fourteen sources assessed and allowlisted, dark, on 1 October 2026. */
+  const KNOWLEDGE_SOURCES_FLOOR = 14;
   const federation = JSON.parse(read(`${knowledgeDir}/federation.json`));
   const catalogue = Object.fromEntries(
     KNOWLEDGE_FILES.map((file) => [
@@ -32011,9 +32014,20 @@ console.log(
       `${knowledgeDir}/federation.json: policy.darkByDefault must be true — every external source starts dark.`,
     );
   const sources = Array.isArray(federation.sources) ? federation.sources : [];
-  if (sources.length < 3)
+  if (sources.length < KNOWLEDGE_SOURCES_FLOOR)
     throw new Error(
-      `${knowledgeDir}/federation.json lists ${sources.length} external sources — the allowlist has shrunk, and this check is meant to guard it, not follow it.`,
+      `${knowledgeDir}/federation.json lists ${sources.length} external sources, fewer than the ${KNOWLEDGE_SOURCES_FLOOR} assessed on 1 October 2026 — the allowlist has shrunk, and this check is meant to guard it, not follow it. A source is retired by a reviewed edit that moves it to assessedNotAdmitted with its reason, not by deletion.`,
+    );
+  /* 3a. Source governance (1 October 2026): every source carries a licence verdict, the page it was read
+     from, its hosts, its audience, its languages and a residency note; a licence that does not cover a
+     commercial service never opens a source; no signature exists before its signatory is appointed; and
+     no source opens without both signatures. Asked before the dark flag below, so flipping a
+     non-commercial source fails on its licence rather than only on its flag. scripts/knowledge-codes.mjs
+     holds the rules, shared with scripts/knowledge-federation.test.ts. */
+  const governanceFindings = validateSourceGovernance(federation);
+  if (governanceFindings.length)
+    throw new Error(
+      `Knowledge source governance:\n  ${governanceFindings.join("\n  ")}`,
     );
   const sourceIds = new Set();
   for (const source of sources) {
@@ -32130,8 +32144,72 @@ console.log(
       `scripts/check-boundaries.mjs swept ${federationSwept} files in apps/assistant-api/src for federation reachability, so the check that only knowledge-federation.ts may import the adapters is reading almost nothing.`,
     );
 
+  /* 5. Governance's Knowledge sources screen proposes and never activates (1 October 2026). A pasted link
+     is held in the screen's memory and nowhere else: neither the screen nor its lib may reach the
+     network, open or link to what was pasted, and the screen's one handler withdraws a proposal. Every
+     Switch on is disabled by a bare attribute, described by the contract's refusals and handed no
+     handler; the lib decides what is missing from the verdict's own mayActivate and both signature
+     roles; and the screen arrives on a dynamic import of its own, never on the review queue's bytes. */
+  {
+    const ksScreen = "apps/web/src/features/portal/KnowledgeSources.tsx";
+    const ksLib = "apps/web/src/lib/knowledge-sources.ts";
+    for (const f of [ksScreen, ksLib]) {
+      const code = uncommented(read(f));
+      const reach = code.match(
+        /\bfetch\(|XMLHttpRequest|sendBeacon|window\.open\(|new WebSocket|EventSource|\bhref=\{|\bsrc=\{|location\.(?:assign|href|replace)/,
+      );
+      if (reach)
+        throw new Error(
+          `${f} reaches out (${reach[0]}). A proposed source is a link held in the screen's memory; nothing on that screen fetches, opens or links to it — ${federation.governance.refusals.find((r) => r.id === "a-link-is-not-knowledge").statement}`,
+        );
+    }
+    const screen = uncommented(read(ksScreen));
+    const switches = [
+      ...screen.matchAll(/<Button\b[^>]*>\{governance\.words\.switchOn\}/g),
+    ].map((m) => m[0]);
+    if (
+      switches.length !== 1 ||
+      !/\sdisabled\s/.test(switches[0]) ||
+      /disabled=\{|onClick/.test(switches[0]) ||
+      !/aria-describedby=\{id\}/.test(switches[0])
+    )
+      throw new Error(
+        `${ksScreen} draws Switch on ${switches.length} times, or not disabled by a bare attribute, or with a handler, or without the refusals that describe it. Nothing on this screen switches a source on: ${federation.governance.refusals.find((r) => r.id === "no-activation-without-two-signatures").statement}`,
+      );
+    if (!/activationRefusals\(holder\)/.test(screen))
+      throw new Error(
+        `${ksScreen} no longer describes Switch on by activationRefusals() — a disabled control says which condition it waits on.`,
+      );
+    const handlers = screen.match(/\bon(?:Click|Submit|Change)=/g) ?? [];
+    if (
+      handlers.length !== 3 ||
+      (screen.match(/\bonClick=/g) ?? []).length !== 1 ||
+      !/onClick=\{\(\) => withdraw\(p\.id\)\}/.test(screen)
+    )
+      throw new Error(
+        `${ksScreen} carries ${handlers.length} handlers. It has three — the link field's typing, the proposal form's submit, and withdrawing a proposal — and a fourth is a control nobody decided on.`,
+      );
+    const lib = uncommented(read(ksLib));
+    if (
+      !/!verdict \|\| !verdict\.mayActivate/.test(lib) ||
+      !/signatureRoles\.some\(role => !signatureOf\(source, role\.id\)\)/.test(lib) ||
+      !/verdict\.requiresPermissionRecord && !source\.licensing\.permissionRef/.test(lib)
+    )
+      throw new Error(
+        `${ksLib}'s activationRefusals no longer asks the verdict's mayActivate, its permission record, and both signature roles. What a source is missing is read from the contract, never decided on the screen.`,
+      );
+    const backOffice = read("apps/web/src/features/portal/BackOffice.tsx");
+    if (
+      !/lazy\(\(\) => import\('\.\/KnowledgeSources'\)/.test(backOffice) ||
+      /^\s*import (?!type\b)[^;]*from '\.\/KnowledgeSources'/m.test(backOffice)
+    )
+      throw new Error(
+        "apps/web/src/features/portal/BackOffice.tsx does not reach Governance's Knowledge sources on a dynamic import of its own.",
+      );
+  }
+
   console.log(
-    `Knowledge federation · ${entriesSwept} catalogue entries across nine files carry a complete source object and ${codedSwept} across the eight clinical files carry a codes object whose every SNOMED CT, ICD-11 and LOINC value passes its issuing authority's checksum or format; ${sources.length} allowlisted external sources all read "active": false with endpoint, licence, rate limit, residency and use boundaries recorded and each adapter's dark guard sitting before its fetch; and of ${federationSwept} files swept in apps/assistant-api/src, ${federationModule} alone reaches the adapters and nothing imports it.`,
+    `Knowledge federation · ${entriesSwept} catalogue entries across nine files carry a complete source object and ${codedSwept} across the eight clinical files carry a codes object whose every SNOMED CT, ICD-11 and LOINC value passes its issuing authority's checksum or format; ${sources.length} allowlisted external sources all read "active": false with endpoint, licence, licence verdict, rate limit, residency and use boundaries recorded, both signatures unsigned while nobody is appointed to give them, ${(federation.assessedNotAdmitted ?? []).length} more assessed and turned away with their reasons, and each adapter's dark guard sitting before its fetch; Governance's Knowledge sources screen proposes in memory and switches nothing on; and of ${federationSwept} files swept in apps/assistant-api/src, ${federationModule} alone reaches the adapters and nothing imports it.`,
   );
 }
 
@@ -37654,6 +37732,9 @@ console.log(
     /* Wave 4e, the Control Tower on the identity: every one behind the portal's dynamic import (the engine-settings
        screen also behind the clinical workspace's and the legacy back office's), and the founder's door behind it. */
     "apps/web/src/features/Configuration.tsx", "apps/web/src/features/portal/Configuration.tsx", "apps/web/src/features/portal/DispatchDemo.tsx", "apps/web/src/features/portal/FounderDemo.tsx", "apps/web/src/features/portal/Frame.tsx", "apps/web/src/features/portal/Modals.tsx", "apps/web/src/features/portal/Operations.tsx", "apps/web/src/features/portal/Overview.tsx", "apps/web/src/features/portal/Parts.tsx", "apps/web/src/features/portal/gilbertone/Controls.tsx", "apps/web/src/features/portal/gilbertone/Intelligence.tsx", "apps/web/src/features/portal/gilbertone/Knowledge.tsx", "apps/web/src/features/portal/gilbertone/SpeechSettings.tsx", "apps/web/src/features/portal/gilbertone/founder/FounderAccess.tsx", "apps/web/src/features/portal/gilbertone/founder/FounderActions.tsx", "apps/web/src/shells/FounderGate.tsx",
+    /* Governance · Knowledge sources (1 October 2026): behind the portal's dynamic import and a dynamic import of its own
+       from BackOffice.tsx, so its Field, Input and Button join the ui.css the Control Tower already downloads. */
+    "apps/web/src/features/portal/KnowledgeSources.tsx",
     /* Wave 4b, the nurse's screens on the identity: every one behind the staff shell's dynamic import, or behind a
        dynamic import of its own (KitDeck and Devices from Thuso Kit, DeviceLab from the Control Tower, VerifyInService
        from the arrival and the day). Kit.tsx and KitCapture.tsx are on the patient's entry and import none of it. */

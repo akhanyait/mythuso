@@ -2866,3 +2866,41 @@
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
+
+/* ==== Governance · Knowledge sources (1 October 2026) ====
+   The proposal field and its button sit on one line where there is room and stack on a phone; the two
+   signatures read as a short list rather than a sentence; Switch on keeps its reasons directly beneath it,
+   because a disabled control is only honest beside why. */
+.portal .ks-propose {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-12);
+  margin: var(--space-12) 0;
+}
+.portal .ks-propose .ui-field {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+.portal .ks-signatures {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.portal .ks-switch {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-4);
+  margin-top: var(--space-12);
+}
+.portal .ks-switch .helper {
+  margin: 0;
+}
+.portal .ks-proposal > .ui-button {
+  margin-top: var(--space-8);
+}
+.portal .ks-link {
+  overflow-wrap: anywhere;
+}

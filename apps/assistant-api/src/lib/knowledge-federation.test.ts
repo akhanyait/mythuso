@@ -371,11 +371,14 @@ test('the answer carries every distinct citation a panel renders, each with its 
  assert.ok(external.url);
 });
 
-test('federationStatus reports the shipped posture: dark by default, three dark sources', () => {
+test('federationStatus reports the shipped posture: dark by default, every source dark, the three with adapters first', () => {
+ /* Since 1 October 2026 the allowlist holds more than the three sources with adapters: the sources
+    assessed that day are recorded dark, awaiting two signatures, with no adapter at all. The three
+    the adapters read still lead, in their registered order. */
  const status = federationStatus();
  assert.equal(status.darkByDefault, true);
  assert.deepEqual(
-  status.sources.map((source) => source.id).sort(),
+  status.sources.slice(0, 3).map((source) => source.id),
   ['icd11-who', 'openfda', 'pubmed-europepmc'],
  );
  for (const source of status.sources) {

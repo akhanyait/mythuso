@@ -4,19 +4,23 @@ import { g1 } from '../../../lib/gilbertone-admin';
 import { Empty, Region, RovingList } from '../Parts';
 import { Locked } from './Controls';
 import { Badge } from '../../../ui/Badge';
+import { governance, signatureRoles, verdictOf } from '../../../lib/knowledge-sources';
 
-/* GilbertOne · Knowledge (§7.6): the clinical and non-clinical corpora and the three external sources.
+/* GilbertOne · Knowledge (§7.6): the clinical and non-clinical corpora and the external sources.
  *
  * The split is packages/catalog/knowledge-corpus-tiers.json's proposal, and the screen says plainly
  * that it is not enforced yet: every refresh still re-embeds the whole undivided corpus, and the
  * contract's own refusal says nothing may claim otherwise. The clinical-corpus lock is drawn as a
  * locked setting — a refresh of the clinical half happens only through a ratified Clinician Review
- * Queue entry — with no control beside it. The three federation sources are packages/catalog/knowledge/
- * federation.json's, every one of them not active, each with its licence, its rate limit, where it is
- * hosted and what it is for and not for. Their addresses are not drawn: nothing calls them. */
+ * Queue entry — with no control beside it. The federation sources are packages/catalog/knowledge/
+ * federation.json's, every one of them not active, each with its licence, the verdict on it, its rate
+ * limit, where it is hosted, what it is for and not for, and the two signatures it waits on. Their
+ * addresses are not drawn: nothing calls them. Proposing a source and reading what each signature
+ * covers is Governance's (features/portal/KnowledgeSources.tsx), so this screen keeps no control. */
 
 export function KnowledgeScreen() {
  const words = g1.knowledge;
+ const signOff = governance.words;
  const refusal = (id: string) => corpus.refusals.find(r => r.id === id)!;
  const lock = refusal('no-clinical-corpus-refresh-outside-the-review-queue');
  const notYet = refusal('no-tier-split-without-the-upstream-schema-change');
@@ -45,6 +49,8 @@ export function KnowledgeScreen() {
      <dl className="pt-facts">
       <div className="g1-fact"><dt>Authority</dt><dd>{s.authority} · {s.jurisdiction}</dd></div>
       <div className="g1-fact"><dt>Licence</dt><dd>{s.licensing.licence}. {s.licensing.notes}</dd></div>
+      <div className="g1-fact"><dt>{signOff.verdict}</dt><dd>{verdictOf(s.licensing.verdict).label}. {verdictOf(s.licensing.verdict).sentence}</dd></div>
+      <div className="g1-fact"><dt>{signOff.signatures}</dt><dd>{signOff.awaiting}. {signatureRoles.map(r => `${r.label}: ${r.appointed ? signOff.notSigned : signOff.notAppointed}`).join(' · ')}</dd></div>
       <div className="g1-fact"><dt>Rate limit</dt><dd>{s.rateLimit.requestsPerMinute} a minute. {s.rateLimit.basis}</dd></div>
       <div className="g1-fact"><dt>Residency</dt><dd>{s.dataResidency.hostedIn}. {s.dataResidency.notes}</dd></div>
       <div className="g1-fact"><dt>Use for</dt><dd>{s.useFor}</dd></div>
@@ -54,6 +60,7 @@ export function KnowledgeScreen() {
     </article>
    }))}/>
    <p className="helper">{federation.policy.activationRequires}</p>
+   <p className="helper">{signOff.whereProposed}</p>
   </Region>
 
   <Region title={words.refreshHeading}>

@@ -122,7 +122,7 @@
     { "id": "speech", "label": "Speech settings", "blurb": "Which of a language's two voices reads each presentation register and through which provider, the knobs — Azure Speech's and ElevenLabs' own, two ceilings and the administrator's own voice — and a sentence heard first; then, folded, the zones, the locked clinical register and everything that is not a setting.", "new": true },
     { "id": "model-providers", "label": "Model Providers", "blurb": "Every language-model provider the plan names, the one that is configured, where it runs, and the key controls a vault would stand behind.", "new": true },
     { "id": "intelligence", "label": "Intelligence", "blurb": "The five reasoning levels, which conversation may reach which, and the ceilings nothing on this screen can raise.", "new": true },
-    { "id": "knowledge", "label": "Knowledge", "blurb": "The clinical and the non-clinical corpus, the three external sources, and the lock on the clinical half.", "new": true },
+    { "id": "knowledge", "label": "Knowledge", "blurb": "The clinical and the non-clinical corpus, the external sources and the two signatures each waits on, and the lock on the clinical half.", "new": true },
     { "id": "compliance", "label": "Engine compliance", "blurb": "The compliance pack, the audit extract, the kill switch, and where each provider processes what it is sent.", "new": true },
     { "id": "api-registry", "label": "API Registry", "blurb": "Every external API the platform talks to, or has been asked to, as a card with its honest state.", "new": true }
    ]
@@ -157,7 +157,8 @@
    "from": ["back-office Governance (moved)", "§6.2 Clinician Review Queue, new"],
    "tabs": [
     { "id": "readiness", "label": "Documents awaiting signature", "heading": "Governance", "legacy": "back-office:Governance" },
-    { "id": "review-queue", "label": "Clinician Review Queue", "blurb": "The one door through which a change to clinical behaviour may move, who would sign it, and what it refuses.", "new": true }
+    { "id": "review-queue", "label": "Clinician Review Queue", "blurb": "The one door through which a change to clinical behaviour may move, who would sign it, and what it refuses.", "new": true },
+    { "id": "knowledge-sources", "label": "Knowledge sources", "blurb": "Every source GilbertOne could ever ask, the licence verdict on each, the two signatures each one waits on, and a place to propose another by pasting its link. Nothing here switches a source on.", "new": true }
    ]
   },
   {
