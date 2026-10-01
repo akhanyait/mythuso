@@ -53,10 +53,12 @@ extension Medicines {
         static let empty = "No patient has authorised you to collect a bag."
     }
 
-    /// The laboratory order's last custody step before release. A reference returned, never a verified result.
+    /// The laboratory order's words: a reference returned, never a verified result, and never a value.
     enum ResultsText {
         static let returned = "Result reference returned"
         static let returnedDetail = "No test is run. The synthetic laboratory hands back a reference to a result, and no pathologist has checked anything."
+        static let notReturned = "No result reference yet"
+        static let ordered = "Ordered. The synthetic laboratory answers with a reference, never a value."
     }
 
     static let refusals: [MedicinesRefusal] = [

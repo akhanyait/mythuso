@@ -39418,30 +39418,62 @@ console.log(checkLiveVitals({ read, files }));
    exist — medicines.json#labs has the synthetic laboratory answer with a reference, never a value. So the
    order names its tests from the laboratory's menu in vetting.json, says what comes back in the contract's
    words under the laboratory's own notice, and types no result, unit, range or flag. When a reviewed
-   contract gives a laboratory test its range, the flag is derived from value and range there. */
+   contract gives a laboratory test its range, the flag is derived from value and range there.
+
+   Both phones typed the same four results, units, ranges and two "High"s under a count of the ones outside
+   their range until 2 October 2026, two days after the web stopped, because this read the web alone. It reads
+   the lab order on all three now: on a phone, the slices of OrdersView.swift and OrderScreens.kt that are the
+   laboratory order's (the prescription beside it carries doses, which are not laboratory figures). */
 {
-  const f = "apps/web/src/features/OrderDetails.tsx";
-  const code = read(f).replace(/\{\/\*[\s\S]*?\*\/\}/g, " ").replace(/\/\*[\s\S]*?\*\//g, " ");
-  const found = [];
-  const unit = code.match(/(?:m?mol|µmol|umol|µg|mg|g)\/(?:L|dL)\b|\b(?:U\/L|fL)\b/);
-  if (unit) found.push(`a laboratory unit (${unit[0]})`);
-  const keyed = code.match(/\b(result|value|range|unit|flag|low|high)\s*:\s*['"`\d<>]/);
-  if (keyed) found.push(`a literal ${keyed[1]}`);
-  const flag = code.match(/['"`](High|Low|Within range|Abnormal)['"`]/);
-  if (flag) found.push(`the flag "${flag[1]}"`);
-  const range = code.match(/['"`][^'"`\n]*(?:\d\s*[–—]\s*\d|[<>≤≥]\s*\d)[^'"`\n]*['"`]/);
-  if (range) found.push(`a range (${range[0]})`);
+  const slice = (f, code, from, to) => {
+    const at = code.indexOf(from), end = to ? code.indexOf(to, at) : code.length;
+    if (at < 0 || end < 0) throw new Error(`${f} no longer has ${at < 0 ? from : to}, which is where this check finds its laboratory order.`);
+    return code.slice(at, end);
+  };
+  const strip = (text) => text.replace(/\{\/\*[\s\S]*?\*\/\}/g, " ").replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:"])\/\/[^\n]*/g, "$1 ");
   const menu = JSON.parse(read("packages/catalog/vetting.json")).roles.find((r) => r.id === "laboratory")?.scope?.options ?? [];
-  const requested = code.match(/const requested = \[([^\]]*)\];/);
-  if (!requested) found.push("no `requested` list of the tests the order asked for");
-  else for (const [, test] of requested[1].matchAll(/'([^']+)'/g))
-    if (!menu.includes(test)) found.push(`the test "${test}", which is not on the laboratory's menu in packages/catalog/vetting.json`);
-  if (!/scopeFor\('laboratory'\)\?\.options/.test(code)) found.push("tests that are not read from the laboratory's menu");
-  if (!code.includes('<NotConnected of="laboratory-results"')) found.push("no laboratory notice over the order");
-  if (!code.includes("medicinesContract.screen.results.ordered")) found.push("no sentence from packages/catalog/medicines.json saying what the synthetic laboratory returns");
-  if (found.length)
-    throw new Error(`${f}'s laboratory order carries ${found.join("; ")}. No contract holds a laboratory reference range and the synthetic laboratory returns no value, so the order names its tests from the laboratory's menu and types no result, unit, range or flag.`);
-  console.log(`The laboratory order · ${requested[1].match(/'/g).length / 2} tests from the laboratory's menu, no typed result, unit, range or flag, under the laboratory's own notice and in the medicines contract's words.`);
+  const told = [];
+  for (const [f, take, list, quote, reads] of [
+    ["apps/web/src/features/OrderDetails.tsx", (code) => code, /const requested = \[([^\]]*)\];/, /'([^']+)'/g,
+      [[/scopeFor\('laboratory'\)\?\.options/, "tests that are not read from the laboratory's menu"],
+       ['<NotConnected of="laboratory-results"', "no laboratory notice over the order"],
+       ["medicinesContract.screen.results.ordered", "no sentence from packages/catalog/medicines.json saying what the synthetic laboratory returns"]]],
+    ["apps/ios/MyThuso/Features/OrdersView.swift", (code) => slice("apps/ios/MyThuso/Features/OrdersView.swift", code, "private struct LabFixture", "struct AnyButtonStyleBox"),
+      /private let requested = \[([^\]]*)\]/, /"([^"]+)"/g,
+      [[/Vetting\.scopeOptions\(for: "laboratory"\)/, "tests that are not read from the laboratory's menu (Vetting.scopeOptions)"],
+       ['CapabilityNotice(of: "laboratory-results")', "no laboratory notice over the order"],
+       ["Medicines.ResultsText.ordered", "no sentence from the generated MedicinesData saying what the synthetic laboratory returns"]]],
+    ["apps/android/app/src/main/java/za/co/mythuso/ui/OrderScreens.kt",
+      (code) => slice("apps/android/app/src/main/java/za/co/mythuso/ui/OrderScreens.kt", code, "private data class LabFixture", "private fun progressed")
+        + slice("apps/android/app/src/main/java/za/co/mythuso/ui/OrderScreens.kt", code, "@Composable fun LabOrderScreen"),
+      /private val requested = listOf\(([^)]*)\)/, /"([^"]+)"/g,
+      [[/scopeFor\("laboratory"\)\?\.options/, "tests that are not read from the laboratory's menu (scopeFor)"],
+       ['NotConnected("laboratory-results")', "no laboratory notice over the order"],
+       ["MedicinesData.ResultsText.ordered", "no sentence from the generated MedicinesData saying what the synthetic laboratory returns"]]],
+  ]) {
+    const code = take(strip(read(f)));
+    const found = [];
+    const unit = code.match(/(?:m?mol|µmol|umol|µg|mg|g)\/(?:L|dL)\b|\b(?:U\/L|fL)\b/);
+    if (unit) found.push(`a laboratory unit (${unit[0]})`);
+    const keyed = code.match(/\b(result|value|range|unit|flag|low|high)\s*:\s*['"`\d<>]/);
+    if (keyed) found.push(`a literal ${keyed[1]}`);
+    const flag = code.match(/['"`](High|Low|Within range|Abnormal|All within range)['"`]/);
+    if (flag) found.push(`the flag "${flag[1]}"`);
+    const range = code.match(/['"`][^'"`\n]*(?:\d\s*[–—]\s*\d|[<>≤≥]\s*\d)[^'"`\n]*['"`]/);
+    if (range) found.push(`a range (${range[0]})`);
+    if (/reference range/i.test(code)) found.push("a reference range named on the screen");
+    const requested = code.match(list);
+    const tests = requested ? [...requested[1].matchAll(quote)].map((m) => m[1]) : [];
+    if (!requested || !tests.length) found.push("no `requested` list of the tests the order asked for");
+    for (const test of tests)
+      if (!menu.includes(test)) found.push(`the test "${test}", which is not on the laboratory's menu in packages/catalog/vetting.json`);
+    for (const [needle, missing] of reads)
+      if (typeof needle === "string" ? !code.includes(needle) : !needle.test(code)) found.push(missing);
+    if (found.length)
+      throw new Error(`${f}'s laboratory order carries ${found.join("; ")}. No contract holds a laboratory reference range and the synthetic laboratory returns no value, so the order names its tests from the laboratory's menu and types no result, unit, range or flag.`);
+    told.push(tests.length);
+  }
+  console.log(`The laboratory order · ${told.join(", ")} tests from the laboratory's menu on web, iOS and Android, no typed result, unit, range or flag, under the laboratory's own notice and in the medicines contract's words.`);
 }
 
 /* The step a laboratory order's custody ends on before release — 1 October 2026. All three platforms typed
@@ -39449,19 +39481,29 @@ console.log(checkLiveVitals({ read, files }));
    is connected, which claims a test was run and a pathologist read it when the synthetic laboratory runs
    nothing and hands back a reference. The step is medicines.json#screen.results.returned now, and both
    phones draw it from the generated MedicinesData. The web's OrderDetails.tsx reads the contract directly
-   since 2 October 2026 and is held to the same. */
+   since 2 October 2026 and is held to the same.
+
+   Also since 2 October: the partner's Results board (Fulfilment.tsx) said "Verified by the laboratory" and
+   that an order still out waited on "the laboratory's own reviewing pathologist", and the web's badge said
+   "Not yet verified". The board reads the step and the sentence release waits on (releaseWaits) from the
+   contract, and the badge and both phones' standing say notReturned. The old words are refused in any quote
+   — the board typed them in single ones, which the first version of this did not read. */
 {
   const results = JSON.parse(read("packages/catalog/medicines.json")).screen.results;
   for (const [file, reads] of [
-    ["apps/ios/MyThuso/Features/OrdersView.swift", "Medicines.ResultsText.returned"],
-    ["apps/android/app/src/main/java/za/co/mythuso/ui/OrderScreens.kt", "MedicinesData.ResultsText.returned"],
-    ["apps/web/src/features/OrderDetails.tsx", "medicinesContract.screen.results.returned"],
+    ["apps/ios/MyThuso/Features/OrdersView.swift", ["Medicines.ResultsText.returned", "Medicines.ResultsText.notReturned"]],
+    ["apps/android/app/src/main/java/za/co/mythuso/ui/OrderScreens.kt", ["MedicinesData.ResultsText.returned", "MedicinesData.ResultsText.notReturned"]],
+    ["apps/web/src/features/OrderDetails.tsx", ["medicinesContract.screen.results.returned", "medicinesContract.screen.results.notReturned", "medicinesContract.screen.results.releaseWaits"]],
+    ["apps/web/src/features/Fulfilment.tsx", ["const words = medicinesContract.screen.results;", "words.returned", "words.releaseWaits"]],
   ]) {
     const code = read(file);
-    if (/reviewing pathologist|"Results verified"/.test(code))
-      throw new Error(`${file} says a laboratory's pathologist verified a result. No laboratory is connected and no test is run; the step is "${results.returned}", read from MedicinesData.`);
-    if (!code.includes(reads) || code.includes(results.returned) || code.includes(results.returnedDetail))
-      throw new Error(`${file} does not draw the laboratory order's last custody step from ${reads}. It is packages/catalog/medicines.json's sentence, generated for both phones, and a typed copy is the one that says "verified" again.`);
+    const old = code.match(/reviewing pathologist|own pathologist|pathologist has checked it|["'`‘]Results verified|Verified by the laboratory|Not yet verified/);
+    if (old)
+      throw new Error(`${file} says "${old[0]}". No laboratory is connected, no test is run and no pathologist checks anything; the step is "${results.returned}" and an order short of it is "${results.notReturned}", read from packages/catalog/medicines.json (MedicinesData on the phones).`);
+    const typed = ["returned", "returnedDetail", "notReturned", "releaseWaits"].find((key) => code.includes(results[key]));
+    const missing = reads.find((r) => !code.includes(r));
+    if (missing || typed)
+      throw new Error(`${file} ${typed ? `types medicines.json's screen.results.${typed}` : `does not read ${missing}`}. The laboratory order's custody words are packages/catalog/medicines.json's, generated for both phones, and a typed copy is the one that says "verified" again.`);
   }
 }
 

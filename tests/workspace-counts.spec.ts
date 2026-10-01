@@ -1,5 +1,9 @@
 import { test, expect, type Page, type Locator } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import { goSection, openWorkspace } from './nav';
+
+/* A result ready for release is one whose reference came back, in medicines.json's words (2 October 2026). */
+const medicines = JSON.parse(readFileSync(new URL('../packages/catalog/medicines.json', import.meta.url), 'utf8'));
 
 /* The figure at the top of a workspace, against the rows underneath it.
  *
@@ -161,7 +165,8 @@ test.describe('a workspace figure agrees with the rows beneath it', () => {
     await expect(results.first()).toBeVisible();
     expect(await results.count()).toBeGreaterThan(1);
     expect(await figure(page, 'Ready for release')).toBe(
-      await results.filter({ hasText: /Verified by the laboratory/ }).count()
+      /* By the state column: every row's track names the step too, so the row's text would count all three. */
+      await results.filter({ has: page.locator('.fulfil-state', { hasText: medicines.screen.results.returned }) }).count()
     );
   });
 });

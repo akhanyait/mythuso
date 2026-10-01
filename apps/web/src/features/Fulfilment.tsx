@@ -9,6 +9,13 @@ import { custodyLabel, roundFor, scheduleName, useMedicines } from '../lib/medic
 import { releaseWithheld } from '../lib/dispensing';
 import './doctor-pages.css';
 
+/* What a laboratory order comes back as, in medicines.json's words. The Results board called a result verified by
+   the laboratory, and one still out waiting on a pathologist's check, over the laboratory notice: no
+   test is run and nobody checks anything, and the synthetic laboratory hands back a reference. So the step, the
+   state word and the sentence a result waits on are the contract's, the same ones the order itself and both
+   phones draw (2 October 2026), and scripts/check-boundaries.mjs refuses the old words here. */
+const words = medicinesContract.screen.results;
+
 /* The pharmacy partner's three boards. They were in features/Orders.tsx beside the prescription and
    the laboratory order themselves — and those two *are* shared, because the document a pharmacist
    verifies is the same document a patient reads in the Health Passport. The boards are not: no
@@ -37,7 +44,7 @@ const prescriptionRows: OrderRow[] = [
  { id: 'RX-0079', what: '1 item', where: 'Dispensed', state: 'Awaiting courier', here: false, icon: Package, done: 2 }
 ];
 const labRows: OrderRow[] = [
- { id: 'LAB-0023', what: 'Fasting panel', where: 'At the laboratory', state: 'Results verified', here: false, icon: FlaskConical, done: 4 },
+ { id: 'LAB-0023', what: 'Fasting panel', where: 'At the laboratory', state: words.returned, here: false, icon: FlaskConical, done: 4 },
  { id: 'LAB-0019', what: 'Sample in transit', where: 'Seal intact', state: 'With the courier', here: false, icon: Truck, done: 1 }
 ];
 /* The two chains an order moves along. A prescription's is the dispensary's three acts by two registered
@@ -50,8 +57,8 @@ const prescriptionChain = [
 const labChain = [
  { step: 'Collected', says: 'Drawn inside the window its assay allows.' },
  { step: 'In transit', says: 'Sealed, with the temperature logged at every handover.' },
- { step: 'At the laboratory', says: 'On the bench until the laboratory’s own pathologist has checked it.' },
- { step: 'Verified', says: 'Held for the requesting doctor to release with an explanation.' }
+ { step: 'At the laboratory', says: words.releaseWaits },
+ { step: words.returned, says: 'Held for the requesting doctor to release with an explanation.' }
 ];
 /* A collection is a window and a place, and the window is the whole of it: a sample drawn outside
    the one its assay allows is a sample that has to be drawn again. */
@@ -71,12 +78,12 @@ const collections = [
    holds no patient. A result is worked here by its reference and what is holding it, which is all a partner
    needs to chase it (fixed 30 September 2026, S3). */
 const results = [
- { id: 'LAB-0023', what: 'Fasting panel', holding: 'Verified by the laboratory. Waiting for the requesting doctor to release it with an explanation.', ready: true },
- { id: 'LAB-0019', what: 'Urine culture', holding: 'Still on the bench. Nothing is released before the laboratory’s own reviewing pathologist has checked it.', ready: false },
+ { id: 'LAB-0023', what: 'Fasting panel', holding: `${words.returned}. Waiting for the requesting doctor to release it with an explanation.`, ready: true },
+ { id: 'LAB-0019', what: 'Urine culture', holding: `Still on the bench. ${words.releaseWaits}`, ready: false },
  { id: 'LAB-0014', what: 'Full blood count', holding: 'Released 3 September, with the doctor’s note, and visible in the patient’s Health Passport.', ready: true }
 ];
 /* The board's track: where a result has got to, as three steps drawn off the same first clause. */
-const resultSteps = ['On the bench', 'Verified', 'Released'] as const;
+const resultSteps = ['On the bench', words.returned, 'Released'] as const;
 /* The counts the shell's strip shows above these boards. Exported rather than typed there, because
    a header saying "8 open orders" over a board listing four is the exact drift the one-number rule
    exists to stop — and it was saying eight. */
@@ -86,24 +93,24 @@ export const partnerCounts = () => ({
  collections: collections.length,
  pastWindow: collections.filter(c => c.late).length,
  nextCollection: collections.find(c => !c.late)?.window.split(' – ')[0] ?? '—',
- readyForRelease: results.filter(r => r.holding.startsWith('Verified')).length
+ readyForRelease: results.filter(r => r.holding.startsWith(words.returned)).length
 });
 /* The first clause of what is holding a result, as the word that goes in the state column. Read off
    the sentence rather than stored beside it: two fields saying the same thing is how a board starts
    telling a partner one state while the paragraph under it says another. */
-const holdingState = (holding: string) => holding.startsWith('Verified') ? 'Verified'
+const holdingState = (holding: string) => holding.startsWith(words.returned) ? words.returned
  : holding.startsWith('Released') ? 'Released' : 'On the bench';
 export function FulfilmentQueue({ section = 'Orders', open }: { section?: 'Orders' | 'Collections' | 'Results'; open: (s: string) => void }) {
  if (section === 'Collections') return <CollectionsBoard open={open}/>;
  if (section === 'Results') {
-  const held = results.filter(r => r.ready && r.holding.startsWith('Verified')).length;
+  const held = results.filter(r => r.ready && r.holding.startsWith(words.returned)).length;
   return <>
    <div className="shift-head">
-    <div><h1>Results</h1><p>{held ? `Verified is not released. ${releaseWithheld}` : 'Nothing is waiting on a clinician.'}</p></div>
+    <div><h1>Results</h1><p>{held ? `A reference returned is not a result released. ${releaseWithheld}` : 'Nothing is waiting on a clinician.'}</p></div>
    </div>
    <NotConnected of="dispensing"/>
    {/* The state is the sentence's first clause, so it is lifted out of the sentence and set in a
-       column of its own. "Verified", "On the bench", "Released" read down the list; the paragraph
+       column of its own. On the bench, a reference returned, released: the states read down the list; the paragraph
        underneath still says the whole of it, because what is holding a result is not a word.
        The track under each row is the export's progress bar drawn off that same word — three steps, lit
        to the one the result is at, with the step named in words beside it so it is never colour alone. */}

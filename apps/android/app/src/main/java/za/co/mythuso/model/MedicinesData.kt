@@ -53,10 +53,12 @@ object MedicinesData {
         const val empty = "No patient has authorised you to collect a bag."
     }
 
-    /** The laboratory order's last custody step before release. A reference returned, never a verified result. */
+    /** The laboratory order's words: a reference returned, never a verified result, and never a value. */
     object ResultsText {
         const val returned = "Result reference returned"
         const val returnedDetail = "No test is run. The synthetic laboratory hands back a reference to a result, and no pathologist has checked anything."
+        const val notReturned = "No result reference yet"
+        const val ordered = "Ordered. The synthetic laboratory answers with a reference, never a value."
     }
 
     val refusals = listOf(

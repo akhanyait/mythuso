@@ -2,12 +2,14 @@ import SwiftUI
 
 /* A prescription and a laboratory order, and the chain of custody each one carries.
  *
- * Both were system `Form`s. On the laboratory screen that had a cost beyond the styling: four
- * results, two of them out of range, were four grouped rows of equal weight with the word "High"
- * set in the smallest type on the screen at the end of the second line. What a doctor opens a
- * result for is which ones are outside their range, and that was the least prominent thing on it.
- * The panel now leads with a count of the ones outside their range, taken from the same array the
- * rows are drawn from, and each row carries the chip rather than a word in the corner.
+ * The laboratory order types no result. It drew four values, each with a unit, a reference range and
+ * on two of them a typed "High", under a count of the ones outside their range — but no contract holds
+ * a laboratory reference range (records.json's are the readings a nurse takes at the door), and the
+ * synthetic laboratory answers with a reference and never a value (medicines.json#labs). The web
+ * stopped on 30 September 2026; the phones did on 2 October. So the order names the tests it asked for
+ * off the laboratory's own menu in the vetting register, says in the contract's words what comes back,
+ * under the laboratory's own notice, and the values are read in the Health Passport under the patient's
+ * grant. scripts/check-boundaries.mjs fails the build if a value, a unit, a range or a flag comes back.
  *
  * The chain of custody is the other half of both screens and it is what makes either believable —
  * so it stays exactly as many steps as it was, in the same words, on a hairline rather than in a
@@ -244,6 +246,8 @@ struct PrescriptionView: View {
 
 private struct LabFixture {
     let what: String
+    /// The tests it asked for, each one off the laboratory's menu.
+    let asked: [String]
     /// How many steps of the chain of custody are behind it; all five means a result came back.
     let reached: Int
     let collectedBy: String
@@ -251,23 +255,20 @@ private struct LabFixture {
     var returned: Bool { reached >= 5 }
 }
 /* The two orders the partner's results list, each as far along as its row says: LAB-0023 came back and
-   waits for its doctor, LAB-0019's sample is with the courier. */
+   waits for its doctor, LAB-0019's sample is with the courier. The tests are the web's four, by name,
+   and LAB-0019 asked for the first. */
+private let requested = ["Full blood count", "Fasting glucose", "Urea and electrolytes", "Lipogram"]
 private let labOrders: [String: LabFixture] = [
-    "LAB-0023": .init(what: "Requested 4 September · Fasting panel", reached: 5,
+    "LAB-0023": .init(what: "Requested 4 September · Fasting panel", asked: requested, reached: 5,
                       collectedBy: "Sister Naledi Mokoena · At home, Rosebank", seal: "SEAL-77341 · Intact on receipt"),
-    "LAB-0019": .init(what: "Requested 4 September · Sample in transit", reached: 2,
+    "LAB-0019": .init(what: "Requested 4 September · Sample in transit", asked: Array(requested.prefix(1)), reached: 2,
                       collectedBy: "Sister Naledi Mokoena · At home, Soweto", seal: "SEAL-77352 · Intact at the courier’s handover")
 ]
 struct LabOrderView: View {
     var reference = "LAB-0023"
     /// Whether a partner is reading. No default, so every door says.
     let partner: Bool
-    @State private var state: LoadState = .ready
     @State private var released = false
-    private let panel = [("Haemoglobin", "13.9 g/dL", "12.0 – 15.5", ""), ("Fasting glucose", "6.4 mmol/L", "3.9 – 5.6", "High"),
-                         ("Creatinine", "74 µmol/L", "49 – 90", ""), ("Total cholesterol", "5.8 mmol/L", "< 5.0", "High")]
-    /// Counted from the panel below rather than written into a sentence above it.
-    private var outside: Int { panel.filter { !$0.3.isEmpty }.count }
     var body: some View {
         if let order = labOrders[reference] {
             screen(order)
@@ -292,14 +293,9 @@ struct LabOrderView: View {
             VStack(alignment: .leading, spacing: ThusoSpacing.space24) {
                 DemoBadge()
                 SurfaceHeading(eyebrow: "Laboratory order", title: reference, subtitle: order.what)
+                CapabilityNotice(of: "laboratory-results")
                 SurfacePanel(tone: .lead, spacing: ThusoSpacing.space16) {
-                    if order.returned {
-                        ThusoMetrics {
-                            ThusoMetric(value: "\(outside)", unit: "of \(panel.count)", label: "Results outside their reference range",
-                                        chip: outside == 0 ? "All within range" : "For a clinician to explain", flagged: outside > 0)
-                        }
-                    }
-                    FactRow(label: "Standing", value: released ? "Released to patient" : order.returned ? "Awaiting release" : "Not yet returned")
+                    FactRow(label: "Standing", value: released ? "Released to patient" : order.returned ? "Awaiting release" : Medicines.ResultsText.notReturned)
                     /* A partner reads the register's answer where the doctor was, and nobody where the
                        nurse who drew the sample was. */
                     OrderPeople(partner: partner, facts: partner ? [standingFor("Requested by")]
@@ -318,25 +314,21 @@ struct LabOrderView: View {
                         .init(label: "Released to the patient", detail: released ? "Visible in the Health Passport with an explanation" : "Held until the requesting doctor releases them", at: "", state: released ? "done" : "active")
                     ], to: order))
                 }
-                SurfacePanel(tone: .quiet, padding: ThusoSpacing.space16) {
-                    StatePicker(title: "Preview the laboratory connection state", state: $state)
-                }
                 if !order.returned {
                     Text("This sample is still on its way to the laboratory, so nothing has come back for it.")
                         .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
-                } else if state == .ready {
-                    SurfacePanel {
-                        PanelHead("Results",
-                                  note: "Fictional results. Reference ranges are illustrative and vary by laboratory, age and sex.")
-                        ForEach(panel, id: \.0) { row in
-                            result(row)
-                            if row.0 != panel.last?.0 { Hairline() }
-                        }
+                }
+                /* The tests it asked for, off the laboratory's menu, and what comes back for them: a
+                   reference, never a value. */
+                SurfacePanel {
+                    PanelHead("Tests ordered", note: Medicines.ResultsText.ordered)
+                    let tests = Vetting.scopeOptions(for: "laboratory").filter { order.asked.contains($0) }
+                    ForEach(tests, id: \.self) { test in
+                        Text(test).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
+                            .padding(.vertical, 3)
+                        if test != tests.last { Hairline() }
                     }
-                } else {
-                    StateBlock(state: state, subject: "The laboratory result feed",
-                               permission: "partner data sharing", retry: { state = .ready }) { EmptyView() }
                 }
                 VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
                     Text("Abnormal results are never pushed to a patient without a clinician’s explanation. Release is a deliberate clinical act, not an automatic notification.")
@@ -361,35 +353,6 @@ struct LabOrderView: View {
         .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
         .thusoGround()
         .navigationTitle("Laboratory order").navigationBarTitleDisplayMode(.inline)
-    }
-
-    /* A row rather than a grouped list row, and the standing is a chip rather than a word in the
-       corner in the smallest type on the screen. What a reader opens a result for is which ones
-       are outside their range; that was the least prominent thing on it. */
-    @ViewBuilder private func result(_ row: (String, String, String, String)) -> some View {
-        let flagged = !row.3.isEmpty
-        VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .firstTextBaseline, spacing: ThusoSpacing.space12) {
-                    Text(row.0).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
-                    Spacer(minLength: ThusoSpacing.space8)
-                    Text(row.1).font(.thuso(.subheadline, weight: .semibold).monospacedDigit()).foregroundStyle(ThusoRole.foreground)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(row.0).font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(row.1).font(.thuso(.subheadline, weight: .semibold).monospacedDigit()).foregroundStyle(ThusoRole.foreground)
-                }
-            }
-            HStack(spacing: ThusoSpacing.space8) {
-                Text("Reference \(row.2)").font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
-                    .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: ThusoSpacing.space8)
-                MetricChip(text: flagged ? row.3 : "Within range", tone: flagged ? .attention : .neutral)
-            }
-        }
-        .padding(.vertical, 3)
-        .accessibilityElement(children: .combine)
     }
 }
 

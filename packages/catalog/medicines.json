@@ -201,7 +201,10 @@
    "empty": "No result is waiting for you.",
    "_returnedNote": "The step a laboratory order's chain of custody ends on before release (1 October 2026). All three platforms said \"Results verified — Checked by the laboratory's reviewing pathologist\" above a panel saying no laboratory is connected: no test is run, so nothing was verified and no pathologist checked anything. What the synthetic laboratory does is hand back a reference, so that is the step, in these words on every platform.",
    "returned": "Result reference returned",
-   "returnedDetail": "No test is run. The synthetic laboratory hands back a reference to a result, and no pathologist has checked anything."
+   "returnedDetail": "No test is run. The synthetic laboratory hands back a reference to a result, and no pathologist has checked anything.",
+   "_notReturnedNote": "An order still short of that step (2 October 2026). The web's badge said \"Not yet verified\", promising a verification that never comes, and the partner's Results board said a result waits for \"the laboratory's own reviewing pathologist\". What is missing is the reference, so the badge says so, and the release step's waiting sentence says what release waits on. Both phones draw notReturned from MedicinesData; releaseWaits is the web's two boards only.",
+   "notReturned": "No result reference yet",
+   "releaseWaits": "Nothing is released before the laboratory has handed back a reference to a result."
   }
  },
 

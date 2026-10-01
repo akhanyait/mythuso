@@ -39,11 +39,14 @@ test('Orders counts what is yours, and a row chooses the order its chain stands 
   await main(page).locator('.fulfil-row').filter({ hasText: 'LAB-0019' }).click();
   await expect(panel.getByRole('heading', { level: 2 })).toContainText('LAB-0019');
   await panel.getByRole('button', { name: 'Open the laboratory order' }).click();
-  /* The order opened is the one chosen. LAB-0019's sample is with the courier, so it is not verified and
-     nothing offers to release it; it opened LAB-0023's verified timeline and a release until 1 October 2026. */
+  /* The order opened is the one chosen. LAB-0019's sample is with the courier, so no reference has come back and
+     nothing offers to release it; it opened LAB-0023's returned timeline and a release until 1 October 2026. The
+     badge said "Not yet verified" until 2 October, a verification no laboratory here performs; it says what is
+     missing, in medicines.json's words. */
   const lab = page.getByRole('dialog');
   await expect(lab.locator('.order-head h3')).toHaveText('LAB-0019');
-  await expect(lab.locator('.order-head .pill')).toHaveText('Not yet verified');
+  await expect(lab.locator('.order-head .pill')).toHaveText(medicines.screen.results.notReturned);
+  await expect(lab).not.toContainText(/Not yet verified|Results verified|reviewing pathologist/);
   await expect(lab.getByRole('button', { name: /Release/ })).toHaveCount(0);
   await page.getByRole('button', { name: 'Close dialog' }).click();
   /* And RX-0079, one item already sealed, opens as itself rather than as RX-0081's two. */
@@ -65,6 +68,11 @@ test('Results carries a track on every row and names no patient', async ({ page 
   expect(await rows.count()).toBeGreaterThan(1);
   await expect(main(page).locator('.fo-track')).toHaveCount(await rows.count());
   for (const name of names) await expect(main(page).locator('.fulfil-list')).not.toContainText(name);
+  /* A result comes back as a reference, in medicines.json's words, and nothing waits on a pathologist: the board
+     said "Verified by the laboratory" and "the laboratory's own reviewing pathologist" until 2 October 2026. */
+  await expect(rows.filter({ hasText: 'LAB-0023' }).locator('.fulfil-state')).toHaveText(medicines.screen.results.returned);
+  await expect(rows.filter({ hasText: 'LAB-0019' })).toContainText(medicines.screen.results.releaseWaits);
+  await expect(main(page)).not.toContainText(/Verified by the laboratory|Results verified|pathologist/);
 });
 
 test('Substitution & repeats opens on a summary that reads and does not approve', async ({ page }) => {

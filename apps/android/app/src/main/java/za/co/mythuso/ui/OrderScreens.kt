@@ -18,6 +18,7 @@ import za.co.mythuso.model.DispensingPartner
 import za.co.mythuso.model.VettingDecision
 import za.co.mythuso.model.can
 import za.co.mythuso.model.dispensingCrossReference
+import za.co.mythuso.model.scopeFor
 import za.co.mythuso.model.seededSubjects
 
 /* An attribution line is where a reader is shown what accountability looks like, so the registration
@@ -81,16 +82,18 @@ private val scripts = mapOf(
     "RX-0079" to ScriptFixture(listOf(amlodipine), "Issued 2 September · Valid for 6 months",
         patient = "Lerato Molefe · 01/01/1980", dispensed = true)
 )
-private data class LabFixture(val what: String, val reached: Int, val collectedBy: String, val seal: String) {
+private data class LabFixture(val what: String, val asked: List<String>, val reached: Int, val collectedBy: String, val seal: String) {
     /** All five steps behind it means a result came back. */
     val returned: Boolean get() = reached >= 5
 }
 /* The two orders the partner's results list, each as far along as its row says: LAB-0023 came back and
-   waits for its doctor, LAB-0019's sample is with the courier. */
+   waits for its doctor, LAB-0019's sample is with the courier. The tests are the web's four, by name, and
+   LAB-0019 asked for the first. */
+private val requested = listOf("Full blood count", "Fasting glucose", "Urea and electrolytes", "Lipogram")
 private val labOrders = mapOf(
-    "LAB-0023" to LabFixture("Requested 4 September · Fasting panel", 5,
+    "LAB-0023" to LabFixture("Requested 4 September · Fasting panel", requested, 5,
         collectedBy = "Sister Naledi Mokoena · At home, Rosebank", seal = "SEAL-77341 · Intact on receipt"),
-    "LAB-0019" to LabFixture("Requested 4 September · Sample in transit", 2,
+    "LAB-0019" to LabFixture("Requested 4 September · Sample in transit", requested.take(1), 2,
         collectedBy = "Sister Naledi Mokoena · At home, Soweto", seal = "SEAL-77352 · Intact at the courier’s handover")
 )
 /* The steps as far as an order has got: the ones behind it done, the one in hand active, the rest
@@ -168,19 +171,21 @@ data class TimelineStep(val label: String, val detail: String, val at: String = 
         Note(dispensingCrossReference)
     }
 }
+/* The laboratory order types no result. It drew four values, each with a unit, a reference range and on two
+   of them a typed "High" — but no contract holds a laboratory reference range (records.json's are the readings
+   a nurse takes at the door), and the synthetic laboratory answers with a reference and never a value
+   (medicines.json#labs). The web stopped on 30 September 2026; the phones did on 2 October. So the order names
+   the tests it asked for off the laboratory's own menu in the vetting register, says in the contract's words
+   what comes back, under the laboratory's own notice, and the values are read in the Health Passport under the
+   patient's grant. scripts/check-boundaries.mjs fails the build if a value, a unit, a range or a flag comes back. */
 @Composable fun LabOrderScreen(reference: String, partner: Boolean) {
     val order = labOrders[reference] ?: run { NoSuchOrder("laboratory order", reference); return }
-    var state by remember(reference) { mutableStateOf(LoadState.READY) }
     var released by remember(reference) { mutableStateOf(false) }
-    val panel = listOf(
-        listOf("Haemoglobin", "13.9 g/dL", "12.0 – 15.5", ""),
-        listOf("Fasting glucose", "6.4 mmol/L", "3.9 – 5.6", "High"),
-        listOf("Creatinine", "74 µmol/L", "49 – 90", ""),
-        listOf("Total cholesterol", "5.8 mmol/L", "< 5.0", "High")
-    )
+    val tests = scopeFor("laboratory")?.options.orEmpty().filter { it in order.asked }
     ScreenColumn {
         DemoBadge()
-        Heading("Fictional laboratory order", reference, "${order.what} · ${if (released) "Released to patient" else if (order.returned) "Awaiting release" else "Not yet returned"}")
+        NotConnected("laboratory-results")
+        Heading("Fictional laboratory order", reference, "${order.what} · ${if (released) "Released to patient" else if (order.returned) "Awaiting release" else MedicinesData.ResultsText.notReturned}")
         CareCard {
             /* A partner reads the register's answer where the doctor was, and nobody where the nurse
                who drew the sample was. */
@@ -200,25 +205,13 @@ data class TimelineStep(val label: String, val detail: String, val at: String = 
             ), order))
         }
         if (!order.returned) Note("This sample is still on its way to the laboratory, so nothing has come back for it.")
-        else StatePicker("Preview the laboratory connection state", state) { state = it }
-        if (order.returned) StateBlock(state, "The laboratory result feed", "partner data sharing", { state = LoadState.READY }) {
-            CareCard {
-                Text("Results", style = MaterialTheme.typography.titleMedium)
-                panel.forEach { row ->
-                    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(row[0], style = MaterialTheme.typography.bodyMedium)
-                            Text(row[1], fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
-                        }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Note("Reference ${row[2]}")
-                            Text(row[3].ifEmpty { "Within range" }, style = MaterialTheme.typography.labelSmall,
-                                color = if (row[3].isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MangoInk)
-                        }
-                    }
-                    HorizontalDivider()
-                }
-                Note("Fictional results. Reference ranges are illustrative and vary by laboratory, age and sex.")
+        /* The tests it asked for, off the laboratory's menu, and what comes back for them: a reference, never a value. */
+        CareCard {
+            Text("Tests ordered", style = MaterialTheme.typography.titleMedium)
+            Note(MedicinesData.ResultsText.ordered)
+            tests.forEach { test ->
+                Text(test, Modifier.fillMaxWidth().padding(vertical = 4.dp), style = MaterialTheme.typography.bodyMedium)
+                if (test != tests.last()) HorizontalDivider()
             }
         }
         Note("Abnormal results are never pushed to a patient without a clinician’s explanation. Release is a deliberate clinical act, not an automatic notification.")

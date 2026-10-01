@@ -11,9 +11,11 @@
  *
  * WHAT IS NOT WRITTEN. No formulary, no check outcome and nothing about a lab result's value or its
  * acknowledgement: no phone prescribes, verifies, dispenses or acknowledges in this wave, and a list a phone does
- * not use is a list nobody updates. The one lab sentence written is the step a laboratory order's custody ends on
+ * not use is a list nobody updates. The lab sentences written are the step a laboratory order's custody ends on
  * before release (screen.results.returned and returnedDetail), because both phones draw that timeline and typed
- * "Results verified" on it over a laboratory that runs no test. No
+ * "Results verified" on it over a laboratory that runs no test; what an order still short of it is
+ * (notReturned); and what the synthetic laboratory answers an order with (ordered), which both phones draw where
+ * they typed four results with their ranges until 2 October 2026. No
  * setting's value an admin put in force: neither app reaches a settings route, so each uses the defaults written
  * here and says so beside each.
  *
@@ -71,9 +73,9 @@ export function emitMedicines(root = '') {
  }
  const refusals = [...seen.values()];
  const text = Object.entries(contract.screen.handover).filter(([key, value]) => typeof value === 'string' && !key.startsWith('_'));
- const resultsText = ['returned', 'returnedDetail'].map(key => {
+ const resultsText = ['returned', 'returnedDetail', 'notReturned', 'ordered'].map(key => {
   const value = contract.screen.results?.[key];
-  if (typeof value !== 'string' || !value.trim()) throw new Error(`${SOURCE} screen.results.${key} is missing, and both phones draw the laboratory order's last custody step from it.`);
+  if (typeof value !== 'string' || !value.trim()) throw new Error(`${SOURCE} screen.results.${key} is missing, and both phones draw the laboratory order from it.`);
   return [key, value];
  });
  const schedules = dispensing.schedules.items;
@@ -110,7 +112,7 @@ ${contract.custody.voidReasons.map(s => `        .init(id: ${swift(s.code)}, lab
 ${text.map(([key, value]) => `        static let ${key} = ${swift(value)}`).join('\n')}
     }
 
-    /// The laboratory order's last custody step before release. A reference returned, never a verified result.
+    /// The laboratory order's words: a reference returned, never a verified result, and never a value.
     enum ResultsText {
 ${resultsText.map(([key, value]) => `        static let ${key} = ${swift(value)}`).join('\n')}
     }
@@ -151,7 +153,7 @@ ${contract.custody.voidReasons.map(s => `        MedicinesChoice(${kotlin(s.code
 ${text.map(([key, value]) => `        const val ${key} = ${kotlin(value)}`).join('\n')}
     }
 
-    /** The laboratory order's last custody step before release. A reference returned, never a verified result. */
+    /** The laboratory order's words: a reference returned, never a verified result, and never a value. */
     object ResultsText {
 ${resultsText.map(([key, value]) => `        const val ${key} = ${kotlin(value)}`).join('\n')}
     }

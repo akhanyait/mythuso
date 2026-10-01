@@ -167,8 +167,8 @@ function Prescription({ reference, script, open, partner }: { reference: string;
 const requested = ['Full blood count', 'Fasting glucose', 'Urea and electrolytes', 'Lipogram'];
 const menu = scopeFor('laboratory')?.options ?? [];
 /* The three orders the partner's boards list, each with the tests it asked for (always off the menu
-   above) and how far along it is: `reached` is the number of steps of the timeline behind it. LAB-0023 is
-   verified and waiting for its doctor, LAB-0019's sample is with the courier, and LAB-0014 was released
+   above) and how far along it is: `reached` is the number of steps of the timeline behind it. LAB-0023 has
+   its reference back and waits for its doctor, LAB-0019's sample is with the courier, and LAB-0014 was released
    with the doctor's note. */
 const labOrders: Record<string, { what: string; asked: string[]; reached: number; collectedBy: string; seal: string }> = {
  'LAB-0023': { what: 'Requested 4 September · Fasting panel', asked: requested, reached: 5, collectedBy: 'Sister Naledi Mokoena · At home, Rosebank', seal: 'SEAL-77341 · Intact on receipt' },
@@ -194,16 +194,16 @@ function LabOrder({ reference, order, partner }: { reference: string; order: typ
  const [chosen, setChosen] = useState(laboratories[0].id);
  const laboratory = laboratories.find(l => l.id === chosen)!;
  const mayRelease = can(laboratory, 'release-lab-result');
- const verified = order.reached >= labSteps.length;
+ const returned = order.reached >= labSteps.length;
  /* Release is withheld from the partner. vetting.json grants a laboratory release-lab-result, and the
     partner's own Results board says a result reaches a patient when a clinician sends it with an
     explanation and this partner cannot do that for them. The two disagreed, and the screen sided with the
     grant: an enabled "Release with an explanation" on a partner's page. Of the two, the clinician's rule is
     the one a patient is protected by, so a partner reads the sentence and no control; the grant stays in
     vetting.json, where whether a laboratory holds it at all is a decision for the founder and a clinician. */
- const mayAct = !partner && verified;
+ const mayAct = !partner && returned;
  return <div className="oi-screen oi-order">
-  <div className="oi-card-head order-head"><div><p className="oi-eyebrow oi-with-icon"><FlaskConical aria-hidden="true"/>Laboratory order</p><h3 className="oi-section-title">{reference}</h3><p className="oi-help">{order.what}</p></div><Badge className="pill" variant={released ? 'success' : 'neutral'}>{released ? 'Released to patient' : verified ? 'Awaiting release' : 'Not yet verified'}</Badge></div>
+  <div className="oi-card-head order-head"><div><p className="oi-eyebrow oi-with-icon"><FlaskConical aria-hidden="true"/>Laboratory order</p><h3 className="oi-section-title">{reference}</h3><p className="oi-help">{order.what}</p></div><Badge className="pill" variant={released ? 'success' : 'neutral'}>{released ? 'Released to patient' : returned ? 'Awaiting release' : medicinesContract.screen.results.notReturned}</Badge></div>
   <OfficeFacts facts={[...(partner ? [standingFor('Requested by')] : whoFor(partner, { prescriberAs: 'Requested by', collectedBy: order.collectedBy })), ['Sample seal', order.seal]]}/>
   {partner && <p className="oi-help">{partnerTold}</p>}
   <Field label="Testing laboratory" htmlFor="order-laboratory"><Select id="order-laboratory" value={chosen} onChange={e => { setChosen(e.target.value); setReleased(false); }}>
@@ -212,7 +212,7 @@ function LabOrder({ reference, order, partner }: { reference: string; order: typ
   {!mayRelease.allowed && <OfficeNote refusal role="status" icon={<ShieldX aria-hidden="true"/>}>{mayRelease.reason}</OfficeNote>}
   <Timeline steps={[
    ...labSteps.map((step, n): Step => ({ label: step.label, detail: step.detail, state: n < order.reached ? 'done' : n === order.reached ? 'active' : 'waiting' })),
-   { label: 'Released to the patient', detail: released ? 'Visible in the Health Passport with an explanation' : !verified ? 'Nothing is released before the laboratory has handed back a reference to a result' : mayRelease.allowed ? 'Held until the requesting doctor releases them' : 'Held. Accreditation lapsed, and a held result stays held', state: released ? 'done' : verified ? 'active' : 'waiting' }
+   { label: 'Released to the patient', detail: released ? 'Visible in the Health Passport with an explanation' : !returned ? medicinesContract.screen.results.releaseWaits : mayRelease.allowed ? 'Held until the requesting doctor releases them' : 'Held. Accreditation lapsed, and a held result stays held', state: released ? 'done' : returned ? 'active' : 'waiting' }
   ]}/>
   <NotConnected of="laboratory-results"/>
   <Card>
