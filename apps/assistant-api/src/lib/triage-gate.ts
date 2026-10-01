@@ -1,5 +1,6 @@
 import protocols from "../../../../packages/catalog/protocols.json" with { type: "json" };
 import clinical from "../../../../packages/catalog/clinical.json" with { type: "json" };
+import { validateProtocolReadiness } from "../../../../packages/engines/src/clinical/domain/triage.ts";
 
 /* The triage protocol-status gate, added 22 September 2026.
 
@@ -17,8 +18,9 @@ import clinical from "../../../../packages/catalog/clinical.json" with { type: "
         triage protocols. It is the board's list, and today it is empty: none of the twelve launch
         protocols is a triage protocol, and clinical.json's own note forbids borrowing one by naming it.
      2. Every protocol on that list must appear in packages/catalog/protocols.json with the status
-        "ratified", carrying the role and name of whoever signed it and the day they did. A draft, a
-        retirement or a missing row is not ratified.
+        "ratified", carrying the role and name of whoever signed it, the day they did, and the safety
+        case the protocol rests on. A draft, a retirement, a missing row or a signed row with no safety
+        case is not ratified.
      3. The governance board must be formed and a Medical Director appointed, because protocols.json
         says no protocol advances beyond draft until both are — a ratified row without them would be a
         signature nobody was there to give.
@@ -28,11 +30,13 @@ import clinical from "../../../../packages/catalog/clinical.json" with { type: "
    names it in clinical.json — and the routes activate on the next start with no code change. Until
    then every triage call is answered with the contract's own refusal, not a 501 and not a guess. */
 
-type ProtocolRow = {
+export type ProtocolRow = {
   id: string;
+  version: number;
   status: string;
   ratifiedBy: { role?: string; name?: string } | null;
   ratifiedOn: number | null;
+  safetyCase: string | null;
 };
 
 const protocolRows = protocols.protocols as ProtocolRow[];
@@ -43,14 +47,29 @@ const directorAppointed: boolean =
 
 /* One protocol is ratified when the register says so and carries a signature: a role, a name and a day
    that has happened (ratifiedOn is a negative-or-zero offset in the register's own convention, so any
-   whole number the register holds is a day it recorded; a null is a draft that never was). */
-const isRatified = (id: string): boolean => {
-  const row = protocolRows.find((p) => p.id === id);
+   whole number the register holds is a day it recorded; a null is a draft that never was).
+
+   It must also carry a safety case, added 1 October 2026. The status, signature and day were read here
+   and the safety case was not, so a row marked ratified and signed on a day but resting on no safety case
+   would have opened triage — while the clinical engine's own validateProtocolReadiness answered the same
+   row not ready. The engine's function is the one definition of a ready protocol, so this asks it rather
+   than restating it; the role-and-name check stays in front because the engine reads a signature as any
+   non-null value and the register's signature is two fields. Stricter only: no protocol is ratified. */
+export const ratifiedRow = (row: ProtocolRow | undefined): boolean => {
   if (!row || row.status !== "ratified") return false;
   if (!row.ratifiedBy?.role?.trim() || !row.ratifiedBy?.name?.trim())
     return false;
-  return typeof row.ratifiedOn === "number";
+  if (typeof row.ratifiedOn !== "number") return false;
+  return validateProtocolReadiness({
+    protocolId: row.id,
+    version: row.version,
+    ratifiedBy: `${row.ratifiedBy.role.trim()} ${row.ratifiedBy.name.trim()}`,
+    ratifiedAt: String(row.ratifiedOn),
+    safetyCase: row.safetyCase?.trim() ? row.safetyCase : null,
+  }).ready;
 };
+const isRatified = (id: string): boolean =>
+  ratifiedRow(protocolRows.find((p) => p.id === id));
 
 export interface TriageGate {
   /* True only when the register holds at least one triage protocol and every one of them is ratified,

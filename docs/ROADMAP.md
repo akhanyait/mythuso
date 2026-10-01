@@ -1097,6 +1097,10 @@ would open both gates in a running service and be caught only by the test suite 
 That is a real gap, and a cheap one to close — a single call in the gate — but closing it is a code
 change and this section is not one.
 
+**Closed, 1 October 2026:** `triage-gate.ts` now asks `validateProtocolReadiness` of every designated
+protocol, so a row ratified with `safetyCase: null` (or a blank one) keeps the gate shut, and
+`triage-gate.test.ts` proves it with synthetic rows. Stricter only — no protocol is ratified.
+
 ### 8. What opens when all of it is done, and what does not
 
 When the board is formed, a Medical Director appointed, a protocol ratified with its content, the seam

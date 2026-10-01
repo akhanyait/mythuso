@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { triageGate } from "./triage-gate.ts";
+import { ratifiedRow, triageGate, type ProtocolRow } from "./triage-gate.ts";
 import protocols from "../../../../packages/catalog/protocols.json" with { type: "json" };
 import clinical from "../../../../packages/catalog/clinical.json" with { type: "json" };
 
@@ -21,16 +21,18 @@ const rows = protocols.protocols as Array<{
   status: string;
   ratifiedBy: { role?: string | null; name?: string | null } | null;
   ratifiedOn: number | null;
+  safetyCase: string | null;
 }>;
 
 /* The register's own definition of a ratified protocol, restated here so the gate is held to the
-   register rather than to itself: a row that says ratified, carrying a role, a name and a day. */
+   register rather than to itself: a row that says ratified, carrying a role, a name, a day and the
+   safety case it rests on. */
 const ratified = (id: string): boolean => {
   const row = rows.find((entry) => entry.id === id);
   if (!row || row.status !== "ratified") return false;
   if (!row.ratifiedBy?.role?.trim() || !row.ratifiedBy?.name?.trim())
     return false;
-  return typeof row.ratifiedOn === "number";
+  return typeof row.ratifiedOn === "number" && !!row.safetyCase?.trim();
 };
 
 test("the gate is shut while the board has designated no triage protocol, and says so", () => {
@@ -132,4 +134,40 @@ test("a shut gate carries no clinical statement a caller could be handed", () =>
       `the reason must not carry the clinical word "${forbidden}"`,
     );
   }
+});
+
+test("a signed, dated protocol with no safety case does not open the gate", () => {
+  /* Added 1 October 2026. The gate read status, signature and day and never the safety case, so a row
+    the clinical engine's validateProtocolReadiness calls not ready could have read as ratified here.
+    The rows below are synthetic — no protocol in the register is ratified — and they are what the
+    register would hold on the day one was, less exactly one thing each. */
+  const signed: ProtocolRow = {
+    id: "synthetic-triage",
+    version: 1,
+    status: "ratified",
+    ratifiedBy: { role: "Medical Director", name: "Synthetic signatory" },
+    ratifiedOn: 0,
+    safetyCase: "Synthetic safety case.",
+  };
+  assert.equal(ratifiedRow(signed), true, "a row carrying all four is ratified");
+  assert.equal(
+    ratifiedRow({ ...signed, safetyCase: null }),
+    false,
+    "no safety case, not ratified",
+  );
+  assert.equal(
+    ratifiedRow({ ...signed, safetyCase: "   " }),
+    false,
+    "a blank safety case is no safety case",
+  );
+  assert.equal(ratifiedRow({ ...signed, ratifiedOn: null }), false);
+  assert.equal(
+    ratifiedRow({ ...signed, ratifiedBy: { role: "Medical Director" } }),
+    false,
+  );
+  assert.equal(ratifiedRow({ ...signed, status: "draft" }), false);
+  assert.equal(ratifiedRow(undefined), false);
+  /* And every row in the register as it stands is refused, safety case and all. */
+  for (const row of protocols.protocols as ProtocolRow[])
+    assert.equal(ratifiedRow(row), false, `${row.id} is a draft`);
 });
