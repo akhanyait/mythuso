@@ -14,6 +14,8 @@ import Foundation
 
    The order is the safety property. Emergency words are checked before any question, and a match
    ends the matching: "when is my nurse coming, I have chest pains" is an emergency, not a visit date.
+   Since 2 October 2026 the escalation ruleset (Escalation.swift, generated from escalation.ts) is asked
+   next, before any question, so "my throat is swelling" is the emergency answer here as on the web.
    And a question may answer on its own only if every word of the message is its own trigger or ordinary
    filler — the Wave 1 review showed that a missed word followed by a calm answer is the miss presented
    as reassurance. selfTest() runs all of it against the contract's fixtures in a debug build, and
@@ -409,6 +411,16 @@ enum Gilbert {
         return emergencyGroups.filter { group in group.words.contains { hasSequence(said, stems($0), gap: maxGap) } }
     }
 
+    /// The escalation ruleset's emergency (Escalation.swift), as the groups the emergency answer names —
+    /// or nil when the ruleset found none. The web's escalationEmergencyIn, since 2 October 2026: no
+    /// condition is named, because a rule is not a terms group, except that a rule crisis-lines.json lists
+    /// under showsWhen.escalationRules carries the crisis group, so a crisis the terms missed is shown the
+    /// crisis lines a crisis they caught is shown. An urgent rule is not an emergency and is not answered here.
+    static func escalationEmergency(in text: String) -> [GilbertEmergencyGroup]? {
+        guard let match = Escalation.emergency(in: text) else { return nil }
+        return EscalationData.crisisRules.contains(match.rule.id) ? emergencyGroups.filter { $0.id == Crisis.group } : []
+    }
+
     /// The longest trigger (in words, adjacent) wins; a tie goes to the question listed first.
     /// Only the questions the audience is offered are in the running, and the emergency words are matched
     /// before any of this in send(), so scoping a question out can never scope an emergency out.
@@ -480,9 +492,9 @@ enum Gilbert {
     static func send(_ text: String, channel: Channel, to turns: [Turn], visit: BookedVisit?, audience: String = "patient") -> [Turn] {
         let words = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !words.isEmpty else { return turns }
-        let groups = emergencyGroups(in: words)
-        /* The emergency words first, and a match ends it. */
-        if !groups.isEmpty {
+        /* The emergency words first, then the escalation ruleset's emergencies, and a match ends it. */
+        let named = emergencyGroups(in: words)
+        if let groups = named.isEmpty ? escalationEmergency(in: words) : named {
             return appending({ Turn(id: $0, asked: words, channel: channel, reply: .emergency(groups), matched: nil, groups: groups, unread: false) }, to: turns)
         }
         guard let question = question(for: words, audience: audience) else {
@@ -575,7 +587,7 @@ enum Gilbert {
                 disagreements.append("\"\(fixture.says)\" gave \(kind) \(question ?? "-") \(groups)")
             }
         }
-        return disagreements
+        return disagreements + Escalation.selfTest()
     }
 
     /// Ordinary sentences the emergency terms raise today. Reported, never a failure: see falsePositives

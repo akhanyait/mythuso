@@ -290,7 +290,7 @@
   },
   "platforms": ["web", "ios", "android"],
   "fixtures": {
-    "why": "One list every platform runs against its own reading of the rules. answers names option ids; typed is the free-text answer; expect is the outcome, rules the rules raised in contract order, conditions the entries shown in order. A fixture marked web is decided by the escalation ruleset, which the phones do not carry yet: on a phone the same words reach the emergency answer only if the emergency terms raise them.",
+    "why": "One list every platform runs against its own reading of the rules. answers names option ids; typed is the free-text answer; expect is the outcome, rules the rules raised in contract order, conditions the entries shown in order. A fixture may be marked with the platforms that run it; none is today. The two decided by the escalation ruleset were marked web until 2 October 2026, when the ruleset was generated into the phones (scripts/emit-escalation.mjs), and all three platforms now run them.",
     "cases": [
       { "name": "itchy welts on an adult", "answers": { "who": ["self"], "looks": ["welts"], "feels": ["itchy"], "signs": ["none"] }, "expect": "general-information", "conditions": ["cond-031", "cond-066", "cond-069", "cond-070"] },
       { "name": "scaly ring", "answers": { "who": ["adult"], "looks": ["ring", "scaly"], "signs": ["none"] }, "expect": "general-information", "conditions": ["cond-030", "cond-028", "cond-065", "cond-066"] },
@@ -306,8 +306,8 @@
       { "name": "signs unanswered", "answers": { "who": ["self"], "looks": ["welts"] }, "expect": "incomplete" },
       { "name": "an emergency typed into the notes", "answers": { "who": ["self"], "signs": ["none"] }, "typed": "she is struggling to breathe", "expect": "emergency" },
       { "name": "a new soap typed into the notes", "answers": { "who": ["self"], "looks": ["red-patches"], "signs": ["none"] }, "typed": "I started a new washing powder last week", "expect": "general-information", "conditions": ["cond-028", "cond-065", "cond-067", "cond-068"] },
-      { "name": "swelling lips typed, read by the escalation ruleset", "answers": { "who": ["self"], "signs": ["none"] }, "typed": "I have a rash and my lips are swelling", "expect": "emergency", "platforms": ["web"] },
-      { "name": "a curly apostrophe before the swelling", "answers": { "who": ["self"], "signs": ["none"] }, "typed": "it’s a rash and my tongue is swollen", "expect": "emergency", "platforms": ["web"] }
+      { "name": "swelling lips typed, read by the escalation ruleset", "answers": { "who": ["self"], "signs": ["none"] }, "typed": "I have a rash and my lips are swelling", "expect": "emergency" },
+      { "name": "a curly apostrophe before the swelling", "answers": { "who": ["self"], "signs": ["none"] }, "typed": "it’s a rash and my tongue is swollen", "expect": "emergency" }
     ]
   }
 }

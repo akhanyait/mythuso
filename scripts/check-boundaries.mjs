@@ -3151,6 +3151,13 @@ const generated = [
     const files = (await import("./emit-skin-check.mjs")).emitSkinCheck();
     return ["packages/catalog/skin-check.json", "packages/catalog/knowledge/conditions.json", "packages/catalog/knowledge/first-aid.json", "packages/catalog/apis/assistant.json"].map((source) => ({ source, command: "npm run skin-check", files }));
   })()),
+  /* The escalation ruleset on the phones (2 October 2026): escalation.ts's rules, translated, with the fold's
+     characters and the crisis rules. One entry per source, so the phones' copy is refused the moment it is older
+     than, or different from, the Tier 1 file gilbert-clinical-core.json pins — the pin and the port cannot part. */
+  ...(await (async () => {
+    const files = (await import("./emit-escalation.mjs")).emitEscalation();
+    return ["packages/gilbertone/src/escalation.ts", "packages/catalog/assistant.json", "packages/catalog/crisis-lines.json"].map((source) => ({ source, command: "npm run escalation", files }));
+  })()),
   /* Hands-free conversation mode (28 September 2026): the pause, the caps and the sentences, so neither phone types them. */
   {
     source: "packages/catalog/conversation-mode.json",
@@ -33107,6 +33114,35 @@ const phase0 = { tenantFilesSwept: 0 };
       `${file} declares ${rules.length} rules in the order [${rules.map((r) => r.id).join(", ")}], and packages/catalog/gilbert-clinical-core.json's ruleOrder does not match them id for id, severity for severity and action for action. First match wins in checkEscalation, so the order is part of the clinical behaviour.`,
     );
   phase0.escalationRules = rules.length;
+}
+
+/* 7a. The phones ask the escalation ruleset, where the web does. Since 2 October 2026 escalation.ts is
+   generated into EscalationData.swift and EscalationData.kt (scripts/emit-escalation.mjs, held above by the
+   generated list), and that is worth nothing unless something reads it: each phone's send() asks the
+   ruleset after the terms and before any question, its skin check asks it beside the terms, and its
+   fixtures run. Before this, "my throat is swelling" raised the ambulance numbers on the web and met
+   "I can't assess that" on a phone. */
+{
+  const escalationReaders = [
+    ["apps/ios/MyThuso/Models/Assistant.swift", /let named = emergencyGroups\(in: words\)\s*if let groups = named\.isEmpty \? escalationEmergency\(in: words\) : named \{/, "send() answers the escalation ruleset's emergency when the terms name none"],
+    ["apps/ios/MyThuso/Models/Assistant.swift", /Escalation\.emergency\(in: text\)/, "escalationEmergency asks the ruleset's emergency severity"],
+    ["apps/ios/MyThuso/Models/Assistant.swift", /return disagreements \+ Escalation\.selfTest\(\)/, "the self-test replays fixtures.escalation"],
+    ["apps/ios/MyThuso/Models/SkinCheck.swift", /Escalation\.emergency\(in: words\) != nil/, "the skin check's typed words are asked of the ruleset"],
+    ["apps/android/app/src/main/java/za/co/mythuso/model/Assistant.kt", /val named = emergencyGroups\(words\)\s*val groups = if \(named\.isNotEmpty\(\)\) named else escalationEmergency\(words\)\s*if \(groups != null\)/, "send() answers the escalation ruleset's emergency when the terms name none"],
+    ["apps/android/app/src/main/java/za/co/mythuso/model/Assistant.kt", /Escalation\.emergency\(text\)/, "escalationEmergency asks the ruleset's emergency severity"],
+    ["apps/android/app/src/main/java/za/co/mythuso/model/SkinCheck.kt", /Escalation\.emergency\(typed\.trim\(\)\) != null/, "the skin check's typed words are asked of the ruleset"],
+    ["apps/android/app/src/test/java/za/co/mythuso/EscalationFixturesTest.kt", /EscalationData\.fixtures/, "the JVM test replays fixtures.escalation"],
+  ];
+  for (const [file, pattern, what] of escalationReaders)
+    if (!pattern.test(read(file)))
+      throw new Error(
+        `${file} no longer shows that ${what}. The escalation ruleset is generated into the phones so that a presentation no emergency term names — a throat that is swelling, weakness on one side, "I don’t want to live anymore" — raises the same emergency answer on a phone as on the web; a port nothing asks lowers it on the phone again.`,
+      );
+  for (const file of ["apps/ios/MyThuso/Models/Escalation.swift", "apps/android/app/src/main/java/za/co/mythuso/model/Escalation.kt"])
+    if (/\b(?:10177|112)\b|\bRegex\("|NSRegularExpression\(pattern: "/.test(read(file)))
+      throw new Error(
+        `${file} types an emergency number or a pattern of its own. The rules, their patterns and their sentences are EscalationData's, generated from escalation.ts; the matcher beside them folds, tries and reports, and a pattern typed here is a Tier 1 rule nobody ratified.`,
+      );
 }
 
 console.log(

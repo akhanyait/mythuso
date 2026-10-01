@@ -14,8 +14,9 @@
    the handover submit route's refusal (apis/assistant.json). A name that resolves to nothing stops the
    generator rather than writing an empty string somebody would have to notice.
 
-   A fixture marked web is left out: it is decided by the escalation ruleset, which only the web
-   carries, and a phone that ran it would be asked to agree with arithmetic it does not have.
+   A fixture marked with platforms is written only for the phones it names. None is today: the two the
+   escalation ruleset decides were marked web until 2 October 2026, when scripts/emit-escalation.mjs
+   generated the ruleset into both phones.
 
    Escaping: Swift needs its backslashes and quotes escaped; Kotlin needs backslash, quote and dollar,
    because a lone $ starts a template. */

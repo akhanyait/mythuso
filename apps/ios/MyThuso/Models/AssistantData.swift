@@ -314,7 +314,16 @@ extension Gilbert {
         GilbertMessageFixture(says: "what are you", expect: "answer", question: "identity", groups: [], audience: "nurse"),
         GilbertMessageFixture(says: "when is my nurse coming", expect: "unmatched", question: nil, groups: [], audience: "nurse"),
         GilbertMessageFixture(says: "what if it cannot wait", expect: "emergency", question: nil, groups: [], audience: "back-office"),
-        GilbertMessageFixture(says: "I have chest pains", expect: "emergency", question: nil, groups: ["chest-pain"], audience: "doctor")
+        GilbertMessageFixture(says: "I have chest pains", expect: "emergency", question: nil, groups: ["chest-pain"], audience: "doctor"),
+        GilbertMessageFixture(says: "I don’t want to live anymore", expect: "emergency", question: nil, groups: ["crisis"], audience: nil),
+        GilbertMessageFixture(says: "my throat\u{00A0}is swelling", expect: "emergency", question: nil, groups: [], audience: nil),
+        GilbertMessageFixture(says: "she isn’t breathing", expect: "emergency", question: nil, groups: ["breathing"], audience: nil),
+        GilbertMessageFixture(says: "sudden weakness on one side", expect: "emergency", question: nil, groups: [], audience: nil),
+        GilbertMessageFixture(says: "my left arm is numb", expect: "emergency", question: nil, groups: [], audience: nil),
+        GilbertMessageFixture(says: "he od’d on his pills", expect: "emergency", question: nil, groups: ["crisis"], audience: nil),
+        GilbertMessageFixture(says: "when is my nurse coming, my lips are swelling", expect: "emergency", question: nil, groups: [], audience: nil),
+        GilbertMessageFixture(says: "my throat is swelling", expect: "emergency", question: nil, groups: [], audience: "nurse"),
+        GilbertMessageFixture(says: "my knee is a bit stiff this morning", expect: "unmatched", question: nil, groups: [], audience: nil)
     ]
 
     static let refusals: [GilbertRefusal] = [

@@ -287,6 +287,8 @@ object SkinCheckData {
         SkinFixture("two signs for today", mapOf("who" to listOf("self"), "signs" to listOf("burn", "hot-spreading")), "", "sister-today", listOf("burn", "hot-spreading"), null),
         SkinFixture("signs unanswered", mapOf("who" to listOf("self"), "looks" to listOf("welts")), "", "incomplete", null, null),
         SkinFixture("an emergency typed into the notes", mapOf("who" to listOf("self"), "signs" to listOf("none")), "she is struggling to breathe", "emergency", null, null),
-        SkinFixture("a new soap typed into the notes", mapOf("who" to listOf("self"), "looks" to listOf("red-patches"), "signs" to listOf("none")), "I started a new washing powder last week", "general-information", null, listOf("cond-028", "cond-065", "cond-067", "cond-068"))
+        SkinFixture("a new soap typed into the notes", mapOf("who" to listOf("self"), "looks" to listOf("red-patches"), "signs" to listOf("none")), "I started a new washing powder last week", "general-information", null, listOf("cond-028", "cond-065", "cond-067", "cond-068")),
+        SkinFixture("swelling lips typed, read by the escalation ruleset", mapOf("who" to listOf("self"), "signs" to listOf("none")), "I have a rash and my lips are swelling", "emergency", null, null),
+        SkinFixture("a curly apostrophe before the swelling", mapOf("who" to listOf("self"), "signs" to listOf("none")), "it’s a rash and my tongue is swollen", "emergency", null, null)
     )
 }

@@ -12,9 +12,9 @@ package za.co.mythuso.model
  * first, a tie going to the lower id, at most maxShown of them.
  *
  * It never sees the photo, names no rash, sets no priority and composes no sentence. Its emergency
- * matcher is the conversation's own term list; the escalation ruleset the web adds in front of it is
- * not carried on this phone yet, so the contract's web-only fixtures are not generated here. A JVM test
- * (SkinCheckFixturesTest) runs the rest. */
+ * matcher is the conversation's own: the term list, then the escalation ruleset (Escalation.kt,
+ * generated from escalation.ts since 2 October 2026), as the web's skinEmergency. A JVM test
+ * (SkinCheckFixturesTest) runs the contract's fixtures. */
 
 data class SkinOption(val id: String, val label: String, val oftenSeenIn: List<String>, val checkFirst: List<String>)
 
@@ -57,8 +57,10 @@ object SkinCheck {
     private fun condition(id: String) = SkinCheckData.conditions.firstOrNull { it.id == id }
     private fun firstAid(id: String) = SkinCheckData.firstAid.firstOrNull { it.id == id }
 
-    /** Typed words are an emergency when the conversation's own emergency terms raise them. */
-    fun emergency(typed: String): Boolean = typed.isNotBlank() && Gilbert.emergencyGroups(typed.trim()).isNotEmpty()
+    /** Typed words are an emergency when the conversation's own emergency terms raise them, or the
+     *  escalation ruleset finds an emergency in them — the two asks Gilbert.send() makes. */
+    fun emergency(typed: String): Boolean =
+        typed.isNotBlank() && (Gilbert.emergencyGroups(typed.trim()).isNotEmpty() || Escalation.emergency(typed.trim()) != null)
 
     private fun holds(rule: SkinRule, answers: Map<String, List<String>>) =
         rule.`when`.all { c -> (answers[c.question] ?: emptyList()).any { it in c.anyOf } }

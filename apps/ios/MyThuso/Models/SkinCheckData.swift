@@ -289,7 +289,9 @@ enum SkinCheckData {
         SkinFixture(name: "two signs for today", answers: ["who": ["self"], "signs": ["burn", "hot-spreading"]], typed: "", expect: "sister-today", rules: ["burn", "hot-spreading"], conditions: nil),
         SkinFixture(name: "signs unanswered", answers: ["who": ["self"], "looks": ["welts"]], typed: "", expect: "incomplete", rules: nil, conditions: nil),
         SkinFixture(name: "an emergency typed into the notes", answers: ["who": ["self"], "signs": ["none"]], typed: "she is struggling to breathe", expect: "emergency", rules: nil, conditions: nil),
-        SkinFixture(name: "a new soap typed into the notes", answers: ["who": ["self"], "looks": ["red-patches"], "signs": ["none"]], typed: "I started a new washing powder last week", expect: "general-information", rules: nil, conditions: ["cond-028", "cond-065", "cond-067", "cond-068"])
+        SkinFixture(name: "a new soap typed into the notes", answers: ["who": ["self"], "looks": ["red-patches"], "signs": ["none"]], typed: "I started a new washing powder last week", expect: "general-information", rules: nil, conditions: ["cond-028", "cond-065", "cond-067", "cond-068"]),
+        SkinFixture(name: "swelling lips typed, read by the escalation ruleset", answers: ["who": ["self"], "signs": ["none"]], typed: "I have a rash and my lips are swelling", expect: "emergency", rules: nil, conditions: nil),
+        SkinFixture(name: "a curly apostrophe before the swelling", answers: ["who": ["self"], "signs": ["none"]], typed: "it’s a rash and my tongue is swollen", expect: "emergency", rules: nil, conditions: nil)
     ]
     #endif
 }

@@ -380,7 +380,16 @@ object GilbertData {
         GilbertMessageFixture("what are you", "answer", "identity", emptyList(), "nurse"),
         GilbertMessageFixture("when is my nurse coming", "unmatched", null, emptyList(), "nurse"),
         GilbertMessageFixture("what if it cannot wait", "emergency", null, emptyList(), "back-office"),
-        GilbertMessageFixture("I have chest pains", "emergency", null, listOf("chest-pain"), "doctor")
+        GilbertMessageFixture("I have chest pains", "emergency", null, listOf("chest-pain"), "doctor"),
+        GilbertMessageFixture("I don’t want to live anymore", "emergency", null, listOf("crisis"), null),
+        GilbertMessageFixture("my throat\u00A0is swelling", "emergency", null, emptyList(), null),
+        GilbertMessageFixture("she isn’t breathing", "emergency", null, listOf("breathing"), null),
+        GilbertMessageFixture("sudden weakness on one side", "emergency", null, emptyList(), null),
+        GilbertMessageFixture("my left arm is numb", "emergency", null, emptyList(), null),
+        GilbertMessageFixture("he od’d on his pills", "emergency", null, listOf("crisis"), null),
+        GilbertMessageFixture("when is my nurse coming, my lips are swelling", "emergency", null, emptyList(), null),
+        GilbertMessageFixture("my throat is swelling", "emergency", null, emptyList(), "nurse"),
+        GilbertMessageFixture("my knee is a bit stiff this morning", "unmatched", null, emptyList(), null)
     )
 
     val refusals = listOf(

@@ -14,7 +14,8 @@ import java.text.Normalizer
  * of that, so scoping a question out can never scope an emergency out.
  *
  * The order is the safety property. Emergency words are checked before any question, and a match ends
- * the matching. A question may answer on its own only if every word is its own trigger or filler: the
+ * the matching; since 2 October 2026 the escalation ruleset (Escalation.kt, generated from
+ * escalation.ts) is asked next, before any question, as on the web. A question may answer on its own only if every word is its own trigger or filler: the
  * Wave 1 review showed that a missed word followed by a calm answer is the miss presented as
  * reassurance. app/src/test/.../GilbertFixturesTest.kt runs the contract's fixtures against this file.
  *
@@ -233,6 +234,16 @@ object Gilbert {
         return GilbertData.emergencyGroups.filter { group -> group.words.any { hasSequence(said, stems(it), GilbertData.maxGap) } }
     }
 
+    /** The escalation ruleset's emergency (Escalation.kt), as the groups the emergency answer names — or
+     *  null when the ruleset found none. The web's escalationEmergencyIn, since 2 October 2026: no
+     *  condition is named, because a rule is not a terms group, except that a rule crisis-lines.json lists
+     *  under showsWhen.escalationRules carries the crisis group, so a crisis the terms missed is shown the
+     *  crisis lines a crisis they caught is shown. An urgent rule is not an emergency and is not answered here. */
+    fun escalationEmergency(text: String): List<GilbertEmergencyGroup>? {
+        val match = Escalation.emergency(text) ?: return null
+        return if (match.rule.id in EscalationData.crisisRules) GilbertData.emergencyGroups.filter { it.id == CrisisLinesData.group } else emptyList()
+    }
+
     /** The longest trigger (in words, adjacent) wins; a tie goes to the question listed first.
      *  Only the questions the audience is offered are in the running, and the emergency words are matched
      *  before any of this in send(), so scoping a question out can never scope an emergency out. */
@@ -292,9 +303,10 @@ object Gilbert {
     fun send(text: String, channel: GilbertChannel, turns: List<GilbertTurn>, visit: BookedVisit?, audience: String = "patient"): List<GilbertTurn> {
         val words = text.trim()
         if (words.isEmpty()) return turns
-        val groups = emergencyGroups(words)
-        /* The emergency words first, and a match ends it. */
-        if (groups.isNotEmpty()) return append(turns) { GilbertTurn(it, words, channel, GilbertReply.Emergency(groups), null, groups) }
+        /* The emergency words first, then the escalation ruleset's emergencies, and a match ends it. */
+        val named = emergencyGroups(words)
+        val groups = if (named.isNotEmpty()) named else escalationEmergency(words)
+        if (groups != null) return append(turns) { GilbertTurn(it, words, channel, GilbertReply.Emergency(groups), null, groups) }
         val question = question(words, audience)
             ?: return append(turns) { GilbertTurn(it, words, channel, GilbertReply.Unmatched, null, emptyList()) }
         val unread = question.answer != "emergency" && leavesUnread(words, question)

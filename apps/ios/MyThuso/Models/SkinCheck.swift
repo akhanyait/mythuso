@@ -13,9 +13,8 @@ import Foundation
 
    What it does not do is as deliberate. It never sees the photo: the screen holds that, in memory,
    and lets it go when the check ends. It names no rash, sets no priority and composes no sentence.
-   And its emergency matcher is the conversation's own term list — the escalation ruleset the web adds
-   in front of it is not carried on this phone yet, so the contract's web-only fixtures are not
-   generated here. */
+   And its emergency matcher is the conversation's own: the term list, then the escalation ruleset
+   (Escalation.swift, generated from escalation.ts since 2 October 2026), as the web's skinEmergency. */
 
 struct SkinOption: Hashable {
     let id: String
@@ -124,10 +123,11 @@ enum SkinCheck {
     static func condition(_ id: String) -> SkinConditionEntry? { SkinCheckData.conditions.first { $0.id == id } }
     static func firstAid(_ id: String) -> SkinFirstAidEntry? { SkinCheckData.firstAid.first { $0.id == id } }
 
-    /// Typed words are an emergency when the conversation's own emergency terms raise them.
+    /// Typed words are an emergency when the conversation's own emergency terms raise them, or the
+    /// escalation ruleset finds an emergency in them — the two asks Gilbert.send() makes.
     static func emergency(_ typed: String) -> Bool {
         let words = typed.trimmingCharacters(in: .whitespacesAndNewlines)
-        return !words.isEmpty && !Gilbert.emergencyGroups(in: words).isEmpty
+        return !words.isEmpty && (!Gilbert.emergencyGroups(in: words).isEmpty || Escalation.emergency(in: words) != nil)
     }
 
     static func holds(_ rule: SkinRule, _ answers: Answers) -> Bool {

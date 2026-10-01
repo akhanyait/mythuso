@@ -10,8 +10,8 @@ import za.co.mythuso.model.SkinOutcome
 
 /* The skin check on Android, held to the fixtures in packages/catalog/skin-check.json — generated into
  * SkinCheckData.kt, so a disagreement here is this platform's arithmetic and not a copy that drifted.
- * The web runs the same list in packages/gilbertone; the ones it alone decides, by the escalation
- * ruleset this phone does not carry, are not generated here.
+ * The web runs the same list in packages/gilbertone, including, since 2 October 2026, the two the
+ * escalation ruleset decides (model/Escalation.kt).
  *
  * A JVM test, deliberately: whether a ticked sign reaches the emergency answer should not wait for an
  * emulator. */

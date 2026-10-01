@@ -2056,7 +2056,86 @@
         "audience": "doctor",
         "expect": "emergency",
         "groups": ["chest-pain"]
+      },
+      {
+        "says": "I don’t want to live anymore",
+        "expect": "emergency",
+        "groups": ["crisis"]
+      },
+      {
+        "says": "my throat\u00a0is swelling",
+        "expect": "emergency",
+        "groups": []
+      },
+      {
+        "says": "she isn’t breathing",
+        "expect": "emergency",
+        "groups": ["breathing"]
+      },
+      {
+        "says": "sudden weakness on one side",
+        "expect": "emergency",
+        "groups": []
+      },
+      {
+        "says": "my left arm is numb",
+        "expect": "emergency",
+        "groups": []
+      },
+      {
+        "says": "he od’d on his pills",
+        "expect": "emergency",
+        "groups": ["crisis"]
+      },
+      {
+        "says": "when is my nurse coming, my lips are swelling",
+        "expect": "emergency",
+        "groups": []
+      },
+      {
+        "says": "my throat is swelling",
+        "audience": "nurse",
+        "expect": "emergency",
+        "groups": []
+      },
+      {
+        "says": "my knee is a bit stiff this morning",
+        "expect": "unmatched"
       }
+    ],
+    "escalationWhy": "Added on 2 October 2026, when the escalation ruleset (packages/gilbertone/src/escalation.ts) was generated into the phones by scripts/emit-escalation.mjs. Each line is what checkEscalation finds in the sentence once it is folded (packages/gilbertone/src/fold.ts) — a rule id, or null for none — and the web (packages/gilbertone/src/escalation-fixtures.test.ts), iOS (Escalation.selfTest) and Android (EscalationFixturesTest) each replay the list against their own engine. The emergency messages above hold what the conversation does with a match; these hold the ruleset itself, including what it does not find: an urgent rule is a rule and not an emergency, a full stop ends a window, \"she isn’t breathing\" is the terms' and not the ruleset's, and two lines exist only to hold the phones to JavaScript's reading — a word boundary next to an accented letter, and a window counted in JavaScript's characters, where an emoji is two.",
+    "escalation": [
+      { "says": "I don’t want to live anymore", "rule": "self-harm" },
+      { "says": "I don‘t want to be here", "rule": "self-harm" },
+      { "says": "I donʼt want to live", "rule": "self-harm" },
+      { "says": "I can’t catch my breath", "rule": "cardiac-chest-pain" },
+      { "says": "he can’t talk", "rule": "neuro-stroke" },
+      { "says": "I can′t breathe", "rule": "respiratory-distress" },
+      { "says": "my throat\u00a0is swelling", "rule": "severe-allergic" },
+      { "says": "my\u202fface is drooping", "rule": "neuro-stroke" },
+      { "says": "I can\u200b’t breathe", "rule": "respiratory-distress" },
+      { "says": "the bleed\u2060ing won’t stop", "rule": "uncontrolled-bleeding" },
+      { "says": "I\u00a0\u00a0 don’t   want to\tlive", "rule": "self-harm" },
+      { "says": "ＭＹ THROAT IS SWELLING", "rule": "severe-allergic" },
+      { "says": "sudden weakness on one side", "rule": "neuro-stroke" },
+      { "says": "my left arm is numb", "rule": "cardiac-chest-pain" },
+      { "says": "pain in my chest", "rule": "cardiac-chest-pain" },
+      { "says": "the pain radiates down my left arm", "rule": "cardiac-chest-pain" },
+      { "says": "his lips are blue", "rule": "respiratory-distress" },
+      { "says": "she is having a seizure", "rule": "seizure" },
+      { "says": "he od’d on his pills", "rule": "poisoning-overdose" },
+      { "says": "I think I overdosed", "rule": "poisoning-overdose" },
+      { "says": "my fever has lasted four days", "rule": "persistent-high-fever" },
+      { "says": "my fever is 39.5 degrees", "rule": "persistent-high-fever" },
+      { "says": "my temperature is 40°c", "rule": "persistent-high-fever" },
+      { "says": "my blood pressure is 190/125", "rule": "hypertensive-crisis" },
+      { "says": "I have a rash. I took a deep breath and relaxed", "rule": null },
+      { "says": "she isn’t breathing", "rule": null },
+      { "says": "her lips aren't blue", "rule": null },
+      { "says": "my knee is a bit stiff this morning", "rule": null },
+      { "says": "the baby is chokeé", "rule": "respiratory-distress" },
+      { "says": "my left arm 😣😣😣😣😣 pain", "rule": "cardiac-chest-pain" },
+      { "says": "my left arm 😣😣😣😣😣😣😣😣😣😣😣😣 pain", "rule": null }
     ]
   }
 }
