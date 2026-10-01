@@ -169,10 +169,11 @@ test('patient suggestions answer the six navigation questions and keep extra sym
  await panel.getByRole('button', { name: 'I Accept and Continue' }).click();
  /* The six navigation questions, plus the two contract questions offered on every open since
     28 September 2026 — the reading explanation and the medicine-list read-back — and, since the
-    symptom intake of the same day, the offer to take notes for the nurse; the pre-visit one is
-    offered only while a visit is booked, and this demo patient has none. Each of the six is still
-    walked by name below, so the count is a guard against a chip quietly vanishing, not the point. */
- await expect(panel.locator('.as-chips .as-ask')).toHaveCount(ui.patientQuestions.length + 3);
+    symptom intake of the same day, the offer to take notes for the nurse, and, since 1 October 2026,
+    the offer to show GilbertOne a rash; the pre-visit one is offered only while a visit is booked, and
+    this demo patient has none. Each of the six is still walked by name below, so the count is a guard
+    against a chip quietly vanishing, not the point. */
+ await expect(panel.locator('.as-chips .as-ask')).toHaveCount(ui.patientQuestions.length + 4);
  for (const question of ui.patientQuestions) {
    await panel.getByRole('button', { name: question.asks, exact: true }).click();
    await expect(panel.locator('.as-reply').last()).toContainText(question.answer);
