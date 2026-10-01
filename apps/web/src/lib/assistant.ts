@@ -31,6 +31,7 @@ import {
   readingAnswer,
   readingIn,
   readingLeavesUnread,
+  readingContract,
   type ReadingAnswer,
   type ReadingMatch,
 } from "../../../../packages/gilbertone/src/readings.ts";
@@ -563,8 +564,11 @@ export function pulseOf(reply: Reply): PulseId {
       return answers.service.state as PulseId;
     case "handover":
       return answers.handover.state as PulseId;
+    /* A number past the far-outside bounds pulses as the emergency answer does — the words put the
+       ambulance numbers first, and a guiding colour would tell her the opposite
+       (reading-questions.json farOutside.stateWhy). */
     case "reading":
-      return answers.reading.state as PulseId;
+      return (reply.answer?.urgent ? readingContract.farOutside.state : answers.reading.state) as PulseId;
     case "preparation":
       return answers.preparation.state as PulseId;
     case "medicines":
@@ -1140,6 +1144,14 @@ export function spokenOf(turn: Turn, audience: AudienceId): string {
          aloud is the one thing a spoken explanation may not leave out. */
       if (turn.reply.answer) {
         add(turn.reply.answer.heading, ...turn.reply.answer.paragraphs);
+        /* A far-outside number: the urgent sentence, the red flags and the emergency answer's own
+           numbers, read number first as the emergency answer reads them, before anything else. */
+        const urgent = turn.reply.answer.urgent;
+        if (urgent) {
+          add(urgent.ifUnwell, ...urgent.signs.map((s) => `${s}.`));
+          numbers(urgent.numbers);
+        }
+        add(...turn.reply.answer.after);
         add(...turn.reply.answer.smallPrint);
       } else if (turn.reply.ask) add(turn.reply.ask);
       break;

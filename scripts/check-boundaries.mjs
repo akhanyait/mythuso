@@ -16082,6 +16082,122 @@ for (const file of Object.values(GILBERT_FILES).flat()) {
         );
     }
   }
+
+  /* The far-outside bounds of 1 October 2026. Review of the first build found 240/140 answered with
+     the paragraph about coffee and an oxygen of 80 with the one about cold hands, because nothing
+     stopped an everyday paragraph being read beside an extreme number. Every explained reading with
+     an indicative range has a bound on each side or says why that side has none; each bound is cited,
+     sits at or beyond its range's edge, and is said to be unreviewed until a clinician signs it. Then
+     the answer itself is built for a number just past every bound and must be the urgent one — the
+     emergency answer's own numbers, the urgent sentence, and none of the everyday sentences that
+     reassure. Proven to fire by deleting the oxygen bound and by reading entry[side] into the far
+     answer; both restored. */
+  {
+    const far = readingQuestions.farOutside;
+    if (!far || !far.why || !far.direction || !("reviewedBy" in far) || (far.reviewedBy === null && !far.awaiting))
+      throw new Error(
+        "reading-questions.json has lost its far-outside section, its reason, its direction, or — while no clinician has signed it — the sentence saying so. Without it an extreme reading is answered with the paragraph written for an ordinary one.",
+      );
+    if (far.state !== gilbertContract.answers.emergency.state)
+      throw new Error(
+        `reading-questions.json's farOutside.state is "${far.state}", not the emergency answer's "${gilbertContract.answers.emergency.state}". An answer that puts the ambulance numbers first does not pulse as guidance.`,
+      );
+    for (const measure of readingQuestions.measures)
+      for (const id of measure.explains) {
+        const spec = records.observations.measures.find((m) => m.id === id);
+        if (!spec || typeof spec.low !== "number" || typeof spec.high !== "number") continue;
+        const bounds = far.bounds?.[id];
+        if (!bounds || !bounds.below || !bounds.above)
+          throw new Error(
+            `reading-questions.json has no far-outside bounds for "${id}", which records.json gives an indicative range. Past the range an everyday paragraph is read, and nothing would stop it being read beside an extreme number.`,
+          );
+        let sides = 0;
+        for (const side of ["below", "above"]) {
+          const bound = bounds[side];
+          if (bound.value === null) {
+            if (!bound.why)
+              throw new Error(`reading-questions.json's far-outside ${side} bound for "${id}" is empty and does not say why.`);
+            continue;
+          }
+          sides += 1;
+          if (typeof bound.value !== "number" || typeof bound.inclusive !== "boolean" || !bound.source || !/^https:\/\//.test(bound.url ?? ""))
+            throw new Error(
+              `reading-questions.json's far-outside ${side} bound for "${id}" has no number, no inclusive flag, no source or no https link. A threshold that sends somebody to an ambulance is cited or it is a guess.`,
+            );
+          if (side === "below" ? bound.value > spec.low : bound.value < spec.high)
+            throw new Error(
+              `reading-questions.json's far-outside ${side} bound for "${id}" (${bound.value}) sits inside records.json's indicative range ${spec.low}–${spec.high}. A number inside the range would be answered urgently while the inside sentence says otherwise.`,
+            );
+        }
+        if (!sides)
+          throw new Error(`reading-questions.json bounds "${id}" on neither side. Every reading has a point past which it is not explained.`);
+      }
+    const pair = readingQuestions.measures.find((m) => m.pairOfNumbers);
+    const plausible = readingQuestions.numbers.pairPlausible;
+    if (
+      !plausible ||
+      !readingQuestions.numbers.pairPlausibleWhy ||
+      pair.explains.some((id) => !(plausible[id]?.min < plausible[id]?.max)) ||
+      plausible.firstAboveSecond !== true
+    )
+      throw new Error(
+        "reading-questions.json's numbers.pairPlausible no longer bounds both numbers of the pair, no longer requires the first above the second, or has lost its reason. A bare slash between two numbers is how a date is written, and '20/09' was answered as a low blood pressure.",
+      );
+    for (const fixture of readingQuestions.fixtures.messages) {
+      if (fixture.expect !== "reading" || !fixture.values) continue;
+      const expected = Object.entries(fixture.values).some(([entry, value]) => {
+        const b = far.bounds[entry];
+        const below = b.below.value !== null && (b.below.inclusive ? value <= b.below.value : value < b.below.value);
+        const above = b.above.value !== null && (b.above.inclusive ? value >= b.above.value : value > b.above.value);
+        return below || above;
+      });
+      if (fixture.far !== expected)
+        throw new Error(
+          `reading-questions.json's fixture "${fixture.says}" expects far ${fixture.far}, and the far-outside bounds make it ${expected}. The bound is the contract's arithmetic, not the fixture's opinion.`,
+        );
+    }
+    for (const says of ["my bp is 240/140", "185/95", "oxygen 80", "oxygen 91", "20/09", "15/10", "what does 120/80 mean"])
+      if (!readingQuestions.fixtures.messages.some((f) => f.says === says))
+        throw new Error(
+          `reading-questions.json's fixtures no longer carry "${says}", one of the cases the far-outside correction of 1 October 2026 was proven on.`,
+        );
+
+    const { readingAnswer } = await import("../packages/gilbertone/src/readings.ts");
+    const reassuring = [
+      ...explanations.entries.flatMap((e) => [e.above, e.below, e.whatToDo]),
+      readingQuestions.answer.insideRange,
+      readingQuestions.answer.outsideRange,
+      readingQuestions.answer.readValue,
+    ].map((sentence) => sentence.split(/\{\w+\}/).sort((a, b) => b.length - a.length)[0].trim());
+    for (const measure of readingQuestions.measures)
+      for (const id of measure.explains)
+        for (const side of ["below", "above"]) {
+          const bound = far.bounds[id][side];
+          if (bound.value === null) continue;
+          const value = bound.inclusive ? bound.value : bound.value + (side === "below" ? -0.1 : 0.1);
+          const values = Object.fromEntries(
+            measure.explains.map((other) => {
+              const spec = records.observations.measures.find((m) => m.id === other);
+              return [other, other === id ? value : (spec.low + spec.high) / 2];
+            }),
+          );
+          const answer = readingAnswer({ measure, matchedWords: 1, values, framing: "readValue", said: String(value) });
+          const sentences = [...answer.paragraphs, ...(answer.urgent ? [answer.urgent.ifUnwell, ...answer.urgent.signs] : []), ...answer.after];
+          if (
+            !answer.urgent ||
+            answer.urgent.ifUnwell !== readingQuestions.answer.farIfUnwell ||
+            JSON.stringify(answer.urgent.numbers) !== JSON.stringify(gilbertContract.answers.emergency.numbers)
+          )
+            throw new Error(
+              `GilbertOne's answer to ${id} ${value}, past its far-outside ${side} bound, is not the urgent one with the emergency answer's own numbers. An extreme reading must send her to an ambulance if she feels unwell.`,
+            );
+          const leaked = sentences.find((s) => reassuring.some((r) => s.includes(r)));
+          if (leaked)
+            throw new Error(
+              `GilbertOne's answer to ${id} ${value}, past its far-outside ${side} bound, reads "${leaked.slice(0, 70)}…" — a sentence written for a number a little outside the range. Beside an extreme number it reassures, which is the defect of 27 September this check exists for.`,
+            );
+        }
+  }
   for (const [file, needs, why] of [
     ["packages/gilbertone/src/readings.test.ts", /readingContract\.fixtures\.messages/, "the package runs the reading fixtures"],
     ["tests/assistant.spec.ts", /reading-questions\.json[\s\S]*fixtures\.messages/, "the web runs the reading fixtures in Playwright"],

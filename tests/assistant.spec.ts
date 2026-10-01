@@ -3330,6 +3330,53 @@ test("a sugar with a number outside the range reads the paragraph written for th
   await expect(reply.locator(".as-provenance").nth(1)).toHaveText(provenance.unreviewed);
 });
 
+/* The far-outside correction of 1 October 2026: 240/140 was answered with the paragraph about coffee
+   and an oxygen of 80 with the one about cold hands. Past the bounds in reading-questions.json the
+   answer is urgent — the emergency answer's own numbers and its Thuso SOS door, the red flags
+   records.json names for the reading, ask somebody today — and no everyday paragraph is on screen. */
+test("a blood pressure far outside the range is answered urgently, with the ambulance numbers and no reassurance", async ({
+  page,
+}) => {
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  await ask(page, "my bp is 240/140");
+  const reply = log(page).locator(".as-reply").last();
+  await expect(reply).toHaveAttribute("data-question", "reading");
+  await expect(reply.locator(".as-headline")).toHaveText("Blood pressure");
+  await expect(reply).toContainText("240/140");
+  const urgent = reply.locator("[data-urgent='far-outside']");
+  await expect(urgent).toContainText(readingQuestions.answer.farIfUnwell);
+  await expect(urgent).toContainText(condition("chest-pain"));
+  await expect(urgent).toContainText(condition("stroke"));
+  for (const id of gilbert.answers.emergency.numbers)
+    await expect(urgent).toContainText(sos.emergency.numbers.find((n: { id: string }) => n.id === id).number);
+  await expect(urgent.getByRole("button", { name: gilbert.answers.emergency.sosLabel })).toBeVisible();
+  await expect(reply).toContainText(readingQuestions.answer.farOtherwise);
+  await expect(reply).toContainText(provenance.whoDecides);
+  await expect(reply).toContainText(readingQuestions.answer.farUnreviewed);
+  for (const id of ["systolic", "diastolic"]) {
+    await expect(reply).not.toContainText(explanationOf(id).above);
+    await expect(reply).not.toContainText(explanationOf(id).whatToDo);
+  }
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute("data-pulse", "escalate");
+});
+
+test("an oxygen of 80 is answered urgently, and a date written with a slash is not read as a blood pressure", async ({
+  page,
+}) => {
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  await ask(page, "oxygen 80");
+  const reply = log(page).locator(".as-reply").last();
+  await expect(reply.locator("[data-urgent='far-outside']")).toContainText(condition("breathing"));
+  await expect(reply).not.toContainText(explanationOf("oxygen").below);
+  await expect(reply).not.toContainText(explanationOf("oxygen").whatToDo);
+  await ask(page, "20/09");
+  const date = log(page).locator(".as-reply").last();
+  await expect(date).not.toHaveAttribute("data-question", "reading");
+  await expect(date).not.toContainText(explanationOf("systolic").below);
+});
+
 test("a measure with no number is explained and asked for one; the reading is spoken in the routine register", async ({
   page,
 }) => {
@@ -3401,6 +3448,8 @@ test("the web recogniser agrees with the reading contract's shared fixtures", as
         if (JSON.stringify(match.values) !== JSON.stringify(f.values ?? null))
           found.push(`"${f.says}" read ${JSON.stringify(match.values)}`);
         if (turn.unread !== f.unread) found.push(`"${f.says}" unread ${turn.unread}`);
+        if ("far" in f && !!turn.reply.answer?.urgent !== f.far)
+          found.push(`"${f.says}" far ${!!turn.reply.answer?.urgent}`);
       }
       return found;
     },

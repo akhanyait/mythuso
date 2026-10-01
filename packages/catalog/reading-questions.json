@@ -1,10 +1,10 @@
 {
-  "_note": "Spoken reading explanations, as data. A patient asks GilbertOne what a blood pressure of 136/85 means, whether a sugar of 7.2 is all right, or what SpO2 is, and the answer is the reviewed-in-advance explanation for that measure from packages/catalog/records.json (explanations.entries) — never a sentence written for her, never a grade. This file holds only what records.json does not: the words a person uses for each measure, the number of numbers each takes, the few words a question about a reading is allowed to carry without being 'unread', and the handful of framing sentences the answer needs around the explanation. The web's lib/assistant.ts and packages/gilbertone/src/readings.ts read it; no native app renders it yet — see platforms on the reading question in assistant.json. scripts/check-boundaries.mjs holds every id here to an explanation records.json actually has, every alias away from the emergency words, and every sentence here away from a digit.",
+  "_note": "Spoken reading explanations, as data. A patient asks GilbertOne what a blood pressure of 136/85 means, whether a sugar of 7.2 is all right, or what SpO2 is, and the answer is the reviewed-in-advance explanation for that measure from packages/catalog/records.json (explanations.entries) — never a sentence written for her, never a grade. This file holds only what records.json does not: the words a person uses for each measure, the number of numbers each takes, the few words a question about a reading is allowed to carry without being 'unread', and the handful of framing sentences the answer needs around the explanation. The web's lib/assistant.ts and packages/gilbertone/src/readings.ts read it; no native app renders it yet — see platforms on the reading question in assistant.json. scripts/check-boundaries.mjs holds every id here to an explanation records.json actually has, every alias away from the emergency words, and every sentence here away from a digit. Since 1 October 2026 it also holds the far-outside bounds — the one set of numbers in this file, each cited — past which the everyday paragraph is never read and the answer is urgent instead; see farOutside.",
   "version": 1,
   "decidedBy": "Founder",
   "on": "2026-09-27",
   "why": "The founder asked, on 27 September 2026, for two things a patient can use today, each answered from contracts and never a fresh clinical judgement. This is the first. The Health Passport has explained the seven readings since records.json gained its explanations section, and a person holding a number in her hand still asks a person — or a search engine — what it means. GilbertOne can answer that question with the paragraph a doctor can read in advance, and it can do nothing else with the number.",
-  "whatIsNotHere": "No explanation sentence, no label, no unit and no reference range. The explanations are records.json's, the labels and ranges are its observations section's, and the answer builder reads both from there. A number a person says is read against that range only to choose which of the written paragraphs applies — above, below, or neither — and the range itself is never spoken, because it is indicative and a doctor may work to different numbers for her. No sentence here contains a digit, and the build fails if one does.",
+  "whatIsNotHere": "No explanation sentence, no label, no unit and no reference range. The explanations are records.json's, the labels and ranges are its observations section's, and the answer builder reads both from there. A number a person says is read against that range only to choose which of the written paragraphs applies — above, below, or neither — and the range itself is never spoken, because it is indicative and a doctor may work to different numbers for her. No sentence here contains a digit, and the build fails if one does. The far-outside bounds are the exception that proves the rule: they are numbers rather than sentences, they are never spoken either, and they are here because nothing else in the catalogue owns the point at which a number stops being explained — each one cites the public source it was taken from.",
   "measures": [
     {
       "id": "blood-pressure",
@@ -43,6 +43,12 @@
   "numbers": {
     "why": "The matcher folds punctuation to spaces, so 136/85 and 7.2 would arrive as four separate tokens. Numbers are read from the message as typed, before folding: a pair written with a slash or the word 'over' is a blood-pressure reading whether or not the measure was named, and a single number with a decimal point or a decimal comma is one value. A message with more than one plain number and no pair is not guessed at — nothing is matched against the range, and the answer says so.",
     "pairPattern": "(?<![a-z0-9])(\\d{2,3})\\s*(?:/|over)\\s*(\\d{2,3})(?![a-z0-9])",
+    "pairPlausible": {
+      "systolic": { "min": 50, "max": 300 },
+      "diastolic": { "min": 30, "max": 200 },
+      "firstAboveSecond": true
+    },
+    "pairPlausibleWhy": "Corrected on 1 October 2026, after review of the first build found '20/09' and '15/10' — a date — answered as a low blood pressure. The pattern alone accepts any two numbers with a slash between them, and a slash is how people in South Africa write a day and a month. A pair with no measure named counts as a blood pressure only when both numbers could come off a cuff on a living adult — the first inside its bounds here, the second inside its, and the first larger than the second; anything else is not read as a reading at all and the message is answered as it was before this question existed. When the person names the measure ('my bp is…') the pair is read whatever it is, the first plausible pair in the message before any other, because she has said what it is — and a number that implausible lands past the far-outside bounds below and is answered urgently, which is the direction to be wrong in. These bounds decide only whether a slash is a reading; they are not a range and are never spoken.",
     "singlePattern": "(?<![a-z0-9])\\d+(?:[.,]\\d+)?(?![a-z0-9])",
     "patternsWhy": "Both refuse a digit joined to a letter, so the two in SpO2 and O2 are letters of a name rather than a reading of two per cent.",
     "countedAsRead": true,
@@ -52,33 +58,87 @@
   "readWordsWhy": "The words a question about a reading carries besides the measure and the number — 'is my sugar of 7.2 okay', 'what does 136/85 mean', 'is a pulse of 110 too high'. The unread rule in assistant.json would otherwise say the rest of the message was not read and put the ambulance numbers beside a plain question. These are counted as read for the reading question only. None of them is an emergency word, and the build checks; and 'high', 'low' and 'normal' are here as things a person says, never as things GilbertOne says — no sentence in this file grades a number.",
   "answer": {
     "why": "The framing around the explanation, in the order the answer reads it: what number was read (or that none was), the explanation's own sentences from records.json, and its own closing. Every sentence that could be mistaken for a judgement says in the same breath that a nurse or doctor reads the value. {value} is the person's own number, echoed back exactly as she said it; {label} is the observations label from records.json; {measures} is the list of measure names from this file. No digit is typed here.",
-    "readValue": "I read {value} from what you said, and I do not grade it. What follows is the written explanation for this measurement, with the paragraph the indicative range points to. A nurse or doctor reads the value itself.",
+    "readValue": "I read {value} from what you said. I set it against the indicative adult range only to choose which written paragraph to read you: where a number sits says nothing about what it means for you. A nurse or doctor reads the value itself.",
     "noValue": "You did not give me a number, so there is nothing to set against the indicative range. If you have one, say it and I will read the paragraph written for it. A nurse or doctor reads the value itself.",
     "pairNeeded": "A blood-pressure reading is two numbers and I read only one, so I have not set it against anything. Say both, the way they are written on the cuff.",
     "tooManyNumbers": "You gave me more than one number and I cannot tell which is the reading, so I have not set any of them against the indicative range. Say one, and I will read the paragraph written for it.",
     "insideRange": "{label} at {value} sits inside the indicative adult range, so neither of the paragraphs written for a reading outside it applies. That is not a finding that all is well: one measurement on one day is not a judgement.",
     "outsideRange": "{label} at {value} is outside the indicative adult range. This is the paragraph written for a reading on that side:",
     "askWhich": "Tell me which reading you mean — {measures} — and the number, if you have it.",
+    "farOutside": "{name} at {value} is far outside the indicative adult range, so I will not read you the everyday explanation for it. A number this far out is for a person to look at today, not for a written paragraph.",
+    "farIfUnwell": "If you feel unwell with it — any of the signs below, or chest pain, breathing that is hard work, confusion, a severe headache, fainting or weakness on one side — do not wait for a nurse or for this app. Call an ambulance now:",
+    "farOtherwise": "If you feel well in yourself, do not leave it for the next visit: ask a nurse or a doctor about this number today.",
+    "farMeasureAgain": "While you arrange that, measure it again the right way — sitting still for five minutes, the way the device's own instructions say — and write both numbers down. A second number closer to the range is not a reason to skip asking.",
+    "farUnreviewed": "The point at which I stop explaining a number and send you to a person comes from published public guidance, and no clinician has reviewed it for this app yet.",
     "closingFrom": "whoDecides",
     "smallPrintFrom": ["written", "unreviewed"],
     "smallPrintWithValueFrom": "ranges"
   },
+  "farOutside": {
+    "on": "2026-10-01",
+    "why": "Corrected on 1 October 2026, after review of the build of 27 September found that a blood pressure of 240/140 was answered with the paragraph about coffee and a full bladder, and an oxygen saturation of 80 with the paragraph about cold hands and nail varnish. Those paragraphs were written for a reading a little outside the indicative range, which is the commonest kind; nothing stopped them being read beside a number that is a reason to be seen today. Past the bounds below, the everyday paragraphs, the inside sentence and the outside sentence are never read. The answer is the farOutside sentences of this file instead: the number is far outside the range, call an ambulance now if you feel unwell with it — the same numbers and the same Thuso SOS door the emergency answer shows (assistant.json answers.emergency.numbers and sosLabel), with the red flags records.json's explanation of that entry already names as urgent — and otherwise ask a nurse or doctor today and measure again the right way. A pair is far outside when either of its numbers is. The emergency words in gilbert-emergency-terms.json are untouched: that list waits for a clinical reviewer, and this is the reading path, not the words.",
+    "direction": "Every bound below errs toward the urgent answer: where a source says 'higher than', the bound includes the number itself, and where two published thresholds differ the one that escalates sooner is used. A person told to ask somebody today about a number that turns out to be ordinary has lost an afternoon; a person told about coffee beside a number that was not ordinary may have lost much more.",
+    "reviewedBy": null,
+    "awaiting": "No clinician has reviewed these bounds. Each is a widely published public threshold, cited beside it, chosen by the engineering team on 1 October 2026 to stop the everyday paragraphs being read beside an extreme number. They need the clinical reviewer the emergency terms also wait for, before real patients; the reviewer's name and date go in reviewedBy, and a changed bound is a changed line here and nowhere else.",
+    "state": "escalate",
+    "stateWhy": "assistant.json's escalate state, the emergency answer's own, because this answer puts the ambulance numbers first for a person who feels unwell. A far-outside reading that pulsed 'guiding' would tell her with colour what the words tell her not to believe.",
+    "numbersFrom": "assistant.json answers.emergency.numbers",
+    "signsFrom": "records.json explanations.entries[].urgent, named by sos.json redFlags.conditions",
+    "bounds": {
+      "systolic": {
+        "below": { "value": 90, "inclusive": false, "source": "Royal College of Physicians, National Early Warning Score 2 (2017), chart 1: a systolic of 90 mmHg or less scores 3, the chart's highest single-parameter score. The indicative range in records.json already counts 90 itself as inside, so the bound sits at the range's own edge and every systolic below it gets the urgent answer — deliberately, until a reviewer says otherwise.", "url": "https://www.rcp.ac.uk/media/alxev00t/news2-chart-1_the-news-scoring-system_0_0.pdf" },
+        "above": { "value": 180, "inclusive": true, "source": "American Heart Association, Understanding Blood Pressure Readings: higher than 180 systolic is a hypertensive crisis. The knowledge base's cond-008 (South African NDoH hypertension guideline / WHO) gives the same 180/120 for urgent care. The bound includes 180 itself.", "url": "https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings" }
+      },
+      "diastolic": {
+        "below": { "value": null, "why": "No widely published threshold makes a low diastolic urgent on its own, and NEWS2 does not score it. A pair is far outside when either number is, so a low pressure is caught by the systolic bound." },
+        "above": { "value": 120, "inclusive": true, "source": "American Heart Association, Understanding Blood Pressure Readings: higher than 120 diastolic is a hypertensive crisis; cond-008 gives the same 180/120. The bound includes 120 itself.", "url": "https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings" }
+      },
+      "pulse": {
+        "below": { "value": 40, "inclusive": true, "source": "Royal College of Physicians, NEWS2 (2017), chart 1: a pulse of 40 or less scores 3.", "url": "https://www.rcp.ac.uk/media/alxev00t/news2-chart-1_the-news-scoring-system_0_0.pdf" },
+        "above": { "value": 131, "inclusive": true, "source": "Royal College of Physicians, NEWS2 (2017), chart 1: a pulse of 131 or more scores 3.", "url": "https://www.rcp.ac.uk/media/alxev00t/news2-chart-1_the-news-scoring-system_0_0.pdf" }
+      },
+      "respiratory": {
+        "below": { "value": 8, "inclusive": true, "source": "Royal College of Physicians, NEWS2 (2017), chart 1: a respiration rate of 8 or less scores 3.", "url": "https://www.rcp.ac.uk/media/alxev00t/news2-chart-1_the-news-scoring-system_0_0.pdf" },
+        "above": { "value": 25, "inclusive": true, "source": "Royal College of Physicians, NEWS2 (2017), chart 1: a respiration rate of 25 or more scores 3.", "url": "https://www.rcp.ac.uk/media/alxev00t/news2-chart-1_the-news-scoring-system_0_0.pdf" }
+      },
+      "temperature": {
+        "below": { "value": 35, "inclusive": true, "source": "Royal College of Physicians, NEWS2 (2017), chart 1: a temperature of 35.0 °C or less scores 3; the NHS describes hypothermia as a body temperature below 35 °C. The bound includes 35 itself.", "url": "https://www.nhs.uk/conditions/hypothermia/" },
+        "above": { "value": 39.4, "inclusive": true, "source": "Mayo Clinic, Fever: first aid — an adult should call a health care provider at 103 °F (39.4 °C) or higher.", "url": "https://www.mayoclinic.org/first-aid/first-aid-fever/basics/art-20056685" }
+      },
+      "oxygen": {
+        "below": { "value": 92, "inclusive": true, "source": "NHS England, Important information to keep you safe while at home (pulse oximetry at home): a level of 92% or below, checked again, means go to A&E or call 999. NEWS2 scale 1 scores 91 or less at 3; the NHS home figure is used because it escalates sooner.", "url": "https://www.england.nhs.uk/coronavirus/wp-content/uploads/sites/52/2020/12/C1634-suspected-Coronavirus-important-information-to-keep-you-safe-at-home-V8_210422.pdf" },
+        "above": { "value": null, "why": "There is nothing above the range to bound: the scale stops at a hundred, which records.json's own explanation says." }
+      },
+      "glucose": {
+        "below": { "value": 3, "inclusive": false, "source": "American Diabetes Association, Standards of Care in Diabetes, Glycemic Targets: below 3.0 mmol/L (54 mg/dL) is level 2 hypoglycaemia, clinically significant and needing immediate action.", "url": "https://diabetesjournals.org/care/article/46/Supplement_1/S97/148053/6-Glycemic-Targets-Standards-of-Care-in-Diabetes" },
+        "above": { "value": 15, "inclusive": false, "source": "Diabetes UK, Hyperglycaemia (hypers): a blood sugar higher than 15 mmol/L is the point to test for ketones and to contact the diabetes team or go to A&E if they are raised.", "url": "https://www.diabetes.org.uk/about-diabetes/looking-after-diabetes/complications/hypers" }
+      }
+    }
+  },
   "fixtures": {
-    "why": "One list every reader of this file runs against its own recogniser: the package's own tests and Playwright on the web. Each says what the recogniser must find — the measure, the numbers, and for each explained entry whether the number sits above, below or inside the indicative range in records.json — or that it must find nothing, because the emergency words come first, or because no measure and no pair is in the message. The sides are checked against records.json's own low and high, so a range moved there moves these expectations with it; a fixture that disagrees is a fixture that is wrong.",
+    "why": "One list every reader of this file runs against its own recogniser: the package's own tests and Playwright on the web. Each says what the recogniser must find — the measure, the numbers, and for each explained entry whether the number sits above, below or inside the indicative range in records.json, and whether it is past the far-outside bounds (far) — or that it must find nothing, because the emergency words come first, or because no measure and no pair is in the message. The sides are checked against records.json's own low and high, so a range moved there moves these expectations with it; a fixture that disagrees is a fixture that is wrong.",
     "messages": [
-      { "says": "what does 136/85 mean?", "expect": "reading", "measure": "blood-pressure", "framing": "readValue", "values": { "systolic": 136, "diastolic": 85 }, "sides": { "systolic": "inside", "diastolic": "inside" }, "unread": false },
-      { "says": "What does 150 over 95 mean", "expect": "reading", "measure": "blood-pressure", "framing": "readValue", "values": { "systolic": 150, "diastolic": 95 }, "sides": { "systolic": "above", "diastolic": "above" }, "unread": false },
-      { "says": "my BP is 88/58, is that okay", "expect": "reading", "measure": "blood-pressure", "framing": "readValue", "values": { "systolic": 88, "diastolic": 58 }, "sides": { "systolic": "below", "diastolic": "below" }, "unread": false },
-      { "says": "is my sugar of 7.2 okay?", "expect": "reading", "measure": "glucose", "framing": "readValue", "values": { "glucose": 7.2 }, "sides": { "glucose": "inside" }, "unread": false },
-      { "says": "my glucose was 3,1 this morning", "expect": "reading", "measure": "glucose", "framing": "readValue", "values": { "glucose": 3.1 }, "sides": { "glucose": "below" }, "unread": false },
+      { "says": "what does 136/85 mean?", "expect": "reading", "measure": "blood-pressure", "framing": "readValue", "values": { "systolic": 136, "diastolic": 85 }, "sides": { "systolic": "inside", "diastolic": "inside" }, "far": false, "unread": false },
+      { "says": "What does 150 over 95 mean", "expect": "reading", "measure": "blood-pressure", "framing": "readValue", "values": { "systolic": 150, "diastolic": 95 }, "sides": { "systolic": "above", "diastolic": "above" }, "far": false, "unread": false },
+      { "says": "my BP is 88/58, is that okay", "expect": "reading", "measure": "blood-pressure", "framing": "readValue", "values": { "systolic": 88, "diastolic": 58 }, "sides": { "systolic": "below", "diastolic": "below" }, "far": true, "unread": false },
+      { "says": "is my sugar of 7.2 okay?", "expect": "reading", "measure": "glucose", "framing": "readValue", "values": { "glucose": 7.2 }, "sides": { "glucose": "inside" }, "far": false, "unread": false },
+      { "says": "my glucose was 3,1 this morning", "expect": "reading", "measure": "glucose", "framing": "readValue", "values": { "glucose": 3.1 }, "sides": { "glucose": "below" }, "far": false, "unread": false },
       { "says": "what is SpO2?", "expect": "reading", "measure": "oxygen", "framing": "noValue", "values": null, "unread": false },
-      { "says": "is a pulse of 110 too high", "expect": "reading", "measure": "pulse", "framing": "readValue", "values": { "pulse": 110 }, "sides": { "pulse": "above" }, "unread": false },
-      { "says": "my temperature is 38.4", "expect": "reading", "measure": "temperature", "framing": "readValue", "values": { "temperature": 38.4 }, "sides": { "temperature": "above" }, "unread": false },
+      { "says": "is a pulse of 110 too high", "expect": "reading", "measure": "pulse", "framing": "readValue", "values": { "pulse": 110 }, "sides": { "pulse": "above" }, "far": false, "unread": false },
+      { "says": "my temperature is 38.4", "expect": "reading", "measure": "temperature", "framing": "readValue", "values": { "temperature": 38.4 }, "sides": { "temperature": "above" }, "far": false, "unread": false },
       { "says": "blood pressure of 140", "expect": "reading", "measure": "blood-pressure", "framing": "pairNeeded", "values": null, "unread": false },
       { "says": "my sugar was 5.1 and then 6.4", "expect": "reading", "measure": "glucose", "framing": "tooManyNumbers", "values": null, "unread": true },
       { "says": "my sugar is low and my knee is sore", "expect": "reading", "measure": "glucose", "framing": "noValue", "values": null, "unread": true },
       { "says": "what does 136/85 mean, I have chest pain", "expect": "emergency" },
       { "says": "is my sugar of 2.1 okay, she is fitting", "expect": "emergency" },
+      { "says": "my bp is 240/140", "expect": "reading", "measure": "blood-pressure", "framing": "readValue", "values": { "systolic": 240, "diastolic": 140 }, "sides": { "systolic": "above", "diastolic": "above" }, "far": true, "unread": false },
+      { "says": "185/95", "expect": "reading", "measure": "blood-pressure", "framing": "readValue", "values": { "systolic": 185, "diastolic": 95 }, "sides": { "systolic": "above", "diastolic": "above" }, "far": true, "unread": false },
+      { "says": "what does 120/80 mean", "expect": "reading", "measure": "blood-pressure", "framing": "readValue", "values": { "systolic": 120, "diastolic": 80 }, "sides": { "systolic": "inside", "diastolic": "inside" }, "far": false, "unread": false },
+      { "says": "oxygen 80", "expect": "reading", "measure": "oxygen", "framing": "readValue", "values": { "oxygen": 80 }, "sides": { "oxygen": "below" }, "far": true, "unread": false },
+      { "says": "oxygen 91", "expect": "reading", "measure": "oxygen", "framing": "readValue", "values": { "oxygen": 91 }, "sides": { "oxygen": "below" }, "far": true, "unread": false },
+      { "says": "my bp on 20/09 was 150/95", "expect": "reading", "measure": "blood-pressure", "framing": "readValue", "values": { "systolic": 150, "diastolic": 95 }, "sides": { "systolic": "above", "diastolic": "above" }, "far": false, "unread": false },
+      { "says": "20/09", "expect": "none" },
+      { "says": "15/10", "expect": "none" },
       { "says": "what does this mean", "expect": "none" },
       { "says": "when is my nurse coming", "expect": "none" },
       { "says": "I sat down for a while", "expect": "none" }

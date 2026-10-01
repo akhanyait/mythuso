@@ -1,5 +1,7 @@
 import contract from "../../catalog/reading-questions.json" with { type: "json" };
 import records from "../../catalog/records.json" with { type: "json" };
+import assistant from "../../catalog/assistant.json" with { type: "json" };
+import sos from "../../catalog/sos.json" with { type: "json" };
 import { fillerStems, hasSequence, stem, stems, tokens } from "./stems.ts";
 
 /* The spoken reading explanation — the founder's ask of 27 September 2026, answered from contracts
@@ -25,7 +27,16 @@ import { fillerStems, hasSequence, stem, stems, tokens } from "./stems.ts";
    first, and a match ends the matching; this module is only ever asked afterwards. It also does not
    decide whether the reading question wins over another question in the same message — the caller's
    longest-trigger rule does, with `matchedWords` as this recogniser's length. No network, no model,
-   no environment variable. */
+   no environment variable.
+
+   WHERE IT STOPS EXPLAINING (1 October 2026). The first build read the paragraph written for a
+   reading a little outside the range beside any reading outside it: 240/140 got the one about coffee
+   and a full bladder, and an oxygen of 80 the one about cold hands. Past the far-outside bounds in
+   reading-questions.json (farOutside.bounds, each cited, none yet reviewed by a clinician) no
+   everyday paragraph is read at all; the answer is urgent — the emergency answer's own numbers, the
+   red flags records.json names for that entry, ask somebody today, measure again the right way. The
+   bounds err toward escalation on purpose: an ordinary number answered urgently costs an afternoon,
+   an extreme one answered with reassurance may cost far more. */
 
 export type ReadingMeasure = (typeof contract.measures)[number];
 export type ReadingSide = "above" | "below" | "inside";
@@ -70,9 +81,25 @@ const observationOf = (id: string): Observation => {
 
 /* The patterns are the contract's own, compiled once. The pair carries two capture groups; the
    single is read with /g over the whole message. */
-const pairPattern = new RegExp(contract.numbers.pairPattern, "i");
+const pairPattern = new RegExp(contract.numbers.pairPattern, "gi");
 const singlePattern = new RegExp(contract.numbers.singlePattern, "gi");
 const pairMeasure = contract.measures.find((m) => m.pairOfNumbers);
+
+/* Whether a pair could have come off a cuff on a living adult — numbers.pairPlausible. A slash is
+   also how a day and a month are written, and "20/09" read as a blood pressure answered a date with
+   a paragraph about low pressure. A bare pair must be plausible to count at all; a pair beside a
+   named measure is read whatever it is, the first plausible one before any other, because she has
+   said what it is — and an implausible one lands past the far-outside bounds, which is the safe
+   side to be wrong on. */
+const plausible = contract.numbers.pairPlausible as unknown as Record<string, { min: number; max: number }> & {
+  firstAboveSecond: boolean;
+};
+const isPlausiblePair = (first: number, second: number): boolean => {
+  if (!pairMeasure) return false;
+  const [top, bottom] = pairMeasure.explains;
+  const within = (id: string, n: number) => n >= plausible[id].min && n <= plausible[id].max;
+  return within(top, first) && within(bottom, second) && (!plausible.firstAboveSecond || first > second);
+};
 
 /* The measure a message names, by the longest alias found (stems, adjacent); or the pair measure
    when a pair of numbers is written and no measure is named; or nothing. */
@@ -88,7 +115,9 @@ export function readingIn(text: string): ReadingMatch | null {
         matchedWords = term.length;
       }
     }
-  const pair = pairPattern.exec(text);
+  const pairs = [...text.matchAll(pairPattern)];
+  const plausiblePair = pairs.find((p) => isPlausiblePair(Number(p[1]), Number(p[2])));
+  const pair = plausiblePair ?? (measure ? pairs[0] : undefined);
   if (!measure) {
     if (!pair || !pairMeasure) return null;
     measure = pairMeasure;
@@ -142,6 +171,30 @@ export function sideOf(entryId: string, value: number): ReadingSide {
   return "inside";
 }
 
+/* Whether a number is past the far-outside bound on either side — farOutside.bounds, inclusive where
+   the contract says so. null when it is not, or when that side has no bound (oxygen has nothing above
+   a hundred; a low diastolic alone is caught by the systolic beside it). */
+type FarBound = { value: number | null; inclusive?: boolean };
+const farBounds = contract.farOutside.bounds as Record<string, { below: FarBound; above: FarBound }>;
+export function farSideOf(entryId: string, value: number): "above" | "below" | null {
+  const bounds = farBounds[entryId];
+  if (!bounds)
+    throw new Error(
+      `packages/catalog/reading-questions.json has no far-outside bounds for "${entryId}". Every explained reading needs them, or an extreme number gets the everyday paragraph.`,
+    );
+  const { below, above } = bounds;
+  if (below.value !== null && (below.inclusive ? value <= below.value : value < below.value))
+    return "below";
+  if (above.value !== null && (above.inclusive ? value >= above.value : value > above.value))
+    return "above";
+  return null;
+}
+
+/* Whether any of a match's numbers is far outside: a pair is, when either of its numbers is. */
+export const isFarOutside = (match: ReadingMatch): boolean =>
+  !!match.values &&
+  Object.entries(match.values).some(([entry, value]) => farSideOf(entry, value) !== null);
+
 const fill = (sentence: string, values: Record<string, string>) =>
   sentence.replace(/\{(\w+)\}/g, (whole, key: string) => values[key] ?? whole);
 
@@ -156,9 +209,19 @@ const measureNames = () => {
     : (names[0] ?? "");
 };
 
+/* The urgent half of a far-outside answer, drawn between the opening and the rest: the sentence
+   that sends her to an ambulance if she feels unwell, the red flags by sos.json's names, and the
+   emergency answer's own number ids — the platform prints, speaks and offers Thuso SOS beside them
+   exactly as it does for the emergency answer. */
+export type ReadingUrgent = { ifUnwell: string; signs: string[]; numbers: string[] };
+
 export type ReadingAnswer = {
   heading: string;
   paragraphs: string[];
+  /* null unless a number was past the far-outside bounds. */
+  urgent: ReadingUrgent | null;
+  /* What follows the urgent block, closing included; empty when there is none. */
+  after: string[];
   smallPrint: string[];
 };
 
@@ -170,6 +233,7 @@ const provenance = records.explanations.provenance as Record<string, string>;
 export function readingAnswer(match: ReadingMatch): ReadingAnswer {
   const words = contract.answer;
   const entries = match.measure.explains.map(explanationOf);
+  if (isFarOutside(match)) return farAnswer(match, entries);
   const paragraphs: string[] = [];
   paragraphs.push(fill(words[match.framing], { value: match.said ?? "" }));
   for (const entry of entries) paragraphs.push(entry.measures);
@@ -194,7 +258,43 @@ export function readingAnswer(match: ReadingMatch): ReadingAnswer {
   paragraphs.push(provenance[words.closingFrom]);
   const smallPrint = words.smallPrintFrom.map((key) => provenance[key]);
   if (match.values) smallPrint.push(provenance[words.smallPrintWithValueFrom]);
-  return { heading: readingName(match.measure), paragraphs, smallPrint };
+  return { heading: readingName(match.measure), paragraphs, urgent: null, after: [], smallPrint };
+}
+
+/* The far-outside answer. None of the everyday sentences — not the paragraph for a side, not what to
+   do, not the inside or outside framing, not even the readValue opening — because each of them was
+   written for a number a little outside the range and every one reassures; the build reads this
+   answer for a number past each bound and fails if one of them is in it. The urgent block is the
+   emergency answer's own numbers, so the panel prints, speaks and offers Thuso SOS beside them the
+   way it does there; the red flags are the ones records.json already names for the entries that are
+   far out, by sos.json's names. The closing and the provenance are kept: none of this is a diagnosis
+   either, and the bounds themselves are said to be unreviewed. */
+function farAnswer(match: ReadingMatch, entries: Explanation[]): ReadingAnswer {
+  const words = contract.answer;
+  const far = entries.filter((e) => {
+    const value = match.values?.[e.id];
+    return value !== undefined && farSideOf(e.id, value) !== null;
+  });
+  const signIds = [...new Set(far.flatMap((e) => e.urgent))];
+  const signs = signIds.map((id) => {
+    const found = sos.redFlags.conditions.find((c) => c.id === id);
+    if (!found)
+      throw new Error(
+        `packages/catalog/records.json names the urgent condition "${id}", which packages/catalog/sos.json has no red flag for.`,
+      );
+    return found.name;
+  });
+  return {
+    heading: readingName(match.measure),
+    paragraphs: [fill(words.farOutside, { name: readingName(match.measure), value: match.said ?? "" })],
+    urgent: { ifUnwell: words.farIfUnwell, signs, numbers: [...assistant.answers.emergency.numbers] },
+    after: [words.farOtherwise, words.farMeasureAgain, provenance[words.closingFrom]],
+    smallPrint: [
+      ...words.smallPrintFrom.map((key) => provenance[key]),
+      provenance[words.smallPrintWithValueFrom],
+      words.farUnreviewed,
+    ],
+  };
 }
 
 /* The answer to the reading question pressed as a chip, with no words to read a measure from. */

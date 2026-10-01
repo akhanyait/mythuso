@@ -1681,12 +1681,20 @@ function ReplyBody({
          large and light beside records.json's unit — what she opened the panel to ask about, so it
          is the largest thing in the answer. The number is hers, as she typed it; the tile carries no
          chip, no colour for a side of a range and no word that grades, because the answer's own first
-         sentence says it does not grade. The last paragraph is the limit — a doctor decides what the
-         number means — and it is set apart by a rule rather than left as one more line. */
+         sentence says where a number sits is not what it means for her. The last paragraph is the
+         limit — a doctor decides what the number means — and it is set apart by a rule rather than
+         left as one more line.
+
+         Since 1 October 2026 a number past the far-outside bounds in reading-questions.json gets no
+         everyday paragraph: its opening sentence, then the urgent block — the sentence that sends her
+         to an ambulance if she feels unwell, the red flags, the emergency answer's own numbers and its
+         Thuso SOS door, drawn as the emergency answer draws them — then the rest, closing last. */
       if (!reply.answer) return <p>{reply.ask}</p>;
       const said = reply.match?.values ? reply.match.said : null;
       const unit = said ? unitOf(reply.match?.measure.explains[0]) : null;
       const paragraphs = reply.answer.paragraphs;
+      const urgent = reply.answer.urgent;
+      const after = reply.answer.after;
       return (
         <>
           <div className="as-tile as-stat" data-tone="lilac">
@@ -1703,13 +1711,42 @@ function ReplyBody({
               <p
                 key={index}
                 className={
-                  index === paragraphs.length - 1 ? "as-limit" : undefined
+                  !after.length && index === paragraphs.length - 1 ? "as-limit" : undefined
                 }
               >
                 {paragraph}
               </p>
             ))}
           </div>
+          {urgent && (
+            <div className="as-noticed as-reading-urgent" data-urgent="far-outside">
+              <p>{urgent.ifUnwell}</p>
+              {urgent.signs.length > 0 && (
+                <ul>
+                  {urgent.signs.map((sign) => (
+                    <li key={sign}>{sign}</li>
+                  ))}
+                </ul>
+              )}
+              <Lines ids={urgent.numbers} />
+              {allowSos && (
+                <button type="button" className="as-go" onClick={sos}>
+                  <Ambulance size={17} aria-hidden="true" />
+                  {emergencyAnswer.sosLabel}
+                  <ArrowRight size={16} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+          )}
+          {after.length > 0 && (
+            <div className="as-read-body">
+              {after.map((paragraph, index) => (
+                <p key={`after-${index}`} className={index === after.length - 1 ? "as-limit" : undefined}>
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+          )}
           {reply.answer.smallPrint.map((line, index) => (
             <p key={`small-${index}`} className="as-quiet as-provenance">
               {line}

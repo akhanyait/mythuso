@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   askWhichReading,
+  farSideOf,
+  isFarOutside,
   readingAnswer,
   readingContract,
   readingIn,
@@ -14,6 +16,7 @@ import { fillerStems, stems } from "./stems.ts";
 import assistant from "../../catalog/assistant.json" with { type: "json" };
 import records from "../../catalog/records.json" with { type: "json" };
 import terms from "../../catalog/gilbert-emergency-terms.json" with { type: "json" };
+import sos from "../../catalog/sos.json" with { type: "json" };
 
 /* The shared fixtures in packages/catalog/reading-questions.json, run against this package's own
    recogniser the way assistant.json's fixtures are run against every platform's matcher. The web
@@ -51,6 +54,8 @@ test("every reading fixture in the contract gets the recogniser's expected answe
     for (const [entry, side] of Object.entries(fixture.sides ?? {}))
       if (sideOf(entry, match.values?.[entry] ?? Number.NaN) !== side)
         disagreements.push(`"${fixture.says}": ${entry} is not ${side}`);
+    if ("far" in fixture && isFarOutside(match) !== fixture.far)
+      disagreements.push(`"${fixture.says}" far should be ${fixture.far}`);
     if (readingLeavesUnread(fixture.says, match, triggers) !== fixture.unread)
       disagreements.push(`"${fixture.says}" unread should be ${fixture.unread}`);
   }
@@ -127,4 +132,90 @@ test("the contract's stem fixtures pass this package's stemmer too", () => {
   for (const fixture of assistant.fixtures.stems)
     assert.deepEqual(stems(fixture.says), fixture.stems, fixture.says);
   assert.ok(fillerStems.has("pleas"));
+});
+
+/* The far-outside answer of 1 October 2026: 240/140 was answered with the paragraph about coffee, and
+   an oxygen of 80 with the one about cold hands. Past each bound in farOutside.bounds the answer is
+   the urgent one, built from the emergency answer's numbers, and none of the everyday sentences is in
+   it — for every entry and every side that has a bound, at the bound itself when it is inclusive. */
+const everyday = [
+  ...records.explanations.entries.flatMap((e) => [e.above, e.below, e.whatToDo]),
+  readingContract.answer.insideRange,
+  readingContract.answer.outsideRange,
+];
+const sentencesOf = (answer: ReturnType<typeof readingAnswer>) => [
+  ...answer.paragraphs,
+  ...(answer.urgent ? [answer.urgent.ifUnwell, ...answer.urgent.signs] : []),
+  ...answer.after,
+];
+
+test("past every far-outside bound the answer is urgent, and no everyday sentence is read", () => {
+  const bounds = readingContract.farOutside.bounds as Record<
+    string,
+    Record<"below" | "above", { value: number | null; inclusive?: boolean }>
+  >;
+  for (const measure of readingContract.measures)
+    for (const entry of measure.explains)
+      for (const side of ["below", "above"] as const) {
+        const bound = bounds[entry][side];
+        if (bound.value === null) continue;
+        const step = side === "below" ? -1 : 1;
+        const value = bound.inclusive ? bound.value : bound.value + step;
+        assert.equal(farSideOf(entry, value), side, `${entry} ${value}`);
+        const values = Object.fromEntries(
+          measure.explains.map((id) => {
+            const spec = records.observations.measures.find((m) => m.id === id)!;
+            return [id, id === entry ? value : (spec.low + spec.high) / 2];
+          }),
+        );
+        const answer = readingAnswer({ measure, matchedWords: 1, values, framing: "readValue", said: String(value) });
+        assert.ok(answer.urgent, `${entry} ${value} has no urgent block`);
+        assert.deepEqual(answer.urgent.numbers, assistant.answers.emergency.numbers);
+        assert.equal(answer.urgent.ifUnwell, readingContract.answer.farIfUnwell);
+        for (const sentence of sentencesOf(answer))
+          assert.ok(!everyday.includes(sentence), `${entry} ${value} read "${sentence.slice(0, 50)}…"`);
+        assert.ok(!answer.paragraphs.some((p) => p.startsWith(readingContract.answer.readValue.slice(0, 20))));
+        assert.equal(answer.after.at(-1), records.explanations.provenance.whoDecides);
+        assert.ok(answer.smallPrint.includes(readingContract.answer.farUnreviewed));
+      }
+});
+
+test("240/140 and oxygen 80 are answered urgently, with the red flags records.json names for them", () => {
+  const pressure = readingAnswer(readingIn("my bp is 240/140")!);
+  assert.ok(pressure.paragraphs[0].includes("240/140"));
+  const named = (id: string) => sos.redFlags.conditions.find((c) => c.id === id)!.name;
+  assert.deepEqual(pressure.urgent?.signs, ["chest-pain", "stroke"].map(named));
+  const systolic = records.explanations.entries.find((e) => e.id === "systolic")!;
+  assert.ok(!sentencesOf(pressure).includes(systolic.above));
+  const oxygen = readingAnswer(readingIn("oxygen 80")!);
+  const ox = records.explanations.entries.find((e) => e.id === "oxygen")!;
+  assert.ok(oxygen.urgent);
+  assert.ok(!sentencesOf(oxygen).includes(ox.below));
+  /* 185/95: one number past its bound makes the pair far, and the diastolic's own everyday
+     paragraph is not read either. */
+  const one = readingAnswer(readingIn("185/95")!);
+  const diastolic = records.explanations.entries.find((e) => e.id === "diastolic")!;
+  assert.ok(one.urgent);
+  assert.ok(!sentencesOf(one).includes(diastolic.above));
+});
+
+test("a number inside the range or a little outside it is answered as before, with no urgent block", () => {
+  for (const says of ["what does 120/80 mean", "What does 150 over 95 mean", "is a pulse of 110 too high"]) {
+    const answer = readingAnswer(readingIn(says)!);
+    assert.equal(answer.urgent, null, says);
+    assert.deepEqual(answer.after, [], says);
+  }
+});
+
+test("a date is not a blood pressure: an implausible bare pair is not read, and a named measure prefers the plausible pair", () => {
+  for (const says of ["20/09", "15/10", "see you on 30/06", "12/10/2026"])
+    assert.equal(readingIn(says), null, says);
+  assert.deepEqual(readingIn("my bp on 20/09 was 150/95")?.values, { systolic: 150, diastolic: 95 });
+  /* Named, and nothing plausible beside it: read, and past the bound, so urgent rather than ignored. */
+  const named = readingIn("my bp is 20/09")!;
+  assert.ok(isFarOutside(named));
+});
+
+test("the readValue opening no longer says it does not grade beside a sentence that places the number", () => {
+  assert.ok(!/do not grade/i.test(readingContract.answer.readValue));
 });
