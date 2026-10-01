@@ -311,7 +311,7 @@ private data class Destination(val key: String, val icon: androidx.compose.ui.gr
                        control. The cost is 80dp of height on those pages, and it is paid on purpose. */
                     val orbBand = if (role == null && detail == null) 80.dp else 0.dp
                     Box(Modifier.fillMaxSize().padding(bottom = orbBand)) {
-                    if (detail != null) DetailScreen(detail!!, store, go, { onboarding = true })
+                    if (detail != null) DetailScreen(detail!!, store, go, { onboarding = true }, workspace = role)
                     else if (role != null) WorkspaceScreen(role, section, store, go)
                     else when (page) {
                         /* A shortcut carries the service it names into the catalogue, which opens straight

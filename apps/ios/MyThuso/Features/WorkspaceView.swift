@@ -637,7 +637,7 @@ struct WorkspaceSectionView: View {
         Group {
             group("Prescriptions") {
                 ForEach(WorkspaceDay.prescriptions) { item in
-                    NavigationLink { PrescriptionView(reference: item.id) } label: {
+                    NavigationLink { PrescriptionView(reference: item.id, partner: true) } label: {
                         QueueRow(reference: item.id, subject: item.subject,
                                  note: item.late ? "Past its collection window" : nil,
                                  chip: item.standing, tone: item.late ? .attention : .neutral)
@@ -663,7 +663,7 @@ struct WorkspaceSectionView: View {
         Group {
             group("Laboratory") {
                 ForEach(WorkspaceDay.laboratory) { item in
-                    NavigationLink { LabOrderView(reference: item.id) } label: {
+                    NavigationLink { LabOrderView(reference: item.id, partner: true) } label: {
                         QueueRow(reference: item.id, subject: item.subject, chip: item.standing)
                     }.buttonStyle(.plain)
                 }

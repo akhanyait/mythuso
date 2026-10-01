@@ -6,6 +6,7 @@ import { Badge, Button } from '../ui';
 import { refusal } from '../../../../packages/thusoiq/index.ts';
 import medicinesContract from '../../../../packages/catalog/medicines.json' with { type: 'json' };
 import { custodyLabel, roundFor, scheduleName, useMedicines } from '../lib/medicines';
+import { releaseWithheld } from '../lib/dispensing';
 import './doctor-pages.css';
 
 /* The pharmacy partner's three boards. They were in features/Orders.tsx beside the prescription and
@@ -98,7 +99,7 @@ export function FulfilmentQueue({ section = 'Orders', open }: { section?: 'Order
   const held = results.filter(r => r.ready && r.holding.startsWith('Verified')).length;
   return <>
    <div className="shift-head">
-    <div><h1>Results</h1><p>{held ? 'Verified is not released. A result reaches a patient when a clinician sends it with an explanation, and this partner cannot do that for them.' : 'Nothing is waiting on a clinician.'}</p></div>
+    <div><h1>Results</h1><p>{held ? `Verified is not released. ${releaseWithheld}` : 'Nothing is waiting on a clinician.'}</p></div>
    </div>
    <NotConnected of="dispensing"/>
    {/* The state is the sentence's first clause, so it is lifted out of the sentence and set in a

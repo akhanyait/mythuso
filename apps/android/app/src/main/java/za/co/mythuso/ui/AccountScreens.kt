@@ -310,7 +310,10 @@ import za.co.mythuso.model.mokoenaHousehold
         }
     }
 }
-@Composable fun DetailScreen(title: String, store: PreviewStore, open: (String) -> Unit, firstRun: () -> Unit) {
+/* `workspace` is the role whose workspace is open behind this screen, or null for the patient. A route
+   shared by several readers asks it rather than trusting the title: a partner opens the same
+   "Prescription RX-0081" a patient does, and medicines.json#partnerQueue says a partner is drawn nobody. */
+@Composable fun DetailScreen(title: String, store: PreviewStore, open: (String) -> Unit, firstRun: () -> Unit, workspace: String?) {
     when {
         title == "Your care team" -> CareTeamScreen(store, open)
         title.startsWith("Clinician: ") -> ClinicianProfileScreen(store, title.removePrefix("Clinician: "))
@@ -429,12 +432,12 @@ import za.co.mythuso.model.mokoenaHousehold
         title.startsWith("Doctor review") -> DoctorReviewScreen(store, title.removePrefix("Doctor review "))
         /* Wave 5: the inbox a review is signed from, named by the contract's own heading. */
         title == za.co.mythuso.model.ClinicalData.InboxText.heading -> ClinicalInboxScreen(store)
-        title.startsWith("Prescription ") -> PrescriptionScreen(title.removePrefix("Prescription "))
+        title.startsWith("Prescription ") -> PrescriptionScreen(title.removePrefix("Prescription "), partner = workspace == "Partner")
         title == "Substitution & repeats" -> DispensingScreen(store)
         /* Named by the contract's own heading, so the row that opens it and the screen it opens cannot drift. */
         title == MedicinesData.HandoverText.heading -> MedicinesHandoverScreen()
         title == "Employer programmes" -> ProgrammesScreen(store)
-        title.startsWith("Laboratory order ") -> LabOrderScreen(title.removePrefix("Laboratory order "))
+        title.startsWith("Laboratory order ") -> LabOrderScreen(title.removePrefix("Laboratory order "), partner = workspace == "Partner")
         title.startsWith("Incident ") -> IncidentDetailScreen(title.removePrefix("Incident "))
         /* The reference a case is read against. It was the roadmap placeholder; the ranges were in the
            record contract all along. ClinicalDeck.kt says what the screen refuses to draw. */

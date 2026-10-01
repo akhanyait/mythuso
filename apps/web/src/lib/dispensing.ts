@@ -130,7 +130,12 @@ export const formatDay = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleD
 /* The prescriber as a pharmacy is allowed to know them: the vetting register's answer, and not who they
    are. packages/catalog/medicines.json#partnerQueue.neverCarries lists prescriberRef, so the partner's
    substitution screen and the prescription a partner opens draw this in place of a name and an HPCSA
-   number. The check's name comes from vetting.json, so a refusal reads in the register's own words. */
+   number. The check's name comes from vetting.json, so a refusal reads in the register's own words, and
+   the sentences around it from dispensing.json#partner, which the native apps are generated from too: the
+   phones drew the prescriber's name for a day after the web stopped, because these words lived here. */
+const partner = contract.partner;
 export const prescriberStanding = (decision: Decision) => decision.allowed
- ? 'May prescribe · every check current on the vetting register'
- : `May not prescribe · ${decision.blockedBy.map(check => check.name).join(' and ') || 'held by the vetting register'}`;
+ ? partner.prescriberMay
+ : partner.prescriberMayNot.replace('{checks}', decision.blockedBy.map(check => check.name).join(partner.checksJoinedBy) || partner.noCheckNamed);
+/* What a laboratory reads where a release control was. Release is a clinician's act; see dispensing.json#_partnerNote. */
+export const releaseWithheld = partner.releaseWithheld;

@@ -107,14 +107,13 @@ struct PrescriptionItem: Identifiable, Hashable {
     var patientRefused: Bool { outcome == "refused-by-patient" }
 }
 
+/* No patient and no prescriber. The one screen that reads this is the pharmacy's, and
+   medicines.json#partnerQueue.neverCarries lists both, so scripts/emit-dispensing.mjs leaves them out
+   of the app altogether rather than leaving them here for a screen to draw. */
 struct DispensedPrescription {
     let reference: String
-    let patient: String
-    let patientBorn: String
     let issuedInDays: Int
-    /// Vetting subject ids. The registration on the screen is read off the vetting record rather
-    /// than typed here, so a lapsed registration moves the attribution rather than sitting under it.
-    let prescriber: String
+    /// A vetting subject id: the pharmacy is the reader's own, so it may be named.
     let pharmacy: String
     let pharmacist: DispensingPharmacist
     let items: [PrescriptionItem]
@@ -194,6 +193,18 @@ enum Dispensing {
             return .init(allowed: false, reason: "The last thirty days were collected \(-authorisation.lastCollectedDays) days ago and this authorisation allows one collection every \(authorisation.minimumDaysBetween) days. The next is due in \(nextCollectionInDays) days — and the question worth asking first is how the last month went.")
         }
         return .init(allowed: true, reason: "One repeat of \(authorisation.daysPerRepeat) days may be collected today. \(repeatsRemaining) of \(authorisation.repeatsAuthorised) remain.")
+    }
+
+    /* The prescriber as a partner is allowed to know them: the vetting register's answer, and not
+       who they are. medicines.json#partnerQueue.neverCarries lists prescriberRef, so the pharmacy's
+       substitution screen and the prescription or laboratory order a partner opens draw this where
+       a name and an HPCSA number were. The words are dispensing.json#partner's and the checks'
+       names vetting.json's, so it reads exactly as Dispensing.kt and apps/web/src/lib/dispensing.ts
+       read it. */
+    static func prescriberStanding(_ decision: VettingDecision) -> String {
+        if decision.allowed { return Partner.prescriberMay }
+        let checks = decision.blockedBy.map(\.name).joined(separator: Partner.checksJoinedBy)
+        return Partner.prescriberMayNot.replacingOccurrences(of: "{checks}", with: checks.isEmpty ? Partner.noCheckNamed : checks)
     }
 
     /* What the patient is owed, in words. Assembled here rather than in the view so that iOS,

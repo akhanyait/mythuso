@@ -22,6 +22,70 @@ import SwiftUI
     guard let subject = VettingStore.shared.subject(subjectId) else { return "Not on the vetting register" }
     return "\(subject.name) · \(subject.reference)"
 }
+
+/* WHO IS READING. The prescription and the laboratory order open for the patient (the Passport), the
+   clinician (the patient file) and the partner who fills them (the partner's orders and results), and
+   until 2 October 2026 they drew the patient's name and birth date, the prescriber's name and HPCSA
+   number and the nurse who drew the sample whoever opened them — a day after the web stopped.
+   packages/catalog/medicines.json#partnerQueue.neverCarries lists the patient, a name, the prescriber
+   and the collector, so both screens take `partner`, with no default so that no door can forget to
+   say, and a partner is drawn what partnerQueue carries: the order by its reference, what to fill, how
+   far along it is, and the prescriber as the vetting register's answer rather than a person. The
+   people are drawn by `whoFor` and nowhere else, so the one function a partner never reaches is the
+   one place a person could come back through (scripts/check-boundaries.mjs holds it there).
+
+   WHICH ORDER. Each order is its own fixture, found by its reference. Both screens drew one order
+   whatever reference opened them, so LAB-0019, a sample still with the courier, opened LAB-0023's
+   returned result and a release button, and RX-0079's one item opened RX-0081's two. A reference with
+   no fixture is refused in words rather than shown somebody else's order. */
+private let orderPrescriber = "D-401"
+/* The people behind an order, for a reader who may know them. The first line returns before any
+   person is read, which is the whole of what partnerQueue asks. */
+@MainActor private func whoFor(_ partner: Bool, patient: String? = nil, prescriberAs: String, collectedBy: String? = nil) -> [(String, String)] {
+    guard !partner else { return [] }
+    return (patient.map { [("Patient", $0)] } ?? [])
+        + [(prescriberAs, attributedTo(orderPrescriber))]
+        + (collectedBy.map { [("Collected by", $0)] } ?? [])
+}
+/* What a partner is drawn where the prescriber's name was: whether the vetting register lets them
+   stand behind the order, in dispensing.json#partner's words. */
+@MainActor private func standingFor(_ label: String) -> (String, String) {
+    let decision = VettingStore.shared.subject(orderPrescriber).map { can($0, "prescribe") }
+    return (label, Dispensing.prescriberStanding(decision ?? .init(allowed: false, reason: nil, blockedBy: [])))
+}
+/* A reference nothing here holds is said in words. Drawing another order under its heading was how
+   one order's timeline came to stand for every order on the board. */
+private struct NoSuchOrder: View {
+    let kind: String
+    let reference: String
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
+                DemoBadge()
+                Text("There is no \(kind) \(reference) in this preview, so nothing is drawn for it — not another order under its reference.")
+                    .font(.thuso(.subheadline)).foregroundStyle(ThusoRole.foreground)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.vertical, ThusoSpacing.space16)
+        }
+        .contentMargins(.horizontal, ThusoSpacing.space20, for: .scrollContent)
+        .thusoGround()
+    }
+}
+/* The people behind an order, as a partner sees them (nobody, and the register's answer) or as anybody
+   else does. One view for both screens, so the branch is written once. */
+private struct OrderPeople: View {
+    let partner: Bool
+    let facts: [(String, String)]
+    var body: some View {
+        ForEach(facts, id: \.0) { fact in FactRow(label: fact.0, value: fact.1) }
+        if partner {
+            Text(Dispensing.Partner.told)
+                .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
 struct TimelineStep: Identifiable {
     let label: String, detail: String, at: String, state: String
     var id: String { label }
@@ -55,32 +119,58 @@ struct TimelineList: View {
         }
     }
 }
+private let amlodipine = ("Amlodipine 5 mg", "Tablet · One tablet each morning", "30 tablets · 5 repeats", "Take with or without food. Report ankle swelling.")
+private let hydrochlorothiazide = ("Hydrochlorothiazide 12.5 mg", "Tablet · One tablet each morning", "30 tablets · 5 repeats", "Take early in the day.")
+private struct ScriptFixture {
+    let medicines: [(String, String, String, String)]
+    let issued: String
+    let patient: String
+    let dispensed: Bool
+}
+/* The two scripts the partner's orders list, each as far along as its row says: RX-0081 is waiting for
+   the pharmacist, RX-0079 is dispensed, sealed and waiting for its courier. */
+private let scripts: [String: ScriptFixture] = [
+    "RX-0081": .init(medicines: [amlodipine, hydrochlorothiazide], issued: "Issued 4 September · Valid for 6 months",
+                     patient: "Lerato Molefe · 01/01/1980", dispensed: false),
+    "RX-0079": .init(medicines: [amlodipine], issued: "Issued 2 September · Valid for 6 months",
+                     patient: "Lerato Molefe · 01/01/1980", dispensed: true)
+]
 struct PrescriptionView: View {
     var reference = "RX-0081"
+    /// Whether a partner is reading. No default, so every door says.
+    let partner: Bool
     @State private var state: LoadState = .ready
     @State private var checked: Set<String> = []
-    private let medicines = [
-        ("Amlodipine 5 mg", "Tablet · One tablet each morning", "30 tablets · 5 repeats", "Take with or without food. Report ankle swelling."),
-        ("Hydrochlorothiazide 12.5 mg", "Tablet · One tablet each morning", "30 tablets · 5 repeats", "Take early in the day.")
-    ]
     var body: some View {
-        ScrollView {
+        if let script = scripts[reference] {
+            screen(script)
+        } else {
+            NoSuchOrder(kind: "prescription", reference: reference)
+        }
+    }
+
+    private func screen(_ script: ScriptFixture) -> some View {
+        let medicines = script.medicines
+        let done = script.dispensed ? medicines.count : checked.count
+        return ScrollView {
             VStack(alignment: .leading, spacing: ThusoSpacing.space24) {
                 DemoBadge()
                 SurfaceHeading(eyebrow: "Prescription", title: reference,
-                               subtitle: "Issued 4 September · Valid for 6 months · Awaiting pharmacist")
+                               subtitle: "\(script.issued) · \(script.dispensed ? "Dispensed, awaiting courier" : "Awaiting pharmacist")")
                 CapabilityNotice(of: "dispensing")
                 /* The lead panel is the pharmacist's own count, and it is the array underneath it
                    rather than a fixture: a preview that said "2 checked" over an unchecked list
                    would be teaching a pharmacist that the tally is decoration. */
                 SurfacePanel(tone: .lead, spacing: ThusoSpacing.space16) {
                     ThusoMetrics {
-                        ThusoMetric(value: "\(checked.count)", unit: "of \(medicines.count)", label: "Items checked in this preview",
-                                    chip: checked.count == medicines.count ? "All checked" : "Awaiting pharmacist",
-                                    flagged: checked.count < medicines.count)
+                        ThusoMetric(value: "\(done)", unit: "of \(medicines.count)", label: "Items checked in this preview",
+                                    chip: done == medicines.count ? "All checked" : "Awaiting pharmacist",
+                                    flagged: done < medicines.count)
                     }
-                    FactRow(label: "Patient", value: "Lerato Molefe · 01/01/1980")
-                    FactRow(label: "Prescriber", value: attributedTo("D-401"))
+                    /* A partner is told whether the prescriber may stand behind the script and not who
+                       they are; everybody else reads the people too. */
+                    OrderPeople(partner: partner, facts: partner ? [standingFor("Prescriber")]
+                                : whoFor(partner, patient: script.patient, prescriberAs: "Prescriber"))
                     FactRow(label: "Pharmacy", value: "Rosebank community pharmacy")
                 }
                 SurfacePanel(tone: .quiet, padding: ThusoSpacing.space16) {
@@ -90,7 +180,7 @@ struct PrescriptionView: View {
                     SurfacePanel {
                         PanelHead("Items")
                         ForEach(medicines, id: \.0) { medicine in
-                            item(medicine)
+                            item(medicine, done: script.dispensed)
                             if medicine.0 != medicines.last?.0 { Hairline() }
                         }
                     }
@@ -99,9 +189,9 @@ struct PrescriptionView: View {
                         TimelineList(steps: [
                             .init(label: "Prescribed", detail: "Signed by the reviewing doctor", at: "4 September, 11:41", state: "done"),
                             .init(label: "Sent to pharmacy", detail: "Encrypted transfer to the dispensing partner", at: "4 September, 11:42", state: "done"),
-                            .init(label: "Pharmacist check", detail: "\(checked.count) of \(medicines.count) items checked in this preview", at: "", state: "active"),
-                            .init(label: "Dispensed and sealed", detail: "Tamper-evident seal number recorded", at: "", state: "waiting"),
-                            .init(label: "Delivered to the patient", detail: "Signature or visit-code handover", at: "", state: "waiting")
+                            .init(label: "Pharmacist check", detail: "\(done) of \(medicines.count) items checked in this preview", at: "", state: script.dispensed ? "done" : "active"),
+                            .init(label: "Dispensed and sealed", detail: "Tamper-evident seal number recorded", at: "", state: script.dispensed ? "done" : "waiting"),
+                            .init(label: "Delivered to the patient", detail: "Signature or visit-code handover", at: "", state: script.dispensed ? "active" : "waiting")
                         ])
                     }
                 } else {
@@ -119,8 +209,9 @@ struct PrescriptionView: View {
         .navigationTitle("Prescription").navigationBarTitleDisplayMode(.inline)
     }
 
-    @ViewBuilder private func item(_ medicine: (String, String, String, String)) -> some View {
-        let on = checked.contains(medicine.0)
+    /// A dispensed script's items were checked before it was sealed, so they are drawn checked and fixed.
+    @ViewBuilder private func item(_ medicine: (String, String, String, String), done: Bool) -> some View {
+        let on = done || checked.contains(medicine.0)
         Button {
             if on { checked.remove(medicine.0) } else { checked.insert(medicine.0) }
         } label: {
@@ -145,13 +236,32 @@ struct PrescriptionView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .disabled(done)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
     }
 }
 
+private struct LabFixture {
+    let what: String
+    /// How many steps of the chain of custody are behind it; all five means a result came back.
+    let reached: Int
+    let collectedBy: String
+    let seal: String
+    var returned: Bool { reached >= 5 }
+}
+/* The two orders the partner's results list, each as far along as its row says: LAB-0023 came back and
+   waits for its doctor, LAB-0019's sample is with the courier. */
+private let labOrders: [String: LabFixture] = [
+    "LAB-0023": .init(what: "Requested 4 September · Fasting panel", reached: 5,
+                      collectedBy: "Sister Naledi Mokoena · At home, Rosebank", seal: "SEAL-77341 · Intact on receipt"),
+    "LAB-0019": .init(what: "Requested 4 September · Sample in transit", reached: 2,
+                      collectedBy: "Sister Naledi Mokoena · At home, Soweto", seal: "SEAL-77352 · Intact at the courier’s handover")
+]
 struct LabOrderView: View {
     var reference = "LAB-0023"
+    /// Whether a partner is reading. No default, so every door says.
+    let partner: Bool
     @State private var state: LoadState = .ready
     @State private var released = false
     private let panel = [("Haemoglobin", "13.9 g/dL", "12.0 – 15.5", ""), ("Fasting glucose", "6.4 mmol/L", "3.9 – 5.6", "High"),
@@ -159,24 +269,46 @@ struct LabOrderView: View {
     /// Counted from the panel below rather than written into a sentence above it.
     private var outside: Int { panel.filter { !$0.3.isEmpty }.count }
     var body: some View {
+        if let order = labOrders[reference] {
+            screen(order)
+        } else {
+            NoSuchOrder(kind: "laboratory order", reference: reference)
+        }
+    }
+
+    /* The steps as far as this order has got: the ones behind it done, the one in hand active, the rest
+       waiting with no time against them. The release step keeps its own state once a result is back. */
+    private func progressed(_ steps: [TimelineStep], to order: LabFixture) -> [TimelineStep] {
+        steps.enumerated().map { pair -> TimelineStep in
+            let (n, step) = pair
+            if n == steps.count - 1, order.returned { return step }
+            let state = n < order.reached ? "done" : n == order.reached ? "active" : "waiting"
+            return .init(label: step.label, detail: step.detail, at: n < order.reached ? step.at : "", state: state)
+        }
+    }
+
+    private func screen(_ order: LabFixture) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: ThusoSpacing.space24) {
                 DemoBadge()
-                SurfaceHeading(eyebrow: "Laboratory order", title: reference,
-                               subtitle: "Requested 4 September · Fasting panel")
+                SurfaceHeading(eyebrow: "Laboratory order", title: reference, subtitle: order.what)
                 SurfacePanel(tone: .lead, spacing: ThusoSpacing.space16) {
-                    ThusoMetrics {
-                        ThusoMetric(value: "\(outside)", unit: "of \(panel.count)", label: "Results outside their reference range",
-                                    chip: outside == 0 ? "All within range" : "For a clinician to explain", flagged: outside > 0)
+                    if order.returned {
+                        ThusoMetrics {
+                            ThusoMetric(value: "\(outside)", unit: "of \(panel.count)", label: "Results outside their reference range",
+                                        chip: outside == 0 ? "All within range" : "For a clinician to explain", flagged: outside > 0)
+                        }
                     }
-                    FactRow(label: "Standing", value: released ? "Released to patient" : "Awaiting release")
-                    FactRow(label: "Requested by", value: attributedTo("D-401"))
-                    FactRow(label: "Collected by", value: "Sister Naledi Mokoena")
-                    FactRow(label: "Sample seal", value: "SEAL-77341 · Intact on receipt")
+                    FactRow(label: "Standing", value: released ? "Released to patient" : order.returned ? "Awaiting release" : "Not yet returned")
+                    /* A partner reads the register's answer where the doctor was, and nobody where the
+                       nurse who drew the sample was. */
+                    OrderPeople(partner: partner, facts: partner ? [standingFor("Requested by")]
+                                : whoFor(partner, prescriberAs: "Requested by", collectedBy: order.collectedBy))
+                    FactRow(label: "Sample seal", value: order.seal)
                 }
                 SurfacePanel {
                     PanelHead("Chain of custody")
-                    TimelineList(steps: [
+                    TimelineList(steps: progressed([
                         .init(label: "Ordered", detail: "Doctor requested a fasting panel", at: "4 September, 08:10", state: "done"),
                         .init(label: "Collected at home", detail: "Two tubes drawn, sealed and labelled at the bedside", at: "4 September, 09:05", state: "done"),
                         .init(label: "Courier handover", detail: "Seal scanned by courier · Temperature logged", at: "4 September, 09:40", state: "done"),
@@ -184,12 +316,16 @@ struct LabOrderView: View {
                         /* A reference returned, not a result verified: no test is run, so the contract's words. */
                         .init(label: Medicines.ResultsText.returned, detail: Medicines.ResultsText.returnedDetail, at: "5 September, 07:30", state: "done"),
                         .init(label: "Released to the patient", detail: released ? "Visible in the Health Passport with an explanation" : "Held until the requesting doctor releases them", at: "", state: released ? "done" : "active")
-                    ])
+                    ], to: order))
                 }
                 SurfacePanel(tone: .quiet, padding: ThusoSpacing.space16) {
                     StatePicker(title: "Preview the laboratory connection state", state: $state)
                 }
-                if state == .ready {
+                if !order.returned {
+                    Text("This sample is still on its way to the laboratory, so nothing has come back for it.")
+                        .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else if state == .ready {
                     SurfacePanel {
                         PanelHead("Results",
                                   note: "Fictional results. Reference ranges are illustrative and vary by laboratory, age and sex.")
@@ -206,8 +342,18 @@ struct LabOrderView: View {
                     Text("Abnormal results are never pushed to a patient without a clinician’s explanation. Release is a deliberate clinical act, not an automatic notification.")
                         .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button(released ? "Withdraw demo release" : "Release with an explanation") { released.toggle() }
-                        .buttonStyle(released ? AnyButtonStyleBox(QuietButton()) : AnyButtonStyleBox(CareButton()))
+                    /* Release is withheld from the partner. vetting.json grants a laboratory
+                       release-lab-result, and the partner's own Results board says a clinician releases
+                       a result; of the two, the clinician's rule is the one a patient is protected by,
+                       so a partner reads the sentence and is drawn no control. */
+                    if partner {
+                        Label(Dispensing.Partner.releaseWithheld, systemImage: "nosign")
+                            .font(.thuso(.footnote)).foregroundStyle(ThusoRole.foreground)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else if order.returned {
+                        Button(released ? "Withdraw demo release" : "Release with an explanation") { released.toggle() }
+                            .buttonStyle(released ? AnyButtonStyleBox(QuietButton()) : AnyButtonStyleBox(CareButton()))
+                    }
                 }
             }
             .padding(.vertical, ThusoSpacing.space16)

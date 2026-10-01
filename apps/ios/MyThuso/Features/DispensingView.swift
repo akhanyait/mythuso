@@ -27,24 +27,44 @@ import SwiftUI
    refusal is a second sentence to keep in step.
 
    Nothing is dispensed. No pharmacy is contacted and every patient, pharmacist and product is
-   fictional. */
+   fictional.
+
+   WHO IS READING. This is the pharmacy's screen, reached from the partner's orders, and
+   packages/catalog/medicines.json#partnerQueue.neverCarries lists the patient and the prescriber: a
+   pharmacy is told what to dispense and never who for. So the prescription is drawn by its reference
+   and the day it was issued, and the prescriber as the vetting register's answer — whether a doctor
+   who may prescribe stands behind it — and never as a name or an HPCSA number. The demonstration
+   switch between a current and a lapsed doctor is keyed by position, and the subject id stays inside
+   `prescriberAt`. The web stopped naming either on 1 October 2026 and this screen went on doing it
+   until the 2nd; scripts/check-boundaries.mjs holds all three to it now. Whether a pharmacist should
+   read the prescriber's name off a real prescription is an open question in docs/FEATURE-MAP.md. */
 
 private let dispensingPharmacies = ["P-501", "P-502"]
+/* A doctor whose registration is current and one whose HPCSA registration lapsed. Switching between
+   them changes whether anybody may stand behind the prescription and nothing else. */
 private let dispensingPrescribers = ["D-401", "D-402"]
 private let dispensingDay = Date.FormatStyle().day().month(.wide).year()
 
 struct DispensingView: View {
     @ObservedObject private var vetting = VettingStore.shared
     @State private var pharmacyId = dispensingPharmacies[0]
-    @State private var prescriberId = dispensingPrescribers[0]
+    @State private var prescriberKey = 0
     @State private var told: Set<String> = []
     @State private var handed: Set<String> = []
     @State private var collectTried = false
 
-    private var pharmacy: VettingSubject? { vetting.subject(pharmacyId) }
-    private var prescriber: VettingSubject? { vetting.subject(prescriberId) }
+    private var pharmacies: [VettingSubject] { dispensingPharmacies.compactMap { vetting.subject($0) } }
+    private var pharmacy: VettingSubject? { pharmacies.first { $0.id == pharmacyId } }
     private var mayDispense: VettingDecision? { pharmacy.map { can($0, "dispense") } }
-    private var mayPrescribe: VettingDecision? { prescriber.map { can($0, "prescribe") } }
+    /// The register's answer for the doctor at a position in the switch. Only the answer leaves here.
+    private func prescriberAt(_ key: Int) -> VettingDecision? {
+        vetting.subject(dispensingPrescribers[min(max(key, 0), dispensingPrescribers.count - 1)]).map { can($0, "prescribe") }
+    }
+    private var mayPrescribe: VettingDecision? { prescriberAt(prescriberKey) }
+    /// A doctor missing from the register is a refusal, said in the same words as any other.
+    private func standing(_ decision: VettingDecision?) -> String {
+        Dispensing.prescriberStanding(decision ?? .init(allowed: false, reason: nil, blockedBy: []))
+    }
     private var open: Bool { (mayDispense?.allowed ?? false) && (mayPrescribe?.allowed ?? false) }
     private var everyItemTold: Bool { Dispensing.prescription.items.allSatisfy { told.contains($0.id) } }
 
@@ -78,11 +98,13 @@ struct DispensingView: View {
         CareCard {
             Text(Dispensing.prescription.reference)
                 .font(.thuso(.title3, weight: .bold)).foregroundStyle(ThusoRole.foreground)
-            Text("\(Dispensing.prescription.patient) · \(Dispensing.prescription.patientBorn) · issued \(Dispensing.prescription.issued.formatted(dispensingDay))")
+            /* By its reference and the day it was issued, never by the patient's name and birth date. */
+            Text("Issued \(Dispensing.prescription.issued.formatted(dispensingDay))")
                 .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
-            row("Prescribed by", attributedTo(prescriberId))
+            row("Prescriber", standing(mayPrescribe))
             row("Dispensed by", "\(Dispensing.prescription.pharmacist.name) · \(Dispensing.prescription.pharmacist.registration)")
-            row("At", attributedTo(pharmacyId))
+            row("At", pharmacy.map { p in "\(p.name) · \(p.reference)" } ?? "Not on the vetting register")
+            Text(Dispensing.Partner.told).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
         }
     }
 
@@ -91,13 +113,15 @@ struct DispensingView: View {
     private var parties: some View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             Picker("Dispensing pharmacy", selection: $pharmacyId) {
-                ForEach(dispensingPharmacies, id: \.self) { id in
-                    Text(vetting.subject(id)?.name ?? id).tag(id)
+                ForEach(pharmacies) { p in
+                    Text(p.name).tag(p.id)
                 }
             }
-            Picker("Prescriber", selection: $prescriberId) {
-                ForEach(dispensingPrescribers, id: \.self) { id in
-                    Text(vetting.subject(id)?.name ?? id).tag(id)
+            /* Each option is the register's answer for the doctor at that position, so the switch
+               shows what changes — whether anybody may stand behind the script — and nobody's name. */
+            Picker("Prescriber", selection: $prescriberKey) {
+                ForEach(dispensingPrescribers.indices, id: \.self) { key in
+                    Text(standing(prescriberAt(key))).tag(key)
                 }
             }
             if let decision = mayDispense, !decision.allowed {
@@ -138,7 +162,7 @@ struct DispensingView: View {
                     Text(klass.whoDecides).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 }
             }
-            Text("There is no fourth class called “may be substituted”. Section 22F of the Medicines and Related Substances Act 101 of 1965 makes telling the patient a duty on every substitution, with four exceptions — \(Dispensing.statutoryGrounds.map { "\($0.name.lowercased()) (\($0.section ?? ""))" }.joined(separator: ", ")) — so a silent swap is not the mild end of this screen. It is outside it.")
+            Text("There is no fourth class called “may be substituted”. Section 22F of the Medicines and Related Substances Act 101 of 1965 makes telling the patient a duty on every substitution, with four exceptions — \(Dispensing.statutoryGrounds.map { g in "\(g.name.lowercased()) (\(g.section ?? ""))" }.joined(separator: ", ")) — so a silent swap is not the mild end of this screen. It is outside it.")
                 .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
         }
     }

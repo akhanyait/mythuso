@@ -2755,6 +2755,13 @@ const generated = [
     command: "npm run dispensing",
     files: emitDispensing(),
   },
+  /* DispensingData carries the first sentence of partnerQueue.why, the reason a partner reads for the
+     people missing from an order (2 October 2026). */
+  {
+    source: "packages/catalog/medicines.json",
+    command: "npm run dispensing",
+    files: emitDispensing(),
+  },
   {
     source: "packages/catalog/programmes.json",
     command: "npm run programmes",
@@ -3684,6 +3691,134 @@ for (const { source, command, files } of generated) {
     if (!/\{partner\s*\?\s*<OfficeNote refusal[^>]*>[^<]*<\/OfficeNote>\s*:\s*mayAct && <div className="oi-actions"><Button/.test(oRaw))
       od("the release control is no longer drawn only for a reader who is not the partner. A result reaches a patient when a clinician sends it with an explanation.");
     console.log(`The partner's order screens · the people behind a prescription and a laboratory order drawn by whoFor alone, which returns nothing for a partner; ${doors.length} doors pass who is reading; each order found by its reference; and no release control for the partner.`);
+  }
+
+  /* The phones. The three screens above went on naming people on iOS and Android a day after the web
+     stopped: Substitution & repeats drew the patient's name and birth date, "Prescribed by" with the
+     doctor's name and HPCSA number, and a switch of doctors' names; the prescription and the laboratory
+     order a partner opens from its boards drew the patient, the prescriber and the nurse who drew the
+     sample, and every reference opened the same order. This holds the native partner screens to what
+     the web is held to (2 October 2026):
+       1. Substitution & repeats (DispensingView.swift, DispensingScreens.kt) reads every name, reference
+          and registration off one of the pharmacy's own things, reads no patient and calls no
+          attributedTo, draws the prescriber through prescriberStanding, and keys the switch by an
+          integer position rather than a subject;
+       2. the generated DispensingData, and the models beside it, carry no patient and no prescriber —
+          neither the field nor the value;
+       3. prescriberStanding's words and the partner's release sentence are dispensing.json#partner's on
+          all three platforms, typed nowhere else;
+       4. the native prescription and laboratory order take `partner` with no default and every door
+          passes one — the partner's boards true, Android's router `workspace == "Partner"` with the open
+          workspace handed in by MainActivity; whoFor's first statement returns nothing for a partner and
+          nothing outside it reads a person; each order the partner's boards list is its own fixture,
+          found by its reference, with one it does not hold refused in words; and a partner is drawn the
+          release sentence and no release control. */
+  {
+    const dc = JSON.parse(read("packages/catalog/dispensing.json"));
+    const uncomment = (text) => text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:"])\/\/[^\n]*/g, "$1 ");
+    const nf = (file, message) => pw(`${file}: ${message}`);
+    const iosDispensing = "apps/ios/MyThuso/Features/DispensingView.swift";
+    const androidDispensing = "apps/android/app/src/main/java/za/co/mythuso/ui/DispensingScreens.kt";
+    const nativeOwned = new Set(["pharmacy", "p", "pharmacist", "prescription", "rx", "auth", "authorisation", "ground", "g", "klass"]);
+    for (const [file, position] of [
+      [iosDispensing, /@State private var prescriberKey = 0\n[\s\S]*Picker\("Prescriber", selection: \$prescriberKey\)/],
+      [androidDispensing, /var prescriberKey by remember \{ mutableStateOf\(0\) \}[\s\S]*onClick = \{ prescriberKey = at;/],
+    ]) {
+      const src = uncomment(read(file));
+      for (const m of src.matchAll(/([\w)\]]+)[!?]?\.(name|reference|registration)\b/g))
+        if (/[)\]]$/.test(m[1]) || !nativeOwned.has(m[1]))
+          nf(file, `reads "${m[0]}". The pharmacy's substitution screen draws its own names and the vetting register's answer for the prescriber, never a person behind a lookup.`);
+      const person = src.match(/\.patient\b|patientBorn|attributedTo\(|\bprescriberId\b|ForEach\(dispensingPrescribers,/)?.[0];
+      if (person) nf(file, `reaches "${person}", a person the pharmacy is not told about.`);
+      if (!/Dispensing\.prescriberStanding\b/.test(src)) nf(file, "no longer draws the prescriber as Dispensing.prescriberStanding, the vetting register's answer.");
+      if (!position.test(src)) nf(file, "no longer keys the prescriber switch by an integer position. The subject stays inside the lookup.");
+    }
+    for (const { path, content } of emitDispensing()) {
+      const leak = [dc.prescription.patient, dc.prescription.patientBorn].find((v) => content.includes(v))
+        ?? content.match(/\bpatient(Born)?\s*[:=(]|\bprescriber\s*:/)?.[0];
+      if (leak) nf(path, `carries "${leak}". The only native screen that reads the dispensed prescription is the pharmacy's, so scripts/emit-dispensing.mjs writes no patient and no prescriber into the apps.`);
+    }
+    /* Kotlin's copy is positional, so the field is asked of the models the data is built into. */
+    for (const model of ["apps/ios/MyThuso/Models/Dispensing.swift", "apps/android/app/src/main/java/za/co/mythuso/model/Dispensing.kt"])
+      if (/\b(let|val) (patient|patientBorn|prescriber)\s*:/.test(read(model)))
+        nf(model, "gives the dispensed prescription a patient or a prescriber again.");
+    /* One place for the words: the contract, its generated copies, and the three functions that read it. */
+    const readers = {
+      "apps/web/src/lib/dispensing.ts": /partner\.prescriberMayNot\.replace\('\{checks\}'/,
+      "apps/ios/MyThuso/Models/Dispensing.swift": /Partner\.prescriberMayNot\.replacingOccurrences\(of: "\{checks\}"/,
+      "apps/android/app/src/main/java/za/co/mythuso/model/Dispensing.kt": /DispensingPartner\.prescriberMayNot\.replace\(\s*"\{checks\}"/,
+    };
+    for (const [file, shape] of Object.entries(readers))
+      if (!shape.test(read(file))) nf(file, "no longer builds the prescriber's standing from dispensing.json#partner.");
+    const words = [dc.partner.prescriberMay, dc.partner.prescriberMayNot.split("{checks}")[0], dc.partner.releaseWithheld];
+    const ownCopies = new Set(emitDispensing().map((f) => f.path));
+    for (const f of [...files("apps/web/src"), ...files("apps/ios/MyThuso"), ...files("apps/android/app/src/main")].filter((f) => /\.(tsx?|swift|kt)$/.test(f) && !ownCopies.has(f))) {
+      const typed = words.find((w) => read(f).includes(w));
+      if (typed) nf(f, `types "${typed}". It is dispensing.json#partner's, read on every platform rather than written again.`);
+    }
+
+    const iosOrders = "apps/ios/MyThuso/Features/OrdersView.swift";
+    const androidOrders = "apps/android/app/src/main/java/za/co/mythuso/ui/OrderScreens.kt";
+    const iosSrc = uncomment(read(iosOrders));
+    const androidSrc = uncomment(read(androidOrders));
+    for (const view of ["PrescriptionView", "LabOrderView"])
+      if (!new RegExp(`struct ${view}: View \\{\\n\\s*var reference = "[A-Z]+-\\d+"\\n\\s*let partner: Bool\\n`).test(iosSrc))
+        nf(iosOrders, `${view} no longer takes \`let partner: Bool\` with no default, so a door can open it without saying who is reading.`);
+    for (const screen of ["PrescriptionScreen", "LabOrderScreen"])
+      if (!new RegExp(`fun ${screen}\\(reference: String, partner: Boolean\\)`).test(androidSrc))
+        nf(androidOrders, `${screen} no longer takes \`partner: Boolean\` with no default, so a route can open it without saying who is reading.`);
+    /* Every door says, and the partner's own boards say true. */
+    for (const f of files("apps/ios/MyThuso").filter((f) => f.endsWith(".swift")))
+      for (const m of uncomment(read(f)).matchAll(/\b(PrescriptionView|LabOrderView)\(([^)]*)\)/g))
+        if (!/\bpartner: (true|false)\b/.test(m[2])) nf(f, `opens ${m[1]} without saying whether a partner is reading.`);
+    const workspace = uncomment(read("apps/ios/MyThuso/Features/WorkspaceView.swift"));
+    for (const board of ["partnerOrders", "partnerResults"]) {
+      const at = workspace.indexOf(`private var ${board}: some View`);
+      const body = at < 0 ? "" : workspace.slice(at, workspace.indexOf("\n    private var ", at + 1));
+      const door = board === "partnerOrders" ? "PrescriptionView(reference: item.id, partner: true)" : "LabOrderView(reference: item.id, partner: true)";
+      if (!body.includes(door)) nf("apps/ios/MyThuso/Features/WorkspaceView.swift", `${board} no longer opens its orders as ${door}.`);
+    }
+    for (const f of files("apps/android/app/src/main").filter((f) => f.endsWith(".kt")))
+      for (const m of uncomment(read(f)).matchAll(/\b(PrescriptionScreen|LabOrderScreen)\((?!reference)([^\n]*)/g))
+        if (!/partner = workspace == "Partner"\)/.test(m[2])) nf(f, `opens ${m[1]} without passing whether the open workspace is the partner's.`);
+    if (!/fun DetailScreen\([^\n]*\bworkspace: String\?\) \{/.test(read("apps/android/app/src/main/java/za/co/mythuso/ui/AccountScreens.kt"))
+      || !/val role = workspace\b[\s\S]*DetailScreen\([^\n]*workspace = role\)/.test(read("apps/android/app/src/main/java/za/co/mythuso/MainActivity.kt")))
+      nf("apps/android/app/src/main/java/za/co/mythuso/MainActivity.kt", "no longer hands DetailScreen the open workspace, so the router cannot tell a partner from a patient.");
+    /* whoFor alone draws a person, and returns before it reads one for a partner. Outside it, after the
+       fixtures' own people fields and the calls that hand them in, nothing names anybody. */
+    for (const [file, src, first, def] of [
+      [iosOrders, iosSrc, /@MainActor private func whoFor\([^)]*\) -> \[\(String, String\)\] \{\s*guard !partner else \{ return \[\] \}/, /@MainActor func attributedTo\(_ subjectId: String\) -> String \{[\s\S]*?\n\}\n/],
+      [androidOrders, androidSrc, /private fun whoFor\([^)]*\): List<Pair<String, String>> \{\s*if \(partner\) return emptyList\(\)/, /private val prescriber: String = [^\n]*\n/],
+    ]) {
+      const at = src.search(/\n[^\n]*private (func|fun) whoFor\(/);
+      if (at < 0 || !first.test(src)) { nf(file, "whoFor no longer returns nothing for a partner before it reads a person."); continue; }
+      const end = src.indexOf("\n}\n", at + 1);
+      const outside = (src.slice(0, at) + src.slice(end + 3)).replace(def, " ")
+        .replace(/whoFor\(partner(, [^()\n]*)?\)/g, " ")
+        .replace(/\b(patient|collectedBy)\s*[:=]\s*"[^"\n]*"/g, " ");
+      if (/whoFor\(/.test(outside)) nf(file, "calls whoFor with something other than `partner` first, so the reader it asks about is not the one the screen was opened for.");
+      const person = outside.match(/\.patient\b|\.collectedBy\b|attributedTo\(|\bprescriber\b(?!\w)|\b(Lerato|Molefe|Naledi|Mokoena)\b/);
+      if (person) nf(file, `reads "${person[0]}" outside whoFor, where a partner reaches it.`);
+    }
+    /* Each order the partner's boards list is its own fixture, and a reference nothing holds is refused. */
+    const listed = [
+      ...[...read("apps/ios/MyThuso/Features/WorkspaceView.swift").matchAll(/Order\(id: "((?:RX|LAB)-\d+)"/g)].map((m) => [iosOrders, iosSrc, m[1], `"${m[1]}": .init(`]),
+      ...[...read("apps/android/app/src/main/java/za/co/mythuso/ui/AccountScreens.kt").matchAll(/PartnerOrder\("(RX-\d+)"|open\("Laboratory order (LAB-\d+)"\)/g)].map((m) => [androidOrders, androidSrc, m[1] ?? m[2], `"${m[1] ?? m[2]}" to `]),
+    ];
+    for (const [file, src, reference, key] of listed)
+      if (!src.includes(key)) nf(file, `has no fixture of its own for ${reference}, which the partner's board lists, so it opens nothing or another order's timeline.`);
+    if (!/if let script = scripts\[reference\][\s\S]*?NoSuchOrder\(kind: "prescription"/.test(iosSrc) || !/if let order = labOrders\[reference\][\s\S]*?NoSuchOrder\(kind: "laboratory order"/.test(iosSrc))
+      nf(iosOrders, "no longer finds an order by its reference and refuses one it does not hold in words.");
+    if (!/scripts\[reference\] \?: run \{ NoSuchOrder\("prescription", reference\); return \}/.test(androidSrc) || !/labOrders\[reference\] \?: run \{ NoSuchOrder\("laboratory order", reference\); return \}/.test(androidSrc))
+      nf(androidOrders, "no longer finds an order by its reference and refuses one it does not hold in words.");
+    /* No release control for a partner: the sentence instead, and the button only for anybody else. */
+    if (!/if partner \{\s*Label\(Dispensing\.Partner\.releaseWithheld[^\n]*\n[\s\S]*?\} else if order\.returned \{\s*Button\(released \? "Withdraw demo release" : "Release with an explanation"\)/.test(iosSrc)
+      || iosSrc.split("Release with an explanation").length !== 2)
+      nf(iosOrders, "draws a release control a partner can reach. A result reaches a patient when a clinician sends it with an explanation.");
+    if (!/if \(partner\) Row\([^\n]*\{\s*Icon\([^\n]*\n\s*Text\(DispensingPartner\.releaseWithheld[^\n]*\n\s*\}\s*else if \(order\.returned\) StudioButton\(/.test(androidSrc)
+      || androidSrc.split("Release with an explanation").length !== 2)
+      nf(androidOrders, "draws a release control a partner can reach. A result reaches a patient when a clinician sends it with an explanation.");
+    console.log(`The partner's screens on the phones · Substitution & repeats draws the prescriber as dispensing.json#partner's answer behind a positional switch and no patient, which DispensingData no longer carries; the prescription and laboratory order take \`partner\`, draw people through whoFor alone, open ${listed.length} listed orders as themselves, and draw a partner no release control.`);
   }
 }
 
@@ -39277,13 +39412,14 @@ console.log(checkLiveVitals({ read, files }));
    "Results verified · Checked by the laboratory's reviewing pathologist" above a notice saying no laboratory
    is connected, which claims a test was run and a pathologist read it when the synthetic laboratory runs
    nothing and hands back a reference. The step is medicines.json#screen.results.returned now, and both
-   phones draw it from the generated MedicinesData. The web's OrderDetails.tsx is held to the same once its
-   own copy is retired; until then it is the one file this does not read. */
+   phones draw it from the generated MedicinesData. The web's OrderDetails.tsx reads the contract directly
+   since 2 October 2026 and is held to the same. */
 {
   const results = JSON.parse(read("packages/catalog/medicines.json")).screen.results;
   for (const [file, reads] of [
     ["apps/ios/MyThuso/Features/OrdersView.swift", "Medicines.ResultsText.returned"],
     ["apps/android/app/src/main/java/za/co/mythuso/ui/OrderScreens.kt", "MedicinesData.ResultsText.returned"],
+    ["apps/web/src/features/OrderDetails.tsx", "medicinesContract.screen.results.returned"],
   ]) {
     const code = read(file);
     if (/reviewing pathologist|"Results verified"/.test(code))

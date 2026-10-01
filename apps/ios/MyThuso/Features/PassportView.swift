@@ -21,7 +21,7 @@ struct PassportView: View {
                     CareCard(padding: ThusoSpacing.space16, spacing: 0) {
                         NavigationLink { PastVisitView(service: CareService.all[1]) } label: { MenuRow(title: "Visit summary", subtitle: "What the nurse found, and what the doctor said about it", symbol: "doc.text") }.buttonStyle(.plain)
                         Divider().overlay(ThusoRole.border)
-                        NavigationLink { LabOrderView() } label: { MenuRow(title: "Laboratory results", subtitle: "Fasting panel · Released", symbol: "flask") }.buttonStyle(.plain)
+                        NavigationLink { LabOrderView(partner: false) } label: { MenuRow(title: "Laboratory results", subtitle: "Fasting panel · Released", symbol: "flask") }.buttonStyle(.plain)
                         Divider().overlay(ThusoRole.border)
                         NavigationLink { ReadingsExplainedView() } label: { MenuRow(title: "What your readings mean", subtitle: "Seven measurements, in words, written by a person", symbol: "text.book.closed") }.buttonStyle(.plain)
                         Divider().overlay(ThusoRole.border)
@@ -29,7 +29,7 @@ struct PassportView: View {
                     }
                 case "Medications":
                     EmptyStateCard(title: "No active prescriptions", message: "Prescriptions appear here after a registered doctor issues them.")
-                    NavigationLink { PrescriptionView() } label: { Text("Preview a sample prescription") }.buttonStyle(QuietButton())
+                    NavigationLink { PrescriptionView(partner: false) } label: { Text("Preview a sample prescription") }.buttonStyle(QuietButton())
                 case "More":
                     StatePicker(title: "Preview the device permission state", state: $deviceState)
                     StateBlock(state: deviceState, subject: "Readings from your connected devices", permission: "Apple Health access", retry: { deviceState = .ready }) {

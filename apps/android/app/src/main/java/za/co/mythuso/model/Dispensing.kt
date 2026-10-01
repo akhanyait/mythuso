@@ -89,14 +89,13 @@ data class PrescriptionItem(
     val patientRefused: Boolean get() = outcome == "refused-by-patient"
 }
 
+/* No patient and no prescriber. The one screen that reads this is the pharmacy's, and
+   medicines.json#partnerQueue.neverCarries lists both, so scripts/emit-dispensing.mjs leaves them out
+   of the app altogether rather than leaving them here for a screen to draw. */
 data class DispensedPrescription(
     val reference: String,
-    val patient: String,
-    val patientBorn: String,
     val issuedInDays: Int,
-    /** Vetting subject ids. The registration on the screen is read off the vetting record rather
-     *  than typed here, so a lapsed registration moves the attribution rather than sitting under it. */
-    val prescriber: String,
+    /** A vetting subject id: the pharmacy is the reader's own, so it may be named. */
     val pharmacy: String,
     val pharmacist: DispensingPharmacist,
     val items: List<PrescriptionItem>
@@ -178,6 +177,18 @@ object Dispensing {
                 "One repeat of ${auth.daysPerRepeat} days may be collected today. $repeatsRemaining of ${auth.repeatsAuthorised} remain."
             )
         }
+
+    /* The prescriber as a partner is allowed to know them: the vetting register's answer, and not who
+       they are. medicines.json#partnerQueue.neverCarries lists prescriberRef, so the pharmacy's
+       substitution screen and the prescription or laboratory order a partner opens draw this where a
+       name and an HPCSA number were. The words are dispensing.json#partner's and the checks' names
+       vetting.json's, so it reads exactly as Dispensing.swift and apps/web/src/lib/dispensing.ts read it. */
+    fun prescriberStanding(decision: VettingDecision): String =
+        if (decision.allowed) DispensingPartner.prescriberMay
+        else DispensingPartner.prescriberMayNot.replace(
+            "{checks}",
+            decision.blockedBy.joinToString(DispensingPartner.checksJoinedBy) { it.name }.ifEmpty { DispensingPartner.noCheckNamed }
+        )
 
     /* What the patient is owed, in words. Assembled here rather than in the composable so that
        Android, iOS and the web say the same three things: this is a substitution, this is what it

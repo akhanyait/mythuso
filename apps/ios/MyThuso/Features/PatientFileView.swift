@@ -911,7 +911,7 @@ struct PatientFileResults: View {
             if !order.allowed {
                 RefusalCard(title: "Requesting a test is refused", decision: order)
             } else {
-                NavigationLink { LabOrderView() } label: {
+                NavigationLink { LabOrderView(partner: false) } label: {
                     Text("Request a test · open the sample order").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(QuietButton())

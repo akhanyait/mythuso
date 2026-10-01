@@ -3,7 +3,7 @@ import { ArrowRight, BadgeCheck, Check, CircleAlert, FlaskConical, Pill as PillI
 import { NotConnected } from '../components/NotConnected';
 import { Alert, Badge, Button, Card, CardDescription, CardHeader, Checkbox, Field, Select } from '../ui';
 import { OfficeFacts, OfficeNote } from '../surface/Office';
-import { crossReference, prescriberStanding } from '../lib/dispensing';
+import { crossReference, prescriberStanding, releaseWithheld } from '../lib/dispensing';
 import { can, scopeFor } from '../lib/vetting';
 import medicinesContract from '../../../../packages/catalog/medicines.json';
 import { subjectsByRole } from '../lib/vetting-fixtures';
@@ -180,7 +180,9 @@ const labSteps = [
  { label: 'Collected at home', detail: 'Drawn, sealed and labelled at the bedside' },
  { label: 'Courier handover', detail: 'Seal scanned by courier · Temperature logged' },
  { label: 'Received by the laboratory', detail: 'Seal verified intact · Accessioned' },
- { label: 'Results verified', detail: 'Checked by the laboratory’s reviewing pathologist' }
+ /* A reference returned, not a result verified: no test is run and no pathologist reads anything, so the step
+    is medicines.json's, in the words both phones draw from MedicinesData. */
+ { label: medicinesContract.screen.results.returned, detail: medicinesContract.screen.results.returnedDetail }
 ];
 export function LabOrderDetail({ reference = 'LAB-0023', partner }: { reference?: string; partner: boolean }) {
  const order = labOrders[reference];
@@ -210,7 +212,7 @@ function LabOrder({ reference, order, partner }: { reference: string; order: typ
   {!mayRelease.allowed && <OfficeNote refusal role="status" icon={<ShieldX aria-hidden="true"/>}>{mayRelease.reason}</OfficeNote>}
   <Timeline steps={[
    ...labSteps.map((step, n): Step => ({ label: step.label, detail: step.detail, state: n < order.reached ? 'done' : n === order.reached ? 'active' : 'waiting' })),
-   { label: 'Released to the patient', detail: released ? 'Visible in the Health Passport with an explanation' : !verified ? 'Nothing is released before the laboratory’s own pathologist has checked it' : mayRelease.allowed ? 'Held until the requesting doctor releases them' : 'Held. Accreditation lapsed, and a held result stays held', state: released ? 'done' : verified ? 'active' : 'waiting' }
+   { label: 'Released to the patient', detail: released ? 'Visible in the Health Passport with an explanation' : !verified ? 'Nothing is released before the laboratory has handed back a reference to a result' : mayRelease.allowed ? 'Held until the requesting doctor releases them' : 'Held. Accreditation lapsed, and a held result stays held', state: released ? 'done' : verified ? 'active' : 'waiting' }
   ]}/>
   <NotConnected of="laboratory-results"/>
   <Card>
@@ -219,7 +221,7 @@ function LabOrder({ reference, order, partner }: { reference: string; order: typ
   </Card>
   <OfficeNote icon={<CircleAlert aria-hidden="true"/>}>Abnormal results are never pushed to a patient without a clinician’s explanation. Release is a deliberate clinical act, not an automatic notification.</OfficeNote>
   {partner
-   ? <OfficeNote refusal icon={<ShieldX aria-hidden="true"/>}>A result reaches a patient when a clinician sends it with an explanation, and this partner cannot do that for them.</OfficeNote>
+   ? <OfficeNote refusal icon={<ShieldX aria-hidden="true"/>}>{releaseWithheld}</OfficeNote>
    : mayAct && <div className="oi-actions"><Button variant={released ? 'secondary' : 'primary'} disabled={!mayRelease.allowed} aria-describedby={mayRelease.allowed ? undefined : 'release-refusal'} onClick={() => setReleased(!released)} trailingIcon={released ? undefined : <ArrowRight aria-hidden="true"/>}>{released ? 'Withdraw the release' : 'Release with an explanation'}</Button></div>}
   {!partner && mayAct && !mayRelease.allowed && <p className="oi-help" id="release-refusal" role="status">Accreditation is not a badge on a partner page. It is the thing that decides whether this button does anything.</p>}
  </div>;
