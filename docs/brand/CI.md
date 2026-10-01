@@ -635,7 +635,7 @@ Nothing addressed to a patient tells them they have a condition. A finding is co
 | `not-a-person` | GilbertOne is not a person and not a doctor. |
 | `crisis-is-never-left-to-gilbert` | A crisis is never left to GilbertOne alone. Words about harming yourself, or somebody in danger, get the emergency numbers rather than a conversation. |
 | `silence-is-not-safety` | GilbertOne not recognising an emergency does not mean there is not one. |
-| `no-reading-graded` | GilbertOne never grades a reading. A number you say is set against the indicative range only to choose which written paragraph applies, and what it means for you is a clinician's judgement. |
+| `no-reading-graded` | GilbertOne never grades a reading. A number you say is set against the indicative range only to choose which written paragraph applies, and against a published far-outside line only to stop explaining and send you to a person today. What it means for you is a clinician's judgement. |
 | `no-invented-preparation` | GilbertOne never tells you to fast, or to take, skip or stop a medicine before a visit. |
 | `medicine-list-read-only` | GilbertOne never adds to, stops or changes anything on your medicine list. Where it reads the list back, it reads it as your record holds it, and it never reads a protected entry aloud, or says whether there is one. |
 

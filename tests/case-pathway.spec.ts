@@ -25,6 +25,7 @@ const caseContract = json('../packages/catalog/case.json');
 const devices = json('../packages/catalog/devices.json');
 const clinical = json('../packages/catalog/clinical.json');
 const records = json('../packages/catalog/records.json');
+const readingQuestions = json('../packages/catalog/reading-questions.json');
 const protocols = json('../packages/catalog/protocols.json');
 const api = json('../packages/catalog/apis/clinical.json');
 const refusal = (id: string): string => {
@@ -262,10 +263,32 @@ test('a very-high reading with a warning feature is the emergency answer for the
     else await ask(page, severe[question.id]!);
   }
   await press(page, patientWords.readingOffer);
-  await ask(page, '190 over 125');
+  /* 2 October 2026: a pair past the far-outside bounds typed at the cuff step is answered there and
+     then, with the reading question's own urgent block — the emergency answer's numbers and its Thuso
+     SOS door — before its source is asked. Until then 240/140 went onto the card without a word. */
+  await ask(page, '240/140');
+  const typed = lastReply(page);
+  const urgent = typed.locator("[data-urgent='far-outside']");
+  await expect(urgent).toHaveCount(1);
+  await expect(urgent).toContainText(readingQuestions.answer.farIfUnwell);
+  for (const id of gilbert.answers.emergency.numbers)
+    await expect(urgent).toContainText(sos.emergency.numbers.find((n: { id: string }) => n.id === id).number);
+  await expect(urgent).toContainText('10177');
+  await expect(urgent.getByRole('button', { name: gilbert.answers.emergency.sosLabel })).toBeVisible();
+  await expect(typed).toContainText(readingQuestions.answer.farOtherwise);
+  for (const id of ['systolic', 'diastolic'])
+    await expect(typed).not.toContainText(records.explanations.entries.find((e: { id: string }) => e.id === id).above);
+  await expect(panel(page).locator('.as-rig')).toHaveAttribute('data-pulse', readingQuestions.farOutside.state);
+  /* The intake goes on underneath it, and the reading is recorded as any other. */
+  await expect(typed.locator('.as-headline')).toHaveText(patientWords.readingSourceAsk);
   await press(page, sourceLabel('own-device'));
+  const notes = lastReply(page);
+  await expect(notes).toContainText('240/140');
+  /* Answered once, on the step that read it: the notes do not carry a second urgent block. */
+  await expect(notes.locator("[data-urgent='far-outside']")).toHaveCount(0);
   await press(page, patientWords.askNurse);
-  /* The patient is given the emergency answer, never the suggestion or a case card. */
+  /* The patient is given the emergency answer, never the suggestion or a case card — the pathway agrees
+     with what the cuff step told her. */
   const answer = lastReply(page);
   await expect(answer).toContainText(sos.emergency.headline);
   await expect(answer).not.toContainText(patientWords.heading);

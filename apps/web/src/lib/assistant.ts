@@ -28,6 +28,7 @@ import {
 } from "../../../../packages/gilbertone/src/stems.ts";
 import {
   askWhichReading,
+  isFarOutside,
   readingAnswer,
   readingIn,
   readingLeavesUnread,
@@ -425,6 +426,13 @@ export type IntakeReply = {
   caseRef: string | null;
   /* The contract's sentence for a pair that could not be read, shown once on the reading step. */
   note: string | null;
+  /* The reading question's own far-outside answer for what she typed on a reading step, or null.
+     Until 2 October 2026 a pair like 240/140 typed at the cuff step was taken for its source and put
+     on the card with no word to her — the urgent answer the reading question gives the same number
+     (reading-questions.json farOutside) was never reached from inside the intake. It is carried on
+     the step that read the number, drawn and spoken as the reading question draws and speaks it,
+     and never carried on: the notes and the case card after it show the reading, not the answer. */
+  far: ReadingAnswer | null;
 };
 export const caseScreens = caseWords.screens.patient;
 export const SESSION_SUBJECT = "subject-this-session";
@@ -449,7 +457,7 @@ const intakeChipGroup = (): IntakeGroup => {
     );
   return group;
 };
-const blank = { pending: null, reading: null, caseRef: null, note: null } as const;
+const blank = { pending: null, reading: null, caseRef: null, note: null, far: null } as const;
 const intakeOffer = (group: IntakeGroup): IntakeReply => ({
   kind: "intake",
   phase: "offer",
@@ -596,8 +604,9 @@ export function pulseOf(reply: Reply): PulseId {
       return answers.preparation.state as PulseId;
     case "medicines":
       return answers.medicines.state as PulseId;
+    /* The reading step that read a far-outside number pulses as the reading question does for it. */
     case "intake":
-      return answers.intake.state as PulseId;
+      return (reply.far?.urgent ? readingContract.farOutside.state : answers.intake.state) as PulseId;
     case "case":
       return answers.case.state as PulseId;
   }
@@ -1056,19 +1065,30 @@ export function continueIntake(
     return null;
   }
   /* The pair a home cuff shows, read by the same recogniser that explains a reading — a slash or
-     "over" — and nothing else read into it. The skip word steps back to the notes. */
+     "over" — and nothing else read into it. The skip word steps back to the notes.
+
+     A number past the far-outside bounds is answered on this turn, before its source is asked: the
+     reading question's own answer for it (readingAnswer, which is farAnswer past the bounds), so she
+     reads the ambulance numbers and Thuso SOS the moment she types 240/140, not after a chip. The
+     pair still goes on to its source and onto the card as any other — the nurse needs it more, not
+     less — and an oxygen of 80 typed where a pair was asked is answered too, then asked for the pair
+     again. Agreement with the pathway is arithmetic, not a second rule: the high bounds are the very-
+     high line case.ts reads from cond-008, and a far-low pair is "below", which no in-range rule
+     takes, so the case never suggests less than the answer told her (case-pathway.spec.ts holds it). */
   if (active.phase === "reading") {
     if (stems(words).join(" ") === stems(caseScreens.skipWord).join(" "))
-      return turn({ ...active, phase: "notes", note: null });
+      return turn({ ...active, phase: "notes", note: null, far: null });
     const found = readingIn(words);
+    const far = found?.values && isFarOutside(found) ? readingAnswer(found) : null;
     const values = found?.measure.pairOfNumbers ? found.values : null;
     if (!values || !found?.said)
-      return turn({ ...active, phase: "reading", note: caseScreens.readingUnread });
+      return turn({ ...active, phase: "reading", note: caseScreens.readingUnread, far });
     const [top, bottom] = found.measure.explains;
     return turn({
       ...active,
       phase: "reading-source",
       note: null,
+      far,
       pending: { systolic: values[top]!, diastolic: values[bottom]!, said: found.said },
     });
   }
@@ -1079,7 +1099,7 @@ export function continueIntake(
     const source = patientReadingSources().find((s) => stems(s.label).join(" ") === stems(words).join(" "));
     if (!source || !active.pending) return null;
     const reading = readingFrom({ ...active.pending, source: source.id, byRole: "patient" });
-    return turn({ ...active, phase: "notes", pending: null, reading, note: null });
+    return turn({ ...active, phase: "notes", pending: null, reading, note: null, far: null });
   }
   const next = answerIntake(active.state, words);
   if (next.kind === "emergency") return turn({ kind: "emergency", groups: [] });
@@ -1126,6 +1146,17 @@ export function spokenOf(turn: Turn, audience: AudienceId): string {
      the voice; the reading and the print are two readings of one number, from the same file. */
   const numbers = (ids: string[]) => {
     for (const n of spokenLines(ids)) words.push(`${n.spoken}, ${n.name}.`);
+  };
+  /* A reading answer after its heading, wherever it is drawn — the reading question, or the intake's
+     reading step for a far-outside number. A far-outside number: the urgent sentence, the red flags
+     and the emergency answer's own numbers, read number first as the emergency answer reads them. */
+  const readingBody = (answer: ReadingAnswer) => {
+    add(...answer.paragraphs);
+    if (answer.urgent) {
+      add(answer.urgent.ifUnwell, ...answer.urgent.signs.map((s) => `${s}.`));
+      numbers(answer.urgent.numbers);
+    }
+    add(...answer.after, ...answer.smallPrint);
   };
   switch (turn.reply.kind) {
     case "situation":
@@ -1189,16 +1220,8 @@ export function spokenOf(turn: Turn, audience: AudienceId): string {
          the order the screen shows them — the small print is the provenance, and provenance read
          aloud is the one thing a spoken explanation may not leave out. */
       if (turn.reply.answer) {
-        add(turn.reply.answer.heading, ...turn.reply.answer.paragraphs);
-        /* A far-outside number: the urgent sentence, the red flags and the emergency answer's own
-           numbers, read number first as the emergency answer reads them, before anything else. */
-        const urgent = turn.reply.answer.urgent;
-        if (urgent) {
-          add(urgent.ifUnwell, ...urgent.signs.map((s) => `${s}.`));
-          numbers(urgent.numbers);
-        }
-        add(...turn.reply.answer.after);
-        add(...turn.reply.answer.smallPrint);
+        add(turn.reply.answer.heading);
+        readingBody(turn.reply.answer);
       } else if (turn.reply.ask) add(turn.reply.ask);
       break;
     case "preparation": {
@@ -1231,8 +1254,13 @@ export function spokenOf(turn: Turn, audience: AudienceId): string {
         if (r.reading) add(readingLine(r.reading), ...readingMarks(r.reading));
         add(r.state?.stopped ? w.stop.stopped : w.closing, intakeReviewSentence(), w.arrangeCare);
         if (hasPathway(r.group) && !r.state?.stopped) add(caseScreens.readingLead, caseScreens.askNurseLead);
-      } else if (r.phase === "reading") add(r.note ?? caseScreens.readingAsk);
-      else if (r.phase === "reading-source") add(caseScreens.readingSourceAsk);
+      } else if (r.phase === "reading") {
+        if (r.far) readingBody(r.far);
+        add(r.note ?? caseScreens.readingAsk);
+      } else if (r.phase === "reading-source") {
+        if (r.far) readingBody(r.far);
+        add(caseScreens.readingSourceAsk);
+      }
       else if (r.phase === "case-declined") add(caseScreens.notNowSaid);
       else if (r.phase === "case") {
         const view = caseView(r.caseRef);

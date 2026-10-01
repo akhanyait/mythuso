@@ -1577,6 +1577,65 @@ function Lines({ ids }: { ids: string[] }) {
   );
 }
 
+/* A reading answer below its heading: the paragraphs, the urgent block for a far-outside number, what
+   follows it and the provenance. One component, because since 2 October 2026 the intake's reading step
+   draws the reading question's own far-outside answer too, and an urgent block written twice is two
+   blocks that can drift apart. */
+type ReadingAnswer = NonNullable<Extract<Reply, { kind: "reading" }>["answer"]>;
+function ReadingBody({ answer, allowSos, sos }: { answer: ReadingAnswer; allowSos: boolean; sos: () => void }) {
+  const { paragraphs, urgent, after } = answer;
+  return (
+    <>
+      <div className="as-read-body">
+        {paragraphs.map((paragraph, index) => (
+          <p
+            key={index}
+            className={
+              !after.length && index === paragraphs.length - 1 ? "as-limit" : undefined
+            }
+          >
+            {paragraph}
+          </p>
+        ))}
+      </div>
+      {urgent && (
+        <div className="as-noticed as-reading-urgent" data-urgent="far-outside">
+          <p>{urgent.ifUnwell}</p>
+          {urgent.signs.length > 0 && (
+            <ul>
+              {urgent.signs.map((sign) => (
+                <li key={sign}>{sign}</li>
+              ))}
+            </ul>
+          )}
+          <Lines ids={urgent.numbers} />
+          {allowSos && (
+            <button type="button" className="as-go" onClick={sos}>
+              <Ambulance size={17} aria-hidden="true" />
+              {emergencyAnswer.sosLabel}
+              <ArrowRight size={16} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      )}
+      {after.length > 0 && (
+        <div className="as-read-body">
+          {after.map((paragraph, index) => (
+            <p key={`after-${index}`} className={index === after.length - 1 ? "as-limit" : undefined}>
+              {paragraph}
+            </p>
+          ))}
+        </div>
+      )}
+      {answer.smallPrint.map((line, index) => (
+        <p key={`small-${index}`} className="as-quiet as-provenance">
+          {line}
+        </p>
+      ))}
+    </>
+  );
+}
+
 /* The crisis lines, after the ambulance numbers and in the same list style, printed rather than
    dialled — packages/catalog/crisis-lines.json, shown only when the crisis words raised the answer. */
 function CrisisLines() {
@@ -1740,9 +1799,6 @@ function ReplyBody({
       if (!reply.answer) return <p>{reply.ask}</p>;
       const said = reply.match?.values ? reply.match.said : null;
       const unit = said ? unitOf(reply.match?.measure.explains[0]) : null;
-      const paragraphs = reply.answer.paragraphs;
-      const urgent = reply.answer.urgent;
-      const after = reply.answer.after;
       return (
         <>
           <div className="as-tile as-stat" data-tone="lilac">
@@ -1754,52 +1810,7 @@ function ReplyBody({
               </p>
             )}
           </div>
-          <div className="as-read-body">
-            {paragraphs.map((paragraph, index) => (
-              <p
-                key={index}
-                className={
-                  !after.length && index === paragraphs.length - 1 ? "as-limit" : undefined
-                }
-              >
-                {paragraph}
-              </p>
-            ))}
-          </div>
-          {urgent && (
-            <div className="as-noticed as-reading-urgent" data-urgent="far-outside">
-              <p>{urgent.ifUnwell}</p>
-              {urgent.signs.length > 0 && (
-                <ul>
-                  {urgent.signs.map((sign) => (
-                    <li key={sign}>{sign}</li>
-                  ))}
-                </ul>
-              )}
-              <Lines ids={urgent.numbers} />
-              {allowSos && (
-                <button type="button" className="as-go" onClick={sos}>
-                  <Ambulance size={17} aria-hidden="true" />
-                  {emergencyAnswer.sosLabel}
-                  <ArrowRight size={16} aria-hidden="true" />
-                </button>
-              )}
-            </div>
-          )}
-          {after.length > 0 && (
-            <div className="as-read-body">
-              {after.map((paragraph, index) => (
-                <p key={`after-${index}`} className={index === after.length - 1 ? "as-limit" : undefined}>
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-          )}
-          {reply.answer.smallPrint.map((line, index) => (
-            <p key={`small-${index}`} className="as-quiet as-provenance">
-              {line}
-            </p>
-          ))}
+          <ReadingBody answer={reply.answer} allowSos={allowSos} sos={sos} />
         </>
       );
     }
@@ -1905,9 +1916,13 @@ function ReplyBody({
          own source labels, as 44-pixel chips), and the case card once she asked for a nurse. The card
          draws from caseView(), which is the case with its findings and its suggestion removed. */
       if (reply.phase === "case-declined") return <p>{caseScreens.notNowSaid}</p>;
+      /* A far-outside number typed on either reading step is answered first, with the reading
+         question's own answer and its urgent block (2 October 2026); the step's ask follows it. */
+      const far = reply.far && <ReadingBody answer={reply.far} allowSos={allowSos} sos={sos} />;
       if (reply.phase === "reading")
         return (
           <>
+            {far}
             <p className="as-headline">{caseScreens.readingAsk}</p>
             {reply.note && <p className="as-quiet">{reply.note}</p>}
             {onIntake && (
@@ -1925,6 +1940,7 @@ function ReplyBody({
       if (reply.phase === "reading-source")
         return (
           <>
+            {far}
             <p className="as-headline">{caseScreens.readingSourceAsk}</p>
             {onIntake && (
               <div className="as-intake-chips" role="group" aria-label={caseScreens.readingSourceAsk}>

@@ -219,3 +219,34 @@ test("a date is not a blood pressure: an implausible bare pair is not read, and 
 test("the readValue opening no longer says it does not grade beside a sentence that places the number", () => {
   assert.ok(!/do not grade/i.test(readingContract.answer.readValue));
 });
+
+/* The intake's reading step (2 October 2026) reads the pair a patient types off her cuff with this
+   recogniser and answers a far-outside one with this answer, then hands the pair to the case pathway.
+   The two must agree on where "far" starts at the top, or the panel would send her to an ambulance for
+   a pair the pathway calls merely above — or reassure her with silence for one it calls very high. The
+   pathway's very-high line is the one pair cond-008's sentence gives (case.json cites it); the
+   far-outside bounds are reading-questions.json's. Each is inclusive, so the line itself is far. */
+test("a pair typed at the intake's cuff step is far exactly where the case pathway's very-high line starts", async () => {
+  const caseContract = (await import("../../catalog/case.json", { with: { type: "json" } })).default;
+  const conditions = (await import("../../catalog/knowledge/conditions.json", { with: { type: "json" } })).default as { id: string; [field: string]: unknown }[];
+  const [file, path] = caseContract.pathway.bands["very-high"].from.split("#");
+  assert.equal(file, "packages/catalog/knowledge/conditions.json");
+  const [conditionId, field] = path.split(".");
+  const sentence = conditions.find((c) => c.id === conditionId)?.[field] as string;
+  const pairs = [...sentence.matchAll(/(?<![a-z0-9])(\d{2,3})\s*\/\s*(\d{2,3})(?![a-z0-9])/gi)];
+  assert.equal(pairs.length, 1);
+  const line = { systolic: Number(pairs[0][1]), diastolic: Number(pairs[0][2]) };
+  assert.equal(farSideOf("systolic", line.systolic), "above");
+  assert.equal(farSideOf("systolic", line.systolic - 1), null);
+  assert.equal(farSideOf("diastolic", line.diastolic), "above");
+  assert.equal(farSideOf("diastolic", line.diastolic - 1), null);
+  /* As she types it at the cuff step: a slash or "over", bare, no measure named. */
+  for (const says of ["240/140", "240 over 140", `${line.systolic}/90`, `150 over ${line.diastolic}`, "85/50"]) {
+    const match = readingIn(says);
+    assert.ok(match?.measure.pairOfNumbers, says);
+    assert.ok(isFarOutside(match!), says);
+    assert.ok(readingAnswer(match!).urgent, says);
+  }
+  for (const says of ["168 over 104", `${line.systolic - 1}/${line.diastolic - 1}`, "120/80"])
+    assert.equal(readingAnswer(readingIn(says)!).urgent, null, says);
+});

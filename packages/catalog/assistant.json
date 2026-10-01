@@ -1249,8 +1249,8 @@
     },
     {
       "id": "no-reading-graded",
-      "statement": "GilbertOne never grades a reading. A number you say is set against the indicative range only to choose which written paragraph applies, and what it means for you is a clinician's judgement.",
-      "why": "The paragraphs are records.json's explanations, written in advance and reviewed by nobody clinical yet, and the range is the observations section's — indicative, and never spoken. The words high, low and normal appear in this build only as things a person says; no sentence GilbertOne reads back says one about a number, and the build fails if packages/catalog/reading-questions.json types a digit."
+      "statement": "GilbertOne never grades a reading. A number you say is set against the indicative range only to choose which written paragraph applies, and against a published far-outside line only to stop explaining and send you to a person today. What it means for you is a clinician's judgement.",
+      "why": "The paragraphs are records.json's explanations, written in advance and reviewed by nobody clinical yet, and the range is the observations section's — indicative, and never spoken. The words high, low and normal appear in this build only as things a person says; no sentence GilbertOne reads back says one about a number, and the build fails if packages/catalog/reading-questions.json types a digit. Since 1 October 2026 a number has a second use, and the statement said only the first until 2 October: past the cited, unreviewed bounds in reading-questions.json farOutside no paragraph is read at all, and the answer is the urgent one with the emergency answer's own numbers. That is a line for when to stop explaining, not a grade, and it is said rather than left for her to find."
     },
     {
       "id": "no-invented-preparation",
