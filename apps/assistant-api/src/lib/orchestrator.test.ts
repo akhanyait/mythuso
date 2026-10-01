@@ -350,3 +350,23 @@ test('two conversations orchestrated at once each reach the model with their own
   await provider.close();
  }
 });
+
+/* The escalate node is the safety net behind the turn route, and it reads the ruleset — whose
+   patterns are written for straight apostrophes and plain spaces. Typed on a phone with smart
+   punctuation, "I can’t catch my breath" arrives with U+2019, and before the node folded its input
+   the net let it through to the model. Folded, it short-circuits with the rule's own sentence and
+   the model is never asked. */
+test('a curly-apostrophe emergency is escalated by the graph before any model is asked', async () => {
+ const provider = await scriptedProvider([nerEmpty, assistantAnswer('this must never be read')]);
+ try {
+  await withEnv({ OLLAMA_URL: provider.url }, async () => {
+   const result = await orchestrate('I can’t catch my breath');
+   assert.equal(result.confidence, 1, 'the escalation sentence carries the deterministic weight');
+   assert.ok(!result.answer.includes('this must never be read'));
+   assert.ok(result.answer.length > 0);
+   assert.equal(provider.bodies.length, 0, 'no request reached the model');
+  });
+ } finally {
+  await provider.close();
+ }
+});

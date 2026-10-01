@@ -3,6 +3,9 @@ import { AzureChatOpenAI, ChatOpenAI } from "@langchain/openai";
 import { Annotation, StateGraph, START, END } from "@langchain/langgraph";
 import { redactPHI } from "../../../../packages/gilbertone/src/phi.ts";
 import { checkEscalation } from "../../../../packages/gilbertone/src/escalation.ts";
+/* The ruleset's patterns are written for straight apostrophes and plain spaces, and escalation.ts is
+   pinned by hash, so every caller folds the text first — as routes/turn.ts and the web panel do. */
+import { foldCharacters } from "../../../../packages/gilbertone/src/fold.ts";
 import { modelTierAllowed } from "./activation.ts";
 import { languageName } from "./language-detect.ts";
 import {
@@ -381,7 +384,7 @@ async function nodeCheckActivation(state: GraphState): Promise<Partial<GraphStat
 async function nodeEscalate(state: GraphState): Promise<Partial<GraphState>> {
   if (state.degraded || state.earlyExit) return {};
 
-  const matched = checkEscalation(state.input);
+  const matched = checkEscalation(foldCharacters(state.input));
   if (matched) {
     const answer = redactPHI(matched.rule.message)
       .trim()
@@ -417,7 +420,7 @@ async function nodeExtract(state: GraphState): Promise<Partial<GraphState>> {
       /* Escalate and stop: the approved sentence comes from the deterministic ruleset when it
          has one for this presentation, and from the catalog's own emergency numbers when it does
          not — either way the words and the numbers are owned elsewhere, never typed here. */
-      const matched = checkEscalation(redFlag);
+      const matched = checkEscalation(foldCharacters(redFlag));
       const answer = redactPHI(
         matched ? matched.rule.message : emergencyNumbers(redFlag),
       )
@@ -550,7 +553,7 @@ async function nodeGate(state: GraphState): Promise<Partial<GraphState>> {
   /* Re-check the input against escalation rules one final time after tools have run — the
      tools themselves are read-only and cannot escalate, but a belt-and-braces check on the
      original input ensures nothing slipped through. */
-  const matched = checkEscalation(state.input);
+  const matched = checkEscalation(foldCharacters(state.input));
   if (matched) {
     const answer = redactPHI(matched.rule.message)
       .trim()
