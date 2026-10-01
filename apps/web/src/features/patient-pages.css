@@ -178,8 +178,12 @@
   border-radius: var(--r-card);
   background: var(--surface);
 }
+/* The title and the empty state's heading are an h2 on the library and an h3 elsewhere; the level follows
+   the page's outline and the look does not, so the global h2's tracking and leading are set back here. */
 .pp-entry-title {
   margin: 0 0 var(--space-12);
+  letter-spacing: normal;
+  line-height: 1.4;
   font-size: 17px;
   font-weight: 600;
   color: var(--ink);
@@ -187,8 +191,9 @@
 .pp-field {
   margin: 0 0 var(--space-12);
 }
-.pp-field h4 {
+.pp-field-label {
   margin: 0 0 var(--space-4);
+  line-height: inherit;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.2px;
@@ -256,7 +261,7 @@
     background-color var(--t-settle) var(--ease-soft),
     color var(--t-settle) var(--ease-soft);
 }
-.pp-tab[aria-selected="true"] {
+.pp-tab[aria-pressed="true"] {
   background: var(--studio-ink);
   border-color: var(--studio-ink);
   color: var(--studio-paper);
@@ -485,8 +490,10 @@
   background: var(--surface);
   text-align: center;
 }
-.pp-empty h3 {
+.pp-empty-title {
   margin: 0 0 var(--space-8);
+  letter-spacing: normal;
+  line-height: 1.4;
   font-size: 16px;
   color: var(--ink);
 }

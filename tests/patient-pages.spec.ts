@@ -153,7 +153,10 @@ test('the library searches what the knowledge base actually carries', async ({ p
  const tabs = page.locator('.pp-tab');
  await expect(tabs).toHaveCount(library.tabs.length);
  for (let i = 0; i < library.tabs.length; i++) await expect(tabs.nth(i)).toHaveText(library.tabs[i].label);
- await expect(tabs.first()).toHaveAttribute('aria-selected', 'true');
+ await expect(page.getByRole('group', { name: library.sectionsLabel })).toBeVisible();
+ await expect(tabs.first()).toHaveAttribute('aria-pressed', 'true');
+ /* Each entry's title is a level two straight under the page's level one: no level skipped. */
+ await expect(page.locator('.pp-entry-title').first()).toHaveJSProperty('tagName', 'H2');
  expect(await page.locator('.pp-entry').count()).toBeGreaterThan(0);
  await expect(page.locator('.pp-source').first()).toContainText('Source:');
 
@@ -165,12 +168,12 @@ test('the library searches what the knowledge base actually carries', async ({ p
  await search.fill(word);
  await expect(page.locator('.pp-entry-title').filter({ hasText: first.title }).first()).toBeVisible();
  await search.fill('qqqzzzxxx');
- await expect(page.locator('.pp-empty h3')).toHaveText(library.emptyTitle);
+ await expect(page.locator('.pp-empty h2')).toHaveText(library.emptyTitle);
  await expect(page.locator('.pp-empty p')).toHaveText(library.emptyDetail);
 
  await search.fill('');
  await tabs.nth(3).click();
- await expect(tabs.nth(3)).toHaveAttribute('aria-selected', 'true');
+ await expect(tabs.nth(3)).toHaveAttribute('aria-pressed', 'true');
  expect(await page.locator('.pp-entry').count()).toBeGreaterThan(0);
 });
 
@@ -202,7 +205,7 @@ test('the derived pages render their derivations, and the empty states say why',
  const reminders = contract.screens.reminders;
  await page.goto(at(reminders.opens));
  await expect(page.locator('.pp-row')).toHaveCount(reminders.kinds.length);
- await expect(page.locator('.pp-empty h3')).toHaveText(reminders.emptyTitle);
+ await expect(page.locator('.pp-empty-title')).toHaveText(reminders.emptyTitle);
 
  /* The health timeline is the door to the one history the Health Passport keeps (contract version 2). It
     used to say "No entries yet" beside a care timeline listing the same account's entries; it says what the

@@ -1920,6 +1920,7 @@ function ReplyBody({
                 {whoHas(view)}
               </p>
             )}
+            <p className="as-quiet as-case-preview">{caseScreens.preview}</p>
             {view?.plan && (
               <div className="as-case-plan" role="status">
                 <p className="as-headline">{caseScreens.planHeading}</p>

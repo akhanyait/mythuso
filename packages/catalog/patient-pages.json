@@ -178,6 +178,7 @@
       "heading": "Trusted guidance, in plain language.",
       "lead": "Every entry is from the governed South African knowledge base this tree already carries, with the authority it came from beside it. It is general information about health, never advice about you.",
       "searchLabel": "Search the library",
+      "sectionsLabel": "Library sections",
       "searchPlaceholder": "Search conditions, prevention, maternal care…",
       "sourceLine": "Source: {authority} · {jurisdiction} · retrieved {retrievedDate}",
       "emptyTitle": "Nothing matches that search",

@@ -9,7 +9,11 @@ import { useCallback, useSyncExternalStore } from 'react';
  * the control and two copies of "is it dark" is how a switch comes to say the wrong thing. It keeps
  * nothing across a load: the preview may not keep anything in the browser's storage of any kind, so a
  * person who wants dark turns it on for this visit, and the next visit is light again. That is the
- * honest cost of the storage rule, and it is written here rather than worked around. */
+ * honest cost of the storage rule, and it is written here rather than worked around.
+ *
+ * The browser's own chrome follows the same switch. Each entry's theme-color meta carries the light role's
+ * value and, in data-role, the custom property it is; after the switch the value is read back from that
+ * property, so the bar is the role the page now paints with and no hex is restated here. */
 const theme = {
  dark: false,
  listeners: new Set<() => void>(),
@@ -18,6 +22,11 @@ const theme = {
   const root = document.documentElement;
   if (dark) root.dataset.theme = 'dark';
   else delete root.dataset.theme;
+  const styles = getComputedStyle(root);
+  for (const meta of document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"][data-role]')) {
+   const value = styles.getPropertyValue(`--${meta.dataset.role}`).trim();
+   if (value) meta.content = value;
+  }
   for (const notify of [...this.listeners]) notify();
  },
 };

@@ -362,11 +362,15 @@ export function DoctorReports({ go }: { go?: (id: string) => void }) {
 }
 
 export function DoctorResources({ go }: { go?: (id: string) => void }) {
- const drafts = protocolsContract.protocols.filter(p => p.status === 'draft').length;
+ const drafts = protocolsContract.protocols.filter(p => p.status === 'draft');
+ /* A preview pathway is a draft that cites a contract section (protocols.json _previewPathways), so "with no
+    content" is said of the drafts whose contentRef is null and of no others. */
+ const empty = drafts.filter(p => p.contentRef === null).length;
+ const citing = drafts.length - empty;
  return <section className="dp-page" aria-labelledby="dp-resources">
   <Head title="Resources" intro="The reference material this workspace holds, and where each piece is read."/>
   <Strip label="The references, counted" figures={[
-   { label: 'Protocols in the registry', value: String(protocolsContract.protocols.length), trend: `${drafts} of them draft, with no content` },
+   { label: 'Protocols in the registry', value: String(protocolsContract.protocols.length), trend: citing ? `${drafts.length} of them draft: ${empty} with no content, ${citing} a preview pathway citing a contract` : `${drafts.length} of them draft, with no content` },
    { label: 'Reference ranges', value: String(observations.length), trend: 'Indicative adult ranges, one copy of each' },
    { label: 'Triage stages', value: String(triageStages.length), trend: 'Named, and none of them run' }
   ]}/>

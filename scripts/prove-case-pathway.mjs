@@ -44,6 +44,17 @@ const proofs = [
   ["the draft banner dropped from the case file", { "apps/web/src/features/CaseFile.tsx": text("apps/web/src/features/CaseFile.tsx", "  <DraftBanner/>\n", "") }, /no longer draws the draft banner/],
   ["the case file imported statically", { "apps/web/src/shells/StaffShell.tsx": text("apps/web/src/shells/StaffShell.tsx", "lazy(() => import('../features/CaseFile')", "lazy(() => import('../features/CaseFileX')") }, /arrives on a dynamic import/],
   ["a native file naming the case", { "apps/ios/MyThuso/Models/Assistant.swift": readDisk("apps/ios/MyThuso/Models/Assistant.swift") + "\n// CaseFile\n" }, /names the case pathway/],
+  ["a patient sentence saying a visit was arranged", { [CASE]: json(CASE, (d) => { d.screens.patient.who["home-visit"] = "{nurse} has your case and has arranged a home visit today."; }) }, /arranged, booked or is on its way/],
+  ["a patient sentence saying a nurse is on her way", { [CASE]: json(CASE, (d) => { d.screens.patient.who.online = "{nurse} is on her way."; }) }, /arranged, booked or is on its way/],
+  ["the preview line dropped from the contract", { [CASE]: json(CASE, (d) => { delete d.screens.patient.preview; }) }, /lost its preview line/],
+  ["the preview line dropped from the card", { "apps/web/src/features/Assistant.tsx": text("apps/web/src/features/Assistant.tsx", "{caseScreens.preview}", "") }, /preview line beside who has the case/],
+  ["a feature kind no rule reads", { [CASE]: json(CASE, (d) => { d.pathway.rules.order.find((r) => r.id === "injury-or-fever-cluster").when.anyFeatureKind = "at-the-door"; }) }, /"fever", which no rule reads/],
+  ["the pathway no longer saying it awaits review", { [CASE]: json(CASE, (d) => { delete d.pathway.rules.awaitingReview; }) }, /awaits clinical review/],
+  ["the very-high line differing from its sentence silently", { [CASE]: json(CASE, (d) => { delete d.pathway.bands["very-high"].reviewerNote; }) }, /for the clinical reviewer/],
+  ["an emergency suggestion opening the case in emergency", { "apps/web/src/lib/case.ts": text("apps/web/src/lib/case.ts", "stateCode: emergency ? 'emergency' : 'opened'", "stateCode: suggestion.settingCode === 'emergency' ? 'emergency' : 'opened'") }, /opens a case in the emergency state/],
+  ["a repeat with no state check", { "apps/web/src/lib/case.ts": text("apps/web/src/lib/case.ts", " if (!repeatable(c)) return caseRefused('reading-not-with-a-nurse');\n", "") }, /repeats a reading on a case that is not with a nurse/],
+  ["the repeat offered before the case is taken", { "apps/web/src/features/CaseFile.tsx": text("apps/web/src/features/CaseFile.tsx", "{repeatable(c) && <>", "{c.stateCode !== 'closed' && <>") }, /offers the repeat where the lib would refuse it/],
+  ["a case closed twice", { "apps/web/src/lib/case.ts": text("apps/web/src/lib/case.ts", " if (!closable(c)) return caseRefused('case-not-with-a-doctor');\n", "") }, /closes one twice/],
   ["the journey without the doctor", { "tests/case-pathway.spec.ts": text("tests/case-pathway.spec.ts", "chooseRole(page, 'Doctor')", "chooseRole(page, 'Doktor')") }, /walk the nurse and the doctor/],
 ];
 let failed = 0;

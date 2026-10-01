@@ -129,6 +129,8 @@ test('a headache becomes a case the nurse decides and the doctor closes, and the
   await expect(card).toContainText(patientWords.heading);
   await expect(card).toContainText(patientWords.opened);
   await expect(card).toContainText(patientWords.who.opened);
+  /* Nothing is booked from a case, and the card says so every time it is drawn. */
+  await expect(card).toContainText(patientWords.preview);
   await expect(card).toContainText(patientWords.neverShown);
   /* Never a finding, never the suggestion, never the pathway: the words that would carry them are absent. */
   const cardText = await card.innerText();
@@ -153,6 +155,8 @@ test('a headache becomes a case the nurse decides and the doctor closes, and the
   await expect(row).toContainText(kitWords.carriesNot);
   await expect(row).toContainText(settingLabel('home-visit'));
   await expect(row).toContainText(nurseWords.suggestionHeading);
+  /* The repeat is hers once she has taken the case, and not before. */
+  await expect(row.getByRole('button', { name: nurseWords.repeatReading, exact: true })).toHaveCount(0);
   await row.getByRole('button', { name: nurseWords.take, exact: true }).click();
   await expect(row).toContainText(patientWords.who.opened === '' ? '' : caseContract.states.find((s: { code: string }) => s.code === 'with-nurse').label);
   /* A different setting without a reason is refused in the route's own sentence; the suggestion is then confirmed. */
@@ -239,4 +243,48 @@ test('with no case open, "what did the doctor say" says so in the contract\'s se
   await expect(notes).toContainText(intake.summary.title);
   await expect(notes.getByRole('button', { name: patientWords.askNurse, exact: true })).toHaveCount(0);
   await expect(notes.getByRole('button', { name: patientWords.readingOffer, exact: true })).toHaveCount(0);
+});
+
+test('a very-high reading with a warning feature is the emergency answer for the patient, and still a case a nurse takes, decides and hands on', async ({ page }) => {
+  /* Fifteen questions, then two roles: long by design, as the journey above. */
+  test.setTimeout(300_000);
+  const sos = json('../packages/catalog/sos.json');
+  /* The demo's answers with a severe headache — a red-flag feature in case.json — and a pair at or above the
+     very-high line the knowledge base gives, so the pathway's suggestion is the emergency setting. */
+  const severe: Record<string, string> = { ...answers, 'how-bad': 'Severe' };
+  await page.goto('/app/?open=assistant');
+  await consent(page);
+  await ask(page, 'I have a headache');
+  await press(page, intake.answer.consent.yesLabel);
+  for (const question of questions) {
+    await expect(lastReply(page).locator('.as-headline')).toHaveText(question.ask);
+    if (question.kind === 'chips') await press(page, severe[question.id]!);
+    else await ask(page, severe[question.id]!);
+  }
+  await press(page, patientWords.readingOffer);
+  await ask(page, '190 over 125');
+  await press(page, sourceLabel('own-device'));
+  await press(page, patientWords.askNurse);
+  /* The patient is given the emergency answer, never the suggestion or a case card. */
+  const answer = lastReply(page);
+  await expect(answer).toContainText(sos.emergency.headline);
+  await expect(answer).not.toContainText(patientWords.heading);
+  await panel(page).getByRole('button', { name: 'Close GilbertOne' }).click();
+
+  /* The case is on the nurses' list, opened rather than shut in the emergency state, so she can take it. */
+  await chooseRole(page, 'Nurse');
+  await goSection(page, 'Cases');
+  const cases = page.getByRole('region', { name: nurseWords.heading, exact: true });
+  const row = cases.getByRole('listitem').first();
+  await expect(row).toContainText(caseContract.states.find((s: { code: string }) => s.code === 'opened').label);
+  await expect(row).toContainText(settingLabel('emergency'));
+  await row.getByRole('button', { name: nurseWords.take, exact: true }).click();
+  await row.getByRole('button', { name: nurseWords.confirm.replace('{setting}', settingLabel('emergency')), exact: true }).click();
+  await expect(row).toContainText(nurseWords.decided.replace('{setting}', settingLabel('emergency')).split('{at}')[0]!.trim());
+  /* Hers to re-read and to hand on, as the transitions say. */
+  await expect(row.getByRole('button', { name: nurseWords.repeatReading, exact: true })).toBeVisible();
+  await row.getByRole('button', { name: nurseWords.askDoctor, exact: true }).click();
+  await expect(row).toContainText(nurseWords.askedDoctor.split('{at}')[0]!.trim());
+  /* Handed over, the repeat is the doctor's file's no longer. */
+  await expect(row.getByRole('button', { name: nurseWords.repeatReading, exact: true })).toHaveCount(0);
 });

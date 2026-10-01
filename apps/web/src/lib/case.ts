@@ -24,6 +24,9 @@ import { subjectById } from './vetting-fixtures';
  * in packages/catalog/protocols.json, the banner says so on every screen that shows it, and the suggestion
  * is made once, when the case opens, and never remade — a nurse's decision stands against the suggestion
  * she was shown. Nothing decides for her: decideSetting() is called from her press and from nowhere else.
+ * That holds for the emergency suggestion too: a case the pathway answers with the emergency setting opens
+ * in `opened`, like any other, with the emergency answer already given to the patient, so a nurse takes
+ * it, reads it and confirms or overrides — a case opened straight into `emergency` could never be taken.
  *
  * NUMBERS. None typed. The indicative ranges are records.json's through lib/observations; the very-high
  * line is the knowledge base's own sentence, read out of it by scripts/emit-case.mjs; whether a reading
@@ -177,8 +180,12 @@ export const carriesWeight = (reading: CaseReading) => reading.weight === 'clini
 /* ---- The suggestion ---------------------------------------------------------------------------------- */
 
 type Rule = (typeof caseContract.pathway.rules.order)[number];
-type When = { emergency?: boolean; band?: readonly string[]; anyFeatureKind?: string; allFeatures?: readonly string[]; weightless?: boolean };
-const ofKind = (features: readonly IntakeFeature[], kind: string) => features.filter(f => (f.kinds as readonly string[]).includes(kind));
+type When = { emergency?: boolean; band?: readonly string[]; anyFeatureKind?: string | readonly string[]; allFeatures?: readonly string[]; weightless?: boolean };
+/* A rule may read one kind or several (the fever rule reads at-the-door and fever, as its reason says). */
+const ofKind = (features: readonly IntakeFeature[], kind: string | readonly string[]) => {
+ const kinds: readonly string[] = typeof kind === 'string' ? [kind] : kind;
+ return features.filter(f => (f.kinds as readonly string[]).some(k => kinds.includes(k)));
+};
 
 /** The pathway's suggestion, worked out once from the features and the latest reading. First rule that matches; the contract's fallback otherwise. */
 export function suggestFor(features: readonly IntakeFeature[], readings: readonly CaseReading[], emergency: boolean): Suggestion {
@@ -209,18 +216,27 @@ export function suggestFor(features: readonly IntakeFeature[], readings: readonl
 
 type Result<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly refusal: Refusal };
 const refused = <T,>(id: string): Result<T> => ({ ok: false, refusal: refusal(id) });
+/* The case's own refusals, for acts no route declares yet (case.json refusals): the repeat is a Devices
+   capture against a case, and no case route takes a reading, so its sentence is the case contract's. */
+const caseRefused = <T,>(id: string): Result<T> => {
+ const found = caseContract.refusals.find(r => r.id === id);
+ if (!found) throw new Error(`packages/catalog/case.json declares no refusal "${id}", so there is no sentence to refuse with.`);
+ return { ok: false, refusal: { id: found.id, status: found.status, statement: found.statement } };
+};
+/** Whether the contract's transitions let a case move from where it is to where an act would put it. */
+const mayMove = (from: string, to: string) => (caseContract.transitions.find(t => t.from === from)?.to as readonly string[] | undefined)?.includes(to) === true;
 let caseCount = 0;
 const update = (caseRef: string, next: (c: Case) => Case) => set({ cases: store.cases.map(c => c.caseRef === caseRef ? next(c) : c) });
 
-/** The patient asked for a nurse to look at the notes. Opens in `opened`, or in `emergency` when the pathway's answer is the emergency one. */
+/** The patient asked for a nurse to look at the notes. Opens in `opened` — whatever the pathway suggests, so a nurse
+ *  can take it — or in `emergency` only when the intake itself ended on an emergency word (the route's emergencyEnded). */
 export function openCase(state: IntakeState, subjectRef: string, readings: readonly CaseReading[], emergency = false, now = Date.now()): Result<Case> {
  if (!intakeGroupHasPathway(state.groupId)) return refused('group-has-no-pathway');
  if (!state.done || state.stopped) return refused('intake-not-complete');
  const features = featuresFor(state);
  const suggestion = suggestFor(features, readings, emergency);
- const isEmergency = suggestion.settingCode === 'emergency';
  const opened: Case = {
-  caseRef: `CASE-${String(++caseCount).padStart(4, '0')}`, subjectRef, groupId: state.groupId, stateCode: isEmergency ? 'emergency' : 'opened',
+  caseRef: `CASE-${String(++caseCount).padStart(4, '0')}`, subjectRef, groupId: state.groupId, stateCode: emergency ? 'emergency' : 'opened',
   answers: state.answers, features, findings: findingsFor(state), readings, suggestion, protocolVersionId,
   decisions: [{ roleCode: 'patient', actionCode: 'opened', at: now }], nurseRef: null, doctorRef: null, reviewRef: null, consultationRef: null, outcomeCode: null, plan: null,
   openedAt: now, wouldPublish: ['case.opened@1']
@@ -228,6 +244,10 @@ export function openCase(state: IntakeState, subjectRef: string, readings: reado
  set({ cases: [...store.cases, opened] });
  return { ok: true, value: opened };
 }
+
+/** Whether the patient is answered with the emergency words when the case opens: the intake ended on one, or the
+ *  pathway suggests the emergency setting. The answer is the emergency answer, never the suggestion itself. */
+export const answeredWithEmergency = (c: Case) => c.stateCode === 'emergency' || c.suggestion.settingCode === 'emergency';
 
 /** A nurse takes the case: it is hers to decide from here. */
 export function takeCase(caseRef: string, now = Date.now()): Result<Case> {
@@ -254,10 +274,15 @@ export function decideSetting(caseRef: string, settingCode: string, reason = '',
  return { ok: true, value: caseById(caseRef)! };
 }
 
+/** Whether a nurse may repeat the reading: she has taken the case, and it is with her — undecided, or decided and not
+ *  yet handed to a doctor. Before she takes it nobody has read it; once a doctor has it the file is the doctor's. */
+export const repeatable = (c: Case) => c.nurseRef !== null && (c.stateCode === 'with-nurse' || settingOf(c.stateCode) !== undefined);
+
 /** The nurse repeats the reading on an instrument she names. Its weight is the Devices domain's answer, never hers. */
 export function repeatReading(caseRef: string, input: { systolic: number; diastolic: number; source: SourceId }, now = Date.now()): Result<CaseReading> {
  const c = caseById(caseRef);
  if (!c) return refused('no-such-case');
+ if (!repeatable(c)) return caseRefused('reading-not-with-a-nurse');
  if (!(caseContract.readings.sources.nurse as readonly string[]).includes(input.source)) return refused('reading-not-asked');
  const reading = readingFrom({ ...input, byRole: 'nurse' }, now);
  update(caseRef, k => ({ ...k, readings: [...k.readings, reading], decisions: [...k.decisions, { roleCode: 'nurse', actionCode: 'repeated-reading', at: now }] }));
@@ -271,16 +296,26 @@ export const encounterRefOf = (caseRef: string) => `encounter-${caseRef.toLowerC
 export function askDoctor(caseRef: string, now = Date.now()): Result<Case> {
  const c = caseById(caseRef);
  if (!c) return refused('no-such-case');
- if (!decided(c) || c.stateCode === 'with-doctor' || c.stateCode === 'closed') return refused('case-not-with-a-nurse');
+ if (!decided(c) || !mayMove(c.stateCode, 'with-doctor')) return refused('case-not-with-a-nurse');
  const reviewRef = openCaseReview({ caseRef, encounterRef: encounterRefOf(caseRef), subjectRef: c.subjectRef, protocolVersionId }, now);
  update(caseRef, k => ({ ...k, stateCode: 'with-doctor', reviewRef, decisions: [...k.decisions, { roleCode: 'nurse', actionCode: 'handed-over', at: now }], wouldPublish: [...k.wouldPublish, 'case.handed_over@1'] }));
  return { ok: true, value: caseById(caseRef)! };
 }
 
+/** Whether a doctor may close the case: it was handed to the inbox and is not closed. Once, so one signature
+ *  publishes one case.closed@1 however often the button is pressed. */
+export const closable = (c: Case) => c.stateCode === 'with-doctor';
+/** The case contract's sentence for a refusal the screens show before an act is attempted. */
+export const caseRefusalStatement = (id: string): string => {
+ const r = caseRefused<never>(id);
+ return r.ok ? '' : r.refusal.statement;
+};
+
 /** The doctor signed the consultation and recorded the outcome: the case closes, and the plan is what the patient reads. */
 export function closeCase(caseRef: string, input: { consultationRef: string; outcomeCode: string; plan: string }, now = Date.now()): Result<Case> {
  const c = caseById(caseRef);
  if (!c) return refused('no-such-case');
+ if (!closable(c)) return caseRefused('case-not-with-a-doctor');
  update(caseRef, k => ({
   ...k, stateCode: 'closed', doctorRef: DOCTOR, consultationRef: input.consultationRef, outcomeCode: input.outcomeCode, plan: input.plan,
   decisions: [...k.decisions, { roleCode: 'doctor', actionCode: 'closed', at: now }], wouldPublish: [...k.wouldPublish, 'case.closed@1']

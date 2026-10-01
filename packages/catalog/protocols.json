@@ -5,7 +5,7 @@
  "_previewPathways": "A thirteenth row, since 29 September 2026, is a preview pathway: a draft the founder asked for so one complaint can be demonstrated end to end — GilbertOne gathers, a nurse decides where, a doctor decides what. It is the one kind of draft whose contentRef is not null, and the build holds that reference to a section of a contract under packages/catalog that types no number: every band the pathway uses is a citation of records.json or the knowledge base, so the refusal that a draft carries no threshold still holds, by construction. It is still a draft: not ratified, not a triage protocol, and named as a draft on every screen that shows it.",
 
  "statuses": [
-  { "id": "draft", "name": "Draft", "detail": "Named and numbered. Not ratified, not in use, and carrying no content of any kind." },
+  { "id": "draft", "name": "Draft", "detail": "Named and numbered, and not ratified. A launch protocol's draft is not in use and carries no content of any kind. A preview pathway's draft (_previewPathways) drives the preview's suggestions to a nurse, who decides, and carries one thing only: a citation of a contract section that types no number of its own. Every screen that shows it names it as a draft." },
   { "id": "ratified", "name": "Ratified", "detail": "Signed off by the clinical governance board, with the role and name of the person who signed and the day they did it." },
   { "id": "retired", "name": "Retired", "detail": "No longer used for a new recommendation. Kept, because a recommendation made under it still has to be traceable to the version it was made under." }
  ],

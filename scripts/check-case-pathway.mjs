@@ -129,10 +129,19 @@ export function checkCasePathway({ read, files, stems, hasSequence, existsSync }
     if (!rule.reason) fail(`${CASE}'s rule "${rule.id}" has no reason in words.`);
     if (/\d/.test(rule.reason)) fail(`${CASE}'s rule "${rule.id}" types a number in its reason.`);
     const when = rule.when ?? {};
-    if (when.anyFeatureKind && !kinds.has(when.anyFeatureKind)) fail(`${CASE}'s rule "${rule.id}" asks for the feature kind "${when.anyFeatureKind}", which no feature has.`);
+    for (const kind of [when.anyFeatureKind ?? []].flat()) if (!kinds.has(kind)) fail(`${CASE}'s rule "${rule.id}" asks for the feature kind "${kind}", which no feature has.`);
     for (const id of when.allFeatures ?? []) if (!featureIds.has(id)) fail(`${CASE}'s rule "${rule.id}" asks for the feature "${id}", which features.list does not declare.`);
     for (const band of when.band ?? []) if (!["in-range", "above", "below", "very-high", "none"].includes(band)) fail(`${CASE}'s rule "${rule.id}" names the band "${band}".`);
   }
+  /* Every kind a feature carries is read by a rule. A kind no rule reads is an answer gathered for the pathway and
+     then ignored by it — which is how fever came to suggest a video consultation under a rule named for fever. */
+  const readKinds = new Set(rules.flatMap((r) => [r.when?.anyFeatureKind ?? []].flat()));
+  for (const kind of kinds) if (!readKinds.has(kind)) fail(`${CASE}'s features carry the kind "${kind}", which no rule reads. Every kind is read by at least one rule, or the answer that sets it is gathered and ignored.`);
+  if (!/clinical review/i.test(String(contract.pathway.rules.awaitingReview ?? ""))) fail(`${CASE}'s rules no longer say that the whole pathway awaits clinical review.`);
+  /* The very-high line differs from the wording of the sentence it cites (at or above, against above), and says so to
+     the reviewer rather than silently. */
+  if (!/reviewer/i.test(String(bands["very-high"]?.reviewerNote ?? "")) || !/at or above/i.test(String(bands["very-high"]?.why ?? "")))
+    fail(`${CASE}'s very-high band no longer says, for the clinical reviewer, that it treats a reading at the line as very high while the sentence it cites says above.`);
   if (!rules.some((r) => r.settingCode === "home-visit") || !rules.some((r) => r.settingCode === "online") || !rules.some((r) => r.settingCode === "self-care"))
     fail(`${CASE}'s rules no longer reach a home visit, a video consultation and self-care.`);
   /* Every feature is a chips option of a real question, word for word. */
@@ -163,6 +172,15 @@ export function checkCasePathway({ read, files, stems, hasSequence, existsSync }
   for (const state of contract.states.map((s) => s.code).filter((c) => c !== "gathering"))
     if (typeof patient.who[state] !== "string") fail(`${CASE}'s patient screen has no who-has-it sentence for the state "${state}".`);
   for (const [key, value] of Object.entries(patient)) if (typeof value === "string" && /\d/.test(value)) fail(`${CASE}'s patient sentence "${key}" carries a digit.`);
+  /* Nothing is booked from a case: a nurse's decision is not an appointment, and the Care engine that would book one
+     is not called. So no patient sentence says anything was arranged, booked or is on its way, and the card carries
+     the preview line that says nothing is booked, read from the contract on every drawing of it. */
+  const CLAIMS = /\barrang|\bbook(?:ed|ing|s)?\b|on (?:the|her|his|their) way|\bwill (?:call|visit|come|ring)\b|\bis coming\b|\bdispatch|\bsent to you\b/i;
+  const patientSentences = [...Object.entries(patient).filter(([key, v]) => typeof v === "string" && key !== "preview" && !/why$/i.test(key)), ...Object.entries(patient.who).map(([k, v]) => [`who.${k}`, v])];
+  for (const [key, value] of patientSentences)
+    if (CLAIMS.test(value)) fail(`${CASE}'s patient sentence "${key}" says "${value.match(CLAIMS)[0]}" — that something was arranged, booked or is on its way. Nothing is booked from a case in this preview; say what the nurse decided, and let the preview line say the rest.`);
+  if (typeof patient.preview !== "string" || !/preview/i.test(patient.preview) || !/nothing is booked/i.test(patient.preview))
+    fail(`${CASE}'s patient screen has lost its preview line, or it no longer says that nothing is booked.`);
   if (!/not a diagnosis/i.test(patient.neverShown) || !/nurse/i.test(patient.neverShown)) fail(`${CASE}'s neverShown sentence no longer says that what GilbertOne noticed is for the nurse and that a pattern is not a diagnosis.`);
   /* Readings: sources are devices.json's, and the two a patient may name never carry weight by that file's classes. */
   const sourceIds = new Set(devices.sources.map((s) => s.id));
@@ -222,6 +240,8 @@ export function checkCasePathway({ read, files, stems, hasSequence, existsSync }
   if (!/patientView,/.test(alib) || /caseById/.test(alib)) fail(`${assistantLib} reaches the case other than through patientView.`);
   if (/\.findings|\.suggestion|\.features|caseById|draftBanner/.test(panel)) fail(`${panelFile} names a finding, a feature, the suggestion or the pathway. The patient sees her answers, her reading and who has the case, and nothing else.`);
   if (!/caseScreens\.neverShown/.test(panel)) fail(`${panelFile} no longer reads the sentence saying what the patient is not shown.`);
+  if (!/\{caseScreens\.preview\}/.test(panel) || !/add\(whoHas\(view\), caseScreens\.preview\)/.test(alib))
+    fail(`${panelFile} or ${assistantLib} no longer draws and speaks the preview line beside who has the case. A nurse's decision read without it sounds like a booking.`);
   /* The nurse decides from her press, the doctor closes from hers; nothing else calls either. */
   const callers = (name) => files("apps/web/src").filter((f) => /\.tsx?$/.test(f) && strip(read(f)).includes(`${name}(`) && f !== libFile);
   if (JSON.stringify(callers("decideSetting")) !== JSON.stringify([screenFile])) fail(`decideSetting() is called from ${callers("decideSetting").join(", ") || "nowhere"}. A nurse decides where the patient is seen from the case screen, and nothing else decides it.`);
@@ -231,6 +251,18 @@ export function checkCasePathway({ read, files, stems, hasSequence, existsSync }
   if (!/decideSetting\(c\.caseRef, c\.suggestion\.settingCode\)/.test(screen) || !/decideSetting\(c\.caseRef, setting, reason\)/.test(screen)) fail(`${screenFile} no longer confirms and overrides from two presses.`);
   if (!/const DraftBanner = /.test(screen) || (screen.match(/<DraftBanner\/>/g) ?? []).length !== 1 || !/function CaseFileBody/.test(screen) || !/<CaseFileBody c=\{c\}\/>/.test(screen) || !/<CaseFileBody c=\{c\} trend\/>/.test(screen))
     fail(`${screenFile} no longer draws the draft banner on the case file both clinicians read.`);
+  /* A case the pathway answers with the emergency setting opens in `opened` so a nurse can take it; only the intake's
+     own emergency word opens one in `emergency`. The repeat is refused off a case that is not hers, in the case's own
+     refusal, and the screen offers it only when the lib would accept it. */
+  if (!/stateCode: emergency \? 'emergency' : 'opened'/.test(lib) || /isEmergency/.test(lib))
+    fail(`${libFile} opens a case in the emergency state from the pathway's suggestion. Such a case opens in \`opened\`, with the emergency answer given, so a nurse can take it.`);
+  if (!/answeredWithEmergency\(opened\.value\)/.test(alib)) fail(`${assistantLib} no longer gives the emergency answer when the opened case's pathway suggests it.`);
+  if (!contract.refusals?.some((r) => r.id === "reading-not-with-a-nurse" && r.statement && r.why))
+    fail(`${CASE} no longer declares the refusal reading-not-with-a-nurse.`);
+  if (!/if \(!repeatable\(c\)\) return caseRefused\('reading-not-with-a-nurse'\)/.test(lib) || !/\{repeatable\(c\) && <>/.test(screen))
+    fail(`${libFile} repeats a reading on a case that is not with a nurse, or ${screenFile} offers the repeat where the lib would refuse it.`);
+  if (!contract.refusals?.some((r) => r.id === "case-not-with-a-doctor" && r.statement && r.why) || !/if \(!closable\(c\)\) return caseRefused\('case-not-with-a-doctor'\)/.test(lib) || !/export const closable = \(c: Case\) => c\.stateCode === 'with-doctor'/.test(lib))
+    fail(`${libFile} closes a case that is not in the clinical inbox, or closes one twice. A case closes once, from with-doctor, so one signature publishes one case.closed@1.`);
   if (!/patientWording\.rule/.test(screen)) fail(`${screenFile} no longer shows the wording rule beside the findings.`);
   if (!/kitWords\.carries\b/.test(screen) || !/kitWords\.carriesNot/.test(screen)) fail(`${screenFile} no longer says, in devices.json's words, whether a reading carries clinical weight.`);
   if (/localStorage|sessionStorage|indexedDB/.test(lib + screen)) fail("The case reaches for browser storage.");

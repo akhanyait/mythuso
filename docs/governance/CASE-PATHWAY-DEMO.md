@@ -49,9 +49,12 @@ the address bar. `tests/case-pathway.spec.ts` walks exactly this script on both 
    contract's words, that what GilbertOne noticed and where it suggested she be seen are for the nurse and
    the doctor — **the patient never sees a finding or the suggestion**.
 
-   *Point out:* had she typed an emergency word in any answer, or given a pair at or above the line the
-   knowledge base gives for urgent care with a warning feature, the emergency answer would have stood
-   with the numbers shown and the microphone closed, and the case kept in the emergency state.
+   *Point out:* the card says what the nurse decides, never that anything was arranged, and under it the
+   preview line says nothing is booked from here. Had she typed an emergency word in any answer, the
+   emergency answer would have stood with the numbers shown and the microphone closed. Had she given a pair
+   at or above the line the knowledge base gives for urgent care with a warning feature, she would be given
+   the same emergency answer, and the case would still open on the nurses' list with the emergency setting
+   suggested, so a nurse takes it, confirms or overrides, and may hand it to a doctor.
 
 ## 2. The nurse — decides where
 

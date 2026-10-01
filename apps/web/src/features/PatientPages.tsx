@@ -177,14 +177,18 @@ function Actions({
 }
 
 /* One knowledge-base entry as a card: its title, the contract's label beside each field it carries,
-   and the source line under it. It renders the entry's own words and nothing composed here. */
-function EntryCard({ entry }: { entry: LibraryEntry }) {
+   and the source line under it. It renders the entry's own words and nothing composed here. Its title
+   sits one level under the heading above it: a level two straight under the library's page heading, a
+   level three under a page's own section heading, so no level is skipped on either. */
+function EntryCard({ entry, level = 3 }: { entry: LibraryEntry; level?: 2 | 3 }) {
+  const Title = level === 2 ? "h2" : "h3";
+  const Field = level === 2 ? "h3" : "h4";
   return (
     <article className="pp-entry">
-      <h3 className="pp-entry-title">{entry.title}</h3>
+      <Title className="pp-entry-title">{entry.title}</Title>
       {entry.fields.map((field) => (
         <div className="pp-field" key={field.label}>
-          <h4>{field.label}</h4>
+          <Field className="pp-field-label">{field.label}</Field>
           <ul>
             {field.items.map((item, i) => (
               <li key={i}>{item}</li>
@@ -197,10 +201,11 @@ function EntryCard({ entry }: { entry: LibraryEntry }) {
   );
 }
 
-function EmptyBlock({ title, detail }: { title: string; detail: string }) {
+function EmptyBlock({ title, detail, level = 3 }: { title: string; detail: string; level?: 2 | 3 }) {
+  const Title = level === 2 ? "h2" : "h3";
   return (
     <div className="pp-empty">
-      <h3>{title}</h3>
+      <Title className="pp-empty-title">{title}</Title>
       <p>{detail}</p>
     </div>
   );
@@ -515,13 +520,14 @@ function HealthLibrary({ navigate }: Nav) {
           placeholder={words.searchPlaceholder}
         />
       </div>
-      <div className="pp-tabs" role="tablist" aria-label={words.searchLabel}>
+      {/* Filters, not tabs: each press narrows the one list below rather than showing a panel of its own,
+          so they are pressed buttons in a labelled group, which a screen reader announces truthfully. */}
+      <div className="pp-tabs" role="group" aria-label={words.sectionsLabel}>
         {libraryTabs.map((t) => (
           <button
             key={t.id}
             type="button"
-            role="tab"
-            aria-selected={t.id === tabId}
+            aria-pressed={t.id === tabId}
             className="pp-tab m-press"
             onClick={() => {
               setTabId(t.id);
@@ -535,11 +541,11 @@ function HealthLibrary({ navigate }: Nav) {
       {results.length ? (
         <div className="pp-entries">
           {results.map((entry) => (
-            <EntryCard key={entry.id} entry={entry} />
+            <EntryCard key={entry.id} entry={entry} level={2} />
           ))}
         </div>
       ) : (
-        <EmptyBlock title={words.emptyTitle} detail={words.emptyDetail} />
+        <EmptyBlock title={words.emptyTitle} detail={words.emptyDetail} level={2} />
       )}
     </PageFrame>
   );

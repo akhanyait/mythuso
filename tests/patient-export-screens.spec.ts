@@ -166,7 +166,7 @@ test('mental health: four doors, the emergency screen before the crisis lines, n
  const library = pages.screens['health-library'];
  await expect(page.getByRole('heading', { level: 1, name: library.heading })).toBeVisible();
  const tab = library.tabs.find((t: { id: string }) => t.id === words.doors[0].tab);
- await expect(page.getByRole('tab', { name: tab.label })).toHaveAttribute('aria-selected', 'true');
+ await expect(page.getByRole('group', { name: library.sectionsLabel }).getByRole('button', { name: tab.label, exact: true })).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('activity: written tiles, the journal’s Moving entries counted, and no step, minute or bar', async ({ page }) => {

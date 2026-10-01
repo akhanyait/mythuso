@@ -552,9 +552,10 @@ const supportLines = [
  * GET /v1/core/protocols/{protocolVersionId}@1's own read, mirrored here rather than called: the
  * registry is packages/catalog/protocols.json, a public catalogue read by everybody and stored by
  * nobody, so a preview reads it directly exactly as the route does — one row, by id@version, never a
- * placeholder for a threshold or a dose nobody ratified. Every protocol today is a draft with no
- * content, because nobody on packages/catalog/vetting.json holds medical-director yet, and the
- * honest answer is "draft, no content" rather than a screen that looks ready before a board exists. */
+ * placeholder for a threshold or a dose nobody ratified. Every protocol today is a draft, because nobody
+ * on packages/catalog/vetting.json holds medical-director yet. The twelve launch drafts carry no content;
+ * the one preview pathway (protocols.json _previewPathways) cites a contract section, so the read says
+ * which of the two a row is, from its contentRef, rather than "no content" for both. */
 const protocolReadRoute = coreApi.routes.find(r => r.method === 'GET' && r.path === '/v1/core/protocols/{protocolVersionId}' && !(r as { withdrawn?: unknown }).withdrawn)!;
 const protocolReadRefusal = (id: string) => protocolReadRoute.refusals.find(r => r.id === id)?.statement ?? id;
 const protocolVersionRead = (protocolVersionId: string) => {
@@ -570,6 +571,7 @@ const protocolVersionRead = (protocolVersionId: string) => {
    register, the settings waiting on a clinical review off the settings engine, and the drafts off the
    registry under them. */
 const statusName = (id: string) => protocolsContract.statuses.find(s => s.id === id)?.name ?? id;
+const statusVariant = (id: string) => id === 'ratified' ? 'success' : id === 'draft' ? 'warning' : 'neutral';
 function ProtocolRegistryLookup() {
  useSettingsHistories();
  useSettingsReviews();
@@ -578,23 +580,25 @@ function ProtocolRegistryLookup() {
  const found = protocolVersionRead(selected);
  const doctor = whoIs(subjectsByRole('doctor')[0]!.id, '');
  const drafts = protocolsContract.protocols.filter(p => p.status === 'draft').length;
+ const ratified = protocolsContract.protocols.filter(p => p.status === 'ratified').length;
+ const previews = protocolsContract.protocols.filter(p => p.contentRef !== null).length;
  const waiting = pendingReviewsNow().length;
  return <div className="cr-panel pr-panel">
   <SectionTitle title="The protocol registry"/>
   <div className="dp-strip" aria-label="Governance, counted">
    <MetricCard className="is-lead" label="Checks passing" value={`${doctor.state.passed} of ${doctor.state.total}`} trend={`${doctor.subject.name} · ${doctor.subject.reference}`}/>
    <MetricCard label="Settings awaiting review" value={String(waiting)} trend={waiting ? 'In force, not clinically reviewed' : 'Nothing is waiting for a clinical review'}/>
-   <MetricCard label="Draft protocols" value={String(drafts)} trend={`Of ${protocolsContract.protocols.length} in the registry · none ratified`}/>
+   <MetricCard label="Draft protocols" value={String(drafts)} trend={`Of ${protocolsContract.protocols.length} in the registry · ${ratified ? `${ratified} ratified` : 'none ratified'}`}/>
   </div>
-  <p className="helper">packages/catalog/protocols.json: twelve names and version numbers, ratified by a named role and a date once a board exists to give one. Ratifying a version is for the Medical Director alone, and nobody on the vetting register holds that role yet, so every version below reads back exactly what the registry holds and nothing else.</p>
+  <p className="helper">packages/catalog/protocols.json: {protocolsContract.protocols.length - previews} launch protocols and {previews} preview pathway{previews === 1 ? '' : 's'}, names and version numbers, ratified by a named role and a date once a board exists to give one. Ratifying a version is for the Medical Director alone, and nobody on the vetting register holds that role yet, so every version below reads back exactly what the registry holds and nothing else.</p>
   {found
-   ? <p className="pr-result" role="status">{found.name} — {found.status}, no content.</p>
+   ? <p className="pr-result" role="status">{found.name} — {found.status}, {found.contentRef === null ? 'no content' : `a preview pathway citing ${found.contentRef}`}.</p>
    : <p className="pr-result pr-refusal" role="alert">{protocolReadRefusal('unknown-version')}</p>}
   <ol className="dp-list pr-list" aria-label="Protocol versions">{protocolsContract.protocols.map(p => { const key = `${p.id}@${p.version}`;
    return <li key={key}><button className="dp-row" aria-pressed={key === selected} onClick={() => setSelected(key)}>
     <span className="dp-row-mark" aria-hidden="true"><ClipboardList size={18}/></span>
     <span className="dp-row-what"><span className="dp-row-ref">{key}</span><strong>{p.name}</strong><small>Version {p.version} · {p.engine}</small></span>
-    <span className="dp-row-state"><Badge variant="warning">{statusName(p.status)}</Badge></span>
+    <span className="dp-row-state"><Badge variant={statusVariant(p.status)}>{statusName(p.status)}</Badge></span>
    </button></li>; })}</ol>
  </div>;
 }

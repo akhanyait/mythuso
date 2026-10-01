@@ -302,7 +302,7 @@ the question for the reviewer, and blank sign-off fields.
 
 ## B. Protocols not ratified
 
-From `packages/catalog/protocols.json`. Named and numbered. Not ratified, not in use, and carrying no content of any kind. "A draft protocol holds a name and a version number. It holds no content, no threshold, no dose and no number of any other kind."
+From `packages/catalog/protocols.json`. Named and numbered, and not ratified. A launch protocol's draft is not in use and carries no content of any kind. A preview pathway's draft (_previewPathways) drives the preview's suggestions to a nurse, who decides, and carries one thing only: a citation of a contract section that types no number of its own. Every screen that shows it names it as a draft. "A draft protocol holds a name and a version number. It holds no content, no threshold, no dose and no number of any other kind."
 
 #### B1. Injection administration
 

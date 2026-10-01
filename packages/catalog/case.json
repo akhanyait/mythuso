@@ -15,14 +15,14 @@
 
  "states": [
   { "code": "gathering", "label": "Gathering", "why": "GilbertOne is asking the intake's questions. Nothing is a case yet: the notes are on the patient's screen and nowhere else." },
-  { "code": "opened", "label": "Opened", "why": "The notes are complete and the patient asked for a nurse to look at them. The case is on the nurses' list and nobody has read it." },
+  { "code": "opened", "label": "Opened", "why": "The notes are complete and the patient asked for a nurse to look at them. The case is on the nurses' list and nobody has read it. A case whose pathway suggests the emergency setting opens here too, with the emergency answer already given to the patient: a nurse still takes it, reads it and acknowledges the suggestion, because a case nobody can take is a case nobody has read." },
   { "code": "with-nurse", "label": "With a nurse", "why": "A nurse took the case. She reads the answers, the findings and the readings, and decides where the patient is seen." },
   { "code": "home-visit", "label": "Home visit today", "why": "The nurse decided on a home visit. The Care engine hears case.setting_decided@1 and books it; nothing here dispatches anybody." },
   { "code": "online", "label": "Video consultation", "why": "The nurse decided on a video consultation with a doctor." },
   { "code": "self-care", "label": "Self-care with a call back", "why": "The nurse decided the patient can look after this at home, with a call back. A nurse decided it; the pathway only suggested it." },
   { "code": "with-doctor", "label": "With a doctor", "why": "The nurse asked a doctor to look at the case. It is in the clinical inbox, and the doctor writes the consultation." },
   { "code": "closed", "label": "Closed", "why": "The doctor signed the consultation and the plan. The patient reads the plan in the doctor's own words." },
-  { "code": "emergency", "label": "Emergency", "why": "From any state. An emergency word was said, or the very-high line was crossed with a warning feature: the emergency answer stands, the numbers are shown, the microphone closes, and the case is kept rather than deleted." }
+  { "code": "emergency", "label": "Emergency", "why": "The intake ended on an emergency word, or a nurse confirmed the emergency setting the pathway suggested when the very-high line was crossed with a warning feature. The emergency answer stands, the numbers are shown, the microphone closes, and the case is kept rather than deleted — and a nurse may hand it to a doctor, who reads it after the fact. Nothing here sends anybody." }
  ],
  "transitions": [
   { "from": "gathering", "to": ["opened", "emergency"] },
@@ -33,7 +33,7 @@
   { "from": "self-care", "to": ["with-doctor", "closed", "emergency"] },
   { "from": "with-doctor", "to": ["closed", "emergency"] },
   { "from": "closed", "to": [] },
-  { "from": "emergency", "to": [] }
+  { "from": "emergency", "to": ["with-doctor"] }
  ],
 
  "settings": {
@@ -55,16 +55,17 @@
    "in-range": { "from": "packages/catalog/records.json#observations.measures", "measures": ["systolic", "diastolic"], "why": "Inside both indicative ranges. The ranges are the record's, and records.json's own note says they are indicative and not a validated early-warning score." },
    "above": { "why": "Either number above its indicative high. Not a grade and not a word about the patient: which paragraph of the pathway applies." },
    "below": { "why": "Either number below its indicative low." },
-   "very-high": { "from": "packages/catalog/knowledge/conditions.json#cond-008.whenToSeeDoctor", "reads": "the one top-over-bottom pair that sentence gives for urgent care", "why": "The knowledge base's own line, read out of its sentence by scripts/emit-case.mjs rather than typed here, so the line and the sentence a nurse reads cannot disagree. At or above either number." }
+   "very-high": { "from": "packages/catalog/knowledge/conditions.json#cond-008.whenToSeeDoctor", "reads": "the one top-over-bottom pair that sentence gives for urgent care", "why": "The knowledge base's own line, read out of its sentence by scripts/emit-case.mjs rather than typed here, so the line and the sentence a nurse reads cannot disagree. At or above either number.", "reviewerNote": "For the clinical reviewer: this deliberately differs from the wording of the sentence it cites. That sentence says urgent care is needed for a reading above the pair; the pathway treats a reading at the pair, or at either number of it alone, as very high, which is the more cautious reading. It was not loosened without a clinician, and the reviewer decides whether it stays." }
   },
   "rules": {
-   "why": "In order; the first that matches is the suggestion. The suggestion is made once, when the case opens, from what the patient gave, and is never remade: a nurse's repeat of the reading is recorded beside it, and her decision stands against the suggestion she was shown.",
+   "why": "In order; the first that matches is the suggestion. The suggestion is made once, when the case opens, from what the patient gave, and is never remade: a nurse's repeat of the reading is recorded beside it, and her decision stands against the suggestion she was shown. A rule's anyFeatureKind is one kind or a list of kinds, and every kind a feature carries is read by at least one rule, so no answer is gathered for the pathway and then ignored by it.",
+   "awaitingReview": "The whole pathway — every band, rule, feature and finding — awaits clinical review. Aligning a rule with the reasoning it states, as the fever rule was on the first of October, is not a review: it makes the draft say one thing, so a reviewer reads what it does.",
    "order": [
     { "id": "emergency-words", "settingCode": "emergency", "when": { "emergency": true }, "reason": "The intake ended on an emergency word. The emergency answer was given first and still stands." },
     { "id": "very-high-with-warning", "settingCode": "emergency", "when": { "band": ["very-high"], "anyFeatureKind": "red-flag" }, "reason": "The reading is at or above the line the knowledge base gives for urgent care, with {features}." },
     { "id": "above-range-with-blood-pressure-feature", "settingCode": "home-visit", "when": { "band": ["above", "very-high"], "anyFeatureKind": "blood-pressure" }, "reason": "The reading is above the indicative range, and the notes carry {features}, which the knowledge base links to blood pressure. A nurse repeats the reading on a kit instrument at the door." },
     { "id": "unweighted-reading-out-of-range", "settingCode": "home-visit", "when": { "band": ["above", "very-high", "below"], "weightless": true }, "reason": "The reading came from {source} and carries no clinical weight, so it is repeated on a kit instrument at the door before anybody acts on it." },
-    { "id": "injury-or-fever-cluster", "settingCode": "home-visit", "when": { "anyFeatureKind": "at-the-door" }, "reason": "The notes carry {features}, which a nurse looks at in person." },
+    { "id": "injury-or-fever-cluster", "settingCode": "home-visit", "when": { "anyFeatureKind": ["at-the-door", "fever"] }, "reason": "The notes carry {features}, which a nurse looks at in person." },
     { "id": "pattern-in-range", "settingCode": "online", "when": { "band": ["in-range", "none"], "anyFeatureKind": "pattern" }, "reason": "The notes carry {features}, a pattern for a doctor to see, and the reading is in range or there is none." },
     { "id": "mild-short-in-range", "settingCode": "self-care", "when": { "band": ["in-range", "none"], "allFeatures": ["mild", "short"] }, "reason": "Mild, recent, and the reading is in range or there is none. A call back checks it did not change." }
    ],
@@ -73,7 +74,7 @@
  },
 
  "features": {
-  "why": "What an answer means to the pathway, by the option the patient chose. Each feature names the question and the options that set it, the words the reasons and findings use for it, and its kinds: blood-pressure and pattern feed the suggestion, red-flag is what turns a very-high reading into the emergency answer (cond-008's own list: severe headache, vision changes), at-the-door is what a nurse looks at in person. A typed answer to a chips question sets no feature.",
+  "why": "What an answer means to the pathway, by the option the patient chose. Each feature names the question and the options that set it, the words the reasons and findings use for it, and its kinds: blood-pressure and pattern feed the suggestion, red-flag is what turns a very-high reading into the emergency answer (cond-008's own list: severe headache, vision changes), at-the-door and fever are what a nurse looks at in person. A typed answer to a chips question sets no feature.",
   "list": [
    { "id": "severe", "questionId": "how-bad", "options": ["Severe"], "label": "a severe headache", "kinds": ["red-flag"] },
    { "id": "mild", "questionId": "how-bad", "options": ["Mild"], "label": "a mild headache", "kinds": [] },
@@ -222,13 +223,15 @@
    "who": {
     "opened": "It is on the nurses' list, and nobody has read it yet.",
     "with-nurse": "{nurse} has your case and is reading it.",
-    "home-visit": "{nurse} has your case and has arranged a home visit today.",
-    "online": "{nurse} has your case and has arranged a video consultation.",
-    "self-care": "{nurse} has your case and will call you back.",
+    "home-visit": "{nurse} has read your case and decided a nurse should see you at home today.",
+    "online": "{nurse} has read your case and decided a doctor should see you on a video call.",
+    "self-care": "{nurse} has read your case and decided you can look after this at home, with a call back to check.",
     "with-doctor": "{nurse} has asked {doctor} to look at your case.",
     "closed": "{doctor} has signed a plan. Ask me what the doctor said, or open your Health Passport.",
     "emergency": "The emergency answer stands. Your case is kept for whoever sees you."
    },
+   "preview": "This is a preview. Nothing is booked from here: no nurse is sent, no doctor calls you, and nobody outside this screen reads your case.",
+   "previewWhy": "Read on the case card under who has the case, every time it is drawn, because the who-has-it sentence says what a nurse decided and a decision is not a booking. The build refuses a patient sentence that says something was arranged, booked or is on its way.",
    "neverShown": "What I noticed for the nurse, and where I suggested you be seen, are for the nurse and the doctor to read: a pattern is not a diagnosis, and only a clinician may tell you what it means.",
    "planHeading": "What the doctor said",
    "planLead": "In the doctor's own words, from the plan they signed:",
@@ -293,6 +296,11 @@
    "back": "Back to the inbox"
   }
  },
+
+ "refusals": [
+  { "id": "reading-not-with-a-nurse", "status": 409, "statement": "A reading is repeated on a case a nurse has taken and not yet handed to a doctor.", "why": "The repeat is the nurse's, against the decision she is making or has made. Before she takes the case nobody has read it, and once a doctor has it the consultation is the doctor's; a reading added then would arrive in a file somebody else is already reading." },
+  { "id": "case-not-with-a-doctor", "status": 409, "statement": "A case is closed once, by the doctor it was handed to, while it is in the clinical inbox.", "why": "Closing is the doctor's signature on the case. A case no nurse handed over has no doctor's consultation to close it, and a case already closed is not closed again: a second close would publish a second case.closed@1 for one signature." }
+ ],
 
  "platforms": ["web"],
  "platformsWhy": "No phone renders a case yet. iOS and Android join here when their screens exist, and the boundary check refuses a native file that names the case before this list says so."

@@ -59,6 +59,7 @@ import {
   type IntakeSummaryRow,
 } from "../../../../packages/gilbertone/src/intake.ts";
 import {
+  answeredWithEmergency,
   latestCaseFor,
   markSentence,
   openCase,
@@ -1004,7 +1005,8 @@ export function continueIntake(
     if (said === stems(caseScreens.askNurse).join(" ")) {
       const opened = openCase(active.state, SESSION_SUBJECT, active.reading ? [active.reading] : []);
       if (!opened.ok) return null;
-      if (opened.value.stateCode === "emergency") return turn({ kind: "emergency", groups: [] });
+      /* The emergency answer, as before; the case itself waits in `opened` for a nurse to take. */
+      if (answeredWithEmergency(opened.value)) return turn({ kind: "emergency", groups: [] });
       return turn({ ...active, phase: "case", caseRef: opened.value.caseRef });
     }
     return null;
@@ -1192,7 +1194,7 @@ export function spokenOf(turn: Turn, audience: AudienceId): string {
         const view = caseView(r.caseRef);
         add(caseScreens.heading, caseScreens.opened);
         if (view) {
-          add(whoHas(view));
+          add(whoHas(view), caseScreens.preview);
           if (view.plan) add(caseScreens.planHeading, caseScreens.planLead, view.plan, caseScreens.planClose);
         }
         add(caseScreens.neverShown);

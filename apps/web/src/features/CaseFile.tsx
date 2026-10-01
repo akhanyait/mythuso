@@ -5,8 +5,8 @@ import { devicesContract } from '../../../../packages/engines/src/devices/domain
 import { ConsultationComposer, assessmentFields, type ConsultationDraft } from './Consultation';
 import { recordConsultationFor, words as clinicalWords } from '../lib/clinical';
 import {
- askDoctor, carriesWeight, caseById, closeCase, conditionTitle, decideSetting, decided, doctorName, draftBanner, encounterRefOf, fill, listOf, nurseName,
- repeatReading, settingKinds, settingLabel, sourceLabel, stateLabel, takeCase, timeOf, unit, useCases, words, type Case, type CaseReading, type SourceId
+ askDoctor, carriesWeight, caseById, caseRefusalStatement, closable, closeCase, conditionTitle, decideSetting, decided, doctorName, draftBanner, encounterRefOf, fill, listOf, nurseName,
+ repeatReading, repeatable, settingKinds, settingLabel, sourceLabel, stateLabel, takeCase, timeOf, unit, useCases, words, type Case, type CaseReading, type SourceId
 } from '../lib/case';
 import { intakeContract } from '../../../../packages/gilbertone/src/intake.ts';
 import { observations } from '../lib/observations';
@@ -21,7 +21,8 @@ import './case.css';
  * behind it and the rule beside it; the readings with their source and the weight the Devices domain gives
  * each; the draft banner; where the preview pathway suggests the patient is seen, with its reasons in words;
  * and her three acts — confirm or choose differently with a reason, repeat the reading on an instrument she
- * names, ask the doctor. Nothing is decided until she presses.
+ * names, ask the doctor. Nothing is decided until she presses — the emergency suggestion included: such a
+ * case opens for her to take like any other, with the emergency answer already given to the patient.
  *
  * WHAT A DOCTOR SEES. The same file, the readings as a trend when there are enough, the nurse's decision, the
  * consultation with the diagnosis field that is hers alone, and the outcome she records on the case. The case
@@ -184,7 +185,8 @@ function NurseCase({ c }: { c: Case }) {
    </div>}
    {decision && <p className="cs-decided" role="status"><ClipboardCheck size={15} aria-hidden="true"/>{fill(nurse.decided, { setting: settingLabel(decision.settingCode ?? ''), at: timeOf(decision.at) })}</p>}
    {decision?.reason && <p className="helper">{fill(nurse.overrode, { reason: decision.reason })}</p>}
-   {c.stateCode !== 'closed' && c.stateCode !== 'emergency' && <>
+   {/* The repeat is offered only while the case is hers: taken, and not yet handed to a doctor (lib/case.ts repeatable). */}
+   {repeatable(c) && <>
     {!repeating
      ? <div className="button-row"><Button variant="secondary" leadingIcon={<Repeat aria-hidden="true"/>} onClick={() => setRepeating(true)}>{nurse.repeatReading}</Button></div>
      : <div className="cs-repeat">
@@ -254,6 +256,8 @@ export function DoctorCase({ caseRef, onBack }: { caseRef: string; onBack: () =>
   /* The outcome first: a consultation signed off in the domain is not rewritten, so nothing is recorded
      until everything the close needs is there. */
   if (!outcome) { setRefused(doctor.outcomeFirst); return false; }
+  /* A case already closed, or never handed over, is refused before a consultation is recorded for it. */
+  if (!closable(c)) { setRefused(caseRefusalStatement('case-not-with-a-doctor')); return false; }
   const recorded = recordConsultationFor({ encounterRef: encounterRefOf(c.caseRef), subjectRef: c.subjectRef, sectionsWritten: soapOf(record), signOff: true });
   if (!recorded.ok) { setRefused(recorded.refusal.statement); return false; }
   const plan = ['plan', 'followup'].map(f => (record[f] ?? '').trim()).filter(Boolean).join('\n');

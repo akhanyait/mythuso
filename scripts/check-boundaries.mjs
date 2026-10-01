@@ -4610,6 +4610,14 @@ for (const { source, command, files } of generated) {
     throw new Error(
       "packages/catalog/protocols.json registers a preview pathway and no longer says what one is (_previewPathways).",
     );
+  /* The draft status's own sentence is what NurseDesk prints beside every draft row. It once said a draft
+     carries "no content of any kind" while the preview pathway, a draft, carried a contentRef and drove the
+     preview's suggestions — so while a preview pathway is registered, the sentence must say what one carries. */
+  const draftDetail = String(protocolContract.statuses.find((s) => s.id === "draft")?.detail ?? "");
+  if (protocolIds.size !== launchIds.size && !/preview pathway/i.test(draftDetail))
+    throw new Error(
+      `packages/catalog/protocols.json's draft status says "${draftDetail}", and a preview pathway is registered as a draft with a contentRef. The status's sentence says what a preview pathway's draft carries, or it is false of one row.`,
+    );
 
   /* Nothing outside the registry invents a version. A reference is an id@number token: any whose id is
     a registered protocol, and any on a line that says "protocol" — so a new protocol cannot be cited
@@ -38203,13 +38211,25 @@ console.log(
 
   /* 8. */
   const sem = w3aTokens.semantic;
-  const chrome = (f, light, dark) => {
-    const html = w3aRead(`apps/web/${f}`);
-    if (!html.includes(`<meta name="theme-color" content="${light}" media="(prefers-color-scheme: light)"/>`) || !html.includes(`<meta name="theme-color" content="${dark}" media="(prefers-color-scheme: dark)"/>`))
-      w3a(`apps/web/${f}'s theme-color is not ${light} and ${dark}, the roles its first bar is painted in.`);
+  /* Since 29 September 2026 the OS scheme decides nothing (lib/theme.ts), so a theme-color under
+     prefers-color-scheme: dark painted the browser's bar dark around a light page. Each entry carries one
+     theme-color, the light role's value, with data-role naming the generated custom property lib/theme.ts
+     reads it back from when a person turns dark on — and that property must exist in both schemes. */
+  const tokensCss = w3aRead("apps/web/src/tokens.generated.css");
+  const themeLib = w3aRead("apps/web/src/lib/theme.ts");
+  const chrome = (f, role, light, dark) => {
+    const html = w3aRead(`apps/web/${f}`).replace(/<!--[\s\S]*?-->/g, "");
+    const metas = html.match(/<meta name="theme-color"[^>]*>/g) ?? [];
+    if (metas.length !== 1 || metas[0] !== `<meta name="theme-color" content="${light}" data-role="${role}"/>`)
+      w3a(`apps/web/${f}'s theme-color is not one meta carrying ${light} with data-role="${role}", the role its first bar is painted in. No prefers-color-scheme variant: the OS does not decide the scheme.`);
+    const darkBlock = tokensCss.split(':root[data-theme="dark"]')[1] ?? "";
+    if (!tokensCss.includes(`--${role}:${light};`) || !darkBlock.includes(`--${role}:${dark};`))
+      w3a(`apps/web/src/tokens.generated.css does not carry --${role} as ${light} and, under [data-theme="dark"], ${dark}, which apps/web/${f}'s theme-color names.`);
   };
-  chrome("landing.html", sem.light.primary.hex, sem.dark.primary.hex);
-  chrome("index.html", sem.light.surface.hex, sem.dark.surface.hex);
+  chrome("landing.html", "color-primary", sem.light.primary.hex, sem.dark.primary.hex);
+  chrome("index.html", "color-surface", sem.light.surface.hex, sem.dark.surface.hex);
+  if (!/meta\[name="theme-color"\]\[data-role\]/.test(themeLib) || !/getPropertyValue\(`--\$\{meta\.dataset\.role\}`\)/.test(themeLib))
+    w3a("apps/web/src/lib/theme.ts no longer sets the browser's theme-color from the role each entry names when the scheme is switched.");
 
   console.log(`Wave 3a, shell and landing on the identity · the handoff's stage on the contract's figure, its words hero.json's; the coverage copy word for word; exactly ${budget.length} ambient loops, gated, token-timed, composited and paused off-screen; two landing sheets on the roles and the scale; ${pubFiles.length} WebP derivatives under 150 kB and the GilbertOne logo whole; ${Object.keys(primary).length} primary destinations on the MyThuso family through NavigationItem; no Inter; the browser chrome on the roles`);
 }

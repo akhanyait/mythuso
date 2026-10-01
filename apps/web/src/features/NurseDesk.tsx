@@ -19,7 +19,8 @@ import '../surface/nurse-identity.css';
  *     two export buttons. None of those is recorded anywhere. What is recorded is the earnings register's
  *     lines and today's schedule, so every figure is counted off one of those, and there is no export.
  *   - Resources: guidelines with authorities and years, leaflets to download, a referral form. The
- *     protocols this product names are all drafts carrying no content, and the only published reading is
+ *     protocols this product names are all drafts — twelve with no content and one preview pathway that
+ *     cites a contract section — and the only published reading is
  *     the knowledge base the patient's Health library already reads — so that is what is listed, each
  *     under its own contract's words, and "Forms" says there are none.
  *   - Settings: a form that edits her name, registration and email and a "Settings saved (demo)". Her
