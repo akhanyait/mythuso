@@ -2478,3 +2478,65 @@ laboratory ranges in fixtures. The phones have no shell-level panic, partner wor
 native order and dispensing screens were not checked for a typed panel or a patient's name. Comments in
 `nurse-kit.css`, `KitDeck.tsx`, `nurse-identity.css` and two places in `check-boundaries.mjs` still say the
 Thuso Kit is on the patient's entry.
+
+## Delivered — the dispatch map's field-safety overlay, and the twenty-third door, 1 October 2026 (web; the door is contract only)
+
+An operator choosing which nurse to send to Soweto while a panic was open in Soweto was reading two screens and
+reconciling them by hand. The overlay groups the desk queue's own rows by suburb and draws them under the map the
+controller already dispatches against, so the two pictures of one afternoon are one arithmetic. Nothing was
+connected to anything: the counts are ours, from `GET /v1/safety/desk-queue@1`'s rows, and no new route, no store
+and no figure that outlives the render that drew it. The door — feed #23, `crime-statistics` — landed in the
+commit before this one (`f0bc96c7`) and is recorded here because it is what the overlay was written beside, and
+because the two are easily mistaken for one feature: **the overlay draws no crime data and never will.** It draws
+our own open panics and overdues. Feed #23 is a seam, connected to nothing.
+
+| What landed | What it refuses, and what did not move | Where |
+| --- | --- | --- |
+| **A list of suburbs with what is open in each**, under the dispatch map: the suburb, its counts, the two kinds, and a proportion of its nurses. Drawn from the live desk queue on every render, grouped by suburb and sorted by name | **No score, no rate over time, no trend and no ranking of suburbs** (`no-zone-risk-score`). A ranking of suburbs needs a record of what happened in each, and `geography.json#privacy`'s `no-history-drawn` is arranged against keeping one. There is also no reviewer here qualified for the call a score would make — whether a patient is seen at home or on a screen. A row carries five counts (`zone`, `panics`, `overdues`, `open`, `rostered`) and none of the five fields `neverCarries` names: `nurse`, `position`, `service`, `score`, `history`. Held by substring, so a field cannot slip in under another name. Sorted by name, proven by a fixture of three suburbs whose three orderings all disagree | `packages/engines/src/safety/domain/zone-overlay.ts` (+ its own test), `apps/web/src/lib/field-safety.ts`, `features/Dispatch.tsx`, `surface/office-identity.css` |
+| **A denominator floor.** `zone-share-minimum-nurses` (proposed 5, bounds 3–20, unit `nurses`) suppresses the *proportion* below it, with the contract's own sentence saying how many nurses there are and why that is too few | **THE COUNT IS DRAWN WHATEVER THE FLOOR IS.** An open panic in a suburb with one nurse on the roster is exactly the incident the operator most needs to see, and a suppression rule that hid it would be a safety feature protecting a suburb's reputation instead of a person. The floor governs the proportion alone. It waits on **no** clinical review and that is asserted, not assumed: nothing about it is clinical and it decides nothing about a patient — it is k-anonymity over a roster count. Its bounds are what make it so: no value below three can be set, and its guardrail forbids `[0, 2, 21]`, the 2 being one below the lowest bound so the guardrail proves the floor rather than asserting it | `packages/catalog/field-safety.json` (defaults version 6), `packages/engines/src/safety/domain/settings.ts` + its test, `apps/web/src/lib/settings.ts`, `docs/governance/CLINICAL-REVIEW-PACK.md` |
+| **Drawn for the operator alone, by a gate derived from the contract.** `maySeeFieldSafety()` reads the desk queue route's own `callers` and asks the vetting register which role the audience's subject holds | No audience string is typed at the gate, and the default is *not drawn* rather than drawn: a board that gained an audience later would gain the overlay silently, and the failure that produces is the back office reading a nurse's panic on a funding screen. The back office's `Operations` tab passes its audience down and gets no overlay, because its subject is an admin and the route admits an operator — it refuses for the reason the contract gives. If the route's callers ever widen, the overlay widens in the same edit | `apps/web/src/features/Dispatch.tsx`, `features/Admin.tsx`, `features/portal/Operations.tsx`, `shells/StaffShell.tsx`, `AdminShell.tsx`, `lib/roster.ts` (`rosteredIn`) |
+| **Colour marks an incident, never a place.** An open panic tints that row's counts, beside a sentence that already says "1 panic" | **No colour on this overlay is a grade** (`a-zone-is-not-a-verdict`). No sentence names a suburb as safe or unsafe, and no zone circle is shaded: "Soweto is high risk" is a claim about a place made by a count of three; "two nurses are past check-out in Soweto" is a thing an operator can act on in the next minute. The build refuses a `.zone-shade`, a background on a row, or the overlay's figures reaching `LiveMap` | `apps/web/src/surface/office-identity.css`, `scripts/check-boundaries.mjs` |
+| **Feed #23, the SAPS seam, linked through Safety** (commit `f0bc96c7`) | A door and not a connection: `crime-statistics` declares what the statistics for an area say and **what they may never be made to decide**. Connected to no supplier, no endpoint and no emitter, and `apis/safety.json` names it as a door. The overlay above draws no crime data and no suburb verdict, which is the difference between a seam and a decision | `packages/catalog/feeds.json`, `apis/safety.json` |
+
+**Why a list and not a colour on the zones.** The roster has six suburbs and `geography.json` draws five circles,
+so Tembisa and Alexandra are on the roster and drawn nowhere. A colouring would drop an open incident in either;
+a list cannot. The contract's `_listNotAColourNote` justifies itself by those suburbs' names, and the build asks
+it to name every suburb the roster holds and geography draws no circle for — prose naming suburbs is what goes
+stale quietly when a roster changes, leaving a contract justifying a decision with examples that no longer exist.
+
+**The patient's first view.** Unchanged, and it must stay so: the overlay is drawn from `features/Dispatch.tsx`,
+which sits in the staff chunk behind a dynamic import, and touches neither `LiveMap` nor `geography.json`.
+
+**Verified on the finished tree.** `npm run check` green, and `scripts/check-boundaries.mjs` green with its new
+block printing its own line: *a list over 6 rostered suburbs, 2 of which (Tembisa, Alexandra) the map draws no
+circle for; a row carries 5 counts and none of the 5 fields it never carries, by name and not by count; the floor
+of 5 nurses governs the proportion alone, so 1 open panic in a suburb of 1 nurse is drawn whole while its
+proportion is refused; the domain keeps nothing between draws; and the audience is read from
+`GET /v1/safety/desk-queue@1`'s 1 caller rather than typed.* The eleven node suites pass — engines **513 of 513**,
+including the eight overlay tests, among them `THE COUNT IS DRAWN WHATEVER THE FLOOR IS`. Every one of the twenty
+new checks was **proven to fire by breaking its source and watching the build fail**, then restoring: a ranking
+sort, a `nurse` field, a `score` field, a floored count, a proportion below the floor, a module cache, a mutable
+binding, the grouping moved to module scope, a typed audience, an underived gate, a missing panic marker, a shaded
+zone, a row background, the overlay fed to `LiveMap`, a note that drops Tembisa, a bound lowered to 2, a guardrail
+that stops naming 2, a unit of minutes, a type that is not `count`, and a `drawnFor` naming no such route. The
+restore was checked byte-faithful against a backup, and `npm run generate`'s field-safety, sentinel and
+review-pack emitters were re-run and produced **no blob change**, so nothing drifted.
+
+**Not verified, and why.** **The Playwright journeys did not run, including the new `tests/zone-field-safety.spec.ts`
+(5 tests × 2 viewports).** Chromium cannot launch in this environment: `browserType.launch` fails with
+`signal 11 SEGV_ACCERR`, and `os.cpus()` returns empty so Playwright also misdetects this arm64 machine as
+`mac-x64` and looks for a browser build that does not exist. Both are sandbox limits, not code failures — the same
+tree's node suites, typecheck and boundary checks all pass, and the spec was written and read rather than run. It is
+**unverified by execution** and must be run on a machine where a browser launches before this is called done. The
+iOS and Android builds were not run either. **No deploy was attempted**; `mythuso.co.za` serves an earlier build,
+and per the standing rule a deploy is the founder's to approve as its own step.
+
+**Open.** The floor of 5 is proposed by "Safety lead (Wave 6)" and decided by nobody — `decidedBy` is null on its
+default and both bounds, so Operations has to set it. At 5, four of the roster's six suburbs are below it and draw
+counts with no proportion, which is what the roster honestly supports; at the highest bound of 20 no suburb draws
+one anywhere, which the contract says should be somebody saying that out loud rather than drift. The overlay is
+web only: the phones carry no dispatch map surface for it, and `emit-field-safety.mjs` emits nothing for it
+because neither phone draws it. `rosteredIn()` counts the roster as it stands, so a suburb's denominator does not
+follow who is actually on shift — a nurse covering a suburb she is not rostered to appears in the count and not in
+the denominator, which is the honest direction of error and is asserted, but it means the proportion is about the
+roster and not about this afternoon.

@@ -4,7 +4,7 @@ import {
  type Change, type ChangeRequest, type Refusal, type Review, type ReviewState, type Setting, type SettingValue, type SettingsEngine, type Snapshot
 } from '../../../../packages/engines/src/settings/shape.ts';
 import { settingsEngines } from '../../../../packages/engines/src/settings/registry.ts';
-import { inForce, panicWindowOf, sentinelSettingsOf, sosSettingsOf, type PanicWindow, type SentinelSettings, type SettingsInForce, type SosSettings } from '../../../../packages/engines/src/safety/domain/settings.ts';
+import { inForce, panicWindowOf, sentinelSettingsOf, sosSettingsOf, zoneOverlaySettingsOf, type PanicWindow, type SentinelSettings, type SettingsInForce, type SosSettings, type ZoneOverlaySettings } from '../../../../packages/engines/src/safety/domain/settings.ts';
 import { careInForceOf, type CareInForce } from '../../../../packages/engines/src/care/domain/settings.ts';
 import { claimConsentDaysOf, doctorFeeOf, groupMemberCapOf, groupMemberMonthlyLimitCentsOf, nurseShareSentenceOf, planTermsOf, voucherExpiryYearsOf, type DoctorFeeInForce, type PlanTerms } from '../../../../packages/engines/src/money/domain/settings.ts';
 import { auditExportMaxDaysOf, rotaOf } from '../../../../packages/engines/src/core/domain/settings.ts';
@@ -150,6 +150,19 @@ export const clinicalSettingsNow = (): ClinicalInForce => clinicalInForce(histor
 /* Sentinel's two, read the same way: a baseline asks sentinelSettingsNow() once, when the first reading of a patient's
    measure opens it, and keeps the window, the minimum and the version it was handed. */
 export const sentinelSettingsNow = (): SentinelSettings => sentinelSettingsOf(historyOf('safety'));
+/* The dispatch map's field-safety overlay asks this on every draw rather than once, and keeps nothing:
+   the overlay stores no figure between renders, so there is no live proportion a change could move
+   under a reader, and the next draw simply reads the floor now in force. */
+export const zoneOverlaySettingsNow = (): ZoneOverlaySettings => zoneOverlaySettingsOf(historyOf('safety'));
+/* The words the dispatch map's overlay draws beside its floor — the setting's label and help — read here
+   rather than out of the contract's items list on the screen that wants them, so the number and its
+   explanation cannot become two documents. Deliberately the words and no value: what is in force is
+   zoneOverlaySettingsNow()'s answer, and a default handed out beside the label is a default a screen
+   could draw instead of it. */
+export const zoneFloorWords = () => {
+ const setting = settingOf('safety', 'zone-share-minimum-nurses');
+ return { label: setting.label, help: setting.help };
+};
 /* Movement's five, read the same way: a trip asks movementSettingsNow() once when it is requested and keeps the
    offers, the window and the retention it answered; the responder's phone asks it for the interval when it beats. */
 export const movementSettingsNow = (): MovementInForce => movementInForce(historyOf('movement'));

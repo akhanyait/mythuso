@@ -237,6 +237,40 @@ button.oi-row:focus-visible { outline: 2px solid var(--color-ring); outline-offs
    nurse, and the map is a picture of the same list rather than the way into it. */
 @media (max-width: 1099px) { .oi-dispatch .oi-assign-card { order: -1; } }
 
+/* ---- The field-safety overlay ---------------------------------------------------------------------
+   A list of suburbs with what is open in each, under the map the controller dispatches against.
+   It is a list and never a colour on the zones, for the reason field-safety.json#zoneOverlay gives:
+   a shaded suburb is a grade whatever the legend says, and a list is also the only form that holds
+   Tembisa and Alexandra, which are on the roster and have no circle in geography.json.
+
+   Nothing here is loud. An open panic is the one thing on this panel happening to a person now, and
+   it is marked by a colour reserved for exactly that — the same danger the rest of the product uses —
+   rather than by a shade over a whole suburb. The counts are the ordinary foreground; a panel where
+   every row is alarming is a panel nobody can find the alarming row in. */
+.zone-safety { margin-top: var(--space-16); padding-top: var(--space-16); border-top: 1px solid var(--color-border); }
+.zone-safety__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-4) var(--space-12); }
+.zone-safety__rows { display: grid; gap: var(--space-8); margin: var(--space-12) 0 0; padding: 0; list-style: none; }
+.zone-safety__row { display: grid; grid-template-columns: minmax(7rem, auto) minmax(9rem, 1fr); align-items: baseline; gap: var(--space-4) var(--space-12); }
+.zone-safety__zone { font-weight: 600; color: var(--color-foreground); }
+.zone-safety__counts { color: var(--color-foreground); font-variant-numeric: tabular-nums; }
+.zone-safety__kinds { color: var(--color-muted-foreground); font-size: 13px; }
+/* The proportion, and its suppressed form. Suppressed is not hidden: it is the same muted weight as
+   the rest of the panel, because the counts above it are drawn whole and the floor governs only this
+   figure. An operator reading "1 nurse — too few to draw a proportion over" has been told something
+   true about the roster, not a gap she has to guess into. */
+.zone-safety__proportion { color: var(--color-muted-foreground); font-size: 13px; font-variant-numeric: tabular-nums; }
+.zone-safety__proportion.is-suppressed { font-style: italic; }
+.zone-safety__floor { margin: var(--space-12) 0 0; color: var(--color-muted-foreground); font-size: 13px; line-height: 1.5; }
+/* An open panic gets the one colour reserved for it. Applied to the counts, which name the suburb,
+   and never to a whole suburb's circle — the difference between marking an incident and grading a
+   place. Colour is never the only mark either: the row's own sentence already says "1 panic". */
+.zone-safety__row.has-panic .zone-safety__counts { color: var(--color-danger); font-weight: 600; }
+@media (max-width: 719px) {
+ /* One column on a phone: the suburb over its counts, so a row never runs off the screen and the
+    proportion wraps under rather than squeezing the suburb's name. */
+ .zone-safety__row { grid-template-columns: 1fr; }
+}
+
 /* ---- The vetting register -------------------------------------------------------------------------- */
 .oi-vetting-bar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-12) var(--space-16); }
 .oi-inline-field { flex: 1 1 16rem; max-width: 26rem; }

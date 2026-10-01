@@ -6,6 +6,7 @@ import { OfficeFacts, OfficeFigure, OfficeHead, OfficeNote, OfficeProgress, Offi
 import { DispatchBoard, IncidentBoard, controlTowerCounts } from './Dispatch';
 import { useVettingState, VettingConsole, type VettingState } from './Vetting';
 import { summarise, type VettingSubject } from '../lib/vetting';
+import type { RoleId } from '../lib/roles';
 import { businessModel, money, bigMoney, platformMargin, services, type Service } from '../lib/catalog';
 import { momPlan, subscriptionLines } from '../lib/mom-plans';
 import { escalationRotaNow, momPlanNow } from '../lib/settings';
@@ -44,14 +45,14 @@ const blocking = (subjects: VettingSubject[], roleId?: string) =>
    sidebar and the sidebar draws these eight as pill rows, which is where a workspace's navigation
    belongs; below that the sidebar is gone and the strip below is the only way through, so both
    drive one value rather than each holding their own idea of where the reader is. */
-export function AdminConsole({ open, tab, setTab, readOnly = false }: { open: (s: string) => void; tab: AdminTab; setTab: (t: AdminTab) => void; readOnly?: boolean }) {
+export function AdminConsole({ open, tab, setTab, readOnly = false, audience }: { open: (s: string) => void; tab: AdminTab; setTab: (t: AdminTab) => void; readOnly?: boolean; /** Whose screen this console is on. The Operations tab's dispatch board hands it to the field-safety overlay's gate, which reads the desk queue's own callers to decide. */ audience: RoleId }) {
  /* Held above the tabs on purpose: a decision taken in Vetting has to still be true when the
     Operations board is opened, or the gate is a screenshot of a gate. */
  const vetting = useVettingState();
  /* Which engine's settings Configuration opens on. Held here so the link on the Operations tab can open
     Configuration on the field-safety settings rather than on everything. */
  const [settingsEngine, setSettingsEngine] = useState('');
- const body = tab === 'Overview' ? <Overview vetting={vetting}/> : tab === 'Vetting' ? <VettingConsole vetting={vetting} open={open}/> : tab === 'Operations' ? <Operations open={open} vetting={vetting} openSettings={() => { setSettingsEngine('safety'); setTab('Configuration'); }}/>
+ const body = tab === 'Overview' ? <Overview vetting={vetting}/> : tab === 'Vetting' ? <VettingConsole vetting={vetting} open={open}/> : tab === 'Operations' ? <Operations open={open} vetting={vetting} audience={audience} openSettings={() => { setSettingsEngine('safety'); setTab('Configuration'); }}/>
    : tab === 'Clinical' ? <Clinical open={open} vetting={vetting}/> : tab === 'Catalogue' ? <Catalogue/> : tab === 'Growth' ? <Growth/>
    : tab === 'Finance' ? <Finance/> : tab === 'Compliance' ? <Compliance/> : tab === 'Governance' ? <GovernanceReadiness/>
     : <Configuration engine={settingsEngine} onEngine={setSettingsEngine}/>;
@@ -124,7 +125,7 @@ function Overview({ vetting }: { vetting: VettingState }) {
   <OfficeNote icon={<Gauge aria-hidden="true"/>}>Reporting against the plan is the point of this screen. A console that only shows today's numbers cannot tell an investor or a board whether the round is on track.</OfficeNote>
  </div>;
 }
-function Operations({ open, vetting, openSettings }: { open: (s: string) => void; vetting: VettingState; openSettings: () => void }) {
+function Operations({ open, vetting, openSettings, audience }: { open: (s: string) => void; vetting: VettingState; openSettings: () => void; audience: RoleId }) {
  const stopped = blocking(vetting.subjects);
  const tower = controlTowerCounts();
  return <div className="oi-screen">
@@ -136,7 +137,14 @@ function Operations({ open, vetting, openSettings }: { open: (s: string) => void
    <Kpi label="Nurses blocked" value={String(blocking(vetting.subjects, 'nurse'))} note="Not offered on the board below, with the reason shown"/>
    <Kpi label="Open incidents" value={String(tower.incidents)} note={`${tower.critical} critical · SLA acknowledged within ${acknowledgeWithinMinutes()} minutes`} flagged={tower.critical > 0}/>
   </div>
-  <DispatchBoard subjects={vetting.subjects} heading={false}/>
+  {/* The audience is handed down even though the overlay will not draw for this one, and that is the
+      point rather than an oversight: the gate in features/Dispatch.tsx reads the desk queue's own
+      callers and asks the register which role this subject holds. The back office's subject is an
+      admin, the route admits an operator, so the gate refuses — and it refuses for the reason the
+      contract gives, not because this call site forgot to ask. If the route's callers ever widen to
+      include an admin, this board starts drawing the overlay with no edit here, which is the honest
+      consequence of that contract change rather than a silent leak. */}
+  <DispatchBoard subjects={vetting.subjects} heading={false} audience={audience}/>
   <OfficeSection title="Open incidents"><IncidentBoard open={open}/></OfficeSection>
   {/* The timings the desk works to are changed on the Configuration tab, with every other engine's settings,
       so there is one place to change them and one history. The way there stays here, under the board and

@@ -3,8 +3,9 @@ import { MINUTE, deskRoles, fieldSafety, refusal, serviceMinutes, type Refusal, 
 import { acknowledgeOverdue, checkIn, close, completeVisit, extend, silenceOverdue, startTimer, tick, type Timer } from '../../../../packages/engines/src/safety/domain/checkins.ts';
 import { acknowledge, isSharing, openPanicFor, positionFor, raisePanic, receivePosition, resolve, sweep, type DeskActor, type Panic, type Position } from '../../../../packages/engines/src/safety/domain/panics.ts';
 import { deskQueue, type DeskItem } from '../../../../packages/engines/src/safety/domain/desk.ts';
-import { nurseById, rosterNurses } from './roster';
-import { panicWindowNow, safetySettingsNow } from './settings';
+import { zoneOverlay, proportionOf, countsSentence, kindsSentence, nothingOpenSentence, overlayCounts, totalsSentence, type ZoneOpen } from '../../../../packages/engines/src/safety/domain/zone-overlay.ts';
+import { nurseById, rosterNurses, rosteredIn } from './roster';
+import { panicWindowNow, safetySettingsNow, zoneOverlaySettingsNow } from './settings';
 
 /* The nurse safety suite's one store in the web preview.
  *
@@ -159,6 +160,54 @@ export const deskRows = (s: SafetyState): DeskItem[] => deskQueue(s.timers, s.pa
  const nurse = ref === null ? undefined : nurseById(ref);
  return { nurse: nurse?.name ?? ref, suburb: nurse?.zoneName ?? '' };
 });
+
+/* ---- The dispatch map's field-safety overlay ---------------------------------------------------
+ *
+ * The same queue, grouped by suburb so the zones the dispatch board already draws can carry the
+ * counts that belong to them. Nothing here is stored and nothing is remembered between draws: each
+ * call recomputes from the state handed in, which is what field-safety.json#zoneOverlay's
+ * nothing-is-kept means, and what stops the map ever disagreeing with the desk — both are arithmetic
+ * on the same timers and panics.
+ *
+ * The floor is read on the draw rather than kept on a figure, for the same reason: there is no live
+ * proportion to move under a reader, so a change on the Configuration tab reaches the next draw and
+ * nothing else. It governs the proportion alone. The counts are drawn whole whatever it is set to,
+ * because an open panic in a suburb with one nurse on the roster is the incident the operator most
+ * needs to see, and a suppression rule that hid it would be protecting a suburb's reputation instead
+ * of a person. */
+export type ZoneRow = ZoneOpen & { readonly counts: string; readonly kinds: string; readonly proportion: string; readonly proportionDrawn: boolean };
+
+/** One suburb's overlay row: the counts, the contract's own sentences, and the proportion or why there is none. */
+export function zoneRows(s: SafetyState): ZoneRow[] {
+ const floor = zoneOverlaySettingsNow().minimumNurses;
+ return zoneOverlay(deskRows(s), rosteredIn).map(zone => {
+  const proportion = proportionOf(zone, floor);
+  return {
+   ...zone,
+   counts: countsSentence(zone),
+   kinds: kindsSentence(zone),
+   proportion: proportion.sentence,
+   proportionDrawn: proportion.drawn
+  };
+ });
+}
+
+/** The two figures the overlay's heading carries, counted off the rows. */
+export const zoneTotals = (rows: readonly ZoneOpen[]) => overlayCounts(rows);
+
+/** The heading's own line, in the contract's words: how many open across how many suburbs. */
+export const zoneTotalsSentence = (rows: readonly ZoneOpen[]) => totalsSentence(rows);
+
+/** What the overlay says when nothing anywhere is open. */
+export const nothingOpen = () => nothingOpenSentence();
+
+/* The overlay's own words, read from the contract rather than typed on the screen: its heading, what
+   it counts, and the sentence for a board drawn for an audience the desk queue does not admit. The
+   floor's label and help are asked of lib/settings.ts rather than reached for in the contract's items
+   list here, because that file is the one place a screen reads a setting from — the number in force and
+   the explanation beside it come from the same reader, so they cannot be two documents. */
+export const zoneOverlayWords = fieldSafety.zoneOverlay;
+export { zoneFloorWords } from './settings';
 export const pickUp = (row: DeskItem) => row.kind === 'panic'
  ? onPanic(row.reference, (p, now) => acknowledge(p, DESK, now))
  : onTimer(s => s.timers.find(t => t.checkinRef === row.reference), (t, now) => acknowledgeOverdue(t, DESK.ref, now));

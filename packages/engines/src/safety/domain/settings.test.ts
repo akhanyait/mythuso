@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { MINUTE, extensionReasons, serviceMinutes } from './rules.ts';
-import { changeSetting, defaultTimings, defaultsInForce, inForce, keyOf, panicWindowOf, safetyBlock, sentinelSettingsOf, sosSettingsOf, type SettingsInForce, type TimingId } from './settings.ts';
+import { changeSetting, defaultTimings, defaultsInForce, inForce, keyOf, panicWindowOf, safetyBlock, sentinelSettingsOf, sosSettingsOf, zoneOverlaySettingsOf, type SettingsInForce, type TimingId } from './settings.ts';
 import type { Bound, Change, ChangeRequest, Result } from '../../settings/shape.ts';
 import { extend, startTimer } from './checkins.ts';
 import { raisePanic } from './panics.ts';
@@ -45,7 +45,23 @@ const withBounds = (key: string, lowest: number, highest: number, run: () => voi
 
 test('the defaults are the contract’s, each inside its own bounds, and each setting is the timing its key names', () => {
  assert.deepEqual(inForce([]), defaultsInForce);
- assert.deepEqual(safetyBlock.items.map(s => s.key), ['grace', 'panic-window', 'extension-steps', 'extension-ceiling', 'stale-panic-window-uses-window-in-force', 'settings-changed-by', 'sos-area-window', 'next-of-kin-alert-window', 'next-of-kin-alert-retries', 'sentinel-baseline-window-days', 'sentinel-baseline-minimum-readings']);
+ assert.deepEqual(safetyBlock.items.map(s => s.key), ['grace', 'panic-window', 'extension-steps', 'extension-ceiling', 'stale-panic-window-uses-window-in-force', 'settings-changed-by', 'sos-area-window', 'next-of-kin-alert-window', 'next-of-kin-alert-retries', 'sentinel-baseline-window-days', 'sentinel-baseline-minimum-readings', 'zone-share-minimum-nurses']);
+ /* Wave 6 added the one the dispatch map's field-safety overlay draws a proportion under. It is not a timing
+    a visit or a panic is handed, so it is held to what zoneOverlaySettingsOf reads rather than to a timing
+    key. It also waits on no clinical review, and deliberately so: nothing about it is clinical and it decides
+    nothing about a patient — it is k-anonymity over a roster count. What it does decide is safety-relevant,
+    which is why the floor governs the proportion alone and never a count of what is open. */
+ const zoneOverlay = zoneOverlaySettingsOf([]);
+ assert.equal(zoneOverlay.minimumNurses, safetyBlock.items.find(s => s.key === 'zone-share-minimum-nurses')!.default.value);
+ assert.equal(safetyBlock.items.find(s => s.key === 'zone-share-minimum-nurses')!.reviewRequired, undefined, 'zone-share-minimum-nurses waits on no clinical review');
+ assert.ok(!Object.hasOwn(defaultTimings, 'zone-share-minimum-nurses'), 'the overlay floor is not a timing a timer or a panic is handed');
+ const floorItem = safetyBlock.items.find(s => s.key === 'zone-share-minimum-nurses')!;
+ assert.equal(floorItem.type, 'count', 'it is a count of nurses, not minutes');
+ assert.equal(floorItem.unit, 'nurses');
+ /* The floor is k-anonymity, and its own bounds are what make it so: three is the smallest group a
+    proportion can be drawn over without naming somebody. Asserted against the contract's bound rather
+    than against a number typed here, so a bound moved down moves this with it and fails loudly. */
+ assert.ok(bounds('zone-share-minimum-nurses').lowest.value >= 3, 'no bound may let a proportion be drawn over fewer than three nurses');
  /* Wave 5 added the two a Sentinel baseline is opened under. They wait on a clinical review, and are held to what
     sentinelSettingsOf reads rather than to a timing key. */
  const sentinel = sentinelSettingsOf([]);

@@ -385,9 +385,9 @@ export default function StaffWorkspace({ role, audience, legacy = false }: { rol
     <div className="cl-chapter" key={section}>
     {legacy
      ? <><Suspense fallback={null}><LegacyNotice surface="control-tower" section={section}/></Suspense>
-        <ReadOnly>{renderSection(role, section, setModal, home, go)}</ReadOnly></>
+        <ReadOnly>{renderSection(role, section, setModal, home, go, audience)}</ReadOnly></>
      : section === MORE_HUB ? <MoreHub role={role} groups={groups} skip={tabs.map(tab => tab.id)} go={go} destinations={destinations} leave={leave}/>
-     : renderSection(role, section, setModal, home, go)}
+     : renderSection(role, section, setModal, home, go, audience)}
     </div>
    </main>
    <footer className="app-footer"><span>© 2026 MyThuso · {role} workspace</span><span>{t('shell.tagline', 'en-ZA')}</span></footer>
@@ -459,7 +459,11 @@ const OnDeck = ({ role, children }: { role: StaffRole; children: ReactNode }) =>
 
 /* `go` as well as `open`: a board's "More tools" link navigates to a destination where the role has
    one, and opens a dialog only where it does not. */
-function renderSection(role: StaffRole, section: string, open: (m: string) => void, home: () => void, go: (id: string) => void) {
+/* `audience` is the role the door opened, carried down only as far as it is needed: the dispatch board
+   asks it to decide whether the field-safety overlay may be drawn, because that overlay is a grouping
+   of the desk queue and the desk queue's route admits the operator alone. The workspace `role` is what
+   is being looked at; the audience is who is looking. */
+function renderSection(role: StaffRole, section: string, open: (m: string) => void, home: () => void, go: (id: string) => void, audience: RoleId) {
  const head = <SectionHead role={role} section={section}/>;
  if (role === 'Nurse') {
   /* The three closing panels side by side, as the export lays them out (S2): triage, home guidance, safeguarding. */
@@ -510,7 +514,7 @@ function renderSection(role: StaffRole, section: string, open: (m: string) => vo
   if (section === 'Quality') return <QualityBoard open={open}/>;
   if (section === 'Audit exports') return <AuditExportDesk/>;
  }
- return <StaffSection role={role} section={section} open={open} go={go}/>;
+ return <StaffSection role={role} section={section} open={open} go={go} audience={audience}/>;
 }
 
 /* ---- The sections this shell draws itself -------------------------------------------------------
@@ -679,7 +683,12 @@ const deckHead: Partial<Record<StaffRole, { eyebrow: string; headline: DeckHeadl
            note: 'Every figure is counted off the rows below' }
 };
 
-function StaffSection({ role, section, open, go }: { role: StaffRole; section: string; open: (m: string) => void; go: (id: string) => void }) {
+/* `audience` is carried here for one reason and handed straight down: the dispatch board's
+   field-safety overlay asks it whether the reader is an operator, because the overlay is a grouping
+   of the desk queue and that queue's route admits the operator alone. It is not read in this
+   component — passing it through is the whole of its job, and the workspace `role` beside it is what
+   is being looked at rather than who is looking. */
+function StaffSection({ role, section, open, go, audience }: { role: StaffRole; section: string; open: (m: string) => void; go: (id: string) => void; audience: RoleId }) {
  const board = BOARDS.includes(section);
  const workbench = WORKBENCH[role] === section;
  /* The nurse's strip counts how many of her visits are signed off, which is the queue's state and
@@ -721,7 +730,7 @@ function StaffSection({ role, section, open, go }: { role: StaffRole; section: s
               chip={figure.chip} flagged={figure.flagged} lead={i === 0}/>)}</Metrics>)}
   {/* The nurse's counted tiles and the kit's readiness ring under her deck (S2, 30 September 2026). */}
   {role === 'Nurse' && section === 'Schedule' && <Suspense fallback={null}><NurseDayTiles go={go} nurseId={workspaces.Nurse.subjectId}/></Suspense>}
-  {workbench ? <ClinicalWorkbench role={role as 'Nurse' | 'Doctor' | 'Partner'} worklist={sectionBody(section, open)}/> : sectionBody(section, open)}
+  {workbench ? <ClinicalWorkbench role={role as 'Nurse' | 'Doctor' | 'Partner'} worklist={sectionBody(section, open, audience)}/> : sectionBody(section, open, audience)}
   {/* Secondary by construction. These were two cards with the same shield on them, the same white
       surface and the same shadow as the queue above — so a screen whose entire purpose is the queue
       ended on two equally-weighted boxes. A list of links is what they are. */}
@@ -737,10 +746,13 @@ function StaffSection({ role, section, open, go }: { role: StaffRole; section: s
 
 /* The board itself, separated from the shell's furniture so that one line above can either draw it
    or hand it to the workbench to draw. */
-function sectionBody(section: string, open: (m: string) => void) {
+function sectionBody(section: string, open: (m: string) => void, audience: RoleId) {
  return section === 'Schedule' ? <NurseSchedule open={open}/>
   : section === 'Review queue' ? <><ReviewQueue open={open}/><ReviewInbox/><SettingReviews/></>
-   : section === 'Dispatch' ? <><DispatchBoard/><ShiftBoard/>{ride('desk')}</>
+   /* The audience is handed to the board rather than decided here: it is what the field-safety overlay's
+      gate reads, and the workspace being the Control Tower's is not the same fact as the reader being an
+      operator. A legacy address can open this workspace for an audience that is not one. */
+   : section === 'Dispatch' ? <><DispatchBoard audience={audience}/><ShiftBoard/>{ride('desk')}</>
     : section === 'Incidents' ? <><SafetyDesk/><SosDesk/><Suspense fallback={null}><SafeguardingDesk/><SafeguardingReport workspace="control-tower"/></Suspense><ConcernBoard/><IncidentBoard open={open} notice={false}/><HeldCashPayments/><Suspense fallback={null}><DeviceRegistryDesk/></Suspense></>
      : section === 'Orders' || section === 'Collections' || section === 'Results' ? <FulfilmentQueue section={section} open={open}/>
       /* The last fallback. Protocols and Quality used to land here — a card whose only control

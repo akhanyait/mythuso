@@ -99,7 +99,7 @@ export default function AdminWorkspace({ audience, legacy = false }: { audience:
    <DemoBar note={t('shell.previewBadge', 'en-ZA')}/>
    <main id="main" tabIndex={-1}>
     {legacy && <Suspense fallback={null}><LegacyNotice surface="back-office" section={tab}/></Suspense>}
-    <AdminConsole open={setModal} tab={tab} setTab={setTab} readOnly={legacy}/>
+    <AdminConsole open={setModal} tab={tab} setTab={setTab} readOnly={legacy} audience={audience}/>
    </main>
    <footer className="app-footer"><span>© 2026 MyThuso · Back office</span><span>{t('shell.tagline', 'en-ZA')}</span></footer>
    {/* The assistant in the back office, for the audience the door chose — the same orb, the same

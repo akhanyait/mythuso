@@ -7,13 +7,17 @@ import { VettingApplication } from './Vetting';
 import { can, type VettingSubject } from '../lib/vetting';
 import { seededSubjects } from '../lib/vetting-fixtures';
 import { nurseById, placeOf, rosterNurses } from '../lib/roster';
+import { subjectById } from '../lib/vetting-fixtures';
 import { etaFromRoute, noEta, provinceFor, routeUnavailable, straightLineEta,
  type Eta, type LatLng, type RouteResult } from '../../../../packages/geo/index.ts';
 import { LiveMap, type MapMarker } from '../map/LiveMap';
 import { coverage, mapWindow, marks, suburbPin, zones } from '../lib/geography';
 import careApi from '../../../../packages/catalog/apis/care.json' with { type: 'json' };
+import safetyApi from '../../../../packages/catalog/apis/safety.json' with { type: 'json' };
 import scheduling from '../../../../packages/catalog/scheduling.json' with { type: 'json' };
 import { circuitsFor, shiftsFor } from '../../../../packages/engines/src/care/domain/reads.ts';
+import { nothingOpen, useFieldSafety, zoneFloorWords, zoneOverlayWords, zoneRows, zoneTotalsSentence } from '../lib/field-safety';
+import { roleOf, type RoleId } from '../lib/roles';
 type Job = { id: string; service: string; area: string; window: string; at: LatLng; priority: 'Routine' | 'Same day' | 'Urgent' };
 /* A nurse who is not sharing a position has none. That is a real state — a phone in a bag, location
    turned off between visits — and the board has to be able to say so rather than hold a number that
@@ -108,7 +112,84 @@ const basisLine = (eta: Eta) =>
    page and heads itself, and inside the back office's Operations tab, where the page is already
    headed "Operations". Two h1 elements on one document is not a heading, it is a reader guessing
    which one is the page — so the console asks for the live count line without the title over it. */
-export function DispatchBoard({ subjects = seededSubjects, heading = true }: { subjects?: VettingSubject[]; heading?: boolean } = {}) {
+/* ── The field-safety overlay ─────────────────────────────────────────────────────────────────────
+ *
+ * What is open in each suburb right now, beside the map the controller is already dispatching
+ * against. It is a grouping of the desk queue's own rows — packages/engines/src/safety/domain/
+ * zone-overlay.ts — so the map cannot say two nurses are overdue while the desk on the Incidents
+ * section says one, and nothing here stores a figure between draws.
+ *
+ * WHY IT IS A LIST AND NOT A COLOUR ON THE ZONES. field-safety.json#zoneOverlay's
+ * a-zone-is-not-a-verdict: a shaded suburb is a grade whatever the legend says, and a controller
+ * reads a red circle as a verdict on a place before she reads any words beside it. Naming the suburb
+ * and the count is also the only form that holds every suburb — Tembisa and Alexandra are on the
+ * roster and have no circle in geography.json, so a nurse overdue in either would be missing from a
+ * colouring and is present here.
+ *
+ * WHO SEES IT. The desk queue's route admits the operator alone (apis/safety.json
+ * GET /v1/safety/desk-queue@1), and this board is rendered for three audiences, so the overlay is
+ * drawn only for an audience the route admits. The default is not drawn rather than drawn: a board
+ * that gained an audience later would gain the overlay silently, and the failure that produces is
+ * the back office reading a nurse's panic on a funding screen.
+ *
+ * The gate is derived, not typed. It reads the route's own callers and asks the vetting register
+ * which role the audience's subject holds — lib/roles.ts gives each role its subjectId, and
+ * vetting-fixtures gives each subject its roleId. So widening the route's callers widens the overlay
+ * in the same edit, and no string 'control-tower' here can drift from the contract that decides it.
+ * An audience with no subject on the register has no role to ask about and sees nothing, which is the
+ * right answer for an audience nobody has vetted. */
+const deskQueueCallers: ReadonlySet<string> = new Set(
+ (safetyApi.routes.find(r => r.method === 'GET' && r.path === '/v1/safety/desk-queue' && !r.withdrawn)?.callers ?? []) as readonly string[]
+);
+function maySeeFieldSafety(audience: RoleId | undefined): boolean {
+ if (!audience) return false;
+ const subjectId = roleOf(audience).subjectId;
+ if (!subjectId) return false;
+ const roleId = subjectById(subjectId)?.roleId;
+ return roleId !== undefined && deskQueueCallers.has(roleId);
+}
+
+function ZoneFieldSafety() {
+ const rows = zoneRows(useFieldSafety());
+ const words = zoneOverlayWords;
+ const floorWords = zoneFloorWords();
+ /* A quiet board is the ordinary state and says so in the contract's words, rather than rendering an
+    empty list that reads as a panel that failed to load. */
+ if (!rows.length) return <div className="zone-safety" role="status">
+  <h3 className="oi-subtitle">{words.heading}</h3>
+  <p className="oi-help">{words.countsOf} · {nothingOpen()}</p>
+ </div>;
+ return <div className="zone-safety">
+  <div className="zone-safety__head">
+   <h3 className="oi-subtitle">{words.heading}</h3>
+   <p className="oi-help" role="status">{words.countsOf} · {zoneTotalsSentence(rows)}</p>
+  </div>
+  <ul className="zone-safety__rows">
+   {rows.map(row => <li key={row.zone} className={`zone-safety__row${row.panics ? ' has-panic' : ''}`}>
+    {/* An open panic is the one thing on this panel that is happening to a person now, and it leads the
+        row's own words rather than sitting in a colour: a controller scanning for it should find it in
+        the sentence, not in a swatch she has to look up. The has-panic modifier tints the counts too,
+        but only alongside the sentence that already says "1 panic" — colour reinforces the words, it
+        never carries them alone, and it never touches a whole suburb's circle. */}
+    <span className="zone-safety__zone">{row.zone}</span>
+    <span className="zone-safety__counts">{row.counts}</span>
+    <span className="zone-safety__kinds">{row.kinds}</span>
+    {/* The proportion is two integers, never a percentage, and only where the roster is large enough
+        for it to be an aggregate at all. Below the floor the contract's own sentence says how many
+        nurses there are and why that is too few — a gap is a figure a reader fills in herself, and
+        she would fill it with the number she feared. */}
+    <span className={`zone-safety__proportion${row.proportionDrawn ? '' : ' is-suppressed'}`}>{row.proportion}</span>
+   </li>)}
+  </ul>
+  {/* The floor's own label and help, then the contract's sentence about what it governs and what it does
+      not. Nothing here is typed: both come from the contract, so the note under the list and the setting
+      the Configuration tab renders are one document, and the reason a count is never withheld is stated
+      once in the words it was written in rather than paraphrased on a screen. */}
+  <p className="zone-safety__floor">{floorWords.label}: {floorWords.help} {words.whyCountsAreNeverFloored}</p>
+ </div>;
+}
+
+export function DispatchBoard({ subjects = seededSubjects, heading = true, audience }: { subjects?: VettingSubject[]; heading?: boolean; /** Whose screen this board is on. The overlay is drawn for the Control Tower alone, and never by default. */ audience?: RoleId } = {}) {
  const [selected, setSelected] = useState<string>(initialJobs[0].id);
  const [assigned, setAssigned] = useState<Record<string, string>>({});
  /* Assigning used to change a word on a row and nothing else: the visit stayed in "Awaiting
@@ -176,6 +257,10 @@ export function DispatchBoard({ subjects = seededSubjects, heading = true }: { s
     <CardHeader><CardTitle>{coverage.city}</CardTitle><CardDescription>{province}</CardDescription></CardHeader>
     <CardContent className="oi-card-body">
      <LiveMap markers={markers} summary={summary} height={340} surface="staff"/>
+     {/* The field-safety overlay, drawn only for an audience the desk queue's route admits — the
+         operator — and never by default. See maySeeFieldSafety above for why the gate is derived from
+         the contract rather than typed. A back office reading this board sees no nurse's panic. */}
+     {maySeeFieldSafety(audience) && <ZoneFieldSafety/>}
      {/* The key is the contract's list of marks, not a second list typed beside the map. The two
          used to be written separately, and when the pins started reading the contract the key went
          on describing colours that were no longer on the board. */}

@@ -114,6 +114,20 @@ export function sentinelSettingsOf(history: readonly Change[]): SentinelSettings
  });
 }
 
+/** The dispatch map's field-safety overlay: how many nurses must work a suburb before a proportion of
+    them may be drawn over. Read on every draw rather than kept, because unlike a timer or a baseline
+    there is nothing to keep it *on* — the overlay stores nothing between draws, so a change reaches
+    the next one at once and there is no live figure it could move under a reader. The floor governs
+    the proportion alone: the counts are drawn whole whatever this is. */
+export type ZoneOverlaySettings = { readonly settingsVersion: number; readonly minimumNurses: number };
+export function zoneOverlaySettingsOf(history: readonly Change[]): ZoneOverlaySettings {
+ const snapshot = snapshotOf(safetyBlock, history);
+ return Object.freeze({
+  settingsVersion: snapshot.settingsVersion,
+  minimumNurses: snapshot.values['zone-share-minimum-nurses'] as number
+ });
+}
+
 export function changeSetting(history: readonly Change[], request: ChangeRequest, now: number): Result<{ readonly change: Change; readonly inForce: SettingsInForce }> {
  const result = proposeChange(safetySettings, history, request, now);
  if (!result.ok) return result;

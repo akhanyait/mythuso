@@ -84,6 +84,12 @@ export const rosterNurses: RosterNurse[] = (contract.nurses as RosterRow[]).map(
 
 export const nurseById = (id: string) => rosterNurses.find(nurse => nurse.id === id);
 export const nurseByName = (name: string) => rosterNurses.find(nurse => nurse.name === name);
+/* How many nurses work a suburb, by its name as the roster writes it. A count of people, never a
+   person: the dispatch map's field-safety overlay asks it as the denominator of a proportion, and the
+   floor in field-safety.json#zoneOverlay is k-anonymity — a suburb whose roster is smaller than the
+   floor is drawn with its counts and no proportion, because one of one nurse with something open is a
+   woman's afternoon, not a statistic about a place. */
+export const rosteredIn = (zoneName: string) => rosterNurses.filter(nurse => nurse.zoneName === zoneName).length;
 /** The gate's answer, asked before a name is offered rather than after. */
 export const mayTakeAVisit = (nurse: RosterNurse): Decision => can(nurse.subject, 'take-visit');
 

@@ -133,7 +133,7 @@ function FieldAlert() {
 }
 
 export function DispatchCategory() {
-  const { place, open, vetting, go, setSettingsEngine } = usePortal();
+  const { audience, place, open, vetting, go, setSettingsEngine } = usePortal();
   /* Counted off the same register the board gates on, never typed: an operator wants to know how many
     names cannot be used today, so the count is of parties, not of checks. */
   const blocking = (roleId?: string) =>
@@ -199,7 +199,11 @@ export function DispatchCategory() {
         ]}
       />
       <ProvinceDemo />
-      <DispatchBoard subjects={vetting.subjects} />
+      {/* The audience decides whether the field-safety overlay is drawn, and this portal serves two of
+          them: the Control Tower, whose subject is an operator the desk queue's route admits, and the
+          back office, whose is an admin it does not. Handing the audience down is what keeps a nurse's
+          open panic off the funding view. */}
+      <DispatchBoard subjects={vetting.subjects} audience={audience} />
       <ShiftBoard />
       <Suspense fallback={null}>
         <Movement of="desk" />

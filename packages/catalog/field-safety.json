@@ -274,10 +274,35 @@
      "statement": "A Sentinel baseline is never shown as formed from fewer than three readings, and never asks for more than thirty.",
      "forbids": [0, 2, 31]
     }
+   },
+   {
+    "key": "zone-share-minimum-nurses",
+    "label": "Nurses working a suburb before a proportion of them may be drawn",
+    "help": "How many nurses must be rostered to a suburb before the dispatch map may draw the proportion of them with something open. Below it the map draws the counts and says why it draws no proportion.",
+    "owner": "safety",
+    "type": "count",
+    "unit": "nurses",
+    "positive": true,
+    "default": {
+     "value": 5,
+     "decidedBy": null,
+     "proposedBy": "Safety lead (Wave 6)",
+     "proposedBecause": "Five is the smallest group a proportion can be drawn over without naming somebody. This is k-anonymity rather than a matter of taste: the roster has nine nurses across six suburbs — Soweto three, Randburg two, and Tembisa, Rosebank, Melville and Alexandra one each — so in Soweto a proportion of one third is one of three named people, and in Melville a proportion is one person described as a percentage of herself. A figure like that is not an aggregate at all; it is a nurse's afternoon with the serial numbers filed off, and it lands on a map a controller reads while deciding where to send the next visit. Five is also the number below which the count itself is already the whole answer, so nothing is lost by drawing the count instead. Nobody has decided it; it is a proposal until Operations sets it."
+    },
+    "bounds": {
+     "lowest": { "value": 3, "decidedBy": null, "proposedBy": "Safety lead (Wave 6)", "proposedBecause": "Three is the floor beneath which the word proportion stops being true of anything: with two nurses a proportion is one of two people, and with one it is a single nurse's afternoon drawn as a statistic. No value below three may be set, so no setting can turn this overlay into a way of naming an individual on a map." },
+     "highest": { "value": 20, "decidedBy": null, "proposedBy": "Safety lead (Wave 6)", "proposedBecause": "Twenty nurses in one suburb is beyond anything this roster could field — its largest suburb holds three — so a floor that high suppresses every proportion on the board and leaves the counts alone, which is what a floor of twenty would honestly mean. It is allowed as a way of drawing no proportion anywhere, but it should be set by somebody saying that out loud rather than reached by drift." }
+    },
+    "changedBy": { "fromSetting": "settings-changed-by" },
+    "appliesTo": "A change applies the next time the overlay is drawn. Nothing is kept between draws, so there is no earlier proportion to preserve and no live figure that could be changed under a reader.",
+    "guardrail": {
+     "statement": "No proportion is ever drawn over fewer than three nurses, and the count of open items is drawn whatever this is set to.",
+     "forbids": [0, 2, 21]
+    }
    }
   ],
   "defaults": {
-   "version": 5,
+   "version": 6,
    "changelog": [
     {
      "version": 1,
@@ -331,6 +356,15 @@
       { "setting": "sentinel-baseline-minimum-readings", "from": null, "to": 5 }
      ],
      "why": "Sentinel's baselines came onto the engine. How far back a baseline counts and how many readings it needs before it is shown as formed are open questions nobody clinical has decided, so they are settings with proposed defaults that wait on a clinical review, under the founder's instruction that open questions become admin settings."
+    },
+    {
+     "version": 6,
+     "on": "2026-10-01",
+     "by": "Safety lead (Wave 6), proposed and not decided",
+     "changed": [
+      { "setting": "zone-share-minimum-nurses", "from": null, "to": 5 }
+     ],
+     "why": "The dispatch map's field-safety overlay came onto the engine: what is open in each suburb right now, drawn on the zones a controller already dispatches against. The count of open items needs no setting and has none — it is the desk queue's own rows grouped by suburb, drawn whole, because an open panic in a suburb with one nurse on the roster is exactly the incident the operator most needs to see and a floor that hid it would be a safety feature protecting a suburb's reputation instead of a person. What needed a number is the one figure on that overlay with a denominator, the proportion of a suburb's nurses with something open, because a proportion makes a claim about a place and that claim has to be over a group large enough not to be a claim about a person. How large is an open question nobody has decided, so it is a setting with a proposed default under the founder's instruction that open questions become admin settings. It waits on no clinical review: nothing about it is clinical, and it decides nothing about a patient. What it does sit beside is geography.json's no-history-drawn and this contract's own nothing-is-kept — the overlay draws no score, no trend and no ranking, because a ranking of suburbs would need a record of what happened in each, and there is no reviewer in this repository qualified to make the call a score would make about whether a patient is seen at home or on a screen."
     }
    ]
   }
@@ -422,6 +456,57 @@
    { "field": "address", "why": "geography.json's address-is-not-a-pin, read at the desk: a suburb is enough to send somebody, and the nurse's position is shown during a panic and nowhere else." }
   ],
   "order": "A panic nobody has picked up, then a timer nobody has picked up, then everything the desk already has. Oldest first inside each."
+ },
+
+ "_zoneOverlayNote": "The dispatch map's field-safety overlay: what is open in each suburb right now, drawn on the zones a controller is already dispatching against. It exists because the desk queue and the dispatch board are two pictures of one afternoon — an operator choosing which nurse to send to Soweto while a panic is open in Soweto was reading two screens and reconciling them by hand. It is a grouping of GET /v1/safety/desk-queue@1's own rows by suburb, and nothing else: no route of its own, no store, no figure that outlives the render that drew it.",
+ "zoneOverlay": {
+  "heading": "Field safety by suburb",
+  "countsOf": "open panics and overdue nurses, in each suburb, now",
+  "totalSentence": "{open} open across {zones} suburb{zonePlural}",
+  "countSentence": "{open} open in {zone}",
+  "kindsSentence": "{panics} panic{panicPlural} · {overdues} past check-out",
+  "noZoneSentence": "No nurse is past check-out and nobody has pressed panic anywhere on this board.",
+  "_listNotAColourNote": "The overlay is a list of suburbs with their counts, drawn beside the map, and it is never a colour on the map's zone circles. a-zone-is-not-a-verdict below is the reason: a shaded suburb is a grade whatever the legend says, and a controller reads a red circle as a verdict on a place before she reads the words beside it. Naming the suburb and the count is also what lets the list hold a suburb the map has no circle for — Tembisa and Alexandra are on the roster and are not zones in geography.json, so a nurse overdue in either would be missing from a colouring and present in a list. The list is the honest one, and it costs the patient's first view nothing: it is drawn from features/Dispatch.tsx, in the staff chunk, and touches neither LiveMap nor geography.json.",
+  "whyCountsAreNeverFloored": "The floor below governs the proportion and never the counts. An open panic in a suburb with one nurse on the roster is exactly the incident the operator most needs to see, and a suppression rule that hid it would be a safety feature protecting a suburb's reputation instead of a person. The counts are drawn whole, and they are the operator's own desk queue grouped by suburb, which she is already entitled to read row by row. The floor's job is the different one of stopping three data points becoming a characterisation of a place.",
+  "share": {
+   "label": "Proportion of nurses with something open",
+   "help": "The open items in a suburb as a proportion of the nurses rostered to it. It is the only figure on this overlay with a denominator, and the only one the floor governs.",
+   "sentence": "{open} of {rostered} nurses",
+   "suppressedSentence": "{rostered} nurse{nursePlural} — too few to draw a proportion over",
+   "whyADenominator": "A count of open items is a fact about this afternoon. A proportion is a claim about a place, and a claim about a place needs a group large enough that it is not a claim about a person: one of nine nurses with something open and one of one nurse with something open are the same count and very different statements, and the second is a woman's afternoon drawn as a statistic. The floor below is k-anonymity, and it governs the proportion alone — the counts are drawn whole whatever it is set to.",
+   "_whyTheSuppressedSentenceIsShortNote": "It is drawn once per suburb on a board whose ordinary state is four suburbs with one nurse each, so it is repeated four times a draw. It says the roster size and that it is too few, and the floor's own number and reasoning sit once in the note under the list rather than in every row. A sentence repeated per row that carried the whole argument would be a wall of text an operator stops reading, and the argument read once is the one that lands."
+  },
+  "drawnFor": {
+   "callersFrom": "GET /v1/safety/desk-queue@1",
+   "statement": "Only the audience that route admits — the operator — sees open panics and overdue nurses on the dispatch map. The board is rendered in three places: the Control Tower's own workspace, the back office's Operations tab, and the merged portal, whose audience is whoever opened it. The back office is not a caller of the desk queue and never gets the overlay; the portal gets it when and only when its audience is the Control Tower, which is the same condition the portal's own field alert already draws the queue under.",
+   "elseSentence": "The field-safety overlay is not drawn here. It is a grouping of the desk queue, and the desk queue is the operator's."
+  },
+  "rules": [
+   {
+    "id": "no-zone-risk-score",
+    "statement": "This overlay computes no score, no rate over time, no trend and no ranking of suburbs. It counts what is open now, and draws a proportion of a suburb's nurses where the roster is large enough for one to be an aggregate.",
+    "why": "geography.json's no-history-drawn says no map here draws where anybody has been, and a score is that rule broken with arithmetic instead of pixels: to rank a suburb you must keep what happened in it, and keeping it is the tracking the whole safety suite is arranged against. There is also no reviewer for the claim a score would make. A number on a map that says a suburb is dangerous decides whether a patient is seen at home or on a screen, and nothing in this repository is qualified to make that call — ThusoIQ Master v3.5's readiness review marks nurse field safety RED and its next step names a buddy/no-go policy that does not exist."
+   },
+   {
+    "id": "nothing-is-kept",
+    "statement": "The counts are worked out from the live desk queue every time the overlay is drawn and are never stored, cached or compared with an earlier draw. A suburb has no field-safety record.",
+    "why": "A figure that survives its render becomes a history whatever it was called, and the first version of this overlay that remembered yesterday's count would be the product's first record of where trouble had been. Deriving it from the queue is also what stops it disagreeing: the queue is the arithmetic on the timers and panics, so the map cannot say two are open while the desk says one."
+   },
+   {
+    "id": "a-zone-is-not-a-verdict",
+    "statement": "No sentence here names a suburb as safe or unsafe, and no colour on this overlay is a grade. A suburb with something open is drawn as a suburb with something open.",
+    "why": "The words on a screen are what an operator repeats. 'Soweto is high risk' is a claim about a place and about the people in it, made by a count of three; 'two nurses are past check-out in Soweto' is a thing she can act on in the next minute. The second sentence is also the only one this product has the data for."
+   }
+  ],
+  "carries": ["zone", "panics", "overdues", "open", "rostered"],
+  "_carriesNote": "`rostered` is the denominator — how many nurses work the suburb, from packages/catalog/roster.json — and it is a count of people, never a person. It is named `rostered` rather than `nurses` on purpose: neverCarries below names the field `nurse`, and a substring check on the two would collide with the one word that is a count of them. The collision avoided is the point of the awkward name.",
+  "neverCarries": [
+   { "field": "nurse", "why": "The overlay says how many, in which suburb, and never who. Who is on the desk queue's own rows, where the operator picks an item up; a map that named a nurse would be a second copy of the queue with a person's name pinned to a suburb." },
+   { "field": "position", "why": "A zone's counts are drawn on the zone's own centre, from geography.json, which the board already draws. A panic's position is shown on its own row while its window is open and nowhere else — panics.ts drops the coordinate when sharing ends, and this overlay reads the queue, not the position." },
+   { "field": "service", "why": "The desk queue never carries one and neither does a grouping of it: what a visit was for is clinical, and a map reading 'two family-planning panics in Soweto' discloses it to everybody standing behind the desk." },
+   { "field": "score", "why": "no-zone-risk-score above. There is no score to carry." },
+   { "field": "history", "why": "nothing-is-kept above. Nothing is remembered from an earlier draw, so there is no history to carry." }
+  ]
  },
 
  "refusals": [

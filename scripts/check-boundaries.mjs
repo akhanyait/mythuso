@@ -22347,6 +22347,9 @@ console.log(
   ];
   /* Wave 4 added three for patient SOS and next of kin; they are held to what SOS needs in the Safety · patient SOS block below. */
   /* Wave 5 added the two a Sentinel baseline is opened under; they are held to what Sentinel needs of them in the Safety · Sentinel block. */
+  /* Wave 6 added the one the dispatch map's field-safety overlay draws a proportion under; it is held in
+     the Safety · zone overlay block below, where the important half of the check is that it governs the
+     proportion and nothing else — the count of open items has no setting and may never gain one. */
   const safetySettingKeys = [
     ...timingKeys,
     "stale-panic-window-uses-window-in-force",
@@ -22356,6 +22359,7 @@ console.log(
     "next-of-kin-alert-retries",
     "sentinel-baseline-window-days",
     "sentinel-baseline-minimum-readings",
+    "zone-share-minimum-nurses",
   ];
   const allSafetySettings = settingsBlock?.items ?? [];
   if (
@@ -29260,6 +29264,200 @@ console.log(
 
   console.log(
     `Safety · Sentinel and safeguarding: a consumer reading forms no baseline and raises no tier on the runtime; tiers stop at ${Math.max(...sentinelDoc.rungs.map((r) => r.rung))} and tier four is refused; every evaluation is not evaluated; ${sentinelScreens.length} screens and the domain type no threshold, stale interval, window or minimum; two events carry references and a rung and are heard by Core alone; ${safeguardingRoutes.length} safeguarding routes show nobody on the reported party's side the reporter; and ${sentinelDomain.groups.length * sentinelDomain.categories.length} reports the domain could record are open and not sent.`,
+  );
+}
+
+/* ==== Safety · the dispatch map's field-safety overlay (Wave 6) =======================================
+
+   Added with the overlay that groups the desk queue by suburb. Self-contained. Seven things the overlay
+   must never stop being, each asked of the code that decides it — the domain is imported and run, not
+   only read, so a refusal is checked by what the arithmetic answers:
+
+     1. It is a list, and it is a list because the roster has suburbs the map draws no circle for.
+     2. No row is a score, a trend or a ranking: the keys are the contract's `carries` and nothing else,
+        and the rows come back by name rather than by count.
+     3. None of the five fields `neverCarries` names appears on a row, by substring.
+     4. THE COUNT IS DRAWN WHATEVER THE FLOOR IS. A suburb below the floor with an open panic in it still
+        answers its counts and its panics; only the proportion is withheld. This is the check that matters
+        most, because the failure it catches is a safety feature hiding a panic.
+     5. The floor is a count of nurses, positive, bounded at three or above, and its guardrail forbids a
+        value below three — no setting may turn the overlay into a way of naming one nurse on a map.
+     6. Nothing is kept: the domain holds no module state, so a draw cannot become a history.
+     7. The audience is derived from the desk queue's own route and never typed, and no screen draws the
+        overlay's figures as a colour over a zone circle. */
+{
+  const overlayDoc = JSON.parse(read("packages/catalog/field-safety.json")).zoneOverlay;
+  const rosterDoc = JSON.parse(read("packages/catalog/roster.json"));
+  const geographyDoc = JSON.parse(read("packages/catalog/geography.json"));
+  const safetyApiDoc = JSON.parse(read("packages/catalog/apis/safety.json"));
+  const overlayDomainFile = "packages/engines/src/safety/domain/zone-overlay.ts";
+  const dispatchFile = "apps/web/src/features/Dispatch.tsx";
+  const overlayCss = "apps/web/src/surface/office-identity.css";
+  const zoneFail = (detail) => {
+    throw new Error(`Safety · zone overlay: ${detail}`);
+  };
+  for (const f of [overlayDomainFile, dispatchFile, overlayCss])
+    if (!existsSync(f)) zoneFail(`${f} is gone, so nothing holds the dispatch map's field-safety overlay to what it refuses.`);
+  const overlayDomain = await import("../packages/engines/src/safety/domain/zone-overlay.ts");
+  const overlaySource = read(overlayDomainFile);
+  const dispatchSource = read(dispatchFile);
+  const cssSource = read(overlayCss);
+
+  /* 1. The contract's own note names the suburbs the list is load-bearing for, and every suburb the roster
+        holds and geography.json draws no circle for has to be one of them. That such a suburb exists at all
+        is enforced above, by Care's coverage refusal, which fires first — so restating it here would be a
+        check that can never fire of its own. What is not held anywhere else is the prose: the note explains
+        the decision to draw a list rather than a colour by example, and prose naming suburbs is what goes
+        stale quietly when a roster changes, leaving a contract justifying a decision with examples that no
+        longer exist. No name-shape is guessed at here; the note is simply asked to mention each one. */
+  const rosteredSuburbs = [...new Set(rosterDoc.nurses.map((n) => n.zone))];
+  const drawnZones = new Set(geographyDoc.zones.map((z) => z.name));
+  const undrawn = rosteredSuburbs.filter((s) => !drawnZones.has(s));
+  const unnamed = undrawn.filter((s) => !overlayDoc._listNotAColourNote.includes(s));
+  if (unnamed.length)
+    zoneFail(
+      `${unnamed.join(" and ")} ${unnamed.length === 1 ? "is" : "are"} on the roster and drawn by no circle in packages/catalog/geography.json, and field-safety.json#zoneOverlay._listNotAColourNote does not name ${unnamed.length === 1 ? "it" : "them"}. That note is the reason the overlay is a list rather than a colour, and it justifies itself by the suburbs a colouring would drop — so one it does not mention is one the decision no longer accounts for.`,
+    );
+
+  /* 2 and 3. No score, no trend, no ranking, and none of the five fields neverCarries names. Both are asked
+        of a run of the domain rather than of its source, because the shape of a returned row is the fact. */
+  const queueRow = (kind, suburb, open = true) => ({ kind, suburb, open, reference: `${kind}-${suburb}` });
+  const rostered = (counts) => (zone) => counts[zone] ?? 0;
+  const rows = overlayDomain.zoneOverlay(
+    /* Three suburbs with three different counts, so all three orderings disagree: by name it is Alexandra,
+       Melville, Soweto; most-open-first it is Alexandra, Soweto, Melville; fewest-first it is Melville,
+       Soweto, Alexandra. Two suburbs, or a tie between them, cannot hold this — one of the two rankings then
+       shares the name order or leaves it ambiguous, and the check passes against a sort it should fail.
+       Randburg's one item is closed, so it contributes no suburb at all. */
+    [
+      queueRow("overdue", "Alexandra"), queueRow("panic", "Alexandra"), queueRow("overdue", "Alexandra"),
+      queueRow("panic", "Soweto"), queueRow("overdue", "Soweto"),
+      queueRow("panic", "Melville"),
+      queueRow("panic", "Randburg", false),
+    ],
+    rostered({ Alexandra: 1, Soweto: 3, Melville: 1, Randburg: 2 }),
+  );
+  if (rows.map((r) => r.zone).join(",") !== ["Alexandra", "Melville", "Soweto"].join(","))
+    zoneFail(
+      `zoneOverlay() returned ${rows.map((r) => r.zone).join(", ")}, which is not the suburbs by name. A sort on the counts is a ranking with the heading taken off: ${overlayDoc.rules.find((r) => r.id === "no-zone-risk-score").statement}`,
+    );
+  if (rows.map((r) => r.open).join(",") !== "3,1,2")
+    zoneFail(`zoneOverlay() counted ${rows.map((r) => `${r.zone} ${r.open}`).join(", ")}, and the queue handed in held three open in Alexandra, two in Soweto, one in Melville and a closed one in Randburg.`);
+  if (rows.length !== 3)
+    zoneFail(`the overlay returned ${rows.length} suburbs, so a closed row counted towards it or a suburb with something open was dropped. ${overlayDoc.countsOf}`);
+  for (const row of rows) {
+    const keys = Object.keys(row);
+    if (keys.join(",") !== overlayDoc.carries.join(","))
+      zoneFail(
+        `a zone row carries ${keys.join(", ")}, and the contract's carries is ${overlayDoc.carries.join(", ")}. ${overlayDoc._carriesNote}`,
+      );
+    for (const never of overlayDoc.neverCarries)
+      if (keys.some((k) => k.toLowerCase().includes(never.field.toLowerCase())))
+        zoneFail(`a zone row carries "${never.field}", which the contract never carries. ${never.why}`);
+  }
+
+  /* 4. THE COUNT IS DRAWN WHATEVER THE FLOOR IS. One nurse rostered, one panic open in her suburb: the
+        proportion is withheld and the panic is not. This is the invariant the whole setting rests on, so it
+        is asked at the floor's own default rather than at a number written here. */
+  const floorItem = JSON.parse(read("packages/catalog/field-safety.json")).settings.items.find(
+    (s) => s.key === "zone-share-minimum-nurses",
+  );
+  const floor = floorItem.default.value;
+  const oneNurse = { zone: undrawn[0], panics: 1, overdues: 0, open: 1, rostered: 1 };
+  const below = overlayDomain.proportionOf(oneNurse, floor);
+  if (below.drawn !== false)
+    zoneFail(
+      `proportionOf() drew a proportion over one nurse at a floor of ${floor}. ${overlayDoc.share.whyADenominator}`,
+    );
+  const belowRow = overlayDomain.zoneOverlay([queueRow("panic", oneNurse.zone)], rostered({ [oneNurse.zone]: 1 }));
+  if (belowRow.length !== 1 || belowRow[0].panics !== 1 || belowRow[0].open !== 1)
+    zoneFail(
+      `a suburb below the floor lost its count: zoneOverlay() returned ${JSON.stringify(belowRow)}. ${overlayDoc.whyCountsAreNeverFloored}`,
+    );
+  if (overlayDomain.proportionOf({ ...oneNurse, rostered: floor }, floor).drawn !== true)
+    zoneFail(`proportionOf() suppressed a proportion at exactly the floor of ${floor}, where the group is large enough to be an aggregate.`);
+
+  /* 5. The setting is a count of nurses, bounded so no value below three can be set. A floor of two would
+        make one of two nurses a statistic about a named woman, which is the thing the setting exists to stop.
+        The generic Settings check proves every value guardrail.forbids names is actually refused by the
+        rules; what is Safety's is *which* values it names. A guardrail is written as representative values
+        rather than as a range, so the one that holds the floor is the value just below the lowest bound —
+        with a bound of three that is two, the one nurse's suburb drawn as a proportion. Asking for "some
+        value below three" would be satisfied by the zero that proves positivity, and would not notice a
+        guardrail that had stopped proving the floor. */
+  const lowest = floorItem.bounds?.lowest?.value;
+  const highest = floorItem.bounds?.highest?.value;
+  const forbidden = floorItem.guardrail?.forbids ?? [];
+  if (
+    floorItem.type !== "count" ||
+    floorItem.unit !== "nurses" ||
+    floorItem.positive !== true ||
+    floorItem.owner !== "safety" ||
+    !(lowest >= 3) ||
+    !forbidden.includes(lowest - 1) ||
+    !forbidden.includes(0) ||
+    !forbidden.includes(highest + 1)
+  )
+    zoneFail(
+      `zone-share-minimum-nurses is ${JSON.stringify({ type: floorItem.type, unit: floorItem.unit, positive: floorItem.positive, lowest, highest, forbids: forbidden })}. It is a positive count of nurses whose lowest bound is three or more, and whose guardrail names ${lowest - 1} — one below that bound — beside 0 and one above the highest, so no setting can turn the overlay into a way of naming one nurse on a map and the bounds are each proved rather than asserted.`,
+    );
+
+  /* 6. Nothing is kept. Every call recomputes from its arguments, so a figure cannot survive its render and
+        become a history of where trouble had been. Asked structurally, and of the code with its comments
+        taken off: the file's own header says "no cache, no memo" in prose, and a check that read that as a
+        finding would be a check that fails on the sentence that promises the thing. What is asked of the code
+        is that it declares no mutable binding at all — the one Map it builds is a const inside
+        zoneOverlay() — so a module-level cache has nowhere to live. */
+  const overlayCode = overlaySource
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(^|[^:])\/\/.*$/gm, "$1");
+  const mutable = overlayCode.match(/^\s*(let|var)\s+\w+/m);
+  if (mutable)
+    zoneFail(
+      `${overlayDomainFile} declares a mutable binding ("${mutable[0].trim()}"), so a draw could outlive its render. ${overlayDoc.rules.find((r) => r.id === "nothing-is-kept").statement}`,
+    );
+  if (/\b(module\.exports|globalThis|WeakMap)\b|\bcache\b|\bmemo\b/i.test(overlayCode))
+    zoneFail(
+      `${overlayDomainFile} keeps something between draws. ${overlayDoc.rules.find((r) => r.id === "nothing-is-kept").why}`,
+    );
+  /* The grouping Map is built inside the call and thrown away with it: it must appear after zoneOverlay()'s
+        own declaration, never at module scope above it. */
+  if (!/const byZone = new Map/.test(overlayCode))
+    zoneFail(`${overlayDomainFile} no longer groups the queue by suburb, so the overlay is not the desk queue's own rows any more.`);
+  if (overlayCode.indexOf("new Map") < overlayCode.indexOf("export function zoneOverlay"))
+    zoneFail(`${overlayDomainFile} builds its grouping at module scope, above the call that draws it, so a draw would outlive its render.`);
+
+  /* 7. The audience is derived from the desk queue's own route, so widening the route's callers widens the
+        overlay in the same edit and no string here can drift from the contract that decides it. */
+  const callerRoute = overlayDoc.drawnFor.callersFrom;
+  const [callerMethod, callerPathAt] = callerRoute.split(" ");
+  const [callerPath, callerVersion] = callerPathAt.split("@");
+  const deskRoute = safetyApiDoc.routes.find(
+    (r) => !r.withdrawn && r.method === callerMethod && r.path === callerPath && String(r.version) === callerVersion,
+  );
+  if (!deskRoute)
+    zoneFail(`the overlay's drawnFor names ${callerRoute}, and packages/catalog/apis/safety.json has no such live route, so the audience has no contract to be derived from.`);
+  /* The gate is the two declarations that decide it — the route's callers and maySeeFieldSafety. Read as one
+        region so the assertion is about the gate rather than about the whole file, which legitimately names
+        'control-tower' elsewhere. */
+  const gate = dispatchSource.match(/const deskQueueCallers[\s\S]*?\nfunction maySeeFieldSafety[\s\S]*?\n\}/)?.[0];
+  if (!gate)
+    zoneFail(`${dispatchFile} no longer derives the overlay's audience from the desk queue's own callers, so a typed role string could drift from ${callerRoute}.`);
+  if (/'(control-tower|back-office|nurse|doctor|patient)'/.test(gate))
+    zoneFail(
+      `${dispatchFile} types a role into the audience gate. ${callerRoute}'s callers decide who sees the overlay, and a string here is a second copy of that decision.`,
+    );
+  /* The panic colour sits on a row of the list and never on a zone circle, which is the difference between
+        marking an incident and grading a suburb. */
+  if (!/\.zone-safety__row\.has-panic/.test(cssSource))
+    zoneFail(`${overlayCss} no longer marks an open panic on the overlay's own row. ${overlayDoc.rules.find((r) => r.id === "a-zone-is-not-a-verdict").statement}`);
+  if (/zone-(circle|fill|shade|grade)|\.zone-safety__row[^{]*\{[^}]*background/s.test(cssSource))
+    zoneFail(`${overlayCss} shades a zone, which grades a place. ${overlayDoc.rules.find((r) => r.id === "a-zone-is-not-a-verdict").why}`);
+  if (/zoneOverlay|zoneRows|zoneTotals/.test(dispatchSource.split("<LiveMap")[1]?.split("/>")[0] ?? ""))
+    zoneFail(`${dispatchFile} feeds the overlay's figures into LiveMap as a colour or a marker. ${overlayDoc._listNotAColourNote}`);
+
+  console.log(
+    `Safety · zone overlay: a list over ${rosteredSuburbs.length} rostered suburbs, ${undrawn.length} of which (${undrawn.join(", ")}) the map draws no circle for; a row carries ${overlayDoc.carries.length} counts and none of the ${overlayDoc.neverCarries.length} fields it never carries, by name and not by count; the floor of ${floor} nurses governs the proportion alone, so ${belowRow[0].panics} open panic in a suburb of ${belowRow[0].rostered} nurse is drawn whole while its proportion is refused; the domain keeps nothing between draws; and the audience is read from ${callerRoute}'s ${deskRoute.callers.length} caller${deskRoute.callers.length === 1 ? "" : "s"} rather than typed.`,
   );
 }
 
