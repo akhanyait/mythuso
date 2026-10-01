@@ -13,6 +13,7 @@ const json = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta
 const clinical = json('../packages/catalog/clinical.json');
 const thusoiq = json('../packages/catalog/thusoiq.json');
 const medicines = json('../packages/catalog/medicines.json');
+const liveVitals = json('../packages/catalog/live-vitals.json');
 const protocols = json('../packages/catalog/protocols.json') as { protocols: { id: string; version: number; status: string }[] };
 
 const main = (page: Page) => page.locator('main .cl-chapter');
@@ -107,9 +108,15 @@ test('Triage says it is not formed in the contract’s words and interprets noth
   await expect(screen).toContainText(clinical.triage.notTriaged.human);
   await expect(screen).toContainText(thusoiq.wearables.neverInferred);
   for (const stage of clinical.triage.stages) await expect(screen).toContainText(stage.label);
-  /* Freshness only: no severity, no score, no heatmap, no early-warning figure. */
-  await expect(screen.locator('.dp-tile')).toHaveCount(thusoiq.wearables.metrics.length);
-  for (const word of [/early.warning/i, /NEWS2/, /heatmap/i, /severity/i, /\bscore\b/i]) await expect(screen.locator('.dp-panel')).not.toContainText(word);
+  /* Since 1 October 2026 the patient's devices stream on the live board (tests/live-vitals.spec.ts holds it
+     to its contract). The score, the heatmap and the early-warning figure are named only in the board's
+     refusals, which say why they are not drawn; nowhere else on the panel is any of them drawn. */
+  await expect(screen.locator('.lv-tiles > .lv-tile[data-stream]')).toHaveCount(liveVitals.streams.length);
+  for (const word of [/early.warning/i, /NEWS2/, /heatmap/i, /severity/i, /\bscore\b/i]) {
+    await expect(screen.locator('.lv-tiles')).not.toContainText(word);
+    await expect(screen.locator('.lv-status')).not.toContainText(word);
+  }
+  for (const r of liveVitals.refusals) await expect(screen.locator('.lv-refusals')).toContainText(r.sentence);
   await screen.getByRole('button', { name: clinical.triage.screen.start }).click();
   await expect(screen.locator('.ci-answer')).toContainText(clinical.triage.notTriaged.label);
 });

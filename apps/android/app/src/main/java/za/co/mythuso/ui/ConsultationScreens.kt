@@ -151,6 +151,9 @@ private data class ConsultationSignature(
                 }
             }
         }
+        /* The patient's devices, live and simulated, for a doctor writing — the founder's ask of 1 October 2026.
+           A nurse's record is unchanged. */
+        if (mayDiagnose && signature == null) LiveVitalsPanel(patient)
         val perRow = if (LocalDensity.current.fontScale >= 1.3f) 1 else 2
         val figures: List<@Composable (Modifier) -> Unit> = listOf(
             { m -> ThusoMetricCard(

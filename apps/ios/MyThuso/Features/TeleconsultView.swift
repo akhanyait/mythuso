@@ -252,6 +252,10 @@ struct TeleconsultView: View {
             Text(Teleconsult.media.whyTheDistinctionMatters).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
         }
 
+        /* The patient beside the call: their devices, live and simulated (1 October 2026). Each reading
+           carries its source and its range, which is what four bare numerals beside a call did not. */
+        LiveVitalsPanel(subject: patient)
+
         Text("In the room").font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
         roster(canAsk: true)
         if let withdrawnNote {

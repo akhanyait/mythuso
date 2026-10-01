@@ -2,7 +2,7 @@ import { Suspense, lazy, useMemo, useState, type ReactNode } from 'react';
 import { Activity, ArrowRight, BookOpen, CalendarDays, ClipboardList, FileText, Receipt, Route, Search, Send, ShieldCheck, Stethoscope, Video, House } from 'lucide-react';
 import { Alert, Badge, Button, Input, MetricCard } from '../ui';
 import { useThusoIQ } from '../lib/thusoiq';
-import { latestSample, sampleFreshness, thusoiq } from '../../../../packages/thusoiq/index.ts';
+import { thusoiq } from '../../../../packages/thusoiq/index.ts';
 import { roleOf, whoIs } from '../lib/roles';
 import { dayOf as clinicalDay, inboxNow, notTriaged, triageStages, useClinical } from '../lib/clinical';
 import { DOCTOR, fill, labStateOf, outcomeLabel, outcomeReason, scheduleName, stateLabel, stateOf, useMedicines, words as medicinesWords } from '../lib/medicines';
@@ -21,6 +21,8 @@ import { DeckTitleLevel } from './ClinicalDeck';
 import './doctor-pages.css';
 /* Sentinel carries the Safety, Core and Devices domains; it arrives when a doctor opens Triage, not before. */
 const SentinelState = lazy(() => import('./Sentinel').then(m => ({ default: m.SentinelState })));
+/* The live vitals board arrives when a doctor opens Triage, the same way. */
+const LiveVitalsBoard = lazy(() => import('./LiveVitals').then(m => ({ default: m.LiveVitalsBoard })));
 
 /* The doctor's pages from the Lovable export's arrangement (30 September 2026).
  *
@@ -208,17 +210,18 @@ export function DoctorCredentials() {
 
 /* ---- Triage ------------------------------------------------------------------------------------------
    The export's live triage page — live vitals, three triage layers, an early-warning score, a heatmap, a
-   device-versus-nurse table — in the only form this product can honestly draw: the patients in the
-   ThusoIQ sandbox, how fresh each wearable reading is and nothing about what it means, the triage stages
-   and the answer that nothing was triaged, the guidance answers, and Sentinel's hand-raised tier. No
-   severity badge, no score, no heatmap and no interpretation: no protocol is a ratified triage protocol,
-   and no engine reads a sample and concludes anything. */
+   device-versus-nurse table — in the only form this product can honestly draw. Since 1 October 2026 (the
+   founder: "live triage simulation, all IoT devices") the patient chosen from the ThusoIQ sandbox has every
+   instrument in the kit and their own watch streaming simulated readings on features/LiveVitals.tsx's
+   board, each with its unit, its source, how long ago it arrived, a trend line and where it stands against
+   the record's range in words. Where the export drew a device triage, a score, an interpretation, alarms and
+   a heatmap, the board draws packages/catalog/live-vitals.json's sentence saying why not: no protocol is a
+   ratified triage protocol, and no engine reads a reading and concludes anything. Then the triage stages and
+   the answer that nothing was triaged, the guidance answers, and Sentinel's hand-raised tier. */
 export function DoctorTriage() {
  const { state } = useThusoIQ();
  const [patientId, setPatientId] = useState(state.patients[0]?.id ?? '');
- const [now] = useState(() => new Date().toISOString());
  const patient = state.patients.find(p => p.id === patientId);
- const freshness = { missing: 'No reading yet', recent: 'Recent', stale: 'Stale' } as const;
  return <section className="dp-page" aria-labelledby="dp-triage">
   <div className="dp-head"><div><h1 id="dp-triage">Triage</h1><p>{clinicalContract.triage.triageProtocols.why}</p></div>
    <Badge variant="neutral">{notTriaged.label}</Badge></div>
@@ -229,16 +232,8 @@ export function DoctorTriage() {
     <button key={p.id} className="dp-chip" aria-pressed={p.id === patientId} onClick={() => setPatientId(p.id)}>{p.name}</button>)}</div>
    {patient && <>
     <p className="dp-note">{patient.name} · {patient.reason}</p>
-    <ul className="dp-tiles" aria-label={`How fresh ${patient.name}’s readings are`}>{thusoiq.wearables.metrics.map(metric => {
-     const latest = latestSample(state.samples, patient.id, metric.id as 'heart-rate');
-     const fresh = sampleFreshness(latest, now);
-     return <li key={metric.id} className={`dp-tile is-${fresh}`}>
-      <span className="dp-tile-label">{metric.name}</span>
-      <strong>{freshness[fresh]}</strong>
-      <small>{latest ? `Measured ${clock(latest.measuredAt)}` : 'Nothing has been received for this patient.'}</small>
-     </li>;
-    })}</ul>
-    <p className="dp-note">Freshness only. A reading is read, with its value and where it came from, in the Wearables tool of the ThusoIQ workspace, and never judged here.</p>
+    {/* Keyed by the patient, so choosing another starts their board from its first reading. */}
+    <Suspense fallback={<p className="dp-note">Opening the board…</p>}><LiveVitalsBoard key={patient.id} subject={patient.id} patient={patient.name}/></Suspense>
    </>}
   </div>
   <TriageStart/>

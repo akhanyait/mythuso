@@ -158,6 +158,9 @@ struct ConsultationRecordView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
                 header
+                /* The patient's devices, live and simulated, for a doctor writing — the founder's ask of
+                   1 October 2026. A nurse's record and the patient's reading of one are unchanged. */
+                if mayDiagnose && signature == nil { LiveVitalsPanel(subject: patient) }
                 if let signature { signedBlock(signature) } else { editor }
             }
             .padding(ThusoSpacing.space16)

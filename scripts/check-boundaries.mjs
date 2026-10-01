@@ -41,6 +41,7 @@ import {
 import { emitConsentGrants } from "./emit-consent-grants.mjs";
 import { emitProtocols, previewPathwayOf } from "./emit-protocols.mjs";
 import { checkCasePathway } from "./check-case-pathway.mjs";
+import { checkLiveVitals } from "./check-live-vitals.mjs";
 import { emitLocales } from "./emit-locales.mjs";
 import { emitDispensing } from "./emit-dispensing.mjs";
 import { emitProgrammes } from "./emit-programmes.mjs";
@@ -67,6 +68,7 @@ import { emitMedicines } from "./emit-medicines.mjs";
 import { emitVerifyInService } from "./emit-verify-in-service.mjs";
 import { emitPassportSharing } from "./emit-passport-sharing.mjs";
 import { emitDevices } from "./emit-devices.mjs";
+import { emitLiveVitals } from "./emit-live-vitals.mjs";
 import { emitGroups } from "./emit-groups.mjs";
 import { emitHousehold } from "./emit-household.mjs";
 import { emitMomEssential } from "./emit-mom-essential.mjs";
@@ -2947,6 +2949,39 @@ const generated = [
     source: "packages/catalog/consent.json",
     command: "npm run devices",
     files: emitDevices(),
+  },
+  /* LiveVitalsData carries live-vitals.json's streams joined to records.json's measures and capture.json's instruments,
+    the simulator presets' baselines, devices.json's simulated class, mark and stale sentence and the devices capability's
+    notice, so a change to any of the six regenerates it. */
+  {
+    source: "packages/catalog/live-vitals.json",
+    command: "npm run live-vitals",
+    files: emitLiveVitals(),
+  },
+  {
+    source: "packages/catalog/devices/simulator-presets.json",
+    command: "npm run live-vitals",
+    files: emitLiveVitals(),
+  },
+  {
+    source: "packages/catalog/records.json",
+    command: "npm run live-vitals",
+    files: emitLiveVitals(),
+  },
+  {
+    source: "packages/catalog/capture.json",
+    command: "npm run live-vitals",
+    files: emitLiveVitals(),
+  },
+  {
+    source: "packages/catalog/devices.json",
+    command: "npm run live-vitals",
+    files: emitLiveVitals(),
+  },
+  {
+    source: "packages/catalog/capabilities.json",
+    command: "npm run live-vitals",
+    files: emitLiveVitals(),
   },
   /* MomEssentialData carries mom-essential.json's journey words, the refusal a sponsor reads from apis/money.json, the
     caregiver ceiling from consent.json and money.json's providerless sentence, so a change to any of the four regenerates it. */
@@ -37643,6 +37678,10 @@ console.log(
        shell's dynamic import. */
     "apps/web/src/features/ReviewCase.tsx", "apps/web/src/features/DoctorPages.tsx", "apps/web/src/features/PartnerPages.tsx",
     "apps/web/src/features/CallSummary.tsx", "apps/web/src/features/Fulfilment.tsx",
+    /* The live vitals board (1 October 2026): behind dynamic imports from the doctor's Triage page, the call and the
+       consultation record, so it is off the patient's entry and its Alert, Badge, Button and Select join the ui.css the
+       clinical chunk already downloads. */
+    "apps/web/src/features/LiveVitals.tsx",
     /* The Lovable alignment of 30 September 2026, builder S1: the staff shell's top bar and attention band, whose
        band is the shared Alert. Imported only by StaffShell.tsx, so it rides the staff chunk and never the patient's
        entry, and its Alert joins the ui.css that chunk already downloads. */
@@ -39007,6 +39046,12 @@ console.log(
   const { stems: stemsOf, hasSequence: sequenceIn } = await import("../packages/gilbertone/src/stems.ts");
   console.log(checkCasePathway({ read, files, stems: stemsOf, hasSequence: sequenceIn, existsSync }));
 }
+
+/* The live vitals board — 1 October 2026 */
+/* The patient's devices, live and simulated, on the doctor's Triage page and beside the consultation, in the form of
+   the export the founder liked and with none of its claims. The checks live in scripts/check-live-vitals.mjs so each
+   can be proven to fire in isolation (scripts/prove-live-vitals.mjs hands the module broken files). */
+console.log(checkLiveVitals({ read, files }));
 
 /* The laboratory order draws only what a contract holds — 30 September 2026 */
 /* apps/web/src/features/OrderDetails.tsx carried a panel of four typed results, each with a unit, a

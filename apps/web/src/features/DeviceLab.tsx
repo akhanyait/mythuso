@@ -44,9 +44,11 @@ const RANGES: Record<string, { normal: [number, number]; warning: [number, numbe
   'respiratory-rate':         { normal: [12, 20],   warning: [10, 24],   critical: [8, 30] },
 };
 
-function severityOf(type: string, value: number): Severity {
+/* A type with no band here — blood glucose, added for the live vitals board on 1 October 2026 — is shown
+   with no band at all rather than as "Normal band": a band nobody declared is a judgement nobody made. */
+function severityOf(type: string, value: number): Severity | null {
   const range = RANGES[type];
-  if (!range) return 'normal';
+  if (!range) return null;
   if (value >= range.normal[0] && value <= range.normal[1]) return 'normal';
   if (value >= range.warning[0] && value <= range.warning[1]) return 'warning';
   return 'critical';
@@ -59,6 +61,7 @@ const TYPE_LABELS: Record<string, string> = {
   'blood-pressure-systolic': 'BP systolic',
   'blood-pressure-diastolic': 'BP diastolic',
   'respiratory-rate': 'Respiratory rate',
+  'blood-glucose': 'Blood glucose',
 };
 
 const TYPE_ICONS: Record<string, typeof Heart> = {
@@ -68,6 +71,7 @@ const TYPE_ICONS: Record<string, typeof Heart> = {
   'blood-pressure-systolic': Activity,
   'blood-pressure-diastolic': Activity,
   'respiratory-rate': Wind,
+  'blood-glucose': Droplets,
 };
 
 /* ---- The component ---------------------------------------------------------------------------- */
@@ -170,12 +174,12 @@ export function DeviceLab() {
               const severity = severityOf(r.type, r.value);
               const Icon = TYPE_ICONS[r.type] ?? Activity;
               return (
-                <li key={`${r.type}-${i}`} className={`dl-reading dl-${severity}`}>
+                <li key={`${r.type}-${i}`} className={`dl-reading dl-${severity ?? 'unbanded'}`}>
                   <span className="dl-reading-icon" aria-hidden="true"><Icon size={18}/></span>
                   <span className="dl-reading-label">{TYPE_LABELS[r.type] ?? r.type}</span>
                   <span className="dl-reading-value">{r.value}</span>
                   <span className="dl-reading-unit">{r.unit}</span>
-                  <Badge size="sm" variant={bandBadge[severity].variant} className="dl-reading-severity">{bandBadge[severity].words}</Badge>
+                  {severity && <Badge size="sm" variant={bandBadge[severity].variant} className="dl-reading-severity">{bandBadge[severity].words}</Badge>}
                 </li>
               );
             })}
@@ -196,7 +200,7 @@ export function DeviceLab() {
               {session.readings.map((r, i) => (
                 <tr key={i}>
                   <td>{TYPE_LABELS[r.type] ?? r.type}</td>
-                  <td className={`dl-${severityOf(r.type, r.value)}`}>{r.value}</td>
+                  <td className={`dl-${severityOf(r.type, r.value) ?? 'unbanded'}`}>{r.value}</td>
                   <td>{r.unit}</td>
                   <td>{new Date(r.timestamp).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</td>
                   <td>{r.source}</td>

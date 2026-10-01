@@ -12,7 +12,8 @@
         { "type": "temperature", "value": 36.8, "unit": "°C", "timestamp_offset_ms": 0 },
         { "type": "blood-pressure-systolic", "value": 120, "unit": "mmHg", "timestamp_offset_ms": 0 },
         { "type": "blood-pressure-diastolic", "value": 80, "unit": "mmHg", "timestamp_offset_ms": 0 },
-        { "type": "respiratory-rate", "value": 16, "unit": "breaths/min", "timestamp_offset_ms": 0 }
+        { "type": "respiratory-rate", "value": 16, "unit": "breaths/min", "timestamp_offset_ms": 0 },
+        { "type": "blood-glucose", "value": 5.4, "unit": "mmol/L", "timestamp_offset_ms": 0 }
       ]
     },
     {
@@ -75,6 +76,18 @@
         { "type": "heart-rate", "value": 140, "unit": "bpm", "timestamp_offset_ms": 0 },
         { "type": "respiratory-rate", "value": 32, "unit": "breaths/min", "timestamp_offset_ms": 0 },
         { "type": "temperature", "value": 37.4, "unit": "°C", "timestamp_offset_ms": 0 }
+      ]
+    },
+    {
+      "id": "sim.glucose",
+      "name": "Rising blood glucose",
+      "description": "Blood glucose climbing over 4 readings with a steady pulse",
+      "readings": [
+        { "type": "blood-glucose", "value": 7.2, "unit": "mmol/L", "timestamp_offset_ms": 0 },
+        { "type": "heart-rate", "value": 84, "unit": "bpm", "timestamp_offset_ms": 0 },
+        { "type": "blood-glucose", "value": 9.6, "unit": "mmol/L", "timestamp_offset_ms": 60000 },
+        { "type": "blood-glucose", "value": 12.1, "unit": "mmol/L", "timestamp_offset_ms": 120000 },
+        { "type": "blood-glucose", "value": 14.8, "unit": "mmol/L", "timestamp_offset_ms": 180000 }
       ]
     },
     {

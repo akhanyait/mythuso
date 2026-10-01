@@ -284,6 +284,10 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                     Text(callMedia.whyTheDistinctionMatters, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                 }
 
+                /* The patient beside the call: their devices, live and simulated (1 October 2026). Each reading
+                   carries its source and its range, which is what four bare numerals beside a call did not. */
+                LiveVitalsPanel(patient)
+
                 Text("In the room", style = MaterialTheme.typography.titleMedium)
                 Roster(canAsk = true)
                 withdrawnNote?.let { Note(it) }

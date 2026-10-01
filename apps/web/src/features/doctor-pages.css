@@ -121,20 +121,13 @@ button.dp-row:focus-visible { outline: 2px solid var(--color-ring); outline-offs
 .dp-page > .ui-alert, .dp-page > .not-connected { margin-bottom: var(--space-20); }
 .dp-page > .panel, .dp-page > .ci-panel { margin-bottom: var(--space-24); }
 
-/* ---- Triage: the patients as chips, and how fresh each reading is ------------------------------
-   A chosen chip is the ink ground with the surface's words (16.37 reversed) and aria-pressed; a tile says
-   only how old a reading is, in words, with a rule whose shape — solid, dashed, none — repeats the word. */
+/* ---- Triage: the patients as chips ------------------------------------------------------------
+   A chosen chip is the ink ground with the surface's words (16.37 reversed) and aria-pressed. The live
+   board under the chips is features/live-vitals.css's. */
 .dp-chips { display: flex; gap: var(--space-8); overflow-x: auto; padding-bottom: var(--space-4); }
 .dp-chip { flex: none; min-height: 44px; padding: 0 var(--space-16); border: 1px solid var(--color-border); border-radius: var(--r-pill); background: var(--color-surface); color: var(--color-foreground); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
 .dp-chip[aria-pressed='true'] { border-color: var(--color-foreground); background: var(--color-foreground); color: var(--color-surface); }
 .dp-chip:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
-.dp-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: var(--space-12); margin: 0; padding: 0; list-style: none; }
-.dp-tile { display: grid; gap: var(--space-4); padding: var(--space-16); border: 1px solid var(--color-border); border-left-width: 3px; border-radius: var(--r-md); background: var(--color-surface); }
-.dp-tile.is-recent { border-left-color: var(--color-accent); }
-.dp-tile.is-stale { border-left-style: dashed; border-left-color: var(--color-muted-foreground); }
-.dp-tile-label { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--color-muted-foreground); }
-.dp-tile strong { font-family: var(--font-display); font-size: 20px; font-weight: 600; color: var(--color-foreground); }
-.dp-tile small { font-size: 14px; color: var(--color-muted-foreground); }
 
 @media (prefers-reduced-motion: reduce) {
  .dp-list > li { animation: none; }

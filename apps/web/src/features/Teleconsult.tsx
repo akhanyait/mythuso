@@ -304,7 +304,7 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
      doctor's review write into, opened as the doctor who held the call, seeded with what the call
      actually established. Not a parallel structure with the word "teleconsultation" on it. */
   const line = connectionById(connectionId);
-  return <ConsultationComposer reference={reference} patient={patient} writer={doctorId} onClose={onClose}
+  return <ConsultationComposer reference={reference} patient={patient} writer={doctorId} onClose={onClose} liveDevices
    line={<LineLadder connectionId={connectionId} allowed={allowedNow}/>}
    seed={{
     reason: `Teleconsultation · ${reference}`,

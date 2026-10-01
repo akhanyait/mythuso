@@ -1,0 +1,90 @@
+/* The live vitals board and its compact panel (1 October 2026). Fetched with the doctor's pages, the call
+   and the consultation record, never on a patient's first load.
+
+   ON THE IDENTITY. White tiles on the page, one hairline, the tile's corner, no shadow: the board sits inside
+   a panel that already has the page's one elevation. Every colour is a role from tokens.json#semantic. The
+   trend line is the primary ink and the record's reference range is a band of the muted ground behind it —
+   the same two colours whatever the value, because a line that turned red would be the severity colour this
+   board refuses. Where a value stands against its range is told by the words under the line and by an arrow
+   or a tick beside them, and the weight of those words; never by colour.
+
+   MOTION. None. The numbers change because readings arrive; nothing on the board animates, so there is
+   nothing for prefers-reduced-motion to switch off and nothing that runs for ever. */
+
+.lv-board, .lv-panel { display: grid; gap: var(--space-16); min-width: 0; }
+.lv-panel { gap: var(--space-12); }
+.lv-board-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-12) var(--space-24); }
+.lv-board-head > div:first-child { display: grid; gap: var(--space-4); min-width: 0; max-width: 64ch; }
+.lv-board-head h2, .lv-board-head h3, .lv-board-head h4 { margin: 0; font-family: var(--font-display); font-size: 20px; font-weight: 600; line-height: 1.3; color: var(--color-foreground); }
+.lv-board-head p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-muted-foreground); }
+.lv-panel-title { margin: 0; font-family: var(--font-display); font-size: 16px; font-weight: 600; line-height: 1.3; color: var(--color-foreground); }
+
+.lv-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-8) var(--space-12); min-width: 0; }
+.lv-scenario { display: grid; gap: var(--space-4); min-width: min(100%, 220px); flex: 1 1 220px; }
+.lv-panel .lv-scenario { flex-basis: 160px; min-width: 0; }
+.lv-scenario > span { font-size: 13px; font-weight: 600; color: var(--color-muted-foreground); }
+.lv-board-head .lv-controls { flex: 0 1 380px; flex-wrap: nowrap; }
+.lv-board-head .lv-scenario { flex: 1 1 auto; min-width: 0; }
+.lv-controls .ui-button { flex: none; }
+/* On a phone the scenario's name needs the whole width; side by side it was cut to "Progressive h…". */
+@media (max-width: 480px) {
+ .lv-board-head .lv-controls { flex: 1 1 100%; flex-wrap: wrap; }
+ .lv-board-head .lv-scenario { flex-basis: 100%; }
+}
+
+.lv-status { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4) var(--space-12); margin: 0; font-size: 14px; line-height: 1.45; color: var(--color-foreground); }
+.lv-count { color: var(--color-muted-foreground); font-variant-numeric: tabular-nums; }
+
+/* ---- The tiles: one per stream, and one for what cannot be streamed --------------------------------- */
+.lv-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr)); gap: var(--space-12); margin: 0; padding: 0; list-style: none; min-width: 0; }
+.lv-tile { display: grid; align-content: start; gap: var(--space-8); min-width: 0; padding: var(--space-16); border: 1px solid var(--color-border); border-radius: var(--r-tile); background: var(--color-surface); color: var(--color-foreground); }
+.lv-tile.is-silent { border-style: dashed; background: transparent; }
+.lv-tile-head { display: grid; gap: 2px; min-width: 0; }
+.lv-tile-label { font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--color-muted-foreground); }
+.lv-tile-device { font-size: 13px; line-height: 1.4; color: var(--color-muted-foreground); overflow-wrap: anywhere; }
+.lv-value { display: flex; align-items: baseline; gap: var(--space-4); margin: 0; }
+.lv-value strong { font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--color-foreground); }
+.lv-value small { font-size: 14px; color: var(--color-muted-foreground); }
+.lv-spark { display: block; max-width: 100%; }
+.lv-spark.is-empty { width: 1px; height: 32px; }
+.lv-spark-band { fill: var(--color-muted); }
+.lv-spark-line { fill: none; stroke: var(--color-primary); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+.lv-nowrap { white-space: nowrap; }
+.lv-range { display: flex; align-items: flex-start; gap: var(--space-4); margin: 0; font-size: 14px; line-height: 1.4; color: var(--color-foreground); }
+.lv-range svg { flex: none; margin-top: 2px; }
+.lv-range.is-below, .lv-range.is-above { font-weight: 600; }
+.lv-prov { margin: 0; font-size: 13px; line-height: 1.4; color: var(--color-muted-foreground); }
+.lv-ago { font-variant-numeric: tabular-nums; }
+.lv-silent { margin: 0; font-size: 14px; line-height: 1.45; color: var(--color-muted-foreground); }
+.lv-notstreamed { display: grid; gap: var(--space-8); min-width: 0; }
+.lv-absent { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: var(--space-8) var(--space-24); margin: 0; padding: 0 0 0 var(--space-16); font-size: 14px; line-height: 1.45; color: var(--color-muted-foreground); }
+.lv-panel .lv-absent { grid-template-columns: minmax(0, 1fr); font-size: 13px; }
+
+.lv-foot { margin: 0; font-size: 13px; line-height: 1.5; color: var(--color-muted-foreground); max-width: 80ch; }
+
+/* ---- What the board does not draw, where the export drew it ---------------------------------------- */
+.lv-refusals { display: grid; gap: var(--space-12); min-width: 0; }
+.lv-subhead { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; line-height: 1.3; color: var(--color-foreground); }
+.lv-refusals ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr)); gap: var(--space-12); margin: 0; padding: 0; list-style: none; }
+.lv-refusal { display: flex; align-items: flex-start; gap: var(--space-8); min-width: 0; padding: var(--space-12) var(--space-16); border: 1px dashed var(--color-border); border-radius: var(--r-tile); }
+.lv-refusal svg { flex: none; margin-top: 2px; color: var(--color-muted-foreground); }
+.lv-refusal p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-muted-foreground); }
+.lv-refusal strong { display: block; font-size: 15px; font-weight: 600; color: var(--color-foreground); }
+
+/* ---- Compact, in a rail beside a consultation: a row per stream ------------------------------------- */
+.lv-panel .lv-subhead { font-size: 15px; }
+.lv-tiles.is-compact { grid-template-columns: minmax(0, 1fr); gap: var(--space-8); }
+.lv-tiles.is-compact .lv-tile { grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-4) var(--space-12); padding: var(--space-12); }
+.lv-tiles.is-compact .lv-tile-head { grid-column: 1; grid-row: 1; }
+.lv-tiles.is-compact .lv-value { grid-column: 2; grid-row: 1; justify-self: end; align-self: start; }
+.lv-tiles.is-compact .lv-value strong { font-size: 22px; }
+.lv-tiles.is-compact .lv-value small { font-size: 13px; }
+.lv-tiles.is-compact .lv-spark { grid-column: 2; grid-row: 2 / span 2; justify-self: end; }
+.lv-tiles.is-compact .lv-spark.is-empty { height: 20px; }
+.lv-tiles.is-compact .lv-range { grid-column: 1; grid-row: 2; font-size: 13px; }
+.lv-tiles.is-compact .lv-prov { grid-column: 1; grid-row: 3; }
+.lv-tiles.is-compact .lv-silent { grid-column: 1 / -1; font-size: 13px; }
+.lv-refusals.is-compact ul { grid-template-columns: minmax(0, 1fr); gap: var(--space-8); }
+.lv-refusals.is-compact .lv-refusal { padding: var(--space-8) var(--space-12); }
+.lv-refusals.is-compact .lv-refusal p { font-size: 13px; }
+.lv-refusals.is-compact .lv-refusal strong { font-size: 14px; }

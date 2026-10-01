@@ -1,17 +1,22 @@
+import { Suspense, lazy } from 'react';
 import { AlertTriangle, Check, ShieldCheck } from 'lucide-react';
 import { Badge } from '../ui';
 import { useThusoIQ } from '../lib/thusoiq';
 import { thusoiq } from '../../../../packages/thusoiq/index.ts';
 import { initialsOf } from '../lib/names';
 import './doctor-pages.css';
+/* The patient's devices arrive with the call room, not with the workspace. */
+const LiveVitalsPanel = lazy(() => import('./LiveVitals').then(m => ({ default: m.LiveVitalsPanel })));
 
 /* The patient beside the call (30 September 2026, the Lovable export's teleconsultation room).
  *
  * The export put a video stage in the middle of the screen with a patient summary card beside it — the
  * patient's condition, a medicine, an allergy and four vital signs — and a notes box with Save draft under
  * that. The video stage is not drawn (no media in this build: the line instrument is what stands in the
- * middle), the vital signs are not drawn (four numerals beside a call are readings without their source or
- * their range, and they are read in the review with both), and the notes box is not drawn, because a
+ * middle). The vital signs were not drawn either, because four numerals beside a call are readings without
+ * their source or their range; since 1 October 2026 (the founder asked for the patient's devices on the
+ * consultation) they are the live panel from features/LiveVitals.tsx, where every reading carries both and
+ * says it is simulated. The notes box is not drawn, because a
  * teleconsultation is written up after the call in the consultation record and an interrupted encounter
  * writes no assessment — the sentence under this card is the contract's own.
  *
@@ -46,5 +51,6 @@ export function CallSummary({ patient, rule }: { patient: string; rule: string }
    </dl>
   </> : <p className="rq-case-note">{patient} is not a patient in the ThusoIQ sandbox, so nothing more is shown about them here.</p>}
   <p className="rq-case-note">{rule}</p>
+  <Suspense fallback={null}><LiveVitalsPanel subject={patient} level="h4"/></Suspense>
  </aside>;
 }

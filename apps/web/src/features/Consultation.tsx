@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { Suspense, lazy, useState, type ReactNode } from 'react';
 import { BadgeCheck, Check, ClipboardList, Lock, NotebookPen, PenLine, ShieldX, Stethoscope, UserCheck } from 'lucide-react';
 import { NotConnected } from '../components/NotConnected';
 import { CalibrationCaveat, CalibrationTag, ProvenanceTag, type Source } from '../components/Provenance';
@@ -8,6 +8,8 @@ import schema from '../../../../packages/catalog/records.json';
 import { ClinicalDeck } from './ClinicalDeck';
 import { Badge, Button, Card } from '../ui';
 import './clinical-records.css';
+/* The patient's devices, live and simulated, fetched only when a composer asks for them. */
+const LiveVitalsPanel = lazy(() => import('./LiveVitals').then(m => ({ default: m.LiveVitalsPanel })));
 
 /* One shape for every encounter. The sections, which of them are required, which capability each
    hangs on and the four SOAP headings all live in packages/catalog/records.json, because a
@@ -100,11 +102,16 @@ const readingsHeading = 'Readings on record';
    one after another on the tokens, and not at all for a reader who asked for stillness. `line` is the
    teleconsultation's connection ladder, handed in by the call rather than imported from it, because the
    call already imports this file. */
+/* `liveDevices` (1 October 2026): the founder asked that the doctor sees the patient's devices on the
+   consultation too. The doctor's consultation record and the teleconsultation's ask for the compact live
+   panel in the rail, under the readings on record and apart from them: those are readings a clinician took
+   and may write about, these are simulated and carry no clinical weight, and the panel says so. The nurse's
+   visit and the case pathway do not ask, so their rails are unchanged. */
 /* `onSign` (29 September 2026): the case pathway's doctor signs through the Clinical domain as well as here,
    so the composer asks the caller first and shows a signature only when the caller says the sign-off
    stood — a refused sign-off (a required heading missing, no outcome recorded) leaves the draft a draft. */
-export function ConsultationComposer({ reference = 'TH-2048', patient = 'Lerato Molefe', seed, readings = [], writer: initialWriter, title = 'Consultation record', line, onClose, onSign }:
- { reference?: string; patient?: string; seed?: ConsultationDraft; readings?: SeededObservation[]; writer?: string; title?: string; line?: ReactNode; onClose?: () => void; onSign?: (record: ConsultationDraft) => boolean }) {
+export function ConsultationComposer({ reference = 'TH-2048', patient = 'Lerato Molefe', seed, readings = [], writer: initialWriter, title = 'Consultation record', line, liveDevices = false, onClose, onSign }:
+ { reference?: string; patient?: string; seed?: ConsultationDraft; readings?: SeededObservation[]; writer?: string; title?: string; line?: ReactNode; liveDevices?: boolean; onClose?: () => void; onSign?: (record: ConsultationDraft) => boolean }) {
  const [writerId, setWriterId] = useState(initialWriter ?? writers[0].id);
  const [view, setView] = useState<'record' | 'soap' | 'read'>('record');
  const [record, setRecord] = useState<ConsultationDraft>(seed ?? {});
@@ -216,6 +223,7 @@ export function ConsultationComposer({ reference = 'TH-2048', patient = 'Lerato 
     <CalibrationCaveat source={r.source}/>
    </li>)}</ul>
   </Card>,
+  liveDevices && <Card key="devices" className="cr-rail-card cr-devices"><Suspense fallback={null}><LiveVitalsPanel subject={patient}/></Suspense></Card>,
   line && <Card key="line" className="cr-rail-card cr-line">{line}</Card>
  ].filter(Boolean);
  return <div className="cr c-page consultation">
@@ -312,5 +320,5 @@ export function ConsultationComposer({ reference = 'TH-2048', patient = 'Lerato 
 /* The structure on its own, for a review that wants the record rather than the flow that produces
    one. */
 export function ConsultationRecord({ title, onClose }: { title?: string; onClose?: () => void }) {
- return <ConsultationComposer title={title} onClose={onClose}/>;
+ return <ConsultationComposer title={title} onClose={onClose} liveDevices/>;
 }

@@ -1,0 +1,75 @@
+{
+ "_note": "The live vitals board, 1 October 2026: the founder asked for the Lovable export's live triage page — every device in the patient's kit streaming, on the doctor's Triage page and beside the doctor's consultation. This file holds what the board streams and from which instrument, how the simulation is paced and jittered, and the sentences the board draws where the export drew a score, a triage colour, a heatmap, an alarm or an interpretation. Every reading on the board is simulated: the baselines are packages/catalog/devices/simulator-presets.json's, read through packages/engines/src/devices/simulator.ts on the web and through the generated LiveVitalsData on a phone; each reading's measure, unit, reference range and step are packages/catalog/records.json#observations.measures; each instrument's name is packages/catalog/capture.json#devices; the simulated class, the patient's own device and the simulated mark are packages/catalog/devices.json's. Nothing here is a real service. No instrument, phone or watch is contacted, and no reading here carries clinical weight.",
+ "version": 1,
+ "presets": "packages/catalog/devices/simulator-presets.json",
+ "ranges": "packages/catalog/records.json#observations.measures",
+ "rangeNote": "packages/catalog/records.json#consultation.sections[observations].note",
+ "instruments": "packages/catalog/capture.json#devices",
+
+ "pace": {
+  "tickMs": 2000,
+  "ticksPerStep": 3,
+  "history": 12,
+  "defaultPreset": "sim.well",
+  "why": "A reading every two seconds is fast enough that a doctor sees the board is live and slow enough that a screen reader announcing it would not be shouting. A preset that moves through several readings — progressive hypoxia, rising glucose — holds each of its steps for three readings, so a deterioration minutes long plays out in seconds and is still legible as a trend. Twelve readings are kept per stream for the sparkline: the last twenty-four seconds, nothing older, and nothing written anywhere."
+ },
+
+ "jitter": {
+  "modulus": 2147483647,
+  "multiplier": 48271,
+  "tickStride": 7919,
+  "streamStride": 104729,
+  "why": "Each reading is the preset's baseline plus a jitter worked out from the patient, the reading's number and the stream — never from a clock or Math.random — so the same patient on the same scenario shows the same numbers on the web, on an iPhone and on an Android phone, and a test can say what the third reading will be. Park and Miller's generator, whose every product stays below 2^53, so a JavaScript number, a Swift Int and a Kotlin Long agree to the last digit."
+ },
+
+ "streams": [
+  { "id": "systolic", "measure": "systolic", "standsFor": "kit-instrument", "instrument": "bp-cuff", "presetType": "blood-pressure-systolic", "jitter": 3 },
+  { "id": "diastolic", "measure": "diastolic", "standsFor": "kit-instrument", "instrument": "bp-cuff", "presetType": "blood-pressure-diastolic", "jitter": 2 },
+  { "id": "pulse", "measure": "pulse", "standsFor": "kit-instrument", "instrument": "pulse-oximeter", "presetType": "heart-rate", "jitter": 2 },
+  { "id": "oxygen", "measure": "oxygen", "standsFor": "kit-instrument", "instrument": "pulse-oximeter", "presetType": "spo2", "jitter": 1, "ceiling": 100 },
+  { "id": "temperature", "measure": "temperature", "standsFor": "kit-instrument", "instrument": "thermometer", "presetType": "temperature", "jitter": 0.1 },
+  { "id": "glucose", "measure": "glucose", "standsFor": "kit-instrument", "instrument": "glucometer", "presetType": "blood-glucose", "jitter": 0.2 },
+  { "id": "watch-pulse", "measure": "pulse", "standsFor": "own-device", "instrument": null, "presetType": "heart-rate", "jitter": 3 }
+ ],
+ "_streamsNote": "A stream is one measure from one instrument. Its label, unit, range and step are the record's, its instrument's name is capture.json's, and its jitter is the most the simulated value strays from the preset's baseline either way, in the measure's own unit. The patient's own watch reads the same pulse the oximeter does, a little differently, because two devices on one wrist never agree to the beat; it is the consumer class devices.json describes, and says so. A measure whose instrument has no reading in the chosen preset shows that nothing was received, rather than borrowing another scenario's number.",
+
+ "notStreamed": {
+  "noMeasure": "{instrument}: nothing streamed. The record contract holds no measure called {measures}, and Devices takes in no measure the record does not hold.",
+  "noInstrument": "{measure}: counted by the nurse at the visit. No instrument in the kit measures it, so nothing streams it.",
+  "why": "Both lists are worked out, not typed: an instrument in capture.json whose measures the record does not hold, and a measure the record holds that no instrument in capture.json measures. When either contract changes, the board changes with it."
+ },
+
+ "board": {
+  "heading": "Live readings from {patient}’s devices",
+  "compactHeading": "Patient’s devices, live (simulated)",
+  "intro": "Every instrument in the kit, and the patient’s own watch, sending a reading every few seconds. A reading is shown with its unit, the instrument it stands for, where it came from and how long ago it arrived, and its place against the record’s reference range is said in words.",
+  "banner": "Simulated — synthetic readings. No device is connected.",
+  "scenario": "Scenario",
+  "pause": "Pause",
+  "resume": "Resume",
+  "running": "Simulating · a reading every {seconds} seconds",
+  "paused": "Paused · nothing is being received",
+  "received": "{count} readings received since this scenario started",
+  "inside": "Inside the reference range, {low}–{high} {unit}",
+  "below": "Below the reference range, {low}–{high} {unit}",
+  "above": "Above the reference range, {low}–{high} {unit}",
+  "nothing": "Nothing received from this instrument in this scenario.",
+  "standsFor": "Stands in for: {instrument}",
+  "justNow": "just now",
+  "secondsAgo": "{n} s ago",
+  "minutesAgo": "{n} min ago",
+  "hoursAgo": "{n} h ago",
+  "trend": "The last {n} readings, from {first} to {last} {unit}",
+  "notStreamedHeading": "Not streamed",
+  "refusalsHeading": "What this board does not draw"
+ },
+
+ "refusals": [
+  { "id": "early-warning-score", "heading": "Early warning score", "sentence": "Not calculated. No triage protocol is ratified, and a score that adds a patient’s readings into one number is a triage protocol’s to give." },
+  { "id": "device-triage", "heading": "Device triage", "sentence": "None. A reading from a device sets no priority and no colour, and software guesses none for the nurse or the doctor." },
+  { "id": "interpretation", "heading": "Interpretation", "sentence": "None. No engine reads these readings and concludes anything. A clinician reads them, with their range and where they came from." },
+  { "id": "threshold-alarms", "heading": "Threshold alarms", "sentence": "None raised. A simulated reading carries no clinical weight, and a reading without weight is announced to nobody." },
+  { "id": "risk-heatmap", "heading": "Patient risk heatmap", "sentence": "Not drawn. Ranking patients by how unwell their readings look is triage under another name." }
+ ],
+ "_refusalsNote": "Each refusal stands where the export drew the thing it refuses — the score calculator, the device's red-to-green triage badge, the AI summary, the alarm centre and the heatmap — so the board the founder liked keeps its shape and loses its claims. scripts/check-live-vitals.mjs fails the build if clinical.json ever names a ratified triage protocol while these stand, because then they would be the wrong sentences, and it fails the board if it draws a score, a priority or a severity colour while they do."
+}

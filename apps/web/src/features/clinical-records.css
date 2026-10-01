@@ -814,6 +814,9 @@
  .consultation-layout { grid-template-columns: minmax(0, 1fr) 320px; grid-template-areas: 'main rail'; gap: var(--space-24); }
  .consultation-layout > .consultation-main { grid-area: main; }
  .consultation-layout > .consultation-rail { grid-area: rail; position: sticky; top: var(--space-16); }
+ /* The patient's live devices make the rail taller than a window, and a sticky column taller than the
+    window hides its own foot until the record beside it ends. With them, the rail scrolls with the page. */
+ .consultation-layout > .consultation-rail:has(.cr-devices) { position: static; }
 }
 /* In a dialog the column is narrow whatever the window is, so the rail stays above the record there. */
 .modal .consultation-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: none; }
