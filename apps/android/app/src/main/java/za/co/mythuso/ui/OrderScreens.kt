@@ -12,6 +12,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import za.co.mythuso.model.MedicinesData
 import za.co.mythuso.model.dispensingCrossReference
 import za.co.mythuso.model.seededSubjects
 
@@ -111,7 +112,8 @@ data class TimelineStep(val label: String, val detail: String, val at: String = 
                 TimelineStep("Collected at home", "Two tubes drawn, sealed and labelled at the bedside", "4 September, 09:05", "done"),
                 TimelineStep("Courier handover", "Seal scanned by courier · Temperature logged", "4 September, 09:40", "done"),
                 TimelineStep("Received by the laboratory", "Seal verified intact · Accessioned", "4 September, 12:15", "done"),
-                TimelineStep("Results verified", "Checked by the laboratory’s reviewing pathologist", "5 September, 07:30", "done"),
+                /* A reference returned, not a result verified: no test is run, so the contract's words. */
+                TimelineStep(MedicinesData.ResultsText.returned, MedicinesData.ResultsText.returnedDetail, "5 September, 07:30", "done"),
                 TimelineStep("Released to the patient", if (released) "Visible in the Health Passport with an explanation" else "Held until the requesting doctor releases them", state = if (released) "done" else "active")
             ))
         }

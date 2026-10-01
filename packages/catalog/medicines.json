@@ -198,7 +198,10 @@
    "acknowledged": "Acknowledged. The order can close.",
    "close": "Close the order",
    "closed": "Closed.",
-   "empty": "No result is waiting for you."
+   "empty": "No result is waiting for you.",
+   "_returnedNote": "The step a laboratory order's chain of custody ends on before release (1 October 2026). All three platforms said \"Results verified — Checked by the laboratory's reviewing pathologist\" above a panel saying no laboratory is connected: no test is run, so nothing was verified and no pathologist checked anything. What the synthetic laboratory does is hand back a reference, so that is the step, in these words on every platform.",
+   "returned": "Result reference returned",
+   "returnedDetail": "No test is run. The synthetic laboratory hands back a reference to a result, and no pathologist has checked anything."
   }
  },
 

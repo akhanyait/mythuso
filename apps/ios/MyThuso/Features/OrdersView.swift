@@ -181,7 +181,8 @@ struct LabOrderView: View {
                         .init(label: "Collected at home", detail: "Two tubes drawn, sealed and labelled at the bedside", at: "4 September, 09:05", state: "done"),
                         .init(label: "Courier handover", detail: "Seal scanned by courier · Temperature logged", at: "4 September, 09:40", state: "done"),
                         .init(label: "Received by the laboratory", detail: "Seal verified intact · Accessioned", at: "4 September, 12:15", state: "done"),
-                        .init(label: "Results verified", detail: "Checked by the laboratory’s reviewing pathologist", at: "5 September, 07:30", state: "done"),
+                        /* A reference returned, not a result verified: no test is run, so the contract's words. */
+                        .init(label: Medicines.ResultsText.returned, detail: Medicines.ResultsText.returnedDetail, at: "5 September, 07:30", state: "done"),
                         .init(label: "Released to the patient", detail: released ? "Visible in the Health Passport with an explanation" : "Held until the requesting doctor releases them", at: "", state: released ? "done" : "active")
                     ])
                 }

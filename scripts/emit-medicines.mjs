@@ -9,8 +9,11 @@
  * iOS and Android cannot read JSON at runtime, so the copy is generated rather than typed and
  * scripts/check-boundaries.mjs compares it on every build.
  *
- * WHAT IS NOT WRITTEN. No formulary, no check outcome and nothing about a lab result: no phone prescribes,
- * verifies, dispenses or acknowledges in this wave, and a list a phone does not use is a list nobody updates. No
+ * WHAT IS NOT WRITTEN. No formulary, no check outcome and nothing about a lab result's value or its
+ * acknowledgement: no phone prescribes, verifies, dispenses or acknowledges in this wave, and a list a phone does
+ * not use is a list nobody updates. The one lab sentence written is the step a laboratory order's custody ends on
+ * before release (screen.results.returned and returnedDetail), because both phones draw that timeline and typed
+ * "Results verified" on it over a laboratory that runs no test. No
  * setting's value an admin put in force: neither app reaches a settings route, so each uses the defaults written
  * here and says so beside each.
  *
@@ -68,6 +71,11 @@ export function emitMedicines(root = '') {
  }
  const refusals = [...seen.values()];
  const text = Object.entries(contract.screen.handover).filter(([key, value]) => typeof value === 'string' && !key.startsWith('_'));
+ const resultsText = ['returned', 'returnedDetail'].map(key => {
+  const value = contract.screen.results?.[key];
+  if (typeof value !== 'string' || !value.trim()) throw new Error(`${SOURCE} screen.results.${key} is missing, and both phones draw the laboratory order's last custody step from it.`);
+  return [key, value];
+ });
  const schedules = dispensing.schedules.items;
  const drivers = dispensing.schedules.drivers.roles;
  const list = (items, write) => items.map(write).join(', ');
@@ -100,6 +108,11 @@ ${contract.custody.voidReasons.map(s => `        .init(id: ${swift(s.code)}, lab
 
     enum HandoverText {
 ${text.map(([key, value]) => `        static let ${key} = ${swift(value)}`).join('\n')}
+    }
+
+    /// The laboratory order's last custody step before release. A reference returned, never a verified result.
+    enum ResultsText {
+${resultsText.map(([key, value]) => `        static let ${key} = ${swift(value)}`).join('\n')}
     }
 
     static let refusals: [MedicinesRefusal] = [
@@ -136,6 +149,11 @@ ${contract.custody.voidReasons.map(s => `        MedicinesChoice(${kotlin(s.code
 
     object HandoverText {
 ${text.map(([key, value]) => `        const val ${key} = ${kotlin(value)}`).join('\n')}
+    }
+
+    /** The laboratory order's last custody step before release. A reference returned, never a verified result. */
+    object ResultsText {
+${resultsText.map(([key, value]) => `        const val ${key} = ${kotlin(value)}`).join('\n')}
     }
 
     val refusals = listOf(

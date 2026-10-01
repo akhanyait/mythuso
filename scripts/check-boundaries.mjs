@@ -39273,6 +39273,26 @@ console.log(checkLiveVitals({ read, files }));
   console.log(`The laboratory order · ${requested[1].match(/'/g).length / 2} tests from the laboratory's menu, no typed result, unit, range or flag, under the laboratory's own notice and in the medicines contract's words.`);
 }
 
+/* The step a laboratory order's custody ends on before release — 1 October 2026. All three platforms typed
+   "Results verified · Checked by the laboratory's reviewing pathologist" above a notice saying no laboratory
+   is connected, which claims a test was run and a pathologist read it when the synthetic laboratory runs
+   nothing and hands back a reference. The step is medicines.json#screen.results.returned now, and both
+   phones draw it from the generated MedicinesData. The web's OrderDetails.tsx is held to the same once its
+   own copy is retired; until then it is the one file this does not read. */
+{
+  const results = JSON.parse(read("packages/catalog/medicines.json")).screen.results;
+  for (const [file, reads] of [
+    ["apps/ios/MyThuso/Features/OrdersView.swift", "Medicines.ResultsText.returned"],
+    ["apps/android/app/src/main/java/za/co/mythuso/ui/OrderScreens.kt", "MedicinesData.ResultsText.returned"],
+  ]) {
+    const code = read(file);
+    if (/reviewing pathologist|"Results verified"/.test(code))
+      throw new Error(`${file} says a laboratory's pathologist verified a result. No laboratory is connected and no test is run; the step is "${results.returned}", read from MedicinesData.`);
+    if (!code.includes(reads) || code.includes(results.returned) || code.includes(results.returnedDetail))
+      throw new Error(`${file} does not draw the laboratory order's last custody step from ${reads}. It is packages/catalog/medicines.json's sentence, generated for both phones, and a typed copy is the one that says "verified" again.`);
+  }
+}
+
 /* The patient's home on three platforms — 1 October 2026 */
 /* Four things a review found the three homes saying differently, each held here rather than trusted:
 

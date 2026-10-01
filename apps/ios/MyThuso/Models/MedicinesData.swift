@@ -53,6 +53,12 @@ extension Medicines {
         static let empty = "No patient has authorised you to collect a bag."
     }
 
+    /// The laboratory order's last custody step before release. A reference returned, never a verified result.
+    enum ResultsText {
+        static let returned = "Result reference returned"
+        static let returnedDetail = "No test is run. The synthetic laboratory hands back a reference to a result, and no pathologist has checked anything."
+    }
+
     static let refusals: [MedicinesRefusal] = [
         .init(id: "no-authorisation", status: 403, statement: "Nobody collects without the patient's authorisation."),
         .init(id: "not-the-authorised-collector", status: 403, statement: "Only the person the patient authorised collects or hands over this bag."),
