@@ -1721,7 +1721,7 @@
       "sore eyes that hurt in bright light"
     ],
     "whenToSeeDoctor": "This is an emergency. Call 10177 (or 112 from a cellphone) if a spreading rash blisters or peels, especially after starting a new medicine (in South Africa this includes some HIV and epilepsy medicines), or if there is trouble breathing, a tight chest or throat, or a swollen face or eyes.",
-    "homeCare": "There is no care at home for this. Do not drive yourself: call an ambulance or have someone take you, and bring every medicine you have been taking.",
+    "homeCare": "There is no care at home for this. Do not drive yourself: call an ambulance or have someone take you, and bring every medicine being taken, and any stopped in recent weeks.",
     "tags": ["dermatological", "emergency", "medicine-reaction", "blistering", "rash"],
     "codes": {},
     "source": {
