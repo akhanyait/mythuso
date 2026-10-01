@@ -18,6 +18,7 @@ import {
   contractDefaults,
   contractVoices,
   monthlyCeiling,
+  type CeilingStore,
   readingFor,
   voiceLabelFor,
   type PresentationVoiceSource,
@@ -504,12 +505,15 @@ export function selectedSpeech(
      A caller passing neither gets the environment and the contract's default label, exactly as before. */
   envFor: (card: string) => Record<string, string | undefined> = () => env,
   voices: PresentationVoiceSource = contractVoices,
+  /* Since 1 October 2026: where the month's spoken-character count is kept between restarts — the
+     state directory's file when server.ts has one, and nowhere for a caller that passes nothing. */
+  ceilingStore: CeilingStore | null = null,
 ): SpeechSeam {
   const selection = speechSelection(env);
   const stt = ADAPTERS[selection.stt.card](fetchImpl, envFor(selection.stt.card));
   const tts = ADAPTERS[selection.tts.card](fetchImpl, envFor(selection.tts.card));
   const speakers = new Map(selection.admittedTts.map((id) => [id, id === selection.tts.card ? tts : ADAPTERS[id](fetchImpl, envFor(id))]));
-  const ceiling = monthlyCeiling(settings);
+  const ceiling = monthlyCeiling(settings, ceilingStore);
   return {
     configured: (direction) =>
       direction === "stt"
@@ -523,21 +527,28 @@ export function selectedSpeech(
       const chosen = reading.provider ? speakers.get(reading.provider) : undefined;
       const door = chosen?.configured("tts") ? chosen : reading.fallbackToDefault ? tts : null;
       if (!door) return { ok: false };
-      const moment = now();
-      if (!ceiling.admits(request.text.length, moment)) return { ok: false, ceilingReached: true };
-      /* The founder's presentation voice reaches a reading only when the caller named no voice and the
-         register is a presentation one: voiceLabelFor() answers undefined for every other register, so
-         an emergency answer is read in the platform's default label whatever the history says. */
-      const voiceLabel = request.voice ? undefined : voiceLabelFor(voices, request.register ?? null);
-      const read = await door.synthesize({ ...request, voiceLabel, tuning: request.tuning ?? reading.tuning });
-      /* A chosen provider that did not answer — a fault, a timeout — is the default's turn, once,
-         when the fallback setting says so; a language it has no voice for is not a fault, and is
-         answered as such rather than read by another provider in another voice. */
-      const final = !read.ok && !read.voiceUnavailable && door !== tts && reading.fallbackToDefault
-        ? await tts.synthesize({ ...request, voiceLabel, tuning: request.tuning ?? reading.tuning })
-        : read;
-      if (final.ok) ceiling.count(request.text.length, moment);
-      return final;
+      /* Held before the provider is asked and settled once it has answered, so readings that arrive
+         together cannot each find room the others are about to spend (./speech-settings.ts). */
+      const reservation = ceiling.reserve(request.text.length, now());
+      if (!reservation) return { ok: false, ceilingReached: true };
+      let billed = false;
+      try {
+        /* The founder's presentation voice reaches a reading only when the caller named no voice and the
+           register is a presentation one: voiceLabelFor() answers undefined for every other register, so
+           an emergency answer is read in the platform's default label whatever the history says. */
+        const voiceLabel = request.voice ? undefined : voiceLabelFor(voices, request.register ?? null);
+        const read = await door.synthesize({ ...request, voiceLabel, tuning: request.tuning ?? reading.tuning });
+        /* A chosen provider that did not answer — a fault, a timeout — is the default's turn, once,
+           when the fallback setting says so; a language it has no voice for is not a fault, and is
+           answered as such rather than read by another provider in another voice. */
+        const final = !read.ok && !read.voiceUnavailable && door !== tts && reading.fallbackToDefault
+          ? await tts.synthesize({ ...request, voiceLabel, tuning: request.tuning ?? reading.tuning })
+          : read;
+        billed = final.ok;
+        return final;
+      } finally {
+        ceiling.settle(reservation, billed);
+      }
     },
   };
 }

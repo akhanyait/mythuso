@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
-import { mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { openFounderState } from "./founder-state.ts";
@@ -76,6 +76,28 @@ test("a stored key is encrypted at rest, 0600, read back through envFor() alone,
     /* The wrong master key reads nothing, and says the card is configured by nothing. */
     const wrong = openVault(box.state, { [VAULT_KEY_VARIABLE]: randomBytes(32).toString("base64") });
     assert.equal(wrong.envFor().AZURE_SPEECH_KEY, undefined);
+  } finally {
+    box.done();
+  }
+});
+
+test("a stored key whose authentication tag has been cut short is not read: the tag is the full sixteen bytes or nothing", () => {
+  /* 1 October 2026. GCM checks a short tag against that much of the real one and no more, so without
+     authTagLength a vault file whose tag was cut to four bytes still decrypted. */
+  const box = sandbox();
+  try {
+    const vault = openVault(box.state, { [VAULT_KEY_VARIABLE]: MASTER, AZURE_SPEECH_REGION: "southafricanorth" });
+    assert.ok(vault.setKey("azure-speech", SPEECH_FIXTURE, T0).ok);
+    const path = join(box.dir, VAULT_FILE);
+    const file = JSON.parse(readFileSync(path, "utf8")) as { keys: Record<string, { tag: string }> };
+    const [variable] = Object.keys(file.keys);
+    const full = Buffer.from(file.keys[variable]!.tag, "base64");
+    assert.equal(full.length, 16, "encrypt() writes the full tag");
+    /* The whole tag still reads. */
+    assert.equal(openVault(box.state, { [VAULT_KEY_VARIABLE]: MASTER }).envFor().AZURE_SPEECH_KEY, SPEECH_FIXTURE);
+    file.keys[variable]!.tag = full.subarray(0, 4).toString("base64");
+    writeFileSync(path, JSON.stringify(file));
+    assert.equal(openVault(box.state, { [VAULT_KEY_VARIABLE]: MASTER }).envFor().AZURE_SPEECH_KEY, undefined, "a four-byte prefix of the right tag is refused");
   } finally {
     box.done();
   }

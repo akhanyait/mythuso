@@ -121,15 +121,16 @@
   },
   "audit": {
     "events": ["founder.sign-in", "founder.sign-out", "founder.keys", "founder.reveal", "founder.settings", "founder.settings.change", "founder.providers", "founder.provider.key-set", "founder.provider.key-deleted", "founder.provider.enabled", "founder.provider.test", "founder.provider.logs"],
-    "why": "One line per sign-in attempt, sign-out, metadata read and reveal, each carrying the event, the outcome, and — for a reveal — the key's name and fingerprint prefix. Never a password, a code, a cookie or a value: the line is built by one function whose parameters cannot carry any of them. Since 28 September 2026 the same function writes one line per settings read and change (carrying the setting's key), and per provider read, key set, key deletion, enable change, test and log read (carrying the card and, for a key set, the new key's fingerprint prefix) — and every line is also appended to the audit file in the service's state directory, which is what GET /v1/founder/providers/{card}/logs reads back.",
+    "why": "One line per sign-in attempt, sign-out, metadata read and reveal, each carrying the event, the outcome, and — for a reveal — the key's name and fingerprint prefix. Never a password, a code, a cookie or a value: the line is built by one function whose parameters cannot carry any of them. Since 28 September 2026 the same function writes one line per settings read and change (carrying the setting's key), and per provider read, key set, key deletion, enable change, test and log read (carrying the card and, for a key set, the new key's fingerprint prefix) — and every line of an accepted sign-in or of an act inside a session is also appended to the audit file in the service's state directory, which is what GET /v1/founder/providers/{card}/logs reads back. Since 1 October 2026 a refusal met before any session exists — cross-site, dark, no live session, a refused sign-in — goes to the journal alone: the file is never trimmed and sits on a disk five other sites share, and a stranger's knocking had been both growing it and pushing the founder's own lines out of a card's tail. The logs route reads only the file's last logsReadBytes, so what it costs is bounded by that window and not by how long the service has run.",
     "file": "founder-audit.jsonl",
-    "logsTail": 200
+    "logsTail": 200,
+    "logsReadBytes": 1048576
   },
   "ownership": {
     "by": "Founder",
     "on": "2026-09-28",
     "what": "I need to be able to control all these aspects, I am the owner.",
-    "why": "Two facts made the Control Tower's settings and provider controls a preview: a setting saved there lived only in the browser tab while the speak route read the contract's defaults, so a founder who made every presentation voice male still heard a female voice on the test; and a provider key could be set only over SSH, so every registry action was disabled for want of a vault. Both are now the assistant service's, behind the same founder session: a signed, append-only settings history the speak route reads, and a key vault whose values never leave the box. Where the service has no state directory or no vault key, each refuses and says so; nothing here changes what a clinical-delivery register is read with."
+    "why": "Two facts made the Control Tower's settings and provider controls a preview: a setting saved there lived only in the browser tab while the speak route read the contract's defaults, so a founder who made every presentation voice male still heard a female voice on the test; and a provider key could be set only over SSH, so every registry action was disabled for want of a vault. Both are now the assistant service's, behind the same founder session: an append-only settings history the speak route reads, each change recorded against the founder's session (recorded, not cryptographically signed: whoever can write the state directory can write the file), and a key vault whose values never leave the box. Where the service has no state directory or no vault key, each refuses and says so; nothing here changes what a clinical-delivery register is read with."
   },
   "state": {
     "variable": "MYTHUSO_ASSISTANT_STATE_DIR",
@@ -137,8 +138,9 @@
     "settingsFile": "settings-history.jsonl",
     "vaultFile": "vault.json",
     "auditFile": "founder-audit.jsonl",
+    "speechCeilingFile": "speech-ceiling.json",
     "fileMode": "0600",
-    "why": "The service kept nothing on disk until 28 September 2026, and it still keeps nothing a patient said: the state directory holds the founder's settings history, the encrypted vault and the founder audit, and nothing else. deploy/ops/assistant-api.service declares it as a systemd StateDirectory and hands its path to the process in this variable; a process started without the variable — a developer's shell, a test — reads the contract's defaults, answers every founder read, and refuses every founder write with founder-state-unavailable rather than keeping a change it would lose at the next restart. Every file is written 0600, appended to or replaced atomically, and never edited."
+    "why": "The service kept nothing on disk until 28 September 2026, and it still keeps nothing a patient said: the state directory holds the founder's settings history, the encrypted vault, the founder audit and, since 1 October 2026, the month's count of characters the cloud voice has read (speech-ceiling.json, so the administrator's monthly ceiling survives a restart), and nothing else. deploy/ops/assistant-api.service declares it as a systemd StateDirectory and hands its path to the process in this variable; a process started without the variable — a developer's shell, a test — reads the contract's defaults, answers every founder read, and refuses every founder write with founder-state-unavailable rather than keeping a change it would lose at the next restart. Every file is written 0600, appended to or replaced atomically, and never edited."
   },
   "settings": {
     "engine": "assistant",

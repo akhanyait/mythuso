@@ -203,7 +203,11 @@ variable — a shell, a test, a box whose unit predates this — reads the contr
 every founder read with `persisted: false`, and refuses every founder write with
 `founder-state-unavailable` rather than keeping a change it would lose at the next restart.
 
-**A founder-signed settings history.** `GET /v1/founder/settings` answers the assistant's settings in
+**A settings history recorded against the founder's session.** (It was called "founder-signed" until
+1 October 2026. It is not signed: a line records the founder as the reference because the change was
+made inside the founder's session, and nothing in the line proves it afterwards — whoever can write
+the state directory can write a line the replay accepts. The directory's 0700 and the file's 0600 are
+what protect it; a keyed MAC under the vault key is not built.) `GET /v1/founder/settings` answers the assistant's settings in
 force — every presentation voice, provider and speech knob in the shared read shape of
 `packages/catalog/settings.json#routes.read`, with `persisted` and the session's `expiresAt` beside
 them — and every change made. `POST /v1/founder/settings/changes` takes one change: `setting`, `from`
@@ -260,6 +264,19 @@ Every founder branch writes its line through `founderAudit()`, which is `console
 to `founder-audit.jsonl` in the state directory, stamped with when; the build refuses a founder
 branch that calls the console directly. The logs route reads that file back, per card, capped at the
 contract's `audit.logsTail`. The journal is still what root reads; the file is what the founder reads.
+
+Since 1 October 2026 the file keeps only the founder's own lines — an accepted sign-in and every act
+inside a session, whatever its outcome — and a refusal met before any session exists (cross-site,
+dark, no session, a refused sign-in) goes to the journal alone. The file is never trimmed and sits on
+a disk five other sites share, and those refusals are anybody's to send: they had been growing it
+without bound and pushing the founder's own lines out of a card's tail. The logs route now reads only
+the file's last `audit.logsReadBytes` (one MiB), so what a read costs no longer grows with the file.
+The rule is `keptInAudit()` in `founder-access.ts`, and the build holds `founderAudit()` to it.
+
+**Sign-in is one at a time.** Since the same day, concurrent sign-ins queue: at most one scrypt
+derivation (128 MiB) runs at once, each attempt meets the lock as the attempts before it left it, and
+the fifth consecutive failure refuses everything queued behind it without hashing. No refusal was
+added or changed.
 
 ### What an attacker can and cannot do, amended
 

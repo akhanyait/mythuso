@@ -323,3 +323,30 @@ test('the Azure LangChain client sends the same ceiling on the wire, as max_comp
   await provider.close();
  }
 });
+
+test('two conversations orchestrated at once each reach the model with their own context and never the other’s', async () => {
+ /* 1 October 2026. The context used to reach the graph through a module-level variable set just
+    before it ran; a second call arriving while the first awaited its provider overwrote it, and the
+    first patient's prompt was composed from the second patient's words. Every request body the model
+    receives is read for both markers. */
+ const provider = await scriptedProvider([assistantAnswer('Please speak to the clinic nurse about that.')]);
+ try {
+  await withEnv({ OLLAMA_URL: provider.url }, async () => {
+   const results = await Promise.all([
+    orchestrate('how do I look after a cut', { lines: ['Patient said: alpha-context-marker'], language: 'en' }),
+    orchestrate('how do I look after a burn', { lines: ['Patient said: beta-context-marker'], language: 'af' }),
+   ]);
+   assert.ok(results.every((r) => r.degraded === false));
+   const prompts = provider.bodies.filter((body) => body.includes('context-marker'));
+   assert.ok(prompts.some((body) => body.includes('alpha-context-marker')), 'the first conversation reached the model with its own context');
+   assert.ok(prompts.some((body) => body.includes('beta-context-marker')), 'and so did the second');
+   for (const body of prompts) {
+    assert.equal(body.includes('alpha-context-marker') && body.includes('beta-context-marker'), false, 'no prompt carries both');
+    if (body.includes('alpha-context-marker')) assert.ok(body.includes('a cut') && !body.includes('a burn'), 'the first context travels with the first message');
+    if (body.includes('beta-context-marker')) assert.ok(body.includes('a burn') && !body.includes('a cut'), 'the second context travels with the second message');
+   }
+  });
+ } finally {
+  await provider.close();
+ }
+});

@@ -243,6 +243,27 @@ export function founderLine(
   return JSON.stringify(line);
 }
 
+/* Which founder lines are also kept in the audit file, 1 October 2026. Every line still goes to the
+   journal. The file is what the founder reads back, and it is the founder's own record: a sign-in that
+   was accepted, and every act made inside a session, whatever its outcome. A refusal met before any
+   session exists — a cross-site request, a dark service, no live session, a sign-in that was refused —
+   is a stranger's knock, and until today each one appended a line to a file that is never trimmed, on
+   a disk five other sites share, pushing the founder's own lines out of a card's logs tail. Those go to
+   the journal alone, where root reads them and journald rotates them. A line that does not parse is
+   kept out of the file too: founderLine() never writes one, so it can only be a fault. */
+const REFUSED_BEFORE_A_SESSION: readonly string[] = ["founder-request-cross-site", "founder-access-dark", "founder-no-session"];
+export function keptInAudit(line: string): boolean {
+  let parsed: { event?: unknown; outcome?: unknown };
+  try {
+    parsed = JSON.parse(line);
+  } catch {
+    return false;
+  }
+  if (typeof parsed?.outcome !== "string") return false;
+  if (parsed.event === "founder.sign-in") return parsed.outcome === "accepted";
+  return !REFUSED_BEFORE_A_SESSION.includes(parsed.outcome);
+}
+
 /* ---- The account ------------------------------------------------------------------------------- */
 
 export type SignedIn = { ok: true; cookie: string; expiresAt: string };
@@ -283,6 +304,15 @@ export function createFounderAccess(
   let failures = 0;
   let lockedUntil = 0;
   let lastUsedStep: number | null = null;
+  /* The tail of the sign-in queue. Added 1 October 2026: the lock was checked before the hash and a
+     failure counted after it, so twenty sign-ins sent at once all passed the check together and
+     queued twenty scrypt derivations — 128 MiB and a libuv thread each, on a box five other sites
+     share — before the first of them could count. Each sign-in now waits for the one before it to
+     finish, so at most one derivation runs at a time, every attempt meets the lock as the attempts
+     before it left it, and the fifth consecutive failure refuses everything queued behind it without
+     hashing. No refusal is added and none changes: a sign-in that waited is answered exactly as it
+     would have been had it arrived a moment later. */
+  let signInQueue: Promise<void> = Promise.resolve();
 
   const locked = () => now() < lockedUntil;
   /* A failure counts toward the lock whichever factor it was, and the fifth ends every session. */
@@ -309,22 +339,33 @@ export function createFounderAccess(
     },
 
     async signIn(password, code) {
-      if (!credential) return { ok: false, refusalId: "founder-access-dark" };
-      if (locked()) return { ok: false, refusalId: "founder-locked-out" };
-      const passwordOk = await verifyPassword(typeof password === "string" ? password : "", credential.hash);
-      /* After the await, and synchronously from here to the burn: two sign-ins racing on one code
-         cannot both spend it, and a lock that landed while this one was hashing still holds. */
-      if (locked()) return { ok: false, refusalId: "founder-locked-out" };
-      const check = verifyTotp(credential.totpSecret, typeof code === "string" ? code : "", now(), lastUsedStep);
-      /* A reused code with the right password is refused in the same words as a wrong password: at
-         sign-in, a refusal that named the factor would tell a stranger which half they already had. */
-      if (!passwordOk || !check.ok) return fail("founder-credentials-refused");
-      lastUsedStep = check.step;
-      failures = 0;
-      const id = randomBytes(contract.session.idBytes).toString("base64url");
-      const expiresAt = now() + lifetime;
-      session = { idHash: digest(id), expiresAt };
-      return { ok: true, cookie: sessionCookie(id), expiresAt: new Date(expiresAt).toISOString() };
+      /* Wait for the sign-in ahead of this one, and hold the queue until this one has answered. */
+      const ahead = signInQueue;
+      let finished = () => {};
+      signInQueue = new Promise<void>((resolve) => {
+        finished = resolve;
+      });
+      await ahead;
+      try {
+        if (!credential) return { ok: false, refusalId: "founder-access-dark" };
+        if (locked()) return { ok: false, refusalId: "founder-locked-out" };
+        const passwordOk = await verifyPassword(typeof password === "string" ? password : "", credential.hash);
+        /* After the await, and synchronously from here to the burn: two sign-ins racing on one code
+           cannot both spend it, and a lock that landed while this one was hashing still holds. */
+        if (locked()) return { ok: false, refusalId: "founder-locked-out" };
+        const check = verifyTotp(credential.totpSecret, typeof code === "string" ? code : "", now(), lastUsedStep);
+        /* A reused code with the right password is refused in the same words as a wrong password: at
+           sign-in, a refusal that named the factor would tell a stranger which half they already had. */
+        if (!passwordOk || !check.ok) return fail("founder-credentials-refused");
+        lastUsedStep = check.step;
+        failures = 0;
+        const id = randomBytes(contract.session.idBytes).toString("base64url");
+        const expiresAt = now() + lifetime;
+        session = { idHash: digest(id), expiresAt };
+        return { ok: true, cookie: sessionCookie(id), expiresAt: new Date(expiresAt).toISOString() };
+      } finally {
+        finished();
+      }
     },
 
     sessionFrom(cookieHeader) {

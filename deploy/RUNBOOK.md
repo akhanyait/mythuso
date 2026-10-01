@@ -630,8 +630,10 @@ provider vault_). Three things on the box make them work, and none is done by a 
   every stored provider key would have to be entered again.
 - **The state directory.** The unit now declares `StateDirectory=mythuso-assistant`, so systemd creates
   `/var/lib/mythuso-assistant` (0700, owned for the dynamic user) and hands its path to the process in
-  `MYTHUSO_ASSISTANT_STATE_DIR`. It holds `settings-history.jsonl`, `vault.json` and
-  `founder-audit.jsonl`, each 0600, and nothing else — never anything a patient said. Without it the
+  `MYTHUSO_ASSISTANT_STATE_DIR`. It holds `settings-history.jsonl`, `vault.json`,
+  `founder-audit.jsonl` and, since 1 October 2026, `speech-ceiling.json` (the month and the number of
+  characters the cloud voice has read in it, so the monthly ceiling survives a restart), each 0600,
+  and nothing else — never anything a patient said. Without it the
   service answers every founder read with `persisted: false` and refuses every founder write (503,
   "This server has no state directory"). Back it up with the box; a backup of it alone reveals nothing,
   since the vault key is in `founder.env`.

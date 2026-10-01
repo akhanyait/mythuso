@@ -296,6 +296,13 @@ const errorCode = (error: unknown): string => {
 const OrchestratorState = Annotation.Root({
   /* The PHI-redacted user text. */
   input: Annotation<string>({ reducer: (_, b) => b, default: () => "" }),
+  /* The session context orchestrate() was called with — this invocation's own, carried in its own
+     state. Until 1 October 2026 it travelled through a module-level variable set just before the
+     graph ran, on the reasoning that two invocations never interleave. They do: check_activation
+     awaits the provider probe before it reads the context, so a second patient's call arriving in
+     that gap overwrote the variable and the first patient's prompt was composed from the second's
+     words. State is per invocation, so nothing one call does can reach another's. */
+  sessionContext: Annotation<SessionContext>({ reducer: (_, b) => b, default: () => ({}) }),
   /* Absolute deadline timestamp (started + timeoutMs). */
   deadline: Annotation<number>({ reducer: (_, b) => b, default: () => 0 }),
   /* Timestamp when orchestration began, for the ms field. */
@@ -352,13 +359,9 @@ async function nodeCheckActivation(state: GraphState): Promise<Partial<GraphStat
     return { degraded: true, degradedReason: "no-provider-configured", providerName: "", earlyExit: true };
   }
 
-  const systemPrompt = orchestratorSystemPrompt(
-    /* The session context is captured in the closure of orchestrate() and passed via the
-       initial state's systemPrompt field — but since we need the resolved model first, we
-       compose it here. The sessionContext is threaded through a module-level variable set
-       by orchestrate() before graph.invoke(). */
-    sessionContextRef,
-  );
+  /* Composed here rather than in orchestrate(), because the model has to be resolved first; the
+     context it is composed from is this invocation's own state channel, never a shared variable. */
+  const systemPrompt = orchestratorSystemPrompt(state.sessionContext);
   if (!systemPrompt.trim()) {
     return { degraded: true, degradedReason: "empty-system-prompt", providerName: resolved.name, model: resolved, earlyExit: true };
   }
@@ -614,13 +617,6 @@ const orchestratorGraph = new StateGraph(OrchestratorState)
   .addEdge("compose", END)
   .compile();
 
-/* ---- The session context reference ----
-   The graph nodes are stateless functions; the session context that orchestrate() receives is
-   set here before each invocation so check_activation can compose the system prompt. This is
-   safe because Node.js is single-threaded and orchestrate() awaits the graph to completion
-   before returning — no two invocations interleave within one event loop tick. */
-let sessionContextRef: SessionContext = {};
-
 /* ---- The public interface (unchanged) ---- */
 
 export async function orchestrate(
@@ -631,15 +627,13 @@ export async function orchestrate(
   const started = Date.now();
   const deadline = started + timeoutMs;
 
-  /* Set the session context for the graph's check_activation node. */
-  sessionContextRef = sessionContext;
-
   const redactedText = redactPHI(message ?? "");
 
   /* Invoke the StateGraph. The graph handles the full pipeline: activation gate, escalation,
      NER extraction, routing, the ReAct tool loop, the post-tool gate, and final composition. */
   const finalState = await orchestratorGraph.invoke({
     input: redactedText,
+    sessionContext,
     deadline,
     started,
   });

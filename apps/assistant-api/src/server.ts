@@ -21,6 +21,7 @@ import {
   clearedCookie as clearedFounderCookie,
   createFounderAccess,
   founderLine,
+  keptInAudit,
   type FounderAccess,
 } from "./lib/founder-access.ts";
 import { corsFor } from "./lib/origin-policy.ts";
@@ -34,12 +35,13 @@ import {
   SPEECH_VOICE_NAMES,
   type SpeechSeam,
 } from "./lib/speech.ts";
-import { knownRegister } from "./lib/speech-settings.ts";
+import { knownRegister, type CeilingStore } from "./lib/speech-settings.ts";
 import { triageGate } from "./lib/triage-gate.ts";
 import { validateVital, type VitalInput } from "./lib/vitals.ts";
-import { handleTurn, handleTurnStream, RequiredFieldMissingError } from "./routes/turn.ts";
+import { handleTurn, handleTurnStream, PayloadTooLargeError, RequiredFieldMissingError } from "./routes/turn.ts";
 import assistantContract from "../../../packages/catalog/apis/assistant.json" with { type: "json" };
 import founderContract from "../../../packages/catalog/founder-access.json" with { type: "json" };
+import voiceContract from "../../../packages/catalog/voice.json" with { type: "json" };
 
 /* No web framework, the same way apps/api has none: two routes over node:http, and the only
    dependencies this service carries are the LangChain tier and the catalog it reads — every one of
@@ -48,6 +50,9 @@ import founderContract from "../../../packages/catalog/founder-access.json" with
    this comment used to do. */
 
 const MAX_BODY_BYTES = 768 * 1024;
+/* The most one speak call may ask to be read (packages/catalog/voice.json#speakTextMaxCharacters),
+   checked before any provider is asked or the month's ceiling is touched. */
+const SPEAK_TEXT_MAX_CHARACTERS: number = voiceContract.speakTextMaxCharacters;
 
 /* The plan's versioned family, and what this process does not answer of it yet. The contract
    (packages/catalog/apis/assistant.json) declares this service's addresses; any address no version
@@ -212,10 +217,19 @@ async function readJsonBody(
 ): Promise<{ ok: true; value: unknown } | { ok: false; status: 400 | 413 }> {
   const chunks: Buffer[] = [];
   let size = 0;
-  for await (const chunk of req as AsyncIterable<Buffer>) {
-    size += chunk.length;
-    if (size > MAX_BODY_BYTES) return { ok: false, status: 413 };
-    chunks.push(chunk);
+  /* A caller that hangs up halfway through its body makes the iteration throw ("aborted",
+     ECONNRESET). Until 1 October 2026 nothing caught it, the rejection left the handler unhandled, and
+     Node ended the process — and with it the founder's lock count, the burned authenticator step, the
+     month's speech count and every conversation in memory. A body that never arrived is a malformed
+     request, answered as one; the caller is usually gone and never reads it. */
+  try {
+    for await (const chunk of req as AsyncIterable<Buffer>) {
+      size += chunk.length;
+      if (size > MAX_BODY_BYTES) return { ok: false, status: 413 };
+      chunks.push(chunk);
+    }
+  } catch {
+    return { ok: false, status: 400 };
   }
   if (!chunks.length) return { ok: true, value: {} };
   try {
@@ -362,13 +376,16 @@ export function createAssistantServer(
      its credentials through the vault's view of its own card, the speech settings and the presentation
      voice read from the founder's history at every reading — which is what makes a saved "male" reach
      the voice test, and what a clinical register never asks. */
-  const speech: SpeechSeam = speechSeam ?? selectedSpeech(fetch, vault.envFor(), settings.speech, now, (card) => vault.envFor(card), settings.presentationVoice);
+  const speech: SpeechSeam = speechSeam ?? selectedSpeech(fetch, vault.envFor(), settings.speech, now, (card) => vault.envFor(card), settings.presentationVoice, ceilingStoreOf(state));
   /* One founder audit line: to the journal, as always, and — where this process has a state directory —
      appended to the audit file the logs route reads back, stamped with when. founderLine() built the
-     line, so nothing that reaches either place can be a password, a code, a cookie or a value. */
+     line, so nothing that reaches either place can be a password, a code, a cookie or a value. Since 1
+     October 2026 only the founder's own lines reach the file — an accepted sign-in and every act inside
+     a session — and a refusal met before any session exists stays in the journal (keptInAudit() in
+     ./lib/founder-access.ts has why). */
   const founderAudit = (line: string): void => {
     console.log(line);
-    if (state) state.appendLine(founderContract.audit.file, JSON.stringify({ at: new Date(now()).toISOString(), ...JSON.parse(line) }));
+    if (state && keptInAudit(line)) state.appendLine(founderContract.audit.file, JSON.stringify({ at: new Date(now()).toISOString(), ...JSON.parse(line) }));
   };
   /* Read once, per server: the facts the status routes report are facts about how this process was
     configured, and they cannot change while it runs. */
@@ -401,7 +418,14 @@ export function createAssistantServer(
     speech: speech.configured(),
   });
 
-  return createServer(async (req, res) => {
+  /* Every request, answered. A fault no branch below caught — a disk that refused the audit file, a
+     vault write that hit a full volume, a body that broke off — used to escape this async handler as an
+     unhandled rejection, and Node 22 ends the process on one: systemd brought it back five seconds
+     later with the founder's lock count, the burned authenticator step, the month's speech count and
+     every conversation gone. It is caught here instead: one line carrying the error's type name and
+     nothing else, and the generic 500 every route already declares, unless an answer had already
+     begun, in which case the answer is ended rather than contradicted. */
+  const answer = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
     const cors = corsFor(req.headers.origin);
     if (cors.refused) {
       /* A browser origin this deployment does not answer. Nothing further is read — not the method,
@@ -459,6 +483,16 @@ export function createAssistantServer(
             error: "required_field_missing",
             refusalId: "required-field-missing",
             message: "A field this route needs was not sent.",
+          });
+        }
+        /* A message over the contract's ceiling (packages/catalog/conversation-mode.json,
+       turnTextMaxCharacters) is the route's own payload-too-large; the handler never raises it for an
+       emergency. */
+        if (error instanceof PayloadTooLargeError) {
+          return send(res, 413, cors.headers, {
+            error: "payload_too_large",
+            refusalId: "payload-too-large",
+            message: "The request could not be processed safely.",
           });
         }
         /* Any other exception out of the turn is this process's fault, never the caller's: the 400 this
@@ -527,6 +561,13 @@ export function createAssistantServer(
               message: "A field this route needs was not sent.",
             });
           }
+          if (!opened && error instanceof PayloadTooLargeError) {
+            return send(res, 413, cors.headers, {
+              error: "payload_too_large",
+              refusalId: "payload-too-large",
+              message: "The request could not be processed safely.",
+            });
+          }
           console.error(
             failureLine("assistant.turn.failed", "/assistant/v1/turn", error),
           );
@@ -553,6 +594,16 @@ export function createAssistantServer(
             error: "required_field_missing",
             refusalId: "required-field-missing",
             message: "A field this route needs was not sent.",
+          });
+        }
+        /* A message over the contract's ceiling (packages/catalog/conversation-mode.json,
+       turnTextMaxCharacters) is the route's own payload-too-large; the handler never raises it for an
+       emergency. */
+        if (error instanceof PayloadTooLargeError) {
+          return send(res, 413, cors.headers, {
+            error: "payload_too_large",
+            refusalId: "payload-too-large",
+            message: "The request could not be processed safely.",
           });
         }
         console.error(
@@ -760,6 +811,16 @@ export function createAssistantServer(
         return send(res, 400, cors.headers, {
           error: "invalid_request",
           refusalId: "invalid-request",
+          message: "The request could not be processed safely.",
+        });
+      }
+      /* Words longer than one call may ask to be read are the route's own payload-too-large, before
+         any provider is asked and before the month's ceiling is touched: a body under the 768 KB cap
+         could otherwise ask for three quarters of a million characters to be voiced at once. */
+      if (text.length > SPEAK_TEXT_MAX_CHARACTERS) {
+        return send(res, 413, cors.headers, {
+          error: "payload_too_large",
+          refusalId: "payload-too-large",
           message: "The request could not be processed safely.",
         });
       }
@@ -1624,7 +1685,7 @@ export function createAssistantServer(
         return refuse(res, cors.headers, "founder-card-not-known");
       }
       const names = founderContract.keys.filter((k) => k.card === founderProvider.card).map((k) => k.name);
-      const lines = (state ? state.readLines(founderContract.audit.file) : [])
+      const lines = (state ? state.readTail(founderContract.audit.file, founderContract.audit.logsReadBytes) : [])
         .map((line) => {
           try {
             return JSON.parse(line) as Record<string, string>;
@@ -1651,7 +1712,38 @@ export function createAssistantServer(
       });
     }
     send(res, 404, cors.headers, { error: "not_found" });
+  };
+  return createServer((req, res) => {
+    answer(req, res).catch((error: unknown) => {
+      console.error(failureLine("assistant.request.failed", "/assistant", error));
+      try {
+        if (res.headersSent) {
+          res.end();
+          return;
+        }
+        const cors = corsFor(req.headers.origin);
+        send(res, 500, cors.refused ? {} : cors.headers, {
+          error: "internal_error",
+          refusalId: "internal-error",
+          message: "The request could not be processed safely.",
+        });
+      } catch {
+        res.destroy();
+      }
+    });
   });
+}
+
+/* Where the month's spoken-character count is kept between restarts: the state directory's file
+   (packages/catalog/founder-access.json#state.speechCeilingFile), replaced atomically, or nowhere for
+   a process that has no state directory — which then counts from the moment it started, as before. */
+function ceilingStoreOf(state: FounderState | null): CeilingStore | null {
+  if (!state) return null;
+  const file: string = founderContract.state.speechCeilingFile;
+  return {
+    load: () => state.readJson<{ month: string; used: number }>(file),
+    save: (value) => state.writeJson(file, value),
+  };
 }
 
 /* Binding is the entry's act, not the module's: imported by a test, this file exports the factory
@@ -1698,6 +1790,15 @@ export function start(): void {
     process.exit(1);
   }
   for (const line of selection.refused) console.error(line);
+  /* The last net, added 1 October 2026. Every request's own faults are answered inside the server; a
+     promise rejected outside any request — a timer, a provider's stream torn down after its caller left
+     — would otherwise end the process the way an aborted body once did, and take every in-memory
+     safeguard with it. One line, the error's type name and nothing else, never its message: a
+     provider's error can carry an endpoint or a body. Registered here and not at import, so a test that
+     imports this file changes nothing about its own process. */
+  process.on("unhandledRejection", (reason) => {
+    console.error(failureLine("assistant.unhandled-rejection", "/assistant", reason));
+  });
   const server = createAssistantServer();
   server.listen(8791, "127.0.0.1", () => {
     console.log("Assistant API listening on 127.0.0.1:8791");

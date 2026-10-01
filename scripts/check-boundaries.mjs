@@ -35304,8 +35304,14 @@ console.log(
      the wrong shape. */
   if (/console\./.test(faLibCode))
     throw new Error(`${faLibFile} writes to the console. Founder access's one log line is built by founderLine and written by server.ts.`);
-  if (!/const founderAudit = \(line: string\): void => \{\s*console\.log\(line\);\s*if \(state\) state\.appendLine\(founderContract\.audit\.file, JSON\.stringify\(\{ at: new Date\(now\(\)\)\.toISOString\(\), \.\.\.JSON\.parse\(line\) \}\)\);\s*\};/.test(uncommented(faServer)))
-    throw new Error(`${faServerFile}'s founderAudit is no longer console.log of the line plus its append to the contract's audit file, stamped with when, and nothing else. It is the one door a founder line leaves this process through.`);
+  if (!/const founderAudit = \(line: string\): void => \{\s*console\.log\(line\);\s*if \(state && keptInAudit\(line\)\) state\.appendLine\(founderContract\.audit\.file, JSON\.stringify\(\{ at: new Date\(now\(\)\)\.toISOString\(\), \.\.\.JSON\.parse\(line\) \}\)\);\s*\};/.test(uncommented(faServer)))
+    throw new Error(`${faServerFile}'s founderAudit is no longer console.log of every line plus the append of the founder's own lines to the contract's audit file, stamped with when, and nothing else. It is the one door a founder line leaves this process through.`);
+  /* Since 1 October 2026 the file keeps the founder's own lines and the journal keeps every line: a
+     refusal met before any session — cross-site, dark, no session, a refused sign-in — never reaches a
+     file that is never trimmed, and nothing a session did is ever kept out of it. */
+  const keptFn = faLibCode.slice(faLibCode.indexOf("export function keptInAudit("), faLibCode.indexOf("export type SignedIn"));
+  if (!/const REFUSED_BEFORE_A_SESSION: readonly string\[\] = \["founder-request-cross-site", "founder-access-dark", "founder-no-session"\];/.test(faLibCode) || !/if \(parsed\.event === "founder\.sign-in"\) return parsed\.outcome === "accepted";\s*return !REFUSED_BEFORE_A_SESSION\.includes\(parsed\.outcome\);/.test(keptFn))
+    throw new Error(`${faLibFile}'s keptInAudit no longer keeps exactly the founder's own lines — an accepted sign-in and every act inside a session — out of the reach of a stranger's refused requests. ${fa.audit.why}`);
   for (const key of faKeys) {
     const [method, path] = key.split(" ");
     const branch = uncommented(faBranch(method, path));
@@ -35819,8 +35825,8 @@ console.log(
      vault's per-card view to the seam; the seam resolves a presentation register's label from the
      history when the caller named no voice, and voiceLabelFor() answers a label for a presentation
      register alone, so an emergency reads the platform default whatever the history says. */
-  if (!/const speech: SpeechSeam = speechSeam \?\? selectedSpeech\(fetch, vault\.envFor\(\), settings\.speech, now, \(card\) => vault\.envFor\(card\), settings\.presentationVoice\);/.test(server))
-    throw new Error(`${serverFile} no longer builds the cloud voice from the founder's settings history (settings.speech, settings.presentationVoice) and the vault's credential view. That line is what makes a saved "male" reach the voice test — and what keeps a key stored in the Control Tower in force without a restart.`);
+  if (!/const speech: SpeechSeam = speechSeam \?\? selectedSpeech\(fetch, vault\.envFor\(\), settings\.speech, now, \(card\) => vault\.envFor\(card\), settings\.presentationVoice, ceilingStoreOf\(state\)\);/.test(server))
+    throw new Error(`${serverFile} no longer builds the cloud voice from the founder's settings history (settings.speech, settings.presentationVoice), the vault's credential view and the state directory's ceiling store. That line is what makes a saved "male" reach the voice test, what keeps a key stored in the Control Tower in force without a restart — and, since 1 October 2026, what keeps the month's spoken-character count across one.`);
   if (!/installCredentialSource\(\(\) => vault\.envFor\(\)\);/.test(server))
     throw new Error(`${serverFile} no longer installs the vault's view as the credential source for the language-model tier. A key stored in the vault would then reach the speech adapters and not Azure OpenAI.`);
   if (!/const voiceLabel = request\.voice \? undefined : voiceLabelFor\(voices, request\.register \?\? null\);/.test(speechCode) || !/door\.synthesize\(\{ \.\.\.request, voiceLabel, tuning: request\.tuning \?\? reading\.tuning \}\)/.test(speechCode))

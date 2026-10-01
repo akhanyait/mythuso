@@ -1,4 +1,4 @@
-import { closeSync, chmodSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, statSync, writeSync } from "node:fs";
+import { closeSync, chmodSync, existsSync, fstatSync, mkdirSync, openSync, readFileSync, readSync, renameSync, statSync, writeSync } from "node:fs";
 import { join } from "node:path";
 import contract from "../../../../packages/catalog/founder-access.json" with { type: "json" };
 
@@ -38,6 +38,9 @@ export interface FounderState {
   appendLine(file: string, line: string): void;
   /* Every line of a JSON-lines file, oldest first; an absent file is an empty history. */
   readLines(file: string): string[];
+  /* The whole lines in the last maxBytes of a JSON-lines file, oldest first. A line the window cut
+     through is dropped rather than half-read; an absent file is an empty history. */
+  readTail(file: string, maxBytes: number): string[];
   /* One JSON document, or null when the file does not exist. */
   readJson<T>(file: string): T | null;
   /* Replace one JSON document atomically, 0600. */
@@ -73,6 +76,33 @@ export function openFounderState(directory: string): FounderState {
     readLines(file) {
       if (!existsSync(at(file))) return [];
       return readFileSync(at(file), "utf8").split("\n").map((l) => l.trim()).filter(Boolean);
+    },
+    /* Added 1 October 2026 for the logs route, which used to read the founder audit whole on the event
+       loop to answer two hundred lines of it: the file only grows, so what a read costs has to be
+       bounded by the window and not by how long the service has been running. The settings history
+       is still read whole, once, at start-up — a replay that skipped a line would be a different
+       history. */
+    readTail(file, maxBytes) {
+      if (!existsSync(at(file))) return [];
+      const fd = openSync(at(file), "r");
+      try {
+        const size = fstatSync(fd).size;
+        /* One byte before the window, so a line that begins exactly at its edge is kept whole: the
+           first piece is then the empty tail of the line before it, and that is what is dropped. */
+        const start = Math.max(0, size - Math.max(0, Math.floor(maxBytes)) - 1);
+        const window = Buffer.alloc(size - start);
+        let read = 0;
+        while (read < window.length) {
+          const got = readSync(fd, window, read, window.length - read, start + read);
+          if (got === 0) break;
+          read += got;
+        }
+        const lines = window.subarray(0, read).toString("utf8").split("\n");
+        if (start > 0) lines.shift();
+        return lines.map((l) => l.trim()).filter(Boolean);
+      } finally {
+        closeSync(fd);
+      }
     },
     readJson(file) {
       if (!existsSync(at(file))) return null;

@@ -18,7 +18,14 @@ import {
 import contract from "../../../../packages/catalog/founder-access.json" with { type: "json" };
 import type { FounderState } from "./founder-state.ts";
 
-/* The founder-signed settings history, 28 September 2026 (packages/catalog/founder-access.json#settings).
+/* The founder's settings history, 28 September 2026 (packages/catalog/founder-access.json#settings).
+
+   RECORDED, NOT SIGNED. It was called "founder-signed" until 1 October 2026, and it is not: each line
+   records the administrator role and the founder as the reference because the change was made inside
+   the founder's session, and nothing about the line proves that afterwards. There is no signature and
+   no MAC; whoever can write the state directory — root, or this process — can write a line the replay
+   will accept. What protects it is the directory's 0700 and the file's 0600, the same as the vault's
+   metadata. A keyed MAC under the vault key would make an edit detectable, and is not built.
 
    THE FACT THIS FIXES. A setting saved in the Control Tower lived in that browser tab, and the speak
    route read the contract's defaults — so the founder made every presentation voice male, pressed

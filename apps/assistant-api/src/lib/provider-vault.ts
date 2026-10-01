@@ -156,9 +156,13 @@ function encrypt(master: Buffer, variable: string, value: string): Pick<StoredKe
   const ciphertext = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
   return { iv: iv.toString("base64"), tag: cipher.getAuthTag().toString("base64"), ciphertext: ciphertext.toString("base64") };
 }
+/* The tag's length is said, not inferred, since 1 October 2026: without authTagLength, setAuthTag takes
+   a tag as short as four bytes, and a vault file whose tag had been cut down would be checked against
+   that much of it and no more. encrypt() above always writes the full sixteen. */
+const TAG_BYTES = 16;
 function decrypt(master: Buffer, variable: string, stored: StoredKey): string | null {
   try {
-    const decipher = createDecipheriv("aes-256-gcm", master, Buffer.from(stored.iv, "base64"));
+    const decipher = createDecipheriv("aes-256-gcm", master, Buffer.from(stored.iv, "base64"), { authTagLength: TAG_BYTES });
     decipher.setAAD(AAD(variable));
     decipher.setAuthTag(Buffer.from(stored.tag, "base64"));
     return Buffer.concat([decipher.update(Buffer.from(stored.ciphertext, "base64")), decipher.final()]).toString("utf8");

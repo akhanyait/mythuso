@@ -233,3 +233,31 @@ test("the monthly ceiling is asked before any provider and counted after one ans
   ceiling = 100;
   assert.ok((await speech.synthesize({ text: "Hi", language: "en-ZA" })).ok, "a raised ceiling admits the next reading");
 });
+
+test("readings that arrive together cannot pass the ceiling between them, and one the provider did not answer gives its characters back", async () => {
+  /* 1 October 2026: the ceiling was asked before the provider and counted after it, an await apart, so
+     a burst was admitted whole against one count. A reading now holds its characters while it waits. */
+  let release = () => {};
+  const gate = new Promise<void>((resolve) => (release = resolve));
+  let asked = 0;
+  let failing = false;
+  const slow = (async () => {
+    asked++;
+    await gate;
+    return failing ? new Response("down", { status: 503 }) : new Response(Buffer.from("fake-audio"), { status: 200 });
+  }) as typeof fetch;
+  const speech = selectedSpeech(slow, { ...AZURE }, () => ({ ...speechSettingsByDefault, monthlyCeilingCharacters: 25 }), () => Date.UTC(2026, 9, 1));
+  const burst = Array.from({ length: 5 }, () => speech.synthesize({ text: "ten chars.", language: "en-ZA" }));
+  release();
+  const answers = await Promise.all(burst);
+  assert.equal(answers.filter((a) => a.ok).length, 2, "two readings of ten fit under twenty-five");
+  assert.equal(answers.filter((a) => !a.ok && a.ceilingReached).length, 3, "the other three are the ceiling's refusal");
+  assert.equal(asked, 2, "and never reached a provider");
+  /* Five characters are left. A reading the provider did not answer is not billed, so it holds nothing
+     once it has returned, and the next reading of five still fits. */
+  failing = true;
+  assert.equal((await speech.synthesize({ text: "five.", language: "en-ZA" })).ok, false);
+  failing = false;
+  assert.ok((await speech.synthesize({ text: "five.", language: "en-ZA" })).ok, "the failed reading gave its characters back");
+  assert.deepEqual(await speech.synthesize({ text: "x", language: "en-ZA" }), { ok: false, ceilingReached: true });
+});

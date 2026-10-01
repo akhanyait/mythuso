@@ -336,6 +336,8 @@
   }
  ],
 
+ "speakTextMaxCharacters": 5000,
+ "_speakTextMaxWhy": "The most one call to POST /v1/speak may ask to be read, added on 1 October 2026. A spoken answer is words that already exist: the longest the catalogue writes is under seven hundred characters and a model's reply is capped at twelve hundred, so five thousand carries any answer whole. Above it the service refuses with the route's own payload-too-large before any provider is asked or the month's ceiling is spent, so one request cannot read a novel aloud on the founder's account.",
  "ownVoice": {
   "decidedBy": "Founder",
   "decidedOn": "2026-09-28",
@@ -684,7 +686,7 @@
      }
     },
     "changedBy": "admin",
-    "appliesTo": "Counted by the service from the moment it started, per calendar month, across every provider. When the ceiling is reached the speak route refuses in its own sentence and the answer stays written; the browser's own voice may still read it. A restart starts the count again, and the service says so rather than pretending to remember. The words are never withheld: only the paid reading stops.",
+    "appliesTo": "Counted by the service per calendar month, across every provider, with a reading's characters held against the ceiling while the provider is asked so that readings arriving together cannot pass it between them. The month's count is kept in the service's state directory, so a restart carries on from it; a service started without one counts from the moment it started, and says so rather than pretending to remember. When the ceiling is reached the speak route refuses in its own sentence and the answer stays written; the browser's own voice may still read it. The words are never withheld: only the paid reading stops.",
     "guardrail": {
      "statement": "The ceiling stops sound and never words: an answer is always written on the screen whatever the count.",
      "forbids": [

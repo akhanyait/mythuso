@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { connect } from 'node:net';
 import assert from 'node:assert/strict';
 import { createAssistantServer, liveClinicalFlows, type ClinicalFlowSeam } from './server.ts';
 import { handleTurn } from './routes/turn.ts';
@@ -10,6 +11,8 @@ import type { KnowledgeResult, retrieveKnowledge } from './lib/knowledge.ts';
 import { buildResponse } from '../../../packages/gilbertone/src/engine.ts';
 import assistantContract from '../../../packages/catalog/apis/assistant.json' with { type: 'json' };
 import vitalsContract from '../../../packages/catalog/vitals.json' with { type: 'json' };
+import voiceContract from '../../../packages/catalog/voice.json' with { type: 'json' };
+import conversationMode from '../../../packages/catalog/conversation-mode.json' with { type: 'json' };
 
 /* The server's own tests, added with the CodeReview fixes of 21 September 2026 and extended on 22
    September 2026 with the plan's /v1 family, push-to-talk's two routes and the gated clinical five:
@@ -1803,4 +1806,99 @@ test('the speak route hands a known register to the seam, refuses an unknown one
   capped,
  );
  assert.deepEqual(quiet, [], 'the ceiling is an answer, and an answer writes nothing on the error stream');
+});
+
+/* ---- Every request answered, and nothing a caller sends kills the process (1 October 2026) ----
+   A body that broke off, or a fault no branch caught, used to escape the async handler as an
+   unhandled rejection; Node ends the process on one, and systemd's restart wiped the founder lockout,
+   the burned authenticator step, the speech ceiling and every conversation. */
+
+test('a caller that hangs up halfway through its body does not take the service down', async () => {
+ const errors = await withServer(async () => QUIET_ANSWER, async (base) => {
+  const { port } = new URL(base);
+  await new Promise<void>((resolve, reject) => {
+   const socket = connect(Number(port), '127.0.0.1', () => {
+    socket.write('POST /assistant/v1/turn HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nContent-Length: 100000\r\n\r\n{"text":"half');
+    setTimeout(() => {
+     socket.destroy();
+     resolve();
+    }, 50);
+   });
+   socket.on('error', reject);
+  });
+  /* Give the server the turn it needs to notice, then ask it something. */
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  const after = await post(base, JSON.stringify({ text: 'hello', userConsent: true }));
+  assert.equal(after.status, 200, 'the next caller is answered: the process is still here');
+ });
+ for (const line of errors) assert.ok(!line.includes('half'), 'nothing of the broken body is written');
+});
+
+test('a fault no branch caught is the generic 500 and a line with its type name alone', async () => {
+ const throwing: ClinicalFlowSeam = {
+  ...liveClinicalFlows(),
+  triageOpen: () => {
+   throw new TypeError(`unexpected at ${DUMMY_ENDPOINT} with ${DUMMY_KEY}`);
+  },
+ };
+ const errors = await withServer(
+  mustNotRun,
+  async (base) => {
+   const response = await postTo(base, '/assistant/v1/triage/start', JSON.stringify({ userConsent: true, language: 'en-ZA' }));
+   assert.equal(response.status, 500);
+   assert.deepEqual(await response.json(), {
+    error: 'internal_error',
+    refusalId: 'internal-error',
+    message: 'The request could not be processed safely.',
+   });
+   const after = await fetch(`${base}/assistant/health`);
+   assert.equal(after.status, 200, 'and the process answers the next request');
+  },
+  notSearching,
+  notSpeaking,
+  throwing,
+ );
+ assert.deepEqual(errors.map((line) => JSON.parse(line)), [{ event: 'assistant.request.failed', route: '/assistant', kind: 'TypeError' }]);
+});
+
+test('the speak route refuses more words than one call may read, before any provider is asked', async () => {
+ const { seam, synthesises } = fakeCloudVoice('nothing is heard here');
+ const max = voiceContract.speakTextMaxCharacters;
+ await withServer(
+  mustNotRun,
+  async (base) => {
+   const over = await postTo(base, '/assistant/v1/speak', JSON.stringify({ text: 'a'.repeat(max + 1), language: 'en-ZA' }));
+   assert.equal(over.status, 413);
+   assert.equal(((await over.json()) as { refusalId?: string }).refusalId, 'payload-too-large');
+   assert.equal(synthesises.length, 0, 'the voice was never asked');
+   const at = await postTo(base, '/assistant/v1/speak', JSON.stringify({ text: 'a'.repeat(max), language: 'en-ZA' }));
+   assert.equal(at.status, 200, 'exactly the ceiling is read');
+  },
+  notSearching,
+  seam,
+ );
+});
+
+test('a turn longer than the contract allows is the route’s 413, an emergency of any length is still answered, and a caller’s id that is not an id is replaced', async () => {
+ const max = conversationMode.turnTextMaxCharacters;
+ await withServer(handleTurn, async (base) => {
+  for (const path of ['/assistant/turn', '/assistant/v1/turn']) {
+   const long = await postTo(base, path, JSON.stringify({ text: 'tell me more '.repeat(Math.ceil(max / 13) + 1), userConsent: true }));
+   assert.equal(long.status, 413, path);
+   assert.equal(((await long.json()) as { error?: string }).error, 'payload_too_large');
+  }
+  const streamed = await postTo(base, '/assistant/v1/turn', JSON.stringify({ text: 'tell me more '.repeat(Math.ceil(max / 13) + 1), userConsent: true, stream: true }));
+  assert.equal(streamed.status, 413, 'the streaming door refuses before it opens');
+  const emergency = await postTo(base, '/assistant/v1/turn', JSON.stringify({
+   text: `chest pain, get me a nurse ${'please '.repeat(Math.ceil(max / 7) + 1)}`,
+   userConsent: true,
+   sessionId: 'not an id\nwith a newline in it',
+  }));
+  assert.equal(emergency.status, 200, 'a person in danger is answered whatever they sent');
+  const answered = (await emergency.json()) as AssistantTurnResponse;
+  assert.equal(answered.classification, 'emergency');
+  assert.match(answered.sessionId, /^[0-9a-f-]{36}$/, 'the caller’s text is not used as an id; a fresh one is minted');
+  const kept = await postTo(base, '/assistant/v1/turn', JSON.stringify({ text: 'chest pain', userConsent: true, sessionId: 'session-fixture-ok_1' }));
+  assert.equal(((await kept.json()) as AssistantTurnResponse).sessionId, 'session-fixture-ok_1', 'a well-formed id is kept');
+ });
 });

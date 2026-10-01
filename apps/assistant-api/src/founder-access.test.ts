@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { createRequire, syncBuiltinESMExports } from "node:module";
 import type { AddressInfo } from "node:net";
 import {
   base32Encode,
@@ -482,4 +483,51 @@ test("the audit line carries no name outside the allowlist and no fingerprint of
 
 test("the allowlist is exactly the two Azure keys", () => {
   assert.deepEqual([...REVEAL_ALLOWLIST], ["AZURE_OPENAI_KEY", "AZURE_SPEECH_KEY"]);
+});
+
+test("sign-ins sent together are hashed one at a time, and the fifth failure refuses the rest of the queue without hashing", async () => {
+  /* 1 October 2026. The lock was asked before the hash and the failure counted after it, so a burst all
+     passed the lock together and ran one 128 MiB derivation each at once. node:crypto's scrypt is
+     wrapped here — through the builtin's own export, so the module under test is not changed — to count
+     how many derivations ran and how many ran at the same time. */
+  const founderEnv = await env();
+  const require = createRequire(import.meta.url);
+  const crypto = require("node:crypto") as { scrypt: (...args: unknown[]) => void };
+  const original = crypto.scrypt;
+  let running = 0;
+  let peak = 0;
+  let derivations = 0;
+  crypto.scrypt = (...args: unknown[]) => {
+    const done = args.pop() as (error: Error | null, key: Buffer) => void;
+    running++;
+    derivations++;
+    peak = Math.max(peak, running);
+    original(...args, (error: Error | null, key: Buffer) => {
+      running--;
+      done(error, key);
+    });
+  };
+  syncBuiltinESMExports();
+  try {
+    const time = clock();
+    const access = createFounderAccess(founderEnv, time.now);
+    const answers = await Promise.all(Array.from({ length: 8 }, () => access.signIn("not the password", "000000")));
+    assert.equal(peak, 1, "never more than one derivation at a time");
+    assert.equal(derivations, contract.lockout.consecutiveFailures, "the queue behind the lock was refused without hashing");
+    assert.deepEqual(
+      answers.map((a) => (a.ok ? "accepted" : a.refusalId)),
+      [
+        ...Array.from({ length: contract.lockout.consecutiveFailures - 1 }, () => "founder-credentials-refused"),
+        ...Array.from({ length: 8 - contract.lockout.consecutiveFailures + 1 }, () => "founder-locked-out"),
+      ],
+      "each attempt is answered as it would have been had it arrived a moment later",
+    );
+    /* The queue drains: once the lock lifts, the next sign-in is answered on its own merits. */
+    time.advance(contract.lockout.lockSeconds * 1000);
+    const signed = await access.signIn(PASSWORD, codeAt(time.now()));
+    assert.equal(signed.ok, true, "the founder, after the lock, signs in as before");
+  } finally {
+    crypto.scrypt = original;
+    syncBuiltinESMExports();
+  }
 });

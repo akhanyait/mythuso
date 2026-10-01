@@ -9,7 +9,7 @@ import { selectedSpeech } from "./speech.ts";
 import { assistantSettings } from "../../../../packages/engines/src/assistant/domain/settings.ts";
 import settingsContract from "../../../../packages/catalog/settings.json" with { type: "json" };
 
-/* The founder-signed settings history (lib/settings-history.ts), held to packages/catalog/
+/* The founder's settings history (lib/settings-history.ts), held to packages/catalog/
    founder-access.json#settings: a change obeys the shared rules and is refused with the shared id; an
    accepted change is one appended line, 0600, replayed by the next process; what is in force is the
    defaults with the history replayed; a saved "male" reaches a presentation register's reading and never

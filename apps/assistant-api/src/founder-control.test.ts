@@ -1,12 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
-import { mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { generateSecret, totp } from "../../api/src/totp.ts";
-import { createFounderAccess, hashPassword, type Env } from "./lib/founder-access.ts";
+import { createFounderAccess, founderLine, hashPassword, keptInAudit, type Env } from "./lib/founder-access.ts";
 import { openFounderState, type FounderState } from "./lib/founder-state.ts";
 import { openSettingsHistory, SETTINGS_FILE } from "./lib/settings-history.ts";
 import { fingerprintOf, openVault, VAULT_CARDS, VAULT_FILE, VAULT_KEY_VARIABLE } from "./lib/provider-vault.ts";
@@ -525,5 +525,75 @@ test("no field of any founder answer is named like key material, and the vault's
     const found = registry.cards.find((c) => c.id === card) as { buildStatus: string; environment: string[] };
     assert.equal(found.buildStatus, "built", `${card} is built`);
     assert.ok(found.environment.includes(keyVariable), `${card} reads ${keyVariable}`);
+  }
+});
+
+/* ---- The audit file keeps the founder's own lines, and is read back in a bounded window (1 October 2026) ---- */
+
+test("a refusal met before any session — dark, cross-site, no session, a refused sign-in — reaches the journal and never the audit file", async () => {
+  assert.equal(keptInAudit(founderLine("founder.sign-in", "accepted")), true);
+  assert.equal(keptInAudit(founderLine("founder.sign-in", "founder-credentials-refused")), false);
+  assert.equal(keptInAudit(founderLine("founder.sign-in", "founder-locked-out")), false);
+  assert.equal(keptInAudit(founderLine("founder.sign-in", "invalid-request")), false);
+  for (const outcome of ["founder-access-dark", "founder-request-cross-site", "founder-no-session"])
+    assert.equal(keptInAudit(founderLine("founder.providers", outcome)), false, `${outcome} is a stranger's knock`);
+  /* Inside a session, every outcome is the founder's own record — a refused code included. */
+  for (const outcome of ["accepted", "founder-code-refused", "founder-locked-out", "founder-card-not-known", "invalid-request"])
+    assert.equal(keptInAudit(founderLine("founder.provider.key-set", outcome, undefined, { card: "azure-speech" })), true, outcome);
+  assert.equal(keptInAudit("not a line"), false);
+
+  const box = sandbox();
+  try {
+    const time = clock();
+    const file = join(box.dir, contract.audit.file);
+    const darkLines = await withControlServer({ env: await founderEnv({ [contract.enable.variable]: undefined }), now: time.now, state: box.state }, async (base) => {
+      await refused(await fetch(`${base}/assistant/v1/founder/providers`, { headers: HEADERS }), "founder-access-dark");
+      await refused(await fetch(`${base}/assistant/v1/founder/session`, { method: "POST", headers: HEADERS, body: "{}" }), "founder-access-dark");
+    });
+    assert.ok(darkLines.some((l) => l.includes("founder-access-dark")), "the journal still has them");
+    const strangerLines = await withControlServer({ env: await founderEnv(), now: time.now, state: box.state }, async (base) => {
+      await refused(await fetch(`${base}/assistant/v1/founder/providers`, { headers: { "content-type": "application/json" } }), "founder-request-cross-site");
+      await refused(await fetch(`${base}/assistant/v1/founder/providers`, { headers: HEADERS }), "founder-no-session");
+      await refused(await fetch(`${base}/assistant/v1/founder/session`, { method: "POST", headers: HEADERS, body: JSON.stringify({ password: "not it", code: "000000" }) }), "founder-credentials-refused");
+      await refused(await fetch(`${base}/assistant/v1/founder/session`, { method: "POST", headers: HEADERS, body: "{" }), "invalid-request");
+    });
+    assert.ok(strangerLines.some((l) => l.includes("founder-credentials-refused")));
+    assert.equal(existsSync(file), false, "nothing a stranger did has written a byte to the audit file");
+    /* The founder signs in and reads the providers: those two lines, and only those, are kept. */
+    await withControlServer({ env: await founderEnv(), now: time.now, state: box.state }, async (base, cookieFor) => {
+      const cookie = await cookieFor();
+      assert.equal((await fetch(`${base}/assistant/v1/founder/providers`, { headers: { ...HEADERS, cookie } })).status, 200);
+    });
+    const kept = readFileSync(file, "utf8").trim().split("\n").map((l) => JSON.parse(l) as Record<string, string>);
+    assert.deepEqual(kept.map((l) => `${l.event} ${l.outcome}`), ["founder.sign-in accepted", "founder.providers accepted"]);
+  } finally {
+    box.done();
+  }
+});
+
+test("the logs route reads only the audit file's last window, and keeps a line that begins exactly at its edge whole", async () => {
+  const box = sandbox();
+  try {
+    const file = join(box.dir, contract.audit.file);
+    /* readTail itself: whole lines only, oldest first, an absent file empty. */
+    assert.deepEqual(box.state.readTail("absent.jsonl", 100), []);
+    writeFileSync(file, "aaaa\nbbbb\ncccc\n");
+    assert.deepEqual(box.state.readTail(contract.audit.file, 10), ["bbbb", "cccc"], "exactly two lines fit, and both are whole");
+    assert.deepEqual(box.state.readTail(contract.audit.file, 7), ["cccc"], "a line the window cuts through is dropped");
+    assert.deepEqual(box.state.readTail(contract.audit.file, 1000), ["aaaa", "bbbb", "cccc"]);
+    /* Through the route: a file far larger than the window still answers, and answers the newest lines. */
+    const card = (n: number) => JSON.stringify({ at: new Date(T0 + n).toISOString(), event: "founder.provider.test", outcome: "accepted-ok", card: "azure-speech", n: String(n) });
+    const lines: string[] = [];
+    for (let n = 0; n < Math.ceil((contract.audit.logsReadBytes * 2) / card(0).length); n++) lines.push(card(n));
+    writeFileSync(file, lines.join("\n") + "\n");
+    const time = clock();
+    await withControlServer({ env: await founderEnv(), now: time.now, state: box.state }, async (base, cookieFor) => {
+      const cookie = await cookieFor();
+      const logs = (await (await fetch(`${base}/assistant/v1/founder/providers/azure-speech/logs`, { headers: { ...HEADERS, cookie } })).json()) as { lines: Record<string, string>[] };
+      assert.equal(logs.lines.length, contract.audit.logsTail);
+      assert.equal(logs.lines.at(-1)!.n, String(lines.length - 1), "the newest line is the last one");
+    });
+  } finally {
+    box.done();
   }
 });

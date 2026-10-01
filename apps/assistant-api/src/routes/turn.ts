@@ -16,6 +16,7 @@ import {
 import { evaluateRefusals } from "../../../../packages/gilbertone/src/refusals.ts";
 import { redactPHI } from "../../../../packages/gilbertone/src/phi.ts";
 import assistant from "../../../../packages/catalog/assistant.json" with { type: "json" };
+import conversationMode from "../../../../packages/catalog/conversation-mode.json" with { type: "json" };
 import { orchestrate } from "../lib/orchestrator.ts";
 import { detectLanguage } from "../lib/language-detect.ts";
 import { createSessionStore } from "../lib/session-store.ts";
@@ -45,6 +46,27 @@ export class RequiredFieldMissingError extends Error {
     this.field = field;
   }
 }
+
+/* A message longer than the contract's ceiling (packages/catalog/conversation-mode.json,
+   turnTextMaxCharacters), raised the same way and mapped by server.ts to the route's own
+   payload-too-large 413. Added 1 October 2026: until then the only bound was the body's 768 KB, so one
+   session could hold a few dozen turns of three quarters of a megabyte each, a thousand sessions at a
+   time, in a process five other sites share a box with. It is raised only after the emergency has been
+   classified and never for one: a person in danger is answered whatever they sent, and what the
+   session keeps of their words is cut to the ceiling instead. */
+export class PayloadTooLargeError extends Error {
+  constructor() {
+    super("The message is longer than this route accepts.");
+    this.name = "PayloadTooLargeError";
+  }
+}
+export const TURN_TEXT_MAX_CHARACTERS: number = conversationMode.turnTextMaxCharacters;
+/* What a caller's conversation id or turn id may look like: a UUID, or any short run of letters,
+   digits, hyphens and underscores. Anything else — a space, a newline, a control character, a
+   megabyte — is not used as an id: a fresh one is minted instead, as for a caller that sent none,
+   because the id is written into the journal and kept as a key, and neither may carry what a caller
+   chose to put there. */
+const CALLER_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 /* What a refusal offers next, per policy id. The consent refusal offers the confirmation the
    session is waiting on; the clinical referral offers the nurse door the sentence names; the
@@ -183,7 +205,7 @@ async function* runTurn(
   req: AssistantTurnRequest,
 ): AsyncGenerator<TurnClassificationEvent, TurnOutcome> {
   const sessionId =
-    typeof req?.sessionId === "string" && req.sessionId.trim()
+    typeof req?.sessionId === "string" && CALLER_ID.test(req.sessionId)
       ? req.sessionId
       : crypto.randomUUID();
 
@@ -231,6 +253,8 @@ async function* runTurn(
     classifyMessage(req.text, audience) === "emergency";
   if (!isEmergency && typeof req?.userConsent !== "boolean")
     throw new RequiredFieldMissingError("userConsent");
+  if (!isEmergency && typeof req?.text === "string" && req.text.length > TURN_TEXT_MAX_CHARACTERS)
+    throw new PayloadTooLargeError();
 
   /* The engine's own classification of '' is 'unknown', which is right for a low-level classifier
      with nothing to go on. At this boundary "nothing was said" is not the same fact as "the
@@ -379,10 +403,10 @@ async function* runTurn(
   const nextTurn: Turn = {
     turnId: crypto.randomUUID(),
     parentTurnId:
-      typeof req.parentTurnId === "string" && req.parentTurnId.length
+      typeof req.parentTurnId === "string" && CALLER_ID.test(req.parentTurnId)
         ? req.parentTurnId
         : (previous?.turnId ?? null),
-    text: req.text,
+    text: req.text.slice(0, TURN_TEXT_MAX_CHARACTERS),
     /* The reply this turn actually got — the classifier's fixed sentence, or the orchestrator's
        answer when that tier wrote it, already redacted above. This is what makes a later turn's
        context carry a real exchange rather than a label. */

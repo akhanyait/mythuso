@@ -34,7 +34,18 @@ import type { RecognitionTuning } from "./providers/seam.ts";
    clock, across every provider: a reading is admitted only while the characters read so far this
    month plus its own stay under the ceiling in force, and counted once the provider has answered,
    because that is when it was billed. A restart starts the count again, and the contract says so;
-   a count that survived restarts would need a store this service does not have. */
+   a count that survived restarts would need a store this service does not have.
+
+   SINCE 1 OCTOBER 2026 THE COUNT IS HELD AND KEPT. Two things were wrong with the paragraph above once
+   the service was live. The question and the count were an await apart, so forty readings sent
+   together were all admitted against the same count and all billed; a reading now reserves its
+   characters before the provider is asked, and gives them back if the provider did not answer, so
+   what is in flight counts against the ceiling too. And a restart — every deploy that is followed
+   by one, every crash systemd recovers from — handed the month its whole budget again; where the
+   service has a state directory the month and its count are now written there after every billed
+   reading (packages/catalog/founder-access.json#state.speechCeilingFile), replaced atomically, and
+   read back at start-up. A write that fails is not a reason to withhold a reading that was already
+   billed, so it is let go and the count in memory stands until the next one succeeds. */
 
 export type SpeechSettingsSource = () => SpeechSettingsInForce;
 export const contractDefaults: SpeechSettingsSource = () => speechSettingsByDefault;
@@ -76,33 +87,87 @@ const monthOf = (at: number): string => {
   return `${part("year")}-${part("month")}`;
 };
 
+/** Characters held against the ceiling while a provider is asked, in the month they were held in. */
+export type Reservation = { readonly month: string; readonly characters: number };
+
 export type MonthlyCeiling = {
-  /** Whether a reading of this many characters may be sent now, under the ceiling in force. */
+  /** Whether a reading of this many characters may be sent now, under the ceiling in force, counting
+      what is already held for readings still in flight. */
   admits(characters: number, now: number): boolean;
+  /** Holds a reading's characters against the ceiling before its provider is asked, or answers null
+      when they would pass it. Every reservation is settled exactly once. */
+  reserve(characters: number, now: number): Reservation | null;
+  /** Settles a reservation: counted when the provider answered — and so billed — and given back when
+      it did not. A reservation from a month that has since ended is let go either way. */
+  settle(reservation: Reservation, billed: boolean): void;
   /** Counts a reading the provider answered — and so billed. */
   count(characters: number, now: number): void;
   /** What has been counted this month, for a test and for nothing that prints. */
   used(now: number): number;
 };
 
-export function monthlyCeiling(settings: SpeechSettingsSource): MonthlyCeiling {
+/** Where the month's count is kept between restarts: the state directory's file, or nowhere. */
+export type CeilingStore = {
+  load(): { month: string; used: number } | null;
+  save(value: { month: string; used: number }): void;
+};
+
+export function monthlyCeiling(settings: SpeechSettingsSource, store: CeilingStore | null = null): MonthlyCeiling {
   let month = "";
   let used = 0;
+  let held = 0;
+  /* What a previous run of this process counted, if it was this month: read once, lazily, at the first
+     reading, and believed only when it is a month and a whole number of characters. */
+  let loaded = store === null;
+  const recall = (current: string) => {
+    if (loaded) return;
+    loaded = true;
+    try {
+      const kept = store!.load();
+      if (kept && kept.month === current && Number.isSafeInteger(kept.used) && kept.used >= 0) used = kept.used;
+    } catch {
+      /* An unreadable file is a count of nothing rather than a service that will not speak. */
+    }
+  };
   const roll = (now: number) => {
     const current = monthOf(now);
     if (current !== month) {
       month = current;
       used = 0;
+      held = 0;
+      recall(current);
+    }
+  };
+  const keep = () => {
+    if (!store) return;
+    try {
+      store.save({ month, used });
+    } catch {
+      /* See the header: the reading was billed whether or not the count reached the disk. */
     }
   };
   return {
     admits(characters, now) {
       roll(now);
-      return used + characters <= settings().monthlyCeilingCharacters;
+      return used + held + characters <= settings().monthlyCeilingCharacters;
+    },
+    reserve(characters, now) {
+      roll(now);
+      if (used + held + characters > settings().monthlyCeilingCharacters) return null;
+      held += characters;
+      return { month, characters };
+    },
+    settle(reservation, billed) {
+      if (reservation.month !== month) return;
+      held = Math.max(0, held - reservation.characters);
+      if (!billed) return;
+      used += reservation.characters;
+      keep();
     },
     count(characters, now) {
       roll(now);
       used += characters;
+      keep();
     },
     used(now) {
       roll(now);

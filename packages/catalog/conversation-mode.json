@@ -18,6 +18,8 @@
   "_utteranceCapWhy": "The amendment's cap: one utterance may run forty-five seconds before GilbertOne prompts the person to continue, so a stuck voice-activity detector cannot run transcription for ever. packages/catalog/assistant.json#voice.perUtteranceCapSeconds records the same decision and scripts/check-boundaries.mjs holds the two equal. On the web the founder's thirty-second listening cap (voice.maxListeningSeconds) stands in front of this one, and the same check holds that it is never the longer of the two.",
   "maxUtterancesPerExchange": 5,
   "_maxUtterancesWhy": "After five utterances in one exchange a continue is refused and the exchange closes. A conversation that can extend itself without limit is a microphone that never has to close.",
+  "turnTextMaxCharacters": 4000,
+  "_turnTextMaxWhy": "The most one message to GilbertOne may carry, typed or heard, added on 1 October 2026. Forty-five seconds of speech is well under a thousand characters, and four thousand holds a long typed paragraph with room to spare; above it the assistant service refuses the turn with the route's own payload-too-large rather than holding three quarters of a megabyte of somebody's words in a session. An emergency is never refused for its length: it is classified first and answered whatever was sent, and what the session keeps of it is cut to this number.",
   "endpoint": {
     "settingKey": "endpoint-silence",
     "rule": "The pause that means it is GilbertOne's turn. When the recogniser has heard at least one word and then delivers nothing for this long, or delivers a final result, the utterance is complete and is handed over without a button being pressed. A pause shorter than this is a breath, not a turn.",
