@@ -16431,7 +16431,10 @@ for (const file of Object.values(GILBERT_FILES).flat()) {
     ["apps/web/src/lib/assistant.ts", /readingIn\(/, "the web's matcher asks the package's reading recogniser"],
     ["apps/web/src/lib/assistant.ts", /preparationFor\(visit\?\.service\.id \?\? null\)/, "the preparation answer is for the visit that is booked, or for nothing"],
     ["apps/web/src/lib/records.ts", /protected: isProtected\(m\)/, "a medicine line is marked protected by the same rule every screen resolves an entry with"],
-    ["apps/web/src/features/Assistant.tsx", /reply\.answer\.smallPrint\.map/, "the panel prints the reading's provenance as small print"],
+    ["apps/web/src/features/Assistant.tsx", /\banswer\.smallPrint\.map/, "the panel prints the reading's provenance as small print"],
+    /* 2 October 2026: the case pathway's cuff step took 240/140 for its source without a word to her. */
+    ["apps/web/src/lib/assistant.ts", /isFarOutside\(found\) \? readingAnswer\(found\)/, "the intake's reading step answers a far-outside number with the reading question's own answer"],
+    ["apps/web/src/features/Assistant.tsx", /<ReadingBody answer=\{reply\.far\}/, "the intake's reading step draws that answer with the reading question's own urgent block"],
   ])
     if (!needs.test(read(file)))
       throw new Error(
