@@ -433,6 +433,10 @@ private fun instrumentIcon(id: String): ImageVector = when (id) {
             ReviewLine("Does not survive", capture.doesNotSurvive)
             Note("It is not encrypted. A file in this app’s private storage is private to this app and no more than that, which is enough for fictional readings and is not enough for real ones — the controls that would be needed first are in docs/PRIVACY-AND-SECURITY.md.")
             if (capture.storeNote.isNotEmpty()) Text(capture.storeNote, style = MaterialTheme.typography.bodyMedium, color = theme.warningInk)
+            /* The reading ledger goes through the same FileBook as the visit queue, so a file that would
+               not parse is renamed aside here too — and until 1 October 2026 only the visit queue's
+               screen said where it went. A promise that work was kept is checkable only by its name. */
+            capture.setAside?.let { Note("The ledger that would not parse is still on this phone, under the name $it. Nothing was deleted.") }
             /* A disk that would not take the write is said on the screen that claims what this phone
                keeps, because the claim above is not true while it is refusing. */
             (capture.writeState as? LedgerWrite.Refused)?.let {

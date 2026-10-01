@@ -259,23 +259,12 @@ for (const [platform, file] of Object.entries(rangeCarriers)) {
    names an observation and carries both ends of its range as numbers — which is exactly how all
    three platforms used to declare them, and exactly what a fourth copy would look like.
 
-   Two files are quarantined. The hand-written native assessment screens still declare their own
-   seven, because the emitter's output cannot be adopted by them without editing them, and both
-   native apps are being rebuilt by other people as this lands. The quarantine is not a permanent
-   exemption and it cannot rot into one: an entry whose file has *stopped* typing a range is an
-   error too, so the day either screen switches to the generated list the build fails until its line
-   is deleted from below. Until then the quarantined files are still held to the contract's numbers
-   by the loop above them, so the copy cannot drift while it waits to be removed. */
-const RANGE_QUARANTINE = [
-  [
-    "apps/ios/MyThuso/Features/AssessmentView.swift",
-    "switch Observation.all for the generated Records.observations",
-  ],
-  [
-    "apps/android/app/src/main/java/za/co/mythuso/ui/ClinicalScreens.kt",
-    "switch observations for the generated observationRanges",
-  ],
-];
+   Nothing is quarantined since 1 October 2026. The two native assessment screens declared their own
+   seven until then, held to the contract's numbers by the loop above while they waited; both now
+   read the generated list (Records.observations on iOS, observationRanges on Android) under the name
+   they always used. The list stays, empty, on the same self-retiring terms: an entry whose file has
+   *stopped* typing a range is an error too, so an exemption cannot outlive its reason. */
+const RANGE_QUARANTINE = [];
 /* The contract, the generated copies of it, the emitter and this checker are where a range is
    supposed to be written down. Everything else is a screen, a library or a test. */
 const RANGE_SOURCES = new Set([
@@ -6847,17 +6836,13 @@ for (const document of passport.documents)
     throw new Error(
       `The document "${document.name}" in packages/catalog/passport.json carries a day of its own. Documents are issued out of the visit the last reading set was taken at, and a stored date is one that can disagree with the visit it came from.`,
     );
-/* Two hand-written files still declare the record themselves. They cannot adopt the generated one
-   without being edited, and both native apps are being rebuilt by other people as this lands. The
-   quarantine is not a permanent exemption and it cannot rot into one: an entry whose file has
-   *stopped* typing the record is an error too, so the day either model reads PassportData the build
-   fails until its line is deleted from below. Until then the loop holds both files to every value in
-   the contract, word for word and number for number, so neither copy can drift while it waits. */
+/* A hand-written file that still declared the record itself waited here, held to every value in the
+   contract word for word and number for number while it did. None does now. The quarantine is not a
+   permanent exemption and cannot rot into one: an entry whose file has *stopped* typing the record
+   is an error too, so a file written here fails the build the day it reads PassportData. */
 const PASSPORT_QUARANTINE = [
-  [
-    "apps/ios/MyThuso/Models/Passport.swift",
-    "read PassportData for the holder, the reviewer, the readings and the review",
-  ],
+  /* Empty since 1 October 2026: iOS's Models/Passport.swift reads the holder, the reviewer, the
+    readings, the review and the headline measures from PassportData. */
 ];
 /* The contract, the generated copies of it, the emitter and this checker are where the record is
    supposed to be written down. Everything else is a screen, a library or a test. */
@@ -12582,17 +12567,14 @@ for (const file of parseFailure.namesTheFileIn) {
       `${file} no longer tells the reader that a ledger which would not parse was kept, and what it is now called. That is the whole of new-name-on-screen: "${durability.quarantinedFile.sentence}" is a promise nobody can check unless the screen says where the work went.`,
     );
 }
-/* And the store that keeps the file but has one screen that does not say so. Android's FileBook
-   serves both ledgers, so a parse failure on the reading queue is renamed aside exactly as one on
-   the visit queue is — and only the visit queue's screen says it. Recorded here rather than left to
-   be found again, on the same self-retiring terms as PROSE_QUARANTINE: the day the reading screen
-   starts naming the file, this line fails the build until somebody moves it up into the contract. */
-const SILENT_ABOUT_QUARANTINE = [
-  [
-    "apps/android/app/src/main/java/za/co/mythuso/ui/CaptureScreens.kt",
-    "Android's reading ledger quarantines an unreadable file through the same FileBook the visit queue uses and never tells the nurse it did. Add the note VisitQueueScreens.kt already draws, then add this file to namesTheFileIn in packages/catalog/capture.json and delete this line.",
-  ],
-];
+/* And a screen that keeps the file and does not say so. Android's FileBook serves both ledgers, so a
+   parse failure on the reading queue is renamed aside exactly as one on the visit queue is, and until
+   1 October 2026 only the visit queue's screen said where it went — this list held the reading screen
+   as a known gap. CaptureScreens.kt now names the file and is in namesTheFileIn, so the check above
+   holds it. The list stays, empty, on the same self-retiring terms as PROSE_QUARANTINE: a screen
+   written down here fails the build the day it starts naming the file, until it moves into the
+   contract. */
+const SILENT_ABOUT_QUARANTINE = [];
 for (const [file, todo] of SILENT_ABOUT_QUARANTINE) {
   if (!existsSync(file))
     throw new Error(
@@ -12603,10 +12585,10 @@ for (const [file, todo] of SILENT_ABOUT_QUARANTINE) {
       `${file} now names the file it set aside, so its entry in SILENT_ABOUT_QUARANTINE is spent: ${todo}`,
     );
 }
-/* The same, for the two iOS file stores. Both can be handed a phone with no room left on it and
-   neither has a sentence for it; the contract records that in `saidBy` and this records what to do
-   about it, so the gap cannot quietly become the arrangement. */
-const SILENT_ABOUT_WRITE_FAILURE = ["ios-capture-ledger", "ios-visit-queue"];
+/* The same, for file stores with no sentence for a refused write. The two iOS stores were on it until
+   1 October 2026, when both began answering through CaptureData.writeFailure and joined `saidBy`; it
+   is empty now, and a store written onto it fails the build the day it renders one. */
+const SILENT_ABOUT_WRITE_FAILURE = [];
 const rendersAFailure = new Set(
   writeFailures.failures.flatMap((f) => f.saidBy),
 );
@@ -12622,7 +12604,7 @@ for (const store of fileStores) {
     !SILENT_ABOUT_WRITE_FAILURE.includes(store.id)
   )
     throw new Error(
-      `The file-backed store "${store.id}" renders none of the write failures and is not on the list of stores known to be silent about them. Either give it the contract's sentences or write it down beside the two that already have this gap; a third silence nobody recorded is how the first two happened.`,
+      `The file-backed store "${store.id}" renders none of the write failures and is not on the list of stores known to be silent about them. Either give it the contract's sentences or write it down in SILENT_ABOUT_WRITE_FAILURE; a silence nobody recorded is how the iOS stores' two happened.`,
     );
 }
 
@@ -12761,23 +12743,10 @@ const storeProse = (...ids) =>
    too, so the day a file switches to the generated data the build fails until its line is deleted
    from below. An exemption nobody can lose is how a rule stops being one. */
 const PROSE_QUARANTINE = [
-  {
-    file: "apps/android/app/src/main/java/za/co/mythuso/model/CaptureQueue.kt",
-    held: [
-      ...storeProse("android-private-file", "android-in-memory"),
-      ...storeRefusals("android-private-file"),
-    ],
-    todo: 'let FileBook and MemoryBook read CaptureData.store("android-private-file") and ("android-in-memory"), and let refusalFor return CaptureData.writeFailure("disk-full") and ("write-refused")',
-  },
-  {
-    file: "apps/web/src/features/VisitQueue.tsx",
-    held: storeSays("web-in-memory"),
-    todo: "render the web store out of lib/visit-queue.ts rather than as a list item",
-  },
-  /* Found by the check below rather than by anybody reading the file: the patient's arrival screen
-    was typing nothing-is-measured itself, so that sentence existed four times and not three. The
-    fix is one word — arrivalRefusals.nothingIsMeasured is exported from lib/arrival.ts for it — and
-    it is left undone here because somebody else has this tree open. */
+  /* Empty since 1 October 2026. Android's CaptureQueue.kt reads its books' sentences and its two
+    refusals through CaptureData, and the web's VisitQueue.tsx renders the web store's loss from
+    lib/visit-queue.ts. The list and the loop below stay, so the next hand-written copy that cannot
+    adopt the contract at once has somewhere to wait on these same terms rather than a new rule. */
 ];
 const quarantinedProse = new Map(
   PROSE_QUARANTINE.map((entry) => [entry.file, entry]),
@@ -12948,15 +12917,9 @@ const TYPED_FIGURES = [];
    purpose: a new one fails the build, and so does fixing one without bringing the number down, which
    is the only arrangement in which a list like this ever reaches nought. */
 const FIGURE_QUARANTINE = [
-  /* The web shell's three came off this list, and then the doctor's strip came off the screen: the
-    three sections a clinician opens the app at are the workbench now, and the two boards that still
-    carry a strip — the Control Tower's and the partner's collections and results — count it. What is
-    left here is the one figure on a platform whose day has no list to count from. */
-  [
-    "apps/ios/MyThuso/Features/WorkspaceView.swift",
-    1,
-    'the partner\'s "Next collection 11:15", which the web counts out of partnerCounts(). WorkspaceDay has no collections list for it to be counted from yet',
-  ],
+  /* Empty since 1 October 2026. The web shell's three came off first, then the doctor's strip came off
+    the screen, and the last — the iOS partner's "Next collection 11:15", typed over a laboratory list
+    with no collection in it — now counts the orders under it still with the laboratory. */
 ];
 /* The block a strip is written in, found by counting braces from its declaration rather than by a
    regex deciding for itself what a metric strip is. Comments come out first: a `why` explaining that
@@ -14436,17 +14399,10 @@ if (
    value — which is exactly how a typed pin appears and nothing else is. */
 const careCoordinate = /\b(lat|lng|latitude|longitude)\b\s*[:=]\s*-?\d/i;
 const carePartyIds = careRoster.nurses.map((nurse) => nurse.id);
-/* One file is quarantined and it is not an exemption. The SOS screen holds two on-call rotas with
-   positions of their own, and it belongs to the emergency seam rather than to this one — it names
-   the same parties the roster does and should read them from it, and that is somebody else's change
-   to make. The entry fails the build on the day it stops typing one, so the quarantine cannot rot
-   into a licence: whoever adopts the roster there deletes this line as part of doing it. */
-const CARE_POSITION_QUARANTINE = [
-  [
-    "apps/web/src/features/Sos.tsx",
-    "the two on-call rotas hold their own coordinates; read them from lib/roster.ts's placeOf",
-  ],
-];
+/* Nothing is quarantined since 1 October 2026. The SOS screen's two on-call rotas held positions of
+   their own until then; they read lib/roster.ts's placeOf now. The list stays, empty, and an entry
+   fails the build on the day its file stops typing one, so a quarantine cannot rot into a licence. */
+const CARE_POSITION_QUARANTINE = [];
 const careQuarantined = new Map(CARE_POSITION_QUARANTINE);
 const careTypesAPosition = (source) =>
   source
@@ -17692,7 +17648,7 @@ for (const file of handWrittenNative) {
 }
 
 console.log(
-  `Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t, r) => t + r.checks.length, 0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(", ")}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells. No teleconsultation screen touches a camera or a microphone, the connection ladder never permits more on a worse line than on a better one, and not one of the ${teleconsult.outcomes.filter((o) => !o.countsAsConsultation).length} encounter outcomes that is not a consultation may write an assessment, a plan or a charge. The consent contract — ${consent.purposes.length} purposes, ${requiredCount} of them required, ${consent.lawfulBases.length} lawful bases and every refusal, withdrawal and retention sentence — is read rather than restated by the web app and the service, both sides build the consent fingerprint from the same thing, sign-up marks exactly the ${requiredCount} required ones as required, both consent ledgers are append-only, and the access log has no column a reading could go in \u2014 it is refused by identifier now rather than by grepping the prose around a schema, so a table about access to clinical records may be called what it is. Every entry in that log hashes onto the one before it and its head is committed into the gate's keyed chain by a module the consent register holds two methods of and cannot otherwise reach. The locale contract — ${localeContract.locales.length} written languages over ${localeContract.keys.length} keys and ${localeContract.sets.length} sets — is generated into Swift and Kotlin and read directly by the web: every locale carries every key of every set it claims and nothing outside them, no locale is presented as reviewed without naming who read it and when, no string in it is a sentence out of a clinical contract, clinicalLocale() is present on all three platforms, and every language picker shows the reader that ${localeContract.locales.filter((l) => l.review.state !== "source").length} of them have been read by nobody who speaks them. ${signLanguage.short} is not in that list, its ${signLanguage.mustNeverHappen.length} refusals are rendered from the contract, and the interpreter it needs is the one already on the teleconsultation roster. That interpreter is now a vetted party with ${interpreterRole.checks.length} checks of their own and one capability, granted nothing that opens a record; ${interpreting.roster.length} of them carry hours rather than a conclusion, so all three platforms work out for themselves which hour answers a request and all three can still return nothing — a visit with no interpreter is held rather than dispatched and carries the contract's own word for it on all three, cancelling one costs ${interpreting.cancellation.fee} and is recorded against ${interpreting.cancellation.attributedTo} rather than the patient, and the ${interpreting.refusals.length} refusals — a family member, a child, English written at somebody — are on the screen rather than only in the file. Substitution is held to section 22F of the Medicines and Related Substances Act 101 of 1965: the four statutory exceptions are all in the register in the Act's own order, no item that must not be substituted was, no substitution changes the molecule or the strength, every one of the ${dispensing.prescription.items.length} items carries the words said to the patient, the pharmacist who signed one carries a registration in the format the vetting register holds them to, and the chronic authorisation is boxed by a period and a quantity, ends in a review, and writes its expiry down nowhere — all three platforms work it out from the same ${MONTH_IN_DAYS}-day month. An employer's programme report is suppressed here as well as in the three apps: no group under ${suppressionFloor.minimumCohort} people is reported, no group where one answer covers ${Math.round(suppressionFloor.dominanceCeiling * 100)}% of it is reported, no report leaves exactly one group hidden, and in none of the ${programmes.programmes.length} programmes do the published groups add up to the published total — because if they did, every suppression above could be undone by subtracting. GilbertOne listens only where the founder said it may: the audio and speech APIs live in one file per phone, which asks for on-device recognition and writes nothing down, on the web a microphone exists on exactly two surfaces — the live assistant's button and the labelled demonstrator — each under its own dated founder decision, each behind a disclosure shown before the first tap, and nowhere else in the build, no listening word is typed outside the contract, the ${gilbertWords.groups.length} emergency term groups of version ${gilbertWords.version} only ever raise and change only with a changelog entry, the screen renders the voice capability's notice from the contract rather than a sentence of its own, and none of the ${capabilities.capabilities.length} capabilities has its notice typed into a hand-written native file. The ingestion boundary is ${feedContract.feeds.length} doors and every one of them is locked: each names the capability whose sentence it answers with, points at the sample data that stands in for it, carries ${feedContract.feeds.reduce((t, f) => t + f.beforeSwitchOn.length, 0)} conditions that must be true before it may be switched on — every one of which a connected capability is now held to — and refuses ${feedContract.feeds.reduce((t, f) => t + f.neverAccepts.length, 0)} named fields it must never be sent, none of which any other feed accepts; every capability is either served by one or carries a written reason there is no seam, no route is typed into the server by hand, no refusal sentence is typed into the service, and nothing behind them answers in the two hundreds. The table that would settle whether the caller limit is the right number holds five integers per window and no column anybody could be identified by, and the health routes that read it answer the loopback by path rather than by method — which is now checked in both directions, because the first POST under that prefix would otherwise have been public. The chain witness renders a head to be carried off the machine and checks one back; it reaches no network and says on its own face that publishing is still absent. Colour contrast is computed rather than eyeballed: ${contrast.pairs.length} foreground/background pairs clear WCAG 2.2 AA, and ${contrast.knownFailures.length ? `each of the ${contrast.knownFailures.length} that do not is parked with a measured replacement that does` : "none of them fails"}. Three bodies of prose that were written out once per platform are contracts now: the ${explanations.entries.length} reading explanations and their ${Object.keys(explanations.provenance).length} provenance sentences in records.json, where every urgent condition is a red flag sos.json actually has, no paragraph names a number, the ordinary cause is said before the frightening one and the oximeter still admits it reads high on darker skin; the ${arrivalProse.length} arrival refusals in geography.json, with the day of the visit enforced by arithmetic on all three platforms rather than by the sentence that describes it; and what the offline queue survives in capture.json, where ${fileStores.length} file-backed stores are held to one promise and the web's is held to keeping less. What a store says when the disk refuses it is a contract now too: ${writeFailures.failures.length} failures over ${outcomeNames.size} outcomes, no two of them leaving the same set true, every one of them leaving nothing deleted, none of them offered by a store with no disk to be refused by — and the ${SILENT_ABOUT_WRITE_FAILURE.length} file stores that have no sentence for a full phone and the one screen that quarantines a file without saying so are written down as gaps rather than left to be found again. Not one of those ${prosePlaces.reduce((total, place) => total + place.sentences.length, 0)} sentences is typed into a hand-written file outside the ${PROSE_QUARANTINE.length} quarantined copies waiting to adopt them, and each of those quarantines fails the build on the day it is no longer needed. And a workspace may not type the figure at the top of it: all ${METRIC_STRIPS.length} metric strips are read for a digit inside a literal, ${TYPED_FIGURES.length} figures are excused because no list on their screen could count them, and the ${FIGURE_QUARANTINE.reduce((total, [, count]) => total + count, 0)} that are typed over a list that could are ratcheted so that neither a new one nor a half-finished fix goes unnoticed. What that cannot see — whether a counted figure counts the right rows — is what tests/workspace-counts.spec.ts opens a browser for.`,
+  `Checked ${native.length} native source files: no WebViews. Web demo storage/content, native service catalogue, clinical reference ranges, locales, demo codes, hero banner copy and shared illustrations are consistent across web, iOS and Android. Design tokens, the vetting table — ${vetting.roles.length} roles, ${vetting.roles.reduce((t, r) => t + r.checks.length, 0)} checks and every refusal sentence — and the record contract — ${records.records.length} record types, ${records.consultation.sections.length} consultation sections and every summary — are generated into CSS, Swift and Kotlin, and every generated file matches its source. Coordinate refusals and the numbers an arrival estimate is built from agree across all three. No payout line names its own amount for a visit, and the share the public page advertises is the share the catalogue pays. On the emergency pathway the only numbers that exist are ${SA_EMERGENCY_NUMBERS.map(([, n]) => n).join(", ")}, the ${sos.redFlags.conditions.length} conditions that end the questions are all present, every one of the ${sos.failures.length} failures says what to do instead, every coverage area is a zone dispatch can reach, and all three screens show the ambulance number before anything MyThuso sells. No teleconsultation screen touches a camera or a microphone, the connection ladder never permits more on a worse line than on a better one, and not one of the ${teleconsult.outcomes.filter((o) => !o.countsAsConsultation).length} encounter outcomes that is not a consultation may write an assessment, a plan or a charge. The consent contract — ${consent.purposes.length} purposes, ${requiredCount} of them required, ${consent.lawfulBases.length} lawful bases and every refusal, withdrawal and retention sentence — is read rather than restated by the web app and the service, both sides build the consent fingerprint from the same thing, sign-up marks exactly the ${requiredCount} required ones as required, both consent ledgers are append-only, and the access log has no column a reading could go in \u2014 it is refused by identifier now rather than by grepping the prose around a schema, so a table about access to clinical records may be called what it is. Every entry in that log hashes onto the one before it and its head is committed into the gate's keyed chain by a module the consent register holds two methods of and cannot otherwise reach. The locale contract — ${localeContract.locales.length} written languages over ${localeContract.keys.length} keys and ${localeContract.sets.length} sets — is generated into Swift and Kotlin and read directly by the web: every locale carries every key of every set it claims and nothing outside them, no locale is presented as reviewed without naming who read it and when, no string in it is a sentence out of a clinical contract, clinicalLocale() is present on all three platforms, and every language picker shows the reader that ${localeContract.locales.filter((l) => l.review.state !== "source").length} of them have been read by nobody who speaks them. ${signLanguage.short} is not in that list, its ${signLanguage.mustNeverHappen.length} refusals are rendered from the contract, and the interpreter it needs is the one already on the teleconsultation roster. That interpreter is now a vetted party with ${interpreterRole.checks.length} checks of their own and one capability, granted nothing that opens a record; ${interpreting.roster.length} of them carry hours rather than a conclusion, so all three platforms work out for themselves which hour answers a request and all three can still return nothing — a visit with no interpreter is held rather than dispatched and carries the contract's own word for it on all three, cancelling one costs ${interpreting.cancellation.fee} and is recorded against ${interpreting.cancellation.attributedTo} rather than the patient, and the ${interpreting.refusals.length} refusals — a family member, a child, English written at somebody — are on the screen rather than only in the file. Substitution is held to section 22F of the Medicines and Related Substances Act 101 of 1965: the four statutory exceptions are all in the register in the Act's own order, no item that must not be substituted was, no substitution changes the molecule or the strength, every one of the ${dispensing.prescription.items.length} items carries the words said to the patient, the pharmacist who signed one carries a registration in the format the vetting register holds them to, and the chronic authorisation is boxed by a period and a quantity, ends in a review, and writes its expiry down nowhere — all three platforms work it out from the same ${MONTH_IN_DAYS}-day month. An employer's programme report is suppressed here as well as in the three apps: no group under ${suppressionFloor.minimumCohort} people is reported, no group where one answer covers ${Math.round(suppressionFloor.dominanceCeiling * 100)}% of it is reported, no report leaves exactly one group hidden, and in none of the ${programmes.programmes.length} programmes do the published groups add up to the published total — because if they did, every suppression above could be undone by subtracting. GilbertOne listens only where the founder said it may: the audio and speech APIs live in one file per phone, which asks for on-device recognition and writes nothing down, on the web a microphone exists on exactly two surfaces — the live assistant's button and the labelled demonstrator — each under its own dated founder decision, each behind a disclosure shown before the first tap, and nowhere else in the build, no listening word is typed outside the contract, the ${gilbertWords.groups.length} emergency term groups of version ${gilbertWords.version} only ever raise and change only with a changelog entry, the screen renders the voice capability's notice from the contract rather than a sentence of its own, and none of the ${capabilities.capabilities.length} capabilities has its notice typed into a hand-written native file. The ingestion boundary is ${feedContract.feeds.length} doors and every one of them is locked: each names the capability whose sentence it answers with, points at the sample data that stands in for it, carries ${feedContract.feeds.reduce((t, f) => t + f.beforeSwitchOn.length, 0)} conditions that must be true before it may be switched on — every one of which a connected capability is now held to — and refuses ${feedContract.feeds.reduce((t, f) => t + f.neverAccepts.length, 0)} named fields it must never be sent, none of which any other feed accepts; every capability is either served by one or carries a written reason there is no seam, no route is typed into the server by hand, no refusal sentence is typed into the service, and nothing behind them answers in the two hundreds. The table that would settle whether the caller limit is the right number holds five integers per window and no column anybody could be identified by, and the health routes that read it answer the loopback by path rather than by method — which is now checked in both directions, because the first POST under that prefix would otherwise have been public. The chain witness renders a head to be carried off the machine and checks one back; it reaches no network and says on its own face that publishing is still absent. Colour contrast is computed rather than eyeballed: ${contrast.pairs.length} foreground/background pairs clear WCAG 2.2 AA, and ${contrast.knownFailures.length ? `each of the ${contrast.knownFailures.length} that do not is parked with a measured replacement that does` : "none of them fails"}. Three bodies of prose that were written out once per platform are contracts now: the ${explanations.entries.length} reading explanations and their ${Object.keys(explanations.provenance).length} provenance sentences in records.json, where every urgent condition is a red flag sos.json actually has, no paragraph names a number, the ordinary cause is said before the frightening one and the oximeter still admits it reads high on darker skin; the ${arrivalProse.length} arrival refusals in geography.json, with the day of the visit enforced by arithmetic on all three platforms rather than by the sentence that describes it; and what the offline queue survives in capture.json, where ${fileStores.length} file-backed stores are held to one promise and the web's is held to keeping less. What a store says when the disk refuses it is a contract now too: ${writeFailures.failures.length} failures over ${outcomeNames.size} outcomes, no two of them leaving the same set true, every one of them leaving nothing deleted, none of them offered by a store with no disk to be refused by — and every file store has a sentence for a full phone, with ${SILENT_ABOUT_WRITE_FAILURE.length + SILENT_ABOUT_QUARANTINE.length} gaps written down rather than left to be found again. Not one of those ${prosePlaces.reduce((total, place) => total + place.sentences.length, 0)} sentences is typed into a hand-written file outside the ${PROSE_QUARANTINE.length} quarantined copies waiting to adopt them, and each of those quarantines fails the build on the day it is no longer needed. And a workspace may not type the figure at the top of it: all ${METRIC_STRIPS.length} metric strips are read for a digit inside a literal, ${TYPED_FIGURES.length} figures are excused because no list on their screen could count them, and the ${FIGURE_QUARANTINE.reduce((total, [, count]) => total + count, 0)} that are typed over a list that could are ratcheted so that neither a new one nor a half-finished fix goes unnoticed. What that cannot see — whether a counted figure counts the right rows — is what tests/workspace-counts.spec.ts opens a browser for.`,
 );
 
 /* The money and identity seams report separately, as their own line, so that three agents adding

@@ -262,7 +262,8 @@ func receive(_ part: VisitPart, _ arrival: VisitArrival) -> VisitPart {
             try data.write(to: VisitQueueStore.ledgerURL, options: [.atomic, .completeFileProtectionUnlessOpen])
             excludeFromBackup()
         } catch {
-            storeNote = "This phone would not accept the write: \(error.localizedDescription). Nothing in memory has been dropped."
+            /* The contract's own sentence for what the disk said, chosen in one place for both stores. */
+            storeNote = writeFailureSentence(for: error)
         }
     }
     private func excludeFromBackup() {

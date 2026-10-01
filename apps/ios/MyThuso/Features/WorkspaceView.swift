@@ -190,9 +190,14 @@ enum WorkspaceDay {
         case "Partner":
             let late = prescriptions.filter(\.late).count
             let released = laboratory.filter { $0.standing.hasPrefix("Results") }.count
+            /* The laboratory chip said "Next collection 11:15", typed over a list with no collection
+               in it to be next — no time on this phone could have been checked against it (1 October
+               2026). It counts the orders below instead: the ones still with the laboratory. */
+            let withLaboratory = laboratory.count - released
             return [.init(label: "Open orders", value: String(prescriptions.count),
                           chip: late == 0 ? "All inside their windows" : "\(late) past its window", flagged: late > 0),
-                    .init(label: "Laboratory orders", value: String(laboratory.count), chip: "Next collection 11:15"),
+                    .init(label: "Laboratory orders", value: String(laboratory.count),
+                          chip: withLaboratory == 0 ? "None still with the laboratory" : "\(withLaboratory) still with the laboratory"),
                     .init(label: "Ready for release", value: String(released), chip: "Awaiting a clinician")]
         case "Control Tower":
             let free = Dispatch.nurses.filter { $0.status == "Available" }.count

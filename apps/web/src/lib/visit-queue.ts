@@ -1,3 +1,4 @@
+import contract from '../../../../packages/catalog/capture.json';
 import {
  ageText, nextCaptureId, receive, rules, type Capture, type CaptureStateId, type ConflictId
 } from './capture';
@@ -41,6 +42,14 @@ export const inMemoryAdmission = {
  owed: rules.queuedIsNotLost,
  close: 'and this one does not meet it. It is owed, not met.'
 };
+
+/* What this store loses, in packages/catalog/capture.json's words for the web store rather than a list
+   item of the queue screen's own (1 October 2026). The screen typed the sentence beside the contract
+   that holds it, and scripts/check-boundaries.mjs kept the two identical by quarantine; reading it here
+   is the same words with one author. */
+const webStore = contract.durability.stores.find(s => s.id === 'web-in-memory');
+if (!webStore) throw new Error('packages/catalog/capture.json has lost the store "web-in-memory", whose loss the visit queue says out loud.');
+export const webStoreLostTo: readonly string[] = webStore.says.lostTo;
 
 /* ---- What a piece of a visit is --------------------------------------------------------------
    Five parts, because those are the five things a nurse does in a house and each one is separately

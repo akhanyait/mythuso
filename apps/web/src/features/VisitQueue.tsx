@@ -6,7 +6,7 @@ import { useOffline } from '../components/States';
 import { ageText, captureStateById, conflictById, rules } from '../lib/capture';
 import {
  beginSend, inMemoryAdmission, instrumentQueueCount, interruptSend, isPending, isSealed,
- partNames, partWhileHeld, seedQueue, settleSend, snapshot, subscribe, type Part
+ partNames, partWhileHeld, seedQueue, settleSend, snapshot, subscribe, webStoreLostTo, type Part
 } from '../lib/visit-queue';
 import { can } from '../lib/vetting';
 import { subjectById } from '../lib/vetting-fixtures';
@@ -194,7 +194,7 @@ export function WaitingToSend({ visit, signal, capturerId = 'N-205' }: { visit: 
      <li>None of it is in the patient’s Health Passport.</li>
      <li>No doctor can read it, so no prescription, sick note or referral can follow from it.</li>
      <li>The Control Tower does not know this visit is done.</li>
-     <li>Closing this tab loses it. Nothing in this app may leave a patient’s readings on the machine it was opened on.</li>
+     {webStoreLostTo.map(sentence => <li key={sentence}>{sentence}</li>)}
     </ul>
    </div>
   </div>}

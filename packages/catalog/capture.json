@@ -261,7 +261,7 @@
   "writeFailures": {
    "_note": "What happens when the disk will not take the work — as data, because these sentences were written into Android's FileBook and nowhere else, and the day iOS grows one it would have grown a fourth author. Three failures rather than one: a phone with no room left, a disk that refuses a write without saying why, and a file already written that will not read back. They are three because they leave three different things true. One sentence covering all three would send a nurse whose phone has plenty of room away to free space she does not need to free, and would tell a nurse whose ledger was quarantined that her work is not on the disk when it is, under another name.",
 
-   "_shape": "The same separation the stores above use, and it is the point of both. `leaves` is what is true after the failure, in outcome ids — behaviour, comparable between failures and checkable across platforms. `says` is the one sentence a screen renders, word for word. `saidBy` is which stores render it today, and it is deliberately not every store that can suffer the failure: iOS's two file queues can run a phone out of room exactly as Android's can, and neither of them says anything at all. That gap is left visible here rather than papered over, which is what holding both fields is for.",
+   "_shape": "The same separation the stores above use, and it is the point of both. `leaves` is what is true after the failure, in outcome ids — behaviour, comparable between failures and checkable across platforms. `says` is the one sentence a screen renders, word for word. `saidBy` is which stores render it today, and it is deliberately not every store that can suffer the failure: a memory store cannot be refused by a disk, so it is never on the list. iOS's two file queues could run a phone out of room exactly as Android's could and said nothing in these words until 1 October 2026, when both began answering a refused write with the same two sentences through CaptureData.writeFailure — the gap this field was left to show is closed, and the field stays so that the next store to fall silent shows up the same way.",
 
    "_promiseItServes": "rules.queuedIsNotLost, and its sibling in quarantinedFile below. Never dropped to make a sync succeed has to mean never dropped to make a write succeed and never dropped to make a parse succeed, so every failure here leaves nothing-deleted true and scripts/check-boundaries.mjs refuses one that does not.",
 
@@ -282,7 +282,7 @@
      "detectedBy": "The write threw, and the failure or one of the causes behind it named ENOSPC or said there was no space left on the device.",
      "leaves": ["held-in-memory", "not-on-disk", "earlier-writes-intact", "nothing-deleted", "person-can-clear-it"],
      "says": "This phone has no room left, so what you have just done could not be written down. It is still on the screen and it is still yours, but it is not on the disk: if the app closes now, it is gone. Free some space on the phone and it will be written again.",
-     "saidBy": ["android-private-file"],
+     "saidBy": ["android-private-file", "ios-capture-ledger", "ios-visit-queue"],
      "why": "The only write failure the person holding the phone can do anything about, which is the whole reason it is a failure of its own rather than a case of the one below it. It is also the only sentence here that ends in an instruction, and an instruction is honest only while it is the true cause."
     },
     {
@@ -291,7 +291,7 @@
      "detectedBy": "The write threw for any other reason.",
      "leaves": ["held-in-memory", "not-on-disk", "earlier-writes-intact", "nothing-deleted"],
      "says": "This phone would not take the write, and it did not say why. What you have just done is still on the screen and still yours, but it is not on the disk: if the app closes now, it is gone. Nothing that was already written down has been touched.",
-     "saidBy": ["android-private-file"],
+     "saidBy": ["android-private-file", "ios-capture-ledger", "ios-visit-queue"],
      "why": "It differs from the one above by exactly one outcome, and that outcome is why there are two sentences instead of one. Telling a nurse whose phone has room to spare to go and free some sends her looking for a problem she has not got, and the next refusal she meets she will not read."
     },
     {
@@ -304,7 +304,8 @@
      "namesTheFileIn": [
       "apps/ios/MyThuso/Features/CaptureQueueView.swift",
       "apps/ios/MyThuso/Features/VisitQueueView.swift",
-      "apps/android/app/src/main/java/za/co/mythuso/ui/VisitQueueScreens.kt"
+      "apps/android/app/src/main/java/za/co/mythuso/ui/VisitQueueScreens.kt",
+      "apps/android/app/src/main/java/za/co/mythuso/ui/CaptureScreens.kt"
      ],
      "why": "Not a write failure at all, and it is in this list precisely so that it cannot be answered with a write failure's sentence. Nothing is on its way to the disk and nothing is waiting on the screen; what is at stake is work that was written down correctly and now cannot be read, and the answer to it is a rename rather than a retry. Its promise is quarantinedFile below rather than a sentence of its own, because a second wording of one promise is what this section exists to stop. What each screen adds to it is the new name, which is different on every phone and cannot be a shared literal — so new-name-on-screen is held as behaviour, against the files in namesTheFileIn, rather than as words."
     }

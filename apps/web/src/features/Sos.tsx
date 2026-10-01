@@ -11,6 +11,7 @@ import {
 } from '../lib/sos';
 import { can } from '../lib/vetting';
 import { subjectById } from '../lib/vetting-fixtures';
+import { nurseById, placeOf } from '../lib/roster';
 import { etaFromRoute, noEta, routeUnavailable, straightLineEta, type Eta, type LatLng } from '../../../../packages/geo/index.ts';
 
 /* Thuso SOS — the emergency pathway.
@@ -52,18 +53,29 @@ const areaPoints: Record<string, LatLng> = {
 };
 const ELSEWHERE = 'Somewhere else in South Africa';
 type OnCall = { id: string; at: LatLng | null };
+/* Where an on-call nurse is, from the roster rather than typed beside her id (1 October 2026). The
+   rotas held a coordinate of their own for each nurse, a second answer to a question lib/roster.ts's
+   placeOf already answers from her suburb — and the one that would have drifted first. A nurse the
+   roster will not draw (no position shared, outside coverage, a fix wider than her suburb) is on the
+   rota with no position, which is the same thing the dispatch board shows. */
+const onCall = (id: string): OnCall => {
+ const nurse = nurseById(id);
+ const place = nurse ? placeOf(nurse) : null;
+ return { id, at: place?.drawn ? place.at : null };
+};
 /* Two rotas, so the vetting refusal is a thing you can see rather than a paragraph. On the usual
-   rota one nurse is sharing no position, which is what a phone in a bag looks like. */
+   rota one nurse is sharing no position, which is what a phone in a bag looks like — the roster's
+   own N-207, whose phone it says is telling nobody anything. */
 const rotas: Record<string, { label: string; note: string; nurses: OnCall[] }> = {
  usual: {
   label: 'The usual rota',
   note: 'Two nurses on call. One phone is not sharing a position, which is what a phone in a bag looks like.',
-  nurses: [{ id: 'N-205', at: { lat: -26.150, lng: 28.046 } }, { id: 'N-207', at: null }]
+  nurses: [onCall('N-205'), onCall('N-207')]
  },
  lapsed: {
   label: 'Only Sister Ayanda Dube is on tonight',
   note: 'Her police clearance lapsed nine days ago. This is the rota that tests whether urgency is allowed to lift a check.',
-  nurses: [{ id: 'N-204', at: { lat: -26.240, lng: 27.916 } }]
+  nurses: [onCall('N-204')]
  }
 };
 

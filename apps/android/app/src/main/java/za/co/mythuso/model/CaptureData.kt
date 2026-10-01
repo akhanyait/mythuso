@@ -149,9 +149,11 @@ val queueStores = listOf(
    true after the failure, in outcome ids — behaviour, comparable between failures and checkable
    across platforms. `says` is the one sentence a screen renders, word for word. `saidBy` is
    which stores render it today, and it is deliberately not every store that can suffer the
-   failure: iOS's two file queues can run a phone out of room exactly as Android's can, and
-   neither of them says anything at all. That gap is left visible here rather than papered over,
-   which is what holding both fields is for. */
+   failure: a memory store cannot be refused by a disk, so it is never on the list. iOS's two
+   file queues could run a phone out of room exactly as Android's could and said nothing in these
+   words until 1 October 2026, when both began answering a refused write with the same two
+   sentences through CaptureData.writeFailure — the gap this field was left to show is closed,
+   and the field stays so that the next store to fall silent shows up the same way. */
 val writeOutcomes = listOf(
     WriteOutcome("held-in-memory", "The work is still in memory and still on the screen"),
     WriteOutcome("not-on-disk", "The work is not on the disk, so closing the app now loses it"),
@@ -168,14 +170,14 @@ val writeFailures = listOf(
         "The write threw, and the failure or one of the causes behind it named ENOSPC or said there was no space left on the device.",
         listOf("held-in-memory", "not-on-disk", "earlier-writes-intact", "nothing-deleted", "person-can-clear-it"),
         "This phone has no room left, so what you have just done could not be written down. It is still on the screen and it is still yours, but it is not on the disk: if the app closes now, it is gone. Free some space on the phone and it will be written again.",
-        listOf("android-private-file")
+        listOf("android-private-file", "ios-capture-ledger", "ios-visit-queue")
     ),
     WriteFailure(
         "write-refused", "The disk would not take it, and did not say why",
         "The write threw for any other reason.",
         listOf("held-in-memory", "not-on-disk", "earlier-writes-intact", "nothing-deleted"),
         "This phone would not take the write, and it did not say why. What you have just done is still on the screen and still yours, but it is not on the disk: if the app closes now, it is gone. Nothing that was already written down has been touched.",
-        listOf("android-private-file")
+        listOf("android-private-file", "ios-capture-ledger", "ios-visit-queue")
     ),
     WriteFailure(
         "will-not-parse", "What is on the disk will not read back",

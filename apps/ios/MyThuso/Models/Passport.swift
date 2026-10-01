@@ -15,17 +15,16 @@ import Foundation
  * this visit" a lookup rather than a coincidence.
  *
  * WHERE THE RANGES COME FROM. Not one range is written here. Every label, unit and reference range
- * is read from `Observation.all` in Features/AssessmentView.swift, which is the one place iOS
- * declares them and the one place scripts/check-boundaries.mjs compares against the web and Android
- * assessments. What is never read comes from the record contract's own protected categories, and
- * the instruments come from ThusoKit. A second copy of any of the three is the drift the contract
- * files exist to stop, and this module is deliberately a lookup table with no numbers of its own
- * except the readings themselves.
+ * is read from `Observation.all`, which is packages/catalog/records.json's list through the
+ * generated Records.observations. What is never read comes from the record contract's own protected
+ * categories, and the instruments come from ThusoKit. A second copy of any of the three is the drift
+ * the contract files exist to stop.
  *
- * apps/web/src/lib/passport.ts is the same module, and its note about where these seven ranges
- * ought to live — packages/catalog/records.json, beside the observation section that already calls
- * them indicative — applies here word for word. Until they are there, both platforms read the one
- * copy their own assessment already holds rather than making a third.
+ * WHERE THE RECORD COMES FROM. Not one value is written here either, since 1 October 2026: the
+ * holder, the reviewer, the four reading sets, the doctor's review and the four headline measures
+ * are packages/catalog/passport.json's, read through the generated PassportData. This file typed all
+ * of them beside the generated copy, held word for word by a quarantine in
+ * scripts/check-boundaries.mjs; what is left here is the arithmetic and the types the screens use.
  *
  * Fictional patient, invented readings, nothing stored and nothing sent. */
 
@@ -87,28 +86,20 @@ struct PassportReview {
 }
 
 enum Passport {
-    static let holder = PassportHolder(name: "Lerato Molefe", passportId: "TH-2048-3920",
-                                       issuedBy: "Akhanya IT Innovations")
-    static let reviewer = PassportReviewer(name: "Dr Lerato Khumalo", registration: "HPCSA MP0612885")
+    static let holder = PassportHolder(name: PassportData.holder.name, passportId: PassportData.holder.passportId,
+                                       issuedBy: PassportData.holder.issuedBy)
+    static let reviewer = PassportReviewer(name: PassportData.reviewer.name, registration: PassportData.reviewer.registration)
     /// The nurse who took these readings. The same one the visit list and dispatch already name.
     static let nurse = (name: "Sister Naledi Mokoena", role: "Registered Nurse (SANC)")
     /// The reference the completed visit was booked under. One of the references this preview's
     /// capture ledger already knows, so a summary and a queue cannot name two different visits.
     static let lastVisitReference = "TH-2045"
 
-    /* Four home visits over three months. The third is the one worth opening: a systolic of 141
-       against an upper reference of 140, with the reason the person gave for it on the day. */
-    static let readingSets: [ReadingSet] = [
-        ReadingSet(dayOffset: -87, values: ["systolic": 128, "diastolic": 82, "pulse": 76,
-                                            "respiratory": 16, "temperature": 36.7, "oxygen": 98, "glucose": 5.6]),
-        ReadingSet(dayOffset: -59, values: ["systolic": 134, "diastolic": 86, "pulse": 74,
-                                            "respiratory": 16, "temperature": 36.6, "oxygen": 98, "glucose": 6.1]),
-        ReadingSet(dayOffset: -31, values: ["systolic": 141, "diastolic": 90, "pulse": 80,
-                                            "respiratory": 18, "temperature": 37.0, "oxygen": 97, "glucose": 5.4],
-                   note: "Missed medication"),
-        ReadingSet(dayOffset: -3, values: ["systolic": 136, "diastolic": 85, "pulse": 72,
-                                           "respiratory": 16, "temperature": 36.8, "oxygen": 98, "glucose": 5.2])
-    ]
+    /* Four home visits over three months, as the contract holds them. The third is the one worth
+       opening: a systolic above its upper reference, with the reason the person gave on the day. */
+    static let readingSets: [ReadingSet] = PassportData.readingSets.map {
+        ReadingSet(dayOffset: $0.dayOffset, values: $0.values, note: $0.note)
+    }
 
     /// The visit the last set of readings was taken at.
     static var latestSet: ReadingSet { readingSets[readingSets.count - 1] }
@@ -157,7 +148,7 @@ enum Passport {
     /* The four the trends screen leads with. Seven charts on one phone screen is a wall; these are
        the four somebody with a blood-pressure diagnosis actually watches, and the other three are
        one tap below in the same shape. */
-    static let headlineIds = ["systolic", "diastolic", "pulse", "glucose"]
+    static let headlineIds = PassportData.headlineMeasures
     static var headline: [Observation] { Observation.all.filter { headlineIds.contains($0.id) } }
     static var others: [Observation] { Observation.all.filter { !headlineIds.contains($0.id) } }
 
@@ -176,10 +167,8 @@ enum Passport {
     // MARK: - What the doctor said about the last visit
 
     static let lastReview = PassportReview(
-        assessment: "Blood pressure is coming down again. The reading a month ago was above the reference range on the day a dose was missed; this one is inside it. Nothing here needs an urgent appointment.",
-        plan: "Keep taking the medicine at the same time each morning. Bring the boxes to the next visit so the nurse can check what is left.",
-        next: "A nurse visit in about four weeks, or sooner if you feel unwell.",
-        reviewedDayOffset: -2)
+        assessment: PassportData.lastReview.assessment, plan: PassportData.lastReview.plan,
+        next: PassportData.lastReview.next, reviewedDayOffset: PassportData.lastReview.reviewedDayOffset)
 
     // MARK: - What a device would and would not be allowed to hand over
 

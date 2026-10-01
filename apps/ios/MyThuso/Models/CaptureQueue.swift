@@ -305,7 +305,7 @@ struct CaptureLedger: Codable {
             try data.write(to: CaptureStore.ledgerURL, options: [.atomic, .completeFileProtectionUnlessOpen])
             excludeFromBackup()
         } catch {
-            storeNote = "This phone would not accept the write: \(error.localizedDescription). Nothing in memory has been dropped."
+            storeNote = writeFailureSentence(for: error)
         }
     }
     /* Health data is special personal information. A queue of readings syncing itself into whatever
@@ -680,4 +680,26 @@ enum CaptureFixtures {
                   .queued, by: naledi, deviceDaysAgo: 0.02, receivedDaysAgo: nil)
         ]
     }
+}
+
+// MARK: - What a store says when the disk refuses it
+
+/* The two sentences in packages/catalog/capture.json's durability.writeFailures, chosen by what the
+   disk said (1 October 2026). Both iOS stores used to answer a refused write with a line of their own
+   that carried the system's error text — "This phone would not accept the write: …" — which told a nurse
+   whose phone was full nothing she could act on, and was a third author beside Android's FileBook for a
+   promise the contract already words. Out of space is hers to fix and the contract says how; anything
+   else is not, and telling her to free space she does not need to free would send her looking for a
+   problem she does not have. Both stores ask here so they cannot choose differently. */
+func writeFailureSentence(for error: Error) -> String {
+    var current: NSError? = error as NSError
+    var outOfSpace = false
+    while let failure = current, !outOfSpace {
+        outOfSpace = (failure.domain == NSCocoaErrorDomain && failure.code == NSFileWriteOutOfSpaceError)
+            || (failure.domain == NSPOSIXErrorDomain && failure.code == Int(ENOSPC))
+        current = failure.userInfo[NSUnderlyingErrorKey] as? NSError
+    }
+    let id = outOfSpace ? "disk-full" : "write-refused"
+    return CaptureData.writeFailure(id)?.says
+        ?? "packages/catalog/capture.json has lost the write failure \"\(id)\", so this refusal has no sentence to say it with."
 }

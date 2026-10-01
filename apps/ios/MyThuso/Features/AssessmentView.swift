@@ -24,20 +24,13 @@ import SwiftUI
 
 /// Indicative adult reference ranges, used only to flag a value for the nurse's attention.
 /// This is not a validated triage or early-warning score and it never decides anything.
-struct Observation: Identifiable, Hashable {
-    let id: String
-    let label: String
-    let unit: String
-    let range: ClosedRange<Double>
-    static let all: [Observation] = [
-        .init(id: "systolic", label: "Blood pressure — systolic", unit: "mmHg", range: 90...140),
-        .init(id: "diastolic", label: "Blood pressure — diastolic", unit: "mmHg", range: 60...90),
-        .init(id: "pulse", label: "Pulse", unit: "bpm", range: 50...100),
-        .init(id: "respiratory", label: "Respiratory rate", unit: "breaths/min", range: 12...20),
-        .init(id: "temperature", label: "Temperature", unit: "°C", range: 36.1...37.5),
-        .init(id: "oxygen", label: "Oxygen saturation", unit: "%", range: 95...100),
-        .init(id: "glucose", label: "Blood glucose", unit: "mmol/L", range: 4...7.8)
-    ]
+/* The seven are packages/catalog/records.json's, read through the generated Records.observations
+   rather than declared here (1 October 2026). This file typed all seven ranges beside the generated
+   copy, held identical by quarantine in scripts/check-boundaries.mjs; the name stays so the passport,
+   the capture ledger and the visit summary read on unchanged. */
+typealias Observation = ObservationRange
+extension ObservationRange {
+    static var all: [ObservationRange] { Records.observations }
 }
 
 /* Three nurses, so the gate on this form can be seen rather than described: one cleared, one whose

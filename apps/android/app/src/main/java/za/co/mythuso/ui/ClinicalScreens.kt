@@ -25,16 +25,12 @@ import za.co.mythuso.model.*
  * Indicative adult reference ranges, used only to flag a value for the nurse's attention.
  * This is not a validated triage or early-warning score and it never decides anything.
  */
-data class Observation(val id: String, val label: String, val unit: String, val low: Double, val high: Double)
-val observations = listOf(
-    Observation("systolic", "Blood pressure — systolic", "mmHg", 90.0, 140.0),
-    Observation("diastolic", "Blood pressure — diastolic", "mmHg", 60.0, 90.0),
-    Observation("pulse", "Pulse", "bpm", 50.0, 100.0),
-    Observation("respiratory", "Respiratory rate", "breaths/min", 12.0, 20.0),
-    Observation("temperature", "Temperature", "°C", 36.1, 37.5),
-    Observation("oxygen", "Oxygen saturation", "%", 95.0, 100.0),
-    Observation("glucose", "Blood glucose", "mmol/L", 4.0, 7.8)
-)
+/* The seven are packages/catalog/records.json's, read through the generated observationRanges rather
+   than declared here (1 October 2026). This file typed all seven ranges beside the generated copy,
+   held identical by quarantine in scripts/check-boundaries.mjs; the names stay so Explain.kt and the
+   assessment below read on unchanged. */
+typealias Observation = ObservationRange
+val observations: List<Observation> get() = observationRanges
 private val Flag = MangoInk
 
 /* The labels a held part's facts are written under.

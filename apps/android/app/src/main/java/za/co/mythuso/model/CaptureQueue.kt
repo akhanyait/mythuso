@@ -70,10 +70,21 @@ class MemoryBook : CaptureBook {
     /** Memory does not run out the way a disk does, so this is the one book that cannot refuse. */
     override fun write(text: String): String? { held = text; return null }
     override fun quarantine(reason: String) { held = null }
-    override val where = "Held in memory only, because this screen was opened without a file store."
-    override val survives = "Nothing. Every entry here is lost when this screen closes."
-    override val doesNotSurvive = "A crash, a restart, a sign-out, or leaving this screen."
+    private val store = storeSaying("android-in-memory")
+    override val where = store.heldIn
+    override val survives = store.saysSurvives.joinToString(" ")
+    override val doesNotSurvive = store.saysLostTo.joinToString(" ")
 }
+
+/* What each book says about itself, read from packages/catalog/capture.json through the generated
+   CaptureData rather than typed here (1 October 2026). These sentences were written in this file and
+   in the contract both, and scripts/check-boundaries.mjs held the copies identical by quarantine; one
+   author is the arrangement the quarantine was waiting for. A missing store is a build that has lost
+   its contract, and failing loudly here is better than a book that quietly says nothing. */
+private fun storeSaying(id: String): QueueStore =
+    checkNotNull(CaptureData.store(id)) { "packages/catalog/capture.json has lost the store \"$id\"" }
+private fun failureSaying(id: String): String =
+    checkNotNull(CaptureData.writeFailure(id)) { "packages/catalog/capture.json has lost the write failure \"$id\"" }.says
 
 /**
  * A single JSON file in the app's private storage, written whole and renamed into place, so a
@@ -105,10 +116,7 @@ class FileBook(private val directory: File, private val name: String = "capture-
     private fun refusalFor(failure: Throwable): String {
         val outOfSpace = generateSequence(failure) { it.cause }
             .any { it.message?.contains("No space left on device", ignoreCase = true) == true || it is java.io.IOException && it.message?.contains("ENOSPC") == true }
-        return if (outOfSpace)
-            "This phone has no room left, so what you have just done could not be written down. It is still on the screen and it is still yours, but it is not on the disk: if the app closes now, it is gone. Free some space on the phone and it will be written again."
-        else
-            "This phone would not take the write, and it did not say why. What you have just done is still on the screen and still yours, but it is not on the disk: if the app closes now, it is gone. Nothing that was already written down has been touched."
+        return failureSaying(if (outOfSpace) "disk-full" else "write-refused")
     }
     override var setAside: String? = null
         private set
@@ -116,9 +124,10 @@ class FileBook(private val directory: File, private val name: String = "capture-
         val aside = File(directory, "$stem.unreadable-${System.currentTimeMillis()}.json")
         runCatching { file.renameTo(aside) }.onSuccess { setAside = aside.name }
     }
-    override val where = "A file in this app’s own private storage on this phone. Nothing is sent anywhere: the app declares no permissions at all, internet included."
-    override val survives = "Closing the app, the process being killed, a crash, restarting the phone, and signing out."
-    override val doesNotSurvive = "Uninstalling MyThuso, clearing the app’s storage in Android settings, or a factory reset. It is never backed up off this phone — the manifest sets allowBackup to false."
+    private val store = storeSaying("android-private-file")
+    override val where = store.heldIn
+    override val survives = store.saysSurvives.joinToString(" ")
+    override val doesNotSurvive = store.saysLostTo.joinToString(" ")
 }
 
 /* ---- Getting it onto the disk without stopping the screen ---------------------------------------
@@ -330,6 +339,8 @@ class CaptureStore(private val book: CaptureBook) {
     val where: String get() = book.where
     val survives: String get() = book.survives
     val doesNotSurvive: String get() = book.doesNotSurvive
+    /** What the reading ledger that would not parse is now called, once one has been set aside. */
+    val setAside: String? get() = book.setAside
     /** What the disk has actually taken. Read by any screen that calls this work held. */
     val writeState: LedgerWrite get() = writer.state
     /** Block until what has been recorded is on the disk. Called when the app is going away. */
