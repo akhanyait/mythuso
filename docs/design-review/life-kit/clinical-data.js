@@ -10,10 +10,15 @@
  *
  * Those decisions, each with the reason it was taken:
  *
- *  - The snapshot carries `governance` and `board`, which are read from
- *    `packages/catalog/governance-status.json`. That file names its readers, and `build-data.mjs`
- *    is deliberately not one of them — the same reason `province-data.js` reads the service
- *    boundary files directly rather than through the snapshot. So those two are read here.
+ *  - The ratification state — is there a Medical Director, is there a board — comes from
+ *    `protocols.json#governance`, which is already in the snapshot as `catalog.protocols`. It is
+ *    deliberately NOT read out of the governance register. That register names its own readers,
+ *    and a file that reads it is a file that could start gating something on a value an admin
+ *    typed into a preview; the build holds that list short and argued for, and a design-review
+ *    prototype has no business being on it. `protocols.json#governance` carries the same two
+ *    facts this kit needs — the board is not formed, no Medical Director is appointed — and it
+ *    is the contract that says why no protocol here may advance beyond draft, so it is the more
+ *    honest source for a clinical screen's "not ratified" notice as well as the permitted one.
  *  - The snapshot carries `identity`, read from `packages/catalog/identity.json`, because the
  *    kit's own rule is that no screen carries a real person's name. Every person in these views
  *    is therefore a role: "the doctor on review", "the second reviewer", "the pharmacist who
@@ -48,8 +53,13 @@
   var events = catalog.events || {};
   var identity = catalog.identity || {};
 
-  var governance = snapshot && snapshot.governance ? snapshot.governance : null;
-  var board = snapshot && snapshot.board ? snapshot.board : null;
+  /* The two facts a clinical screen's "not ratified" notice needs: is there a Medical Director, and
+     is there a board. Both come off protocols.json#governance, which build-data.mjs already
+     snapshots as catalog.protocols — see the header for why the governance register is not read
+     instead. The shape differs (medicalDirector / board, each with a status and nothing else), so
+     the rows below carry what this contract actually holds and no label it does not. */
+  var governance = protocols.governance || null;
+  var board = governance ? governance.board : null;
 
   /** How many items, or how many bytes, as a sentence the kit can render without arithmetic on screen. */
   function count(n) {
@@ -170,19 +180,30 @@
 
   function governanceRows() {
     if (!governance) return [];
+    /* The two gates a clinical screen has to be able to name, in the order the contract's own
+       ratification process puts them. Each row carries what protocols.json#governance actually holds —
+       a status and the process's shared note — and no label, holder, detail or document it does not.
+       The register carried those four; this contract does not, and inventing them here would break
+       the rule at the top of this file that nothing clinical is typed by hand. A row that says less
+       is honest; a row that says more is a fiction with a plausible shape. */
+    var steps = (governance.ratificationProcess || {}).steps || [];
+    var note = (governance.ratificationProcess || {}).note || "";
+    var gates = [
+      { id: "board-vote", entry: governance.board },
+      { id: "medical-director-sign", entry: governance.medicalDirector }
+    ];
     var rows = [];
-    var order = ["medical-director", "governance-board"];
-    for (var i = 0; i < order.length; i += 1) {
-      var entry = governance[order[i]];
-      if (!entry) continue;
+    for (var i = 0; i < gates.length; i += 1) {
+      var gate = gates[i];
+      /* A gate the contract's process does not name is not drawn. Deriving the list from `steps`
+         rather than asserting it means the day the process gains a gate this does not silently
+         claim to have covered it. */
+      if (!gate.entry || steps.indexOf(gate.id) < 0) continue;
       rows.push({
-        id: order[i],
-        label: entry.label,
-        status: entry.status,
-        holder: entry.holder,
-        detail: entry.detail,
-        document: entry.document,
-        requiredFor: entry.requiredFor || []
+        id: gate.id,
+        gate: gate.id,
+        status: gate.entry.status,
+        note: note
       });
     }
     return rows;
@@ -203,15 +224,23 @@
   }
 
   function ratification() {
-    var md = governance ? governance["medical-director"] : null;
-    var gb = governance ? governance["governance-board"] : null;
+    var md = governance ? governance.medicalDirector : null;
+    var gb = governance ? governance.board : null;
+    var process = governance ? governance.ratificationProcess || {} : {};
     var list = protocols.protocols || [];
     var drafts = 0;
     for (var i = 0; i < list.length; i += 1) if (list[i] && list[i].status === "draft") drafts += 1;
     var rat = triageRefusal();
+    /* Only what protocols.json#governance holds. The register carried a label, a holder, a detail and a
+       document for each of these two; this contract carries a status and the appointment's own empty
+       fields (name, hpcsaRef, signedOn for the Medical Director; name, chairRef, quorum for the board),
+       so that is what a row gets. What it carries that the register did not is `currentStep` and the
+       note — which is the better fact for a clinical screen anyway, because it is the sentence that
+       explains why nothing here may advance past draft. */
     return {
-      medicalDirector: md ? { status: md.status, holder: md.holder, label: md.label, detail: md.detail, document: md.document } : null,
-      board: gb ? { status: gb.status, holder: gb.holder, label: gb.label, detail: gb.detail, document: gb.document } : null,
+      medicalDirector: md ? { status: md.status, name: md.name, hpcsaRef: md.hpcsaRef, signedOn: md.signedOn } : null,
+      board: gb ? { status: gb.status, name: gb.name, chairRef: gb.chairRef, quorum: gb.quorum } : null,
+      process: { steps: process.steps || [], currentStep: process.currentStep || null, note: process.note || "" },
       protocols: { count: list.length, draft: drafts, ratified: list.length - drafts },
       refusal: rat ? { id: rat.id, sentence: rat.sentence, detail: rat.detail, action: rat.action } : null,
       identity: { sentence: identity.sentence || "", rule: identity.rule || "" }
