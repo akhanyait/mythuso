@@ -335,11 +335,18 @@ enum Gilbert {
 
     // MARK: - Words into stems
 
-    /* Lower case, the contract's foldings (æ is ae), combining marks removed (é is e), apostrophes
-       removed, anything outside a–z and 0–9 a space. The same steps in the same order as the web's and
-       Android's, and held to fixtures.stems by selfTest(). */
+    /* Compatibility form (NFKC) with the contract's invisible characters removed, lower case, the
+       contract's foldings (æ is ae), combining marks removed (é is e), apostrophes removed, anything
+       outside a–z and 0–9 a space, and the be and have negations written out ("isnt" is "is not").
+       The same steps in the same order as the web's (packages/gilbertone/src/fold.ts and stems.ts) and
+       Android's, and held to fixtures.stems by selfTest(). The first and last steps are 1 October
+       2026's: a no-break space, a zero-width character inside "can’t", or "she isn’t breathing" —
+       which never contained the term "not breathing" — each hid an emergency from this matcher. The
+       invisible characters are removed by scalar rather than by string search, because a zero-width
+       joiner belongs to the grapheme before it and a Character comparison would not find it alone. */
     static func tokens(_ text: String) -> [String] {
-        var folded = text.lowercased()
+        let compatible = text.precomposedStringWithCompatibilityMapping
+        var folded = String(String.UnicodeScalarView(compatible.unicodeScalars.filter { !invisible.contains($0) })).lowercased()
         for (from, to) in foldings { folded = folded.replacingOccurrences(of: from, with: to) }
         folded = String(String.UnicodeScalarView(folded.decomposedStringWithCanonicalMapping.unicodeScalars.filter { scalar in
             switch scalar.properties.generalCategory {
@@ -355,7 +362,7 @@ enum Gilbert {
             else if !current.isEmpty { words.append(current); current = "" }
         }
         if !current.isEmpty { words.append(current) }
-        return words
+        return words.flatMap { negations[$0] ?? [$0] }
     }
 
     private static func undouble(_ word: String) -> String {

@@ -7,6 +7,7 @@ import {
 } from '../../../../packages/gilbertone/src/engine.ts';
 import {
   emergencyGroupsIn,
+  escalationEmergencyIn,
   greet,
   send,
   type Turn,
@@ -60,6 +61,14 @@ export function sendWithGilbertEngine(
   audience: Audience = 'patient',
 ): Turn[] {
   const result = evaluateMessage(text, audience);
+
+  /* The escalation ruleset's emergencies, since 1 October 2026, ahead of every route below that
+     would answer something else. The engine's classifier knows only the terms, so "can I talk to a
+     nurse, my lips are swelling" was a handover and "hello, my throat is swelling" a greeting — each
+     answered calmly in front of a presentation the ruleset calls an emergency. send() answers the
+     ruleset itself, on the person's own words, so the turn is routed straight to it. */
+  if (result.route !== 'emergency' && escalationEmergencyIn(text))
+    return send(turns, text, visit, raised, audience);
 
   if (result.route === 'emergency') {
     const withEmergency = send(turns, 'What if it cannot wait?', visit, raised, audience);

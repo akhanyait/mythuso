@@ -141,7 +141,9 @@ extension Gilbert {
     /* The matcher's own data: how a message becomes stems, and what reading all of it means. The rules
        themselves are arithmetic in Models/Assistant.swift, identical to the web's and Android's. */
     static let foldings: [(String, String)] = [("æ", "ae"), ("œ", "oe"), ("ß", "ss"), ("ø", "o"), ("đ", "d"), ("ł", "l"), ("þ", "th"), ("ð", "d")]
-    static let apostrophes: [String] = ["'", "’", "‘", "`", "ʼ"]
+    static let apostrophes: [String] = ["'", "’", "‘", "`", "ʼ", "′"]
+    static let invisible: [Unicode.Scalar] = ["\u{200B}", "\u{200C}", "\u{200D}", "\u{2060}", "\u{FEFF}", "\u{00AD}"]
+    static let negations: [String: [String]] = ["isnt": ["is", "not"], "wasnt": ["was", "not"], "arent": ["are", "not"], "werent": ["were", "not"], "hasnt": ["has", "not"], "havent": ["have", "not"], "hadnt": ["had", "not"]]
     static let irregular: [String: String] = ["bled": "bleed", "dying": "die", "died": "die", "dies": "die", "lying": "lie", "fell": "fall", "fallen": "fall", "broke": "break", "broken": "break", "felt": "feel", "took": "take", "taken": "take", "swallowed": "swallow", "ate": "eat", "threw": "throw", "thrown": "throw", "lost": "lose", "shaking": "shake"]
     static let maxGap = 2
     static let filler: [String] = ["hi", "hello", "hey", "please", "thanks", "thank", "you", "ok", "okay", "so", "and", "but", "or", "also", "just", "i", "im", "me", "my", "mine", "we", "our", "us", "is", "are", "am", "was", "were", "be", "been", "the", "a", "an", "to", "of", "for", "on", "in", "at", "it", "its", "this", "that", "there", "here", "what", "whats", "when", "whens", "where", "wheres", "who", "whos", "how", "hows", "why", "can", "could", "would", "will", "do", "does", "did", "have", "has", "had", "gilbert", "gilbertone", "tell", "know", "let", "still", "yet", "already", "now", "today", "soon", "again", "yes", "sure", "any", "anything", "about"]
@@ -271,11 +273,22 @@ extension Gilbert {
         GilbertStemFixture(says: "passing out / blacked out", stems: ["pass", "out", "black", "out"]),
         GilbertStemFixture(says: "When’s my nurse coming?", stems: ["when", "my", "nurs", "com"]),
         GilbertStemFixture(says: "overdosing on difficulties", stems: ["overdos", "on", "difficulty"]),
-        GilbertStemFixture(says: "hémorragie 2026", stems: ["hemorragi", "2026"])
+        GilbertStemFixture(says: "hémorragie 2026", stems: ["hemorragi", "2026"]),
+        GilbertStemFixture(says: "she isn’t breathing", stems: ["she", "is", "not", "breath"]),
+        GilbertStemFixture(says: "he hasn't\u{00A0}been responding", stems: ["he", "has", "not", "been", "respond"]),
+        GilbertStemFixture(says: "I can\u{200B}’t breathe", stems: ["i", "cant", "breath"]),
+        GilbertStemFixture(says: "my\u{202F}baby wasnʼt feeding", stems: ["my", "baby", "was", "not", "feed"]),
+        GilbertStemFixture(says: "ＣＨＥＳＴ pain", stems: ["chest", "pain"])
     ]
     /// Ordinary sentences the terms raise today: reported by the self-test, never blocking.
     static let falsePositiveFixtures: [String] = ["I feel fit and well today", "I had a stroke of luck with the parking", "I am dying to know when my nurse is coming", "the plumber is fitting a new geyser", "I have a nose bleed"]
     static let messageFixtures: [GilbertMessageFixture] = [
+        GilbertMessageFixture(says: "she isn't breathing", expect: "emergency", question: nil, groups: ["breathing"], audience: nil),
+        GilbertMessageFixture(says: "my baby isn’t breathing", expect: "emergency", question: nil, groups: ["breathing"], audience: nil),
+        GilbertMessageFixture(says: "he isn't responding", expect: "emergency", question: nil, groups: ["unresponsive"], audience: nil),
+        GilbertMessageFixture(says: "he wasn't breathing", expect: "emergency", question: nil, groups: ["breathing"], audience: nil),
+        GilbertMessageFixture(says: "I can\u{200B}’t breathe", expect: "emergency", question: nil, groups: ["breathing"], audience: nil),
+        GilbertMessageFixture(says: "my\u{00A0}dad\u{00A0}isn‘t breathing", expect: "emergency", question: nil, groups: ["breathing"], audience: nil),
         GilbertMessageFixture(says: "When is my nurse coming? I have chest pains", expect: "emergency", question: nil, groups: ["chest-pain"], audience: nil),
         GilbertMessageFixture(says: "my visit today, my chest feels tight", expect: "emergency", question: nil, groups: ["chest-pain"], audience: nil),
         GilbertMessageFixture(says: "are my results back, I had seizures last night", expect: "emergency", question: nil, groups: ["seizure"], audience: nil),

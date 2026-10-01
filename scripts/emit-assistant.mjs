@@ -74,15 +74,22 @@ const API = "packages/catalog/apis/assistant.json";
    others have already given up on. */
 const REFINE_TIMEOUT_MS = 12_000;
 
+/* Characters a reader of the generated source cannot see — the no-break spaces, the soft hyphen, the
+   zero-width characters and the byte-order mark — are written as escapes rather than as themselves.
+   Since 1 October 2026 the matcher removes the invisible ones and the shared fixtures carry them on
+   purpose, and a fixture whose point is an invisible character must not look, in a Swift or Kotlin
+   file, like the fixture beside it that has none. */
+const unseen = /[\u00a0\u00ad\u200b-\u200d\u202f\u2060\ufeff]/g;
+const hex = (c) => c.codePointAt(0).toString(16).toUpperCase().padStart(4, "0");
 const swift = (value) => {
   if (value.includes("\\"))
     throw new Error(
       `Cannot write ${JSON.stringify(value)} as a Swift literal here`,
     );
-  return `"${value.replace(/"/g, '\\"')}"`;
+  return `"${value.replace(/"/g, '\\"').replace(unseen, (c) => `\\u{${hex(c)}}`)}"`;
 };
 const kotlin = (value) =>
-  `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\$/g, "\\$")}"`;
+  `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\$/g, "\\$").replace(unseen, (c) => `\\u${hex(c)}`)}"`;
 const optSwift = (value) => (value == null ? "nil" : swift(value));
 const optKotlin = (value) => (value == null ? "null" : kotlin(value));
 const listSwift = (values) => `[${values.map(swift).join(", ")}]`;
@@ -223,6 +230,14 @@ export function emitAssistant(root = "") {
     [
       contract.matcher?.normalisation?.foldings,
       "matcher.normalisation.foldings",
+    ],
+    [
+      contract.matcher?.normalisation?.invisible,
+      "matcher.normalisation.invisible",
+    ],
+    [
+      contract.matcher?.normalisation?.negations,
+      "matcher.normalisation.negations",
     ],
     [contract.answers?.unread, "answers.unread"],
     [contract.fixtures?.messages, "fixtures.messages"],
@@ -543,6 +558,10 @@ ${terms.groups
       .map(([k, v]) => `(${swift(k)}, ${swift(v)})`)
       .join(", ")}]
     static let apostrophes: [String] = ${listSwift(matcher.normalisation.apostrophes)}
+    static let invisible: [Unicode.Scalar] = ${listSwift(matcher.normalisation.invisible)}
+    static let negations: [String: [String]] = [${Object.entries(matcher.normalisation.negations)
+      .map(([k, v]) => `${swift(k)}: ${listSwift(v.split(" "))}`)
+      .join(", ")}]
     static let irregular: [String: String] = ${dictSwift(Object.entries(matcher.stemming.irregular))}
     static let maxGap = ${matcher.maxGap}
     static let filler: [String] = ${listSwift(matcher.readEverything.filler)}
@@ -789,6 +808,10 @@ ${terms.groups
     /* The matcher's own data; the arithmetic is in model/Assistant.kt, identical to the web's and iOS's. */
     val foldings = ${pairsKotlin(Object.entries(matcher.normalisation.foldings))}
     val apostrophes = ${listKotlin(matcher.normalisation.apostrophes)}
+    val invisible = ${listKotlin(matcher.normalisation.invisible)}
+    val negations = mapOf(${Object.entries(matcher.normalisation.negations)
+      .map(([k, v]) => `${kotlin(k)} to ${listKotlin(v.split(" "))}`)
+      .join(", ")})
     val irregular = ${mapKotlin(Object.entries(matcher.stemming.irregular))}
     const val maxGap = ${matcher.maxGap}
     val filler = ${listKotlin(matcher.readEverything.filler)}

@@ -5,6 +5,9 @@ import {
   ESCALATION_RULES,
   type Severity,
 } from "./escalation.ts";
+import crisisContract from "../../catalog/crisis-lines.json" with { type: "json" };
+import { foldCharacters } from "./fold.ts";
+import { evaluateRefusals } from "./refusals.ts";
 
 /* A phrase that must escalate to a specific rule. Each entry is checked end to end: the rule that
    fires, its severity, and that the message it carries is the approved one for that rule. */
@@ -166,4 +169,51 @@ test("history is searched together with the transcript for every severity", () =
 test("an empty transcript with no history does not escalate", () => {
   assert.equal(checkEscalation(""), null);
   assert.equal(checkEscalation("", []), null);
+});
+
+/* The way a phone types, 1 October 2026. Every phrase here escalated with a straight apostrophe and
+   ordinary spaces and did not as iOS writes it — a curly apostrophe, a no-break space, a zero-width
+   character pasted in — so the same words met "unknown". escalation.ts is a locked Tier 1 artefact
+   and is not edited: every caller folds the text on the way in (fold.ts), and each typed form,
+   folded, must reach the same rule the plain one does. */
+const typed: readonly { says: string; ruleId: string }[] = [
+  { says: "I don\u2019t want to live anymore", ruleId: "self-harm" },
+  { says: "I don\u2018t want to be here", ruleId: "self-harm" },
+  { says: "I don\u02bct want to live", ruleId: "self-harm" },
+  { says: "I can\u2019t catch my breath", ruleId: "cardiac-chest-pain" },
+  { says: "he can\u2019t talk", ruleId: "neuro-stroke" },
+  { says: "I can\u2032t breathe", ruleId: "respiratory-distress" },
+  { says: "my throat\u00a0is swelling", ruleId: "severe-allergic" },
+  { says: "my\u202fface is drooping", ruleId: "neuro-stroke" },
+  { says: "I can\u200b\u2019t breathe", ruleId: "respiratory-distress" },
+  { says: "the bleed\u2060ing won\u2019t stop", ruleId: "uncontrolled-bleeding" },
+  { says: "I\u00a0\u00a0 don\u2019t   want to\tlive", ruleId: "self-harm" },
+  { says: "\uff2d\uff39 THROAT IS SWELLING", ruleId: "severe-allergic" },
+];
+
+test("a curly apostrophe, a no-break space or an invisible character never hides a rule, once folded", () => {
+  for (const { says, ruleId } of typed) {
+    assert.equal(checkEscalation(foldCharacters(says))?.rule.id, ruleId, JSON.stringify(says));
+    /* And through the refusal engine, which folds for itself: with consent withheld, an emergency is
+       still never refused, whether the classifier or the ruleset was the one that knew it. */
+    assert.equal(evaluateRefusals(says, "patient", false).refused, false, JSON.stringify(says));
+  }
+});
+
+test("the punctuation the patterns read survives the fold: the slash, the decimal point, the full stop", () => {
+  const folded = (text: string) => checkEscalation(foldCharacters(text));
+  assert.equal(folded("my blood pressure is 190/125")?.rule.id, "hypertensive-crisis");
+  assert.equal(folded("my fever is 39.5 degrees")?.rule.id, "persistent-high-fever");
+  /* A full stop still ends a `[^.]` window, so a rash in one sentence and a breath in the next are
+     two things said, not one presentation — exactly as before the fold. */
+  assert.equal(folded("I have a rash. I took a deep breath and relaxed"), null);
+});
+
+test("the escalation rules the crisis lines follow are emergency rules that exist", () => {
+  for (const id of crisisContract.showsWhen.escalationRules) {
+    const rule = ESCALATION_RULES.find((r) => r.id === id);
+    assert.ok(rule, `crisis-lines.json names the escalation rule "${id}", which escalation.ts does not carry`);
+    assert.equal(rule.severity, "emergency", id);
+  }
+  assert.ok(crisisContract.showsWhen.escalationRules.includes("self-harm"));
 });

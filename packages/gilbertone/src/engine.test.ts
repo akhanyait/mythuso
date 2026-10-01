@@ -15,6 +15,28 @@ test("normalizes basic input", () => {
   assert.equal(normalizeText("I can't breathe!"), "i cant breathe");
 });
 
+/* 1 October 2026: the be and have negations are written out, so the commonest way of saying the most
+   urgent thing reaches the terms "not breathing" and "not responding" — the terms file, its version
+   and its hash unchanged — and the way a phone types an apostrophe or a space is folded first. */
+test("a negated be or have reaches the term it negates, however the apostrophe was typed", () => {
+  assert.equal(normalizeText("she isn\u2019t breathing"), "she is not breathing");
+  assert.equal(normalizeText("he hasn't been responding"), "he has not responding");
+  assert.equal(normalizeText("I can\u200b\u2019t\u00a0breathe"), "i cant breathe");
+  for (const says of [
+    "she isn't breathing",
+    "my baby isn\u2019t breathing",
+    "he isn't responding",
+    "he wasn't breathing",
+    "they aren\u2018t responding",
+    "he hasn\u2019t been breathing",
+    "she is not breathing",
+  ])
+    assert.equal(classifyMessage(says), "emergency", says);
+  /* can't, won't and doesn't are left whole: the terms are written that way. */
+  assert.equal(normalizeText("he won't wake"), "he wont wake");
+  assert.equal(classifyMessage("he won\u2019t wake"), "emergency");
+});
+
 test("recognises emergency wording before anything else", () => {
   const result = evaluateMessage("I feel like I might hurt myself");
   assert.equal(result.classification, "emergency");

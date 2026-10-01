@@ -8,7 +8,7 @@ import { createObservationStore, type ObservationStore } from './lib/observation
 import { triageGate } from './lib/triage-gate.ts';
 import type { AssistantTurnResponse } from './lib/schema.ts';
 import type { KnowledgeResult, retrieveKnowledge } from './lib/knowledge.ts';
-import { buildResponse } from '../../../packages/gilbertone/src/engine.ts';
+import { checkEscalation } from '../../../packages/gilbertone/src/escalation.ts';
 import assistantContract from '../../../packages/catalog/apis/assistant.json' with { type: 'json' };
 import vitalsContract from '../../../packages/catalog/vitals.json' with { type: 'json' };
 import voiceContract from '../../../packages/catalog/voice.json' with { type: 'json' };
@@ -936,10 +936,12 @@ test('an emergency heard through listen answers from the engine with the network
     const payload = (await response.json()) as AssistantTurnResponse;
     assert.equal(payload.route, 'emergency');
     assert.equal(payload.classification, 'emergency');
+    /* Chest pain is a presentation the escalation ruleset names, so since 1 October 2026 the reply is
+       that rule's sentence, with the ambulance number in it, rather than the classifier's generic one. */
     assert.equal(
      payload.reply,
-     buildResponse(heard, 'patient').reply,
-     'the engine’s own emergency reply, word for word — a capture that says chest pain never waits on a model',
+     checkEscalation(heard)?.rule.message,
+     'the escalation rule’s own emergency sentence, word for word — a capture that says chest pain never waits on a model',
     );
    },
    notSearching,

@@ -3,9 +3,12 @@ import {
   buildResponse,
   classifyMessage,
   classifyWithConfidence,
+  emergencyResponseWith,
   type Audience,
   type EngineResponse,
 } from "../../../../packages/gilbertone/src/engine.ts";
+import { checkEscalation } from "../../../../packages/gilbertone/src/escalation.ts";
+import { foldCharacters } from "../../../../packages/gilbertone/src/fold.ts";
 import {
   addTurn,
   createConversation,
@@ -13,7 +16,10 @@ import {
   type ConversationContext,
   type Turn,
 } from "../../../../packages/gilbertone/src/conversation.ts";
-import { evaluateRefusals } from "../../../../packages/gilbertone/src/refusals.ts";
+import {
+  evaluateRefusals,
+  type RefusalResult,
+} from "../../../../packages/gilbertone/src/refusals.ts";
 import { redactPHI } from "../../../../packages/gilbertone/src/phi.ts";
 import assistant from "../../../../packages/catalog/assistant.json" with { type: "json" };
 import conversationMode from "../../../../packages/catalog/conversation-mode.json" with { type: "json" };
@@ -246,11 +252,29 @@ async function* runTurn(
      an emergency: it is classified here, before the field is demanded, so a person in danger is never
      turned away for want of a flag — the same precedence refusals.ts gives the emergency over consent.
      A withheld consent (an explicit false) is not this case; it travels on and meets the consent-required
-     refusal below, which is a sentence rather than a 400. */
+     refusal below, which is a sentence rather than a 400.
+
+     An emergency is either of two things, and until 1 October 2026 this asked only the first. The
+     engine's term classifier is one. The escalation ruleset (packages/gilbertone/src/escalation.ts)
+     is the other: a presentation — "my throat is swelling", "pain in my chest", "sudden weakness on
+     one side", "my left arm is numb", a nurse's "the patient's face is drooping" — that no term
+     names. refusals.ts asked it and let it through, but this route never read what it found, so
+     those messages came back route unknown with the generic reply, a 400 when consent was absent,
+     and, behind a model outage, without the ambulance number at all. An emergency-severity match is
+     now answered here, in its own approved sentence with the numbers in it, ahead of consent, the
+     refusals, the classifier and the orchestrator, for every audience: a nurse describing a stroke
+     in front of her is describing an emergency. The urgent severity is not this: it respects
+     consent, as refusals.ts says. The ruleset reads the folded text, as refusals.ts gives it: a
+     curly apostrophe or a no-break space must not hide a pattern. */
+  const escalation =
+    typeof req?.text === "string" && req.text.trim().length > 0
+      ? checkEscalation(foldCharacters(req.text))
+      : null;
+  const escalated = escalation?.rule.severity === "emergency" ? escalation : null;
   const isEmergency =
     typeof req?.text === "string" &&
     req.text.trim().length > 0 &&
-    classifyMessage(req.text, audience) === "emergency";
+    (escalated !== null || classifyMessage(req.text, audience) === "emergency");
   if (!isEmergency && typeof req?.userConsent !== "boolean")
     throw new RequiredFieldMissingError("userConsent");
   if (!isEmergency && typeof req?.text === "string" && req.text.length > TURN_TEXT_MAX_CHARACTERS)
@@ -293,13 +317,11 @@ async function* runTurn(
      policy is a real boolean: an explicit false is the withheld consent the caller reads as the
      catalog's consent-required policy, while the route, the confirmation flag and the one action it
      suggests stay exactly what they were. An emergency is refused by none of them: refusals.ts asks
-     the emergency first, so a person in danger is answered whatever their consent said. */
-  const refusal = evaluateRefusals(
-    req.text,
-    audience,
-    req.userConsent === true,
-    context,
-  );
+     the emergency first, so a person in danger is answered whatever their consent said. An escalated
+     emergency is not asked at all — it was decided above, and nothing here may outrank it. */
+  const refusal: RefusalResult = escalated
+    ? { refused: false, escalation: escalated }
+    : evaluateRefusals(req.text, audience, req.userConsent === true, context);
   if (refusal.refused) {
     /* refusals.ts either carries a sentence or throws; this guard keeps a missing one from
        becoming an empty reply through a type the interface cannot narrow. */
@@ -337,7 +359,11 @@ async function* runTurn(
      so the classification cannot differ between them — only the weight beside it. */
   const engine = buildResponse(req.text, audience);
   const { confidence } = classifyWithConfidence(req.text, audience, context);
-  const answer: EngineResponse = { ...engine, confidence };
+  /* An escalated emergency is answered in the rule's own sentence on the emergency route, and from
+     here on is an emergency like any other: the classifier's territory, so no model is consulted. */
+  const answer: EngineResponse = escalated
+    ? emergencyResponseWith(escalated.rule.message)
+    : { ...engine, confidence };
 
   /* The classification goes out here, before the orchestrator is consulted: this is the early data
      the streaming path exists to give, and it is the classifier's own read, which the orchestrator

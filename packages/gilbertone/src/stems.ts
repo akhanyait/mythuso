@@ -1,4 +1,5 @@
 import assistant from "../../catalog/assistant.json" with { type: "json" };
+import { expandNegations, foldCharacters } from "./fold.ts";
 
 /* Words into stems, by the rules in packages/catalog/assistant.json's matcher section.
 
@@ -6,25 +7,32 @@ import assistant from "../../catalog/assistant.json" with { type: "json" };
    so that the reading recogniser beside it (readings.ts) and the web's matcher fold and stem a
    message identically — the web re-exports these rather than keeping a copy. Models/Assistant.swift
    and model/Assistant.kt carry the same arithmetic by hand, and every copy is run against
-   fixtures.stems in the contract, which is what "identical" means here. Lower case, the contract's
-   foldings (æ is ae), combining marks removed (é is e), apostrophes removed, and anything outside a–z
-   and 0–9 a space; then the stemming rules, in the contract's order. No network, no model, no
+   fixtures.stems in the contract, which is what "identical" means here. Compatibility form with the
+   invisible characters removed, lower case, the contract's foldings (æ is ae), combining marks
+   removed (é is e), apostrophes removed, anything outside a–z and 0–9 a space, and the be and have
+   negations written out; then the stemming rules, in the contract's order. No network, no model, no
    environment variable. */
 const normalisation = assistant.matcher.normalisation;
 const irregular: Record<string, string> = assistant.matcher.stemming.irregular;
 
 export function tokens(text: string): string[] {
-  let folded = text.toLowerCase();
+  /* The shared character fold first (fold.ts): compatibility form, the invisible characters removed
+     rather than spaced, and since 1 October 2026 the be and have negations written out at the end,
+     so "she isn't breathing" carries the words "not breathing". The phones do the same two steps,
+     in the same places, from the same lists. */
+  let folded = foldCharacters(text);
   for (const [from, to] of Object.entries(normalisation.foldings))
     folded = folded.split(from).join(to);
   folded = folded.normalize("NFD").replace(/\p{M}+/gu, "");
   for (const mark of normalisation.apostrophes)
     folded = folded.split(mark).join("");
-  return folded
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim()
-    .split(" ")
-    .filter(Boolean);
+  return expandNegations(
+    folded
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim()
+      .split(" ")
+      .filter(Boolean),
+  );
 }
 
 const undouble = (word: string) =>

@@ -11,7 +11,8 @@
   "showsWhen": {
     "terms": "packages/catalog/gilbert-emergency-terms.json",
     "group": "crisis",
-    "rule": "The lines are shown when, and only when, the message matched the crisis group of the emergency terms. Any other emergency — chest pain, bleeding, a stroke — gets the emergency answer exactly as it was, with no crisis line in it."
+    "escalationRules": ["self-harm", "poisoning-overdose"],
+    "rule": "The lines are shown when, and only when, the message matched the crisis group of the emergency terms — or an emergency the escalation ruleset (packages/gilbertone/src/escalation.ts) matched under one of the rules listed in escalationRules — self-harm, and poisoning or overdose, whose words the crisis group already carries, so that \"I don’t want to live anymore\", which no term names, is shown the same lines \"I want to die\" is. Any other emergency — chest pain, bleeding, a stroke — gets the emergency answer exactly as it was, with no crisis line in it."
   },
   "order": "The ambulance numbers are always shown first, and the crisis lines after them. A crisis line is added to the emergency answer; it never replaces a number in it, never moves one and never lowers the answer's urgency.",
   "heading": "If you are thinking about harming yourself, you can also talk to someone now:",

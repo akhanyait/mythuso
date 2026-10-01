@@ -173,12 +173,20 @@ object Gilbert {
     private val marks = Regex("\\p{M}+")
     private val outside = Regex("[^a-z0-9]+")
 
+    /* Compatibility form (NFKC) with the contract's invisible characters removed first, and the be and
+     * have negations written out last ("isnt" is "is not") — 1 October 2026's two steps, the same as the
+     * web's packages/gilbertone/src/fold.ts and iOS's: a no-break space, a zero-width character inside
+     * "can’t", or "she isn’t breathing", which never contained the term "not breathing", each hid an
+     * emergency from this matcher. Held to fixtures.stems by GilbertFixturesTest. */
     fun tokens(text: String): List<String> {
-        var folded = text.lowercase()
+        var folded = Normalizer.normalize(text, Normalizer.Form.NFKC)
+        for (mark in GilbertData.invisible) folded = folded.replace(mark, "")
+        folded = folded.lowercase()
         for ((from, to) in GilbertData.foldings) folded = folded.replace(from, to)
         folded = marks.replace(Normalizer.normalize(folded, Normalizer.Form.NFD), "")
         for (mark in GilbertData.apostrophes) folded = folded.replace(mark, "")
         return outside.replace(folded, " ").trim().split(" ").filter { it.isNotEmpty() }
+            .flatMap { GilbertData.negations[it] ?: listOf(it) }
     }
 
     private fun undouble(word: String): String =

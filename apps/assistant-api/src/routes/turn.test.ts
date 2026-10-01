@@ -8,6 +8,8 @@ import {
   type TurnStreamEvent,
 } from "./turn.ts";
 import { buildResponse } from "../../../../packages/gilbertone/src/engine.ts";
+import { checkEscalation } from "../../../../packages/gilbertone/src/escalation.ts";
+import { foldCharacters } from "../../../../packages/gilbertone/src/fold.ts";
 import assistant from "../../../../packages/catalog/assistant.json" with { type: "json" };
 
 test("empty text asks for one rather than reporting unknown", async () => {
@@ -532,10 +534,13 @@ test("an emergency never touches the network, configured or not", async () => {
         sessionId: "session-emergency-offline",
       });
       assert.equal(emergency.classification, "emergency");
+      /* Chest pain is a presentation the escalation ruleset names, so since 1 October 2026 it is
+         answered in that rule's approved sentence, with the ambulance number in it, rather than the
+         classifier's generic one. */
       assert.equal(
         emergency.reply,
-        buildResponse("chest pain, get me a nurse", "patient").reply,
-        "the classifier’s own emergency reply, word for word",
+        checkEscalation("chest pain, get me a nurse")?.rule.message,
+        "the escalation rule’s own emergency sentence, word for word",
       );
       assert.equal(emergency.source, undefined);
     });
@@ -677,4 +682,96 @@ test("the streamed response is the orchestrator’s answer, with its tools and s
   } finally {
     await provider.close();
   }
+});
+
+/* ---- The escalation ruleset's emergencies, 1 October 2026. These presentations name no emergency
+   term, so the classifier alone read them as unknown: a generic reply, a 400 when userConsent was
+   absent, a nurse's description of a stroke never escalated, and — behind a model outage — no
+   ambulance number at all. Each is held here with the model tier switched off and the network
+   refusing every request, with consent given, withheld and absent, for a patient and for a nurse. */
+const escalatedPhrases = [
+  "my throat is swelling",
+  "pain in my chest when I climb the stairs",
+  "sudden weakness on one side",
+  "my left arm is numb",
+  "I don\u2019t want to live anymore",
+  "I can\u2019t catch my breath",
+  "my throat\u00a0is swelling",
+];
+
+const offline = async <T>(body: () => Promise<T>): Promise<{ value: T; calls: number }> => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = (async () => {
+    calls += 1;
+    throw new Error("an escalated emergency must not reach the network");
+  }) as unknown as typeof fetch;
+  try {
+    const value = await withEnv({}, body);
+    return { value, calls };
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+};
+
+for (const text of escalatedPhrases)
+  for (const audience of ["patient", "nurse"] as const)
+    test(`"${text}" to a ${audience} is the emergency route in the rule's own sentence, whatever consent said`, async () => {
+      /* The route folds the text before the ruleset reads it (fold.ts), and so does this. */
+      const rule = checkEscalation(foldCharacters(text))?.rule;
+      assert.equal(rule?.severity, "emergency", `the ruleset should call "${text}" an emergency`);
+      const { value: answers, calls } = await offline(async () => [
+        await handleTurn({ text, audience, userConsent: true }),
+        await handleTurn({ text, audience, userConsent: false }),
+        await handleTurn({ text, audience } as unknown as Parameters<typeof handleTurn>[0]),
+      ]);
+      for (const answer of answers) {
+        assert.equal(answer.route, "emergency");
+        assert.equal(answer.classification, "emergency");
+        assert.equal(answer.reply, rule?.message);
+        assert.ok(answer.reply.includes("10177"), "the ambulance number is in the sentence");
+        assert.equal(answer.refusalId, undefined);
+        assert.equal(answer.source, undefined, "no model tier wrote it");
+        assert.equal(answer.requiresConfirmation, false);
+        assert.deepEqual(answer.suggestedActions, ["call_emergency_services", "seek_urgent_help"]);
+      }
+      assert.equal(calls, 0, "not one request left the process");
+    });
+
+test("a nurse describing a drooping face is answered with the stroke sentence, not the staff scope", async () => {
+  const text = "the patient's face is drooping";
+  const { value: answer } = await offline(() =>
+    handleTurn({ text, audience: "nurse", userConsent: true }),
+  );
+  assert.equal(answer.route, "emergency");
+  assert.equal(answer.reply, checkEscalation(text)?.rule.message);
+  assert.equal(checkEscalation(text)?.rule.id, "neuro-stroke");
+});
+
+test("a model provider that is down cannot take the ambulance number out of an escalated emergency", async () => {
+  /* An unreachable provider is the outage: before the fix the turn reached the orchestrator, it
+     failed, and the classifier's generic reply — with no number in it — was what stood. */
+  const answer = await withEnv({ OLLAMA_URL: "http://127.0.0.1:9" }, () =>
+    handleTurn({ text: "my left arm is numb", userConsent: true }),
+  );
+  assert.equal(answer.route, "emergency");
+  assert.ok(answer.reply.includes("10177"));
+  assert.equal(answer.source, undefined);
+});
+
+test("the streaming door reads an escalated emergency as one, from its first frame", async () => {
+  const events = await drain({ text: "my throat is swelling", userConsent: true });
+  assert.deepEqual(events.map((event) => event.event), ["classification", "response", "done"]);
+  assert.equal((events[0].data as { classification: string }).classification, "emergency");
+  assert.equal((events[1].data as { route: string }).route, "emergency");
+});
+
+test("an urgent-severity match is not an emergency: an absent userConsent is still the 400", async () => {
+  /* The urgent rules respect consent, as refusals.ts says; only the emergency severity outranks it. */
+  assert.equal(checkEscalation("my fever is 40 degrees")?.rule.severity, "urgent");
+  await assert.rejects(
+    () =>
+      handleTurn({ text: "my fever is 40 degrees" } as unknown as Parameters<typeof handleTurn>[0]),
+    (error: unknown) => error instanceof RequiredFieldMissingError,
+  );
 });

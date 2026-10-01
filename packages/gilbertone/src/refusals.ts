@@ -2,6 +2,7 @@ import { classifyMessage, type Audience } from "./engine.ts";
 import type { ConversationContext } from "./conversation.ts";
 import { containsPHI } from "./phi.ts";
 import { checkEscalation, type EscalationResult } from "./escalation.ts";
+import { foldCharacters } from "./fold.ts";
 import assistant from "../../catalog/assistant.json" with { type: "json" };
 
 /* The refusal policy engine: four rules the engine asks before it classifies anything.
@@ -106,7 +107,12 @@ export function evaluateRefusals(
      than by the model. An emergency-severity match is treated exactly like the emergency
      classification — never refused, and never held behind consent, because withholding the
      ambulance route would lower an emergency. */
-  const escalation = checkEscalation(input);
+  /* The ruleset is read on the folded text (fold.ts), never the raw: its patterns are written
+     with a straight apostrophe and single spaces, and a phone writes neither, so until 1 October 2026
+     "I don’t want to live anymore" from an iPhone matched nothing. escalation.ts itself is a locked
+     Tier 1 artefact (gilbert-clinical-core.json pins its code), so the fold is done here, on the way
+     in, and not a character of a pattern, a message or the order changes. */
+  const escalation = checkEscalation(foldCharacters(input));
   if (escalation?.rule.severity === "emergency")
     return { refused: false, escalation };
   /* Consent next, whatever else a non-emergency message says. Nothing below this line has been read

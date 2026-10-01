@@ -2,6 +2,7 @@ import contract from "../../catalog/symptom-intake.json" with { type: "json" };
 import caseContract from "../../catalog/case.json" with { type: "json" };
 import { classifyMessage } from "./engine.ts";
 import { checkEscalation } from "./escalation.ts";
+import { foldCharacters } from "./fold.ts";
 import { hasSequence, stems } from "./stems.ts";
 
 /* Symptom intake — the founder's ask of 28 September 2026, answered from
@@ -75,9 +76,15 @@ export const questionsFor = (groupId: string): readonly IntakeQuestion[] => [
 ];
 
 /* The group a message opens, by the longest trigger found — stems, adjacent — or null when no
-   trigger is in the message. Never asked about an emergency: the caller runs the emergency words
-   first, and this recogniser has no opinion about them. */
+   trigger is in the message, and null for an emergency. This used to trust its caller to have run
+   the emergency words first, and the web's caller ran only the terms list: on 1 October 2026 "I
+   have a headache and my tongue is swelling" was offered the headache questions, "sudden weakness
+   on one side" the tiredness ones and "I have a rash and my lips are swelling" the skin ones —
+   each a presentation the escalation ruleset calls an emergency, met with a questionnaire. So the
+   recogniser asks intakeEmergency itself, the same two asks answerIntake puts in front of every
+   answer, and an emergency opens no group whoever calls it. */
 export function intakeGroupFor(text: string): IntakeGroup | null {
+  if (intakeEmergency(text)) return null;
   const said = stems(text);
   let found: IntakeGroup | null = null;
   let matchedWords = 0;
@@ -97,7 +104,7 @@ export function intakeGroupFor(text: string): IntakeGroup | null {
    in the same order, that refusals.ts puts in front of consent. */
 export const intakeEmergency = (text: string): boolean =>
   classifyMessage(text) === "emergency" ||
-  checkEscalation(text)?.rule.severity === "emergency";
+  checkEscalation(foldCharacters(text))?.rule.severity === "emergency";
 
 export function beginIntake(groupId: string): IntakeState {
   groupOf(groupId);

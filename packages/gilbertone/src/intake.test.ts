@@ -10,6 +10,7 @@ import {
   intakeConsent,
   intakeGroupHasPathway,
   intakeContract,
+  intakeEmergency,
   intakeGroupFor,
   intakeReviewSentence,
   questionsFor,
@@ -111,6 +112,28 @@ test("an emergency typed as an answer ends the intake with the emergency answer,
   const emergency = intakeContract.fixtures.messages.find((f) => f.expect === "emergency")!;
   assert.deepEqual(answerIntake(state, emergency.says), { kind: "emergency" });
   assert.deepEqual(answerIntake(state, "I think I am having a heart attack"), { kind: "emergency" });
+});
+
+/* The opening message, 1 October 2026: intakeGroupFor used to trust its caller to have asked about
+   an emergency first, and the web's caller asked only the terms list. Each of these named a group's
+   trigger and a presentation the escalation ruleset calls an emergency, and was offered that group's
+   questions. Now the recogniser asks itself, and an emergency opens nothing. */
+const openedByAnEmergency: readonly { says: string; wouldHaveOpened: string }[] = [
+  { says: "I have a headache and my tongue is swelling", wouldHaveOpened: "headache" },
+  { says: "sudden weakness on one side", wouldHaveOpened: "tiredness" },
+  { says: "I have a rash and my lips are swelling", wouldHaveOpened: "skin" },
+  { says: "I have a headache and my face is drooping", wouldHaveOpened: "headache" },
+  { says: "I feel dizzy and my throat\u00a0is swelling", wouldHaveOpened: "dizziness" },
+];
+
+test("a message the escalation ruleset calls an emergency opens no group, whatever trigger it names", () => {
+  for (const { says, wouldHaveOpened } of openedByAnEmergency) {
+    assert.equal(intakeEmergency(says), true, `"${says}" is an emergency`);
+    assert.equal(intakeGroupFor(says), null, `"${says}" opened a group`);
+    /* The trigger is really there: take the emergency out and the same group opens. */
+    const calm = says.split(" and ")[0];
+    if (calm !== says) assert.equal(intakeGroupFor(calm)?.id, wouldHaveOpened, calm);
+  }
 });
 
 test("an empty answer records nothing and hands the same state back, so the caller reads unmatchedInside", () => {

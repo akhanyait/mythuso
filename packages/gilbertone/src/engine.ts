@@ -1,6 +1,7 @@
 import type { ConversationContext } from "./conversation.ts";
 import assistant from "../../catalog/assistant.json" with { type: "json" };
 import emergencyTermsContract from "../../catalog/gilbert-emergency-terms.json" with { type: "json" };
+import { expandNegations, foldCharacters } from "./fold.ts";
 
 export type MessageClassification =
   | "emergency"
@@ -189,15 +190,24 @@ const categories: readonly CategoryMatch[] = [
   },
 ];
 
+/* The classifier's reading of a message: the shared character fold first (fold.ts — compatibility
+   form, invisible characters removed, every apostrophe the contract names), then diacritics and
+   apostrophes gone and anything else a space, then the be and have negations written out, so "she
+   isn't breathing" carries the term "not breathing". One step more than the stems take, and only
+   here: "not been" reads as "not". The terms are matched as plain substrings, with none of the gap
+   the stems allow between a term's words, so "he hasn't been breathing" — "has not been breathing"
+   — would otherwise miss "not breathing" in this classifier while the phones' matcher caught it.
+   Every step only ever lets a term through that the words already said; none removes one. */
 export function normalizeText(value: string): string {
-  return value
-    .toLowerCase()
+  const words = foldCharacters(value)
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/['’]/g, "")
+    .replace(/'/g, "")
     .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  return expandNegations(words).join(" ").replace(/\bnot been\b/g, "not");
 }
 
 function containsAny(text: string, terms: readonly string[]): boolean {
@@ -270,6 +280,16 @@ export function buildResponse(
     audience,
   );
   return { ...responseFor(classification, audience), confidence };
+}
+
+/* The emergency route, answered in a more specific approved sentence than the classifier's own: the
+   escalation ruleset's (escalation.ts), whose messages say what to do and carry the ambulance
+   numbers. Everything beside the sentence is the emergency classification's, so a caller reading the
+   route, the style or the suggested actions sees exactly what an emergency word gives it. The
+   emergency answer does not depend on the audience — a nurse saying it is still saying it — and a
+   rule matched is not a guess, so its weight is total. */
+export function emergencyResponseWith(reply: string): EngineResponse {
+  return { ...responseFor("emergency", "patient"), reply, confidence: 1 };
 }
 
 /* The reply for a classification, byte for byte the replies this engine has always given. The

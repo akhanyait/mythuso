@@ -355,8 +355,22 @@
         "ð": "d"
       },
       "combiningMarksRemoved": true,
-      "apostrophes": ["'", "’", "‘", "`", "ʼ"],
-      "why": "Diacritics are folded rather than dropped: hæmorrhage, haemorrhage and hémorrhagie must become letters a-z on all three platforms, and a character a platform does not fold becomes a space on all three rather than a letter on one."
+      "apostrophes": ["'", "’", "‘", "`", "ʼ", "′"],
+      "compatibilityFirst": "NFKC",
+      "invisible": ["\u200b", "\u200c", "\u200d", "\u2060", "\ufeff", "\u00ad"],
+      "quotes": ["“", "”", "„", "″"],
+      "negations": {
+        "isnt": "is not",
+        "wasnt": "was not",
+        "arent": "are not",
+        "werent": "were not",
+        "hasnt": "has not",
+        "havent": "have not",
+        "hadnt": "had not"
+      },
+      "why": "Diacritics are folded rather than dropped: hæmorrhage, haemorrhage and hémorrhagie must become letters a-z on all three platforms, and a character a platform does not fold becomes a space on all three rather than a letter on one.",
+      "whyBeforeAnything": "Added on 1 October 2026, after a review found that the way a phone types a message could hide an emergency in it. Before anything else the message is put in Unicode compatibility form (NFKC), so a no-break space or a narrow no-break space is an ordinary space and full-width letters are letters; then the `invisible` characters — zero-width spaces and joiners, the word joiner, the byte-order mark and the soft hyphen — are removed rather than turned into spaces, because one pasted into \"can't\" would otherwise split it into two words no term contains. The prime joins the apostrophes because some keyboards offer it in their place. `quotes` are the curly double quotes, written as a plain double quote where the escalation patterns read the message.",
+      "whyNegations": "Applied to the words after apostrophes are removed. A smartphone writes \"she isn't breathing\", and the term is \"not breathing\": with the apostrophe gone, \"isnt\" is one word that is not \"not\", so the commonest way of saying the most urgent thing missed the term on all three platforms. Expanding the negation is a change to how GilbertOne reads, not to what it listens for, so the terms file, its version and its hash are unchanged. Only the forms of be and have are expanded: can't, won't and doesn't are left whole because the terms themselves are written that way (\"cant breathe\", \"wont wake\", \"rash doesnt fade\"), and expanding them would take a term away."
     },
     "stemming": {
       "irregular": {
@@ -1860,9 +1874,59 @@
       {
         "says": "hémorragie 2026",
         "stems": ["hemorragi", "2026"]
+      },
+      {
+        "says": "she isn’t breathing",
+        "stems": ["she", "is", "not", "breath"]
+      },
+      {
+        "says": "he hasn't\u00a0been responding",
+        "stems": ["he", "has", "not", "been", "respond"]
+      },
+      {
+        "says": "I can\u200b’t breathe",
+        "stems": ["i", "cant", "breath"]
+      },
+      {
+        "says": "my\u202fbaby wasnʼt feeding",
+        "stems": ["my", "baby", "was", "not", "feed"]
+      },
+      {
+        "says": "ＣＨＥＳＴ pain",
+        "stems": ["chest", "pain"]
       }
     ],
     "messages": [
+      {
+        "says": "she isn't breathing",
+        "expect": "emergency",
+        "groups": ["breathing"]
+      },
+      {
+        "says": "my baby isn’t breathing",
+        "expect": "emergency",
+        "groups": ["breathing"]
+      },
+      {
+        "says": "he isn't responding",
+        "expect": "emergency",
+        "groups": ["unresponsive"]
+      },
+      {
+        "says": "he wasn't breathing",
+        "expect": "emergency",
+        "groups": ["breathing"]
+      },
+      {
+        "says": "I can\u200b’t breathe",
+        "expect": "emergency",
+        "groups": ["breathing"]
+      },
+      {
+        "says": "my\u00a0dad\u00a0isn‘t breathing",
+        "expect": "emergency",
+        "groups": ["breathing"]
+      },
       {
         "says": "When is my nurse coming? I have chest pains",
         "expect": "emergency",

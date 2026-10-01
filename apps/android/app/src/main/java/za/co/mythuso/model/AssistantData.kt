@@ -204,7 +204,9 @@ object GilbertData {
 
     /* The matcher's own data; the arithmetic is in model/Assistant.kt, identical to the web's and iOS's. */
     val foldings = listOf("æ" to "ae", "œ" to "oe", "ß" to "ss", "ø" to "o", "đ" to "d", "ł" to "l", "þ" to "th", "ð" to "d")
-    val apostrophes = listOf("'", "’", "‘", "`", "ʼ")
+    val apostrophes = listOf("'", "’", "‘", "`", "ʼ", "′")
+    val invisible = listOf("\u200B", "\u200C", "\u200D", "\u2060", "\uFEFF", "\u00AD")
+    val negations = mapOf("isnt" to listOf("is", "not"), "wasnt" to listOf("was", "not"), "arent" to listOf("are", "not"), "werent" to listOf("were", "not"), "hasnt" to listOf("has", "not"), "havent" to listOf("have", "not"), "hadnt" to listOf("had", "not"))
     val irregular = mapOf("bled" to "bleed", "dying" to "die", "died" to "die", "dies" to "die", "lying" to "lie", "fell" to "fall", "fallen" to "fall", "broke" to "break", "broken" to "break", "felt" to "feel", "took" to "take", "taken" to "take", "swallowed" to "swallow", "ate" to "eat", "threw" to "throw", "thrown" to "throw", "lost" to "lose", "shaking" to "shake")
     const val maxGap = 2
     val filler = listOf("hi", "hello", "hey", "please", "thanks", "thank", "you", "ok", "okay", "so", "and", "but", "or", "also", "just", "i", "im", "me", "my", "mine", "we", "our", "us", "is", "are", "am", "was", "were", "be", "been", "the", "a", "an", "to", "of", "for", "on", "in", "at", "it", "its", "this", "that", "there", "here", "what", "whats", "when", "whens", "where", "wheres", "who", "whos", "how", "hows", "why", "can", "could", "would", "will", "do", "does", "did", "have", "has", "had", "gilbert", "gilbertone", "tell", "know", "let", "still", "yet", "already", "now", "today", "soon", "again", "yes", "sure", "any", "anything", "about")
@@ -337,11 +339,22 @@ object GilbertData {
         GilbertStemFixture("passing out / blacked out", listOf("pass", "out", "black", "out")),
         GilbertStemFixture("When’s my nurse coming?", listOf("when", "my", "nurs", "com")),
         GilbertStemFixture("overdosing on difficulties", listOf("overdos", "on", "difficulty")),
-        GilbertStemFixture("hémorragie 2026", listOf("hemorragi", "2026"))
+        GilbertStemFixture("hémorragie 2026", listOf("hemorragi", "2026")),
+        GilbertStemFixture("she isn’t breathing", listOf("she", "is", "not", "breath")),
+        GilbertStemFixture("he hasn't\u00A0been responding", listOf("he", "has", "not", "been", "respond")),
+        GilbertStemFixture("I can\u200B’t breathe", listOf("i", "cant", "breath")),
+        GilbertStemFixture("my\u202Fbaby wasnʼt feeding", listOf("my", "baby", "was", "not", "feed")),
+        GilbertStemFixture("ＣＨＥＳＴ pain", listOf("chest", "pain"))
     )
     /** Ordinary sentences the terms raise today: reported by the JVM test, never blocking. */
     val falsePositiveFixtures = listOf("I feel fit and well today", "I had a stroke of luck with the parking", "I am dying to know when my nurse is coming", "the plumber is fitting a new geyser", "I have a nose bleed")
     val messageFixtures = listOf(
+        GilbertMessageFixture("she isn't breathing", "emergency", null, listOf("breathing"), null),
+        GilbertMessageFixture("my baby isn’t breathing", "emergency", null, listOf("breathing"), null),
+        GilbertMessageFixture("he isn't responding", "emergency", null, listOf("unresponsive"), null),
+        GilbertMessageFixture("he wasn't breathing", "emergency", null, listOf("breathing"), null),
+        GilbertMessageFixture("I can\u200B’t breathe", "emergency", null, listOf("breathing"), null),
+        GilbertMessageFixture("my\u00A0dad\u00A0isn‘t breathing", "emergency", null, listOf("breathing"), null),
         GilbertMessageFixture("When is my nurse coming? I have chest pains", "emergency", null, listOf("chest-pain"), null),
         GilbertMessageFixture("my visit today, my chest feels tight", "emergency", null, listOf("chest-pain"), null),
         GilbertMessageFixture("are my results back, I had seizures last night", "emergency", null, listOf("seizure"), null),

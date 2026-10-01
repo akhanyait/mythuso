@@ -58,6 +58,8 @@ import {
   type IntakeState,
   type IntakeSummaryRow,
 } from "../../../../packages/gilbertone/src/intake.ts";
+import { checkEscalation } from "../../../../packages/gilbertone/src/escalation.ts";
+import { foldCharacters } from "../../../../packages/gilbertone/src/fold.ts";
 import {
   answeredWithEmergency,
   latestCaseFor,
@@ -305,6 +307,26 @@ export function emergencyGroupsIn(text: string): EmergencyGroup[] {
       g.words.some((w) => hasSequence(said, stems(w), contract.matcher.maxGap)),
     )
     .map((g) => ({ id: g.id, name: groupName(g) }));
+}
+
+/** The escalation ruleset's emergency, as the groups the emergency answer names — or null when the
+ *  ruleset found none. Until 1 October 2026 this panel asked only the terms list, so "my throat is
+ *  swelling", "sudden weakness on one side" or "I don’t want to live anymore" — presentations no term
+ *  names — met the intake's questions or "I can't assess that". The answer is the terms' own
+ *  emergency answer, numbers and Thuso SOS, never the rule's sentence typed onto a second screen. It
+ *  names no condition (the rule's id is not a terms group, and escalation.ts is a locked Tier 1 file
+ *  this change does not edit), except that a rule crisis-lines.json lists under
+ *  showsWhen.escalationRules carries the crisis group, so a crisis the terms missed is shown the
+ *  crisis lines a crisis they caught is shown. The ruleset reads the folded text (fold.ts), as
+ *  refusals.ts gives it. The urgent severity is not an emergency and is not answered here. */
+export function escalationEmergencyIn(text: string): EmergencyGroup[] | null {
+  const rule = checkEscalation(foldCharacters(text))?.rule;
+  if (rule?.severity !== "emergency") return null;
+  return crisisLines.showsWhen.escalationRules.includes(rule.id)
+    ? emergencyGroupsContract
+        .filter((g) => g.id === crisisLines.showsWhen.group)
+        .map((g) => ({ id: g.id, name: groupName(g) }))
+    : [];
 }
 
 /** The longest trigger (in words, adjacent) wins; a tie goes to the question listed first.
@@ -765,9 +787,10 @@ export function send(
 ): Turn[] {
   const words = text.trim();
   if (!words) return turns;
-  const groups = emergencyGroupsIn(words);
-  /* The emergency words first, and a match ends it. */
-  if (groups.length)
+  /* The emergency words first, then the escalation ruleset's emergencies, and a match ends it. */
+  const named = emergencyGroupsIn(words);
+  const groups = named.length ? named : escalationEmergencyIn(words);
+  if (groups)
     return append(turns, (id) => ({
       id,
       asked: words,
@@ -974,6 +997,9 @@ export function continueIntake(
   if (!active || !words) return null;
   const groups = emergencyGroupsIn(words);
   if (groups.length) return send(turns, words, visit, raised, audience);
+  /* And the escalation ruleset's emergencies, which send() answers the same way: an offer, a reading
+     step or the notes are not where "my lips are swelling" should be read as a reply to a chip. */
+  if (escalationEmergencyIn(words)) return send(turns, words, visit, raised, audience);
   const turn = (reply: Reply): Turn[] =>
     append(turns, (id) => ({
       id,
