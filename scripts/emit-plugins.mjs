@@ -2,9 +2,18 @@
 
    packages/catalog/plugins.json is the one place that knows which named skills GilbertOne's tool
    gateway may reach, in which jurisdiction, behind which grant, and the shape each one's input must
-   match — and the sentence each refusal answers with. The web imports a typed projection of it,
+   match — and the sentence each refusal answers with. The web will import a typed projection of it,
    written here, so no screen types its own copy of an allow-list entry or softens a refusal sentence:
    a skill is offered because this file says so, in these words, or it is not offered at all.
+
+   NOTHING READS IT YET (audit of 1 October 2026). apps/web/src/lib/plugins.generated.ts is emitted and
+   imported by no screen, because no screen offers a skill: the gateway the routes below describe is
+   "proposed" until the founder decides where it lives. It is kept rather than retired because the
+   generated-file check is today the only thing that parses plugins.json end to end and holds it to a
+   typed shape, and because the first screen that offers a skill must read the allow-list from here
+   rather than type it — retiring the projection now would invite exactly that copy. When the founder
+   decides the gateway has no screen at all, retire it: this emitter, its `plugins` script and its place
+   in `generate`, and its entry in the generated list in scripts/check-boundaries.mjs.
 
    This is a DATA contract, not an engine file. It is deliberately not one of packages/catalog/apis/
    — that directory holds exactly one file per engine declared in packages/catalog/events.json, and
