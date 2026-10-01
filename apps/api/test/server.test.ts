@@ -1,7 +1,7 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer, type Server } from 'node:http';
-import { createApp, serverTimeouts } from '../src/server.ts';
+import { callerAddress, createApp, serverTimeouts } from '../src/server.ts';
 import { openStore, type Store } from '../src/store.ts';
 import { ConfigError, loadConfig } from '../src/config.ts';
 
@@ -295,6 +295,99 @@ describe('the bootstrap is not reachable over HTTP', () => {
       });
       assert.equal(response.status, 401, `${path} answered ${response.status}`);
       assert.deepEqual(await response.json(), { error: 'no-session' });
+    }
+  });
+});
+
+/* ---- Behind a proxy, and a handler that fails (1 October 2026) ---------------------------------
+   Behind nginx every socket is the loopback. The caller is read from the last X-Forwarded-For address
+   only where the service was told it sits behind a proxy on the same box and the socket is that
+   proxy; the health routes refuse anything forwarded whatever the setting; and a handler's own fault
+   is a 500, never the caller's 400. */
+describe('the caller behind a proxy, and a handler that fails', () => {
+  const listen = async (app: ReturnType<typeof createApp>) => {
+    const listening = createServer(app);
+    await new Promise<void>(resolve => listening.listen(0, '127.0.0.1', resolve));
+    const address = listening.address();
+    return { listening, url: `http://127.0.0.1:${typeof address === 'object' && address ? address.port : 0}` };
+  };
+  const fakeRequest = (remoteAddress: string, headers: Record<string, string>) =>
+    ({ socket: { remoteAddress }, headers }) as unknown as Parameters<typeof callerAddress>[0];
+
+  test('the forwarded address is read only from a trusted proxy on the loopback, and only its last entry', () => {
+    const trusted = { trustProxy: true };
+    assert.equal(callerAddress(fakeRequest('127.0.0.1', { 'x-forwarded-for': '203.0.113.9' }), { trustProxy: false }), '127.0.0.1', 'untrusted: the socket, whatever the header says');
+    assert.equal(callerAddress(fakeRequest('127.0.0.1', { 'x-forwarded-for': '198.51.100.1, 203.0.113.9' }), trusted), '203.0.113.9', 'the address nginx appended, not the one the caller typed');
+    assert.equal(callerAddress(fakeRequest('::ffff:127.0.0.1', { 'x-forwarded-for': '203.0.113.9' }), trusted), '203.0.113.9');
+    assert.equal(callerAddress(fakeRequest('198.51.100.7', { 'x-forwarded-for': '203.0.113.9' }), trusted), '198.51.100.7', 'a socket that is not the proxy names itself');
+    assert.equal(callerAddress(fakeRequest('127.0.0.1', { 'x-real-ip': '203.0.113.9' }), trusted), '127.0.0.1', 'X-Real-IP is the caller’s own claim here, never read');
+    assert.equal(callerAddress(fakeRequest('127.0.0.1', { 'x-forwarded-for': 'not an address' }), trusted), '127.0.0.1');
+    assert.equal(loadConfig({ MYTHUSO_ENV: 'development' } as NodeJS.ProcessEnv).trustProxy, false, 'off unless said');
+    assert.equal(loadConfig({ MYTHUSO_ENV: 'development', MYTHUSO_TRUST_PROXY: 'yes' } as NodeJS.ProcessEnv).trustProxy, false, 'only the exact word');
+    assert.equal(loadConfig({ MYTHUSO_ENV: 'development', MYTHUSO_TRUST_PROXY: 'loopback' } as NodeJS.ProcessEnv).trustProxy, true);
+  });
+
+  test('a health route refuses a forwarded request even from the loopback, trusted proxy or not', async () => {
+    for (const trustProxy of [false, true]) {
+      const local = openStore(':memory:');
+      const { listening, url } = await listen(createApp({ ...config, trustProxy }, local));
+      try {
+        for (const header of ['x-forwarded-for', 'x-real-ip', 'forwarded']) {
+          const response = await fetch(`${url}/health/audit`, { headers: { [header]: header === 'forwarded' ? 'for=127.0.0.1' : '127.0.0.1' } });
+          assert.equal(response.status, 403, `${header} with trustProxy ${trustProxy}`);
+        }
+        assert.notEqual((await fetch(`${url}/health/audit`)).status, 403, 'a script on the box, sending nothing forwarded, is still answered');
+      } finally {
+        listening.close();
+        local.close();
+      }
+    }
+  });
+
+  test('behind a trusted proxy each caller has their own sign-in bucket rather than one for the whole internet', async () => {
+    const local = openStore(':memory:');
+    const { listening, url } = await listen(createApp({ ...config, trustProxy: true }, local));
+    try {
+      const start = (address: string, n: number) => fetch(`${url}/auth/start`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', origin: ORIGIN, 'x-forwarded-for': address },
+        body: JSON.stringify({ phone: `08211${String(n).padStart(5, '0')}` })
+      });
+      for (let n = 0; n < 20; n++) assert.equal((await start('203.0.113.9', n)).status, 200, `start ${n}`);
+      assert.equal((await start('203.0.113.9', 20)).status, 429, 'the busy caller is limited');
+      assert.equal((await start('198.51.100.4', 21)).status, 200, 'and somebody else is not');
+    } finally {
+      listening.close();
+      local.close();
+    }
+  });
+
+  test('a handler that throws is the service’s 500 and one line with no message, never the caller’s 400', async () => {
+    const local = openStore(':memory:');
+    const failing = new Proxy(local, {
+      get(target, key) {
+        if (key === 'countRecentStarts') return () => { throw new Error('disk I/O error near 0821112222'); };
+        const value = Reflect.get(target, key) as unknown;
+        return typeof value === 'function' ? (value as (...a: unknown[]) => unknown).bind(target) : value;
+      }
+    }) as Store;
+    const { listening, url } = await listen(createApp(config, failing));
+    const lines: string[] = [];
+    const original = console.error;
+    console.error = (...args: unknown[]) => void lines.push(args.map(String).join(' '));
+    try {
+      const response = await fetch(`${url}/auth/start`, { method: 'POST', headers: { 'content-type': 'application/json', origin: ORIGIN }, body: JSON.stringify({ phone: '0821112222' }) });
+      assert.equal(response.status, 500);
+      assert.deepEqual(await response.json(), { error: 'internal-error' });
+      assert.equal(lines.length, 1);
+      assert.deepEqual(JSON.parse(lines[0]!), { event: 'api.request.failed', route: 'POST /auth/start', kind: 'Error' });
+      /* A body that cannot be parsed is still the caller's own 400. */
+      const malformed = await fetch(`${url}/auth/start`, { method: 'POST', headers: { 'content-type': 'application/json', origin: ORIGIN }, body: '{not json' });
+      assert.equal(malformed.status, 400);
+    } finally {
+      console.error = original;
+      listening.close();
+      local.close();
     }
   });
 });

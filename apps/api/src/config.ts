@@ -63,6 +63,11 @@ export type Config = {
   informationOfficer: string;
   /* A development convenience, and one that must never exist in production. See the refusal below. */
   consentAssumeCarriedOver: boolean;
+  /* Whether a request that arrives from the loopback may name the caller it came from, in the last
+     address of X-Forwarded-For. True only where MYTHUSO_TRUST_PROXY says `loopback` in so many words —
+     the deployment in which nginx on the same box is the only way in. See callerAddress() in
+     server.ts for what is trusted and why nothing else is. */
+  trustProxy: boolean;
 };
 export class ConfigError extends Error {}
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -192,7 +197,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     identitySandbox,
     identityCallbackUrl: (env.MYTHUSO_IDENTITY_CALLBACK_URL ?? '').trim(),
     informationOfficer,
-    consentAssumeCarriedOver
+    consentAssumeCarriedOver,
+    trustProxy: (env.MYTHUSO_TRUST_PROXY ?? '').trim() === 'loopback'
   };
 }
 export const limits = {

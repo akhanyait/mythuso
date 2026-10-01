@@ -123,6 +123,27 @@ const SELF_LIMITED = new Set(['POST /auth/start', 'POST /auth/verify', 'POST /au
    because Node hands back `::1` and — where the socket is v4-mapped — the address is unwrapped to
    127.0.0.1 above before it gets here. */
 const LOOPBACK = new Set(['127.0.0.1', '::1', 'localhost']);
+/* The headers a proxy names a caller in. Any one of them on a request means it did not start on this
+   box, whatever socket it arrived on. */
+const FORWARDING_HEADERS = ['x-forwarded-for', 'x-real-ip', 'forwarded'] as const;
+const forwarded = (req: IncomingMessage): boolean => FORWARDING_HEADERS.some(name => req.headers[name] !== undefined);
+const IP_SHAPE = /^(?:\d{1,3}(?:\.\d{1,3}){3}|[0-9a-fA-F:]{2,39})$/;
+/* Who sent a request, 1 October 2026. Behind nginx every socket is the loopback, so the address that
+   counted sign-in starts per address and decided who the health check was had been 127.0.0.1 for
+   everybody: one bucket for the whole internet, and a health route that answered anybody. The socket's
+   own address is still the answer unless this service was told it sits behind a proxy on the same box
+   (MYTHUSO_TRUST_PROXY=loopback) and the socket really is that proxy; then the caller is the LAST
+   address in X-Forwarded-For — the one nginx's $proxy_add_x_forwarded_for appended from the connection
+   it accepted. Every earlier address, and X-Real-IP, which this deployment's nginx does not set and so
+   passes through from whoever sent it, is the caller's own claim and is never read. */
+export function callerAddress(req: IncomingMessage, config: Pick<Config, 'trustProxy'>): string {
+  const socket = (req.socket.remoteAddress ?? 'unknown').replace(/^::ffff:/, '');
+  if (!config.trustProxy || !LOOPBACK.has(socket)) return socket;
+  const header = req.headers['x-forwarded-for'];
+  const chain = (Array.isArray(header) ? header.join(',') : header ?? '').split(',').map(part => part.trim()).filter(Boolean);
+  const last = (chain.at(-1) ?? '').replace(/^::ffff:/, '');
+  return IP_SHAPE.test(last) ? last : socket;
+}
 
 export function createApp(config: Config, store: Store, now = () => Date.now()) {
   const twoFactor = new TwoFactor(store, config, now);
@@ -1212,7 +1233,7 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
     if (req.method !== 'GET' && origin !== undefined && !allowed) return send(res, 403, { error: 'origin-not-allowed' });
 
     const caller: Caller = {
-      address: (req.socket.remoteAddress ?? 'unknown').replace(/^::ffff:/, ''),
+      address: callerAddress(req, config),
       agent: String(req.headers['user-agent'] ?? 'unknown')
     };
 
@@ -1227,7 +1248,12 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
        the same prefix. A restriction written against a method is a restriction the first route with
        a different method walks straight past, and the one that did would have been an oracle for
        testing forged witness statements against. */
-    if (`${(req.url ?? '/').split('?')[0]}`.startsWith('/health/') && !LOOPBACK.has(caller.address)) {
+    /* And refused outright for anything a proxy forwarded, since 1 October 2026: through nginx every
+       socket is the loopback, so where the proxy is not trusted the caller's address alone let the whole
+       internet in. A health check is a script on this box talking to this port, and it carries no
+       forwarding header; a request that carries one did not start here, whatever it claims. */
+    const path = (req.url ?? '/').split('?')[0]!;
+    if ((path.startsWith('/health/') && !LOOPBACK.has(caller.address)) || (path.startsWith('/health/') && forwarded(req))) {
       return send(res, 403, { error: 'loopback-only', message: 'The integrity and verification counts are answered on the loopback, to the health check running beside the service. They say nothing about anybody, and they are not a public statement about how sound this service is.' });
     }
 
@@ -1261,11 +1287,26 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
       store.recordWrite(at, subject, route);
     }
 
+    /* The body is the caller's, and a body that cannot be read is the caller's 400. The handler is this
+       service's, and until 1 October 2026 it ran inside the same try: a handler that threw — a full
+       disk under SQLite, a bug — was answered as the caller's malformed request, which told them to
+       fix what was not broken and left nobody a line to read. They are two failures now. A handler
+       fault is a 500 and one line carrying the error's type name and nothing else, because an error
+       here can carry a phone number or a name; and if the handler had already begun its answer, the
+       answer is ended rather than a second one started on top of it. */
+    let body: Record<string, unknown>;
     try {
-      const body = req.method === 'GET' ? {} : await readBody(req);
+      body = req.method === 'GET' ? {} : await readBody(req);
+    } catch (error) {
+      return send(res, 400, { error: error instanceof Error && error.message === 'body too large' ? 'body-too-large' : 'invalid-request' });
+    }
+    try {
       handler(req, res, body, caller);
     } catch (error) {
-      send(res, 400, { error: error instanceof Error && error.message === 'body too large' ? 'body-too-large' : 'invalid-request' });
+      const kind = (error instanceof Error ? error.name : typeof error).replace(/[^A-Za-z]/g, '').slice(0, 32) || 'unknown';
+      console.error(JSON.stringify({ event: 'api.request.failed', route, kind }));
+      if (res.headersSent) res.end();
+      else send(res, 500, { error: 'internal-error' });
     }
   };
 }
