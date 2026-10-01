@@ -2946,6 +2946,161 @@
     "section72": "A claims switching house becomes an operator under POPIA section 21 on signature, and passes each claim to a medical scheme. Whether any of them processes a claim outside South Africa depends on a recipient nobody has named. Not determined.",
     "determined": false
    }
+  },
+  {
+   "id": "load-shedding-stage",
+   "name": "Whether there will be power at the visit",
+   "capabilities": [
+    "dispatch"
+   ],
+   "supplier": "EskomSePush, or Eskom's own status service, under a paid key. The free tier is licensed per person for non-commercial use, so a health service polling it is a breach rather than a bargain, and no key has been bought.",
+   "route": "POST /feeds/load-shedding-stage",
+   "arrives": "One zone's stage now, and the slots already scheduled for it. That is all: a fact about the grid, with no opinion about what should be done with it.",
+   "derivedFrom": [
+    "packages/catalog/geography.json",
+    "packages/geo/eta.ts",
+    "packages/catalog/capabilities.json"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "dispatch",
+    "sample": [
+     "apps/web/src/features/Dispatch.tsx"
+    ],
+    "unchanged": "The board dispatches on roster, position and distance, and says nothing about power. A dispatcher who needs to know whether a zone is dark opens EskomSePush on her own phone, which is what she does today. Nothing here guesses a stage, and nothing here draws one."
+   },
+   "accepts": [
+    {
+     "field": "zone",
+     "type": "string",
+     "required": true,
+     "why": "One of the five zones geography.json already names — randburg, rosebank, parktown, melville, soweto. The vocabulary is this product's, not the supplier's: EskomSePush identifies a municipal area by its own id, and a feed that carried that id would put a second map of Johannesburg in the codebase, one nobody drew and one the dispatch board cannot join to anything."
+    },
+    {
+     "field": "stage",
+     "type": "integer",
+     "required": true,
+     "why": "The national stage the zone is under, 0 to 8. Zero is a reading and not an absence — the grid has held for months at a time — so a screen that renders zero as \"no data\" would be wrong on every one of those days, and would be wrong in the direction that makes a dispatcher think the board is broken rather than that the power is on."
+    },
+    {
+     "field": "slots",
+     "type": "list",
+     "required": false,
+     "why": "The scheduled outage windows already published for that zone, each an ISO 8601 interval string. A list of strings because the contract takes no list of objects, and intervals because a slot is a span rather than a moment. Optional, because a stage with no published schedule is still a true statement about now, and refusing it would lose the one figure that is always available."
+    },
+    {
+     "field": "observedAt",
+     "type": "instant",
+     "required": true,
+     "why": "When the supplier read the grid, with an offset. A stage is a fact about a moment and it decays in an hour; a dispatcher who cannot see its age will plan an evening visit around a number that was true at lunchtime."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "a-key-is-licensed-for-a-health-service",
+     "must": "A paid EskomSePush key, or a written agreement with Eskom, covers commercial use by a health service, and the rate limit it comes with is recorded beside it.",
+     "why": "The free tier is licensed per person and forbids commercial use. Polling it from a service is a licence breach dressed as a free integration, and the day it matters is the day the supplier notices — which is also the day a dispatch board loses the figure it was built around. The rate limit belongs in the same sentence because a key bought for a hobby cannot carry a fleet.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "the-zone-mapping-is-written-down-and-owned",
+     "must": "Every EskomSePush area id that maps onto a geography.json zone is recorded with the suburb list it was built from, and a person owns it.",
+     "why": "EskomSePush names municipal areas; this product names five suburbs. The join between them is a judgement — Soweto sits across more than one Eskom area, and Randburg does not have the same edges in both — and a wrong join tells a dispatcher the power is on where it is off. That is the failure mode nobody would catch: the board looks authoritative, the nurse arrives in the dark.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "a-stage-may-not-withdraw-physical-care",
+     "must": "No code derives a physical-or-virtual decision from this feed alone, and no screen presents a stage as a reason to defer a visit. The mode is a clinician's or a dispatcher's call, made with the visit in front of them, and an override is recorded against the person who made it.",
+     "why": "This is the refusal that makes the feed safe to have. Load-shedding does not fall evenly: the stages are worst in the areas with the weakest infrastructure, which are the areas this product exists to serve. An engine that deferred a visit on \"stage 6, no lighting\" would defer it from Soweto and Alexandra and go ahead in Rosebank and Parktown, every day, by arithmetic — withdrawing physical care by postcode and calling it a safety feature. What a stage legitimately decides is whether a nurse can work safely and see, whether a device can be charged, and whether a call will drop mid-consultation. Those are operational facts for the person holding the roster, not a verdict on a patient.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "the-stage-is-shown-with-its-age-or-not-shown",
+     "must": "observedAt is carried through to whatever renders the stage, and a reading older than the routing module's stale threshold is shown as stale rather than as current.",
+     "why": "The same failure as a position with no clock, one subject away. Stages change with no notice and a stage that looks current is acted on.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "patientId",
+     "refusal": "A load-shedding feed may not carry a patient id.",
+     "why": "The grid is a public fact about a suburb. Binding it to a person makes it a record that somebody who is ill lives somewhere without power — and that pair, held by a supplier, is a list of the patients least able to keep a device charged or keep food cold.",
+     "also": [
+      "patient",
+      "patientRef",
+      "patientReference",
+      "subjectId",
+      "beneficiaryId",
+      "memberId"
+     ]
+    },
+    {
+     "field": "visitId",
+     "refusal": "A load-shedding feed may not name the visit.",
+     "why": "The same fact one indirection away: a visit reference resolves to a patient and an address for anybody holding both feeds, which is what nurse-position refuses for the same reason.",
+     "also": [
+      "visit",
+      "visitRef",
+      "visitReference",
+      "bookingId",
+      "jobId"
+     ]
+    },
+    {
+     "field": "address",
+     "refusal": "A load-shedding feed may not carry an address or a coordinate.",
+     "why": "It answers for a zone and geography.json is explicit that a map here plots suburbs, not addresses. A coordinate in this feed would let a stage be joined to a doorstep, and the only reason to join them is the reason the zone exists to avoid.",
+     "also": [
+      "streetAddress",
+      "homeAddress",
+      "residentialAddress",
+      "formattedAddress"
+     ]
+    },
+    {
+     "field": "deviceStatus",
+     "refusal": "A load-shedding feed may not carry what a household has done about it.",
+     "why": "An inverter, a battery level, a meter reading: this is telemetry from inside somebody's home, arriving through the door that was opened for the national grid. It is also the sharpest possible inference — a household with no backup in a stage-6 zone is a household this product has just described as unable to keep medicine cold. The Devices engine has its own seam and its own DPIA; a grid feed is not the way in.",
+     "also": [
+      "householdLoad",
+      "meterReading",
+      "inverterStatus",
+      "batteryLevel",
+      "householdPower"
+     ]
+    },
+    {
+     "field": "riskLevel",
+     "refusal": "A load-shedding feed may not carry a risk rating.",
+     "why": "The stage is what was measured. A risk level is somebody's conclusion about it, and it arrives looking like data — which is how a postcode ends up with a score attached that no clinician ever set and nobody can interrogate.",
+     "also": [
+      "riskScore",
+      "dangerLevel",
+      "safetyScore",
+      "zoneRisk"
+     ]
+    },
+    {
+     "field": "recommendation",
+     "refusal": "A load-shedding feed may not carry a recommendation about how a visit should happen.",
+     "why": "Physical, virtual or deferred is the decision this feed must never make, and refusing it at the door is what keeps the switch-on condition true. A recommendation that arrives from a supplier is a decision taken by nobody in this country, about a named patient, with no clinician accountable for it and no override to record.",
+     "also": [
+      "deployMode",
+      "modeRecommendation",
+      "physicalOrVirtual",
+      "deferReason"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": true,
+    "section72": "EskomSePush becomes an operator under POPIA section 21 on signature, and what it is sent is a list of the zones a nurse service operates in. Whether it processes anything outside South Africa depends on where a supplier nobody has named keeps its logs. Not determined.",
+    "determined": false
+   }
   }
  ]
 }

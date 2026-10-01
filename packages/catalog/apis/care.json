@@ -3,7 +3,7 @@
  "_note": "Care is the nurse's day: offers matched by scope, distance, continuity and Trust Score, the visit started and completed with the visit code, the protocol checklist, capture, handover, offline sync, and the lists a nurse works from. Wave 2 contract; Wave 3 build.",
  "version": 1,
  "resources": ["offers", "visits", "sync-batches", "shifts", "services", "locum-shifts", "circuits", "settings", "setting-changes", "setting-reviews"],
- "doors": ["nurse-roster", "nurse-position", "interpreter-roster"],
+ "doors": ["nurse-roster", "nurse-position", "interpreter-roster", "load-shedding-stage"],
  "doorsToAdd": [],
  "refusals": [
   {"id": "offer-without-trust-score", "status": 409, "statement": "Nobody without a current Trust Score is offered a visit.", "why": "No score, no dispatch: the rule Verify enforces at the bus."},
