@@ -81,6 +81,46 @@
     { "key": "decidedBy", "label": "Decided by", "type": "text", "help": "Who took the decision, as the responsible party or on their written authority.", "blank": "", "evidence": true },
     { "key": "decidedOn", "label": "Decided on", "type": "day", "help": "The day the decision was taken.", "blank": null, "evidence": true }
    ]
+  },
+  {
+   "key": "medical-director",
+   "label": "Medical Director",
+   "question": "Has a Medical Director been appointed?",
+   "document": "docs/governance/CLINICAL-REVIEW-PROCESS.md",
+   "decidedBy": "No document yet says who appoints. Both the Medical Director and the board are people, and this repository can only record them once named; whether a real clinician's registration number may sit in it is a docs/PRIVACY-AND-SECURITY.md question to decide first.",
+   "blockedUntil": "An appointed Medical Director and a formed governance board, before any protocol may advance beyond draft",
+   "refusedToday": "No protocol advances beyond draft, so nothing is ratified, and GilbertOne's two triage routes refuse every call. The triage gate reads the Medical Director's status from packages/catalog/protocols.json, never from this register.",
+   "refusalLives": ["apps/assistant-api/src/lib/triage-gate.ts", "packages/catalog/protocols.json", "packages/engines/src/clinical/domain/triage.ts"],
+   "done": { "field": "status", "is": "appointed" },
+   "fields": [
+    { "key": "status", "label": "Status", "type": "enum", "help": "Whether anybody holds the office.", "blank": "not-appointed", "evidence": false, "allowed": [
+     { "value": "not-appointed", "label": "Not appointed", "means": "Nobody holds the office. No protocol can be signed, so every one of the twelve stays a draft." },
+     { "value": "appointed", "label": "Appointed", "means": "A named doctor holds the office, with an HPCSA registration the vetting register already holds, and the register says from when." }
+    ] },
+    { "key": "name", "label": "Who holds the office", "type": "text", "help": "The Medical Director's name, as written on the appointment.", "blank": "", "evidence": true },
+    { "key": "hpcsaRef", "label": "HPCSA registration", "type": "text", "help": "The registration the vetting register already holds for them. A number no authority issued is exactly what vetting exists to catch.", "blank": "", "evidence": true },
+    { "key": "appointedOn", "label": "Appointed on", "type": "day", "help": "The day the appointment was made in writing.", "blank": null, "evidence": true }
+   ]
+  },
+  {
+   "key": "governance-board",
+   "label": "Clinical governance board",
+   "question": "Has the clinical governance board been formed?",
+   "document": "docs/governance/CLINICAL-REVIEW-PROCESS.md",
+   "decidedBy": "No document yet says who appoints. Both the Medical Director and the board are people, and this repository can only record them once named; whether a real clinician's registration number may sit in it is a docs/PRIVACY-AND-SECURITY.md question to decide first.",
+   "blockedUntil": "A formed governance board and an appointed Medical Director, before any protocol may advance beyond draft",
+   "refusedToday": "No protocol advances beyond draft, no protocol is designated for triage, and the Clinician Review Queue offers no sign control. The triage gate reads the board's status from packages/catalog/protocols.json, never from this register.",
+   "refusalLives": ["apps/assistant-api/src/lib/triage-gate.ts", "packages/catalog/protocols.json", "packages/engines/src/clinical/domain/triage.ts"],
+   "done": { "field": "status", "is": "formed" },
+   "fields": [
+    { "key": "status", "label": "Status", "type": "enum", "help": "Whether the board exists and can decide.", "blank": "not-formed", "evidence": false, "allowed": [
+     { "value": "not-formed", "label": "Not formed", "means": "There is no board, so nobody can ratify a protocol, designate one for triage or decide even an urgent fix." },
+     { "value": "formed", "label": "Formed", "means": "A named board with a named chair exists, and the register says from when. Its membership, quorum and meeting cadence are written in packages/catalog/protocols.json." }
+    ] },
+    { "key": "name", "label": "The board's name", "type": "text", "help": "What the board is called in its own terms of reference.", "blank": "", "evidence": true },
+    { "key": "chairRef", "label": "Who chairs it", "type": "text", "help": "The chair's name and registration, as the vetting register holds them.", "blank": "", "evidence": true },
+    { "key": "formedOn", "label": "Formed on", "type": "day", "help": "The day the board first sat with a quorum.", "blank": null, "evidence": true }
+   ]
   }
  ],
 
@@ -140,7 +180,7 @@
 
  "screen": {
   "tab": "Governance",
-  "blurb": "Whether the DPIA, the Information Officer and the residency decision are done, who did them and when — and what goes on being refused either way.",
+  "blurb": "Whether the DPIA, the Information Officer, the residency decision, the Medical Director and the clinical governance board are done, who did them and when — and what goes on being refused either way.",
   "intro": "docs/governance prepares five documents for named, accountable people to read, decide and sign. This is the register of what has actually been signed, appointed and decided. Each row says what is blocked until it is done, what is refused today and where that refusal lives in the code.",
   "preview": "This preview keeps what you record in this tab's memory and nowhere else. It is not a register of record, nothing is sent anywhere, and a reload puts the blank fields back.",
   "documentsLink": "The documents themselves are hand-written prose in {folder}, for real people to sign. Nothing on this screen edits them.",

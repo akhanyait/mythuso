@@ -1042,6 +1042,11 @@ Medical Director been appointed"_ — the question a funder or a regulator asks 
 one is an edit to a catalog file rather than a form an accountable person fills in. Adding both as
 records there is small, and belongs before the board sits rather than after.
 
+**Done, 1 October 2026:** both are records in `governance-status.json` now — `medical-director`
+(not appointed) and `governance-board` (not formed), with no person and no number — so the back office
+answers the question out loud. Recording one there still changes no gate: the triage gate reads
+`protocols.json`, not the register.
+
 ### 3. Neither appointment ratifies anything by itself
 
 `protocols.json` says no protocol advances beyond `draft` until the board is formed and a Medical

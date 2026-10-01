@@ -2551,7 +2551,10 @@ review-pack emitters were re-run and produced **no blob change**, so nothing dri
 `mac-x64` and looks for a browser build that does not exist. Both are sandbox limits, not code failures — the same
 tree's node suites, typecheck and boundary checks all pass, and the spec was written and read rather than run. It is
 **unverified by execution** and must be run on a machine where a browser launches before this is called done. The
-iOS and Android builds were not run either. **No deploy was attempted**; `mythuso.co.za` serves an earlier build,
+iOS and Android builds were not run either. **Since verified (1 October 2026):** the release audit at HEAD
+`a37cd638` ran `tests/zone-field-safety.spec.ts` and it passed 10 of 10 (5 tests × 2 viewports), and both native
+builds — `xcodebuild` for the simulator and `:app:assembleDebug :app:lintDebug` — succeeded on the same tree.
+**No deploy was attempted**; `mythuso.co.za` serves an earlier build,
 and per the standing rule a deploy is the founder's to approve as its own step.
 
 **Open.** The floor of 5 is proposed by "Safety lead (Wave 6)" and decided by nobody — `decidedBy` is null on its
