@@ -233,11 +233,12 @@ test('sign in, read the metadata, reveal masked, and the eye shows and hides the
  await revealFirst(page);
  const secret = row.locator('.g1-founder-secret');
  await expect(secret).toHaveText(masked(LAST_FOUR));
+ /* The words say which way the key is, so the button carries no pressed state beside them. */
  const eye = row.getByRole('button', { name: words.show });
- await expect(eye).toHaveAttribute('aria-pressed', 'false');
+ await expect(eye).not.toHaveAttribute('aria-pressed', /.*/);
  await eye.click();
  await expect(secret).toHaveText(KEY);
- await expect(row.getByRole('button', { name: words.hide })).toHaveAttribute('aria-pressed', 'true');
+ await expect(row.getByRole('button', { name: words.hide })).not.toHaveAttribute('aria-pressed', /.*/);
  await row.getByRole('button', { name: words.hide }).click();
  await expect(secret).toHaveText(masked(LAST_FOUR));
  await expect(row.getByRole('button', { name: words.copy })).toBeVisible();

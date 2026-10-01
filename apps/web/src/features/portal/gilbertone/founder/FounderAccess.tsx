@@ -181,7 +181,9 @@ function RevealKey({ label, name, meta }: { label: string; name: string; meta: K
   {shown && <div className="g1-founder-revealed">
    <code className="g1-founder-secret" aria-label={label}>{visible ? shown.revealedKey : masked(registry.keyMetadata.maskedDisplay, shown.lastFour)}</code>
    <div className="g1-action-row">
-    <button type="button" className={`${buttonVariants({ variant: 'secondary' })} g1-founder-button`} aria-pressed={visible} onClick={() => setVisible(v => !v)}>
+    {/* The words say which way the key is — Show while it is masked, Hide while it is in the clear — so the
+        button carries no pressed state as well: a toggle whose name also flips is read as two answers. */}
+    <button type="button" className={`${buttonVariants({ variant: 'secondary' })} g1-founder-button`} onClick={() => setVisible(v => !v)}>
      {visible ? <EyeOff aria-hidden="true"/> : <Eye aria-hidden="true"/>} {visible ? words.hide : words.show}</button>
     <button type="button" className={`${buttonVariants({ variant: 'secondary' })} g1-founder-button`} onClick={() => void copy()}><Copy aria-hidden="true"/> {words.copy}</button>
    </div>

@@ -210,7 +210,6 @@ const startTalking = async (page: Page) => {
       exact: true,
     })
     .click();
-  await expect(pill(page)).toHaveAttribute("aria-pressed", "true");
   await expect(pill(page)).toHaveText(sentences.stopLabel);
   await expect(status(page)).toHaveText(sentences.listening);
   await expect(hot(page)).toHaveText(sentences.micHot);
@@ -234,7 +233,10 @@ test("the pill says the contract's words before a conversation, and nothing open
   page,
 }) => {
   await expect(pill(page)).toHaveText(sentences.startLabel);
-  await expect(pill(page)).toHaveAttribute("aria-pressed", "false");
+  /* Its words say which way it is, so neither it nor the microphone carries a pressed state beside them: a
+     toggle whose name also flips is read as two answers to one question. */
+  await expect(pill(page)).not.toHaveAttribute("aria-pressed", /.*/);
+  await expect(micButton(page)).not.toHaveAttribute("aria-pressed", /.*/);
   expect(await mic(page)).toEqual([]);
   await pill(page).click();
   /* The consent sheet is on the screen and the microphone is still shut. */
@@ -266,7 +268,7 @@ test("speak, pause, and GilbertOne answers by itself, reads it, and then listens
   await endSpeech(page);
   await expect(status(page)).toHaveText(sentences.yourTurn);
   await expect(hot(page)).toHaveText(sentences.micHot);
-  await expect(pill(page)).toHaveAttribute("aria-pressed", "true");
+  await expect(pill(page)).toHaveText(sentences.stopLabel);
   /* Nothing was handed to the composer: the words were sent, not drafted. */
   await expect(panel(page).getByLabel(gilbert.conversation.inputLabel)).toHaveValue("");
 });
@@ -290,7 +292,42 @@ test("starting to talk while GilbertOne reads stops the voice, and the words bec
   await expect(lastSaid(page)).toContainText("what does a visit include", {
     timeout: endpointMs + 4000,
   });
-  await expect(pill(page)).toHaveAttribute("aria-pressed", "true");
+  await expect(pill(page)).toHaveText(sentences.stopLabel);
+});
+
+/* The founder's listening cap, as the contract's web conversation reads it (conversation-mode.json
+   web.listeningCapFrom), closes every window — and the window the microphone reopens into when the
+   voice finishes is a window of its own. The watcher that listened over a long reading must not hand
+   its spent cap to the patient's turn: she would get the few seconds left of it, and a quiet window
+   cut short would count towards sleep. The page's clock is driven so thirty seconds pass at once. */
+const capSeconds: number = gilbert.voice.maxListeningSeconds;
+test("after a long reading the microphone gives her a whole listening window, not what the reading left", async ({
+  page,
+}) => {
+  await page.clock.install();
+  await page.goto("/app/?open=assistant");
+  await consent(page);
+  await startTalking(page);
+  await sayAndPause(page, "Are my results back?");
+  await expect.poll(() => speechCalls(page)).toContain("speak");
+  await expect(status(page)).toHaveText(sentences.bargeInNote);
+  await expect.poll(() => micOpen(page)).toBe(true);
+  /* A reading that runs most of the cap, with the watcher open over all of it. */
+  await page.clock.fastForward((capSeconds - 5) * 1000);
+  await endSpeech(page);
+  await expect(status(page)).toHaveText(sentences.yourTurn);
+  const stops = (await mic(page)).filter((c) => c === "stop").length;
+  const starts = (await mic(page)).filter((c) => c === "start").length;
+  /* Past the moment the watcher's cap would have fallen, and well inside a window of her own: still hers. */
+  await page.clock.fastForward(10_000);
+  await page.waitForTimeout(100);
+  expect((await mic(page)).filter((c) => c === "stop").length).toBe(stops);
+  await expect(status(page)).toHaveText(sentences.yourTurn);
+  /* A whole cap later the window closes as a quiet round, and the microphone opens for another. */
+  await page.clock.fastForward(capSeconds * 1000);
+  await expect.poll(() => mic(page).then((c) => c.filter((x) => x === "stop").length)).toBeGreaterThan(stops);
+  await expect.poll(() => mic(page).then((c) => c.filter((x) => x === "start").length)).toBeGreaterThan(starts);
+  await expect(pill(page)).toHaveText(sentences.stopLabel);
 });
 
 test("a single stray word while GilbertOne reads does not stop it", async ({ page }) => {
@@ -313,7 +350,6 @@ test("an emergency answer closes the microphone, and the numbers stay on the scr
   await expect.poll(() => speechCalls(page)).toContain("speak");
   await endSpeech(page);
   await expect(status(page)).toHaveText(sentences.emergencyClosed);
-  await expect(pill(page)).toHaveAttribute("aria-pressed", "false");
   await expect(pill(page)).toHaveText(sentences.startLabel);
   await expect(hot(page)).toHaveCount(0);
   await expect.poll(() => micOpen(page)).toBe(false);
@@ -324,7 +360,6 @@ test("Stop ends everything at once, and the words caught go nowhere", async ({ p
   await startTalking(page);
   await hear(page, "I was about to ask");
   await pill(page).click();
-  await expect(pill(page)).toHaveAttribute("aria-pressed", "false");
   await expect(pill(page)).toHaveText(sentences.startLabel);
   await expect(hot(page)).toHaveCount(0);
   await expect.poll(() => micOpen(page)).toBe(false);
@@ -338,7 +373,7 @@ test("every tap of the microphone while a conversation runs is its Stop", async 
   await startTalking(page);
   await expect(micButton(page)).toHaveAttribute("aria-label", sentences.stopLabel);
   await micButton(page).click();
-  await expect(pill(page)).toHaveAttribute("aria-pressed", "false");
+  await expect(pill(page)).toHaveText(sentences.startLabel);
   await expect.poll(() => micOpen(page)).toBe(false);
 });
 
@@ -355,7 +390,7 @@ test("quiet windows close the microphone on their own, with the contract's sente
   }
   await quiet(page);
   await expect(status(page)).toHaveText(sentences.sleeping);
-  await expect(pill(page)).toHaveAttribute("aria-pressed", "false");
+  await expect(pill(page)).toHaveText(sentences.startLabel);
   await expect(hot(page)).toHaveCount(0);
 });
 

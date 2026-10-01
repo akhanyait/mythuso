@@ -752,7 +752,7 @@
   border-color: var(--go-line);
   border-radius: var(--r-control);
 }
-.as-panel .as-compose .as-voice[aria-pressed="true"] {
+.as-panel .as-compose .as-voice[data-hot] {
   border-color: var(--brand-ink);
   background: var(--brand-ink);
   color: var(--surface);

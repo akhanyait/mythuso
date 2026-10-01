@@ -68,7 +68,11 @@ const limitsTexts = (row: TimingRow): string[] => {
     ...(row.items ? [fill(say.listLength, { lowest: String(row.items.lowest.value), highest: String(row.items.highest.value) })] : [])
   ];
 };
-const sources = (settingsContract.sources as { engine: string; file: string }[]).map(s => ({ engine: s.engine, block: json(`../${s.file}`).settings as { heading: string; intro: string; items: TimingRow[] } }));
+/* Every engine's settings but GilbertOne's: those are changed on its Speech settings, against the assistant
+   service's own history while the founder is signed in, so this screen draws no second copy of them. */
+const allSources = (settingsContract.sources as { engine: string; file: string }[]).map(s => ({ engine: s.engine, block: json(`../${s.file}`).settings as { heading: string; intro: string; items: TimingRow[] } }));
+const assistantBlock = allSources.find(s => s.engine === 'assistant')!.block;
+const sources = allSources.filter(s => s.engine !== 'assistant');
 const total = String(sources.reduce((sum, s) => sum + s.block.items.length, 0));
 const expiry = (care.settings.items as TimingRow[]).find(s => s.key === 'offer-expiry')!;
 const closedLoop = json('../packages/catalog/closed-loop.json');
@@ -101,6 +105,8 @@ test('every engine’s settings are drawn from its contract: in force, the defau
   await expect(area).toContainText(say.intro);
   await expect(area).toContainText(say.preview);
   await expect(area.locator(':scope > .ss-version')).toHaveText(fill(say.shown, { shown: total, total }));
+  await expect(area).toContainText(say.assistantNote);
+  await expect(group(page, assistantBlock.heading)).toHaveCount(0);
   for (const { block } of sources) {
     const panel = group(page, block.heading);
     await expect(panel).toContainText(block.intro);

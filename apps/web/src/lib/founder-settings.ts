@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { call, founderContract, sessionEnded, type Answer, type Refusal } from './founder-access';
+import { onSessionLeft } from './founder-access';
 import { portalContract } from './portal';
 import { assistantDefaults, type Change, type SettingValue, type Snapshot } from './settings';
 
@@ -103,7 +104,10 @@ export function readFounderSettings(): Promise<void> {
  })().finally(() => { readingSettings = null; });
  return readingSettings;
 }
-/* Forgotten on sign-out, so the next founder reads afresh rather than what the last session saw. */
+/* Forgotten whenever the session leaves signed-in, so the next founder reads afresh rather than what the last
+   session saw. Registered at the foot of this file, on lib/founder-access.ts's own transition, because the
+   Speech settings screen's effect only runs while that screen is mounted, and a sign-out or an ended session
+   from any other screen left the last snapshot and every provider's metadata waiting for the next sign-in. */
 export const forgetFounderSettings = (): void => { setSettings({ phase: 'unread' }); setProviders({ phase: 'unread' }); };
 
 /* The route's own request: the setting, the value it is changed from and to, the reason, and the version the
@@ -195,3 +199,5 @@ export async function readLogs(card: string): Promise<Logs> {
   isRecord(line) ? [{ at: str(line.at) ?? '', event: str(line.event) ?? '', outcome: str(line.outcome) ?? '' }] : []);
  return { ok: true, lines: Object.freeze(lines) };
 }
+
+onSessionLeft(forgetFounderSettings);

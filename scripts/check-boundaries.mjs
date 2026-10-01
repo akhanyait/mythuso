@@ -17093,9 +17093,9 @@ if (!/browserNotice/.test(assistantVoice))
   throw new Error(
     `${ASSISTANT_VOICE_BUTTON} no longer reads voice.browserNotice for the browser it cannot work in. A browser with no speech recognition is the moment that sentence was written for, and it is read from the contract the way every other sentence this component shows is — a fallback typed here would be words nobody reviewed on a health product.`,
   );
-if (!/stopLabel/.test(assistantVoice) || !/aria-pressed/.test(assistantVoice))
+if (!/stopLabel/.test(assistantVoice) || !/aria-label=\{label\}/.test(assistantVoice) || /aria-pressed/.test(assistantVoice))
   throw new Error(
-    `${ASSISTANT_VOICE_BUTTON} no longer offers the stop label while the microphone is open, or no longer says which state its control is in. A patient who taps a microphone open has to be able to shut it with the same control, and to tell from the control that she has.`,
+    `${ASSISTANT_VOICE_BUTTON} no longer offers the stop label while the microphone is open, no longer names its control by what a tap will do, or carries aria-pressed beside that name. A patient who taps a microphone open has to be able to shut it with the same control, and to tell from the control that she has — once: a toggle whose name also flips is read as "Stop, pressed", two answers to one question.`,
   );
 /* The session's own half, since 22 September 2026: the five moments and the two agreements are read
    from voice.session the way every other sentence this button shows is read from the contract, and
@@ -37169,8 +37169,8 @@ console.log(
   if (!/\[data-mic-hot\]|\.as-mic-hot\b/.test(read("apps/web/src/features/assistant.css")))
     throw new Error("apps/web/src/features/assistant.css no longer styles the microphone-on line, so the indicator's words would draw as a bare footnote.");
   const cmMotion = read("apps/web/src/features/assistant-motion.css");
-  if (!/:root\[data-decor="on"\] \.as-panel:not\(\[data-safety\]\) \.as-voice\[aria-pressed="true"\] \.as-mic-disc::after \{\s*animation: as-listening/.test(cmMotion) || !/aria-pressed=\{capturing\}/.test(cmButton))
-    throw new Error("The microphone's ring (assistant-motion.css, as-listening on aria-pressed) is no longer keyed to the recogniser being open under [data-decor='on'], outside the held safety face. The ring is the indicator's moving half; the words are its still half, and both follow the recogniser, not the control that opened it.");
+  if (!/:root\[data-decor="on"\] \.as-panel:not\(\[data-safety\]\) \.as-voice\[data-hot\] \.as-mic-disc::after \{\s*animation: as-listening/.test(cmMotion) || !/data-hot=\{capturing \|\| undefined\}/.test(cmButton))
+    throw new Error("The microphone's ring (assistant-motion.css, as-listening on data-hot) is no longer keyed to the recogniser being open under [data-decor='on'], outside the held safety face. The ring is the indicator's moving half; the words are its still half, and both follow the recogniser, not the control that opened it.");
   if (!/if \(convo\.active\) \{\s*convo\.stop\(\);\s*return;\s*\}\s*if \(capturing\) \{\s*voice\.stop\(\);/.test(cmButton))
     throw new Error(`${cmButtonFile}: a tap of the microphone while a conversation runs is no longer its Stop, before anything else the tap could mean.`);
   if (!/convo\.start\(\(text\) => latestUtterance\.current\(text\)\)/.test(cmButton) || !/latestUtterance\.current = onUtterance;/.test(cmButton) || /onTranscript\([^)]*\)/.test(cmButton.match(/if \(inConversation\.current\) \{[\s\S]*?\n    \}/)?.[0] ?? "onTranscript("))

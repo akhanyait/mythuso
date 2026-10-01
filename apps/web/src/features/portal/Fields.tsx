@@ -39,10 +39,26 @@ import './fields.css';
    The ends' words sit at the ends of the row and any other mark's words on a line of their own under its
    tick, because a default a step from a bound would otherwise print on top of the bound's words. */
 export type Mark = { readonly value: number; readonly label: string };
+
+/* `step="fit"` derives the step from the figures the slider is drawn over, for a count whose span a step of one
+   makes keyboard-unusable: the monthly speech ceiling runs from ten thousand to a hundred million characters,
+   which is a hundred million arrow presses. The fitted step is the largest power of ten no coarser than a
+   thousandth of the span that still lands exactly on both bounds and on every mark (the shipped default among
+   them), so every figure the contract names stays reachable and an arrow moves by an amount worth pressing
+   for. Never below one: what is fitted is a count. */
+const fittedStep = (min: number, max: number, marks: readonly Mark[]): number => {
+ const span = max - min;
+ if (!(span > 0)) return 1;
+ let step = 10 ** Math.max(0, Math.floor(Math.log10(span / 1000)));
+ while (step > 1 && [max, ...marks.map(m => m.value)].some(v => (v - min) % step !== 0)) step /= 10;
+ return step;
+};
+
 export function RangeSlider({ id, label, min, max, step = 1, value, valueText, onChange, disabled = false, describedBy, tone = 'paper', marks = [] }: {
- id?: string; label: string; min: number; max: number; step?: number; value: number; valueText: string;
+ id?: string; label: string; min: number; max: number; step?: number | 'fit'; value: number; valueText: string;
  onChange: (value: number) => void; disabled?: boolean; describedBy?: string; tone?: 'paper' | 'night' | 'bare'; marks?: readonly Mark[];
 }) {
+ const by = step === 'fit' ? fittedStep(min, max, marks) : step;
  const span = max - min;
  const ratioOf = (v: number) => span > 0 ? (Math.min(max, Math.max(min, v)) - min) / span : 0;
  const at = Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
@@ -51,7 +67,7 @@ export function RangeSlider({ id, label, min, max, step = 1, value, valueText, o
  const inner = marks.filter(m => m.value > min && m.value < max);
  return <div className={`fc-range is-${tone}`} style={{ '--fc-ratio': ratio } as CSSProperties}>
   {tone !== 'bare' && <span className="fc-range-chip" aria-hidden="true">{valueText}</span>}
-  <input type="range" id={id} min={min} max={max} step={step} value={at} disabled={disabled}
+  <input type="range" id={id} min={min} max={max} step={by} value={at} disabled={disabled}
    aria-label={label} aria-valuetext={valueText} aria-describedby={describedBy}
    onChange={event => onChange(Number(event.target.value))}/>
   {marks.length > 0 && <div className="fc-marks" aria-hidden="true">

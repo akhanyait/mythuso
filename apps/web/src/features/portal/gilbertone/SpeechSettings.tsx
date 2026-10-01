@@ -69,7 +69,7 @@ function Knob({ setting, value, disabled, inForce, onChange }: { setting: Settin
    { value: highest.value, label: valueText(setting, highest.value) }
   ];
   return <FieldRow className="g1-knob" label={setting.label} help={setting.help} htmlFor={id} inForce={inForce}>
-   <RangeSlider id={id} label={setting.label} min={lowest.value} max={highest.value} value={value} valueText={valueText(setting, value)} marks={marks} disabled={disabled} onChange={onChange}/>
+   <RangeSlider id={id} label={setting.label} min={lowest.value} max={highest.value} step="fit" value={value} valueText={valueText(setting, value)} marks={marks} disabled={disabled} onChange={onChange}/>
   </FieldRow>;
  }
  if (setting.type === 'boolean' && !setting.allowed) {

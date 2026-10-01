@@ -75,7 +75,17 @@ export type FounderState =
 let state: FounderState = { phase: 'checking' };
 let probing: Promise<void> | null = null;
 const listeners = new Set<() => void>();
-const set = (next: FounderState) => { state = next; listeners.forEach(l => l()); };
+/* Who is told the moment the session stops being signed in — a sign-out, a session the service ended, a
+   refusal — whether or not any screen is mounted to notice. lib/founder-settings.ts forgets what the last
+   session read here, so the next sign-in never shows that session's settings or a provider's metadata. */
+const leaving = new Set<() => void>();
+const set = (next: FounderState) => {
+ const was = state.phase;
+ state = next;
+ if (was === 'signed-in' && next.phase !== 'signed-in') leaving.forEach(l => l());
+ listeners.forEach(l => l());
+};
+export const onSessionLeft = (listener: () => void): void => { leaving.add(listener); };
 const subscribe = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; };
 
 export const useFounderState = (): FounderState => useSyncExternalStore(subscribe, () => state);

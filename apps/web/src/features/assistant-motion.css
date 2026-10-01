@@ -151,14 +151,14 @@
 /* ---- The microphone is open: a calm ring --------------------------------------------------------
    CLAUDE.md asks for a visible indicator whenever the microphone is hot, and the button already is
    one — it turns ink and says Stop in words. The ring is the calm half of that: a hairline that
-   swells out of the microphone's disc and fades, on the tokens' curve, only while aria-pressed says
+   swells out of the microphone's disc and fades, on the tokens' curve, only while data-hot says
    the microphone is capturing. It is a rhythm, never a level: nothing here reads the audio, and
    §07's V04 refuses a meter. Under reduced motion or Pause motion the ring is drawn still, so the
    indicator is never removed with the movement. */
 .as-mic-disc {
   position: relative;
 }
-.as-voice[aria-pressed="true"] .as-mic-disc::after {
+.as-voice[data-hot] .as-mic-disc::after {
   content: "";
   position: absolute;
   inset: -4px;
@@ -176,7 +176,7 @@
     opacity: 0;
   }
 }
-:root[data-decor="on"] .as-panel:not([data-safety]) .as-voice[aria-pressed="true"] .as-mic-disc::after {
+:root[data-decor="on"] .as-panel:not([data-safety]) .as-voice[data-hot] .as-mic-disc::after {
   animation: as-listening calc(var(--t-enter) * 4) var(--ease-soft) infinite;
 }
 
@@ -263,7 +263,7 @@
   .as-chips,
   .as-dots i,
   .as-rig svg,
-  .as-voice[aria-pressed="true"] .as-mic-disc::after {
+  .as-voice[data-hot] .as-mic-disc::after {
     animation: none !important;
   }
   .as-turn .as-reply::before {

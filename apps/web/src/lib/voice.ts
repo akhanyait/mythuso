@@ -1058,12 +1058,29 @@ export function useVoiceAdapter(
     dispatch({ type: "transcript_ready", text });
   };
 
+  /* The founder's listening cap still closes every window. With words in it the cap is a forced
+     endpoint and the words are handed over; with none it is a quiet window, closed for the machine
+     to count. The watcher is simply closed and reopens if the voice is still reading. The cap is
+     the web's thirty seconds (voice.maxListeningSeconds, which conversation-mode.json names as
+     web.listeningCapFrom), standing in front of the amendment's forty-five-second utterance cap. */
+  const armCap = () => {
+    clearCap();
+    cap.current = window.setTimeout(() => {
+      if (role.current === "listen" && windowWords.current) handOver();
+      else closeListener();
+    }, MAX_LISTENING_SECONDS * 1000);
+  };
+
   /* A fresh listening window on a recogniser that is already open — the watcher becoming the
-     listener on a barge-in. What it has heard so far is the person's, and stays. */
+     listener when the voice finishes or on a barge-in. What it has heard so far is the person's,
+     and stays. The window gets a whole cap of its own: the watcher's cap started when the reading
+     began, so carrying it over would leave the person a few seconds after a long reading and spend
+     an idle round towards sleep on a window she never had. */
   const armWindow = () => {
     role.current = "listen";
     handed.current = false;
     clearEndpoint();
+    armCap();
     if (windowWords.current)
       endpointTimer.current = window.setTimeout(handOver, ENDPOINT_MS);
   };
@@ -1134,14 +1151,7 @@ export function useVoiceAdapter(
       opened.current = true;
       stateRef.current = "open";
       setState("open");
-      clearCap();
-      /* The founder's listening cap still closes every window. With words in it the cap is a forced
-         endpoint and the words are handed over; with none it is a quiet window, closed for the
-         machine to count. The watcher is simply closed and reopens if the voice is still reading. */
-      cap.current = window.setTimeout(() => {
-        if (role.current === "listen" && windowWords.current) handOver();
-        else closeListener();
-      }, MAX_LISTENING_SECONDS * 1000);
+      armCap();
     };
 
     listener.onresult = (event) => {

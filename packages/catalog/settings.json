@@ -254,6 +254,8 @@
   "why": "Why",
   "operationsNote": "How long the safety desk waits, and what an admin may set it to, is on the Configuration tab with every other setting.",
   "operationsOpen": "Open the field safety settings",
+  "assistantNote": "GilbertOne's speech settings are not on this screen. They are changed on GilbertOne's Speech settings, which shows and saves the assistant service's own history while the founder is signed in, so there is one copy of them and never a second one here that disagrees.",
+  "assistantOpen": "Open GilbertOne's Speech settings",
   "editors": {
    "minutes": "New value, in minutes",
    "count": "New value, in {unit}",

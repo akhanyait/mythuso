@@ -196,12 +196,14 @@ export function AssistantVoiceButton({
     <>
       {/* The written action accompanies the icon; the full accessible label still names GilbertOne.
           data-hot is the amendment's indicator: on whenever the recogniser is open, whichever of the
-          two controls opened it and whether it is hearing a turn or watching for a barge-in. */}
+          two controls opened it and whether it is hearing a turn or watching for a barge-in — and it is
+          what the ring and the pressed look are drawn from. The name says what a tap will do, Talk or
+          Stop, so the button carries no aria-pressed as well: a toggle whose name also flips is read as
+          "Stop, pressed", two answers to one question. */}
       <button
         type="button"
         className="as-voice"
         aria-label={label}
-        aria-pressed={capturing}
         aria-describedby="as-keyboard"
         data-hot={capturing || undefined}
         onClick={() => {
@@ -257,10 +259,12 @@ export function AssistantVoiceButton({
             consent as the microphone, so nothing opens on the first tap of either. It sits at the head
             of the footnote lines rather than on a row of the composer's grid, so neither of the
             composer's two layouts has to make room for it. */}
+        {/* Its words say which way it is — start, or stop — so it carries no aria-pressed beside them;
+            data-active is only what the dot is drawn from. */}
         <Button
           variant={convo.active ? "primary" : "secondary"}
           className="as-convo"
-          aria-pressed={convo.active}
+          data-active={convo.active || undefined}
           leadingIcon={<span className="as-convo-dot" aria-hidden="true" />}
           onClick={() => {
             if (convo.active) {

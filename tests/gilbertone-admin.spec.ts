@@ -2,7 +2,7 @@ import { test, expect, type Locator, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { audit, controlSweep, zoomedTo200 } from './audit';
 import { chooseRole, goPortal } from './nav';
-import { fill, say, settingsContract, timingItem } from './safety-settings';
+import { fill, say, settingsContract } from './safety-settings';
 
 /* GilbertOne API Administration's seven sub-screens, on both viewports (docs/PROMPT-CONTROL-TOWER-UI.md
  * §7, Phase 4; the Voice screen folded into Speech settings on 28 September 2026).
@@ -16,7 +16,7 @@ import { fill, say, settingsContract, timingItem } from './safety-settings';
  * nothing else is enabled. No password field is drawn anywhere, and nothing key-shaped is ever drawn —
  * not even when the health route is made to answer with a planted field it should not have. On the
  * Speech settings screen a register card chooses a provider and one of the contract's two voice labels
- * and saves them as settings with a reason, which the Configuration tab then shows in its history; the
+ * and saves them as settings with a reason, which the Configuration tab leaves to this screen alone; the
  * knobs are saved a group at a time; a locked row, in the fold, offers nothing to choose and nothing to
  * save; the preview refuses a person's details, says the cost before Play, asks the contract's speak
  * route with the contract's voice name — the platform's default on a locked register whatever the
@@ -374,15 +374,14 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   expect(spoken.every(s => classes.some(c => c.id === s.register)), `every preview reading named one of the contract's registers: ${spoken.map(s => s.register).join(', ')}`).toBe(true);
   expect(spoken, 'the Speech settings screen spoke more than it was asked to').toHaveLength(2);
 
-  /* The Configuration tab shows the same history: two changes on the routine setting, with the reason. */
+  /* The Configuration tab draws no second copy of these settings — inside the founder's session the two would
+     read different histories — and says where they are, with the way back here. */
   await goPortal(page, say.tab);
-  const block = page.getByRole('region', { name: voice.settings.heading });
-  await expect(block).toContainText(fill(say.version, { version: '3' }));
-  const item = timingItem(block, routineSetting);
-  await item.locator('.cf-history > summary').click();
-  const history = item.locator('table tbody tr');
-  await expect(history).toHaveCount(2);
-  await expect(history.first()).toContainText(reason);
+  await expect(page.getByRole('region', { name: voice.settings.heading })).toHaveCount(0);
+  await expect(page.locator('.cf-area')).toContainText(say.assistantNote);
+  await page.getByRole('button', { name: say.assistantOpen, exact: true }).click();
+  await expect(tablist(page).getByRole('tab', { name: subScreens.find(s => s.id === 'speech')!.label, exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(panel(page)).toContainText(fill(speech.sourceTab!, { version: '3' }));
  });
 
  test('Speech settings: a saved presentation voice reaches the patient\'s routine answer in the same tab, and the emergency answer reads in the platform\'s default', async ({ page }) => {

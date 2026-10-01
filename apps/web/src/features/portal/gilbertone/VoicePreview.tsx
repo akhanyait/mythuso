@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import '../fields.css';
 import voice from '../../../../../../packages/catalog/voice.json' with { type: 'json' };
 import { containsPHI } from '../../../../../../packages/gilbertone/src/phi.ts';
@@ -22,7 +22,7 @@ import { useVoiceSaving } from './useVoiceSaving';
  *
  *   It shows the estimated cost before the Play button — the sentence's characters against the list
  *   price recorded by hand on the provider's card in packages/catalog/api-registry.json — and keeps a
- *   running total for the session in this component's state. No storage, and no figure that was not
+ *   running total for the page's session in this module's memory. No storage, and no figure that was not
  *   read from the card: nothing has been timed, and the panel says so rather than showing a speed.
  *
  *   It never offers Save as default on the emergency, refusal or escalation register. The row is read
@@ -47,6 +47,22 @@ import { useVoiceSaving } from './useVoiceSaving';
 const cost = (characters: number, price: { perMillionCharactersUsd: number; unitCharacters: number }) =>
  (characters / price.unitCharacters) * price.perMillionCharactersUsd;
 
+/* What the preview has read this session: how many plays, their estimated cost, and the characters read against
+   preview-session-ceiling-characters. Held here, in the module, rather than in the panel's state, because the
+   service does not count the preview's characters — it enforces only the monthly ceiling on spoken answers — so
+   this count is the ceiling's only keeper, and a count that went back to nothing whenever the panel was closed
+   and opened again, or another registry card's panel was opened, was a ceiling one click from gone. One page is
+   the session: the count lives as long as the page does and is never written to any storage, which
+   scripts/check-boundaries.mjs refuses under apps/web/src. */
+type Tally = { readonly plays: number; readonly total: number; readonly read: number };
+let tally: Tally = { plays: 0, total: 0, read: 0 };
+const tallyListeners = new Set<() => void>();
+const addToTally = (estimate: number, characters: number) => {
+ tally = { plays: tally.plays + 1, total: tally.total + estimate, read: tally.read + characters };
+ tallyListeners.forEach(l => l());
+};
+const useTally = (): Tally => useSyncExternalStore(l => { tallyListeners.add(l); return () => { tallyListeners.delete(l); }; }, () => tally);
+
 export function VoicePreview({ placement, cardId }: { placement: string; cardId?: string }) {
  const words = g1.voice;
  const panel = voice.previewPanel;
@@ -68,9 +84,7 @@ export function VoicePreview({ placement, cardId }: { placement: string; cardId?
  const [choice, setChoice] = useState<{ version: number; label: VoiceLabel | null }>({ version: 0, label: null });
  const [busy, setBusy] = useState(false);
  const [outcome, setOutcome] = useState<string | null>(null);
- const [plays, setPlays] = useState(0);
- const [total, setTotal] = useState(0);
- const [read, setRead] = useState(0);
+ const { plays, total, read } = useTally();
  const classField = useId();
  const textField = useId();
  const languageField = useId();
@@ -137,9 +151,7 @@ export function VoicePreview({ placement, cardId }: { placement: string; cardId?
    return;
   }
   /* The provider has read it, so it is billed whether or not the browser plays it: the total moves here. */
-  setPlays(n => n + 1);
-  setTotal(t => t + estimate);
-  setRead(r => r + characters);
+  addToTally(estimate, characters);
   let url: string;
   try {
    const binary = atob(answer.audioBase64);

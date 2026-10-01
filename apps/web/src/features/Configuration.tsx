@@ -1,4 +1,4 @@
-import { Suspense, lazy, useId, useState, type CSSProperties, type FormEvent } from 'react';
+import { Suspense, lazy, useContext, useId, useState, type CSSProperties, type FormEvent } from 'react';
 import { ArrowRight, Search, ShieldAlert, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import vetting from '../../../../packages/catalog/vetting.json' with { type: 'json' };
 import {
@@ -9,6 +9,7 @@ import { adminOnDuty, applyChange, doctorOnDuty, engineIds, previewChange, revie
 import { whoIs } from '../lib/roles';
 import { useFounderGate } from '../lib/founder-gate';
 import { useWideLayout } from '../lib/layout';
+import { PortalContext } from './portal/context';
 
 /* The founder's sign-in, drawn where the editor would be while the gate is shut, on a dynamic import so
    nobody who does not open a settings screen downloads it. */
@@ -57,6 +58,13 @@ const personOf = (ref: string) => ref === adminOnDuty() || ref === doctorOnDuty(
 const dayName = (id: string) => id.charAt(0).toUpperCase() + id.slice(1);
 const NUMBERS = new Set(['minutes', 'count', 'moneyCents', 'percentage']);
 const itemsOf = (limits: Limits): Limits => ({ ...limits, type: limits.of!, of: undefined, items: undefined });
+/* GilbertOne's settings are not drawn here. While the founder is signed in, Speech settings reads and saves the
+   assistant service's own signed history (gilbertone/useVoiceSaving.ts), and this screen's change form writes
+   this tab's memory — so the same setting drawn on both showed two values and took two disagreeing changes.
+   One copy is the honest number of copies: the assistant engine is left out of this screen, and a sentence in
+   settings.json says where its settings are, with the way there wherever the portal can take somebody. */
+const SPEECH_ENGINE = 'assistant';
+const enginesHere = engineIds.filter(engine => engine !== SPEECH_ENGINE);
 
 /* ---- How a value reads ---------------------------------------------------------------------------- */
 
@@ -338,7 +346,10 @@ export function Configuration({ engine, onEngine, fixed = false, saveBarLabel }:
  useSettingsReviews();
  const id = useId();
  const [query, setQuery] = useState('');
- const blocks = engineIds.map(e => settingsEngineOf(e).block);
+ const blocks = enginesHere.map(e => settingsEngineOf(e).block);
+ /* Read rather than required: the legacy back office draws this screen outside the portal, where there is no
+    Speech settings to open and the sentence stands alone. */
+ const portal = useContext(PortalContext);
  const total = blocks.reduce((sum, block) => sum + block.items.length, 0);
  const words = query.trim().toLowerCase();
  const matches = (block: SettingsBlock, setting: Setting) => !words || [setting.label, setting.help, setting.key, block.heading, block.intro].join(' ').toLowerCase().includes(words);
@@ -382,6 +393,10 @@ export function Configuration({ engine, onEngine, fixed = false, saveBarLabel }:
    <p className="cf-intro"><SlidersHorizontal aria-hidden="true"/><span>{say.intro}</span></p>
    <Alert variant="warning" title={say.preview} className="cf-preview"/>
   </div>
+  {!fixed && <div className="privacy-note cf-link cf-elsewhere">
+   <span>{say.assistantNote}</span>
+   {portal && <Button variant="secondary" onClick={() => portal.go('gilbertone', 'speech')} trailingIcon={<Go/>}>{say.assistantOpen}</Button>}
+  </div>}
   {/* The count's share of every setting is drawn as a bar under its words (--cf-share), so a search that
       narrows the list is seen narrowing it. The words say the same, so the bar is decoration beside them. */}
   <p className="ss-version" role="status" style={{ '--cf-share': total ? shown / total : 0 } as CSSProperties}>{fill(say.shown, { shown: String(shown), total: String(total) })}</p>

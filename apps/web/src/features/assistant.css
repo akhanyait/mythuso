@@ -996,7 +996,7 @@
   border-color: var(--brand-green);
   color: var(--brand-ink);
 }
-.as-voice[aria-pressed="true"] {
+.as-voice[data-hot] {
   background: var(--brand-ink);
   color: var(--surface);
   border-color: var(--brand-orange);
@@ -1820,7 +1820,7 @@
   background: color-mix(in srgb, var(--brand-green) 10%, var(--surface));
   color: var(--brand-ink);
 }
-.as-compose .as-voice[aria-pressed="true"] {
+.as-compose .as-voice[data-hot] {
   background: var(--brand-ink);
   color: var(--surface);
   border-color: var(--brand-ink);
@@ -1998,7 +1998,7 @@
   background: color-mix(in srgb, var(--brand-green) 22%, var(--surface));
   color: var(--brand-ink);
 }
-.as-voice[aria-pressed="true"] .as-mic-disc {
+.as-voice[data-hot] .as-mic-disc {
   background: var(--surface);
   color: var(--brand-ink);
 }
@@ -2464,7 +2464,7 @@
   border-radius: var(--r-pill);
   background: var(--brand-green);
 }
-.as-convo[aria-pressed="true"] .as-convo-dot {
+.as-convo[data-active] .as-convo-dot {
   background: var(--brand-lime);
 }
 .as-mic-hot {

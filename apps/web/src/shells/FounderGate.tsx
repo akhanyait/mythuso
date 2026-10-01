@@ -29,6 +29,12 @@ import './founder-gate.css';
  * the second half is how the journeys draw it against the dev server, and how the thirty Control Tower
  * journeys stay untouched. No storage of any kind, nothing written to an address, nothing logged. */
 
+/* The shortest wait before the service is asked again once this browser's clock says the session is already
+   over. A clock ahead of the service's computes an end in the past; the service answers that the session is
+   still live, the same expiry comes back as a new state, and a bare one-second wait asked it every second
+   until the service's own clock caught up. Half a minute is still prompt for a session that really ended. */
+const REPROBE_FLOOR_MS = 30_000;
+
 const SignIn = lazy(() => import('../features/portal/gilbertone/founder/FounderAccess').then(m => ({ default: m.SignIn })));
 
 export const founderGateHolds = (): boolean =>
@@ -43,7 +49,8 @@ export function FounderGate({ open }: { open: () => ReactNode }) {
  useEffect(() => {
   if (state.phase !== 'signed-in') return;
   const ends = Date.parse(state.expiresAt);
-  const timer = Number.isFinite(ends) ? window.setTimeout(() => void probe(), Math.max(0, ends - Date.now()) + 1000) : 0;
+  const left = ends - Date.now();
+  const timer = Number.isFinite(ends) ? window.setTimeout(() => void probe(), left > 0 ? left + 1000 : REPROBE_FLOOR_MS) : 0;
   const seen = () => { if (document.visibilityState === 'visible') void probe(); };
   document.addEventListener('visibilitychange', seen);
   return () => { window.clearTimeout(timer); document.removeEventListener('visibilitychange', seen); };

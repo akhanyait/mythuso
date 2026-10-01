@@ -1759,7 +1759,9 @@ test("the composer is a text box, and nothing hears before the patient taps the 
     exact: true,
   });
   await expect(mic).toBeVisible();
-  await expect(mic).toHaveAttribute("aria-pressed", "false");
+  /* Its name says what a tap will do, so it carries no pressed state beside it; the indicator is data-hot. */
+  await expect(mic).not.toHaveAttribute("aria-pressed", /.*/);
+  await expect(mic).not.toHaveAttribute("data-hot", /.*/);
   /* The disclosure is on the page before the first tap, in the contract's own words, with the cap read
     into the sentence rather than typed beside it. It sits in the composer's one footnote slot, which
     is also what the field is described by. A page that opens a microphone and then explains has
