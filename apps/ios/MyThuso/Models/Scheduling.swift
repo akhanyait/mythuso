@@ -69,6 +69,26 @@ enum Scheduling {
         let total = pieces[0] * 60 + pieces[1] + minutes
         return String(format: "%02d:%02d", (total / 60) % 24, total % 60)
     }
+
+    /* Which visit "next" means, as an order: the one under way now, then a come-now request (it is for
+       now, so nothing booked for an hour can be sooner), then the booked hours soonest first, and last
+       anything whose hour has already ended. A new booking is inserted at the top of the store's list
+       because it is the newest, and the home used to read the top — so it showed the visit somebody
+       booked last rather than the one at their door first. The same order as the web's nextFirst in
+       apps/web/src/lib/scheduling.ts and Android's Scheduling.nextFirst. */
+    static func nextFirst(_ visits: [BookedVisit], now: Date = Date()) -> [BookedVisit] {
+        func rank(_ visit: BookedVisit) -> (Int, Date) {
+            guard visit.isScheduled, let starts = Cancellation.startsAt(visit) else { return (1, .distantPast) }
+            let ends = starts.addingTimeInterval(TimeInterval(visit.service.duration * 60))
+            return now >= ends ? (3, starts) : now >= starts ? (0, starts) : (2, starts)
+        }
+        return visits.enumerated()
+            .sorted { a, b in
+                let (ra, rb) = (rank(a.element), rank(b.element))
+                return ra.0 != rb.0 ? ra.0 < rb.0 : ra.1 != rb.1 ? ra.1 < rb.1 : a.offset < b.offset
+            }
+            .map(\.element)
+    }
 }
 
 /* Everything a person chose, carried whole. There is no way to build one of these without saying

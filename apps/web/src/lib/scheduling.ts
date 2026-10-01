@@ -104,6 +104,24 @@ export type Visit = {
 };
 
 export const visitEnds = (visit: Visit) => (visit.start ? endTime(visit.start, visit.service.duration) : undefined);
+/* Which visit "next" means, as an order: the one under way now, then a come-now request (it is for now,
+   so nothing booked for an hour can be sooner), then the booked hours soonest first, and last anything
+   whose hour has already ended. A new booking is put at the top of the list because it is the newest, and
+   the home used to read the top — so it showed the visit somebody booked last rather than the one at
+   their door first. The same order on iOS (Scheduling.nextFirst) and Android (Scheduling.nextFirst). */
+export function nextFirst<T>(items: readonly T[], visitOf: (item: T) => Visit, now: Date = new Date()): T[] {
+ const rank = (item: T): [number, number] => {
+  const visit = visitOf(item);
+  if (visit.kind === 'asap' || !visit.date || !visit.start) return [1, 0];
+  const starts = instantOf(visit.date, visit.start, now).getTime();
+  const ends = starts + visit.service.duration * 60_000;
+  const at = now.getTime();
+  return at >= ends ? [3, starts] : at >= starts ? [0, starts] : [2, starts];
+ };
+ return items.map((item, index) => ({ item, index, rank: rank(item) }))
+  .sort((a, b) => a.rank[0] - b.rank[0] || a.rank[1] - b.rank[1] || a.index - b.index)
+  .map(entry => entry.item);
+}
 /** One line describing when, in the words the kind deserves. */
 export function whenText(visit: Visit): string {
  if (visit.kind === 'asap' || !visit.date || !visit.start) return labels.asapPending;

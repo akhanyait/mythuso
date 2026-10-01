@@ -9,8 +9,11 @@ Files are unmodified. **The official logos — `handoff/src/assets/logos/mythuso
 regenerated**, which is the handoff's own rule and the founder's.
 
 **What is here.** The two logos, the two illustrations, the twelve photographs, `theme.css` (the
-canonical theme the tokens were taken from), the three documents (`README.md`, `CLAUDE.md`,
+canonical theme the tokens were taken from), the three documents (`README.md`, `CLAUDE.handoff.md`,
 `docs/design-guidelines.md`) plus `docs/component-catalog.json`, and `package-requirements.json`.
+The handoff delivered `CLAUDE.handoff.md` as `CLAUDE.md`; it is renamed, its bytes unchanged and its
+SHA-256 the same in the manifest, because Claude Code loads any `CLAUDE.md` in a subtree it works in as
+instructions, and a third party's file must not be read as this repository's rules.
 The handoff's React and Tailwind components (`src/components/`, `src/index.ts`, `src/lib/utils.ts`)
 are not copied: they are code for a Tailwind 4 application and this product's screens are written
 against `packages/design-tokens/tokens.json`, which is where the handoff's values now live.

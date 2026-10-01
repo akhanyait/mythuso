@@ -152,7 +152,7 @@ import za.co.mythuso.ui.components.*
    or the way to arrange one. It is the LeadCard, the one elevated card on the screen, and it is one
    thing to TalkBack: the service, the hour and the nurse read as a sentence rather than as six stops. */
 @Composable private fun HomeNextVisit(store: PreviewStore, book: (CareService?) -> Unit, open: (String) -> Unit) {
-    val visit = store.visits.firstOrNull()
+    val visit = Scheduling.nextFirst(store.visits).firstOrNull()
     Section(thuso(Phrase.NEXT_VISIT, store.locale), if (visit == null) null else "All visits", { open("Visits") }) {
         if (visit == null) {
             /* Not a blank space and not a fixture. The sentences are the scheduling contract's, so
@@ -169,9 +169,10 @@ import za.co.mythuso.ui.components.*
             }
         } else {
             val confirmed = visit.status == "Confirmed"
+            val nurse = assignedNurseOf(store, visit)
             val spoken = "${visit.service.name}, ${visit.status}. ${visit.shortWhenText}. " +
                 (if (visit.isScheduled) "${visit.service.duration} minutes. " else "Looking for the nearest nurse. ") +
-                "${visit.address}. Sister Naledi Mokoena, Registered Nurse, SANC."
+                "${visit.address}." + (nurse?.let { " ${it.name}, ${nurseRoleOf(it)}." } ?: "")
             /* The state pill sits at the row's end while there is room and above the title past a 1.3
                font scale, for StatusHeader's reason: a pill and a title cannot both have the width on a
                393dp phone, and the pill overran the title at twice the type. */
@@ -191,8 +192,10 @@ import za.co.mythuso.ui.components.*
                 if (visit.isScheduled) IconLine(Icons.Outlined.Schedule, "${visit.service.duration} minutes")
                 else IconLine(Icons.Outlined.Bolt, "Looking for the nearest nurse")
                 IconLine(Icons.Outlined.LocationOn, visit.address)
-                HorizontalDivider(color = theme.border)
-                NurseRow()
+                nurse?.let {
+                    HorizontalDivider(color = theme.border)
+                    NurseRow(it)
+                }
                 Text("Have your medication list ready.", style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
                 ThusoButton(
                     if (confirmed) "Prepare for my visit" else "View visit details",
@@ -210,7 +213,7 @@ import za.co.mythuso.ui.components.*
    and are not buttons, because nothing is behind them to open. Two to a row, and one to a row once the
    reader has enlarged the type past the point where two large numerals fit. */
 @Composable private fun HomeMetrics(store: PreviewStore, open: (String) -> Unit) {
-    val next = store.visits.firstOrNull()
+    val next = Scheduling.nextFirst(store.visits).firstOrNull()
     val latest = Passport.latestSet
     val systolic = Passport.spec("systolic")
     val diastolic = Passport.spec("diastolic")
@@ -252,6 +255,11 @@ import za.co.mythuso.ui.components.*
                 repeat(perRow - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
+        /* How many visits these figures come from, the last one's day, and that they are samples — in
+           passport.json#onRecord's words, which iOS and the web draw too. The cards above carry a reading
+           and a range badge and no date; without this line a sample blood pressure reads as somebody's
+           current one. */
+        Text(PassportData.onRecord(Passport.shortLabel(latest.dayOffset)), style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
     }
 }
 
@@ -453,14 +461,26 @@ import za.co.mythuso.ui.components.*
         Text("${thuso(Phrase.OPEN_PASSPORT, store.locale)} →", style = MaterialTheme.typography.labelLarge, color = theme.foreground)
     }
 }
-/* The nurse whose name is on the visit. The portrait is the shared illustration the three apps are
-   held to by scripts/check-boundaries.mjs. */
-@Composable fun NurseRow(trailing: @Composable (() -> Unit)? = null) {
+/* The nurse a visit names, or nobody. She is the one the booking asked for, carried on the visit as its
+   nurseId and read from the vetting register — never a name typed here. A visit booked for whoever is
+   nearest names nobody until the roster assigns her, and a come-now request is still looking; drawing a
+   name and a face there told a patient somebody was coming who had not been asked. */
+fun assignedNurseOf(store: PreviewStore, visit: BookedVisit): VettingSubject? = visit.nurseId?.let { store.vetting.subject(it) }
+/* "Registered nurse (SANC)": the role's own name and the short name of the authority that registers it,
+   from the vetting register, as apps/web/src/lib/arrival.ts composes it. */
+fun nurseRoleOf(subject: VettingSubject): String {
+    val role = vettingRoleById(subject.roleId)
+    val authority = role?.checks?.firstOrNull { it.gate == "credentials" }?.let { vettingAuthorityById(it.authority)?.short }
+    return listOfNotNull(role?.name ?: subject.roleId, authority?.let { "($it)" }).joinToString(" ")
+}
+/* The nurse whose name is on the visit, drawn as initials, as the web draws her: there is no photograph of
+   anybody to draw, and one portrait beside every nurse's name would be a face that is not hers. */
+@Composable fun NurseRow(nurse: VettingSubject, trailing: @Composable (() -> Unit)? = null) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space12)) {
-        ThusoAvatar("Sister Naledi Mokoena", size = ThusoAvatarSize.Lg, image = painterResource(R.drawable.mythuso_nurse))
+        ThusoAvatar(nurse.name, size = ThusoAvatarSize.Lg, initials = nurse.name.split(" ").takeLast(2).mapNotNull { it.firstOrNull() }.joinToString(""))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Sister Naledi Mokoena", style = MaterialTheme.typography.titleSmall, color = studioTitleInk())
-            Text("Registered Nurse (SANC)", style = MaterialTheme.typography.bodySmall, color = studioBodyInk())
+            Text(nurse.name, style = MaterialTheme.typography.titleSmall, color = studioTitleInk())
+            Text(nurseRoleOf(nurse), style = MaterialTheme.typography.bodySmall, color = studioBodyInk())
         }
         trailing?.invoke()
     }
@@ -883,9 +903,9 @@ fun serviceIcon(id: String) = when (id) {
                                     row.reasonLine?.let { IconLine(Icons.AutoMirrored.Outlined.Notes, it) }
                                 }
                             }
-                            if (row.nurse) {
+                            row.visit?.takeIf { row.nurse }?.let { assignedNurseOf(store, it) }?.let { nurse ->
                                 HorizontalDivider(color = theme.border)
-                                NurseRow()
+                                NurseRow(nurse)
                             }
                             /* Every visit that exists can be moved and can be cancelled — not only
                                the one at the top of the list. The booking confirmation has promised

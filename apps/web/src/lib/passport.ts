@@ -61,6 +61,11 @@ export const labelOf = (dayOffset: number) => shortDateOf(dateOf(dayOffset));
 /** The visit the last set of readings was taken at. The visit list reads its day from here. */
 export const latestSet = readingSets[readingSets.length - 1];
 export const setOnDay = (dayOffset: number) => readingSets.find(s => s.dayOffset === dayOffset);
+/* The line under the home's figures: how many visits they come from, the last one's day, and that they
+   are samples. The words are passport.json#onRecord's, which the phones read through the generated
+   PassportData, so the marker cannot be dropped on one platform and kept on another. */
+export const onRecord = contract.onRecord.sentence
+ .replace('{count}', String(readingSets.length)).replace('{date}', labelOf(latestSet.dayOffset));
 
 /** Every measure that has a value in a given set, in the order the assessment collects them. */
 export const measuredIn = (set: ReadingSet): MeasureId[] =>

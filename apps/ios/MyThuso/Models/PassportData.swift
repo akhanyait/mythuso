@@ -51,6 +51,19 @@ enum PassportData {
        appears on the second screen without anybody editing this file. */
     static let headlineMeasures = ["systolic", "diastolic", "pulse", "glucose"]
 
+    /* The line under the home's figures, on all three platforms. It says how many visits the
+       figures are drawn from, when the last one was, and that the readings are samples — because a
+       blood pressure printed on a card without a date or a marker reads as somebody's current
+       reading, and nobody's is. {count} is the number of reading sets above and {date} the day of
+       the last one, both filled in where the sentence is drawn; the words are written here once so
+       no platform can drop the marker. */
+    static let onRecordSentence = "{count} home visits on record, the last on {date}. Sample readings."
+    /// The sentence with the count of reading sets and the last one's day filled in.
+    static func onRecord(lastOn date: String) -> String {
+        onRecordSentence.replacingOccurrences(of: "{count}", with: String(readingSets.count))
+            .replacingOccurrences(of: "{date}", with: date)
+    }
+
     static let lastReview = Review(
         assessment: "Blood pressure is coming down again. The reading a month ago was above the reference range on the day a dose was missed; this one is inside it. Nothing here needs an urgent appointment.",
         plan: "Keep taking the medicine at the same time each morning. Bring the boxes to the next visit so the nurse can check what is left.",

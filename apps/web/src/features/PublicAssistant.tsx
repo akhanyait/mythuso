@@ -27,6 +27,11 @@ function EmergencyFooter() {
  </p>;
 }
 
+/* A number as a dialler reads it: a helpline is written with spaces for a reader and dialled without them.
+   The emergency answer's numbers were bold text while the footer under them was tap-to-call, so the one
+   moment a thumb most needs to dial straight from the page was the one place it could not. */
+const telOf = (number: string) => `tel:${number.replace(/\s+/g, '')}`;
+
 type Turn = { asked: string; answer: PublicAnswer };
 
 /* The face each public answer wears is the contract's, read from affect.answers and never chosen
@@ -152,7 +157,7 @@ export default function PublicAssistant({ request = null }: { request?: { questi
        <div className="public-assistant-answer"><strong>{identity.name}</strong>
         {turn.answer.kind === 'faq' ? <><p>{turn.answer.question.answer}</p><a href={turn.answer.question.href} onClick={() => setOpen(false)}>{turn.answer.question.linkLabel}</a></>
          : turn.answer.kind === 'refusal' ? <p>{copy.refusal}</p>
-         : <><p>{emergencyAnswer.headline}</p><p>{emergencyAnswer.lead}</p><ul>{lines(emergencyAnswer.numbers).map(n => <li key={n.number}><strong>{n.number}</strong> — {n.name}</li>)}</ul><p>{emergencyAnswer.notAnAmbulance}</p>{showsCrisisLines(turn.answer.groups) && <div className="public-assistant-crisis"><p>{crisisLines.heading}</p><ul>{crisisLines.lines.map(l => <li key={l.id}><strong>{l.number}</strong> — {l.name}</li>)}</ul></div>}</>}
+         : <><p>{emergencyAnswer.headline}</p><p>{emergencyAnswer.lead}</p><ul>{lines(emergencyAnswer.numbers).map(n => <li key={n.number}><a href={telOf(n.number)}><strong>{n.number}</strong></a> — {n.name}</li>)}</ul><p>{emergencyAnswer.notAnAmbulance}</p>{showsCrisisLines(turn.answer.groups) && <div className="public-assistant-crisis"><p>{crisisLines.heading}</p><ul>{crisisLines.lines.map(l => <li key={l.id}><a href={telOf(l.number)}><strong>{l.number}</strong></a> — {l.name}</li>)}</ul></div>}</>}
        </div>
       </li>)}
      </ol></div>

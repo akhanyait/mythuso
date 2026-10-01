@@ -70,6 +70,9 @@ test('words about harming yourself add the crisis lines after the ambulance numb
  const crisis = panel.locator('ol > li').last();
  await expect(crisis).toHaveAttribute('data-outcome', 'emergency');
  await expect(crisis.locator('li strong')).toHaveText(['10177', '112', '0800 567 567', '0861 322 322']);
+ /* Every number in the answer dials from where it is read, as the footer's do, without the reader's spaces. */
+ const dials = await crisis.locator('li a[href^="tel:"]').evaluateAll(links => links.map(a => a.getAttribute('href')));
+ expect(dials).toEqual(['tel:10177', 'tel:112', 'tel:0800567567', 'tel:0861322322']);
  await field.fill('I have chest pain');
  await panel.getByRole('button', { name: 'Send', exact: true }).click();
  const chest = panel.locator('ol > li').last();

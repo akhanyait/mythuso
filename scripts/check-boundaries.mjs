@@ -39021,3 +39021,66 @@ console.log(
     throw new Error(`${f}'s laboratory order carries ${found.join("; ")}. No contract holds a laboratory reference range and the synthetic laboratory returns no value, so the order names its tests from the laboratory's menu and types no result, unit, range or flag.`);
   console.log(`The laboratory order · ${requested[1].match(/'/g).length / 2} tests from the laboratory's menu, no typed result, unit, range or flag, under the laboratory's own notice and in the medicines contract's words.`);
 }
+
+/* The patient's home on three platforms — 1 October 2026 */
+/* Four things a review found the three homes saying differently, each held here rather than trusted:
+
+   1. The line under the home's figures — how many visits they come from, the last one's day, and that
+      they are sample readings — is passport.json#onRecord's sentence on every platform. Android's metric
+      cards carried a blood pressure with no date and no marker while iOS and the web said "Sample
+      readings", because the sentence was typed twice and the third copy was simply dropped.
+   2. "Next visit" is the visit at the door first. All three read the top of the visit list, and a
+      booking is put at the top because it is the newest, so the home showed the visit booked last and
+      Android's seeded visit already under way was never shown. Each home orders through its platform's
+      nextFirst.
+   3. Android's home names the nurse a visit names, from the vetting register, or nobody. It typed one
+      nurse's name and photograph beside every visit, including a come-now request whose card said it
+      was still looking for one.
+   4. The CI document does not say the phones draw system-ui: what each phone bundles is read from the
+      platform by emit-ci.mjs, and the sentence that said otherwise is not in the generator or the tokens.
+   Each was proved to fire by breaking the source and restoring it. */
+{
+  const homeFail = (m) => { throw new Error(`The patient's home: ${m}`); };
+  const strip = (code) => code.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+  const androidCare = strip(read("apps/android/app/src/main/java/za/co/mythuso/ui/CareScreens.kt"));
+  const iosHome = strip(read("apps/ios/MyThuso/Features/HomeView.swift"));
+  const webHome = strip(read("apps/web/src/features/Dashboard.tsx"));
+  const webApp = strip(read("apps/web/src/App.tsx"));
+  const onRecord = JSON.parse(read("packages/catalog/passport.json")).onRecord?.sentence ?? "";
+
+  /* 1. */
+  if (!/\{count\}/.test(onRecord) || !/\{date\}/.test(onRecord) || !/Sample readings/.test(onRecord))
+    homeFail("packages/catalog/passport.json#onRecord no longer carries {count}, {date} and the words \"Sample readings\".");
+  for (const [file, code, reads] of [
+    ["apps/web/src/features/Dashboard.tsx", webHome, /\{onRecord\}/],
+    ["apps/ios/MyThuso/Features/HomeView.swift", iosHome, /PassportData\.onRecord\(/],
+    ["apps/android/app/src/main/java/za/co/mythuso/ui/CareScreens.kt", androidCare, /PassportData\.onRecord\(/],
+  ]) {
+    if (/home visits on record|Sample readings/.test(code)) homeFail(`${file} types the on-record sentence. It is passport.json#onRecord's, read through the platform's passport module.`);
+    if (!reads.test(code)) homeFail(`${file} no longer draws passport.json#onRecord under the home's readings, so a sample reading there carries no date and no marker.`);
+  }
+
+  /* 2. */
+  if (!/const booked = nextFirst\(/.test(webApp)) homeFail("apps/web/src/App.tsx no longer orders the booked visits with nextFirst, so the home's next visit is the one booked last.");
+  if (/store\.visits\.first\b/.test(iosHome) || !/Scheduling\.nextFirst\(store\.visits\)/.test(iosHome))
+    homeFail("apps/ios/MyThuso/Features/HomeView.swift reads the top of store.visits as the next visit. Read Scheduling.nextFirst(store.visits).");
+  const androidHome = androidCare.slice(androidCare.indexOf("fun HomeNextVisit"), androidCare.indexOf("fun RangeFoot"));
+  if (/store\.visits\.(first|firstOrNull)\(\)|store\.visits\[0\]/.test(androidHome) || (androidHome.match(/Scheduling\.nextFirst\(store\.visits\)/g) ?? []).length < 2)
+    homeFail("CareScreens.kt's HomeNextVisit or HomeMetrics reads the top of store.visits as the next visit. Read Scheduling.nextFirst(store.visits).");
+  if (/\?\?\s*0\b/.test(iosHome.slice(iosHome.indexOf("private var metrics"), iosHome.indexOf("private var arranged"))))
+    homeFail("HomeView.swift's figures default a missing reading to 0; a reading that is not on record is a dash, never 0/0 mmHg.");
+
+  /* 3. */
+  if (/Naledi|mythuso_nurse/.test(androidCare)) homeFail("CareScreens.kt types a nurse's name or portrait. The nurse is the one the visit names, read from the vetting register.");
+  if (!/fun NurseRow\(nurse: VettingSubject/.test(androidCare)) homeFail("CareScreens.kt's NurseRow no longer takes the visit's nurse.");
+
+  /* 4. */
+  const ciDoc = read("docs/brand/CI.md");
+  for (const [file, content] of [["scripts/emit-ci.mjs", read("scripts/emit-ci.mjs")], ["packages/design-tokens/tokens.json", read("packages/design-tokens/tokens.json")], ["docs/brand/CI.md", ciDoc]])
+    if (/system-ui on iOS|On iOS and Android this wave|The Lovable identity is on the web only/.test(content))
+      homeFail(`${file} says the phones draw system-ui or are not on the identity. Both bundle Outfit and Figtree since 29 September 2026; emit-ci.mjs reads that from the platforms.`);
+  if (!/The phones bundle the same two faces: Outfit on iOS at \d{3}–\d{3}.*Android at \d{3}–\d{3}/.test(ciDoc))
+    homeFail("docs/brand/CI.md no longer says, from the platforms, which weights each phone bundles.");
+
+  console.log("The patient's home on three platforms · the on-record sentence from passport.json under the readings on all three; the next visit ordered by nextFirst on all three; Android's nurse the visit's own or nobody; the CI document reads each phone's faces from the platform.");
+}

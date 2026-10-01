@@ -62,7 +62,7 @@ const banner = () => [
 
 export function emitPassport(root = '') {
  const contract = JSON.parse(readFileSync(root + SOURCE, 'utf8'));
- const { holder, reviewer, readingSets, headline, lastReview, documents, devices, refusals } = contract;
+ const { holder, reviewer, readingSets, headline, onRecord, lastReview, documents, devices, refusals } = contract;
  /* Every document is issued out of the visit the last readings were taken at. Derived here rather
     than written down four times in the contract, for the same reason the labels are derived from
     the offsets: a date that is stored can disagree with the visit it came from. */
@@ -94,6 +94,14 @@ ${readingSets.map(set => `        Readings(dayOffset: ${set.dayOffset},
 
 ${swiftNote(headline.why)}
     static let headlineMeasures = [${list(headline.measures, swift)}]
+
+${swiftNote(onRecord.why)}
+    static let onRecordSentence = ${swift(onRecord.sentence)}
+    /// The sentence with the count of reading sets and the last one's day filled in.
+    static func onRecord(lastOn date: String) -> String {
+        onRecordSentence.replacingOccurrences(of: "{count}", with: String(readingSets.count))
+            .replacingOccurrences(of: "{date}", with: date)
+    }
 
     static let lastReview = Review(
         assessment: ${swift(lastReview.assessment)},
@@ -149,6 +157,11 @@ ${readingSets.map(set => `        Readings(${set.dayOffset}, mapOf(${Object.entr
 
 ${kotlinNote(headline.why)}
     val headlineMeasures = listOf(${list(headline.measures, kotlin)})
+
+${kotlinNote(onRecord.why)}
+    val onRecordSentence = ${kotlin(onRecord.sentence)}
+    /** The sentence with the count of reading sets and the last one's day filled in. */
+    fun onRecord(lastOn: String) = onRecordSentence.replace("{count}", readingSets.size.toString()).replace("{date}", lastOn)
 
     val lastReview = Review(
         ${kotlin(lastReview.assessment)},

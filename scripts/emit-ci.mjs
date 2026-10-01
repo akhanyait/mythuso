@@ -27,6 +27,7 @@
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { typographyFaces } from './emit-typography.mjs';
 
 const EDITION = '29 September 2026';
 export const CI_FILES = { ci: 'docs/brand/CI.md', pack: 'docs/brand/PACK.md', html: 'docs/brand/ci.html' };
@@ -60,7 +61,10 @@ export const CI_SOURCES = [
  'packages/brand/lovable-handoff/handoff/src/styles/theme.css',
  'docs/FEATURE-MAP.md',
  'docs/ACCESSIBILITY.md',
- 'CLAUDE.md'
+ 'CLAUDE.md',
+ /* Android's two families, read for the faces it bundles. iOS's are typographyFaces() over tokens.json,
+    which is the list emit-typography.mjs writes into TypographyData.swift and Info.plist. */
+ 'apps/android/app/src/main/java/za/co/mythuso/ui/Typography.kt'
 ];
 
 /* Directories whose every file the pack index lists, with what they are and whose they are. */
@@ -231,6 +235,21 @@ export function emitCi(root = '') {
  const brandFiles = walk('apps/web/public/brand').map(measure);
  const wordmarkCuts = brandFiles.filter(f => /\.svg$/.test(f.file));
  const fontFiles = walk('apps/web/public/fonts');
+/* What each phone bundles, read from the platform rather than from prose. The document said "system-ui on
+    iOS and Android this wave" for a day after both phones had bundled Outfit and Figtree, because the
+    sentence was typed into tokens.json and nothing compared it with the apps. Now iOS is the faces
+    emit-typography.mjs names that are on disk under apps/ios/MyThuso/Fonts, and Android is the weights
+    Typography.kt instances from a variable master that is on disk under res/font. */
+ const iosFaces = typographyFaces(root).flatMap(r => r.faces.filter(f => existsSync(at(`apps/ios/MyThuso/Fonts/${f.file}`))).map(f => ({ family: r.family, weight: f.weight })));
+ const androidFaces = [...text('apps/android/app/src/main/java/za/co/mythuso/ui/Typography.kt').matchAll(/val (\w+)Family = FontFamily\(([\s\S]*?)\n\)/g)]
+  .map(m => ({ family: m[1], file: (/R\.font\.(\w+)/.exec(m[2]) ?? [])[1], weights: [...m[2].matchAll(/FontVariation\.weight\((\d+)\)/g)].map(w => Number(w[1])) }))
+  .filter(f => f.file && existsSync(at(`apps/android/app/src/main/res/font/${f.file}.ttf`)));
+ const weightsText = ws => (ws.length > 1 ? `${Math.min(...ws)}–${Math.max(...ws)}` : `${ws[0]}`);
+ const onPhones = family => {
+  const ios = iosFaces.filter(f => f.family === family).map(f => f.weight);
+  const android = androidFaces.find(f => f.family === family && f.weights.length);
+  return `${family} on iOS ${ios.length ? `at ${weightsText(ios)}, ${ios.length} static faces under ${tick('apps/ios/MyThuso/Fonts')}` : 'is not bundled'}, and on Android ${android ? `at ${weightsText(android.weights)} from the variable master ${tick(`res/font/${android.file}.ttf`)}` : 'is not bundled'}`;
+ };
  const ofl = Object.fromEntries(fontFiles.filter(f => /OFL-/.test(f)).map(f => { const t = text(f); return [f.match(/OFL-(\w+)\.txt/)[1], { copyright: t.split('\n')[0].trim(), licence: /SIL Open Font License, Version 1\.1/.test(t) ? 'SIL Open Font License, Version 1.1' : 'unsourced' }]; }));
 
  /* ---- Sentences read from the sources ---------------------------------------------------------- */
@@ -253,6 +272,9 @@ export function emitCi(root = '') {
  const webTested = (() => { const block = accessibility.slice(accessibility.indexOf('### Web — tested')); return block.split('\n').filter(l => /^- /.test(l)).slice(0, 4).map(l => squash(l.slice(2))); })();
  const nextIncrementsLead = squash((/## Next UI increments\n\n([\s\S]*?)\n\n/.exec(featureMap) ?? ['', ''])[1]);
  const webOnlyWaves = [...featureMap.matchAll(/^## Delivered — (.*?)\s*\((design handoff, Wave [^;)]+); web only\)$/gm)].map(m => ({ what: m[1].replace(/,\s*28 September 2026$/, ''), wave: m[2] }));
+ /* And the passes that brought the phones onto it, so the platforms chapter cannot go on saying the
+    identity is the web's alone after a phone has landed. */
+ const phoneWaves = [...featureMap.matchAll(/^## Delivered — (.*?),\s*(\d+ \w+ \d{4})\s*\((design handoff, Wave [^;)]+); (iOS|Android) only\)$/gm)].map(m => ({ what: m[1], day: m[2], wave: m[3] }));
 
  /* The rig's manifest, read from its source so the cue table cannot drift from the code. */
  const cues = [...rigSource.matchAll(/\{\s*id: "(A\w+)",\s*name: "([^"]+)",\s*track: "(\w+)",\s*trigger:\s*(?:\/\*[\s\S]*?\*\/\s*)?"((?:[^"\\]|\\.)*)",\s*(?:\/\*[\s\S]*?\*\/\s*)?motion:\s*(?:\/\*[\s\S]*?\*\/\s*)?"((?:[^"\\]|\\.)*)"[\s\S]*?says: "((?:[^"\\]|\\.)*)"(?:,\s*holds: true)?/g)].map(m => ({ id: m[1], name: m[2], track: m[3], trigger: m[4], motion: m[5], says: m[6], holds: /says: "(?:[^"\\]|\\.)*",\s*holds: true/.test(m[0]) }));
@@ -367,7 +389,7 @@ export function emitCi(root = '') {
  /* ---- 4. Type ----------------------------------------------------------------------------------- */
  chapter('type', '4. Type', 'Outfit sets what a page is called and Figtree sets everything a person has to read carefully; both are self-hosted, licensed under the SIL Open Font License, and every size is a step of the scale.');
  table(['Face', 'Role', 'Weights self-hosted', 'Files', 'Licence'], [['Outfit', 'Display: page titles and compact feature headings (`--font-display`)', (/weights ([\d–]+)/.exec(tokens.typography.families.display) ?? ['', 'unsourced'])[1], fontFiles.filter(f => /outfit.*woff2/.test(f)).map(f => `${tick(f)} (${kB(size(f))})`).join(', '), `${ofl.Outfit?.licence ?? 'unsourced'} — ${ofl.Outfit?.copyright ?? ''}`], ['Figtree', 'Text: everything else (`--font-text`)', (/weights ([\d–]+)/.exec(tokens.typography.families.text) ?? ['', 'unsourced'])[1], fontFiles.filter(f => /figtree.*woff2/.test(f)).map(f => `${tick(f)} (${kB(size(f))})`).join(', '), `${ofl.Figtree?.licence ?? 'unsourced'} — ${ofl.Figtree?.copyright ?? ''}`]]);
- para(`Stacks: ${tick(tokens.typography.stacks.display)} and ${tick(tokens.typography.stacks.text)}. On iOS and Android this wave: system-ui (${tick('tokens.json#typography.families')}). Nothing on the web reaches a font CDN; the build fails if it does.`);
+ para(`Stacks: ${tick(tokens.typography.stacks.display)} and ${tick(tokens.typography.stacks.text)}. The phones bundle the same two faces: ${onPhones('Outfit')}; ${onPhones('Figtree')}. Nothing on the web reaches a font CDN; the build fails if it does.`);
  h3('The scale, by role');
  table(['Step', 'Pixels', 'Where it is read'], Object.entries(tokens.typography.scale).map(([k, v]) => [tick(k), `${v}`, ({ screenTitle: 'The title of a screen', sectionTitle: 'A section heading', heading: 'A card that leads a screen', cardTitle: 'A card title', body: 'Body text', caption: 'Captions, helper text, metadata — the smallest size rendered', metric: 'A figure in a row of figures', metricLarge: 'The one figure a screen leads with (the web takes it above 900 px)' })[k]]));
  para(`Minimum body size ${tokens.typography.minimumBody} px; nothing renders below ${tokens.typography.minimumRendered} px, and ${tick('tests/accessibility.spec.ts')} measures rendered text against that floor. ${tokens.typography.minimumRenderedNote}`);
@@ -500,8 +522,8 @@ export function emitCi(root = '') {
  para(`${tick('scripts/emit-tokens.mjs')} writes ${tick('packages/design-tokens/tokens.json')} into ${tick('apps/web/src/tokens.generated.css')} (${tick('--<colour>')}, ${tick('--color-<role>')}, ${tick('--r-<radius>')}, ${tick('--space-<n>')}, ${tick('--shadow')} / ${tick('--shadow-raised')}, ${tick('--font-display')} / ${tick('--font-text')}, ${tick('--t-quick')} / ${tick('--t-settle')} / ${tick('--t-enter')}, ${tick('--ease-soft')}), into ${tick('apps/ios/MyThuso/DesignSystem/Tokens.swift')} (${tick('ThusoTheme')}, ${tick('ThusoSemantic.Light')} / ${tick('.Dark')}, ${tick('ThusoRadius')}) and into ${tick('apps/android/app/src/main/java/za/co/mythuso/ui/Tokens.kt')} (the same names as Kotlin objects). The dark roles reach the web only under ${tick(':root[data-theme="dark"]')}: light is the default whatever the reader's system says, and dark is a switch a person turns on (the founder's decision of 29 September 2026). ${tick('scripts/emit-icons.mjs')} writes the icon family the same way: ${tick('apps/web/src/ui/icons/MyThusoIcons.generated.tsx')}, one vector drawable per icon under ${tick('apps/android/app/src/main/res/drawable')}, and ${tick('apps/ios/MyThuso/Models/MyThusoIconsData.swift')}. The build compares every generated file with what its generator returns, so a stale file and a hand-edited one fail the same way.`);
  h3('What a phone does not yet do that the web does');
  list([
-  `The Lovable identity is on the web only. ${webOnlyWaves.length} waves landed on 28 September 2026 as "web only": ${webOnlyWaves.map(w => `${w.what} (${w.wave})`).join('; ')}. Both phones still draw the screens that preceded it; the tokens they compile carry the new roles so a restyle is a matter of reaching for one.`,
-  `Type: ${tokens.typography.families.display.split('. ')[0]}; ${tokens.typography.families.text}.`,
+  `The Lovable identity reached the web first: ${webOnlyWaves.length} waves landed on 28 September 2026 as "web only": ${webOnlyWaves.map(w => `${w.what} (${w.wave})`).join('; ')}. ${phoneWaves.length ? `The phones followed: ${phoneWaves.map(w => `${w.what} on ${w.day} (${w.wave})`).join('; ')}. What each phone pass left as it was is recorded beside it in ${tick('docs/FEATURE-MAP.md')}.` : 'Both phones still draw the screens that preceded it; the tokens they compile carry the new roles so a restyle is a matter of reaching for one.'}`,
+  `Type: the two faces are on all three platforms — ${onPhones('Outfit')}; ${onPhones('Figtree')}.`,
   `Dark scheme: ${semantic._darkNote}`,
   `The rig's affect: ${sentence(assistant.affect.why.slice(assistant.affect.why.indexOf('The phones carry')))}`,
   `Hands-free conversation: ${conversation.whatItIsNot[0]} The wake-word engine the amendment of 21 September 2026 names is native only, and ${tick('conversation-mode.json')} is web-driven today.`,

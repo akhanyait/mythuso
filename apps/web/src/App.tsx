@@ -50,6 +50,7 @@ const SponsoredCarePage = lazy(() => import('./features/Sponsor').then(m => ({ d
 const BillSplitPage = lazy(() => import('./features/BillSplit').then(m => ({ default: m.BillSplit })));
 import { stateOf } from './lib/cancelling';
 import { dateOf } from './lib/passport';
+import { nextFirst } from './lib/scheduling';
 import { Onboarding, SignIn } from './features/Onboarding';
 import { RolePanel, useRole } from './features/DemoLogin';
 import { sectionFromSearch } from './lib/roles';
@@ -224,10 +225,12 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
    setLive(true); setSignedIn(person !== null); })();
   return () => { cancelled = true; }; }, []);
  const signOut = () => { if (live) void endSession(); setSignedIn(false); setOnboarding(''); setModal(null); navigate('Overview'); };
- /* What the person actually booked, in the order they booked it, and only that: the home's "next
-    visit" card answers "what have I arranged", which the three sample visits in the list are not an
-    answer to. */
- const booked = rows.filter(row => row.booked && row.group === 'upcoming');
+ /* What the person actually booked, and only that: the home's "next visit" card answers "what have I
+    arranged", which the three sample visits in the list are not an answer to. Soonest first rather than
+    newest first — a booking goes on the top of `rows`, so booked[0] was the visit somebody booked last,
+    and the home, the Passport and the assistant all read booked[0]. nextFirst puts the visit under way,
+    then a come-now request, then the booked hours in order. */
+ const booked = nextFirst(rows.filter(row => row.booked && row.group === 'upcoming'), row => row.visit);
  const rowById = (id: string) => rows.find(row => row.id === id);
  const manage = (id: string, action: VisitAction) => { setViewing(null); setManaging({ id, action }); };
  const moveVisit = (id: string, date: string, start: string) =>

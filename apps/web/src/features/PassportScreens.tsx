@@ -28,7 +28,7 @@ import { recordById } from '../lib/records';
 import { assignedNurse } from '../lib/arrival';
 import {
  authorisation, authorisedOn, binds, collectionAnswer, expiresOn, formatDay, handover, isFinalRepeat,
- nextCollectionOn, prescription, refusalById, repeatsRemaining, ruleById
+ nextCollectionOn, prescription, refusalById, repeatsRemaining, ruleById, substituted
 } from '../lib/dispensing';
 import {
  dateOf, documents as passportDocuments, flagFor, formatValue, headlineMeasures, kitInstruments,
@@ -402,9 +402,13 @@ type TimelineEvent = {
    prescription written against it, both by the doctor it names. The Medicines chip used to say "No active
    prescriptions are recorded in this preview" beside a Medications tab that said the same thing and a
    prescription screen counting the repeats left on one — three accounts of one patient's medicines. There
-   is one now, and it is dispensing.json's. */
-const prescriber = subjectById(authorisation.reviewedBy);
-const prescribedBy = prescriber ? `${prescriber.name} · ${prescriber.reference}` : authorisation.reviewedBy;
+   is one now, and it is dispensing.json's. Who prescribed is the prescription's own prescriber, not the
+   doctor who reviewed the authorisation: today they are the same person, and a screen that reads the
+   wrong field is right only for as long as that stays true. */
+const prescriber = subjectById(prescription.prescriber);
+const prescribedBy = prescriber ? `${prescriber.name} · ${prescriber.reference}` : prescription.prescriber;
+const authoriser = subjectById(authorisation.reviewedBy);
+const authorisedBy = authoriser ? `${authoriser.name} · ${authoriser.reference}` : authorisation.reviewedBy;
 const timeline = (): TimelineEvent[] => {
  const events: TimelineEvent[] = readingSets.map(set => ({
   dayOffset: set.dayOffset, kind: 'readings' as const,
@@ -412,7 +416,7 @@ const timeline = (): TimelineEvent[] => {
  }));
  events.push({ dayOffset: lastReview.reviewedDayOffset, kind: 'review', title: 'Doctor review completed', by: reviewedBy });
  for (const doc of passportDocuments) events.push({ dayOffset: doc.dayOffset, kind: 'document', title: `${doc.name} issued`, by: reviewedBy });
- events.push({ dayOffset: authorisation.authorisedByDays, kind: 'medicine', title: `${authorisation.programme} authorisation ${authorisation.reference}`, by: prescribedBy });
+ events.push({ dayOffset: authorisation.authorisedByDays, kind: 'medicine', title: `${authorisation.programme} authorisation ${authorisation.reference}`, by: authorisedBy });
  events.push({ dayOffset: prescription.issuedInDays, kind: 'medicine', title: `Prescription ${prescription.reference} issued`, by: prescribedBy });
  return events.sort((a, b) => b.dayOffset - a.dayOffset);
 };
@@ -720,12 +724,16 @@ function CardHead({ title, lead, aside }: { title: string; lead?: string; aside?
 function HealthOverview({ go, navigate, next, view, manage }: Rest & { tab: PassportTab }) {
  const measures = measuredIn(latestSet).filter(id => headlineMeasures.includes(id));
  const outside = measures.filter(id => flagFor(id, latestSet.values[id]!) !== 'normal');
+ /* The badge counts the figures on this card and says so. It said "All inside range" over the four
+    headline measures while What your readings mean counts all seven from the same visit, so one day could
+    be "all inside" on one screen and "one outside" on the next. */
+ const counted = `of the ${measures.length} shown`;
  return <>
   {/* The four figures the trends screen leads with, from the last visit's readings. The word under each is
       where it fell against its own indicative range — a fact about one number on one day, never a verdict. */}
   <Card className="hp-card" padding="md">
    <CardHead title="Your latest readings" lead={`Taken at your home visit on ${longDateOf(dateOf(latestSet.dayOffset))}. Sample readings.`}
-    aside={<Badge variant={outside.length ? 'warning' : 'success'} dot>{outside.length ? `${outside.length} outside range` : 'All inside range'}</Badge>}/>
+    aside={<Badge variant={outside.length ? 'warning' : 'success'} dot>{outside.length ? `${outside.length} ${counted} outside range` : `All ${measures.length} shown inside range`}</Badge>}/>
    <ul className="hp-stats">{measures.map(id => {
     const flag = flagFor(id, latestSet.values[id]!);
     const Icon = measureIcon[id] ?? Activity;
@@ -844,14 +852,19 @@ function HealthMedications({ navigate, open }: Rest) {
  </>;
 }
 
-/* The prescription written on the authorisation, as the doctor wrote it. The Medications tab offers the way
-   to the prescription's journey; the journey's own Current tab is already there, so it does not. */
+/* The prescription written on the authorisation, as the doctor wrote it: each item is `prescribed`, the words
+   on the script — "Norvasc 5 mg tablets", not the molecule and strength the pharmacy worked from — and where
+   the pharmacy substituted it, what was handed over instead, beside it, in dispensing.json's own words. The
+   card said "as the doctor wrote them" over the molecule names, which is what a substitution looks like, not
+   what was written. The Medications tab offers the way to the prescription's journey; the journey's own
+   Current tab is already there, so it does not. */
 function PrescriptionItems({ open, navigate }: { open: (modal: string) => void; navigate?: (page: string) => void }) {
  return <Card className="hp-card" padding="md">
-  <CardHead title={`Prescription ${prescription.reference}`} lead={`Issued ${formatDay(prescription.issued)} by ${prescribedBy}. ${prescription.items.length} medicines, as the doctor wrote them.`}/>
+  <CardHead title={`Prescription ${prescription.reference}`} lead={`Issued ${formatDay(prescription.issued)} by ${prescribedBy}. ${prescription.items.length} medicines, as the doctor wrote them${substituted.length ? `; ${substituted.length} substituted at the pharmacy` : ''}.`}/>
   <ul className="hp-rows">{prescription.items.map(item => <li key={item.id} className="hp-row hp-row--static">
    <span className="hp-tile"><PillIcon size={18} aria-hidden="true"/></span>
-   <span className="hp-row__text"><strong>{item.molecule} {item.strength}</strong><small>{item.dose} · {item.quantity}</small></span>
+   <span className="hp-row__text"><strong>{item.prescribed}</strong><small>{item.dose} · {item.quantity}</small>
+    {item.outcome === 'substituted' && <small>Substituted · dispensed as {item.dispensed}</small>}</span>
   </li>)}</ul>
   <p className="helper"><ShieldCheck size={14}/>{wellbeingRefusal('no-medicine-advice')}</p>
   <div className="hp-actions">

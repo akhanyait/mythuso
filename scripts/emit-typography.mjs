@@ -24,13 +24,22 @@ import { fileURLToPath } from 'node:url';
 
 const SOURCE = 'packages/design-tokens/tokens.json';
 
+/* A stack is CSS, and CSS lets its first entry be quoted — "Outfit", ui-sans-serif is as valid as the
+   unquoted form tokens.json uses today — so the quotes are stripped before the entry becomes a family
+   name. What is left is written into Swift through the escaper emit-icons.mjs uses (backslash, then
+   quote) and into the plist with XML's entities, so a family name that ever carries either cannot break
+   the iOS build or the plist. Today's output is byte-identical with or without them. */
+const unquote = value => value.trim().replace(/^(['"])(.*)\1$/, '$2').trim();
+const swiftString = value => `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+const xml = value => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+
 /* The OFL sources' style names for each hundred of weight. */
 const STYLE = { 100: 'Thin', 200: 'ExtraLight', 300: 'Light', 400: 'Regular', 500: 'Medium', 600: 'SemiBold', 700: 'Bold', 800: 'ExtraBold', 900: 'Black' };
 
 export function typographyFaces(root = '') {
  const tokens = JSON.parse(readFileSync(`${root}${SOURCE}`, 'utf8'));
  const { stacks, families } = tokens.typography;
- const family = (stack) => stack.split(',')[0].trim();
+ const family = (stack) => unquote(stack.split(',')[0]);
  const range = (prose, name) => {
   const m = prose.match(/weights (\d{3})[–-](\d{3})/);
   if (!m) throw new Error(`${SOURCE}#typography.families.${name} no longer says which weights it is carried at ("weights 500–700").`);
@@ -62,18 +71,18 @@ import CoreGraphics
 
 enum ThusoTypography {
     /// Page titles and compact feature headings.
-    static let display = "${display.family}"
+    static let display = ${swiftString(display.family)}
     /// Everything a person has to read carefully.
-    static let text = "${text.family}"
+    static let text = ${swiftString(text.family)}
     static let displayWeights: [Int] = [${display.weights.join(', ')}]
     static let textWeights: [Int] = [${text.weights.join(', ')}]
     /// The face registered for a family at a weight, as its PostScript name.
     static let faces: [String: String] = [
-${roles.flatMap((r) => r.faces.map((f) => `        "${r.family}-${f.weight}": "${f.name}"`)).join(',\n')}
+${roles.flatMap((r) => r.faces.map((f) => `        ${swiftString(`${r.family}-${f.weight}`)}: ${swiftString(f.name)}`)).join(',\n')}
     ]
     /// Every file the app bundles, in the order Info.plist lists them.
     static let files: [String] = [
-${roles.flatMap((r) => r.faces.map((f) => `        "${f.file}"`)).join(',\n')}
+${roles.flatMap((r) => r.faces.map((f) => `        ${swiftString(f.file)}`)).join(',\n')}
     ]
 }
 `;
@@ -86,7 +95,7 @@ ${roles.flatMap((r) => r.faces.map((f) => `        "${f.file}"`)).join(',\n')}
 	     INFOPLIST_KEY_ build settings in project.pbxproj and merged with this file. -->
 	<key>UIAppFonts</key>
 	<array>
-${roles.flatMap((r) => r.faces.map((f) => `		<string>Fonts/${f.file}</string>`)).join('\n')}
+${roles.flatMap((r) => r.faces.map((f) => `		<string>Fonts/${xml(f.file)}</string>`)).join('\n')}
 	</array>
 </dict>
 </plist>

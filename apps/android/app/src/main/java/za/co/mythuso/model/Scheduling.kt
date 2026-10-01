@@ -62,6 +62,23 @@ object Scheduling {
         LocalTime.parse(start).plusMinutes(minutes.toLong()).format(DateTimeFormatter.ofPattern("HH:mm"))
     }.getOrDefault(start)
 
+    /* Which visit "next" means, as an order: the one under way now, then a come-now request (it is for
+       now, so nothing booked for an hour can be sooner), then the booked hours soonest first, and last
+       anything whose hour has already ended. A new booking is added at the top of the store's list
+       because it is the newest, and the home used to read the top — so it showed the visit somebody
+       booked last rather than the one at their door first, and the visit already under way at the
+       second place was never shown at all. The same order as the web's nextFirst in
+       apps/web/src/lib/scheduling.ts and iOS's Scheduling.nextFirst. */
+    fun nextFirst(visits: List<BookedVisit>, now: java.time.LocalDateTime = java.time.LocalDateTime.now(zone)): List<BookedVisit> {
+        fun rank(visit: BookedVisit): Int {
+            val starts = Booking.startsAt(visit)
+            val ends = Booking.endsAt(visit)
+            if (!visit.isScheduled || starts == null || ends == null) return 1
+            return if (!now.isBefore(ends)) 3 else if (!now.isBefore(starts)) 0 else 2
+        }
+        return visits.sortedWith(compareBy<BookedVisit>({ rank(it) }, { Booking.startsAt(it) }))
+    }
+
     /* A visit's own name for itself, issued once and never reissued.
        It exists because of what moving a visit has to mean: packages/catalog/cancellation.json says
        a rescheduled visit keeps its reference, its person, its address and its service, and that a

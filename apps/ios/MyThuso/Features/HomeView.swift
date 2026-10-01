@@ -23,6 +23,9 @@ struct HomeView: View {
     @State private var askingGilbert = false
     @State private var trend = "pressure"
     private var stacked: Bool { typeSize.isAccessibilitySize }
+    /* The visit at the door first, not the one booked last: a booking is inserted at the top of the
+       store's list, so `visits.first` was the newest. Scheduling.nextFirst says why the order is this one. */
+    private var next: BookedVisit? { Scheduling.nextFirst(store.visits).first }
 
     var body: some View {
         content
@@ -117,7 +120,7 @@ struct HomeView: View {
     }
 
     private var nextStep: some View {
-        let visit = store.visits.first
+        let visit = next
         let confirmed = visit?.status == "Confirmed"
         return VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             HStack(alignment: .top, spacing: ThusoSpacing.space12) {
@@ -192,22 +195,26 @@ struct HomeView: View {
     /* Two of them are readings and open the record they came from; the other two are facts about the
        account and are not buttons, because nothing is behind them to open. */
     private var metrics: some View {
-        let visit = store.visits.first
-        let systolic = Passport.latestSet.values["systolic"] ?? 0
-        let diastolic = Passport.latestSet.values["diastolic"] ?? 0
-        let glucose = Passport.latestSet.values["glucose"] ?? 0
-        let pressureInRange = Passport.flag("systolic", systolic).isNormal && Passport.flag("diastolic", diastolic).isNormal
-        let glucoseInRange = Passport.flag("glucose", glucose).isNormal
+        let visit = next
+        /* A reading the latest set does not hold is drawn as a dash with no badge — never as 0/0 mmHg,
+           and never judged "Outside range" against a number nobody measured. */
+        let systolic = Passport.latestSet.values["systolic"]
+        let diastolic = Passport.latestSet.values["diastolic"]
+        let glucose = Passport.latestSet.values["glucose"]
+        let pressureInRange: Bool? = systolic.flatMap { s in diastolic.map { d in Passport.flag("systolic", s).isNormal && Passport.flag("diastolic", d).isNormal } }
+        let glucoseInRange: Bool? = glucose.map { Passport.flag("glucose", $0).isNormal }
+        let rangeBadge: (Bool?) -> (text: String, good: Bool)? = { inRange in inRange.map { (text: $0 ? "In range" : "Outside range", good: $0) } }
         let columns = stacked ? [GridItem(.flexible(), alignment: .top)] : [GridItem(.flexible(), spacing: ThusoSpacing.space12, alignment: .top), GridItem(.flexible(), alignment: .top)]
         return LazyVGrid(columns: columns, alignment: .leading, spacing: ThusoSpacing.space12) {
             ThusoMetricCard(label: "Next visit",
                             value: visit.map { $0.isScheduled ? ($0.start ?? "Soon") : "Soon" } ?? "None",
-                            trend: visit.map { $0.isScheduled ? Scheduling.shortDate($0.date ?? Date()) : $0.service.name }) {
+                            trend: visit.flatMap { $0.isScheduled ? $0.date.map(Scheduling.shortDate) : Optional($0.service.name) }) {
                 MyThusoIcon(icon: MyThusoIconsData.visit, size: 20)
             }
             NavigationLink { PassportView() } label: {
-                ThusoMetricCard(label: "Blood pressure", value: "\(Int(systolic))/\(Int(diastolic))", unit: "mmHg",
-                                badge: (pressureInRange ? "In range" : "Outside range", pressureInRange)) {
+                ThusoMetricCard(label: "Blood pressure",
+                                value: systolic.flatMap { s in diastolic.map { d in "\(Int(s))/\(Int(d))" } } ?? "—", unit: "mmHg",
+                                badge: rangeBadge(pressureInRange)) {
                     MyThusoIcon(icon: MyThusoIconsData.health, size: 20)
                 }
             }
@@ -215,9 +222,9 @@ struct HomeView: View {
             .accessibilityHint("Opens your Health Passport")
             NavigationLink { PassportView() } label: {
                 ThusoMetricCard(label: "Blood glucose",
-                                value: Passport.spec("glucose").map { Passport.format($0, glucose) } ?? "",
+                                value: Passport.spec("glucose").flatMap { spec in glucose.map { Passport.format(spec, $0) } } ?? "—",
                                 unit: Passport.spec("glucose")?.unit,
-                                badge: (glucoseInRange ? "In range" : "Outside range", glucoseInRange)) {
+                                badge: rangeBadge(glucoseInRange)) {
                     MyThusoIcon(icon: MyThusoIconsData.results, size: 20)
                 }
             }
@@ -240,7 +247,7 @@ struct HomeView: View {
                 NavigationLink("All visits") { VisitsView() }
                     .frame(minHeight: 44).contentShape(Rectangle())
             }
-            if let visit = store.visits.first {
+            if let visit = next {
                 NavigationLink { VisitDetailView(visit: visit) } label: { visitCard(visit) }.buttonStyle(.plain)
                 CareCard(padding: ThusoSpacing.space16, spacing: ThusoSpacing.space12) {
                     HStack(alignment: .center, spacing: 12) {
@@ -391,7 +398,7 @@ struct HomeView: View {
                 NavigationLink(thuso(.openPassport, store.locale)) { PassportView() }
             }
             ThusoCard(padding: .md, spacing: ThusoSpacing.space12) {
-                Text("\(Passport.readingSets.count) home visits on record, the last on \(Scheduling.shortDate(Passport.latestSet.date)). Sample readings.")
+                Text(PassportData.onRecord(lastOn: Scheduling.format(Passport.latestSet.date, "d MMM")))
                     .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                     .fixedSize(horizontal: false, vertical: true)
                 ThusoTabs(selection: $trend, tabs: Self.trendTabs.map { ($0.id, $0.title) })

@@ -124,7 +124,7 @@ The 22 masters under `packages/brand/lovable-handoff/handoff` and their SHA-256,
 
 | Path | SHA-256 |
 | --- | --- |
-| `CLAUDE.md` | `4ace0af74bf91b3c33014067397d97a4a35173e644bcf149dfae669f5e82c3fc` |
+| `CLAUDE.handoff.md` | `4ace0af74bf91b3c33014067397d97a4a35173e644bcf149dfae669f5e82c3fc` |
 | `docs/component-catalog.json` | `d598fc58e176f96d5a6fb14cf3f9e3f4e111a58345ff5ca05e61fc9be3bfae66` |
 | `docs/design-guidelines.md` | `e7031ae5876cf4574dba94f3556a3571124cffbb705e304d20561c8ee6a7d612` |
 | `package-requirements.json` | `c6753465481ba673e94df2f9c7e0cd5988c3e7e485f7576c878e3e0b19f5db87` |

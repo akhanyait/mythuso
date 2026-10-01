@@ -12,7 +12,7 @@ import { labels as scheduling, shortDateOf, shortWhenText, visitEnds, weekdayOf 
 import type { DemoVisit } from './Booking';
 import { useT } from '../lib/i18n';
 import { assignedNurse, nurseOfVisit } from '../lib/arrival';
-import { formatValue, headlineMeasures, isInRange, labelOf, lastReview, latestSet, measureSpec, readingSets, reviewer, seriesFor, type MeasureId } from '../lib/passport';
+import { formatValue, headlineMeasures, isInRange, labelOf, lastReview, latestSet, measureSpec, onRecord, readingSets, reviewer, seriesFor, type MeasureId } from '../lib/passport';
 import { patientPageRoutes } from '../lib/patient-pages-routes.generated';
 import { patientScreenRoutes } from '../lib/patient-screens-routes';
 /* The medicine panel and the tips row read two contracts the entry does not carry; see HomeReads.tsx. */
@@ -124,7 +124,7 @@ function HealthTabs({ navigate }: { navigate: (s: string) => void }) {
   <div className="pd-card-head">
    <div>
     <h2 id={`${base}-title`} className="pd-card-title">Your health over time</h2>
-    <p className="pd-card-lead">{readingSets.length} home visits on record, the last on {labelOf(latestSet.dayOffset)}. Sample readings.</p>
+    <p className="pd-card-lead">{onRecord}</p>
    </div>
    <TabsList aria-label="Readings to show">
     {trendTabs.map(t => <Tab key={t.id} id={`${base}-${t.id}`} aria-controls={`${base}-panel`} active={t.id === tab} onClick={() => setTab(t.id)}>{tabName(t.measures)}</Tab>)}
@@ -174,6 +174,7 @@ const initialsOf = (name: string) => name.split(' ').filter(word => !/^(Dr|Siste
 
 export function Dashboard({ navigate, book, open, query, setQuery, visits, location, viewVisit, reschedule }: Props) {
  const t = useT();
+ /* `visits` arrives soonest first (App.tsx orders it with lib/scheduling's nextFirst), so the first is next. */
  const next = visits[0];
  const nurse = next ? nurseOfVisit(next) : null;
  const [nextDay, nextHour] = next && next.kind !== 'asap' ? shortWhenText(next).split(' · ') : [null, null];
