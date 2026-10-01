@@ -12,9 +12,9 @@ list is opinion and should be read as such.
 
 ## The one fact that shapes everything
 
-**Fifteen capabilities. None is connected.** Every screen in MyThuso draws real arithmetic over
+**Twenty-three capabilities. None is connected.** Every screen in MyThuso draws real arithmetic over
 sample data and says so. That is deliberate and it is the right state for a product seeking funding
-rather than patients. But it means "what is left to build" is mostly not screens — it is the eleven
+rather than patients. But it means "what is left to build" is mostly not screens — it is the
 integrations underneath them, and each one is a contract, a vendor or an accreditation before it is
 a line of code.
 

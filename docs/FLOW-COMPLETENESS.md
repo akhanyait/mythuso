@@ -50,7 +50,7 @@ day after they were written down.
 
 **What the spec deliberately does not hold**, and what therefore stays prose in the rows below:
 
-- **Whether an unconnected capability is a gap.** It is not. Fifteen capabilities are declared in
+- **Whether an unconnected capability is a gap.** It is not. Twenty-three capabilities are declared in
   `packages/catalog/capabilities.json` and none is connected, on purpose. A screen that completes and
   says plainly that nothing was dispatched, charged or sent is *finished*. Nothing in the spec reads a
   capability notice, and a spec that failed on one would be a spec arguing the product should
@@ -97,7 +97,7 @@ and a spec that asserted them would be asserting an opinion.
 
 ## What is counted as a stop, and what is not
 
-`packages/catalog/capabilities.json` declares fifteen capabilities and none is connected. A screen
+`packages/catalog/capabilities.json` declares twenty-three capabilities and none is connected. A screen
 that completes and says plainly that nothing was dispatched, charged or sent is **finished**, and no
 such screen is listed as a gap. "Your visit is booked… This does not book a visit. Nobody is
 dispatched and nothing is charged" is a completed journey. "Nothing was submitted" at the end of the

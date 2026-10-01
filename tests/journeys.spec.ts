@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs';
  * not drawn. That class of defect is mechanically detectable, and this is the detector.
  *
  * WHAT IS AND IS NOT A GAP. The line the audit drew is the line kept here, and it matters more than
- * the assertions. `packages/catalog/capabilities.json` declares fifteen capabilities and not one is
+ * the assertions. `packages/catalog/capabilities.json` declares the capabilities and not one is
  * connected — deliberately. A screen that completes and says plainly that nothing was dispatched,
  * charged or sent is **finished**. So nothing here looks at capability notices, at "This does not
  * book a visit", or at any of the sentences that make this preview honest; a spec that failed on

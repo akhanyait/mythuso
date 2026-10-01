@@ -56,7 +56,7 @@ test('says how many are connected, and the figure is the contract’s arithmetic
 
 /* The assertion this page exists for, now that there are simulators behind it.
  *
- * A demonstration is more convincing than a screenshot, so the moment fourteen suppliers could be
+ * A demonstration is more convincing than a screenshot, so the moment the simulated suppliers could be
  * walked end to end was the moment this page became easiest to get wrong: the headline count is the
  * one number a funder reads, and rolling the simulated ones into it would have been a single
  * plausible edit. The count stays the connected count. The simulation is reported underneath it, as

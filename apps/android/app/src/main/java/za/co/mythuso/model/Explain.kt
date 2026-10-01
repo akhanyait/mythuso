@@ -19,7 +19,7 @@ import za.co.mythuso.ui.observations
  * now: what is left here is the resolving — which range a paragraph belongs to, and which red flags
  * it points at — which is reasoning rather than prose, and is the half that is right to hand-write.
  *
- * WHY THIS IS PROSE AND NOT A MODEL. `screening` is one of the fifteen capabilities and it is blocked
+ * WHY THIS IS PROSE AND NOT A MODEL. `screening` is one of the declared capabilities and it is blocked
  * on a model, a vendor and a licence. It is also the easiest thing in this product to overstate. A
  * written explanation cannot be any of the things an unlicensed model would be: it cannot see your
  * record, it cannot personalise itself, it cannot be confidently wrong in a new way for each reader,

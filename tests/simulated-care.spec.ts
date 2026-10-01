@@ -6,7 +6,7 @@ import { confirmBooking, goSection, openWorkspace } from './nav';
  *
  * `booking`, `dispatch`, `credential-verification` and `teleconsultation` are all blocked on
  * something no engineer can produce — a workforce roster, live positions from nurse devices,
- * agreements with thirteen authorities, a media stack — and all four are `simulated` rather than
+ * agreements with the issuing authorities, a media stack — and all four are `simulated` rather than
  * `absent` now. The whole hazard of that state is that it works: somebody who has watched a visit
  * booked against a nurse and then watched her get closer is one edit away from believing there is a
  * roster.

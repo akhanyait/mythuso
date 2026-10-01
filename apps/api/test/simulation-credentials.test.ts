@@ -1,5 +1,5 @@
 /**
- * Simulated answers from the thirteen authorities.
+ * Simulated answers from the issuing authorities.
  *
  * The word this simulator produces is `confirmed`, which makes it the one whose tests are about
  * what it will not say. Three things are asserted and each is a different way the same defect

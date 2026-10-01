@@ -18,7 +18,7 @@ import { measureSpec, type MeasureId } from './passport';
  * any of these sentences as a literal in hand-written source on any of the three platforms. What
  * is left in this file is the reasoning, which is what a lib module is for.
  *
- * WHY THIS IS PROSE AND NOT A MODEL. `screening` is one of the fifteen capabilities and it is
+ * WHY THIS IS PROSE AND NOT A MODEL. `screening` is one of the declared capabilities and it is
  * blocked on a model, a vendor and a licence. It is also the easiest thing in this product to
  * overstate. A written explanation cannot be any of the things an unlicensed model would be: it
  * cannot see your record, it cannot personalise itself, it cannot be confidently wrong in a new way

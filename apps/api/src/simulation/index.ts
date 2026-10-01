@@ -3,7 +3,7 @@
  *
  * ── Why this exists ──────────────────────────────────────────────────────────────────────────
  *
- * Fifteen capabilities are declared and none is connected, because most of them are blocked on
+ * Every capability is declared and none is connected, because most of them are blocked on
  * something no engineer can produce: an SMS provider, a payment provider, a nurse roster, live
  * positions, agreements with thirteen credentialing authorities, a pharmacy network, an ambulance
  * partner. The founder asked to walk the whole product end to end anyway, which is a reasonable
@@ -21,7 +21,7 @@
  * under some condition is a route somebody eventually finds the condition for, usually late at
  * night with a vendor on the phone — and it made `decide` return a type with no acceptance variant
  * so that the condition cannot be written. A simulation flag on those routes would have been
- * precisely that condition, so the eleven doors go on refusing every payload, exactly as before,
+ * precisely that condition, so every door goes on refusing every payload, exactly as before,
  * and a simulated event enters through `emit` below: a different function, with a different
  * signature, reviewed as the change it is.
  *

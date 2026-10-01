@@ -429,7 +429,7 @@ const eventBadge = (kind: VettingEventKind): BadgeVariant => kind === 'verified'
  : kind === 'declined' || kind === 'suspended' || kind === 'lapsed' ? 'danger' : 'neutral';
 
 /* ---- The applicant flow -------------------------------------------------------------------
-   One flow for thirteen roles, because the checks, the issuing authorities and the renewal cadences
+   One flow for every vetted role, because the checks, the issuing authorities and the renewal cadences
    are data. A separate screen per role would drift from the console that has to decide it. */
 type Step = 'role' | 'credential' | 'scope' | 'evidence' | 'declarations' | 'attestation';
 const stepLabels: Record<Step, string> = {

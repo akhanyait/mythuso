@@ -1,5 +1,6 @@
 import "./check-public-assistant.mjs";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { emitTokens } from "./emit-tokens.mjs";
@@ -83,6 +84,16 @@ function files(dir) {
   );
 }
 const read = (f) => readFileSync(f, "utf8");
+/* The tree git tracks, and the text files in it. Declared once at the top for the two scans that
+   need them — the door-count scan beside the feed checks and the Mapbox token scan at the foot of
+   this file — because two copies of what counts as a text file are two copies that can disagree. */
+const trackedFiles = execFileSync("git", ["ls-files", "-z"], {
+  encoding: "utf8",
+})
+  .split("\0")
+  .filter(Boolean);
+const textualFile =
+  /\.(?:ts|tsx|js|mjs|cjs|json|md|html|css|swift|kt|kts|xml|yml|yaml|sh|conf|txt|example|env|plist|gradle|py|svg|lock)$|^[^.]+$|\/\.env[^/]*$|\/[^/.]+$/;
 const native = [
   ...files("apps/ios/MyThuso"),
   ...files("apps/android/app/src/main"),
@@ -10398,7 +10409,7 @@ for (const c of capabilities.capabilities) {
    *     is a fixture with a label on it; the refusals are the part that is worth reading.
    *  3. A simulated capability still lists everything blocking it. A simulator unblocks nothing —
    *     the SMS provider is still unsigned the day the simulated one works perfectly.
-   *  4. Nothing simulated is reachable over the network, which the eleven feed routes enforce for
+   *  4. Nothing simulated is reachable over the network, which every feed route enforces for
    *     real and this field records as an intention somebody would have to edit to break. */
   /* A fourth state since 14 September 2026, and it belongs to voice alone: `on-device` says the phone
     does the work and nothing is connected. It carries no simulation and it keeps its notice. */
@@ -10445,7 +10456,7 @@ for (const c of capabilities.capabilities) {
       );
     if (sim.reachableFromTheNetwork !== false)
       throw new Error(
-        `Capability "${c.id}"'s simulation does not declare itself unreachable from the network. The eleven feed routes accept nothing and a simulated event enters in process; a simulator on a route is the condition somebody finds at two in the morning with a vendor on the phone.`,
+        `Capability "${c.id}"'s simulation does not declare itself unreachable from the network. Every feed route accepts nothing and a simulated event enters in process; a simulator on a route is the condition somebody finds at two in the morning with a vendor on the phone.`,
       );
     if (!c.blockedBy?.length)
       throw new Error(
@@ -12976,7 +12987,7 @@ for (const [file, text, why] of TYPED_FIGURES) {
 
 /* ---- The wall between the simulators and the network --------------------------------------------
 
-   The whole value of `simulated` as a third state is that it did not require the eleven doors to
+   The whole value of `simulated` as a third state is that it did not require the doors to
    grow a condition. feeds/index.ts spends a page arguing that a route which could accept under some
    condition is a route somebody eventually finds the condition for, late at night, with a vendor on
    the phone — and it made `decide` return a type with no acceptance variant so the condition cannot
@@ -12998,7 +13009,7 @@ for (const file of httpLayer) {
     /import\s*\(\s*['"][^'"]*simulation/.exec(source);
   if (reaches)
     throw new Error(
-      `${file} imports from the simulation directory (${reaches[0]}). Nothing a request can reach may touch a simulated supplier: the eleven feed routes accept nothing, and a simulated event enters in process through simulation/emit. An import here is how "accepts nothing" quietly becomes "accepts nothing unless".`,
+      `${file} imports from the simulation directory (${reaches[0]}). Nothing a request can reach may touch a simulated supplier: every feed route accepts nothing, and a simulated event enters in process through simulation/emit. An import here is how "accepts nothing" quietly becomes "accepts nothing unless".`,
     );
 }
 /* And the simulators themselves may not answer for a capability the contract has not marked
@@ -13713,7 +13724,7 @@ if (
     `${SIMULATION_DIR}/pharmacy.ts no longer checks the dispensed item against the prescribed molecule and strength. Changing one of those is prescribing, done by somebody who is not a prescriber.`,
   );
 
-/* ---- The eleven doors that are all locked ------------------------------------------------------
+/* ---- Every door is locked ------------------------------------------------------------------------
 
    packages/catalog/feeds.json describes, for each capability blocked on a supplier nobody has
    signed, what would have to arrive, what the product does while it does not, what must be true
@@ -13930,6 +13941,107 @@ for (const file of [
   }
 }
 
+/* ---- A door count lives in the contract -------------------------------------------------------
+
+   `a-door-count-lives-in-the-contract`.
+
+   How many feeds there are is feedContract.feeds.length, and it is read that way by the summary
+   line at the end of this file and by apps/api's own route registration, so a feed added next year
+   cannot forget to be refused. What this check adds is that nobody writes the number down again in
+   a comment or an error message.
+
+   It was written down, as "eleven doors", in the first line of apps/api/src/feeds/index.ts, and it
+   stayed there through every feed added after it. Ten feeds later the same number was in eight files
+   and in two error messages a developer would read while debugging something else entirely — and
+   nothing failed, because prose is not read by a test. The capabilities count drifted the same way,
+   from fifteen to twenty-three, and the vetting header in scripts/emit-vetting.mjs drifted on three
+   numbers at once. The summary sentence this file prints gets it right only because it reads
+   .length; the paragraphs around it were the ones lying.
+
+   This is the same rule as `a number lives in one place`, applied to a number that had quietly
+   moved into the second place prose is. It is checked rather than trusted because the alternative
+   is a comment nobody re-reads.
+
+   SCOPED TO CODE AND OPERATIONAL DOCS, AND NOT TO docs/. In a source comment or a runbook a count
+   is always a claim about the present, and a reader acts on it. docs/ is different in kind:
+   docs/FEATURE-MAP.md is a ledger of what was delivered on which day, and its rows are dated
+   headings, so "the status page rendered capability.notice for fourteen capabilities" was true of
+   the day it was written and must not be edited to be true of today — that would be falsifying a
+   record to satisfy a linter. The stale counts in docs/ were fixed by hand in the same commit as
+   this check, where the writer could tell a present-tense claim from a historical one. Pointing an
+   automated rule at prose it cannot date is how a check earns exemptions, and an exemption is
+   permanent.
+
+   Two exemptions, both principled rather than convenient:
+     · Generated files. A count inside one is derived by its emitter — emit-capabilities.mjs writes
+       `The ${contract.capabilities.length} capabilities …` into the header of the file it produces,
+       so the number cannot drift. The list is the `generated` table this file already verifies
+       byte-for-byte, not a list of names kept here.
+     · This file, which has to be able to say what it is looking for.
+
+   Deliberately narrow in one more direction: "eleven written languages" is true —
+   packages/catalog/locales.json declares eleven — and "a screen of eleven" is about cards and
+   "eleven at night" is a time. So the number has to be immediately followed by a noun this
+   contract owns: feeds, doors, capabilities or authorities. "one" is not matched, because "one locked door per
+   feed" is a rule rather than a count.
+
+   `authorities` is in the list because it had drifted worst of all. The day this check was written,
+   three different counts of the issuing authorities were live in code at once — "eleven authorities"
+   in server.ts, "Eleven of the twelve authorities" in vetting/index.ts (internally inconsistent in a
+   single sentence, and both numbers wrong) and "thirteen authorities" in the simulators — against
+   thirteen in packages/catalog/vetting.json. A count that three files disagree on while the contract
+   holds a fourth truth is not a count anybody is maintaining.
+
+   `roles` is deliberately NOT in the list, and that is a narrowing rather than an exemption. The
+   word is owned by two contracts at once: packages/catalog/vetting.json declares the vetted roles and
+   packages/design-tokens/tokens.json#semantic declares the colour roles, so "nineteen roles" in
+   Identity.swift and UiGallery.tsx is true and would fail a rule that could not tell them apart. A
+   noun with two owners in two contracts is a noun an automated count check must not claim. The
+   vetted-role counts that had drifted ("thirteen roles" where the contract holds fifteen) were fixed
+   by hand in the same commit, where the writer could tell a vetted role from a colour. */
+const COUNT_IN_PROSE =
+  /\b(ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty(?:[- ](?:one|two|three|four|five|six|seven|eight|nine))?|[2-9]\d?|\d{3,})\s+(feeds|doors|capabilities|authorities)\b/i;
+const COUNT_IN_PROSE_ROOTS = [
+  "apps/",
+  "packages/",
+  "scripts/",
+  "deploy/",
+];
+const generatedPaths = new Set(generated.flatMap((entry) => entry.files.map((f) => f.path)));
+const COUNT_IN_PROSE_EXEMPT = [
+  /* The check's own definition and the paragraph above it. Naming the words is not counting them,
+     and a rule that could not describe its own subject would be unusable. */
+  "scripts/check-boundaries.mjs",
+];
+for (const file of trackedFiles) {
+  if (!textualFile.test(file) || !existsSync(file)) continue;
+  if (!COUNT_IN_PROSE_ROOTS.some((root) => file.startsWith(root))) continue;
+  if (COUNT_IN_PROSE_EXEMPT.includes(file)) continue;
+  if (generatedPaths.has(file)) continue;
+  if (statSync(file).size > 4_000_000) continue;
+  const hit = read(file).match(COUNT_IN_PROSE);
+  if (!hit) continue;
+  /* Name the noun that was hit, not a fixed pair. This check covers four nouns over two contracts,
+     and an error that reports a count of feeds to somebody who wrote a count of authorities sends
+     them to the wrong file — which is how a message that exists to prevent drift becomes one that
+     wastes the ten minutes of the person who has to work out it is not about their line. */
+  const truth = {
+    feeds: `${feedContract.feeds.length} feeds in packages/catalog/feeds.json`,
+    doors: `${feedContract.feeds.length} doors in packages/catalog/feeds.json`,
+    capabilities: `${capabilities.capabilities.length} capabilities in packages/catalog/capabilities.json`,
+    authorities: `${vetting.authorities.length} authorities in packages/catalog/vetting.json`,
+  }[hit[2]];
+  throw new Error(
+    `${file} writes down how many ${hit[2]} there are ("${hit[0]}"), and the contract holds the number: ` +
+      `${truth} today. Read the length from the contract, or say "every one" and mean it. ` +
+      `A count in prose drifts without failing anything: "eleven doors" was still being said over twenty-two, ` +
+      `and the authority count was said three different ways in three files at once — eleven, twelve and thirteen — ` +
+      `while the contract held a fourth truth. ` +
+      `If the phrase is genuinely not a count of this contract's entries, narrow COUNT_IN_PROSE in scripts/check-boundaries.mjs rather than adding an exemption: ` +
+      `an exemption is permanent and a narrower match is a rule that still fires.`,
+  );
+}
+
 /* ---- The one number in the service that is a proposal ------------------------------------------
 
    `limits.writesPerCallerPerWindow` is sixty and says beside itself that nobody arrived at it by
@@ -13972,8 +14084,8 @@ if (!/Nothing in this file publishes anything/.test(witnessSource))
 /* ============================================================================================== */
 /* ---- THE CARE AND DISPATCH SIMULATORS ---------------------------------------------------------
  *
- * Four simulated suppliers stand behind four of the eleven locked doors: a roster (booking),
- * positions (dispatch), answers from the thirteen authorities (credential-verification) and a
+ * Four simulated suppliers stand behind four of the locked doors: a roster (booking),
+ * positions (dispatch), answers from the credentialing authorities (credential-verification) and a
  * session broker (teleconsultation). They are the reason a person can walk the whole product before
  * anybody has signed anything, and they are therefore the reason somebody could come to believe it
  * is signed. What follows is what holds those two apart.
@@ -14016,7 +14128,7 @@ for (const file of files("apps/api/src").filter(
   const reaching = read(file).match(/from\s+'[^']*\/simulation\/[^']*'/);
   if (reaching)
     throw new Error(
-      `${file} imports ${reaching[0]}, so a simulated supplier is reachable from the request path. Nothing behind the eleven feed routes may answer with a fixture: the routes accept nothing, and a simulated event enters in process through emit(), which is a different function with a different signature reviewed as the change it is. If a route needs one, that is the review — not this import.`,
+      `${file} imports ${reaching[0]}, so a simulated supplier is reachable from the request path. Nothing behind a feed route may answer with a fixture: every route accepts nothing, and a simulated event enters in process through emit(), which is a different function with a different signature reviewed as the change it is. If a route needs one, that is the review — not this import.`,
     );
 }
 /* And a simulator may not invent randomness of its own. A nurse who stands somewhere different on
@@ -14216,7 +14328,7 @@ const careTypesAPosition = (source) =>
         ) && careCoordinate.test(line),
     );
 /* The web, and only the web, and that is a limit rather than an oversight.
-   A test that posts a position at one of the eleven doors is testing a vendor's payload, and a
+   A test that posts a position at one of the doors is testing a vendor's payload, and a
    payload is where a coordinate belongs — refusing one there would be refusing the shape the seam
    exists to describe. And both native dispatch boards hold sample coordinates of their own because
    there is nothing for them to read: packages/catalog/roster.json deliberately has no emitter, since
@@ -38462,9 +38574,8 @@ console.log(
   /* 3. No token value anywhere in the tree git tracks. A public pk. token is URL-restricted, but a
      key in source is a key in every fork, and the .env.example beside it is the only place the
      variable's name may appear with nothing after the equals sign. */
-  const { execFileSync } = await import("node:child_process");
-  const tracked = execFileSync("git", ["ls-files", "-z"], { encoding: "utf8" }).split("\0").filter(Boolean);
-  const textual = /\.(?:ts|tsx|js|mjs|cjs|json|md|html|css|swift|kt|kts|xml|yml|yaml|sh|conf|txt|example|env|plist|gradle|py|svg|lock)$|^[^.]+$|\/\.env[^/]*$|\/[^/.]+$/;
+  const tracked = trackedFiles;
+  const textual = textualFile;
   const tokenShape = /\bpk\.[A-Za-z0-9_-]{20,}/;
   for (const file of tracked) {
     if (!textual.test(file) || !existsSync(file) || statSync(file).size > 4_000_000) continue;

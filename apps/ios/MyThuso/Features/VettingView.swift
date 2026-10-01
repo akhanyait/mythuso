@@ -206,7 +206,7 @@ struct CheckDefinitionRow: View {
     }
 }
 
-// MARK: - Applying, for any of the thirteen roles
+// MARK: - Applying, for any vetted role
 
 struct VettingApplyView: View {
     var roleId: String = "nurse"

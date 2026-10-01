@@ -11,8 +11,8 @@
  * second ingestion boundary beside the first would be two places to get the same thing wrong.
  *
  * So this produces a `QueuedEntry` for the intake this product already has, and does not go through
- * `register()` at all. `register()` demands a feed id, checks it against the eleven, and refuses a
- * simulator standing in front of no seam — which is exactly the right check for the ten simulators
+ * `register()` at all. `register()` demands a feed id, checks it against the contract, and refuses a
+ * simulator standing in front of no seam — which is exactly the right check for the simulators
  * that answer a feed, and exactly the wrong shape for the one that answers a batch. The registry
  * would need a feed-less path to hold this, and adding one is a change to a file this work was told
  * not to touch. It is written up in the report rather than worked around here.

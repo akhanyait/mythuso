@@ -7,7 +7,7 @@ import Foundation
  * person actually opened the screen with, which is "should I be worried". Left unanswered, that
  * question gets asked of a search engine, and a search engine will diagnose them.
  *
- * WHY THIS IS PROSE AND NOT A MODEL. `screening` is one of the fifteen capabilities and it is
+ * WHY THIS IS PROSE AND NOT A MODEL. `screening` is one of the declared capabilities and it is
  * blocked on a model, a vendor and a licence. It is also the easiest thing in this product to
  * overstate. A written explanation cannot be any of the things an unlicensed model would be: it
  * cannot see your record, it cannot personalise itself, it cannot be confidently wrong in a new way

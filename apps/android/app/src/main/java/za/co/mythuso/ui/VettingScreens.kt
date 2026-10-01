@@ -344,7 +344,7 @@ private fun spokenSummary(subject: VettingSubject, summary: VettingSummary): Str
 }
 
 /* ---- The applicant flow ------------------------------------------------------------------------
-   The same six steps for all thirteen roles, because the questions are the same questions: who are
+   The same six steps for every vetted role, because the questions are the same questions: who are
    you, what are you registered to do, what can you show for it, and what are you undertaking. What
    changes is which authority is asked, and that is data rather than a screen per role. */
 @Composable fun VettingApplicationScreen(store: PreviewStore, initialRole: String?, open: (String) -> Unit, close: () -> Unit) {

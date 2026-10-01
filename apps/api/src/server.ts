@@ -179,8 +179,9 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
      from one either: opening the founding ceremony takes an authorisation signed from the key ring,
      and nothing arriving over HTTP has ever held key material. The command that mints one is
      src/bootstrap.ts, run at a console by two people. */
-  /* The credential verification layer. The registry is the honest default — eleven authorities that
-     cannot be asked at all, each carrying what a real integration would need — with the accredited
+  /* The credential verification layer. The registry is the honest default — every authority
+     packages/catalog/vetting.json names, none of which can be asked at all, each carrying what a
+     real integration would need — with the accredited
      identity provider dropped in over Home Affairs where one has been contracted. Where none has,
      `createIdentityProvider` returns null and Home Affairs keeps its not-integrated adapter, so a
      service with nothing configured reports "not integrated" rather than "sandbox". In production
@@ -1118,7 +1119,7 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
     send(res, 200, { ok: true, repeated: verdict.repeated });
   });
 
-  /* ---- The eleven doors that are all locked -------------------------------------------------
+  /* ---- Every door is locked -----------------------------------------------------------------
    *
    * One route per feed in packages/catalog/feeds.json, registered from the contract rather than
    * written out, so a feed added next year cannot forget to be refused. Every one of them accepts

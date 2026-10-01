@@ -1,9 +1,9 @@
 /**
- * Simulated answers from the thirteen authorities.
+ * Simulated answers from the issuing authorities.
  *
  * ── What this stands in for, and what it must never become ───────────────────────────────────
  *
- * All thirteen adapters in apps/api/src/vetting/authority.ts answer `not-integrated` today, and
+ * Every adapter in apps/api/src/vetting/authority.ts answers `not-integrated` today, and
  * that is the true state: SANC publishes no API, SAPS answers on fingerprints through a bureau,
  * Home Affairs is reached only through an accredited provider under a priced contract. This module
  * is what an agreement with each of them would produce, so that the vetting layer can be walked end

@@ -2,7 +2,7 @@ package za.co.mythuso.model
 
 /* What MyThuso can actually do, and what it only draws.
  *
- * The fifteen capabilities and the sentence each one shows while it is not connected are generated
+ * The capabilities and the sentence each one shows while it is not connected are generated
  * into CapabilitiesData.kt from packages/catalog/capabilities.json. This is the lookup beside it,
  * and it is the same shape as apps/ios/MyThuso/Models/Capabilities.swift and
  * apps/web/src/lib/capabilities.ts: a screen names the capability it depends on and renders the

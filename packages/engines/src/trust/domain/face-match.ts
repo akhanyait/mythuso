@@ -4,7 +4,7 @@
  * through the face-match-result door in packages/catalog/feeds.json. No supplier is contracted, the operator's
  * section 72 question is undetermined, and whether a face match is biometric information is the Information
  * Officer's undecided D-3. So the door has no adapter, and the one answer it gives is the contract's
- * not-integrated, the same first-class outcome apps/api/src/vetting/authority.ts gives for thirteen authorities.
+ * not-integrated, the same first-class outcome apps/api/src/vetting/authority.ts gives for every authority.
  * The type of that answer is the single literal: there is no code path here that can return matched, and a
  * shift start built on it cannot be recorded as matched without this file changing first.
  *

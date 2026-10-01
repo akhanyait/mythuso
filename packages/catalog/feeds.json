@@ -1,8 +1,8 @@
 {
- "_note": "The twelve places the outside world would have to reach in, described before anybody has signed a contract to reach in through one of them. Fifteen capabilities are declared in capabilities.json and none is connected; most of them are blocked on something no engineer can produce — a contracted SMS provider, a payment provider, a nurse roster, live device positions, agreements with thirteen credentialing authorities, a pharmacy network, an interpreter service, an ambulance partner, a media stack, an AI licence. None of that can be built here. What can be built is the shape of the hole each one leaves: what would have to arrive, what the product does while it does not, what would have to be true before the switch is thrown, and — the part that is worth the most — what must never arrive at all. When a vendor is finally signed, connecting them should be a data change and a small adapter, not a rebuild and not a re-litigation of what the screens already promise.",
+ "_note": "The places the outside world would have to reach in, described before anybody has signed a contract to reach in through one of them. Every capability is declared in capabilities.json and none is connected; most of them are blocked on something no engineer can produce — a contracted SMS provider, a payment provider, a nurse roster, live device positions, agreements with thirteen credentialing authorities, a pharmacy network, an interpreter service, an ambulance partner, a media stack, an AI licence. None of that can be built here. What can be built is the shape of the hole each one leaves: what would have to arrive, what the product does while it does not, what would have to be true before the switch is thrown, and — the part that is worth the most — what must never arrive at all. When a vendor is finally signed, connecting them should be a data change and a small adapter, not a rebuild and not a re-litigation of what the screens already promise.",
  "_honestyNote": "Nothing in this file connects anything, and it is written so that it cannot. Every route it declares refuses every payload, including a perfectly formed one, and answers with the capability's own not-connected sentence out of capabilities.json. `beforeSwitchOn` makes `connected: true` harder to reach rather than easier: scripts/check-boundaries.mjs refuses a connected capability unless every switch-on condition of every feed serving it is recorded as met and names a file that exists. A seam that made the boolean easier to flip would be the opposite of the thing this repository is careful about.",
  "_whyNoNativeEmitter": "Every other contract in packages/catalog is generated into Swift and Kotlin, because all three apps render it. This one is not, and the reason is not that it was skipped. A feed schema is a contract between this service and a supplier; no phone has any business holding the shape of a payment provider's callback, and emitting it would put a vendor's integration surface into two app-store binaries for no reader. What the apps render is the capability's notice, which comes from capabilities.json and is generated. The seam behind the notice is the server's.",
- "_supplierNote": "Every supplier named here becomes an operator under POPIA section 21 the moment a contract is signed, and one outside South Africa raises section 72. Neither is answered anywhere and neither can be from inside a repository: a section 72 determination is a legal determination about a named recipient in a named country, and there is no named recipient. So each feed carries the question against the thing that will raise it, unanswered and marked unanswered, rather than a subprocessor register with nothing in it.",
+ "_supplierNote": "Every supplier named here becomes an operator under POPIA section 21 the moment a contract is signed, and one outside South Africa raises section 72. Neither is answered anywhere and neither can be from inside a repository: a section 72 determination is a legal determination about a named recipient in a named country, and there is no named recipient. So each feed carries the question against the thing that will raise it, unanswered and marked unanswered, rather than a subprocessor register with nothing in it. One feed is the exception and says why beside itself: crime-statistics reads a published national statistic, which engages no operator and raises no transfer, so recording both would assert an arrangement that does not exist. It carries the switch-on condition that re-asks the question of whoever is actually signed, because a contracted reseller is a different arrangement from a publisher.",
  "fieldTypes": [
   {
    "id": "string",
@@ -85,7 +85,7 @@
   },
   {
    "id": "a-supplier-becomes-an-operator",
-   "statement": "Each feed records that its supplier becomes an operator under POPIA section 21 on signature, and whether the section 72 question about cross-border transfer has been determined. It is false on all eleven and no code changes that.",
+   "statement": "Each feed records that its supplier becomes an operator under POPIA section 21 on signature, and whether the section 72 question about cross-border transfer has been determined. It is false on every one of them and no code changes that.",
    "why": "A subprocessor register is a list of contracts and there are no contracts. What can exist before them is the question, written against the feed that will raise it, so that the determination is made when the vendor is chosen rather than after they are live."
   }
  ],
@@ -775,7 +775,7 @@
    "capabilities": [
     "credential-verification"
    ],
-   "supplier": "An agreement or accreditation with each of thirteen authorities. All thirteen adapters answer not-integrated today.",
+   "supplier": "An agreement or accreditation with every authority vetting.json names. Every adapter answers not-integrated today.",
    "route": "POST /feeds/credential-answer",
    "arrives": "One authority's answer to one enquiry MyThuso made.",
    "derivedFrom": [
@@ -3099,6 +3099,262 @@
    "operator": {
     "becomesAnOperator": true,
     "section72": "EskomSePush becomes an operator under POPIA section 21 on signature, and what it is sent is a list of the zones a nurse service operates in. Whether it processes anything outside South Africa depends on where a supplier nobody has named keeps its logs. Not determined.",
+    "determined": false
+   }
+  },
+  {
+   "id": "crime-statistics",
+   "name": "What the crime statistics for an area say, and what they may never be made to decide",
+   "capabilities": [
+    "dispatch"
+   ],
+   "supplier": "SAPS's own published crime statistics — quarterly per police station and annually per province, free to read and free to republish — or a reseller such as CrimeStatsSA that republishes the same SAPS figures behind a licence of its own. No agreement with either exists, no key has been bought, and nobody has been asked.",
+   "route": "POST /feeds/crime-statistics",
+   "arrives": "One published count of one offence category in one zone, for one stated period, with the date it was published. That is the whole of what SAPS publishes and the whole of what this feed may carry: a statistic about a population, with no person in it and no opinion in it about what should be done with it.",
+   "derivedFrom": [
+    "packages/catalog/geography.json",
+    "packages/catalog/field-safety.json",
+    "packages/catalog/programmes.json",
+    "packages/catalog/capabilities.json"
+   ],
+   "whileAbsent": {
+    "noticeFrom": "dispatch",
+    "sample": [
+     "apps/web/src/features/Dispatch.tsx"
+    ],
+    "unchanged": "The board dispatches on roster, position and distance, and says nothing about crime. A dispatcher who needs the figure reads SAPS's quarterly release or CrimeStatsSA on her own machine, which is what she does today. The field-safety suite — the timer, the check-in rule, the panic — runs the same in every zone, and that uniformity is deliberate rather than an omission: a safety control that weakened with the postcode would be the harm the refusals below exist to prevent, built into the product instead of into a supplier's payload. Nothing here draws a crime layer and nothing here guesses one."
+   },
+   "accepts": [
+    {
+     "field": "zone",
+     "type": "string",
+     "required": true,
+     "why": "One of the five zones geography.json already names — randburg, rosebank, parktown, melville, soweto. The vocabulary is this product's and not SAPS's, for the reason the load-shedding door gives and a sharper one beside it: a police station's catchment is finer than a suburb and its edges match nothing here, so a feed carrying that grain would put a second map of Johannesburg in the codebase, one nobody drew, whose boundaries decide which community a count is attributed to. The zone is the coarsest grain the board can draw and the finest this feed may take, and holding it there is what makes the payload incapable of becoming a pin."
+    },
+    {
+     "field": "category",
+     "type": "string",
+     "required": true,
+     "why": "The offence category as SAPS publishes it. A count with no category is a number nobody can act on and nobody should: the category is the only thing that says whether the figure is about property or about persons, and the two call for different operational arrangements. What it is not is a clinical or a risk judgement, and nothing downstream of this field may render it as one."
+    },
+    {
+     "field": "count",
+     "type": "integer",
+     "required": true,
+     "why": "An integer and not a number, because a count of published offences is a whole number of events. The type is doing work here rather than tidying: a reseller that supplies a rate, a per-capita figure or a rolling average as a float would arrive looking exactly like a count and be read as one, and a rate over an unstated denominator is the most misleading shape this feed could carry. The denominator is therefore a switch-on condition rather than a field, so that no rate can enter by being spelled as a whole number."
+    },
+    {
+     "field": "period",
+     "type": "string",
+     "required": true,
+     "why": "The reporting period the count covers, as the source names it — 2025/2026 Q1. Required because the statistic is quarterly and the board is live: a count drawn without its period reads as today, and the day it reads that way is the day a dispatcher refuses a visit on a figure that was true nine months ago. The age of a crime statistic is not metadata, it is the difference between an operational fact and a rumour with a number on it."
+    },
+    {
+     "field": "publishedAt",
+     "type": "instant",
+     "required": true,
+     "why": "When the source published it, with an offset. The period says what the count covers and this says how long ago that was decided, and a figure whose age nobody can see is a figure that gets acted on after the source has superseded it."
+    }
+   ],
+   "beforeSwitchOn": [
+    {
+     "id": "a-source-is-named-with-its-real-latency",
+     "must": "The source is named in a signed agreement, and the agreement records the latency it actually has rather than the latency the screen implies.",
+     "why": "There is no real-time crime feed in South Africa and no contract can create one. SAPS publishes quarterly per police station and annually per province, and every reseller republishes the same figures on the same clock. This condition is first because it is the one most likely to be satisfied in somebody's head: a dispatch board is live, so a supplier selling into it will be asked for live data, and the ordinary outcome of that conversation is a quarterly statistic delivered through a fast pipe. The failure is not that the data is old. It is that the board makes it look current.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "the-station-to-zone-join-is-written-down-and-owned",
+     "must": "Every SAPS police-station catchment that maps onto a geography.json zone is recorded with the suburb list it was built from, and a named person owns the mapping.",
+     "why": "The join is a judgement and it cannot be recovered from the data afterwards. Soweto spans more than one station and Randburg's edges match neither, so whoever draws the boundary decides which community a count is attributed to. A wrong join attributes one suburb's statistics to another's residents, in a health product, on a screen a nurse reads before she enters a home — and unlike a wrong load-shedding stage, nobody finds out at the end of the day, because nothing about the visit would have looked different. It is a decision with a name on it or it is a decision nobody made.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "a-crime-statistic-may-not-decide-whether-care-is-physical",
+     "must": "No code derives a physical-or-virtual decision, a routing decision, or a refusal to visit from this feed, and no screen presents a count as a reason to defer, cancel or downgrade a visit. The mode is a clinician's or a dispatcher's call made with the visit in front of them, and an override is recorded against the person who made it.",
+     "why": "This is the refusal that makes the feed safe to have, and it is the same failure as a load-shedding stage that defers a visit — one subject away and considerably worse. Crime does not fall evenly: the highest counts are in the areas with the weakest services, the least private transport and the longest ambulance response times, which are the areas this product exists to serve. An engine that declined physical visits on a crime count would decline them from Soweto and Alexandra and go ahead in Rosebank and Parktown, every day, by arithmetic, withdrawing physical care by postcode and calling it a safety feature. It would also be indefensible in front of anybody who looked: a quarterly population statistic is not evidence about a street at three on a Tuesday afternoon, and no clinician has ever assessed a patient's need by reference to one.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "small-counts-are-suppressed-on-the-existing-floor",
+     "must": "A count below packages/catalog/programmes.json#floor.minimumCohort for its zone and period is suppressed, and no zone renders a figure that suppression has left as the only one visible.",
+     "why": "The floor is derived rather than restated because the product already has one, already argues for it in writing, and already holds it to the secondary rule that stops a single suppressed cell being recovered by subtraction from a published total. A crime count identifies more sharply than a survey cell: three offences in one suburb in one quarter is a list residents could complete from memory, and the people in it may be patients of this service. If twelve is the wrong number for this subject, the correction is made to the floor with an Information Officer's name beside it — not by typing a second, different number here, which is the drift the floor exists to prevent.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "the-period-travels-with-the-count-or-the-count-is-not-drawn",
+     "must": "period and publishedAt are carried through to whatever renders a count, and a figure from a closed period is labelled with that period rather than presented as current.",
+     "why": "The same failure as a position with no clock and a grid stage with no age, one subject away — and the subject makes it worse, because a nurse who is told an area is dangerous acts on it and a nurse who is told an area was dangerous eighteen months ago does not. Enforced as a condition rather than left to the renderer because the renderer is the part that gets rewritten.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "the-information-officer-has-cleared-a-crime-layer-on-a-clinical-board",
+     "must": "A signed DPIA covers drawing crime statistics over the residential areas this service's patients live in, and an Information Officer has approved it. Neither exists: docs/PRIVACY-AND-SECURITY.md records the post as unfilled.",
+     "why": "Nothing in this feed is personal information, which is precisely why it is easy to assume nothing here needs clearing. The artefact is nonetheless a health service publishing crime statistics over the neighbourhoods it visits, to its own nurses, on a clinical screen — and the harm falls on the communities named rather than on a data subject, which is the kind of harm a DPIA exists to surface and a schema check structurally cannot. A service that stigmatises the areas it serves loses the patients it was built for, and it manages that before anybody has broken a rule about personal information.",
+     "met": false,
+     "evidence": null
+    },
+    {
+     "id": "the-operator-question-is-re-asked-of-the-supplier-who-is-signed",
+     "must": "Whoever is signed is assessed against POPIA section 21 on the day the contract is read, and the answer is recorded against that supplier rather than inherited from this feed's default.",
+     "why": "This is the one feed in the file that records becomesAnOperator as false, and that answer is about SAPS as a publisher rather than about a supplier. Reading a published national statistic engages no operator: no personal information is processed on this service's behalf, and the feed is a read rather than a delivery under contract. A contracted aggregator is a different arrangement — it would hold a derived dataset, deliver it under a key, and may process it outside South Africa, which raises section 72 on a fact this feed cannot know yet. The default is recorded because it is true of the source that publishes the data, and this condition exists because it may not be true of whoever is signed.",
+     "met": false,
+     "evidence": null
+    }
+   ],
+   "neverAccepts": [
+    {
+     "field": "riskScore",
+     "refusal": "A crime-statistics feed may not carry a risk rating, a score or an index.",
+     "why": "The count is what was measured. A score is somebody's conclusion about it, and it arrives looking like data — which is how a residential area ends up carrying a number no clinician set, nobody can interrogate, and a dispatcher obeys. It also arrives from a supplier, so the conclusion would be owned by a company in another country with no accountability to a patient in this one.",
+     "also": [
+      "riskLevel",
+      "dangerLevel",
+      "safetyScore",
+      "zoneRisk",
+      "threatLevel",
+      "dangerIndex",
+      "severityScore",
+      "crimeIndex"
+     ]
+    },
+    {
+     "field": "recommendation",
+     "refusal": "A crime-statistics feed may not carry a recommendation about how or whether a visit should happen.",
+     "why": "Physical, virtual or deferred is a decision about a named patient and it belongs to a clinician or a dispatcher who can see the visit, with the override recorded against the person who made it. A recommendation arriving from a supplier is a decision taken by nobody in this country about somebody who is ill, with no clinician accountable for it and no way to appeal it — and it would land hardest on the zones with the worst statistics, which are the zones this product exists to serve. Refusing it at the door is what keeps the switch-on condition above a fact rather than an intention.",
+     "also": [
+      "deployMode",
+      "modeRecommendation",
+      "physicalOrVirtual",
+      "deferReason",
+      "avoidZone",
+      "noGoArea",
+      "restrictedArea",
+      "doNotDispatch",
+      "cancelReason"
+     ]
+    },
+    {
+     "field": "caseNumber",
+     "refusal": "A crime-statistics feed may not carry a police case or docket reference.",
+     "why": "A case number is a key into a police docket about a named victim. A health service holding one has taken custody of a criminal-justice record it has no purpose for, no lawful basis for and no retention rule for — and the day somebody joins it to a patient is the day this product holds the fact that a patient reported a crime, which is special personal information arrived through a door opened for a population statistic. Nothing downstream of this feed may ever be able to do that, and a reference is how it would be done.",
+     "also": [
+      "caseNo",
+      "caseReference",
+      "docketNumber",
+      "incidentId",
+      "incidentReference",
+      "crimeReference",
+      "stationCaseNumber",
+      "policeReference",
+      "casNumber"
+     ]
+    },
+    {
+     "field": "narrative",
+     "refusal": "A crime-statistics feed may not carry free text.",
+     "why": "The only strings that reach a refusal log in this service are strings this contract already holds, and free text from a police record is the case that rule exists for: it can carry a name, an address, a victim's account and a witness's, none of which any shape check would notice, because every one of them is a perfectly valid string. A statistic arrives as a number and an account arrives as a sentence, and the sentence is the record.",
+     "also": [
+      "description",
+      "details",
+      "summary",
+      "notes",
+      "incidentDescription",
+      "remarks",
+      "comment",
+      "freeText",
+      "circumstances"
+     ]
+    },
+    {
+     "field": "victim",
+     "refusal": "A crime-statistics feed may not carry anything about the people in an incident.",
+     "why": "Small counts of victims in a small area are not aggregate: four assaults in one suburb in one quarter is a list residents could complete from memory, and the people on it may be patients of this service. It is also special personal information about them arriving through a door opened for a published statistic, with no DPIA and no retention rule behind it. The count this feed carries is a count of offences SAPS has published, and that is where the aggregation has to stop.",
+     "also": [
+      "victimCount",
+      "victimAge",
+      "victimGender",
+      "victimIdentity",
+      "perpetrator",
+      "suspect",
+      "arrestCount",
+      "personsInvolved",
+      "injuredCount",
+      "deceasedCount",
+      "casualties"
+     ]
+    },
+    {
+     "field": "address",
+     "refusal": "A crime-statistics feed may not carry an address or a coordinate.",
+     "why": "geography.json's first rule is that a map here plots suburbs and never addresses, because a home address beside a health service is a diagnosis with a doorstep. A coordinate in this feed would let a crime count be joined to a house, and the only reason to join them is the reason the zone grain exists to prevent. This feed takes the zone and nothing finer, which is what makes it structurally incapable of drawing a pin.",
+     "also": [
+      "streetAddress",
+      "homeAddress",
+      "residentialAddress",
+      "formattedAddress",
+      "coordinates",
+      "latitude",
+      "longitude",
+      "geoPoint",
+      "geometry",
+      "polygon",
+      "lat",
+      "lng"
+     ]
+    },
+    {
+     "field": "precinct",
+     "refusal": "A crime-statistics feed may not carry a geography finer than a zone.",
+     "why": "SAPS publishes per police station and a station's catchment is not a suburb: Soweto spans several and Randburg's edges match neither. Accepting that grain would mean the attribution of a count to a community arrives already decided, by a boundary nobody here drew and nobody here can audit — and the join is exactly the kind of decision the switch-on conditions require a named person to own. Refused at the door so that it has to be made in the open.",
+     "also": [
+      "policeStation",
+      "stationCode",
+      "station",
+      "ward",
+      "suburb",
+      "subplace",
+      "municipality",
+      "districtCode",
+      "saCode",
+      "censusSubplace",
+      "precinctCode"
+     ]
+    },
+    {
+     "field": "patientId",
+     "refusal": "A crime-statistics feed may not carry a patient id.",
+     "why": "A published statistic is a fact about a population. Binding it to a person makes it a record that somebody who is ill lives in an area with a crime count, and that pair — held by this service or by a supplier — is a list of the patients this product would be least willing to visit, which is the list it exists to have no reason to keep.",
+     "also": [
+      "patient",
+      "patientRef",
+      "patientReference",
+      "subjectId",
+      "beneficiaryId",
+      "memberId"
+     ]
+    },
+    {
+     "field": "visitId",
+     "refusal": "A crime-statistics feed may not name a visit.",
+     "why": "The same fact one indirection away. A visit reference resolves to a patient and an address for anybody holding both feeds, which is what nurse-position refuses for the same reason — and here the join would produce the one sentence this feed must never be able to make: a named patient, at a named house, in a zone with a count.",
+     "also": [
+      "visit",
+      "visitRef",
+      "visitReference",
+      "bookingId",
+      "jobId"
+     ]
+    }
+   ],
+   "operator": {
+    "becomesAnOperator": false,
+    "section72": "SAPS as the publisher of national crime statistics is not an operator under POPIA section 21: nothing is processed on MyThuso's behalf, no personal information is involved on either side of it, and the feed is a read of a published statistic rather than a delivery under contract. No section 72 question therefore arises from reading it, and none is determined. This is the one feed in the file that records it that way, and it does so because the alternative — naming an operator and an undetermined transfer for a public statistical release — would assert an arrangement that does not exist, which is the specific thing _supplierNote says this file refuses to do. A contracted reseller is a different arrangement and re-raises both questions, which is what the re-asking condition above is for.",
     "determined": false
    }
   }

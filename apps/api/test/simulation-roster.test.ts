@@ -7,7 +7,7 @@
  * refuses nothing is a fixture with a label on it, and a refusal nothing exercises is a comment.
  *
  * The shape is checked by running what comes out through the real door. `decide` is the ingestion
- * boundary the eleven feeds sit behind: it refuses everything, and *which* refusal it gives is the
+ * boundary the feeds sit behind: it refuses everything, and *which* refusal it gives is the
  * assertion — `not-connected` is the answer reserved for a payload that was well-formed, carried no
  * forbidden field, no unknown field, nothing missing and nothing of the wrong type. So one call
  * proves the whole schema, against the code a real supplier will meet rather than against a copy of

@@ -26,9 +26,9 @@
  * bootstrap — takes an authorisation somebody minted at a console, is spent once, and leaves every
  * check it decided marked as standing on it until a real reviewer looks again.
  *
- * Not real: no credential is confirmed by an issuing authority. Eleven of the twelve authorities in
- * packages/catalog/vetting.json cannot be asked at all — no API exists, or one exists behind an
- * agreement or an accreditation MyThuso does not hold — and the twelfth, Home Affairs through an
+ * Not real: no credential is confirmed by an issuing authority. Every authority in
+ * packages/catalog/vetting.json but one cannot be asked at all — no API exists, or one exists behind an
+ * agreement or an accreditation MyThuso does not hold — and the one that could be, Home Affairs through an
  * accredited provider, has an adapter built and no contract behind it. "Verified" means a named
  * reviewer looked at a document the platform can still produce and said so. That is a workflow, and
  * it is worth having — but it is not the register confirming anything, and this module never says
@@ -798,8 +798,8 @@ export class VettingVault {
  /**
   * Which checks are owed an authority answer, and why.
   *
-  * Three reasons, kept apart because they call for different things. Nobody has ever asked, which
-  * for eleven of the twelve authorities is permanent and honest. The last answer has aged past the
+ * Three reasons, kept apart because they call for different things. Nobody has ever asked, which
+ * for every authority but the one with an adapter is permanent and honest. The last answer has aged past the
   * check's own renewal cadence, which is the case a lapsed registration hides in. And the answer
   * stated an expiry that has now passed, which is the authority itself having said when it would
   * stop being true.

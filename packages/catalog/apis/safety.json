@@ -3,7 +3,7 @@
  "_note": "Safety is the nurse in the field and the patient in trouble: visit check-in timers, panic with a time-bound live location, patient SOS, next-of-kin nomination and alerting, safeguarding reports, Sentinel deviations at tiers one to three, and the security incident register the identity service already keeps. Wave 2 contract; Waves 3 to 5 build.",
  "version": 1,
  "resources": ["checkins", "panics", "sos", "next-of-kin", "safeguarding-reports", "sentinel-deviations", "sentinel-baselines", "incident-kinds", "incidents", "settings", "setting-changes", "setting-reviews", "overdue-checkins", "desk-queue"],
- "doors": ["emergency-acknowledgement"],
+ "doors": ["emergency-acknowledgement", "crime-statistics"],
  "doorsToAdd": [],
  "refusals": [
   {"id": "dispatch-without-a-human", "status": 409, "statement": "Nothing is dispatched without a human, except for an unresponsive patient or an SOS.", "why": "High specificity for dispatching paramedics; a human confirms (§13). Which dispatch happens without a human, and which does not, is packages/catalog/sos-press.json engine.dispatchWithoutAHuman. POST /v1/safety/sos@2 answers it for a fall or a crash a phone noticed with nobody pressing: that is not an SOS, and it does not show a patient is unresponsive.", "answeredBy": ["POST /v1/safety/sos@2"]},

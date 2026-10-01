@@ -3,8 +3,8 @@
  *
  * ── Why a module and not a function ──────────────────────────────────────────────────────────
  *
- * MyThuso already knows who may do what: packages/catalog/vetting.json holds twelve roles and
- * twenty capabilities, and `can()` answers in one call. What it has never had is a single place
+ * MyThuso already knows who may do what: packages/catalog/vetting.json holds the roles and the
+ * declared capabilities, and `can()` answers in one call. What it has never had is a single place
  * that *enforces* the answer. A survey of the sibling projects found the same hole in all three of
  * them, and one of them had already paid for it — its own comment reads "a hundred and sixty-seven
  * mutating routes and a check remembered on some of them". A rule remembered on some of them is not

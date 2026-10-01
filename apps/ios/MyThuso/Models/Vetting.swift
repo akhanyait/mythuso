@@ -89,7 +89,7 @@ struct VettingGateNote: Hashable {
 }
 
 enum Vetting {
-    /* The capabilities, the issuing authorities and their credential formats, the thirteen roles
+    /* The capabilities, the issuing authorities and their credential formats, the vetted roles
        with their refusal sentences and checks, and the scopes of practice are generated into
        VettingData.swift from packages/catalog/vetting.json. Everything below is the reasoning
        about that table, which is not data and is not generated. */

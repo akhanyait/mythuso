@@ -107,11 +107,11 @@ export const capabilities: readonly FirstViewCapability[] = [
   "state": "simulated",
   "notice": "No credential on this screen has been confirmed with the body that issued it. A reviewer has looked at a document the applicant supplied, which is not the same thing.",
   "blockedBy": [
-   "An agreement or accreditation with each of the thirteen authorities. All thirteen adapters answer not-integrated.",
+   "An agreement or accreditation with every authority vetting.json names. Every adapter answers not-integrated.",
    "A contracted identity provider for the identity check."
   ],
   "simulation": {
-   "supplier": "Simulated answers from the thirteen authorities, in process.",
+   "supplier": "Simulated answers from the issuing authorities, in process.",
    "notice": "Credential answers are simulated. No authority has been asked, and a cleared result here confirms nothing.",
    "refuses": [
     "Answer for a registration number that is not in the simulated register.",

@@ -241,7 +241,7 @@ describe('the shape is closed', () => {
 });
 
 describe('what a vendor is handed', () => {
-  test('GET /feeds describes all eleven and admits it holds nothing', async () => {
+  test('GET /feeds describes all of them and admits it holds nothing', async () => {
     const body = await (await get('/feeds')).json() as { holds: string; feeds: { id: string; connected: boolean }[]; noSeam: unknown[] };
     assert.match(body.holds, /refuses every payload/);
     assert.equal(body.feeds.length, FEEDS.length);

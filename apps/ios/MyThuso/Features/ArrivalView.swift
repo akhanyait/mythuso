@@ -19,7 +19,7 @@ import SwiftUI
  * map with a spinner would have been easier to build and would have taught her the screen is
  * broken.
  *
- * Nothing here is connected. dispatch is one of fifteen capabilities and none of them is; no nurse
+ * Nothing here is connected. dispatch is one of the declared capabilities and none of them is; no nurse
  * device is read, no position is requested from this phone, no location permission is declared by
  * this target, and every coordinate on the screen is a suburb centre out of
  * packages/catalog/geography.json. */

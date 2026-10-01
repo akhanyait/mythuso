@@ -99,12 +99,12 @@ extension Capabilities {
         Capability(id: "credential-verification", name: "Confirming a credential with the body that issued it", connected: false,
                    evidence: "apps/api/src/vetting/authority.ts",
                    blockedBy: [
-                       "An agreement or accreditation with each of the thirteen authorities. All thirteen adapters answer not-integrated.",
+                       "An agreement or accreditation with every authority vetting.json names. Every adapter answers not-integrated.",
                        "A contracted identity provider for the identity check."
                    ],
                    notice: "No credential on this screen has been confirmed with the body that issued it. A reviewer has looked at a document the applicant supplied, which is not the same thing.",
                    state: "simulated",
-                   simulation: Simulation(supplier: "Simulated answers from the thirteen authorities, in process.",
+                   simulation: Simulation(supplier: "Simulated answers from the issuing authorities, in process.",
                                               notice: "Credential answers are simulated. No authority has been asked, and a cleared result here confirms nothing.",
                                               refuses: [
                                                   "Answer for a registration number that is not in the simulated register.",
@@ -411,7 +411,7 @@ extension Capabilities {
                        statement: "A simulated capability renders its simulation notice, word for word, wherever the absent notice would have rendered. No screen may be quieter for being simulated than it was for being absent.",
                        why: "The failure mode is not a screen that lies. It is a screen that stops speaking: the sentence goes away because something now answers, and nobody notices that what answers is a fixture. Silence is the disclosure failure, so the notice never disappears until the state is connected."),
         CapabilityRule(id: "a-simulation-is-not-reachable-from-the-network",
-                       statement: "No simulator may be reached over HTTP. The eleven feed routes go on refusing every payload, and a simulated event enters in process through a function of its own.",
+                       statement: "No simulator may be reached over HTTP. Every feed route goes on refusing every payload, and a simulated event enters in process through a function of its own.",
                        why: "apps/api/src/feeds/index.ts argues that a route which could accept under some condition is a route somebody finds the condition for, usually late at night with a vendor on the phone. A simulation flag on those routes would be exactly that condition. So `decide` still has no acceptance to construct, and the simulators sit beside the boundary rather than inside it."),
         CapabilityRule(id: "voice-is-on-device",
                        statement: "`voice` alone is on-device: the phone recognises speech, GilbertOne answers from a contract, and nothing is connected.",

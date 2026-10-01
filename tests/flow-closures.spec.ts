@@ -16,7 +16,7 @@ import { goSection, openDestination, openWorkspace } from './nav';
  * a screen — a card, a document row, a button on a queue — which no navigation walk can see.
  *
  * What is asserted is that the journey continues and that it continues to the right thing. Nothing
- * here reads a capability notice: fifteen capabilities are declared and none is connected, and a
+ * here reads a capability notice: every capability is declared and none is connected, and a
  * screen that finishes by saying so is finished. */
 
 const patientTab: Record<string, string> = {

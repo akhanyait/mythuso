@@ -1,6 +1,6 @@
 /* The vetting table, written out for two native apps, by a machine.
 
-   Thirteen roles, seventy-six checks, twenty-one capabilities, thirteen issuing authorities and
+   The roles, the checks, the capabilities, the issuing authorities and
    every refusal sentence live in packages/catalog/vetting.json. The web reads that file. iOS and Android cannot,
    and should not: an app that parses JSON to draw a list is a web app wearing a Compose hat. So the
    table was hand-mirrored into Swift and Kotlin and a boundary check compared roughly two hundred

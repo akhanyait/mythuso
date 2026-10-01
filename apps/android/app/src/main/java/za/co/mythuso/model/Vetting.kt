@@ -51,7 +51,7 @@ data class VettingRole(
     val summary: String, val grants: List<VettingGrant>, val checks: List<VettingCheck>
 )
 
-/* The capabilities, the issuing authorities and their credential formats, the thirteen roles with
+/* The capabilities, the issuing authorities and their credential formats, the vetted roles with
    their refusal sentences and checks, and the scopes of practice are generated into VettingData.kt
    from packages/catalog/vetting.json. Everything in this file is the reasoning about that table,
    which is not data and is not generated. */

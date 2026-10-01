@@ -667,7 +667,7 @@ Somebody will open this link tonight and some of them will be deciding whether t
 find has to be the same honesty the app carries everywhere else.
 
 **It does not do anything yet.** Nothing is connected. `packages/catalog/capabilities.json` declares
-fifteen capabilities — accounts, booking, payments, payouts, credential verification, dispatch,
+the capabilities — accounts, booking, payments, payouts, credential verification, dispatch,
 clinical records, teleconsultation, screening, voice, devices, dispensing, interpreting, messaging,
 emergency — and **not one of them is live**. No visit can be booked, no payment taken, no clinical
 decision issued, no device contacted, and nobody can sign in. Every screen that could be mistaken

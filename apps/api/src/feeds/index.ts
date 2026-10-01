@@ -1,9 +1,16 @@
 /**
- * The ingestion boundary: eleven doors that are all locked, and each one says which lock.
+ * The ingestion boundary: one locked door per feed in packages/catalog/feeds.json, and each one
+ * says which lock. How many of them there are is written down nowhere, and that is deliberate. It
+ * used to be written down — the first line of this file carried a number — and the number stayed
+ * the same across every feed added after it, until the count was wrong in eight files and in two
+ * error messages a developer would have read at the moment they were debugging something else. A
+ * number that lives in prose drifts without failing anything, so
+ * scripts/check-boundaries.mjs fails the build when one comes back: see the check
+ * `a-door-count-lives-in-the-contract`.
  *
  * ── What this is ─────────────────────────────────────────────────────────────────────────────
  *
- * Fifteen capabilities are declared and none is connected. Most of them are blocked on something no
+ * Every capability is declared and none is connected. Most of them are blocked on something no
  * engineer can produce — an SMS provider, a payment provider, a nurse roster, live device positions,
  * agreements with thirteen credentialing authorities, a pharmacy network, an interpreter service, an
  * ambulance partner, a media stack, an AI licence. Nobody can sign a contract from inside a

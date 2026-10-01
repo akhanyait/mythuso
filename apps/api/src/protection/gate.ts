@@ -3,8 +3,8 @@
  *
  * ── Why this file exists at all ──────────────────────────────────────────────────────────────
  *
- * MyThuso has known who may do what since packages/catalog/vetting.json was written: twelve roles,
- * twenty capabilities, and `can()` answering with the refusal sentence already composed. What it
+ * MyThuso has known who may do what since packages/catalog/vetting.json was written: the roles, the
+ * declared capabilities, and `can()` answering with the refusal sentence already composed. What it
  * has never had is one place that enforces the answer. The sibling project that counted found "a
  * hundred and sixty-seven mutating routes and a check remembered on some of them", and a rule
  * remembered on some of them is not a rule — it is a habit, and habits are what a tired person on a
