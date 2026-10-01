@@ -37897,6 +37897,26 @@ console.log(
   );
 }
 
+/* The nurse's shift actions are doors into her own workspace, so each is named by a section her rail
+   draws. NurseShiftActions keeps only the cards `has(id)` knows, and drops the rest without a sound:
+   'Resources' sat in the list as a card nobody ever saw, beside the rail's 'Clinical resources'. The
+   ids are compared as source expressions, so a heading read from a contract is held to the same
+   expression the rail reads it through. */
+{
+  const landing = read("apps/web/src/features/NurseLanding.tsx");
+  const shell = read("apps/web/src/shells/StaffShell.tsx");
+  const between = (source, from, to) => source.indexOf(from) < 0 || source.indexOf(to) < 0 ? "" : source.slice(source.indexOf(from), source.indexOf(to));
+  const ids = (block) => [...block.matchAll(/^\s*\{ id: ([^,]+),/gm)].map((m) => m[1].trim());
+  const actionIds = ids(between(landing, "const actions:", "export function NurseShiftActions"));
+  const sectionIds = new Set(ids(between(shell, "Nurse: { subjectId:", "Doctor: { subjectId:")));
+  if (!actionIds.length || !sectionIds.size)
+    throw new Error("This check can no longer read NurseLanding.tsx's shift actions or StaffShell.tsx's nurse sections. Point it at where they went rather than deleting it.");
+  for (const id of actionIds)
+    if (!sectionIds.has(id))
+      throw new Error(`apps/web/src/features/NurseLanding.tsx offers the shift action ${id}, which is not a section of the nurse's workspace in apps/web/src/shells/StaffShell.tsx. has(id) filters it out, so the card is never drawn: name it by the section it opens.`);
+  console.log(`The nurse's shift actions · ${actionIds.length} cards, each a section on her rail.`);
+}
+
 /* Wave 3b — GilbertOne on the identity */
 /* 28 September 2026. The Lovable handoff's official GilbertOne logo — the seated character above the
    name — replaces the five SVG cuts drawn that morning, and the rig is recoloured to the same

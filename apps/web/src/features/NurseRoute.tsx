@@ -42,9 +42,10 @@ export function NurseRoute({ nurseId }: { nurseId: string }) {
  const stops = nurseDayStops(queue);
  const nurse = nurseById(nurseId);
  const base = nurse?.zone;
- /* The stop she is on the way to, which is the first not yet signed off; the last stop once every one is. */
+ /* The stop she is on the way to, which is the first not yet signed off; the last stop once every one is,
+    and none on a day with no stops — which draws the map and the counts and no card, rather than throwing. */
  const next = stops.find(stop => !stop.signed);
- const [chosen, setChosen] = useState<number>((next ?? stops[stops.length - 1]).number);
+ const [chosen, setChosen] = useState<number>((next ?? stops.at(-1))?.number ?? 0);
  const [legsOn, setLegsOn] = useState(true);
  const [range, setRange] = useState<'Day' | 'Week'>('Day');
  /* Asked of the routing module rather than written here, so the day a provider is connected this
@@ -60,8 +61,11 @@ export function NurseRoute({ nurseId }: { nurseId: string }) {
   .filter((row): row is { stop: NurseStop; zone: Zone } => Boolean(row.zone));
  /* Base first, then every stop in order: each leg is the straight line between two suburb centres,
     measured by packages/geo and drawn dashed. */
- const points = [...(base ? [{ name: base.name, zone: base }] : []), ...placed.map(row => ({ name: row.stop.suburb, zone: row.zone }))];
+ const points: { name: string; zone: Zone; stop?: number }[] = [...(base ? [{ name: base.name, zone: base }] : []), ...placed.map(row => ({ name: row.stop.suburb, zone: row.zone, stop: row.stop.number }))];
  const legs = points.slice(1).map((to, i) => ({ from: points[i], to, km: distanceKm(points[i].zone.at, to.zone.at) }));
+ /* A leg is found by the stop it ends at. The legs are built from the placed stops only, so a stop whose
+    suburb the geography does not know has no leg in, and the stop after it is not handed its neighbour's. */
+ const legInto = (stop: NurseStop) => legs.find(leg => leg.to.stop === stop.number);
  /* A leg inside one suburb is nought kilometres between one centre and itself: it is said in words
     on the list and not drawn, because a dashed line of no length is a dot that means nothing. */
  const links: MapLink[] = legs.filter(leg => leg.km >= 0.05).map(leg => ({ from: leg.from.zone.at, to: leg.to.zone.at }));
@@ -80,12 +84,10 @@ export function NurseRoute({ nurseId }: { nurseId: string }) {
   }))
  ];
  const summary = `Map of your day. ${base ? `Your base is drawn at the centre of ${base.name}. ` : ''}${placed.map(({ stop }) => `Stop ${stop.number} at the centre of ${stop.suburb}`).join(', ')}.${legsOn && legs.length ? ` Dashed straight lines join them in order, ${km(totalKm)} in all; they are not a road route.` : ''}`;
- const selected = stops.find(stop => stop.number === chosen) ?? stops[0];
- /* The leg into a stop: with a base, leg k ends at stop k; without one, the first stop has no leg in. */
- const legInto = (index: number) => legs[index + (base ? 0 : -1)];
- const legTo = legInto(stops.indexOf(selected));
+ const selected: NurseStop | undefined = stops.find(stop => stop.number === chosen) ?? stops[0];
+ const legTo = selected && legInto(selected);
 
- const card = <article className="nurse-route__card" aria-live="polite">
+ const card = selected && <article className="nurse-route__card" aria-live="polite">
   <span className="nurse-route__num" aria-hidden="true">{selected.number}</span>
   <div className="nurse-route__card-say">
    <p className="nurse-eyebrow">Stop {selected.number} of {stops.length}</p>
@@ -116,8 +118,9 @@ export function NurseRoute({ nurseId }: { nurseId: string }) {
    <Card padding="md" className="nurse-route__map nurse-map-panel">
     <div className="nurse-route__map-head">
      <div><h2>Today's map</h2><p>Your base and {stops.length} stops</p></div>
+     {/* One name and its pressed state: a label that swaps to say the opposite makes "pressed" mean the reverse of what it reads. */}
      <Button variant="secondary" size="sm" aria-pressed={legsOn} onClick={() => setLegsOn(!legsOn)} leadingIcon={<RouteIcon aria-hidden="true"/>}>
-      {legsOn ? 'Hide the straight legs' : 'Show the straight legs'}
+      Straight legs
      </Button>
     </div>
     <LiveMap markers={markers} summary={summary} surface="staff" title="" links={legsOn ? links : []}
@@ -136,8 +139,8 @@ export function NurseRoute({ nurseId }: { nurseId: string }) {
      {range === 'Day' ? <ol className="nurse-route__stops">
       {base && <li className="nurse-route__base"><span className="nurse-route__num is-base" aria-hidden="true"><Home/></span>
        <span><strong>Your base</strong><small>{base.name} · where the day's first leg is measured from</small></span></li>}
-      {stops.map((stop, i) => {
-       const leg = legInto(i);
+      {stops.map(stop => {
+       const leg = legInto(stop);
        return <li key={stop.number}>
         {leg && <p className="nurse-route__leg"><span aria-hidden="true"/>{legWords(leg)}</p>}
         <button type="button" className={`nurse-route__stop${stop.number === chosen ? ' is-chosen' : ''}${stop.signed ? ' is-signed' : ''}`}

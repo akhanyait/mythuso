@@ -76,7 +76,9 @@ export function NurseDayTiles({ go, nurseId }: { go: (id: string) => void; nurse
 /* The export's "shift actions": an icon tile, a title, one line and an arrow, in place of the text pills.
    Each goes to its destination in the workspace. The line under each title says what is behind it now,
    including where the answer is that nothing is — a card that promised an inbox would be the export's
-   fiction with a nicer border. The `tool-link` class stays so the journeys that find these by it still do. */
+   fiction with a nicer border. The `tool-link` class stays so the journeys that find these by it still do.
+   Each id is the name of a section on her rail, because `has` drops any card that is not one, silently;
+   scripts/check-boundaries.mjs holds the list to the rail's names. */
 const actions: { id: string; icon: ComponentType<{ 'aria-hidden'?: boolean }>; note: string }[] = [
  { id: 'Route map', icon: MapPin, note: 'Today’s stops, numbered, at suburb centres' },
  { id: 'Safety & alerts', icon: ShieldAlert, note: 'Your timer, Sentinel and the kit in one place' },
@@ -85,7 +87,7 @@ const actions: { id: string; icon: ComponentType<{ 'aria-hidden'?: boolean }>; n
  { id: 'Messages', icon: MessageSquare, note: 'Not connected. Nothing here sends' },
  { id: 'Locum shifts', icon: Briefcase, note: 'A register of its own, not open yet' },
  { id: 'Academy', icon: GraduationCap, note: 'Not drawn yet, and never a vetting check' },
- { id: 'Resources', icon: BookOpen, note: 'Protocols and the published library' }
+ { id: 'Clinical resources', icon: BookOpen, note: 'Protocols and the published library' }
 ];
 
 export function NurseShiftActions({ go, has }: { go: (id: string) => void; has: (id: string) => boolean }) {

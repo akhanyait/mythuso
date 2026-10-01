@@ -28,7 +28,11 @@ const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 export const nextVisit = (state: State): Appointment | undefined =>
  [...state.appointments].filter(a => !terminal(a.status)).sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt))[0];
 
-/* Four counted tiles and the next care action, above the care queue. */
+/* Four counted tiles and the next care action, above the care queue.
+   The visits tile counts the sandbox's appointments for every clinician, the doctor's included, and is
+   named for that. It sits on her Schedule beside the deck's "Today's visits" and the day tiles' "Visits
+   today", which count her own day from a different list; a third tile under the same words would
+   disagree with them by the evening, and a reader would be right to believe whichever came first. */
 export function NursePatientsSummary({ state, onChoose }: { state: State; onChoose: (patientId: string) => void }) {
  const today = dayKey(new Date());
  const consentOutstanding = state.patients.filter(p => !p.consent).length;
@@ -39,7 +43,7 @@ export function NursePatientsSummary({ state, onChoose }: { state: State; onChoo
  const tiles = [
   { icon: Users, value: state.patients.length, label: 'On the care queue', note: 'Fictional sandbox patients' },
   { icon: ShieldAlert, value: consentOutstanding, label: 'Consent outstanding', note: consentOutstanding ? 'Nothing is recorded for them until it is given' : 'Every patient has given it' },
-  { icon: CalendarDays, value: visitsToday, label: 'Visits today', note: 'Booked on the sandbox for today' },
+  { icon: CalendarDays, value: visitsToday, label: 'Sandbox visits today', note: 'Every clinician’s, booked on the sandbox for today' },
   { icon: ClipboardCheck, value: signed, label: 'Encounters signed', note: 'Signed by a doctor, and locked' }
  ];
  return <div className="nurse-patients nurse-ui">

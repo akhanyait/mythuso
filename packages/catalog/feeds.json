@@ -3058,7 +3058,15 @@
       "streetAddress",
       "homeAddress",
       "residentialAddress",
-      "formattedAddress"
+      "formattedAddress",
+      "coordinates",
+      "latitude",
+      "longitude",
+      "geoPoint",
+      "geometry",
+      "polygon",
+      "lat",
+      "lng"
      ]
     },
     {

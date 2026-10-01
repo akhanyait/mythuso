@@ -46,9 +46,11 @@ function Strip({ figures, label }: { figures: readonly Figure[]; label: string }
  return <div className="dp-strip" aria-label={label}>{figures.map((f, i) =>
   <MetricCard key={f.label} className={i === 0 ? 'is-lead' : undefined} label={f.label} value={f.value} trend={f.trend}/>)}</div>;
 }
-function Head({ title, intro, children, level = 'h1' }: { title: string; intro?: ReactNode; children?: ReactNode; level?: 'h1' | 'h2' }) {
+/* `id` is what the page's section names itself by (aria-labelledby): without it the label points at
+   nothing, and a screen reader announces the region with no name at all. */
+function Head({ title, intro, children, level = 'h1', id }: { title: string; intro?: ReactNode; children?: ReactNode; level?: 'h1' | 'h2'; id?: string }) {
  const Title = level;
- return <div className="dp-head"><div><Title>{title}</Title>{intro && <p>{intro}</p>}</div>{children}</div>;
+ return <div className="dp-head"><div><Title id={id}>{title}</Title>{intro && <p>{intro}</p>}</div>{children}</div>;
 }
 function Empty({ title, children }: { title: string; children: ReactNode }) {
  return <p className="dp-empty"><strong>{title}</strong>{children}</p>;
@@ -121,7 +123,7 @@ export function DoctorPatients({ open }: { open: (s: string) => void }) {
  const rows = patients.filter(p => !q || [p.name, p.id, ...shown(p)].some(text => text.toLowerCase().includes(q)));
  return <div className="dp-split">
   <section className="dp-master" aria-labelledby="dp-patients">
-   <Head title="Patient context" intro="Your patients, and the file of the one you choose."/>
+   <Head id="dp-patients" title="Patient context" intro="Your patients, and the file of the one you choose."/>
    <div className="dp-search">
     <label htmlFor="dp-patient-search"><Search size={14} aria-hidden="true"/> Search patients</label>
     <Input id="dp-patient-search" type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Name, reference or condition"/>
@@ -155,7 +157,7 @@ export function DoctorRecordsList() {
  const sectionsOn = filed.reduce((sum, { c }) => sum + consultationSections.filter(s => c.sections.includes(s.id)).length, 0);
  const waiting = sandbox.filter(c => c.status !== 'signed').length;
  return <section className="dp-page" aria-labelledby="dp-records">
-  <Head title="Consultation records" intro="Every record you may read, across your patients, and the sandbox encounters still open. A new record is written in the frame below."/>
+  <Head id="dp-records" title="Consultation records" intro="Every record you may read, across your patients, and the sandbox encounters still open. A new record is written in the frame below."/>
   <Strip label="The records, counted" figures={[
    { label: 'Records on this list', value: String(filed.length + sandbox.length), trend: `${filed.length} on file · ${sandbox.length} in the sandbox` },
    { label: 'Sections recorded', value: String(sectionsOn), trend: `Of ${filed.length * consultationSections.length} across the ${filed.length} records on file` },
@@ -252,7 +254,7 @@ export function DoctorPrescriptionsList() {
  const mine = s.prescriptions.filter(p => p.prescriberRef === DOCTOR);
  const unchecked = mine.filter(p => p.prescribeCheckOutcomeCode === 'not-checked').length;
  return <section className="dp-page" aria-labelledby="dp-prescriptions">
-  <Head title={medicinesWords.prescribe.heading} intro="What you have prescribed in this session, by reference and state, and the prescription you write next."/>
+  <Head id="dp-prescriptions" title={medicinesWords.prescribe.heading} intro="What you have prescribed in this session, by reference and state, and the prescription you write next."/>
   <Strip label="Your prescriptions, counted" figures={[
    { label: 'Prescribed this session', value: String(mine.length), trend: mine.length ? `${mine.filter(p => stateOf(p) === 'prescribed').length} waiting for a pharmacist` : 'None yet' },
    { label: 'Verified by a pharmacist', value: String(mine.filter(p => p.verifiedAt !== null).length), trend: 'By a pharmacist who is not you' },
@@ -281,7 +283,8 @@ export function DoctorResultsStrip() {
  const mine = s.results.filter(r => r.responsibleRef === DOCTOR);
  const open = s.orders.filter(o => labStateOf(o) !== 'closed');
  return <>
-  <Head title={medicinesWords.results.heading} intro={medicinesWords.results.intro}/>
+  {/* No intro: LabResults beneath opens with the same sentence, and a page that says it twice reads as two pages. */}
+  <Head title={medicinesWords.results.heading}/>
   <Strip label="Your results, counted" figures={[
    { label: 'To acknowledge', value: String(mine.filter(r => r.acknowledgedAt === null).length), trend: 'Ordered by you, not yet acknowledged' },
    { label: 'Acknowledged', value: String(mine.filter(r => r.acknowledgedAt !== null).length), trend: 'By your own press, on this screen' },
@@ -298,7 +301,7 @@ export function DoctorReferralsList() {
  const rows = patients.flatMap(p => p.referrals.filter(listable).map(r => ({ r, patient: p })));
  const accepted = rows.filter(({ r }) => r.status.startsWith('Accepted')).length;
  return <section className="dp-page" aria-labelledby="dp-referrals">
-  <Head title="Referrals" intro="Every referral on your patients’ files, and where a case can go from here."/>
+  <Head id="dp-referrals" title="Referrals" intro="Every referral on your patients’ files, and where a case can go from here."/>
   <Strip label="The referrals, counted" figures={[
    { label: 'Referrals on file', value: String(rows.length), trend: `Across ${new Set(rows.map(({ patient }) => patient.id)).size} of ${patients.length} files` },
    { label: 'Accepted', value: String(accepted), trend: `${rows.length - accepted} not accepted yet` },
@@ -341,7 +344,7 @@ export function DoctorReports({ go }: { go?: (id: string) => void }) {
  const signedToday = inbox.ok ? inbox.rows.filter(r => r.signedAt !== null && r.signedAt !== undefined && clinicalDay(r.signedAt) === today).length : 0;
  const filed = patients.flatMap(p => p.consultations.filter(listable)).length;
  return <section className="dp-page" aria-labelledby="dp-reports">
-  <Head title="Reports" intro="What can be counted about your work, and where each count lives. Nothing here is a rate, a percentage or a comparison with anybody."/>
+  <Head id="dp-reports" title="Reports" intro="What can be counted about your work, and where each count lives. Nothing here is a rate, a percentage or a comparison with anybody."/>
   <Strip label="Your work, counted" figures={[
    { label: 'Cases recorded for a fee', value: String(fees.cases.length), trend: 'The rows on Per-case fees' },
    { label: 'Reviews signed today', value: String(signedToday), trend: `Of ${inbox.ok ? inbox.rows.length : 0} in the clinical inbox` },
@@ -363,7 +366,7 @@ export function DoctorResources({ go }: { go?: (id: string) => void }) {
  const empty = drafts.filter(p => p.contentRef === null).length;
  const citing = drafts.length - empty;
  return <section className="dp-page" aria-labelledby="dp-resources">
-  <Head title="Resources" intro="The reference material this workspace holds, and where each piece is read."/>
+  <Head id="dp-resources" title="Resources" intro="The reference material this workspace holds, and where each piece is read."/>
   <Strip label="The references, counted" figures={[
    { label: 'Protocols in the registry', value: String(protocolsContract.protocols.length), trend: citing ? `${drafts.length} of them draft: ${empty} with no content, ${citing} a preview pathway citing a contract` : `${drafts.length} of them draft, with no content` },
    { label: 'Reference ranges', value: String(observations.length), trend: 'Indicative adult ranges, one copy of each' },

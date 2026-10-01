@@ -56,7 +56,10 @@ test('the nurse sees her own day on a map, numbered, counted from the list, with
  await expect(card).toContainText('Melville');
  /* The legs are dashed straight lines, one per leg, and they can be taken away. */
  await expect(screen.locator('.map-straight')).toHaveCount(2);
- await screen.getByRole('button', { name: 'Hide the straight legs' }).click();
+ const legs = screen.getByRole('button', { name: 'Straight legs' });
+ await expect(legs).toHaveAttribute('aria-pressed', 'true');
+ await legs.click();
+ await expect(legs).toHaveAttribute('aria-pressed', 'false');
  await expect(screen.locator('.map-straight')).toHaveCount(0);
 
  /* What stays refused: no Directions, no travel time, no urgency, no patient's name on the screen. */
