@@ -1,0 +1,313 @@
+{
+  "_note": "Show GilbertOne a rash: a photo the patient takes or chooses, held on her own phone and shown back to her, set questions about the skin, and one of three outcomes decided by the rules below and nothing else — the emergency answer the conversation already gives, a sign that public first-aid guidance says should be seen by a nurse or doctor today, or general information from the knowledge base about rashes that look like hers. Not triage and not a diagnosis: no model looks at the photo, no answer names what her rash is, and every outcome says only a nurse or doctor who sees it can. packages/gilbertone/src/skin-check.ts reads this file for the web; scripts/emit-skin-check.mjs writes it, with the knowledge entries it draws on, into Swift and Kotlin; scripts/check-skin-check.mjs holds it.",
+  "version": 1,
+  "decidedBy": "Founder",
+  "on": "2026-10-01",
+  "changelog": [
+    { "version": 1, "on": "2026-10-01", "what": "The photo, nine set questions, five rules and the knowledge entries behind them; the photo reader declared and refused." }
+  ],
+  "why": "The founder's ask of 1 October 2026: a module that can take a picture of a condition such as a skin rash and give information about what the issue might be — take a picture, GilbertOne gives information, and suggests whether it must be escalated to a sister or how to look after it. Built as intake plus general information, because GilbertOne does symptom intake and not triage (packages/catalog/symptom-intake.json), and because reading a photo of somebody's skin is a clinical act this build has no protocol, reviewer, impact assessment or processor for.",
+  "whatItIsNot": [
+    "GilbertOne does not look at your photo. Nothing reads it in this build — it is there for you to compare later and to show your nurse.",
+    "GilbertOne will not say what your rash is. Only a nurse or doctor who sees it can say what yours is.",
+    "Nothing here is a prescription. The care steps are general first aid from public health sources."
+  ],
+  "order": {
+    "rule": "Words typed into the skin check pass through the emergency matcher before anything reads them — the emergency terms in packages/catalog/gilbert-emergency-terms.json and, on the web, the escalation ruleset in packages/gilbertone/src/escalation.ts — and a match ends the check with the conversation's own emergency answer. The emergency rules below come next, then the questions every outcome needs, then the rules for a sign to be seen today, and general information last.",
+    "why": "The check sits at the end of the chain for the reason the intake does: it can never be the thing that was listening when an emergency was said. An emergency rule is not a new emergency word — each one hands the conversation an option whose own words the existing emergency terms already raise, and the build refuses one that they do not.",
+    "emergencyHandsTo": "The conversation's emergency answer, with the words of the option or the sentence that raised it as what was asked. The check ends there and the photo is let go: nothing said in an emergency is a note for later."
+  },
+  "entry": {
+    "chipLabel": "Show GilbertOne a rash",
+    "why": "The chip on the patient's GilbertOne that opens the check. It is offered to the patient only: a nurse's or an operator's preview has no skin of its own to show."
+  },
+  "screen": {
+    "title": "Show GilbertOne a rash",
+    "lead": "Take or choose a photo of the skin and answer a few set questions. GilbertOne will tell you what public health sources say about rashes like this, and whether a sign means a sister should see it today.",
+    "backLabel": "Back to the conversation",
+    "seeLabel": "See what GilbertOne can tell you",
+    "changeLabel": "Change my answers",
+    "endLabel": "End the check",
+    "ended": "The check has ended. The photo is gone from this screen and nothing was kept.",
+    "multiHint": "Choose all that fit.",
+    "textHint": "In your own words, or leave it empty.",
+    "missing": "Answer who the rash is on and the question about signs first. Those two decide what GilbertOne may show you."
+  },
+  "photo": {
+    "addLabel": "Take or choose a photo",
+    "takeLabel": "Take a photo",
+    "chooseLabel": "Choose a photo",
+    "replaceLabel": "Choose a different photo",
+    "removeLabel": "Remove the photo",
+    "alt": "Your photo of the skin, held on this phone only",
+    "held": "Your photo stays on this phone, on this screen only. It is not uploaded, not saved and not sent to anyone, and it is gone when the check ends.",
+    "noReader": "Nothing looks at your photo in this build — not GilbertOne, not a computer program and not a person at MyThuso.",
+    "videoRefused": "Video is not taken here. A video carries sound, and this build records no sound outside the push-to-talk the founder approved; a still photo shows a rash just as well to your nurse.",
+    "notImage": "Choose a photo. Other kinds of file are not taken here.",
+    "tooLargeFrom": "packages/catalog/assistant-chat-ui.json#attachments",
+    "tooLargeWhy": "The size a photo may be and the sentence for one that is larger are the panel's attachment limits, read from there rather than restated.",
+    "accept": ["image/jpeg", "image/png", "image/webp", "image/heic"],
+    "platforms": {
+      "web": { "how": "file-input", "why": "One file input that accepts a photo. On a phone the browser offers the camera or the gallery itself; the input carries no capture attribute, because the build refuses one on every web surface but the panel's own attachment preview." },
+      "ios": { "how": "photos-picker", "note": "On iPhone, take the photo with the Camera app first and then choose it here. MyThuso does not ask for your camera.", "why": "PhotosPicker runs outside the app and needs no permission. Taking the photo inside the app would need a camera usage description, which the build refuses because the consultation screens tell a patient none is declared." },
+      "android": { "how": "photo-picker-and-camera-preview", "why": "The system photo picker, and the camera's own preview capture, which hands back a small picture in memory and writes no file. Neither needs a permission, and none is declared." }
+    }
+  },
+  "questions": [
+    {
+      "id": "who",
+      "ask": "Who is the rash on?",
+      "kind": "chips",
+      "options": [
+        { "id": "self", "label": "On me" },
+        { "id": "adult", "label": "On another adult" },
+        { "id": "child", "label": "On a child or an older baby" },
+        { "id": "young-baby", "label": "On a baby younger than three months" }
+      ]
+    },
+    {
+      "id": "where",
+      "ask": "Where on the body is it?",
+      "kind": "multi",
+      "options": [
+        { "id": "face", "label": "Face" },
+        { "id": "scalp", "label": "Scalp" },
+        { "id": "arms", "label": "Arms or hands" },
+        { "id": "legs", "label": "Legs or feet" },
+        { "id": "body", "label": "Chest, back or belly" },
+        { "id": "groin", "label": "Groin or bottom" },
+        { "id": "nappy", "label": "Nappy area", "oftenSeenIn": ["cond-059", "cond-065"] },
+        { "id": "all-over", "label": "All over" }
+      ]
+    },
+    {
+      "id": "since",
+      "ask": "Since when?",
+      "kind": "chips",
+      "options": [
+        { "id": "today", "label": "Today" },
+        { "id": "days", "label": "A few days" },
+        { "id": "week", "label": "About a week" },
+        { "id": "longer", "label": "Longer than a week" }
+      ]
+    },
+    {
+      "id": "feels",
+      "ask": "How does it feel?",
+      "kind": "chips",
+      "options": [
+        { "id": "itchy", "label": "Itchy" },
+        { "id": "painful", "label": "Painful or burning" },
+        { "id": "both", "label": "Itchy and painful" },
+        { "id": "neither", "label": "Neither" }
+      ]
+    },
+    {
+      "id": "looks",
+      "ask": "What does it look like?",
+      "kind": "multi",
+      "options": [
+        { "id": "red-patches", "label": "Red or darker patches", "oftenSeenIn": ["cond-028", "cond-065", "cond-068", "cond-067"] },
+        { "id": "welts", "label": "Raised bumps or welts", "oftenSeenIn": ["cond-066", "cond-070", "cond-069", "cond-031"] },
+        { "id": "blisters", "label": "Blisters", "oftenSeenIn": ["cond-033", "cond-034", "cond-032", "cond-065"] },
+        { "id": "ring", "label": "Ring-shaped", "oftenSeenIn": ["cond-030", "cond-066"] },
+        { "id": "scaly", "label": "Scaly or dry", "oftenSeenIn": ["cond-028", "cond-030", "cond-065"] },
+        { "id": "weeping", "label": "Weeping or crusted", "oftenSeenIn": ["cond-032", "cond-028", "cond-065"] },
+        { "id": "dots", "label": "Small dots or pin-pricks", "oftenSeenIn": ["cond-069", "cond-031", "cond-070"], "checkFirst": ["fa-025"] },
+        { "id": "peeling", "label": "Peeling", "oftenSeenIn": ["cond-068", "cond-030", "cond-028"] },
+        { "id": "other", "label": "Something else" }
+      ]
+    },
+    {
+      "id": "spreading",
+      "ask": "Is it spreading?",
+      "kind": "chips",
+      "options": [
+        { "id": "no", "label": "No" },
+        { "id": "slowly", "label": "Slowly" },
+        { "id": "quickly", "label": "Quickly, over hours" },
+        { "id": "unsure", "label": "Not sure" }
+      ]
+    },
+    {
+      "id": "fever",
+      "ask": "Is there a fever, or a hot and shivery feeling?",
+      "kind": "chips",
+      "options": [
+        { "id": "yes", "label": "Yes" },
+        { "id": "no", "label": "No" },
+        { "id": "unsure", "label": "Not sure" }
+      ]
+    },
+    {
+      "id": "signs",
+      "ask": "Are any of these true?",
+      "kind": "multi",
+      "exclusive": "none",
+      "exclusiveWhy": "None of these is an answer of its own: pressing it clears the signs, and pressing a sign clears it, so a person cannot say both.",
+      "options": [
+        { "id": "glass", "label": "The rash does not fade when a glass is pressed on it" },
+        { "id": "airway", "label": "Swelling of the lips, face or tongue, or trouble breathing" },
+        { "id": "burn", "label": "A burn bigger than the palm of the hand, or on the face, hands, feet or genitals" },
+        { "id": "peeling-fever", "label": "Skin blistering or peeling away in large areas, with a fever" },
+        { "id": "hot-spreading", "label": "A red, hot, swollen area spreading quickly, with a fever" },
+        { "id": "none", "label": "None of these" }
+      ]
+    },
+    {
+      "id": "new-things",
+      "ask": "Anything new recently — a soap, a cream, a food, a plant, an insect or a medicine? Anything else for your nurse?",
+      "kind": "text"
+    }
+  ],
+  "required": ["who", "signs"],
+  "requiredWhy": "Who the rash is on decides whether a baby's rule applies, and the signs decide whether general information may be shown at all. Every other question is the patient's to skip.",
+  "rules": [
+    {
+      "id": "glass",
+      "outcome": "emergency",
+      "when": [{ "question": "signs", "anyOf": ["glass"] }],
+      "drawsOn": ["fa-025", "cond-043"],
+      "why": "A rash that does not fade under a glass is already an emergency word — the infant group of the emergency terms carries \"rash does not fade\" — so the option's own words are handed to the conversation, which raises the emergency answer for them."
+    },
+    {
+      "id": "airway",
+      "outcome": "emergency",
+      "when": [{ "question": "signs", "anyOf": ["airway"] }],
+      "drawsOn": ["fa-017", "cond-066"],
+      "why": "Trouble breathing is in the breathing group of the emergency terms, so the option's own words raise the emergency answer. Swelling of the lips, face or tongue is asked in the same option on purpose: a yes cannot rule trouble breathing out, and the list only ever raises."
+    },
+    {
+      "id": "burn",
+      "outcome": "sister-today",
+      "when": [{ "question": "signs", "anyOf": ["burn"] }],
+      "says": "A burn bigger than the palm of the hand, or on the face, hands, feet or genitals.",
+      "drawsOn": ["fa-007"]
+    },
+    {
+      "id": "peeling-fever",
+      "outcome": "sister-today",
+      "when": [{ "question": "signs", "anyOf": ["peeling-fever"] }],
+      "says": "Skin blistering or peeling away in large areas, with a fever.",
+      "drawsOn": ["cond-071"]
+    },
+    {
+      "id": "hot-spreading",
+      "outcome": "sister-today",
+      "when": [{ "question": "signs", "anyOf": ["hot-spreading"] }],
+      "says": "A red, hot, swollen area spreading quickly, with a fever.",
+      "drawsOn": ["cond-067"]
+    },
+    {
+      "id": "spreading-with-fever",
+      "outcome": "sister-today",
+      "when": [
+        { "question": "spreading", "anyOf": ["quickly"] },
+        { "question": "fever", "anyOf": ["yes"] }
+      ],
+      "says": "A rash spreading quickly, with a fever.",
+      "drawsOn": ["cond-067", "cond-066"]
+    },
+    {
+      "id": "young-baby",
+      "outcome": "sister-today",
+      "when": [{ "question": "who", "anyOf": ["young-baby"] }],
+      "says": "A rash on a baby younger than three months.",
+      "drawsOn": [],
+      "keptBecause": "The founder's brief of 1 October 2026 names a rash in a baby younger than three months. No entry in the knowledge base says it yet in those words — the nearest are the insect-bite and sunburn entries, which send any bitten or sunburnt baby to a nurse — so the reviewer is asked whether the base should gain the entry or the rule should change."
+    }
+  ],
+  "rulesWhy": "Every rule is read the same way on all three platforms: all of its conditions hold, each condition being one of the options named for that question. An emergency rule names one option whose label the existing emergency terms raise. A rule for today names the knowledge entries whose own words say that sign should be seen the same day, so the outcome reads the public guidance back rather than deciding anything about the patient; one that has no such entry says why it is kept.",
+  "outcomes": {
+    "emergency": {
+      "why": "Never rendered by the check. The conversation's emergency answer is the one emergency answer, with the numbers from packages/catalog/sos.json and the SOS button, so the check hands over and closes."
+    },
+    "sister-today": {
+      "headline": "Show a sister today — do not wait",
+      "lead": "Your answers include a sign that public first-aid guidance says a nurse or doctor should see the same day, and for some signs the guidance says to call an ambulance. GilbertOne has not decided anything about you; below is what the guidance says about that sign.",
+      "becauseLabel": "Because you said",
+      "guidanceLabel": "What the guidance says",
+      "arrange": "Book a nurse is where you arrange a visit, or go to your clinic today. Nothing is booked from here — this is a preview.",
+      "worse": "If it gets worse quickly, or anybody has trouble breathing, use the emergency numbers in GilbertOne straight away."
+    },
+    "general-information": {
+      "headline": "What rashes like this often are",
+      "lead": "Rashes like this are often one of the ones below. This is general information from public health sources, not an answer about your skin.",
+      "onlyAClinician": "Only a nurse or doctor who sees it can say what yours is.",
+      "looksLabel": "Often looks like",
+      "whenLabel": "When to ask a sister",
+      "maxShown": 4,
+      "maxShownWhy": "Enough to show that more than one thing looks like this, and few enough to read on a phone. The build refuses an option that names fewer than two entries, so a person who described anything is never shown a single answer.",
+      "noneMatched": "Your description does not narrow it down to anything general information can speak to. A nurse who sees it can.",
+      "checkFirstHeading": "Check this first",
+      "selfCareHeading": "Looking after it at home",
+      "selfCareLead": "General first-aid steps from public health sources. If anything under When to ask a sister fits, ask one rather than waiting.",
+      "warningsLabel": "Take care",
+      "whenToCallLabel": "When to get help"
+    }
+  },
+  "selfCare": {
+    "always": ["fa-026"],
+    "forCondition": { "cond-068": "fa-024", "cond-070": "fa-023" },
+    "why": "Care steps come from the first-aid file only, never from a condition's own home-care line: a condition is only one of several a rash like this is often, and the treatment for one is not general advice for all of them. A shown condition with a first-aid entry of its own brings that entry; the general itchy-rash entry is always there."
+  },
+  "summary": {
+    "title": "Notes for your sister",
+    "line": "{question}: {answer}",
+    "photoLine": "A photo is on your phone only. Show it to your sister at the visit.",
+    "copyLabel": "Copy the notes",
+    "copiedLabel": "Copied",
+    "sendFrom": "packages/catalog/apis/assistant.json#POST /v1/handover/submit@3 clinician-routing-not-built",
+    "sendLead": "Sending these notes to a nurse from here is not built.",
+    "why": "The answers as lines the patient reads or shows at the visit. The photo stays on her phone and is never part of the notes. Sending them is the handover submit route's refusal, read from the API contract rather than restated, because there is still no destination contract for a handover to reach."
+  },
+  "knowledge": {
+    "label": "From {authority}.",
+    "unreviewed": "Awaiting clinical review.",
+    "reviewed": "Reviewed by {reviewedBy}.",
+    "why": "Every entry the check shows names its source and says whether a clinician has read it. An entry with no review block has never been reviewed either, and is shown the same way."
+  },
+  "review": {
+    "reviewedBy": null,
+    "status": "awaiting-clinical-review",
+    "why": "No clinician has read these questions, these rules or the entries behind them. Until one signs with a registration in the vetting register's own format, the build refuses a digit or a you-have sentence anywhere in this file and the unreviewed sentence is shown on every check.",
+    "unreviewed": "No clinician has reviewed this skin check yet: its questions, its rules and the information it shows are general, from public health sources, and held inside the app.",
+    "reviewed": "This skin check was reviewed by {reviewedBy}. Your nurse will still look for herself."
+  },
+  "photoReading": {
+    "status": "refused",
+    "everywhere": true,
+    "sentence": "GilbertOne does not read photos. Reading a photo of skin waits on four things that do not exist yet: a photo-reading protocol ratified with a named clinical reviewer, an impact assessment that covers images, an appointed Information Officer, and a decision on who would process the images and in which country.",
+    "waitsOn": [
+      { "id": "protocol", "what": "A photo-reading protocol ratified by the clinical governance board, with a named clinical reviewer", "inPlace": false },
+      { "id": "dpia", "what": "A data protection impact assessment that covers photographs of a person's body", "inPlace": false },
+      { "id": "information-officer", "what": "An Information Officer appointed and registered", "inPlace": false },
+      { "id": "processor", "what": "A decision on who would process the images, under what agreement, and in which country", "inPlace": false }
+    ],
+    "route": null,
+    "routeWhy": "No address is declared in packages/catalog/apis/assistant.json. The check never sends a photo anywhere, so a route would be a production address on a live service with nothing behind it but this refusal. It is proposed there, with this sentence as its refusal, on the day the four things above exist and a reviewer has a protocol to put behind it.",
+    "why": "A photo of somebody's skin is health information and a picture of their body. Reading one is a clinical act, and sending one anywhere is a processing decision POPIA asks to be assessed first. None of the four exists, so no platform has a reader, no platform uploads, and every platform says so in this sentence."
+  },
+  "platforms": ["web", "ios", "android"],
+  "fixtures": {
+    "why": "One list every platform runs against its own reading of the rules. answers names option ids; typed is the free-text answer; expect is the outcome, rules the rules raised in contract order, conditions the entries shown in order. A fixture marked web is decided by the escalation ruleset, which the phones do not carry yet: on a phone the same words reach the emergency answer only if the emergency terms raise them.",
+    "cases": [
+      { "name": "itchy welts on an adult", "answers": { "who": ["self"], "looks": ["welts"], "feels": ["itchy"], "signs": ["none"] }, "expect": "general-information", "conditions": ["cond-031", "cond-066", "cond-069", "cond-070"] },
+      { "name": "scaly ring", "answers": { "who": ["adult"], "looks": ["ring", "scaly"], "signs": ["none"] }, "expect": "general-information", "conditions": ["cond-030", "cond-028", "cond-065", "cond-066"] },
+      { "name": "pin-prick dots bring the glass test first", "answers": { "who": ["child"], "looks": ["dots"], "signs": ["none"] }, "expect": "general-information", "conditions": ["cond-031", "cond-069", "cond-070"], "checkFirst": ["fa-025"] },
+      { "name": "nothing described", "answers": { "who": ["self"], "signs": ["none"] }, "expect": "general-information", "conditions": [] },
+      { "name": "a glass test that does not fade", "answers": { "who": ["child"], "signs": ["glass"] }, "expect": "emergency", "rules": ["glass"] },
+      { "name": "trouble breathing before anything else is answered", "answers": { "signs": ["airway"] }, "expect": "emergency", "rules": ["airway"] },
+      { "name": "a large burn", "answers": { "who": ["self"], "signs": ["burn"] }, "expect": "sister-today", "rules": ["burn"] },
+      { "name": "spreading quickly with a fever", "answers": { "who": ["adult"], "spreading": ["quickly"], "fever": ["yes"], "signs": ["none"] }, "expect": "sister-today", "rules": ["spreading-with-fever"] },
+      { "name": "spreading quickly without a fever", "answers": { "who": ["adult"], "spreading": ["quickly"], "fever": ["no"], "looks": ["red-patches"], "signs": ["none"] }, "expect": "general-information", "conditions": ["cond-028", "cond-065", "cond-067", "cond-068"] },
+      { "name": "a young baby", "answers": { "who": ["young-baby"], "looks": ["red-patches"], "signs": ["none"] }, "expect": "sister-today", "rules": ["young-baby"] },
+      { "name": "two signs for today", "answers": { "who": ["self"], "signs": ["burn", "hot-spreading"] }, "expect": "sister-today", "rules": ["burn", "hot-spreading"] },
+      { "name": "signs unanswered", "answers": { "who": ["self"], "looks": ["welts"] }, "expect": "incomplete" },
+      { "name": "an emergency typed into the notes", "answers": { "who": ["self"], "signs": ["none"] }, "typed": "she is struggling to breathe", "expect": "emergency" },
+      { "name": "a new soap typed into the notes", "answers": { "who": ["self"], "looks": ["red-patches"], "signs": ["none"] }, "typed": "I started a new washing powder last week", "expect": "general-information", "conditions": ["cond-028", "cond-065", "cond-067", "cond-068"] },
+      { "name": "swelling lips typed, read by the escalation ruleset", "answers": { "who": ["self"], "signs": ["none"] }, "typed": "I have a rash and my lips are swelling", "expect": "emergency", "platforms": ["web"] },
+      { "name": "a curly apostrophe before the swelling", "answers": { "who": ["self"], "signs": ["none"] }, "typed": "it’s a rash and my tongue is swollen", "expect": "emergency", "platforms": ["web"] }
+    ]
+  }
+}

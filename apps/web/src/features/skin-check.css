@@ -1,0 +1,139 @@
+/* Show GilbertOne a rash (1 October 2026). Drawn inside the panel's scroll in place of the conversation,
+   on the panel's own colours: everything here inherits its ink and draws its rules from currentColor, so
+   the check reads the same on the white handoff surface and on any panel theme beside it. The chips are
+   the shared Button with the same 44-pixel floor and wrap the intake's chips keep; nothing moves on its
+   own, and no colour, duration or curve is typed. */
+.sk {
+  display: grid;
+  gap: var(--space-12);
+  min-width: 0;
+}
+.sk h3,
+.sk h4,
+.sk h5,
+.sk p {
+  margin: 0;
+}
+.sk h3:focus {
+  outline: none;
+}
+.sk h3:focus-visible {
+  outline: 2px solid var(--brand-green);
+  outline-offset: 2px;
+}
+.sk-top {
+  display: flex;
+}
+.sk-not,
+.sk ul,
+.sk ol {
+  margin: 0;
+  padding-left: var(--space-20);
+}
+.sk li + li {
+  margin-top: var(--space-4);
+}
+.sk-review,
+.sk-quiet,
+.sk-source {
+  font-size: 13px;
+  color: color-mix(in srgb, currentColor 74%, transparent);
+}
+.sk-photo,
+.sk-question,
+.sk-outcome,
+.sk-notes,
+.sk-entry {
+  display: grid;
+  gap: var(--space-8);
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-12);
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: var(--r-card);
+}
+.sk-question legend {
+  padding: 0 var(--space-4);
+  font-weight: 600;
+}
+/* The input is pressed through the button beside it, so it takes no room and no stop of its own. */
+.sk-file {
+  display: none;
+}
+.sk-preview {
+  display: grid;
+  gap: var(--space-8);
+  justify-items: start;
+  margin: 0;
+}
+.sk-preview img {
+  display: block;
+  max-width: 100%;
+  max-height: 240px;
+  border-radius: var(--r-control);
+  object-fit: contain;
+}
+.sk-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+.sk-chip {
+  min-height: 44px;
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+.sk-chip[aria-pressed="true"] {
+  border-color: var(--brand-green);
+  box-shadow: inset 0 0 0 1px var(--brand-green);
+}
+/* A sign is drawn with the edge the panel gives its emergency question, so it is read as one. */
+.sk-chip[data-urgent] {
+  border-left: 3px solid var(--brand-orange);
+}
+.sk-typed {
+  width: 100%;
+  min-height: 44px;
+  font: inherit;
+  padding: var(--space-8);
+  border-radius: var(--r-control);
+  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+  background: transparent;
+  color: inherit;
+}
+.sk-outcome[data-outcome="sister-today"] {
+  border-color: var(--brand-orange);
+  border-width: 2px;
+}
+.sk-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+.sk-says,
+.sk-only,
+.sk-worse {
+  font-weight: 600;
+}
+.sk-first {
+  display: grid;
+  gap: var(--space-8);
+}
+.sk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+.sk-missing {
+  font-weight: 600;
+}
+/* While the check is open the conversation, the way back to the latest answer and the composer stand
+   aside rather than unmount, so the transcript is where she left it when she presses back. The panel
+   sets data-skin; nothing here hides anything without it. */
+.as-scroll[data-skin] > :not(.sk-host) {
+  display: none;
+}
+.as-scroll[data-skin] ~ .as-latest-dock,
+.as-scroll[data-skin] ~ .as-compose {
+  display: none;
+}

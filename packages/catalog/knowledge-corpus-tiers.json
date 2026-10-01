@@ -1,5 +1,5 @@
 {
- "_note": "Decision 6.2 in code, Module 4 of the founder's Control Tower & GilbertOne Commercialization plan (proposed 23 September 2026): 'The knowledge corpus is split... Retrieval is clinical behaviour below the emergency backstop.' Phase 0, contract-authoring only. Checked against the tree on 24 September 2026 rather than assumed: apps/assistant-api/src/lib/knowledge.ts builds one undivided in-memory index over all 250 entries under packages/catalog/knowledge, and scripts/ingest-knowledge-embeddings.mjs embeds and upserts that same undivided set of 250 entries into one Qdrant collection, on every run, with no distinction of any kind between an entry that states a clinical fact and an entry that names a helpline. Both are wired live: apps/assistant-api/src/lib/tools/knowledge-search.ts calls retrieveKnowledge() as a tool the model tier may invoke, gated only by whatever gates the LLM tier as a whole (a configured provider, MYTHUSO_ASSISTANT_PRODUCTION=acknowledged) — dark today, but the corpus behind it, once that gate opens, is one corpus, not two. This file proposes the split and specifies where it would go in; it does not build it, and scripts/ingest-knowledge-embeddings.mjs is unchanged by this file.",
+ "_note": "Decision 6.2 in code, Module 4 of the founder's Control Tower & GilbertOne Commercialization plan (proposed 23 September 2026): 'The knowledge corpus is split... Retrieval is clinical behaviour below the emergency backstop.' Phase 0, contract-authoring only. Checked against the tree on 24 September 2026 rather than assumed: apps/assistant-api/src/lib/knowledge.ts builds one undivided in-memory index over all 261 entries under packages/catalog/knowledge, and scripts/ingest-knowledge-embeddings.mjs embeds and upserts that same undivided set of 261 entries into one Qdrant collection, on every run, with no distinction of any kind between an entry that states a clinical fact and an entry that names a helpline. Both are wired live: apps/assistant-api/src/lib/tools/knowledge-search.ts calls retrieveKnowledge() as a tool the model tier may invoke, gated only by whatever gates the LLM tier as a whole (a configured provider, MYTHUSO_ASSISTANT_PRODUCTION=acknowledged) — dark today, but the corpus behind it, once that gate opens, is one corpus, not two. This file proposes the split and specifies where it would go in; it does not build it, and scripts/ingest-knowledge-embeddings.mjs is unchanged by this file.",
  "_source": "Decision 6.2, verbatim: 'The knowledge corpus is split. Clinical corpus — locked. Refreshed only through the Clinician Review Queue, versioned, rolled back through the same path. Non-clinical corpus — self-improving. Refreshed autonomously through scripts/ingest-knowledge-embeddings.mjs. The build fails if the clinical corpus is refreshed outside the Review Queue path.'",
  "version": 1,
  "engine": "assistant",
@@ -8,33 +8,33 @@
 
  "corpusToday": {
   "oneUndividedCorpus": true,
-  "entryCount": 250,
+  "entryCount": 261,
   "files": [
-   { "file": "conditions.json", "entries": 64 },
+   { "file": "conditions.json", "entries": 71 },
    { "file": "medications.json", "entries": 50 },
    { "file": "interactions.json", "entries": 30 },
-   { "file": "first-aid.json", "entries": 22 },
+   { "file": "first-aid.json", "entries": 26 },
    { "file": "prevention.json", "entries": 20 },
    { "file": "maternal.json", "entries": 20 },
    { "file": "chronic.json", "entries": 16 },
    { "file": "mental-health.json", "entries": 14 },
    { "file": "sa-health-system.json", "entries": 14 }
   ],
-  "keywordIndex": "apps/assistant-api/src/lib/knowledge.ts builds one in-memory TF-IDF-style index (CORPUS) over all 250 entries at module load, searched by searchKnowledge() and cached in one process-wide LRU (cache, 200 entries) with no tier or tenant segment of any kind in its key.",
-  "vectorIndex": "scripts/ingest-knowledge-embeddings.mjs calls knowledgeChunks() — which returns exactly the same 250 entries the keyword index reads — and embeds and upserts every one of them into one Qdrant collection (QDRANT_COLLECTION, default \"gilbertone-knowledge\"), unconditionally, on every run. Nothing in the script reads, checks or even carries any field that could distinguish a clinical entry from a non-clinical one; KnowledgeChunk's own shape (id, title, source, file, snippet, text) drops the entry's evidenceGrade before it ever reaches the script.",
+  "keywordIndex": "apps/assistant-api/src/lib/knowledge.ts builds one in-memory TF-IDF-style index (CORPUS) over all 261 entries at module load, searched by searchKnowledge() and cached in one process-wide LRU (cache, 200 entries) with no tier or tenant segment of any kind in its key.",
+  "vectorIndex": "scripts/ingest-knowledge-embeddings.mjs calls knowledgeChunks() — which returns exactly the same 261 entries the keyword index reads — and embeds and upserts every one of them into one Qdrant collection (QDRANT_COLLECTION, default \"gilbertone-knowledge\"), unconditionally, on every run. Nothing in the script reads, checks or even carries any field that could distinguish a clinical entry from a non-clinical one; KnowledgeChunk's own shape (id, title, source, file, snippet, text) drops the entry's evidenceGrade before it ever reaches the script.",
   "liveWiring": "apps/assistant-api/src/lib/tools/knowledge-search.ts imports retrieveKnowledge() and exposes it as a tool the orchestrator's model tier may call. This is not dark by contract the way knowledge-federation.ts's external sources are (all three ship active: false) — the local corpus itself is reachable the day the LLM tier's own gates (a configured Azure provider, MYTHUSO_ASSISTANT_PRODUCTION=acknowledged) open, with no further switch of its own."
  },
 
  "theSeamAlreadyInTheData": {
   "field": "Every knowledge entry's source.evidenceGrade, defined once in packages/catalog/knowledge/federation.json's evidenceGrades block: \"guideline\" (clinical or public-health guidance from a named authority), \"regulatory-label\" (a regulator's product-label wording paired with SA treatment-guideline counterpart — interactions.json only), and \"not-assessed\" (\"service navigation, programme or directory information carried for completeness — no clinical evidence assessment has been performed on the entry, and none is implied\").",
   "distribution": {
-   "guideline": 204,
+   "guideline": 215,
    "regulatory-label": 30,
    "not-assessed": 16,
-   "total": 250
+   "total": 261
   },
   "whyThisFieldAndNotAFileList": "evidenceGrade is entry-level, not file-level, and the difference is not cosmetic: maternal.json carries 19 guideline entries and one not-assessed entry (mat-016, 'MomConnect — Free Pregnancy Messages', an SMS-registration service, not a clinical fact); mental-health.json carries 13 guideline entries and one not-assessed entry (mh-014, 'South African Crisis and Support Lines Directory', a phone-number directory). A file-level rule — 'maternal.json is clinical, sa-health-system.json is not' — would either lock two harmless directory entries behind a review queue for no safety reason, or leave them unlocked by exempting the whole file they happen to sit in. Tiering by evidenceGrade instead of by file gets both entries right without a special case, because the catalog's own maintainers already recorded, entry by entry, which of these carry a clinical evidence assessment and which do not.",
-  "whatThisFileProposes": "Clinical corpus = every entry whose source.evidenceGrade is \"guideline\" or \"regulatory-label\" (234 of 250, spanning all nine files to varying degrees). Non-clinical corpus = every entry whose source.evidenceGrade is \"not-assessed\" (16 of 250: all 14 of sa-health-system.json, plus mat-016 and mh-014)."
+  "whatThisFileProposes": "Clinical corpus = every entry whose source.evidenceGrade is \"guideline\" or \"regulatory-label\" (245 of 261, spanning all nine files to varying degrees). Non-clinical corpus = every entry whose source.evidenceGrade is \"not-assessed\" (16 of 261: all 14 of sa-health-system.json, plus mat-016 and mh-014)."
  },
 
  "corpusTiers": [
@@ -42,7 +42,7 @@
    "id": "clinical-corpus",
    "label": "Clinical corpus",
    "matches": "source.evidenceGrade in { guideline, regulatory-label }",
-   "entryCount": 234,
+   "entryCount": 245,
    "sentence": "Locked. No entry is added, edited or re-embedded except through a ratified entry in packages/catalog/clinical-review-queue.json naming exactly that change. Versioned and rolled back through the same path, the same discipline that queue already states for escalation.ts and gilbert-emergency-terms.json in packages/catalog/gilbert-clinical-core.json.",
    "why": "A condition's symptom list, a medicine's dosage, a recorded drug interaction — every one of these is content a nurse or doctor could act on without re-deriving it themselves if GilbertOne surfaces it in an answer, which is this module's own framing of why retrieval is a clinical act rather than a librarian's task."
   },
@@ -71,7 +71,7 @@
  },
 
  "queueFitFlag": {
-  "doesNotYetFit": "packages/catalog/clinical-review-queue.json's tiers array (1 — global core, 2 — per-tenant additive, device) has no shape for what a clinical-corpus refresh actually is: a bulk re-embedding of up to 234 already-existing catalog entries, not one atomic change. That queue's own entryShape.proposedChangeRef is built to name one thing — a protocol id, a device-threshold rule id, or one diff to escalation.ts — never a batch of many existing entries being re-embedded together, and never a single new or edited knowledge entry either, since knowledge.json entries currently have no queue concept applied to them at all (unlike protocols.json's own draft/ratified states).",
+  "doesNotYetFit": "packages/catalog/clinical-review-queue.json's tiers array (1 — global core, 2 — per-tenant additive, device) has no shape for what a clinical-corpus refresh actually is: a bulk re-embedding of up to 245 already-existing catalog entries, not one atomic change. That queue's own entryShape.proposedChangeRef is built to name one thing — a protocol id, a device-threshold rule id, or one diff to escalation.ts — never a batch of many existing entries being re-embedded together, and never a single new or edited knowledge entry either, since knowledge.json entries currently have no queue concept applied to them at all (unlike protocols.json's own draft/ratified states).",
   "twoWaysItCouldFit": [
    "A fourth tier id (for example \"clinical-corpus\"), scoped globally like Tier 1 rather than per-tenant, whose proposedChangeRef can name a knowledge-catalog file plus an entry-id list or a git commit range, rather than the single id every existing tier's entries name today.",
    "Treat each clinical-tier knowledge entry's addition or edit as an ordinary Tier-1-shaped queue entry, filed one at a time — accepting that a multi-entry catalog update becomes several queue entries rather than one, with no schema change to the queue itself."
@@ -82,7 +82,7 @@
  "refusals": [
   {
    "id": "no-clinical-corpus-refresh-outside-the-review-queue",
-   "statement": "No entry whose source.evidenceGrade is guideline or regulatory-label is added to, edited in, or re-embedded into the corpus a person's question is answered from, except through a ratified entry in packages/catalog/clinical-review-queue.json naming exactly that change. Today, neither the queue nor the merge path this would need exists, and scripts/ingest-knowledge-embeddings.mjs re-embeds all 234 clinical-tier entries on every run with no gate of any kind — so this rule is already unenforced by the tree as it stands, not merely unbuilt for a future case.",
+   "statement": "No entry whose source.evidenceGrade is guideline or regulatory-label is added to, edited in, or re-embedded into the corpus a person's question is answered from, except through a ratified entry in packages/catalog/clinical-review-queue.json naming exactly that change. Today, neither the queue nor the merge path this would need exists, and scripts/ingest-knowledge-embeddings.mjs re-embeds all 245 clinical-tier entries on every run with no gate of any kind — so this rule is already unenforced by the tree as it stands, not merely unbuilt for a future case.",
    "why": "Retrieval is clinical behaviour below the emergency backstop: a nurse or doctor reading a retrieved snippet is reading something GilbertOne chose to put in front of them, which is exactly the kind of change gilbert-clinical-core.json already treats as requiring a signature, restated here for what is retrievable rather than for a rule that fires."
   },
   {
@@ -102,7 +102,7 @@
   },
   {
    "id": "no-tier-split-without-the-upstream-schema-change",
-   "statement": "Nothing may claim the clinical/non-clinical corpus split described here is enforced until knowledgeChunks() carries evidenceGrade through to the embeddable record and scripts/ingest-knowledge-embeddings.mjs reads it — both unchanged by this file. Until then, every run of that script refreshes all 250 entries as one corpus, exactly as it does today.",
+   "statement": "Nothing may claim the clinical/non-clinical corpus split described here is enforced until knowledgeChunks() carries evidenceGrade through to the embeddable record and scripts/ingest-knowledge-embeddings.mjs reads it — both unchanged by this file. Until then, every run of that script refreshes all 261 entries as one corpus, exactly as it does today.",
    "why": "Naming a split in a contract does not build it. A build or a deploy note that cited this file as though the corpus were already partitioned would be describing a script this file explicitly says it has not touched."
   }
  ],

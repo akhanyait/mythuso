@@ -41,9 +41,9 @@ Until a decision is recorded, the app shows "Not clinically reviewed" beside eve
 | C | GilbertOne's emergency terms | 1 |
 | D | Clinical scopes and proposed clinical roles on the vetting register | 8 |
 | E | Other clinical proposals and safety numbers nobody clinical has decided | 31 |
-| F | Clinical content with no clinical sign-off recorded | 5 |
+| F | Clinical content with no clinical sign-off recorded | 6 |
 | G | Clinical Intelligence's frames and empty registries, waiting on the board | 6 |
-| | **Total** | **74** |
+| | **Total** | **75** |
 
 Each item gives the value in force by default, what an admin may set it to, why it was proposed and by whom,
 the question for the reviewer, and blank sign-off fields.
@@ -1641,6 +1641,46 @@ From `packages/catalog/care-tips.json`. Written by the product team as general g
 | Know when not to wait (`when-to-call`) | when-to-call | If you feel worse than you did at the visit, contact your clinic or your doctor the same day rather than waiting for the next visit. If someone collapses, cannot breathe or has chest pain, call an ambulance first. |
 
 **Question for the reviewer:** is each tip safe general guidance for every adult patient this service visits, is any tip wrong for a patient group (pregnancy, kidney or heart failure, children, the very old), and is the "when not to wait" tip complete? The reviewer signs `review.reviewedBy` and `review.reviewedOn`; until then no tip may carry a number, a dose or a diagnosis.
+
+| Sign-off | |
+|---|---|
+| Decision: approve / change to ___ / reject | |
+| Reason | |
+| Reviewer name | |
+| HPCSA/SANC number | |
+| Date | |
+
+#### F6. The skin check: its questions, its rules and the entries it shows
+
+From `packages/catalog/skin-check.json`. GilbertOne does not look at your photo. Nothing reads it in this build — it is there for you to compare later and to show your nurse. GilbertOne will not say what your rash is. Only a nurse or doctor who sees it can say what yours is. Nothing here is a prescription. The care steps are general first aid from public health sources. "Words typed into the skin check pass through the emergency matcher before anything reads them — the emergency terms in packages/catalog/gilbert-emergency-terms.json and, on the web, the escalation ruleset in packages/gilbertone/src/escalation.ts — and a match ends the check with the conversation's own emergency answer. The emergency rules below come next, then the questions every outcome needs, then the rules for a sign to be seen today, and general information last."
+
+| Question | Kind | Options, and the entries an option names |
+|---|---|---|
+| Who is the rash on? (`who`) | chips | On me; On another adult; On a child or an older baby; On a baby younger than three months |
+| Where on the body is it? (`where`) | multi | Face; Scalp; Arms or hands; Legs or feet; Chest, back or belly; Groin or bottom; Nappy area — Nappy Rash (`cond-059`), Contact Dermatitis (`cond-065`); All over |
+| Since when? (`since`) | chips | Today; A few days; About a week; Longer than a week |
+| How does it feel? (`feels`) | chips | Itchy; Painful or burning; Itchy and painful; Neither |
+| What does it look like? (`looks`) | multi | Red or darker patches — Eczema (Atopic Dermatitis) (`cond-028`), Contact Dermatitis (`cond-065`), Sunburn (`cond-068`), Cellulitis (Skin Infection) (`cond-067`); Raised bumps or welts — Hives (Urticaria) (`cond-066`), Insect Bites (Mosquito, Flea, Bedbug) (`cond-070`), Heat Rash (Prickly Heat) (`cond-069`), Scabies (`cond-031`); Blisters — Chickenpox (`cond-033`), Shingles (Herpes Zoster) (`cond-034`), Impetigo (School Sores) (`cond-032`), Contact Dermatitis (`cond-065`); Ring-shaped — Ringworm (Fungal Skin Infection) (`cond-030`), Hives (Urticaria) (`cond-066`); Scaly or dry — Eczema (Atopic Dermatitis) (`cond-028`), Ringworm (Fungal Skin Infection) (`cond-030`), Contact Dermatitis (`cond-065`); Weeping or crusted — Impetigo (School Sores) (`cond-032`), Eczema (Atopic Dermatitis) (`cond-028`), Contact Dermatitis (`cond-065`); Small dots or pin-pricks — Heat Rash (Prickly Heat) (`cond-069`), Scabies (`cond-031`), Insect Bites (Mosquito, Flea, Bedbug) (`cond-070`); Peeling — Sunburn (`cond-068`), Ringworm (Fungal Skin Infection) (`cond-030`), Eczema (Atopic Dermatitis) (`cond-028`); Something else |
+| Is it spreading? (`spreading`) | chips | No; Slowly; Quickly, over hours; Not sure |
+| Is there a fever, or a hot and shivery feeling? (`fever`) | chips | Yes; No; Not sure |
+| Are any of these true? (`signs`) | multi | The rash does not fade when a glass is pressed on it; Swelling of the lips, face or tongue, or trouble breathing; A burn bigger than the palm of the hand, or on the face, hands, feet or genitals; Skin blistering or peeling away in large areas, with a fever; A red, hot, swollen area spreading quickly, with a fever; None of these |
+| Anything new recently — a soap, a cream, a food, a plant, an insect or a medicine? Anything else for your nurse? (`new-things`) | text |  |
+
+| Rule | Outcome | When | Draws on |
+|---|---|---|---|
+| `glass` | emergency | `signs` is `glass` | The Glass Test for a Rash (`fa-025`), Meningitis (`cond-043`) |
+| `airway` | emergency | `signs` is `airway` | Severe Allergic Reaction (Anaphylaxis) (`fa-017`), Hives (Urticaria) (`cond-066`) |
+| `burn` | sister-today | `signs` is `burn` | Burns and Scalds (`fa-007`) |
+| `peeling-fever` | sister-today | `signs` is `peeling-fever` | Severe Skin Reaction to a Medicine (Stevens-Johnson Syndrome) (`cond-071`) |
+| `hot-spreading` | sister-today | `signs` is `hot-spreading` | Cellulitis (Skin Infection) (`cond-067`) |
+| `spreading-with-fever` | sister-today | `spreading` is `quickly` and `fever` is `yes` | Cellulitis (Skin Infection) (`cond-067`), Hives (Urticaria) (`cond-066`) |
+| `young-baby` | sister-today | `who` is `young-baby` | *None.* The founder's brief of 1 October 2026 names a rash in a baby younger than three months. No entry in the knowledge base says it yet in those words — the nearest are the insect-bite and sunburn entries, which send any bitten or sunburnt baby to a nurse — so the reviewer is asked whether the base should gain the entry or the rule should change. |
+
+Added to the knowledge base for the check, each with `review.reviewedBy: null`: Contact Dermatitis (`cond-065`, from Written for MyThuso in its own words from the NHS website — Contact dermatitis (https://www.nhs.uk/conditions/contact-dermatitis/, reviewed 3 May 2023); checked against MedlinePlus — Rashes (https://medlineplus.gov/rashes.html) and CDC/NIOSH — Skin exposures (https://www.cdc.gov/niosh/skin-exposure/about/index.html)); Hives (Urticaria) (`cond-066`, from Written for MyThuso in its own words from the NHS website — Hives (https://www.nhs.uk/conditions/hives/, reviewed 26 April 2024); checked against MedlinePlus — Hives (https://medlineplus.gov/hives.html) and Anaphylaxis (https://medlineplus.gov/anaphylaxis.html)); Cellulitis (Skin Infection) (`cond-067`, from Written for MyThuso in its own words from the NHS website — Cellulitis (https://www.nhs.uk/conditions/cellulitis/, reviewed 18 April 2024); checked against CDC — Cellulitis (https://www.cdc.gov/group-a-strep/about/cellulitis.html) and MedlinePlus — Cellulitis (https://medlineplus.gov/cellulitis.html)); Sunburn (`cond-068`, from Written for MyThuso in its own words from the NHS website — Sunburn (https://www.nhs.uk/conditions/sunburn/, reviewed 24 November 2025); checked against CDC — Heat-related illnesses (https://www.cdc.gov/disasters/extremeheat/pdf/Heat_Related_Illness.pdf)); Heat Rash (Prickly Heat) (`cond-069`, from Written for MyThuso in its own words from the NHS website — Heat rash (https://www.nhs.uk/conditions/heat-rash-prickly-heat/, reviewed 9 May 2024); checked against CDC/NIOSH — Heat-related illnesses (https://www.cdc.gov/niosh/heat-stress/about/illnesses.html)); Insect Bites (Mosquito, Flea, Bedbug) (`cond-070`, from Written for MyThuso in its own words from the NHS website — Insect bites and stings (https://www.nhs.uk/conditions/insect-bites-and-stings/, reviewed 1 June 2023) and Bedbugs (https://www.nhs.uk/conditions/bedbugs/); checked against CDC — Mosquito bites (https://www.cdc.gov/mosquitoes/about/about-mosquito-bites.html) and Bed bugs (https://www.cdc.gov/bed-bugs/about/index.html)); Severe Skin Reaction to a Medicine (Stevens-Johnson Syndrome) (`cond-071`, from Written for MyThuso in its own words from the NHS website — Stevens-Johnson syndrome (https://www.nhs.uk/conditions/stevens-johnson-syndrome/, reviewed 4 March 2026); checked against MedlinePlus Genetics — Stevens-Johnson syndrome/toxic epidermal necrolysis (https://medlineplus.gov/genetics/condition/stevens-johnson-syndrome-toxic-epidermal-necrolysis/)); Insect Bites and Stings (Minor) (`fa-023`, from Written for MyThuso in its own words from the NHS website — Insect bites and stings (https://www.nhs.uk/conditions/insect-bites-and-stings/, reviewed 1 June 2023); checked against CDC/NIOSH — Insects and scorpions (https://www.cdc.gov/niosh/outdoor-workers/about/insects-and-scorpions.html) and MedlinePlus — Anaphylaxis (https://medlineplus.gov/anaphylaxis.html)); Sunburn (`fa-024`, from Written for MyThuso in its own words from the NHS website — Sunburn (https://www.nhs.uk/conditions/sunburn/, reviewed 24 November 2025); checked against CDC — Heat-related illnesses (https://www.cdc.gov/disasters/extremeheat/pdf/Heat_Related_Illness.pdf)); The Glass Test for a Rash (`fa-025`, from Written for MyThuso in its own words from the NHS website — Meningitis (https://www.nhs.uk/conditions/meningitis/, reviewed 12 June 2026) and Sepsis (https://www.nhs.uk/conditions/sepsis/, reviewed 14 May 2026); no public-domain page describes the glass test, and CDC — Meningococcal disease symptoms (https://www.cdc.gov/meningococcal/symptoms/index.html) supports the signs to call for); Caring for an Itchy Rash at Home (`fa-026`, from Written for MyThuso in its own words from the NHS website — Itchy skin (https://www.nhs.uk/conditions/itchy-skin/, reviewed 19 July 2023); checked against MedlinePlus — Itching (https://medlineplus.gov/itching.html) and Rashes (https://medlineplus.gov/rashes.html)).
+
+The patient reads: "No clinician has reviewed this skin check yet: its questions, its rules and the information it shows are general, from public health sources, and held inside the app." And beside every entry: "Awaiting clinical review."
+
+**Question for the reviewer:** are these the questions a nurse wants answered about a rash before a visit; is each sign for today one that should be seen the same day, and is any missing; does a rash on a baby younger than three months belong among them, and in which entry should the knowledge base say so; are the entries each descriptor names the right ones and ordered safely; is every added entry accurate for South Africa; and may facts restated in MyThuso's own words cite the pages they were read from, given the licence findings in `docs/governance/KNOWLEDGE-SOURCES.md`? The reviewer signs `review.reviewedBy` in the contract and in each added entry; until then the build refuses a digit or a you-have sentence anywhere in the check.
 
 | Sign-off | |
 |---|---|

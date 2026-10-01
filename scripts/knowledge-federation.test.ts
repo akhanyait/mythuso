@@ -16,7 +16,7 @@ import {
 /* The knowledge catalogue's own tests, added on 22 September 2026 with the governed federation
    work. This is the integration half of the no-fabrication rule: the validators in
    knowledge-codes.mjs are exercised against the real migrated JSON in packages/catalog/knowledge —
-   all nine files, all 250 entries — and against federation.json's contracted darkness. What a code
+   all nine files, all 261 entries — and against federation.json's contracted darkness. What a code
    MEANS was verified by hand against the issuing authorities' own browsers before it was written
    down; what this file proves is that nothing mistyped or half-recorded has slipped in since, and
    that nothing can be added without passing the same gates. */
@@ -60,7 +60,7 @@ test("the migrated catalogue validates whole: every source complete, every code 
   );
   assert.equal(
     total,
-    250,
+    261,
     "every entry of the nine files is covered by this test",
   );
   const coded = KNOWLEDGE_FILES.filter((file) => file !== "interactions")

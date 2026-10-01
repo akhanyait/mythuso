@@ -41,6 +41,7 @@ import {
 import { emitConsentGrants } from "./emit-consent-grants.mjs";
 import { emitProtocols, previewPathwayOf } from "./emit-protocols.mjs";
 import { checkCasePathway } from "./check-case-pathway.mjs";
+import { checkSkinCheck } from "./check-skin-check.mjs";
 import { checkLiveVitals } from "./check-live-vitals.mjs";
 import { emitLocales } from "./emit-locales.mjs";
 import { emitDispensing } from "./emit-dispensing.mjs";
@@ -3095,8 +3096,8 @@ const generated = [
     files: emitClinicalReviewPack(),
   })),
   /* Wave 5: the pack's section G reads Clinical Intelligence's frames and registries; 28 September
-     2026: its F4 reads the symptom intake's question set. */
-  ...["clinical.json", "apis/clinical.json", "symptom-intake.json", "care-tips.json"].map((file) => ({
+     2026: its F4 reads the symptom intake's question set; 1 October 2026: its F6 the skin check. */
+  ...["clinical.json", "apis/clinical.json", "symptom-intake.json", "care-tips.json", "skin-check.json"].map((file) => ({
     source: `packages/catalog/${file}`,
     command: "npm run review-pack",
     files: emitClinicalReviewPack(),
@@ -3147,6 +3148,12 @@ const generated = [
   ...(await (async () => {
     const files = (await import("./emit-case.mjs")).emitCase();
     return ["packages/catalog/case.json", "packages/catalog/knowledge/conditions.json", "packages/catalog/symptom-intake.json"].map((source) => ({ source, command: "npm run case", files }));
+  })()),
+  /* Show GilbertOne a rash (1 October 2026): the questions, rules, sentences and the knowledge entries they name,
+     for the two phones, and the chip's label and the handover refusal for the web. One entry per source. */
+  ...(await (async () => {
+    const files = (await import("./emit-skin-check.mjs")).emitSkinCheck();
+    return ["packages/catalog/skin-check.json", "packages/catalog/knowledge/conditions.json", "packages/catalog/knowledge/first-aid.json", "packages/catalog/apis/assistant.json"].map((source) => ({ source, command: "npm run skin-check", files }));
   })()),
   /* Hands-free conversation mode (28 September 2026): the pause, the caps and the sentences, so neither phone types them. */
   {
@@ -37885,7 +37892,10 @@ console.log(
        app did not have, each behind a dynamic import of its own from App.tsx. The patient's entry already carries
        ui.css through Dashboard.tsx, so their Buttons, Cards and Tabs add no stylesheet to it. */
     "apps/web/src/features/PatientDevices.tsx", "apps/web/src/features/PatientMessages.tsx", "apps/web/src/features/PatientResults.tsx",
-    "apps/web/src/features/PatientConsultation.tsx"];
+    "apps/web/src/features/PatientConsultation.tsx",
+    /* Show GilbertOne a rash (1 October 2026): behind its own dynamic import inside the already-lazy GilbertOne
+       panel, so it is off the patient's entry; its Buttons join the ui.css the patient's entry already carries. */
+    "apps/web/src/features/SkinCheck.tsx"];
   for (const f of files("apps/web/src").filter((f) => /\.tsx?$/.test(f) && !f.startsWith(`${uiDir}/`) && !adopters.includes(f))) {
     const code = uncommented(read(f));
     if (/from\s+['"][./]*(?:\.\.\/)*ui(?:\/(?!icons\/)[\w]+)?['"]/.test(code) || /features\/UiGallery/.test(code) && f !== "apps/web/src/App.tsx")
@@ -39241,6 +39251,16 @@ console.log(
   if (/--marker\b/.test(tileMap)) w("TileMap.tsx sets a marker colour of its own. The colour is map.css's --pin, by kind, for both renderings.");
 
   console.log(`Streets on for staff, and Mapbox as a provider · ${1 + entries.length} tile sources each with a licence, a credit and a label font, the Mapbox one a pointer in geography.json and an entry in map-providers.json that only the tile chunk reads, keyed by VITE_MAPBOX_TOKEN over https; the credit under the map is what the tile map reports it drew with; ${tracked.length} tracked files carry no token; the patient surface and the plain default start off and the two staff screens alone start on; no mapbox-gl, no telemetry endpoint, no sku, the token appended to two host families only, the tile chunk behind one dynamic import; index.html allows the Mapbox origins under connect-src and img-src alone; every pin on tokens, one --pin per kind, no literal duration, nothing endless.`);
+}
+
+/* Show GilbertOne a rash — 1 October 2026 */
+/* The founder's photo skin check, held to intake plus general information: the rules decide the outcome, an
+   emergency rule hands over words the emergency terms already raise, the photo is never stored, read or sent,
+   and the photo reader is refused everywhere. The checks live in scripts/check-skin-check.mjs so each can be
+   proven to fire in isolation (scripts/prove-skin-check.mjs hands the module broken files). */
+{
+  const { stems: stemsOf, hasSequence: sequenceIn } = await import("../packages/gilbertone/src/stems.ts");
+  console.log(checkSkinCheck({ read, stems: stemsOf, hasSequence: sequenceIn, existsSync }));
 }
 
 /* The case pathway — 29 September 2026 */

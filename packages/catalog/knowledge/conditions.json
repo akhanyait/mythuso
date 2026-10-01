@@ -1534,5 +1534,208 @@
       "evidenceGrade": "guideline",
       "expiresOrReviewBy": "2027-09-21"
     }
+  },
+  {
+    "id": "cond-065",
+    "title": "Contact Dermatitis",
+    "category": "dermatological",
+    "symptoms": [
+      "itchy skin where something touched it",
+      "dry, cracked or blistered patches",
+      "red on lighter skin; dark brown, purple or grey on darker skin",
+      "often on the hands or face",
+      "appears within hours or days of the contact"
+    ],
+    "whenToSeeDoctor": "If it keeps coming back, is severe, does not settle with care at home, or you cannot work out what is causing it.",
+    "homeCare": "Find and avoid what set it off — a soap, detergent, frequent wetting, nickel or a cosmetic. Use an unperfumed moisturiser (emollient) often and generously, wash with it instead of soap, and wear gloves for irritants.",
+    "tags": ["dermatological", "rash", "itch", "irritant", "allergy"],
+    "codes": {},
+    "source": {
+      "authority": "Written for MyThuso in its own words from the NHS website — Contact dermatitis (https://www.nhs.uk/conditions/contact-dermatitis/, reviewed 3 May 2023); checked against MedlinePlus — Rashes (https://medlineplus.gov/rashes.html) and CDC/NIOSH — Skin exposures (https://www.cdc.gov/niosh/skin-exposure/about/index.html)",
+      "jurisdiction": "United Kingdom / United States",
+      "retrievedDate": "2026-10-01",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-10-01"
+    },
+    "review": {
+      "reviewedBy": null,
+      "status": "awaiting-clinical-review",
+      "addedOn": "2026-10-01",
+      "addedFor": "packages/catalog/skin-check.json"
+    }
+  },
+  {
+    "id": "cond-066",
+    "title": "Hives (Urticaria)",
+    "category": "dermatological",
+    "symptoms": [
+      "raised itchy bumps or patches (welts)",
+      "may sting or burn",
+      "pink or red on lighter skin, harder to see on darker skin",
+      "can appear anywhere and move around",
+      "each patch usually fades within a day or two"
+    ],
+    "whenToSeeDoctor": "If the rash lasts more than two days, spreads, keeps coming back, or comes with a fever or deep swelling, or you are worried about a child. Call 10177 (or 112 from a cellphone) at once if the lips, mouth, tongue or throat swell, breathing becomes hard, the lips turn blue or grey, or the person becomes confused or faints — that is a severe allergic reaction (anaphylaxis).",
+    "homeCare": "Most hives clear by themselves within a few days. Avoid hot baths and showers and tight clothing, and ask a pharmacist whether an over-the-counter antihistamine suits you, mentioning any long-term condition.",
+    "tags": ["dermatological", "rash", "itch", "allergy", "welts"],
+    "codes": {},
+    "source": {
+      "authority": "Written for MyThuso in its own words from the NHS website — Hives (https://www.nhs.uk/conditions/hives/, reviewed 26 April 2024); checked against MedlinePlus — Hives (https://medlineplus.gov/hives.html) and Anaphylaxis (https://medlineplus.gov/anaphylaxis.html)",
+      "jurisdiction": "United Kingdom / United States",
+      "retrievedDate": "2026-10-01",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-10-01"
+    },
+    "review": {
+      "reviewedBy": null,
+      "status": "awaiting-clinical-review",
+      "addedOn": "2026-10-01",
+      "addedFor": "packages/catalog/skin-check.json"
+    }
+  },
+  {
+    "id": "cond-067",
+    "title": "Cellulitis (Skin Infection)",
+    "category": "dermatological",
+    "symptoms": [
+      "painful, hot, swollen skin",
+      "redness that spreads, which can be less obvious on darker skin",
+      "sometimes blisters",
+      "feeling flu-like, with swollen glands",
+      "most often on the lower leg"
+    ],
+    "whenToSeeDoctor": "Be seen the same day if skin becomes painful, hot and swollen — early treatment stops it getting worse. Call 10177 (or 112 from a cellphone) if it comes with a high fever, a fast heartbeat, purple patches, dizziness, confusion, pale or clammy skin, or fainting.",
+    "homeCare": "Cellulitis needs treatment from a clinician; care at home supports it and does not replace it. Raise the affected limb, gently move nearby joints, drink plenty, and afterwards keep the skin clean, moisturised and protected from cuts.",
+    "tags": ["dermatological", "bacterial", "infection", "spreading", "same-day"],
+    "codes": {},
+    "source": {
+      "authority": "Written for MyThuso in its own words from the NHS website — Cellulitis (https://www.nhs.uk/conditions/cellulitis/, reviewed 18 April 2024); checked against CDC — Cellulitis (https://www.cdc.gov/group-a-strep/about/cellulitis.html) and MedlinePlus — Cellulitis (https://medlineplus.gov/cellulitis.html)",
+      "jurisdiction": "United Kingdom / United States",
+      "retrievedDate": "2026-10-01",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-10-01"
+    },
+    "review": {
+      "reviewedBy": null,
+      "status": "awaiting-clinical-review",
+      "addedOn": "2026-10-01",
+      "addedFor": "packages/catalog/skin-check.json"
+    }
+  },
+  {
+    "id": "cond-068",
+    "title": "Sunburn",
+    "category": "dermatological",
+    "symptoms": [
+      "skin hot to the touch",
+      "sore or painful skin",
+      "redness, which may be less visible on darker skin",
+      "flaking or peeling a few days later",
+      "blisters when severe"
+    ],
+    "whenToSeeDoctor": "If the skin is blistered or swollen, the person has a very high temperature, feels hot and shivery, or is very tired, dizzy, sick or has a headache or cramps — or if a baby or young child is sunburnt.",
+    "homeCare": "Get out of the sun, cool the skin with a cool shower, bath or damp towels, then apply after-sun or an unperfumed moisturiser (emollient). Drink plenty of water and keep the burnt skin covered from the sun until it heals.",
+    "tags": ["dermatological", "rash", "sun", "summer", "peeling"],
+    "codes": {},
+    "source": {
+      "authority": "Written for MyThuso in its own words from the NHS website — Sunburn (https://www.nhs.uk/conditions/sunburn/, reviewed 24 November 2025); checked against CDC — Heat-related illnesses (https://www.cdc.gov/disasters/extremeheat/pdf/Heat_Related_Illness.pdf)",
+      "jurisdiction": "United Kingdom / United States",
+      "retrievedDate": "2026-10-01",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-10-01"
+    },
+    "review": {
+      "reviewedBy": null,
+      "status": "awaiting-clinical-review",
+      "addedOn": "2026-10-01",
+      "addedFor": "packages/catalog/skin-check.json"
+    }
+  },
+  {
+    "id": "cond-069",
+    "title": "Heat Rash (Prickly Heat)",
+    "category": "dermatological",
+    "symptoms": [
+      "small raised spots",
+      "an itchy, prickly feeling",
+      "mild swelling",
+      "red on lighter skin; may look grey or white on darker skin",
+      "not catching, and common in babies"
+    ],
+    "whenToSeeDoctor": "If it has not improved after a few days, or you are worried about a baby's rash.",
+    "homeCare": "Keep the skin cool so it stops sweating: loose cotton clothes, light bedding, cool baths or showers, plenty to drink, and a cold compress. Pat the skin rather than scratching, keep it dry, and avoid perfumed products and heavy creams.",
+    "tags": ["dermatological", "rash", "itch", "heat", "babies"],
+    "codes": {},
+    "source": {
+      "authority": "Written for MyThuso in its own words from the NHS website — Heat rash (https://www.nhs.uk/conditions/heat-rash-prickly-heat/, reviewed 9 May 2024); checked against CDC/NIOSH — Heat-related illnesses (https://www.cdc.gov/niosh/heat-stress/about/illnesses.html)",
+      "jurisdiction": "United Kingdom / United States",
+      "retrievedDate": "2026-10-01",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-10-01"
+    },
+    "review": {
+      "reviewedBy": null,
+      "status": "awaiting-clinical-review",
+      "addedOn": "2026-10-01",
+      "addedFor": "packages/catalog/skin-check.json"
+    }
+  },
+  {
+    "id": "cond-070",
+    "title": "Insect Bites (Mosquito, Flea, Bedbug)",
+    "category": "dermatological",
+    "symptoms": [
+      "small raised itchy lumps",
+      "flea bites often in groups below the knees",
+      "bedbug bites in lines or clusters on skin bared in bed",
+      "red or pink on lighter skin; brown or purple and harder to see on darker skin",
+      "children may get crops of very itchy bumps that keep coming back"
+    ],
+    "whenToSeeDoctor": "If a bite looks infected (hot, spreading redness, swelling or pus), stays very painful or swollen despite care at home, a baby under one year is bitten, or it gets worse or comes with a fever. Call 10177 (or 112 from a cellphone) if the face, lips or throat swell or breathing becomes difficult.",
+    "homeCare": "Wash the area, hold a cool damp cloth on it to ease the itch and swelling, and keep nails short so scratching does not cause infection. Ask a pharmacist about an over-the-counter antihistamine if the itch spoils sleep.",
+    "tags": ["dermatological", "bites-and-stings", "itch", "children", "bedbugs"],
+    "codes": {},
+    "source": {
+      "authority": "Written for MyThuso in its own words from the NHS website — Insect bites and stings (https://www.nhs.uk/conditions/insect-bites-and-stings/, reviewed 1 June 2023) and Bedbugs (https://www.nhs.uk/conditions/bedbugs/); checked against CDC — Mosquito bites (https://www.cdc.gov/mosquitoes/about/about-mosquito-bites.html) and Bed bugs (https://www.cdc.gov/bed-bugs/about/index.html)",
+      "jurisdiction": "United Kingdom / United States",
+      "retrievedDate": "2026-10-01",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-10-01"
+    },
+    "review": {
+      "reviewedBy": null,
+      "status": "awaiting-clinical-review",
+      "addedOn": "2026-10-01",
+      "addedFor": "packages/catalog/skin-check.json"
+    }
+  },
+  {
+    "id": "cond-071",
+    "title": "Severe Skin Reaction to a Medicine (Stevens-Johnson Syndrome)",
+    "category": "dermatological",
+    "symptoms": [
+      "a flu-like illness first: fever, sore throat, aching",
+      "then a fast-spreading rash of round patches, darker in the middle",
+      "blistering and peeling skin",
+      "painful sores in the mouth and throat",
+      "sore eyes that hurt in bright light"
+    ],
+    "whenToSeeDoctor": "This is an emergency. Call 10177 (or 112 from a cellphone) if a spreading rash blisters or peels, especially after starting a new medicine (in South Africa this includes some HIV and epilepsy medicines), or if there is trouble breathing, a tight chest or throat, or a swollen face or eyes.",
+    "homeCare": "There is no care at home for this. Do not drive yourself: call an ambulance or have someone take you, and bring every medicine you have been taking.",
+    "tags": ["dermatological", "emergency", "medicine-reaction", "blistering", "rash"],
+    "codes": {},
+    "source": {
+      "authority": "Written for MyThuso in its own words from the NHS website — Stevens-Johnson syndrome (https://www.nhs.uk/conditions/stevens-johnson-syndrome/, reviewed 4 March 2026); checked against MedlinePlus Genetics — Stevens-Johnson syndrome/toxic epidermal necrolysis (https://medlineplus.gov/genetics/condition/stevens-johnson-syndrome-toxic-epidermal-necrolysis/)",
+      "jurisdiction": "United Kingdom / United States",
+      "retrievedDate": "2026-10-01",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-10-01"
+    },
+    "review": {
+      "reviewedBy": null,
+      "status": "awaiting-clinical-review",
+      "addedOn": "2026-10-01",
+      "addedFor": "packages/catalog/skin-check.json"
+    }
   }
 ]

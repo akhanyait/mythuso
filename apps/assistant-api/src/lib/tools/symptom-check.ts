@@ -5,7 +5,7 @@ import { tokenize } from "../knowledge.ts";
 import { attributionOf } from "../knowledge-provenance.ts";
 
 /* The symptom-triage tool: it matches a person's own words against the recorded symptoms of the
-   64 conditions in packages/catalog/knowledge/conditions.json and hands back the catalog's own
+   conditions in packages/catalog/knowledge/conditions.json and hands back the catalog's own
    "when to see a doctor" line. It is a mirror, not a mind: nothing here says what the person has,
    and every output says that a nurse or doctor decides. Where the words describe a child with one
    of the IMCI danger signs, the tool leads with the urgent line instead — a triage list that
@@ -23,6 +23,9 @@ type ConditionEntry = {
 };
 
 const CONDITIONS = conditions as ConditionEntry[];
+/* The count on the sources line is the list's own length, not a typed figure: the list grew on
+   1 October 2026 (the skin check's entries) and a typed 64 would have gone on saying 64. */
+const SOURCES_LINE = `Sources: MyThuso conditions list (${CONDITIONS.length} entries).`;
 
 /* Words that say the symptoms belong to a child. "Month old" and "year old" are matched as phrases
    because a number followed by "old" is a child's age more often than anything else in this
@@ -101,7 +104,7 @@ const symptomMatches = (queryTerms: string[], symptom: string): boolean => {
 export function checkSymptoms(input: string): string {
   const text = (input ?? "").trim();
   if (!text)
-    return "Describe the symptoms in your own words and I will match them against the conditions MyThuso records.\nSources: MyThuso conditions list (64 entries).";
+    return "Describe the symptoms in your own words and I will match them against the conditions MyThuso records.\n" + SOURCES_LINE;
 
   const queryTerms = tokenize(text);
   const ranked = CONDITIONS.map((condition) => {
@@ -132,7 +135,7 @@ export function checkSymptoms(input: string): string {
       "No condition in MyThuso's list records these symptoms as a clear match.",
       "That does not mean nothing is wrong — it means this list cannot read these words. Describe the symptoms again in different words, or speak to a nurse. Any emergency sign (severe bleeding, chest pain, a person who cannot be woken) is a 10177 call, not a search.",
     );
-    return lines.join("\n") + "\nSources: MyThuso conditions list (64 entries).";
+    return lines.join("\n") + "\n" + SOURCES_LINE;
   }
 
   lines.push(

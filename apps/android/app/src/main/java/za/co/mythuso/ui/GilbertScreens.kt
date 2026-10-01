@@ -173,6 +173,19 @@ private const val ASSISTANT_BASE = "http://10.0.2.2:8791"
     LaunchedEffect(turns) { if (turns.any { it.reply is GilbertReply.Emergency }) raised = true }
     var draft by remember { mutableStateOf("") }
     var correction by remember { mutableStateOf("") }
+    /* Show GilbertOne a rash, over the conversation. It hands an emergency back as the words that raised
+       it, and the conversation answers them with its own emergency turn as the check closes and lets
+       the photo go. */
+    var skin by remember { mutableStateOf(false) }
+    if (skin) androidx.compose.ui.window.Dialog(
+        onDismissRequest = { skin = false },
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        SkinCheckScreen(onEmergency = { words ->
+            skin = false
+            turns = Gilbert.send(words, GilbertChannel.CHOSEN, turns, store.visits.firstOrNull())
+        }, onBack = { skin = false })
+    }
     val scroll = rememberScrollState()
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> listener.permissionAnswered(granted) }
 
@@ -286,7 +299,7 @@ private const val ASSISTANT_BASE = "http://10.0.2.2:8791"
                     }
                 }
                 /* Starting again is a new conversation: a new reference in the queue, nothing remembered. */
-                Suggestions(asked, choose = { turns = Gilbert.choose(it, turns, store.visits.firstOrNull()) },
+                Suggestions(asked, choose = { turns = Gilbert.choose(it, turns, store.visits.firstOrNull()) }, skin = { skin = true },
                     again = { refineGeneration += 1; turns = Gilbert.opening(); raised = false; sent.clear(); conversationRef = java.util.UUID.randomUUID().toString() })
                 Refusals()
             }
@@ -556,7 +569,7 @@ private fun spokenAloud(turn: GilbertTurn): String {
     }
 }
 
-@Composable private fun Suggestions(asked: Boolean, choose: (za.co.mythuso.model.GilbertQuestion) -> Unit, again: () -> Unit) {
+@Composable private fun Suggestions(asked: Boolean, choose: (za.co.mythuso.model.GilbertQuestion) -> Unit, skin: () -> Unit, again: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space20)) {
         GilbertData.questionGroups.forEach { group ->
             Column(verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
@@ -567,6 +580,7 @@ private fun spokenAloud(turn: GilbertTurn): String {
                 }
             }
         }
+        QuietButton(za.co.mythuso.model.SkinCheckData.chipLabel) { skin() }
         if (asked) ThusoButton(GilbertData.conversation.startAgainLabel, onClick = again, variant = ThusoButtonVariant.Ghost, leadingIcon = Icons.Outlined.Refresh)
     }
 }

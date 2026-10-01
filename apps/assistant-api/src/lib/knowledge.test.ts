@@ -10,7 +10,7 @@ import {
 } from "./knowledge.ts";
 
 /* The knowledge tier's own tests, added with it on 21 September 2026. The corpus assertions pin
-   the loader to the catalog's own counts — 250 entries across the nine files the catalog ships —
+   the loader to the catalog's own counts — 261 entries across the nine files the catalog ships —
    so a file that stops loading fails here rather than quietly shrinking what the tools can find.
    The search assertions are about the shape of an honest answer: ranked, attributed, and silent
    rather than guessing. The Qdrant tests cover both halves of the future-proofing: a configured
@@ -48,9 +48,9 @@ const withEnv = async <T>(
   }
 };
 
-test("the whole catalog loads once: 250 entries across the nine knowledge files", () => {
+test("the whole catalog loads once: 261 entries across the nine knowledge files", () => {
   const stats = knowledgeStats();
-  assert.equal(stats.entries, 250);
+  assert.equal(stats.entries, 261);
   assert.equal(stats.files, 9);
 });
 

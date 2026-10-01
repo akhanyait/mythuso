@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { tool } from "@langchain/core/tools";
-import { retrieveKnowledge, type KnowledgeResult } from "../knowledge.ts";
+import { knowledgeStats, retrieveKnowledge, type KnowledgeResult } from "../knowledge.ts";
 import { citationLine } from "../knowledge-provenance.ts";
 
-/* The knowledge-search tool: the 250-entry catalog knowledge base, retrieved by the knowledge
+/* The knowledge-search tool: the catalog knowledge base, retrieved by the knowledge
    module's search (vector when an operator stands up Qdrant, keyword always) and handed to the
    model as titled, sourced excerpts. The tool's whole job is to make an answer attributable —
    every result carries the source line the catalog recorded plus its structured citation
@@ -18,7 +18,7 @@ export function formatKnowledgeResults(
     return [
       `Nothing in MyThuso's knowledge base matches "${query}".`,
       "Say the question in different words, or ask a nurse — the knowledge base is a small, curated list, and its silence is not a medical opinion.",
-    ].join("\n") + "\nSources: MyThuso knowledge base (250 entries).";
+    ].join("\n") + `\nSources: MyThuso knowledge base (${knowledgeStats().entries} entries).`;
 
   const lines = results.map((result, i) =>
     [
@@ -45,7 +45,9 @@ export const knowledgeSearchTool = tool(
   {
     name: "knowledge_search",
     description:
-      "Search MyThuso's curated South African health knowledge base (250 entries: conditions, medicines, first aid, maternal care, chronic illness, mental health, the public health system, prevention and drug interactions) and return titled excerpts with their sources. Use for any general health question, 'what is', 'how do I', or 'where do I' question before answering from memory. Answers nothing by itself — it grounds the answer.",
+      /* The count is the loaded corpus's own, not a typed figure, so the tool never describes a
+         catalogue it no longer has (it grew on 1 October 2026 with the skin check's entries). */
+      `Search MyThuso's curated South African health knowledge base (${knowledgeStats().entries} entries: conditions, medicines, first aid, maternal care, chronic illness, mental health, the public health system, prevention and drug interactions) and return titled excerpts with their sources. Use for any general health question, 'what is', 'how do I', or 'where do I' question before answering from memory. Answers nothing by itself — it grounds the answer.`,
     schema: z.object({
       query: z
         .string()

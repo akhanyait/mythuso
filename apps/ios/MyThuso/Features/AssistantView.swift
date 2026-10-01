@@ -46,6 +46,8 @@ struct AssistantView: View {
     @State private var correction = ""
     @State private var gatheredAt: Date?
     @State private var showingSos = false
+    /// Show GilbertOne a rash, as a sheet over the conversation. Its photo and answers are its own state.
+    @State private var showingSkin = false
     /* The simulated nurse queue this screen hands to, this conversation’s reference in it, what each
        handover turn’s button did, and the first turn that got the emergency answer. The last is kept
        apart from the turns because the conversation is capped, and a dropped turn must not be what lowers
@@ -104,6 +106,17 @@ struct AssistantView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) { composer }
         .navigationTitle(Gilbert.name).navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $showingSos) { SosView() }
+        /* The skin check hands an emergency back as the words that raised it, and the conversation answers
+           them with its own emergency turn — the one emergency answer, with its numbers — as the sheet
+           closes and lets the photo go. */
+        .sheet(isPresented: $showingSkin) {
+            NavigationStack {
+                SkinCheckView(onEmergency: { words in
+                    showingSkin = false
+                    turns = Gilbert.send(words, channel: .chosen, to: turns, visit: store.visits.first)
+                }, onBack: { showingSkin = false })
+            }
+        }
         .onAppear { gather() }
         .onChange(of: turns.last?.id) { _, _ in
             gather()
@@ -686,6 +699,11 @@ struct AssistantView: View {
                     }
                 }
             }
+            Button { showingSkin = true } label: {
+                Label(SkinCheckData.chipLabel, systemImage: "camera")
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            }
+            .buttonStyle(SceneButtonStyle(filled: false))
             if asked {
                 Button {
                     /* Start again is the patient saying the conversation is over: a refinement still

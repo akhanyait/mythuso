@@ -626,5 +626,141 @@
       "evidenceGrade": "guideline",
       "expiresOrReviewBy": "2027-09-21"
     }
+  },
+  {
+    "id": "fa-023",
+    "title": "Insect Bites and Stings (Minor)",
+    "category": "bites-and-stings",
+    "steps": [
+      "If a sting is left in the skin, scrape it out sideways with a fingernail or the edge of a bank card",
+      "Wash the area with soap and water",
+      "Hold a cold pack wrapped in a cloth on any swelling",
+      "Raise the bitten or stung part if you can",
+      "Ask a pharmacist about an over-the-counter antihistamine for itching",
+      "Watch the area over the next few days for signs of infection"
+    ],
+    "warnings": [
+      "Do not use tweezers on a bee or wasp sting — squeezing can push in more venom",
+      "Do not scratch: broken skin can become infected",
+      "Never cut the skin or put on a tourniquet"
+    ],
+    "whenToCall": "10177 (or 112 from a cellphone) at once if the lips, tongue or throat swell, breathing is fast, wheezy or difficult, swallowing is hard, the lips turn blue or grey, or the person becomes confused or faints. Urgent advice for stings in the mouth, throat or near the eyes.",
+    "tags": ["bites-and-stings", "insects", "itch", "children"],
+    "codes": {},
+    "source": {
+      "authority": "Written for MyThuso in its own words from the NHS website — Insect bites and stings (https://www.nhs.uk/conditions/insect-bites-and-stings/, reviewed 1 June 2023); checked against CDC/NIOSH — Insects and scorpions (https://www.cdc.gov/niosh/outdoor-workers/about/insects-and-scorpions.html) and MedlinePlus — Anaphylaxis (https://medlineplus.gov/anaphylaxis.html)",
+      "jurisdiction": "United Kingdom / United States",
+      "retrievedDate": "2026-10-01",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-10-01"
+    },
+    "review": {
+      "reviewedBy": null,
+      "status": "awaiting-clinical-review",
+      "addedOn": "2026-10-01",
+      "addedFor": "packages/catalog/skin-check.json"
+    }
+  },
+  {
+    "id": "fa-024",
+    "title": "Sunburn",
+    "category": "environmental",
+    "steps": [
+      "Get out of the sun",
+      "Cool the skin with a cool shower, a bath or damp towels",
+      "Apply after-sun or an unperfumed moisturiser (emollient)",
+      "Drink plenty of water",
+      "Wear loose clothing over the burn and keep it out of the sun until it heals"
+    ],
+    "warnings": [
+      "Do not put ice or petroleum jelly on the skin",
+      "Do not burst blisters, scratch, or pick off peeling skin",
+      "Babies and young children with sunburn need advice from a nurse or doctor"
+    ],
+    "whenToCall": "Urgent help if the skin is badly blistered or swollen, or the person has a very high temperature, shivers, is confused, dizzy or being sick — this may be heat illness and not only sunburn.",
+    "tags": ["environmental", "sun", "summer", "skin"],
+    "codes": {},
+    "source": {
+      "authority": "Written for MyThuso in its own words from the NHS website — Sunburn (https://www.nhs.uk/conditions/sunburn/, reviewed 24 November 2025); checked against CDC — Heat-related illnesses (https://www.cdc.gov/disasters/extremeheat/pdf/Heat_Related_Illness.pdf)",
+      "jurisdiction": "United Kingdom / United States",
+      "retrievedDate": "2026-10-01",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-10-01"
+    },
+    "review": {
+      "reviewedBy": null,
+      "status": "awaiting-clinical-review",
+      "addedOn": "2026-10-01",
+      "addedFor": "packages/catalog/skin-check.json"
+    }
+  },
+  {
+    "id": "fa-025",
+    "title": "The Glass Test for a Rash",
+    "category": "emergency",
+    "steps": [
+      "Press the side of a clear drinking glass firmly against the rash",
+      "Look through the glass to see whether the spots fade",
+      "If the spots can still be seen through the glass, call 10177 (or 112 from a cellphone) straight away",
+      "On darker skin, check paler places too: the palms, the soles, the roof of the mouth and inside the eyelids",
+      "Look for blue, grey, pale or blotchy skin, lips or tongue",
+      "Do not wait for a rash to appear if the person seems seriously ill"
+    ],
+    "warnings": [
+      "Not everyone with meningitis or sepsis gets a rash; a rash that fades does not rule them out",
+      "The rash can start as small red pinpricks and spread quickly into red or purple blotches",
+      "Trust your instinct: if you think something is seriously wrong, get help"
+    ],
+    "whenToCall": "10177 (or 112 from a cellphone) immediately for a rash that does not fade under a glass, especially with a fever, a very bad headache, a stiff neck or dislike of bright light, or in a baby or young child.",
+    "tags": ["emergency", "rash", "meningitis", "sepsis", "children"],
+    "codes": {},
+    "source": {
+      "authority": "Written for MyThuso in its own words from the NHS website — Meningitis (https://www.nhs.uk/conditions/meningitis/, reviewed 12 June 2026) and Sepsis (https://www.nhs.uk/conditions/sepsis/, reviewed 14 May 2026); no public-domain page describes the glass test, and CDC — Meningococcal disease symptoms (https://www.cdc.gov/meningococcal/symptoms/index.html) supports the signs to call for",
+      "jurisdiction": "United Kingdom / United States",
+      "retrievedDate": "2026-10-01",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-10-01"
+    },
+    "review": {
+      "reviewedBy": null,
+      "status": "awaiting-clinical-review",
+      "addedOn": "2026-10-01",
+      "addedFor": "packages/catalog/skin-check.json"
+    }
+  },
+  {
+    "id": "fa-026",
+    "title": "Caring for an Itchy Rash at Home",
+    "category": "dermatological",
+    "steps": [
+      "Hold a cool compress or cool damp cloth on the itchy area",
+      "Pat or tap the skin instead of scratching, and keep nails short and smooth",
+      "Take short lukewarm baths or showers",
+      "Use an unperfumed moisturiser (emollient) often",
+      "Wear loose cotton clothes and use laundry products for sensitive skin",
+      "Stop any new soap, cream, cosmetic or detergent started before the rash",
+      "Ask a pharmacist about calamine lotion or an over-the-counter antihistamine"
+    ],
+    "warnings": [
+      "Avoid long hot baths, perfumed soaps and tight, woollen or synthetic clothing",
+      "Itching in pregnancy needs checking by a nurse, midwife or doctor",
+      "An itchy rash with swelling of the face or throat, or trouble breathing, is an emergency"
+    ],
+    "whenToCall": "10177 (or 112 from a cellphone) if itching comes with swelling of the lips, tongue or throat or trouble breathing. Otherwise a nurse or doctor if the itch is severe, covers the whole body, will not settle, comes with a new lump or swelling, or happens in pregnancy.",
+    "tags": ["dermatological", "rash", "itch", "self-care"],
+    "codes": {},
+    "source": {
+      "authority": "Written for MyThuso in its own words from the NHS website — Itchy skin (https://www.nhs.uk/conditions/itchy-skin/, reviewed 19 July 2023); checked against MedlinePlus — Itching (https://medlineplus.gov/itching.html) and Rashes (https://medlineplus.gov/rashes.html)",
+      "jurisdiction": "United Kingdom / United States",
+      "retrievedDate": "2026-10-01",
+      "evidenceGrade": "guideline",
+      "expiresOrReviewBy": "2027-10-01"
+    },
+    "review": {
+      "reviewedBy": null,
+      "status": "awaiting-clinical-review",
+      "addedOn": "2026-10-01",
+      "addedFor": "packages/catalog/skin-check.json"
+    }
   }
 ]

@@ -23,6 +23,7 @@ import {
   ArrowDown,
   ArrowUp,
   CalendarDays,
+  Camera,
   ClipboardList,
   Pill,
   FileText,
@@ -108,9 +109,11 @@ import {
   type Turn,
 } from "../lib/assistant";
 import {
+  emergencyTurn,
   handoverDeskWords as bookingHandover,
   refusal,
 } from "../lib/assistant";
+import { skinCheckChip } from "../lib/skin-check.generated";
 import {
   refineWithAssistantService,
   sendWithGilbertEngine,
@@ -145,6 +148,12 @@ const GilbertOneCapabilities = lazy(() =>
     default: m.GilbertOneCapabilities,
   })),
 );
+
+/* Show GilbertOne a rash (1 October 2026) arrives on its own dynamic import too: the screen, its
+   contract and the knowledge entries it shows are fetched the first time a patient presses its chip,
+   and never by a panel that is only asked questions. The chip's label is the one thing the panel
+   carries, from a file generated out of the contract. */
+const SkinCheck = lazy(() => import("./SkinCheck"));
 
 /* The consent gate's emergency sentence with its numbers as tap-to-call links — the founder-approved
    improvement of 23 September 2026. The numbers are the contract's, read from sos.json by id through
@@ -326,6 +335,13 @@ export default function Assistant({
      an earlier turn never replays an arrival somebody has already read. */
   const [arrived, setArrived] = useState<number | null>(null);
   const [raised, setRaised] = useState(false);
+  /* Whether the skin check is drawn in place of the conversation. Its photo and answers are its own
+     state, so closing it lets them go. */
+  const [skin, setSkin] = useState(false);
+  /* Closing the panel ends the check: a photo is not kept in a panel nobody is looking at. */
+  useEffect(() => {
+    if (!open) setSkin(false);
+  }, [open]);
   const [queue, setQueue] = useState<Queue>(emptyQueue);
   const [sent, setSent] = useState<Record<number, Sent>>({});
   /* The one notes card whose lines were just copied, so its button can say so; the clipboard is the
@@ -734,6 +750,13 @@ export default function Assistant({
     voiceAdapter.conversation.stop();
   };
   const nurse = () => moved(handOver(turns, everRaised));
+  /* The skin check hands an emergency here — the words of the sign that raised it, or a sentence the
+     emergency matcher caught — and closes: the conversation's own emergency answer is the one she
+     reads, and nothing from the check outlives it. */
+  const skinEmergency = (words: string) => {
+    setSkin(false);
+    moved(emergencyTurn(turns, words));
+  };
   /* A pressed intake chip — yes, no, or one of a question's options — is the same turn a typed
      word would be, through the same continueIntake, marked chosen. */
   const pick = (text: string) => {
@@ -930,9 +953,20 @@ export default function Assistant({
           <div
             className="as-scroll"
             data-welcome={!asked || undefined}
+            data-skin={skin || undefined}
             ref={scroller}
             onScroll={measure}
           >
+            {/* The skin check, drawn first in the scroll while it is open; skin-check.css stands the
+                conversation and the composer aside under data-skin rather than unmounting them, so the
+                transcript is exactly where she left it when she comes back. */}
+            {skin && (
+              <div className="sk-host">
+                <Suspense fallback={<p className="as-quiet" role="status">{skinCheckChip}</p>}>
+                  <SkinCheck onBack={() => setSkin(false)} onEmergency={skinEmergency} />
+                </Suspense>
+              </div>
+            )}
             {/* The welcome introduces GilbertOne by its official logo, with the descriptor that must
                 stand beside the name. A lockup, so it is centred on the logo's own clear space. */}
             {!asked && (
@@ -1092,6 +1126,20 @@ export default function Assistant({
                         key={[...offered, ...help].map((q) => q.id).join(" ")}
                       >
                         {offered.map(chip)}
+                        {/* Show GilbertOne a rash, for the patient only: it opens the skin check on its
+                            own dynamic import, in place of the conversation. */}
+                        {group.id === "situations" && (
+                          <button
+                            type="button"
+                            className="as-ask"
+                            onClick={() => setSkin(true)}
+                          >
+                            <span className="as-question-icon">
+                              <Camera size={23} aria-hidden="true" />
+                            </span>
+                            <span>{skinCheckChip}</span>
+                          </button>
+                        )}
                         {help.map((q) => {
                           const Icon = QUESTION_ICONS[q.id];
                           return (

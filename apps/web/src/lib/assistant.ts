@@ -683,6 +683,24 @@ const conversationOf = (turns: Turn[]): ConversationTurn[] =>
 export const emergencyIn = (turns: Turn[]) =>
   turns.some((t) => t.reply.kind === "emergency");
 
+/* The skin check's emergency (1 October 2026): the words that raised it — an option the emergency
+   terms already raise, or a sentence the escalation ruleset caught — become the conversation's own
+   emergency turn, so the patient reads the one emergency answer with its numbers and its SOS button,
+   never one the check composed. The groups are whatever the emergency terms find in those words, and
+   none when only the escalation ruleset did, which is how the intake hands one over too. */
+export const emergencyTurn = (turns: Turn[], words: string): Turn[] => {
+  const groups = emergencyGroupsIn(words);
+  return append(turns, (id) => ({
+    id,
+    asked: words,
+    channel: "chosen",
+    reply: { kind: "emergency", groups },
+    matched: null,
+    groups,
+    unread: false,
+  }));
+};
+
 /* Who answers a handover and whether anybody is there now: Access's settings handover-answered-by and
    handover-hours in force, asked once when the handover is shown and kept on the reply, so somebody told
    when the desk opens is not told something different a minute later. Out of hours the words are, in

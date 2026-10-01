@@ -51,3 +51,8 @@ export { fillerStems, hasSequence, stem, stems, tokens } from "./stems.ts";
    packages/catalog/symptom-intake.json — not triage, and asked only after the emergency words. */
 export { answerIntake, beginIntake, caseWords, currentQuestion, featuresFor, findingsFor, intakeConsent, intakeContract, intakeEmergency, intakeGroupFor, intakeGroupHasPathway, intakeReviewSentence, questionsFor, summaryRows } from "./intake.ts";
 export type { IntakeAnswer, IntakeEmergency, IntakeFeature, IntakeFinding, IntakeGroup, IntakeQuestion, IntakeState, IntakeSummaryRow } from "./intake.ts";
+/* Show GilbertOne a rash (1 October 2026): the skin check's three outcomes from
+   packages/catalog/skin-check.json — typed words asked of the emergency matcher first, then the
+   contract's rules, then general information from the knowledge base. Reads no photo. */
+export { entryReviewSentence, entrySourceSentence, optionLabel, pressSkinOption, questionOf, skinContract, skinEmergency, skinOutcome, skinReviewSentence, skinSummaryRows } from "./skin-check.ts";
+export type { RaisedRule, ShownCondition, ShownFirstAid, SkinAnswers, SkinOutcome, SkinOutcomeKind, SkinQuestion, SkinRule, SkinSummaryRow } from "./skin-check.ts";

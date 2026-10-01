@@ -12,7 +12,7 @@ import { knowledgeChunks } from "../apps/assistant-api/src/lib/knowledge.ts";
 
 test("the catalog chunks one-to-one: every entry becomes one embeddable record", () => {
   const chunks = knowledgeChunks();
-  assert.equal(chunks.length, 250, "the whole catalog, the same count knowledge.test.ts pins");
+  assert.equal(chunks.length, 261, "the whole catalog, the same count knowledge.test.ts pins");
   for (const chunk of chunks) {
     assert.ok(chunk.id.length > 0);
     assert.ok(chunk.title.length > 0);
@@ -36,7 +36,7 @@ test("catalog ids map to well-formed, collision-free point ids", () => {
   assert.equal(
     new Set(ids).size,
     ids.length,
-    "every one of the 250 catalog ids maps to a distinct Qdrant point id",
+    "every one of the 261 catalog ids maps to a distinct Qdrant point id",
   );
   for (const id of ids)
     assert.match(

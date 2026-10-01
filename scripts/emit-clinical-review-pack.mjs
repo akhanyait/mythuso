@@ -270,6 +270,11 @@ export function emitClinicalReviewPack(root = '') {
     written by nobody clinical and shown with the contract's notice until a clinician signs. */
  const careTips = json('care-tips.json');
  const careTipsUnreviewed = careTips.review.reviewedBy === null;
+ /* Show GilbertOne a rash (1 October 2026): set questions about a rash, the rules that decide between the
+    conversation's emergency answer, a sign for today and general information, and the knowledge entries each
+    outcome shows — written by nobody clinical, and shown as unreviewed until a clinician signs. */
+ const skin = json('skin-check.json');
+ const skinUnreviewed = skin.review.reviewedBy === null;
 
  /* ---- Counts ------------------------------------------------------------------------------------- */
  const counts = {
@@ -283,7 +288,7 @@ export function emitClinicalReviewPack(root = '') {
    return n + 1 + proposalChecks + notYetChecks;
   }, 0),
   E: clinicalSettings.length + clinicalProposals.length,
-  F: 1 + 1 + (unreviewedLocales.length ? 1 : 0) + (intakeUnreviewed ? 1 : 0) + (careTipsUnreviewed ? 1 : 0),
+  F: 1 + 1 + (unreviewedLocales.length ? 1 : 0) + (intakeUnreviewed ? 1 : 0) + (careTipsUnreviewed ? 1 : 0) + (skinUnreviewed ? 1 : 0),
   G: 6
  };
  const clinicalFrames = json('clinical.json');
@@ -664,6 +669,33 @@ export function emitClinicalReviewPack(root = '') {
   for (const t of careTips.tips) line(`| ${cell(t.title)} (${tick(t.id)}) | ${cell(t.category)} | ${cell(t.body)} |`);
   line();
   line('**Question for the reviewer:** is each tip safe general guidance for every adult patient this service visits, is any tip wrong for a patient group (pregnancy, kidney or heart failure, children, the very old), and is the "when not to wait" tip complete? The reviewer signs `review.reviewedBy` and `review.reviewedOn`; until then no tip may carry a number, a dose or a diagnosis.');
+  line();
+  line(signOff());
+  line();
+ }
+
+ if (skinUnreviewed) {
+  const knowledge = ['conditions', 'first-aid'].flatMap(f => JSON.parse(readFileSync(new URL(`../packages/catalog/knowledge/${f}.json`, import.meta.url), 'utf8')));
+  const titleOf = id => knowledge.find(e => e.id === id)?.title ?? id;
+  const named = ids => ids.map(id => `${cell(titleOf(id))} (${tick(id)})`).join(', ');
+  line('#### F6. The skin check: its questions, its rules and the entries it shows');
+  line();
+  line(`From \`packages/catalog/skin-check.json\`. ${skin.whatItIsNot.join(' ')} "${skin.order.rule}"`);
+  line();
+  line('| Question | Kind | Options, and the entries an option names |');
+  line('|---|---|---|');
+  for (const q of skin.questions) line(`| ${cell(q.ask)} (${tick(q.id)}) | ${cell(q.kind)} | ${(q.options ?? []).map(o => o.oftenSeenIn ? `${cell(o.label)} — ${named(o.oftenSeenIn)}` : cell(o.label)).join('; ')} |`);
+  line();
+  line('| Rule | Outcome | When | Draws on |');
+  line('|---|---|---|---|');
+  for (const r of skin.rules) line(`| ${tick(r.id)} | ${cell(r.outcome)} | ${r.when.map(w => `${tick(w.question)} is ${w.anyOf.map(tick).join(' or ')}`).join(' and ')} | ${r.drawsOn.length ? named(r.drawsOn) : `*None.* ${cell(r.keptBecause ?? '')}`} |`);
+  line();
+  const added = knowledge.filter(e => e.review?.addedFor === 'packages/catalog/skin-check.json');
+  line(`Added to the knowledge base for the check, each with \`review.reviewedBy: null\`: ${added.map(e => `${cell(e.title)} (${tick(e.id)}, from ${cell(e.source.authority)})`).join('; ')}.`);
+  line();
+  line(`The patient reads: "${skin.review.unreviewed}" And beside every entry: "${skin.knowledge.unreviewed}"`);
+  line();
+  line('**Question for the reviewer:** are these the questions a nurse wants answered about a rash before a visit; is each sign for today one that should be seen the same day, and is any missing; does a rash on a baby younger than three months belong among them, and in which entry should the knowledge base say so; are the entries each descriptor names the right ones and ordered safely; is every added entry accurate for South Africa; and may facts restated in MyThuso\'s own words cite the pages they were read from, given the licence findings in `docs/governance/KNOWLEDGE-SOURCES.md`? The reviewer signs `review.reviewedBy` in the contract and in each added entry; until then the build refuses a digit or a you-have sentence anywhere in the check.');
   line();
   line(signOff());
   line();
