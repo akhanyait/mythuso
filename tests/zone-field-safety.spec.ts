@@ -40,12 +40,14 @@ const rosteredIn = (zone: string) => roster.nurses.filter(nurse => nurse.zone ==
 /* Open items by suburb, as the overlay groups them: the overdue in one nurse's suburb and the open
    panic in another's. Both are below the floor on this roster, which is the ordinary state of the panel
    and the reason the suppressed sentence exists rather than a corner case. */
-const openByZone = new Map<string, { panics: number; overdues: number; open: number }>();
-for (const [zone, kind] of [[late.zone, 'overdues'], [pressed.zone, 'panics']] as [string, 'overdues' | 'panics'][]) {
-  const found = openByZone.get(zone) ?? { panics: 0, overdues: 0, open: 0 };
+const openByZone = new Map<string, { panics: number; overdues: number; open: number; holders: Set<string> }>();
+for (const [nurse, kind] of [[late, 'overdues'], [pressed, 'panics']] as [typeof late, 'overdues' | 'panics'][]) {
+  const found = openByZone.get(nurse.zone) ?? { panics: 0, overdues: 0, open: 0, holders: new Set<string>() };
   found[kind] += 1;
   found.open += 1;
-  openByZone.set(zone, found);
+  /* The proportion counts nurses and not items, so a nurse holding both is one of the roster. */
+  found.holders.add(nurse.id);
+  openByZone.set(nurse.zone, found);
 }
 const expectedZones = [...openByZone.keys()].sort((a, b) => a.localeCompare(b));
 
@@ -125,7 +127,7 @@ test('a suburb below the floor draws its counts whole and says why it draws no p
   for (const zone of expectedZones.filter(z => rosteredIn(z) >= floor)) {
     const counts = openByZone.get(zone)!;
     await expect(row(page, zone).locator('.zone-safety__proportion'))
-      .toHaveText(fill(overlay.share.sentence, { zone, open: String(counts.open), rostered: String(rosteredIn(zone)), nursePlural: '' }));
+      .toHaveText(fill(overlay.share.sentence, { zone, holders: String(counts.holders.size), rostered: String(rosteredIn(zone)), nursePlural: '' }));
   }
 
   /* The note under the list is the setting's own label and help and the contract's sentence about what

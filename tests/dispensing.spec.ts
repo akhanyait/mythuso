@@ -89,8 +89,17 @@ test('a lapsed pharmacist or a lapsed prescriber closes the screen, in the regis
   await expect(d.getByRole('button', { name: 'Collect a repeat' })).toBeDisabled();
   await d.getByLabel('Dispensing pharmacy').selectOption('P-501');
   await expect(d.locator('.order-head').first().locator('.pill')).toHaveText('Awaiting handover');
-  await d.getByLabel('Prescriber').selectOption('D-402');
+  /* The pharmacy is told the register's answer about the prescriber and never who it is: partnerQueue
+     in medicines.json lists prescriberRef among what a pharmacy's screen never carries. The switch is
+     keyed by position, so neither a name, an HPCSA number nor a subject id is in the options. */
+  const prescriber = d.getByLabel('Prescriber');
+  await expect(prescriber.locator('option')).toHaveText(['May prescribe · every check current on the vetting register', 'May not prescribe · HPCSA registration']);
+  await prescriber.selectOption('1');
   await expect(d.getByText(/HPCSA registration lapsed/)).toBeVisible();
+  const text = await d.innerText();
+  for (const who of ['Dr Ayanda Dlamini', 'Dr Sanjay Naidoo', 'MP0483217', 'MP0559104', 'D-401', 'D-402'])
+    expect(text, `the pharmacy's screen names the prescriber (${who})`).not.toContain(who);
+  expect(await prescriber.locator('option').evaluateAll(options => options.map(o => (o as HTMLOptionElement).value))).toEqual(['0', '1']);
   await expect(d.getByRole('button', { name: 'Collect a repeat' })).toBeDisabled();
 });
 

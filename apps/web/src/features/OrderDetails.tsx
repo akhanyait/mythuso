@@ -3,7 +3,7 @@ import { ArrowRight, BadgeCheck, Check, CircleAlert, FlaskConical, Pill as PillI
 import { NotConnected } from '../components/NotConnected';
 import { Alert, Badge, Button, Card, CardDescription, CardHeader, Checkbox, Field, Select } from '../ui';
 import { OfficeFacts, OfficeNote } from '../surface/Office';
-import { crossReference } from '../lib/dispensing';
+import { crossReference, prescriberStanding } from '../lib/dispensing';
 import { can, scopeFor } from '../lib/vetting';
 import medicinesContract from '../../../../packages/catalog/medicines.json';
 import { subjectsByRole } from '../lib/vetting-fixtures';
@@ -15,7 +15,22 @@ import { subjectsByRole } from '../lib/vetting-fixtures';
 
    A partner is a vetted party like any other. Routing a prescription and releasing a result are
    both capabilities in packages/catalog/vetting.json, so the two screens ask the same module the
-   dispatch board asks rather than trusting that a partner on the list is a partner in good standing. */
+   dispatch board asks rather than trusting that a partner on the list is a partner in good standing.
+
+   WHO IS READING. The same two screens open for the patient, the clinician who wrote the order and the
+   partner who fills it, and until 1 October 2026 they drew the patient's name and birth date, the
+   prescriber's name and HPCSA number, and the nurse who drew the sample and the suburb she drew it in,
+   whoever opened them. packages/catalog/medicines.json#partnerQueue.neverCarries lists the patient, a
+   name, the prescriber and the collector, so each screen takes `partner` — required, so no caller can
+   forget to say — and a partner is drawn what partnerQueue carries: the order by its reference, what
+   to fill, its state, and the prescriber as the vetting register's answer rather than a person. The
+   people are drawn by `whoFor`, and nowhere else, so the one function a partner never reaches is the
+   one place a person could come back through (scripts/check-boundaries.mjs holds it there).
+
+   WHICH ORDER. Each order is its own fixture, found by its reference. Both screens used to draw one
+   order whatever reference opened them, so LAB-0019, a sample still with the courier, opened LAB-0023's
+   verified timeline and an enabled release, and RX-0079's one item opened RX-0081's two. A reference
+   with no fixture is refused in words rather than shown somebody else's order. */
 const pharmacies = subjectsByRole('pharmacy');
 const laboratories = subjectsByRole('laboratory');
 /* Both screens attribute the order to a doctor, and the attribution line is where a reader is shown
@@ -23,6 +38,26 @@ const laboratories = subjectsByRole('laboratory');
    a row of zeros. A placeholder there is the one place a preview should not be fictional twice
    over: fictional doctor, real-looking number, nothing behind either. */
 const prescriber = subjectsByRole('doctor').find(d => d.id === 'D-401')!;
+type Fact = [string, string];
+/* The people behind an order, for a reader who may know them. A partner gets nothing from here: the
+   first line returns before any person is read, which is the whole of what partnerQueue asks. */
+function whoFor(partner: boolean, people: { patient?: string; prescriberAs: string; collectedBy?: string }): Fact[] {
+ if (partner) return [];
+ return [
+  ...(people.patient ? [['Patient', people.patient] as Fact] : []),
+  [people.prescriberAs, `${prescriber.name} · ${prescriber.reference}`],
+  ...(people.collectedBy ? [['Collected by', people.collectedBy] as Fact] : [])
+ ];
+}
+/* What a partner is drawn where the prescriber's name was: whether the vetting register lets them stand
+   behind the order, in the register's words. */
+const standingFor = (label: string): Fact => [label, prescriberStanding(can(prescriber, 'prescribe'))];
+/* A partner reads why the people are missing in the contract's own first sentence, rather than finding a gap. */
+const partnerTold = medicinesContract.partnerQueue.why.split('. ')[0] + '.';
+/* A reference nothing here holds is said in words. Drawing another order under its heading was how one
+   order's timeline came to stand for every order on the board. */
+const NoSuchOrder = ({ kind, reference }: { kind: string; reference: string }) =>
+ <div className="oi-screen oi-order"><OfficeNote refusal role="status" icon={<CircleAlert aria-hidden="true"/>}>There is no {kind} {reference} in this preview, so nothing is drawn for it — not another order under its reference.</OfficeNote></div>;
 type Step = { label: string; detail: string; at?: string; state: 'done' | 'active' | 'waiting' };
 /* The steps of an order, in order. Done is a filled mark with a tick, the step in hand a ring, and one
    still waiting a hollow ring — three shapes, so the state survives a screen with no colour on it. */
@@ -32,19 +67,28 @@ function Timeline({ steps }: { steps: Step[] }) {
   <div className="oi-step__body"><p className="oi-row__title">{s.label}<span className="visually-hidden"> · {s.state === 'done' ? 'done' : s.state === 'active' ? 'in hand' : 'waiting'}</span></p><span className="oi-row__meta">{s.detail}</span>{s.at && <span className="oi-row__meta">{s.at}</span>}</div>
  </li>)}</ol>;
 }
-const medicines = [
- { name: 'Amlodipine 5 mg', form: 'Tablet', dose: 'One tablet each morning', quantity: '30 tablets', repeats: '5 repeats', note: 'Take with or without food. Report ankle swelling.' },
- { name: 'Hydrochlorothiazide 12.5 mg', form: 'Tablet', dose: 'One tablet each morning', quantity: '30 tablets', repeats: '5 repeats', note: 'Take early in the day.' }
-];
-export function PrescriptionDetail({ reference = 'RX-0081', open }: { reference?: string; open?: (m: string) => void }) {
- const [checked, setChecked] = useState<string[]>([]);
+const amlodipine = { name: 'Amlodipine 5 mg', form: 'Tablet', dose: 'One tablet each morning', quantity: '30 tablets', repeats: '5 repeats', note: 'Take with or without food. Report ankle swelling.' };
+const hydrochlorothiazide = { name: 'Hydrochlorothiazide 12.5 mg', form: 'Tablet', dose: 'One tablet each morning', quantity: '30 tablets', repeats: '5 repeats', note: 'Take early in the day.' };
+/* The two scripts the partner's Orders board lists, each as far along as its row says: RX-0081 is waiting
+   for the pharmacist, RX-0079 is dispensed, sealed and waiting for its courier. */
+const prescriptions: Record<string, { medicines: (typeof amlodipine)[]; issued: string; patient: string; dispensed: boolean }> = {
+ 'RX-0081': { medicines: [amlodipine, hydrochlorothiazide], issued: 'Issued 4 September · Valid for 6 months', patient: 'Lerato Molefe · 01/01/1980', dispensed: false },
+ 'RX-0079': { medicines: [amlodipine], issued: 'Issued 2 September · Valid for 6 months', patient: 'Lerato Molefe · 01/01/1980', dispensed: true }
+};
+export function PrescriptionDetail({ reference = 'RX-0081', open, partner }: { reference?: string; open?: (m: string) => void; partner: boolean }) {
+ const script = prescriptions[reference];
+ return script ? <Prescription key={reference} reference={reference} script={script} open={open} partner={partner}/> : <NoSuchOrder kind="prescription" reference={reference}/>;
+}
+function Prescription({ reference, script, open, partner }: { reference: string; script: typeof prescriptions[string]; open?: (m: string) => void; partner: boolean }) {
+ const { medicines } = script;
+ const [checked, setChecked] = useState<string[]>(script.dispensed ? medicines.map(m => m.name) : []);
  /* The script ended at "Pharmacist check · 0 of 2 items checked" and stopped. Checking both items
     left the timeline exactly where it was: dispensed, sealed and handed over all stayed grey, and
     there was no control anywhere on the screen that would have moved them. A partner's whole job is
     the three steps that were missing. They are here, in order, each one refusing to happen until
     the one before it has — and the seal is the thing that makes a handover checkable, so it is
     entered rather than assumed. */
- const [sealed, setSealed] = useState(false);
+ const [sealed, setSealed] = useState(script.dispensed);
  const [handover, setHandover] = useState('');
  const [chosen, setChosen] = useState(pharmacies[0].id);
  const pharmacy = pharmacies.find(p => p.id === chosen)!;
@@ -59,9 +103,12 @@ export function PrescriptionDetail({ reference = 'RX-0081', open }: { reference?
       being chosen — so the one element on the screen whose entire job is to say where the script
       has got to was the one element that never moved. `pill` is kept on it as the name journeys read
       it by; the Badge's own sheet arrives after the legacy one and draws it. */}
-  <div className="oi-card-head order-head"><div><p className="oi-eyebrow oi-with-icon"><PillIcon aria-hidden="true"/>Prescription</p><h3 className="oi-section-title">{reference}</h3><p className="oi-help">Issued 4 September · Valid for 6 months</p></div>
+  <div className="oi-card-head order-head"><div><p className="oi-eyebrow oi-with-icon"><PillIcon aria-hidden="true"/>Prescription</p><h3 className="oi-section-title">{reference}</h3><p className="oi-help">{script.issued}</p></div>
    <Badge className="pill" variant={!mayDispense.allowed ? 'danger' : handover ? 'success' : 'neutral'}>{!mayDispense.allowed ? 'Held' : handover ? 'Handed over' : sealed ? 'Sealed' : allChecked ? 'Checked' : 'Awaiting pharmacist'}</Badge></div>
-  <OfficeFacts facts={[['Patient', 'Lerato Molefe · 01/01/1980'], ['Prescriber', `${prescriber.name} · ${prescriber.reference}`]]}/>
+  {/* A partner is told whether the prescriber may stand behind the script and not who they are; everybody
+      else reads the people too. */}
+  <OfficeFacts facts={partner ? [standingFor('Prescriber')] : whoFor(partner, { patient: script.patient, prescriberAs: 'Prescriber' })}/>
+  {partner && <p className="oi-help">{partnerTold}</p>}
   <Field label="Dispensing pharmacy" htmlFor="order-pharmacy"><Select id="order-pharmacy" value={chosen} onChange={e => { setChosen(e.target.value); setChecked([]); setSealed(false); setHandover(''); }}>
    {pharmacies.map(p => <option key={p.id} value={p.id}>{p.name} · {p.reference}</option>)}
   </Select></Field>
@@ -118,30 +165,52 @@ export function PrescriptionDetail({ reference = 'RX-0081', open }: { reference?
    is typed here again. When a reviewed laboratory contract gives these tests their ranges, the flag is
    worked out from the value and the range, never written beside them. */
 const requested = ['Full blood count', 'Fasting glucose', 'Urea and electrolytes', 'Lipogram'];
-const tests = (scopeFor('laboratory')?.options ?? []).filter(test => requested.includes(test));
-export function LabOrderDetail({ reference = 'LAB-0023' }: { reference?: string }) {
- const [released, setReleased] = useState(false);
+const menu = scopeFor('laboratory')?.options ?? [];
+/* The three orders the partner's boards list, each with the tests it asked for (always off the menu
+   above) and how far along it is: `reached` is the number of steps of the timeline behind it. LAB-0023 is
+   verified and waiting for its doctor, LAB-0019's sample is with the courier, and LAB-0014 was released
+   with the doctor's note. */
+const labOrders: Record<string, { what: string; asked: string[]; reached: number; collectedBy: string; seal: string }> = {
+ 'LAB-0023': { what: 'Requested 4 September · Fasting panel', asked: requested, reached: 5, collectedBy: 'Sister Naledi Mokoena · At home, Rosebank', seal: 'SEAL-77341 · Intact on receipt' },
+ 'LAB-0019': { what: 'Requested 4 September · Sample in transit', asked: requested.slice(0, 1), reached: 2, collectedBy: 'Sister Naledi Mokoena · At home, Soweto', seal: 'SEAL-77352 · Intact at the courier’s handover' },
+ 'LAB-0014': { what: 'Requested 1 September · Full blood count', asked: requested.slice(0, 1), reached: 6, collectedBy: 'Sister Naledi Mokoena · At home, Rosebank', seal: 'SEAL-77298 · Intact on receipt' }
+};
+const labSteps = [
+ { label: 'Ordered', detail: 'The doctor requested the tests below', at: 'On the day requested' },
+ { label: 'Collected at home', detail: 'Drawn, sealed and labelled at the bedside' },
+ { label: 'Courier handover', detail: 'Seal scanned by courier · Temperature logged' },
+ { label: 'Received by the laboratory', detail: 'Seal verified intact · Accessioned' },
+ { label: 'Results verified', detail: 'Checked by the laboratory’s reviewing pathologist' }
+];
+export function LabOrderDetail({ reference = 'LAB-0023', partner }: { reference?: string; partner: boolean }) {
+ const order = labOrders[reference];
+ return order ? <LabOrder key={reference} reference={reference} order={order} partner={partner}/> : <NoSuchOrder kind="laboratory order" reference={reference}/>;
+}
+function LabOrder({ reference, order, partner }: { reference: string; order: typeof labOrders[string]; partner: boolean }) {
+ const tests = menu.filter(test => order.asked.includes(test));
+ const [released, setReleased] = useState(order.reached > labSteps.length);
  const [chosen, setChosen] = useState(laboratories[0].id);
  const laboratory = laboratories.find(l => l.id === chosen)!;
  const mayRelease = can(laboratory, 'release-lab-result');
+ const verified = order.reached >= labSteps.length;
+ /* Release is withheld from the partner. vetting.json grants a laboratory release-lab-result, and the
+    partner's own Results board says a result reaches a patient when a clinician sends it with an
+    explanation and this partner cannot do that for them. The two disagreed, and the screen sided with the
+    grant: an enabled "Release with an explanation" on a partner's page. Of the two, the clinician's rule is
+    the one a patient is protected by, so a partner reads the sentence and no control; the grant stays in
+    vetting.json, where whether a laboratory holds it at all is a decision for the founder and a clinician. */
+ const mayAct = !partner && verified;
  return <div className="oi-screen oi-order">
-  <div className="oi-card-head order-head"><div><p className="oi-eyebrow oi-with-icon"><FlaskConical aria-hidden="true"/>Laboratory order</p><h3 className="oi-section-title">{reference}</h3><p className="oi-help">Requested 4 September · Fasting panel</p></div><Badge className="pill" variant={released ? 'success' : 'neutral'}>{released ? 'Released to patient' : 'Awaiting release'}</Badge></div>
-  <OfficeFacts facts={[
-   ['Requested by', `${prescriber.name} · ${prescriber.reference}`],
-   ['Collected by', 'Sister Naledi Mokoena · At home, Rosebank'],
-   ['Sample seal', 'SEAL-77341 · Intact on receipt']
-  ]}/>
+  <div className="oi-card-head order-head"><div><p className="oi-eyebrow oi-with-icon"><FlaskConical aria-hidden="true"/>Laboratory order</p><h3 className="oi-section-title">{reference}</h3><p className="oi-help">{order.what}</p></div><Badge className="pill" variant={released ? 'success' : 'neutral'}>{released ? 'Released to patient' : verified ? 'Awaiting release' : 'Not yet verified'}</Badge></div>
+  <OfficeFacts facts={[...(partner ? [standingFor('Requested by')] : whoFor(partner, { prescriberAs: 'Requested by', collectedBy: order.collectedBy })), ['Sample seal', order.seal]]}/>
+  {partner && <p className="oi-help">{partnerTold}</p>}
   <Field label="Testing laboratory" htmlFor="order-laboratory"><Select id="order-laboratory" value={chosen} onChange={e => { setChosen(e.target.value); setReleased(false); }}>
    {laboratories.map(l => <option key={l.id} value={l.id}>{l.name} · {l.reference}</option>)}
   </Select></Field>
   {!mayRelease.allowed && <OfficeNote refusal role="status" icon={<ShieldX aria-hidden="true"/>}>{mayRelease.reason}</OfficeNote>}
   <Timeline steps={[
-   { label: 'Ordered', detail: 'Doctor requested a fasting panel', at: '4 September, 08:10', state: 'done' },
-   { label: 'Collected at home', detail: 'Two tubes drawn, sealed and labelled at the bedside', at: '4 September, 09:05', state: 'done' },
-   { label: 'Courier handover', detail: 'Seal scanned by courier · Temperature logged', at: '4 September, 09:40', state: 'done' },
-   { label: 'Received by the laboratory', detail: 'Seal verified intact · Accessioned', at: '4 September, 12:15', state: 'done' },
-   { label: 'Results verified', detail: 'Checked by the laboratory’s reviewing pathologist', at: '5 September, 07:30', state: 'done' },
-   { label: 'Released to the patient', detail: released ? 'Visible in the Health Passport with an explanation' : mayRelease.allowed ? 'Held until the requesting doctor releases them' : 'Held. Accreditation lapsed, and a held result stays held', state: released ? 'done' : 'active' }
+   ...labSteps.map((step, n): Step => ({ label: step.label, detail: step.detail, state: n < order.reached ? 'done' : n === order.reached ? 'active' : 'waiting' })),
+   { label: 'Released to the patient', detail: released ? 'Visible in the Health Passport with an explanation' : !verified ? 'Nothing is released before the laboratory’s own pathologist has checked it' : mayRelease.allowed ? 'Held until the requesting doctor releases them' : 'Held. Accreditation lapsed, and a held result stays held', state: released ? 'done' : verified ? 'active' : 'waiting' }
   ]}/>
   <NotConnected of="laboratory-results"/>
   <Card>
@@ -149,7 +218,9 @@ export function LabOrderDetail({ reference = 'LAB-0023' }: { reference?: string 
    <ul className="oi-rows" aria-label="Tests ordered">{tests.map(test => <li key={test}><p className="oi-row"><span className="oi-row__title">{test}</span></p></li>)}</ul>
   </Card>
   <OfficeNote icon={<CircleAlert aria-hidden="true"/>}>Abnormal results are never pushed to a patient without a clinician’s explanation. Release is a deliberate clinical act, not an automatic notification.</OfficeNote>
-  <div className="oi-actions"><Button variant={released ? 'secondary' : 'primary'} disabled={!mayRelease.allowed} aria-describedby={mayRelease.allowed ? undefined : 'release-refusal'} onClick={() => setReleased(!released)} trailingIcon={released ? undefined : <ArrowRight aria-hidden="true"/>}>{released ? 'Withdraw the release' : 'Release with an explanation'}</Button></div>
-  {!mayRelease.allowed && <p className="oi-help" id="release-refusal" role="status">Accreditation is not a badge on a partner page. It is the thing that decides whether this button does anything.</p>}
+  {partner
+   ? <OfficeNote refusal icon={<ShieldX aria-hidden="true"/>}>A result reaches a patient when a clinician sends it with an explanation, and this partner cannot do that for them.</OfficeNote>
+   : mayAct && <div className="oi-actions"><Button variant={released ? 'secondary' : 'primary'} disabled={!mayRelease.allowed} aria-describedby={mayRelease.allowed ? undefined : 'release-refusal'} onClick={() => setReleased(!released)} trailingIcon={released ? undefined : <ArrowRight aria-hidden="true"/>}>{released ? 'Withdraw the release' : 'Release with an explanation'}</Button></div>}
+  {!partner && mayAct && !mayRelease.allowed && <p className="oi-help" id="release-refusal" role="status">Accreditation is not a badge on a partner page. It is the thing that decides whether this button does anything.</p>}
  </div>;
 }

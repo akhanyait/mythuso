@@ -38,7 +38,8 @@ test('it groups the open queue by suburb and counts panics and overdues apart', 
  );
  const rows = zoneOverlay(queue, rostered({ Soweto: 3 }));
  assert.equal(rows.length, 1);
- assert.deepEqual(rows[0], { zone: 'Soweto', panics: 1, overdues: 2, open: 3, rostered: 3 });
+ /* Three items and two nurses: N-201 holds an overdue timer and the panic, N-204 the other timer. */
+ assert.deepEqual(rows[0], { zone: 'Soweto', panics: 1, overdues: 2, open: 3, holders: 2, rostered: 3 });
  assert.deepEqual(overlayCounts(rows), { zones: 1, open: 3, panics: 1 });
 });
 
@@ -61,9 +62,9 @@ test('a row with no suburb — a timer nobody has acted on yet — is dropped fr
 });
 
 test('the proportion is floored by roster size, and the floor is k-anonymity not a verdict', () => {
- const oneNurse: ZoneOpen = { zone: 'Melville', panics: 1, overdues: 0, open: 1, rostered: 1 };
- const threeNurses: ZoneOpen = { zone: 'Soweto', panics: 1, overdues: 0, open: 1, rostered: 3 };
- const bigRoster: ZoneOpen = { zone: 'Sandton', panics: 1, overdues: 0, open: 1, rostered: floor };
+ const oneNurse: ZoneOpen = { zone: 'Melville', panics: 1, overdues: 0, open: 1, holders: 1, rostered: 1 };
+ const threeNurses: ZoneOpen = { zone: 'Soweto', panics: 1, overdues: 0, open: 1, holders: 1, rostered: 3 };
+ const bigRoster: ZoneOpen = { zone: 'Sandton', panics: 1, overdues: 0, open: 1, holders: 1, rostered: floor };
  /* Below the floor: suppressed, and the sentence says how many nurses there are and that it is too few. */
  assert.equal(proportionOf(oneNurse, floor).drawn, false);
  assert.equal(proportionOf(oneNurse, floor).sentence, '1 nurse — too few to draw a proportion over', 'one nurse reads singular');
@@ -80,6 +81,36 @@ test('the proportion is floored by roster size, and the floor is k-anonymity not
  /* Nought rostered is no group at all, and answers suppressed rather than a proportion over nobody. */
  assert.equal(proportionOf({ ...oneNurse, rostered: 0 }, floor).drawn, false);
  assert.ok(!proportionOf({ ...oneNurse, rostered: 0 }, floor).sentence.includes('{'), 'no token is left unfilled');
+});
+
+test('the proportion counts nurses, not items — one nurse holding three items is one of the roster', () => {
+ const now = T0 + 6 * 60 * MINUTE;
+ /* One nurse in Soweto with two overdue timers and a panic. Counting items drew this as "3 of 3 nurses"
+    while the other two on the roster had nothing open; with a fourth item it read "4 of 3". */
+ const queue = deskQueue(
+  [overdueTimer('CHK-1', 'N-201', T0), overdueTimer('CHK-2', 'N-201', T0)],
+  [panicAt('PNC-1', 'N-201', now - 4 * MINUTE)],
+  now,
+  who({ 'N-201': 'Soweto' })
+ );
+ /* A roster at the floor, so the proportion is drawn and its numerator is on the screen. */
+ const rows = zoneOverlay(queue, rostered({ Soweto: floor }));
+ assert.equal(rows.length, 1);
+ /* The items are counted whole: three open, two of them past check-out and one panic. */
+ assert.deepEqual(rows[0], { zone: 'Soweto', panics: 1, overdues: 2, open: 3, holders: 1, rostered: floor });
+ const share = proportionOf(rows[0], floor);
+ assert.equal(share.drawn, true);
+ assert.equal(share.sentence, `1 of ${floor} nurses`);
+ /* The count of people is all that leaves the call: no reference or name rides on the row. */
+ assert.ok(!JSON.stringify(rows).includes('N-201'), 'the nurse\'s reference never reaches the row');
+ /* A second nurse in the same suburb is a second holder, and her one item adds one to the items too. */
+ const two = zoneOverlay(deskQueue(
+  [overdueTimer('CHK-1', 'N-201', T0), overdueTimer('CHK-2', 'N-201', T0), overdueTimer('CHK-3', 'N-202', T0)],
+  [panicAt('PNC-1', 'N-201', now - 4 * MINUTE)], now, who({ 'N-201': 'Soweto', 'N-202': 'Soweto' })
+ ), rostered({ Soweto: floor }));
+ assert.equal(two[0].open, 4);
+ assert.equal(two[0].holders, 2);
+ assert.equal(proportionOf(two[0], floor).sentence, `2 of ${floor} nurses`);
 });
 
 test('THE COUNT IS DRAWN WHATEVER THE FLOOR IS — a suppressed proportion never hides an open panic', () => {
@@ -115,8 +146,8 @@ test('it computes no score, no trend and no ranking, and sorts by name rather th
   { zone: 'Melville', open: 1 },
   { zone: 'Soweto', open: 2 }
  ]);
- /* No field on a row is a score. Five integers and no derived grade. */
- for (const row of rows) assert.deepEqual(Object.keys(row).sort(), ['open', 'overdues', 'panics', 'rostered', 'zone'].sort());
+ /* No field on a row is a score. Five integers beside the name, and no derived grade. */
+ for (const row of rows) assert.deepEqual(Object.keys(row).sort(), ['holders', 'open', 'overdues', 'panics', 'rostered', 'zone'].sort());
 });
 
 test('it carries the contract\'s fields and none of the five it never carries', () => {
@@ -132,8 +163,8 @@ test('it carries the contract\'s fields and none of the five it never carries', 
 });
 
 test('the counts sentence is the contract\'s, with the panic plural filled in, and a quiet board says so', () => {
- const one: ZoneOpen = { zone: 'Soweto', panics: 1, overdues: 1, open: 2, rostered: 3 };
- const two: ZoneOpen = { zone: 'Soweto', panics: 2, overdues: 0, open: 2, rostered: 3 };
+ const one: ZoneOpen = { zone: 'Soweto', panics: 1, overdues: 1, open: 2, holders: 2, rostered: 3 };
+ const two: ZoneOpen = { zone: 'Soweto', panics: 2, overdues: 0, open: 2, holders: 2, rostered: 3 };
  assert.equal(countsSentence(one), '2 open in Soweto');
  /* One panic reads singular, two plural — the {panicPlural} token is filled, not left in the sentence. */
  assert.ok(!countsSentence(one).includes('{'));

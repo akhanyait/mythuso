@@ -1,5 +1,5 @@
 import contract from '../../../../packages/catalog/dispensing.json';
-import { inDays } from './vetting';
+import { inDays, type Decision } from './vetting';
 /* Substitution, and how long a repeat is allowed to live.
  *
  * A pharmacist hands over something other than what was written; a repeat runs out. Both are
@@ -126,3 +126,11 @@ export function collectionAnswer(): CollectionAnswer {
 export const isFinalRepeat = repeatsRemaining === 1;
 
 export const formatDay = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' });
+
+/* The prescriber as a pharmacy is allowed to know them: the vetting register's answer, and not who they
+   are. packages/catalog/medicines.json#partnerQueue.neverCarries lists prescriberRef, so the partner's
+   substitution screen and the prescription a partner opens draw this in place of a name and an HPCSA
+   number. The check's name comes from vetting.json, so a refusal reads in the register's own words. */
+export const prescriberStanding = (decision: Decision) => decision.allowed
+ ? 'May prescribe · every check current on the vetting register'
+ : `May not prescribe · ${decision.blockedBy.map(check => check.name).join(' and ') || 'held by the vetting register'}`;

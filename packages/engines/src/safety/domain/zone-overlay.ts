@@ -9,8 +9,9 @@
  * THE THREE THINGS IT WILL NOT DO, all of them in packages/catalog/field-safety.json#zoneOverlay.rules
  * and each one enforced structurally here rather than by convention:
  *
- *  1. NO SCORE, NO TREND, NO RANKING (no-zone-risk-score). ZoneOpen carries five numbers and all five
- *     are counts of rows in the queue handed in, plus one count of people from the roster. There is no
+ *  1. NO SCORE, NO TREND, NO RANKING (no-zone-risk-score). ZoneOpen carries a suburb's name and five
+ *     counts: three of rows in the queue handed in, one of the people those rows belong to, and one of
+ *     people from the roster. There is no
  *     weighted figure, no comparison against an earlier draw, and no sort that could be read as a
  *     league table. geography.json's no-history-drawn says no map here draws where anybody has been,
  *     and a score is that rule broken with arithmetic instead of pixels — to rank a suburb you have to
@@ -58,6 +59,11 @@ export type ZoneOpen = {
  readonly overdues: number;
  /** Panics plus overdues that are still open. A closed row counts towards nothing here. */
  readonly open: number;
+ /** How many different nurses those open items belong to, each counted once however many she holds. The
+     proportion's numerator: a nurse with a panic and two overdue timers is one nurse with something open,
+     and counting her three times drew "3 of 3 nurses" over a suburb where the other two had nothing open.
+     A count, never a person — the references it is counted from stay inside zoneOverlay(). */
+ readonly holders: number;
  /** How many nurses work this suburb, from the roster. A count of people, never a person. */
  readonly rostered: number;
 };
@@ -87,7 +93,12 @@ const overlay = fieldSafety.zoneOverlay;
  * desk's own rows state.
  */
 export function zoneOverlay(queue: readonly DeskItem[], rosteredBy: (zone: string) => number): ZoneOpen[] {
- const byZone = new Map<string, { panics: number; overdues: number; open: number }>();
+ /* Each suburb's counts, and beside them the set of whoever the open rows belong to. The set is how a
+    nurse is counted once, and it never leaves this call: only its size goes on the row, so a reference
+    is used to tell two people apart and is not carried anywhere a screen could draw it. A row whose
+    nurse is not known is counted as an item and as nobody — guessing it was a different person would
+    inflate the numerator, and guessing it was the same one would be a guess either way. */
+ const byZone = new Map<string, { panics: number; overdues: number; open: number; who: Set<string> }>();
  for (const row of queue) {
   if (!row.open) continue;
   const zone = row.suburb;
@@ -95,9 +106,10 @@ export function zoneOverlay(queue: readonly DeskItem[], rosteredBy: (zone: strin
      dropped from the overlay and stays on the desk's own rows, where it belongs: the queue is what an
      operator works, and the map is a picture of part of it. */
   if (!zone) continue;
-  const found = byZone.get(zone) ?? { panics: 0, overdues: 0, open: 0 };
+  const found = byZone.get(zone) ?? { panics: 0, overdues: 0, open: 0, who: new Set<string>() };
   if (row.kind === 'panic') found.panics += 1; else found.overdues += 1;
   found.open += 1;
+  if (row.nurse) found.who.add(row.nurse);
   byZone.set(zone, found);
  }
  /* Sorted by name. Not by count: a sort on the counts is a ranking with the heading taken off, and
@@ -106,7 +118,7 @@ export function zoneOverlay(queue: readonly DeskItem[], rosteredBy: (zone: strin
     up happens. */
  return [...byZone.entries()]
   .sort(([a], [b]) => a.localeCompare(b))
-  .map(([zone, counts]) => ({ zone, ...counts, rostered: rosteredBy(zone) }));
+  .map(([zone, { panics, overdues, open, who }]) => ({ zone, panics, overdues, open, holders: who.size, rostered: rosteredBy(zone) }));
 }
 
 /** How many suburbs have something open, and how many items are open across all of them. */
@@ -135,8 +147,10 @@ export const totalsSentence = (zones: readonly ZoneOpen[]): string => {
  * are drawn anyway: that is what whyCountsAreNeverFloored is about.
  */
 export function proportionOf(zone: ZoneOpen, floor: number): ZoneProportion {
+ /* The numerator is people and not items: the label says "nurses with something open", and a count of
+    items over a count of nurses can read 4 of 3. */
  const values = {
-  open: String(zone.open),
+  holders: String(zone.holders),
   rostered: String(zone.rostered),
   nursePlural: zone.rostered === 1 ? '' : 's'
  };

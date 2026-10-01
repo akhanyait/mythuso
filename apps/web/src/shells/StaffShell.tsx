@@ -412,7 +412,7 @@ export default function StaffWorkspace({ role, audience, legacy = false }: { rol
       <span className="tab-icon"><LayoutGrid size={21} strokeWidth={1.9}/></span><span className="tab-label">{MORE_HUB}</span>
      </button>; })()}</nav>
   </div>
-  {modal && <Modal title={staffModalTitle(modal)} onClose={() => setModal(null)}>{staffModalBody(modal, () => setModal(null), setModal)}</Modal>}
+  {modal && <Modal title={staffModalTitle(modal)} onClose={() => setModal(null)}>{staffModalBody(modal, () => setModal(null), setModal, role === 'Partner')}</Modal>}
  </div>;
 }
 
@@ -795,7 +795,10 @@ function staffModalTitle(modal: string) {
    who signs "issue a prescription" is offered the prescription; the router that knows what a
    prescription is called is this one, so the door is handed down rather than duplicated inside the
    feature. */
-function staffModalBody(modal: string, close: () => void, open: (m: string) => void) {
+/* `partner` is whether the reader is the pharmacy or laboratory partner, which decides what an order's screen may
+   draw (medicines.json#partnerQueue). Any role could open "Prescription …" from a More tool, so it is asked here
+   rather than trusted to whichever board opened it. */
+function staffModalBody(modal: string, close: () => void, open: (m: string) => void, partner: boolean) {
  /* Two different things used to arrive here under one name. The nurse's schedule opens a visit
     assessment from "Start this visit" and the patient's file from "Patient file", and both were
     routed to the assessment — so the one button on that card that is not about starting the visit
@@ -809,8 +812,8 @@ function staffModalBody(modal: string, close: () => void, open: (m: string) => v
  if (modal === 'Care assessment') return <VisitAssessment reference={carePreview.appointmentRef} onClose={() => open('Care visit')}/>;
  if (modal === 'Visit assessment' || modal.startsWith('Nurse case:')) return <VisitAssessment {...visitFrom(modal)} onClose={close}/>;
  if (modal.startsWith('Doctor review') || modal.startsWith('Doctor case:')) return <DoctorReview reference={referenceIn(modal) ?? undefined} open={open} onClose={close}/>;
- if (modal.startsWith('Prescription ') || modal === 'Pharmacy orders') return <PrescriptionDetail reference={referenceIn(modal) ?? undefined} open={open}/>;
- if (modal.startsWith('Laboratory order ') || modal === 'Laboratory results') return <LabOrderDetail reference={referenceIn(modal) ?? undefined}/>;
+ if (modal.startsWith('Prescription ') || modal === 'Pharmacy orders') return <PrescriptionDetail reference={referenceIn(modal) ?? undefined} open={open} partner={partner}/>;
+ if (modal.startsWith('Laboratory order ') || modal === 'Laboratory results') return <LabOrderDetail reference={referenceIn(modal) ?? undefined} partner={partner}/>;
  if (modal.startsWith('Incident ') || modal === 'Incident management') return <IncidentDetail reference={modal.replace('Incident ', '')} onClose={close}/>;
  if (modal === 'Nurse onboarding & vetting' || modal === 'Nurse vetting') return <NurseVetting onClose={close}/>;
  if (modal === 'Vetting application') return <VettingApplication onClose={close}/>;

@@ -110,7 +110,9 @@ export function FulfilmentQueue({ section = 'Orders', open }: { section?: 'Order
     return <li key={r.id}><button className="fulfil-row is-wide" onClick={() => open(`Laboratory order ${r.id}`)}>
      <span className="fulfil-ref">{r.id}</span>
      <span className="fulfil-what"><strong>{r.what}</strong><small>{r.holding}</small>
-      <span className="fo-track" aria-label={`Step ${at + 1} of ${resultSteps.length}: ${resultSteps[at]}`}>{resultSteps.map((step, n) =>
+      {/* role="img": the steps are a picture of where the order is, drawn hidden, and the label says it in one
+          line. A label on a bare span names a generic element, which ARIA does not allow and a reader skips. */}
+      <span className="fo-track" role="img" aria-label={`Step ${at + 1} of ${resultSteps.length}: ${resultSteps[at]}`}>{resultSteps.map((step, n) =>
        <span key={step} className={n <= at ? 'is-lit' : ''} aria-hidden="true"><i/>{step}</span>)}</span></span>
      <span className="fulfil-state">{holdingState(r.holding)}</span>
      <ChevronRight size={18}/>

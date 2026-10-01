@@ -19,7 +19,10 @@ import {
  MyThusoSettingsIcon, MyThusoVisitIcon, MyThusoMessagesIcon, MyThusoResultsIcon
 } from '../ui/icons/MyThusoIcons.generated';
 import { DemoBar } from '../features/DemoLogin';
-import { locales, useT, type LocaleCode } from '../lib/i18n';
+import { locales, signLanguage, useT, type LocaleCode } from '../lib/i18n';
+/* The module list the Explore page draws, so the row that opens it counts what it opens. Already on the
+   patient's first load — App.tsx and the Dashboard import it statically — so this costs a few bytes. */
+import { modules } from '../lib/catalog';
 import { reducedMotion } from '../lib/motion';
 
 /* The patient application's chrome, and only the patient's.
@@ -117,10 +120,12 @@ export const navGroups: { id: string; label?: string; rows: NavRow[] }[] = [
  ] },
  { id: 'account', label: 'Account', rows: [
   ['Thuso Wallet', CreditCard, 'Balance, activity and sponsored care'], ['Privacy & settings', MyThusoSettingsIcon, 'Your data and app preferences'],
-  ['Language & access', Languages, 'Twelve official languages, and what is honestly offered in each'],
+  /* Counted from locales.json: its spoken locales, and South African Sign Language, which the contract
+     holds apart because it is the twelfth official language and not a language the interface is set in. */
+  ['Language & access', Languages, `${locales.length + (signLanguage ? 1 : 0)} official languages, and what is honestly offered in each`],
   ['Help & support', CircleHelp, 'What MyThuso can answer today, and what it cannot']
  ] },
- { id: 'explore', rows: [['Explore MyThuso', Compass, 'The full 21-module roadmap']] }
+ { id: 'explore', rows: [['Explore MyThuso', Compass, `The full ${modules.length}-module roadmap`]] }
 ];
 /* The sections a link may open. `?open=` on the product's address is how the landing page's hero
    sends a reader to the screen its call to action named, and it is validated against this list
@@ -249,9 +254,12 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
      <ThemeToggle className="topbar-theme"/>
      <button className="location-button" onClick={() => open('Your location')}><MapPin size={16}/><span>{location}</span><ChevronDown size={13}/></button>
      <span className="topbar-divider"/>
-     {/* The dot rings once when the shell arrives and then holds still (shells.css); the export's ring
-         repeats for ever, which this surface's motion rules refuse. */}
-     <button className="icon-button notification-button" aria-label="Notifications" onClick={() => open('Notifications')}><Bell size={19}/><i className="psb-ring"/></button>
+     {/* No unread dot. The export drew one on every arrival, and nothing here can be unread: messaging is not
+         connected (capabilities.json#messaging), the notices are a fixed fictional list, and no state says
+         which of them a patient has opened. A dot that is always there says something is waiting when nothing
+         is — the overstatement this preview is built against. It comes back drawn off an unread count, the
+         day one exists. */}
+     <button className="icon-button notification-button" aria-label="Notifications" onClick={() => open('Notifications')}><Bell size={19}/></button>
      {/* The profile chip: the avatar is the button and keeps the name "Your profile"; the name beside it is
          the chip's caption, and the button's hit area is stretched over the whole chip, so pressing the name
          opens the profile too without the button being named something it does not say. */}

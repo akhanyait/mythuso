@@ -3609,6 +3609,86 @@ for (const { source, command, files } of generated) {
     partnerChecked += 1;
   }
   console.log(`The partner's workbench · ${partnerChecked} functions under the Partner role, reaching none of the ${pq.neverCarries.length} things partnerQueue never carries, drawing no patient reference, and only ${allowed.size} components.`);
+
+  /* The partner's other screen, Substitution & repeats (features/Dispensing.tsx, drawn for the Partner role
+     by shells/StaffShell.tsx), went on naming the prescriber after the workbench stopped: a "Prescribed by"
+     line with the doctor's name and HPCSA number, and a switch whose options were the two doctors. The
+     prescriber is drawn there as the vetting register's outcome now, and this holds it to that. The
+     neverCarries loop above cannot be pointed at this file as it stands — the screen rightly names the
+     pharmacy and its own pharmacist, so a bare ".name" is not a finding here — and so what is asked instead
+     is *whose* name: every ".name", ".reference" and ".registration" read in the file must be read off one
+     of the pharmacy's own things, and never off a lookup's result, which is how a doctor came back.
+       Allowed: the pharmacy (and `p`, a pharmacy in its own list), its pharmacist, the prescription's own
+     reference (prescriptionRef is carried), the authorisation's reference, and the contract's rows —
+     ground, class, check — whose names are words about medicines and vetting rather than people. */
+  {
+    const dFile = "apps/web/src/features/Dispensing.tsx";
+    const dSrc = read(dFile).replace(/\{\s*\/\*(?:(?!\*\/)[\s\S])*\*\/\s*\}/g, " ").replace(/\/\*[\s\S]*?\*\//g, " ")
+      .replace(/"[^"\n]*"|'[^'\n]*'/g, '""');
+    if (!/role === 'Partner' && section === 'Substitution & repeats'[^\n]*<Dispensing\/>/.test(read("apps/web/src/shells/StaffShell.tsx")))
+      pw(`apps/web/src/shells/StaffShell.tsx no longer draws Dispensing for the Partner role where this check expects it, so it may be holding the wrong screen to partnerQueue.`);
+    const owned = new Set(["pharmacy", "p", "pharmacist", "prescription", "authorisation", "ground", "second", "klass", "c", "g", "check"]);
+    for (const m of dSrc.matchAll(/([\w)\]]+)!?\.(name|reference|registration)\b/g)) {
+      if (/[)\]]$/.test(m[1]) || !owned.has(m[1]))
+        pw(`${dFile} reads "${m[0]}". The partner's substitution screen draws the pharmacy's own names and the vetting register's outcome for the prescriber, never a person behind a lookup — partnerQueue.neverCarries lists prescriberRef and name.`);
+    }
+    const reached = read(dFile).match(/subjectsByRole\(\s*'(?!pharmacy')\w+'\s*\)/)?.[0] ?? dSrc.match(/\.patient\w*\b/)?.[0];
+    if (reached)
+      pw(`${dFile} reaches "${reached}", a person the pharmacy is not told about. A pharmacy's screen holds no patient and no prescriber.`);
+    if (/[{$]\{?\s*prescribers\s*\[|value=\{\s*id\s*\}/.test(dSrc))
+      pw(`${dFile} puts a prescriber's subject id on the screen or in an option's value. The switch is keyed by position, and the id stays inside the lookup.`);
+    console.log(`The partner's substitution screen · the prescriber drawn as the vetting register's outcome, and every name, reference and registration read off one of ${owned.size} things the pharmacy owns.`);
+  }
+
+  /* And the prescription and the laboratory order a partner opens (features/OrderDetails.tsx). They drew the
+     patient's name and birth date, the prescriber's name and HPCSA number and the nurse who drew the sample
+     whoever opened them, a partner included, by "Open the prescription to act on it" on the Orders board or a
+     More tool any role can press. The people are drawn by one function, whoFor, whose first line returns
+     nothing for a partner; this asks that:
+       1. both screens take `partner` as a required boolean, and every door passes one — the patient's App
+          false, the staff shell the role it is drawn for;
+       2. whoFor's first statement returns an empty list for a partner, before any person is read;
+       3. outside whoFor's body and the arguments handed to it, nothing reads the patient, the collector or
+          the prescriber's name or number;
+       4. each screen finds its order by its reference and refuses one it does not hold, rather than drawing
+          another order under it;
+       5. a partner is drawn no release control: the clinician releases a result, as the partner's Results
+          board says. */
+  {
+    const oFile = "apps/web/src/features/OrderDetails.tsx";
+    const oRaw = read(oFile);
+    const oSrc = oRaw.replace(/\{\s*\/\*(?:(?!\*\/)[\s\S])*\*\/\s*\}/g, " ").replace(/\/\*[\s\S]*?\*\//g, " ");
+    const od = (message) => pw(`${oFile}: ${message}`);
+    for (const fn of ["PrescriptionDetail", "LabOrderDetail"])
+      if (!new RegExp(`export function ${fn}\\([^)]*\\bpartner \\}: \\{[^}]*\\bpartner: boolean`).test(oSrc))
+        od(`${fn} no longer takes a required \`partner: boolean\`, so a door can open it without saying who is reading.`);
+    const doors = [
+      ["apps/web/src/features/Orders.tsx", /PrescriptionDetail\(props: \{[^}]*partner: boolean[\s\S]*LabOrderDetail\(props: \{[^}]*partner: boolean/],
+      ["apps/web/src/App.tsx", /<PrescriptionDetail [^>]*partner=\{false\}[\s\S]*<LabOrderDetail [^>]*partner=\{false\}/],
+      ["apps/web/src/shells/StaffShell.tsx", /staffModalBody\(modal, [^\n]*, role === 'Partner'\)[\s\S]*<PrescriptionDetail [^>]*partner=\{partner\}[\s\S]*<LabOrderDetail [^>]*partner=\{partner\}/],
+    ];
+    for (const [door, shape] of doors)
+      if (!shape.test(read(door))) od(`${door} opens an order without passing who is reading — the patient's App passes false and the staff shell \`role === 'Partner'\`.`);
+    const whoAt = oSrc.search(/\nfunction whoFor\(/);
+    if (whoAt < 0) od("whoFor is gone, so nothing keeps the people behind an order to one place a partner never reaches.");
+    const whoEnd = oSrc.indexOf("\n}\n", whoAt);
+    const whoBody = oSrc.slice(whoAt, whoEnd + 2);
+    if (!/\)\s*:\s*Fact\[\]\s*\{\s*if \(partner\) return \[\];/.test(whoBody))
+      od("whoFor no longer returns nothing for a partner before it reads a person.");
+    const outside = (oSrc.slice(0, whoAt) + oSrc.slice(whoEnd + 2))
+      .replace(/whoFor\(partner, \{[^}]*\}\)/g, (call) => (/^whoFor\(partner, /.test(call) ? " " : call));
+    if (/whoFor\((?!partner, )/.test(outside)) od("whoFor is called with something other than `partner` first, so the reader it asks about is not the one the screen was opened for.");
+    /* The fixtures hold the people as data, under `patient:` and `collectedBy:`, and whoFor is what reads them;
+       a fixture's name anywhere else in the file is a person drawn where a partner can see it. */
+    const person = outside.replace(/\b(patient|collectedBy): '[^'\n]*'/g, " ")
+      .match(/\.(patient|collectedBy)\b|\bprescriber\.(name|reference)\b|\b(Lerato|Molefe|Naledi|Mokoena)\b/);
+    if (person) od(`reads "${person[0]}" outside whoFor, where a partner reaches it.`);
+    if (!/prescriptions\[reference\][\s\S]*?<NoSuchOrder kind="prescription"/.test(oSrc) || !/labOrders\[reference\][\s\S]*?<NoSuchOrder kind="laboratory order"/.test(oSrc))
+      od("an order is no longer found by its reference with one it does not hold refused in words, so one order's timeline can stand for every order on the board.");
+    if (!/\{partner\s*\?\s*<OfficeNote refusal[^>]*>[^<]*<\/OfficeNote>\s*:\s*mayAct && <div className="oi-actions"><Button/.test(oRaw))
+      od("the release control is no longer drawn only for a reader who is not the partner. A result reaches a patient when a clinician sends it with an explanation.");
+    console.log(`The partner's order screens · the people behind a prescription and a laboratory order drawn by whoFor alone, which returns nothing for a partner; ${doors.length} doors pass who is reading; each order found by its reference; and no release control for the partner.`);
+  }
 }
 
 /* ==== Contracts & Core (Wave 1) ==================================================================
@@ -29536,6 +29616,26 @@ console.log(
   if (overlayDomain.proportionOf({ ...oneNurse, rostered: floor }, floor).drawn !== true)
     zoneFail(`proportionOf() suppressed a proportion at exactly the floor of ${floor}, where the group is large enough to be an aggregate.`);
 
+  /* 4b. The proportion's numerator is nurses, not items. One nurse holding a panic and two overdue timers
+        is three items and one person, and a numerator of items drew her suburb as "3 of 3 nurses" with two
+        of them idle, or "4 of 3". Asked at the floor, where the sentence is drawn, and asked of what reaches
+        the screen: the nurse is told apart by her reference inside the call and the row carries no trace of it. */
+  const heldBy = (kind, nurse) => ({ ...queueRow(kind, "Soweto"), nurse });
+  const oneHolder = overlayDomain.zoneOverlay(
+    [heldBy("panic", "N-201"), heldBy("overdue", "N-201"), heldBy("overdue", "N-201")],
+    rostered({ Soweto: floor }),
+  );
+  const oneShare = overlayDomain.proportionOf(oneHolder[0], floor);
+  const expectedShare = overlayDoc.share.sentence.replace("{holders}", "1").replace("{rostered}", String(floor));
+  if (oneHolder[0]?.open !== 3 || oneHolder[0]?.holders !== 1 || oneShare.sentence !== expectedShare)
+    zoneFail(
+      `one nurse holding three open items in a suburb of ${floor} was drawn as ${JSON.stringify(oneHolder[0])} and "${oneShare.sentence}". The items are counted whole and the proportion counts her once, as "${expectedShare}". ${overlayDoc.share._numeratorNote}`,
+    );
+  if (!/\{holders\}/.test(overlayDoc.share.sentence) || /\{open\}/.test(overlayDoc.share.sentence))
+    zoneFail(`field-safety.json#zoneOverlay.share.sentence is "${overlayDoc.share.sentence}". Its numerator is {holders}, the nurses, and never {open}, the items. ${overlayDoc.share._numeratorNote}`);
+  if (JSON.stringify(oneHolder).includes("N-201"))
+    zoneFail(`a zone row carries the reference it counted a nurse from: ${JSON.stringify(oneHolder[0])}. ${overlayDoc.neverCarries.find((n) => n.field === "nurse").why}`);
+
   /* 5. The setting is a count of nurses, bounded so no value below three can be set. A floor of two would
         make one of two nurses a statistic about a named woman, which is the thing the setting exists to stop.
         The generic Settings check proves every value guardrail.forbids names is actually refused by the
@@ -29616,7 +29716,7 @@ console.log(
     zoneFail(`${dispatchFile} feeds the overlay's figures into LiveMap as a colour or a marker. ${overlayDoc._listNotAColourNote}`);
 
   console.log(
-    `Safety · zone overlay: a list over ${rosteredSuburbs.length} rostered suburbs, ${undrawn.length} of which (${undrawn.join(", ")}) the map draws no circle for; a row carries ${overlayDoc.carries.length} counts and none of the ${overlayDoc.neverCarries.length} fields it never carries, by name and not by count; the floor of ${floor} nurses governs the proportion alone, so ${belowRow[0].panics} open panic in a suburb of ${belowRow[0].rostered} nurse is drawn whole while its proportion is refused; the domain keeps nothing between draws; and the audience is read from ${callerRoute}'s ${deskRoute.callers.length} caller${deskRoute.callers.length === 1 ? "" : "s"} rather than typed.`,
+    `Safety · zone overlay: a list over ${rosteredSuburbs.length} rostered suburbs, ${undrawn.length} of which (${undrawn.join(", ")}) the map draws no circle for; a row carries ${overlayDoc.carries.length} counts and none of the ${overlayDoc.neverCarries.length} fields it never carries, by name and not by count; the floor of ${floor} nurses governs the proportion alone, so ${belowRow[0].panics} open panic in a suburb of ${belowRow[0].rostered} nurse is drawn whole while its proportion is refused; ${oneHolder[0].open} items held by one nurse are ${oneHolder[0].holders} of ${oneHolder[0].rostered} nurses; the domain keeps nothing between draws; and the audience is read from ${callerRoute}'s ${deskRoute.callers.length} caller${deskRoute.callers.length === 1 ? "" : "s"} rather than typed.`,
   );
 }
 

@@ -154,6 +154,10 @@ test('partner orders show chain of custody and every integration state', async (
   await page.getByRole('button', { name: 'Open the prescription to act on it' }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByText('Amlodipine 5 mg')).toBeVisible();
+  /* A pharmacy is told what to dispense and never who for: no patient, and the prescriber as the register's answer. */
+  for (const who of ['Lerato Molefe', '01/01/1980', 'Dr Ayanda Dlamini', 'MP0483217'])
+    await expect(dialog, `the prescription names ${who} to the partner`).not.toContainText(who);
+  await expect(dialog.getByText(/May prescribe/)).toBeVisible();
   await expect(dialog.getByText('0 of 2 items checked by the pharmacist')).toBeVisible();
   await dialog.getByRole('checkbox', { name: 'Mark Amlodipine 5 mg checked by pharmacist' }).check();
   await expect(dialog.getByText('1 of 2 items checked by the pharmacist')).toBeVisible();
@@ -175,8 +179,14 @@ test('partner orders show chain of custody and every integration state', async (
   await expect(dialog.getByText(medicines.screen.results.ordered)).toBeVisible();
   await expect(dialog.locator('.not-connected')).toContainText(noticeFor('laboratory-results'));
   await expect(dialog.getByText(/mmol\/L|Within range|\bHigh\b/)).toHaveCount(0);
-  await dialog.getByRole('button', { name: 'Release with an explanation' }).click();
-  await expect(dialog.getByText('Visible in the Health Passport with an explanation')).toBeVisible();
+  /* Release is the clinician's, as the partner's own Results board says, and the partner is drawn the sentence
+     rather than a control (1 October 2026). Nor does the order name anybody: medicines.json#partnerQueue lists
+     the patient, a name, the prescriber and the collector among what a partner's screen never carries. */
+  await expect(dialog.getByRole('button', { name: 'Release with an explanation' })).toHaveCount(0);
+  await expect(dialog.getByText('A result reaches a patient when a clinician sends it with an explanation, and this partner cannot do that for them.')).toBeVisible();
+  for (const who of ['Lerato Molefe', 'Naledi Mokoena', 'Dr Ayanda Dlamini', 'MP0483217', 'Rosebank'])
+    await expect(dialog, `the laboratory order names ${who} to the partner`).not.toContainText(who);
+  await expect(dialog.getByText(/May prescribe/)).toBeVisible();
 });
 test('vetting refuses a malformed credential, and states the refusal it is under', async ({ page }) => {
   await switchRole(page, 'Nurse');

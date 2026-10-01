@@ -387,8 +387,8 @@ function modalBody(p: BodyProps) {
  if (modal === 'Invite a guardian') return <InviteGuardian onInvite={p.addInvitation} onClose={p.close}/>;
  if (modal === 'Add a family member') return <FamilyForm onAdd={p.addMember}/>;
  if (modal === 'Share my passport') return <Sharing/>;
- if (modal.startsWith('Prescription ') || modal === 'Pharmacy orders') return <PrescriptionDetail reference={modal.replace('Prescription ', '')}/>;
- if (modal.startsWith('Laboratory order ') || modal === 'Laboratory results') return <LabOrderDetail reference={modal.replace('Laboratory order ', '')}/>;
+ if (modal.startsWith('Prescription ') || modal === 'Pharmacy orders') return <PrescriptionDetail reference={modal.replace('Prescription ', '')} partner={false}/>;
+ if (modal.startsWith('Laboratory order ') || modal === 'Laboratory results') return <LabOrderDetail reference={modal.replace('Laboratory order ', '')} partner={false}/>;
  if (modal === 'medicine-collection') return <Suspense fallback={<p className="helper" role="status">{capability('medicine-collection').name}</p>}><AuthoriseCollectorFlow/></Suspense>;
  /* Three integrations that could not be opened at all. Each one now says what would be read, what
     would never be, and — from the contract rather than from a paragraph of its own — that no device

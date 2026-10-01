@@ -39,7 +39,21 @@ test('Orders counts what is yours, and a row chooses the order its chain stands 
   await main(page).locator('.fulfil-row').filter({ hasText: 'LAB-0019' }).click();
   await expect(panel.getByRole('heading', { level: 2 })).toContainText('LAB-0019');
   await panel.getByRole('button', { name: 'Open the laboratory order' }).click();
-  await expect(page.getByRole('dialog')).toBeVisible();
+  /* The order opened is the one chosen. LAB-0019's sample is with the courier, so it is not verified and
+     nothing offers to release it; it opened LAB-0023's verified timeline and a release until 1 October 2026. */
+  const lab = page.getByRole('dialog');
+  await expect(lab.locator('.order-head h3')).toHaveText('LAB-0019');
+  await expect(lab.locator('.order-head .pill')).toHaveText('Not yet verified');
+  await expect(lab.getByRole('button', { name: /Release/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Close dialog' }).click();
+  /* And RX-0079, one item already sealed, opens as itself rather than as RX-0081's two. */
+  await main(page).locator('.fulfil-row').filter({ hasText: 'RX-0079' }).click();
+  await panel.getByRole('button', { name: 'Open the prescription to act on it' }).click();
+  const script = page.getByRole('dialog');
+  await expect(script.locator('.order-head h3')).toHaveText('RX-0079');
+  await expect(script.locator('.medicine-row')).toHaveCount(1);
+  await expect(script.locator('.order-head .pill')).toHaveText('Sealed');
+  for (const name of names) await expect(script).not.toContainText(name);
   await page.getByRole('button', { name: 'Close dialog' }).click();
   for (const name of names) await expect(main(page).locator('.dp-split')).not.toContainText(name);
   await expect(panel).toContainText(medicines.partnerQueue.why.split('. ')[0]);

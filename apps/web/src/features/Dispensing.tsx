@@ -6,7 +6,7 @@ import { NotConnected } from '../components/NotConnected';
 import {
  authorisation, authorisedOn, binds, classById, collectionAnswer, daysOfMedicineLeft, expiresInDays,
  expiresOn, formatDay, groundById, handover, isFinalRepeat, lastCollectedOn, mayChange, neverChanges,
- nextCollectionOn, pharmacist, prescription, refusalById, refusals, repeatsRemaining, ruleById,
+ nextCollectionOn, pharmacist, prescriberStanding as standing, prescription, refusalById, refusals, repeatsRemaining, ruleById,
  statutoryGrounds, strandedRepeats, substituted, substitutionClasses, tellingFor, type PrescribedItem
 } from '../lib/dispensing';
 import { can } from '../lib/vetting';
@@ -46,8 +46,19 @@ import { subjectById, subjectsByRole } from '../lib/vetting-fixtures';
 const pharmacies = subjectsByRole('pharmacy');
 /* Two doctors: one whose registration is current and one whose HPCSA registration lapsed four days
    ago. Switching between them changes who is behind the prescription and nothing else, which is the
-   rule made visible rather than asserted. */
+   rule made visible rather than asserted.
+
+   This screen is the pharmacy's, and packages/catalog/medicines.json#partnerQueue.neverCarries lists
+   prescriberRef: a pharmacy is told whether the prescription has a prescriber who may stand behind it,
+   and not who that is. So the prescriber is drawn as the vetting register's answer — the outcome — and
+   never as a name or an HPCSA number, and the switch is keyed by position rather than by the subject's
+   id, which stays inside this lookup. The workbench beside it lost its prescriber for the same reason
+   on 30 September 2026 (features/ClinicalWorkbench.tsx). A real dispensing flow will need the
+   pharmacist to read the prescriber's name and registration off the prescription; that is a decision
+   to amend partnerQueue with a recorded reason, and docs/FEATURE-MAP.md carries it as an open question
+   rather than this screen taking it. */
 const prescribers = ['D-401', 'D-402'];
+const prescriberAt = (key: string) => subjectById(prescribers[Number(key)] ?? prescribers[0])!;
 
 function ClassPill({ id }: { id: string }) {
  const klass = classById(id);
@@ -120,15 +131,14 @@ function Item({ item, told, onTell, handed, onHand, mayDispense }: {
 
 export function Dispensing() {
  const [pharmacyId, setPharmacyId] = useState(pharmacies[0].id);
- const [prescriberId, setPrescriberId] = useState(prescribers[0]);
+ const [prescriberKey, setPrescriberKey] = useState('0');
  const [told, setTold] = useState<string[]>([]);
  const [handed, setHanded] = useState<string[]>([]);
  const [collectTried, setCollectTried] = useState(false);
 
  const pharmacy = pharmacies.find(p => p.id === pharmacyId)!;
- const prescriber = subjectById(prescriberId)!;
  const mayDispense = can(pharmacy, 'dispense');
- const mayPrescribe = can(prescriber, 'prescribe');
+ const mayPrescribe = can(prescriberAt(prescriberKey), 'prescribe');
  const collection = collectionAnswer();
  const open = mayDispense.allowed && mayPrescribe.allowed;
  const everyItemTold = prescription.items.every(i => told.includes(i.id));
@@ -144,7 +154,7 @@ export function Dispensing() {
    <Pill tone={open ? 'plain' : 'danger'}>{open ? 'Awaiting handover' : 'Held'}</Pill>
   </div>
 
-  <div className="review-line"><span>Prescribed by</span><strong>{prescriber.name} · {prescriber.reference}</strong></div>
+  <div className="review-line"><span>Prescriber</span><strong>{standing(mayPrescribe)}</strong></div>
   <div className="review-line"><span>Dispensed by</span><strong>{pharmacist.name} · {pharmacist.registration}</strong></div>
   <div className="review-line"><span>At</span><strong>{pharmacy.name} · {pharmacy.reference}</strong></div>
 
@@ -153,8 +163,8 @@ export function Dispensing() {
    <label>Dispensing pharmacy<select value={pharmacyId} onChange={e => { setPharmacyId(e.target.value); setHanded([]); }}>
     {pharmacies.map(p => <option key={p.id} value={p.id}>{p.name} · {p.reference}</option>)}
    </select></label>
-   <label>Prescriber<select value={prescriberId} onChange={e => { setPrescriberId(e.target.value); setHanded([]); }}>
-    {prescribers.map(id => { const d = subjectById(id)!; return <option key={id} value={id}>{d.name} · {d.reference}</option>; })}
+   <label>Prescriber<select value={prescriberKey} onChange={e => { setPrescriberKey(e.target.value); setHanded([]); }}>
+    {prescribers.map((_, at) => <option key={at} value={String(at)}>{standing(can(prescriberAt(String(at)), 'prescribe'))}</option>)}
    </select></label>
    <p className="helper">Both answers below come from the vetting register in its own words. A licence and a registration are not badges on a partner page; they are what decides whether anything on this screen does anything.</p>
   </fieldset>

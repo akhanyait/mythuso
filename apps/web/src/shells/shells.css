@@ -511,15 +511,6 @@ html .app-shell.clinical { background: var(--color-background); background-image
 .app-shell.patient-surface .psb-footer-links { display: inline-flex; flex-wrap: wrap; gap: var(--space-4) var(--space-16); }
 .app-shell.patient-surface .psb-footer-links svg { width: var(--space-16); height: var(--space-16); }
 
-/* The bell's dot rings once on arrival — a pulse out and back over one entrance — and stops. The export
-   rings it every 3.8 seconds for ever; a notice that keeps moving is a notice that never lets a reader
-   finish reading the screen, and this surface runs nothing endless. Transform only, gated on the flag
-   PatientShell raises only for a reader who has not asked for stillness. */
-@keyframes psb-ring { 40% { transform: scale(1.35); } 70% { transform: scale(.9); } }
-[data-motion='on'] .patient-surface .notification-button .psb-ring { animation: psb-ring var(--t-enter) var(--ease-soft) var(--t-settle) 1; }
-@media (prefers-reduced-motion: reduce) {
- [data-motion='on'] .patient-surface .notification-button .psb-ring { animation: none !important; }
-}
 
 /* The phone's More hub in the sidebar's groups (Pages.tsx#MoreHub): each group's name over its rows, set as
    the sidebar and the staff hub set a group's name, and the space above a heading wider than the space

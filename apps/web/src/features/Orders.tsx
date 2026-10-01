@@ -11,9 +11,11 @@ const Prescription = lazy(() => details().then(m => ({ default: m.PrescriptionDe
 const LabOrder = lazy(() => details().then(m => ({ default: m.LabOrderDetail })));
 const Opening = ({ what }: { what: string }) => <p className="helper" role="status">Opening the {what}…</p>;
 
-export function PrescriptionDetail(props: { reference?: string; open?: (m: string) => void }) {
+/* `partner` is required on both: medicines.json#partnerQueue decides what a partner is drawn, and a door that
+   let a caller leave it out would let the patient and the prescriber back onto a pharmacy's screen. */
+export function PrescriptionDetail(props: { reference?: string; open?: (m: string) => void; partner: boolean }) {
  return <Suspense fallback={<Opening what="prescription"/>}><Prescription {...props}/></Suspense>;
 }
-export function LabOrderDetail(props: { reference?: string }) {
+export function LabOrderDetail(props: { reference?: string; partner: boolean }) {
  return <Suspense fallback={<Opening what="laboratory order"/>}><LabOrder {...props}/></Suspense>;
 }

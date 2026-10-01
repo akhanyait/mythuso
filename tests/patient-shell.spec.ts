@@ -121,18 +121,13 @@ test('the footer opens Privacy & settings and Help, and offers no Terms it canno
  await expect(page).toHaveTitle('Help & support · MyThuso');
 });
 
-test('the bell rings once on arrival and not at all for a reader who asked for stillness', async ({ page }) => {
+test('the bell draws no unread dot, because nothing here can be unread', async ({ page }) => {
  await page.goto('/app/');
- const dot = page.locator('.notification-button .psb-ring');
- const rings = () => dot.evaluate(el => el.getAnimations().map(a => String((a.effect as KeyframeEffect).getTiming().iterations)));
- /* Finite: one iteration, never Infinity, and gone once it has played. */
- const first = await rings();
- expect(first.every(n => n === '1')).toBe(true);
- await expect.poll(async () => (await rings()).length, { timeout: 5000 }).toBe(0);
- await page.emulateMedia({ reducedMotion: 'reduce' });
- await page.reload();
- await expect(dot).toBeAttached();
- expect(await rings()).toEqual([]);
+ /* Messaging is not connected and no state says which notice a patient has opened, so a dot on the bell
+    would say something is waiting when nothing is. It was drawn on every arrival until 1 October 2026. */
+ const bell = page.getByRole('button', { name: 'Notifications' });
+ await expect(bell).toBeVisible();
+ await expect(bell.locator('i, .psb-ring')).toHaveCount(0);
 });
 
 test('nothing in the chrome scrolls sideways at 320px', async ({ page }) => {
