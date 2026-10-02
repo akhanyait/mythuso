@@ -1143,3 +1143,31 @@ running in parallel — is the order that stops them meeting too late.
 8. Close the safety-case gap in the gate, and put a Passport behind the record the triage writes.
 
 Steps 1 to 4 are a decision and a day. Step 5 is the work, and steps 6 to 8 are not formalities.
+
+
+## Founder-requested — animated triage readings, 2 October 2026
+
+The founder asked for patients, nurses and doctors to see animated organ illustrations with their
+triage readings, and for clinician consultation screens to keep readings and patient/medication context
+close to the video. This supersedes the live board’s earlier choice to animate nothing.
+
+Built: decorative heart and oxygen/lung illustrations on the shared web, iOS and Android readings
+views; patient access on web devices and consultation pages and both native Health Passports; the
+web consultation’s video placeholder beside the live simulated panel, with expandable patient details,
+allergies and medication requests. The nurse’s call-doctor tool has the same honest video placeholder.
+An unknown patient is never replaced with another patient’s record; medication requests are explicitly
+not a reconciled list of medicines currently taken.
+
+No device or media connection was activated and no clinical gate changed. Organ rhythm is decorative,
+never a measured heartbeat or breathing rate, and stops for Pause, stale or missing readings and
+reduced motion. The patient entry measures **256.10 kB** versus the same-tree **256.12 kB** baseline,
+both measured with the documented gzip-level-9 method. Screens remain deferred behind dynamic imports;
+repeated patient loading notices share one render helper. No deployment was requested or run.
+See [the feature map](FEATURE-MAP.md#animated-triage-readings--2-october-2026) for the contract,
+generator, native views, boundary proofs and browser journeys.
+
+Verification obtained on this tree: `npm run check`, the web production build, iOS simulator build,
+Android `assembleDebug`/`lintDebug`, and the live-vitals boundary proofs passed. The full `npm test`
+run passed every Node suite and finished its browser run with 1,494 passed, 27 skipped and three
+failures. The reduced-motion specificity and duplicate media notice were corrected; all three
+failed browser tests passed on recheck, including the unrelated Control Tower navigation timeout.

@@ -24,7 +24,7 @@ const LiveVitalsPanel = lazy(() => import('./LiveVitals').then(m => ({ default: 
  * whether consent is recorded, the allergy record and whether anybody reconciled it, their visit today and
  * what has been requested for them. It is the sandbox's, labelled as such, and it says so when the person
  * on the call is not in it. */
-export function CallSummary({ patient, rule }: { patient: string; rule: string }) {
+export function CallSummary({ patient, rule, readings = true }: { patient: string; rule: string; readings?: boolean }) {
  const { state } = useThusoIQ();
  const person = state.patients.find(p => p.name === patient);
  const visits = person ? state.appointments.filter(a => a.patientId === person.id).sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt)) : [];
@@ -40,6 +40,9 @@ export function CallSummary({ patient, rule }: { patient: string; rule: string }
     <h3 id="tcx-aside-title">{patient}</h3>
    </div>
   </div>
+  {person && <p className="rq-case-note">{person.reason}</p>}
+  <details className="tcx-context" open={readings ? undefined : true}>
+   <summary>Patient details &amp; medication</summary>
   {person ? <>
    <dl className="rq-case-facts">
     <div><dt>Seen for</dt><dd>{person.reason}</dd></div>
@@ -47,10 +50,11 @@ export function CallSummary({ patient, rule }: { patient: string; rule: string }
      <dd className="tcx-aside-mark">{person.allergiesReviewed ? <><Check size={14} aria-hidden="true"/>Reconciled</> : <><AlertTriangle size={14} aria-hidden="true"/>Reconciliation outstanding</>}</dd></div>
     <div><dt>Care consent</dt><dd className="tcx-aside-mark">{person.consent ? <><ShieldCheck size={14} aria-hidden="true"/>Recorded</> : <><AlertTriangle size={14} aria-hidden="true"/>Not recorded</>}</dd></div>
     {visit && <div><dt>This visit</dt><dd>{modeName(visit.mode)} · {visit.minutes} minutes · {visit.id} <Badge size="sm" variant="neutral">{stateName(visit.status)}</Badge></dd></div>}
-    <div><dt>Requested for them</dt><dd>{requests.length ? requests.map(r => r.item).join(' · ') : 'Nothing has been requested in this sandbox.'}</dd></div>
+    <div><dt>Medication requests</dt><dd>{requests.length ? <ul className="tcx-medications">{requests.map(r => <li key={r.id}>{r.item}</li>)}</ul> : 'No medication requests are recorded in this sandbox.'}</dd><dd className="rq-case-note">Requests are not a reconciled list of medicines currently taken.</dd></div>
    </dl>
   </> : <p className="rq-case-note">{patient} is not a patient in the ThusoIQ sandbox, so nothing more is shown about them here.</p>}
-  <p className="rq-case-note">{rule}</p>
-  <Suspense fallback={null}><LiveVitalsPanel subject={patient} level="h4"/></Suspense>
+  </details>
+  {readings && <Suspense fallback={null}><LiveVitalsPanel subject={patient} level="h4"/></Suspense>}
+  {rule && <p className="rq-case-note">{rule}</p>}
  </aside>;
 }

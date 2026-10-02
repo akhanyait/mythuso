@@ -31,7 +31,9 @@ const proofs = [
   ["a random jitter", { [ENGINE]: text(ENGINE, "return x / MOD;", "return Math.random();") }, /random source/],
   ["browser storage", { [SCREEN]: text(SCREEN, "const choose = (id: string) => {", "const choose = (id: string) => { localStorage.setItem('p', id);") }, /names browser storage/],
   ["an interval never cleared", { [SCREEN]: text(SCREEN, "return () => clearInterval(timer);", "return undefined;") }, /not cleared/],
-  ["a pulse that runs for ever", { "apps/web/src/features/live-vitals.css": readDisk("apps/web/src/features/live-vitals.css") + "\n.lv-spark-line { animation: lv 1s infinite; }\n" }, /moves something/],
+  ["a measured trend animated", { "apps/web/src/features/live-vitals.css": readDisk("apps/web/src/features/live-vitals.css") + "\n.lv-spark-line { animation: lv 1s infinite; }\n" }, /moves something/],
+  ["reduced motion ignored", { "apps/web/src/features/live-vitals.css": text("apps/web/src/features/live-vitals.css", "prefers-reduced-motion: reduce", "prefers-color-scheme: dark") }, /must stop decorative/],
+  ["paused organs still moving", { [SCREEN]: text(SCREEN, "moving={!!latest && live.live && live.running}", "moving={true}") }, /must stop organ/],
   ["a static import onto a first view", { "apps/web/src/features/Dashboard.tsx": readDisk("apps/web/src/features/Dashboard.tsx") + "\nimport { LiveVitalsBoard } from './LiveVitals';\n" }, /imports the board statically/],
   ["iOS losing the refusals", { "apps/ios/MyThuso/Features/LiveVitalsView.swift": text("apps/ios/MyThuso/Features/LiveVitalsView.swift", "ForEach(LiveVitals.refusals)", "ForEach([LiveRefusalSpec]())") }, /no longer renders LiveVitals\.refusals/],
   ["Android colouring a reading as danger", { "apps/android/app/src/main/java/za/co/mythuso/ui/LiveVitalsScreens.kt": text("apps/android/app/src/main/java/za/co/mythuso/ui/LiveVitalsScreens.kt", "fontWeight = if (outside) FontWeight.SemiBold else FontWeight.Normal, color = theme.foreground", "fontWeight = FontWeight.Normal, color = if (outside) theme.dangerInk else theme.foreground") }, /colours something as danger/]

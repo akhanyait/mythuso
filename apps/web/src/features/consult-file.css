@@ -522,3 +522,15 @@
  .clinical .tcx .button-row { flex-direction: column; align-items: stretch; }
  .clinical .tcx .button-row > .ui-button { justify-content: center; text-align: center; }
 }
+
+/* The call stage and patient facts stay together without claiming a media connection. */
+.tcx-video-preview { display: grid; min-height: 280px; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--r-card); background: var(--color-primary); color: var(--color-primary-foreground); }
+.tcx-video-person { display: grid; place-content: center; justify-items: center; gap: 12px; padding: 28px; text-align: center; }
+.tcx-video-preview .tcx-video-person :is(h3, h4, h5), .tcx-video-person p { margin: 0; color: inherit; }
+.tcx-video-person p { max-width: 48ch; font-size: 14px; line-height: 1.5; }
+.tcx-video-caption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-self: end; padding: 14px 20px; border-top: 1px solid currentColor; font-size: 13px; }
+.tcx-medications { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+
+.tcx-context { margin: 12px 0; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--r-tile); }
+.tcx-context summary { cursor: pointer; min-height: 32px; font-weight: 600; font-size: 14px; }
+.tcx-context summary:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 4px; }

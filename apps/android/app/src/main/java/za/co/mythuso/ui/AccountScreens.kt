@@ -69,6 +69,7 @@ import za.co.mythuso.model.mokoenaHousehold
     var deviceState by remember { mutableStateOf(LoadState.DENIED) }
     val context = LocalContext.current
     ScreenColumn {
+        ThusoButton(za.co.mythuso.model.LiveVitalsData.Words.patientHeading, onClick = { open(za.co.mythuso.model.LiveVitalsData.Words.patientHeading) }, variant = ThusoButtonVariant.Secondary, modifier = Modifier.fillMaxWidth())
         /* The card is the heading, on the identity: the person, the identifier and the badge on the one
            elevated card of the screen, with the MyThuso health icon where the web puts it. It was a
            near-black block; the identity keeps its ink for words and actions. */
@@ -323,6 +324,10 @@ import za.co.mythuso.model.mokoenaHousehold
         title.startsWith("Visit messages: ") -> VisitThreadScreen(store, title.removePrefix("Visit messages: "))
         title.startsWith("Past visit: ") -> PastVisitScreen(store, title.removePrefix("Past visit: ").toLongOrNull() ?: Passport.latestSet.dayOffset, open)
         title == "Health Passport" -> PassportScreen(open)
+        title == za.co.mythuso.model.LiveVitalsData.Words.patientHeading -> ScreenColumn {
+            Heading("Health Passport", za.co.mythuso.model.LiveVitalsData.Words.patientHeading, za.co.mythuso.model.LiveVitalsData.Words.patientIntro)
+            LiveVitalsPanel("patient-preview")
+        }
         /* The three the passport offered and could not open. A completed visit is looked up by the
            day it happened rather than handed its readings, so a visit and what was measured at it
            cannot disagree — they never met before, which is why they never did. */

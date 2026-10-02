@@ -8,8 +8,7 @@
    board refuses. Where a value stands against its range is told by the words under the line and by an arrow
    or a tick beside them, and the weight of those words; never by colour.
 
-   MOTION. None. The numbers change because readings arrive; nothing on the board animates, so there is
-   nothing for prefers-reduced-motion to switch off and nothing that runs for ever. */
+   Decorative motion stops with Pause, stale readings and reduced motion. */
 
 .lv-board, .lv-panel { display: grid; gap: var(--space-16); min-width: 0; }
 .lv-panel { gap: var(--space-12); }
@@ -60,7 +59,7 @@
 .lv-absent { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: var(--space-8) var(--space-24); margin: 0; padding: 0 0 0 var(--space-16); font-size: 14px; line-height: 1.45; color: var(--color-muted-foreground); }
 .lv-panel .lv-absent { grid-template-columns: minmax(0, 1fr); font-size: 13px; }
 
-.lv-foot { margin: 0; font-size: 13px; line-height: 1.5; color: var(--color-muted-foreground); max-width: 80ch; }
+.lv-foot, .lv-motion-note { margin: 0; font-size: 13px; line-height: 1.5; color: var(--color-muted-foreground); max-width: 80ch; }
 
 /* ---- What the board does not draw, where the export drew it ---------------------------------------- */
 .lv-refusals { display: grid; gap: var(--space-12); min-width: 0; }
@@ -88,3 +87,33 @@
 .lv-refusals.is-compact .lv-refusal { padding: var(--space-8) var(--space-12); }
 .lv-refusals.is-compact .lv-refusal p { font-size: 13px; }
 .lv-refusals.is-compact .lv-refusal strong { font-size: 14px; }
+
+/* Organ motion never changes with the value or implies a clinical severity. */
+.lv-tile { position: relative; padding-top: 20px; overflow: hidden; }
+.lv-organ { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 20px; color: var(--color-primary); background: var(--color-muted); }
+.lv-organ svg { width: 48px; height: 48px; }
+.lv-organ.is-moving svg { animation: lv-breathe 3s ease-in-out infinite; transform-origin: center; }
+.lv-organ[data-organ="heart"].is-moving svg { animation: lv-heart 1.8s ease-in-out infinite; }
+.lv-value strong { font-size: 36px; }
+.lv-tile-head { min-height: 60px; }
+.lv-tiles { grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); }
+.lv-tiles.is-compact .lv-organ { grid-column: 1 / -1; width: 44px; height: 44px; border-radius: 14px; }
+.lv-tiles.is-compact .lv-organ svg { width: 34px; height: 34px; }
+.lv-tiles.is-compact .lv-tile-head { grid-row: 2; min-height: 0; }
+.lv-tiles.is-compact .lv-value { grid-row: 2; }
+.lv-tiles.is-compact .lv-range { grid-row: 3; }
+.lv-tiles.is-compact .lv-spark { grid-row: 3 / span 2; }
+.lv-tiles.is-compact .lv-prov { grid-row: 4; }
+@keyframes lv-heart { 0%, 45%, 100% { transform: scale(1); } 15%, 30% { transform: scale(1.1); } 22% { transform: scale(1.02); } }
+@keyframes lv-breathe { 0%, 100% { transform: scale(.94); } 50% { transform: scale(1.06); } }
+@media (prefers-reduced-motion: reduce) { .lv-organ.is-moving svg, .lv-organ[data-organ="heart"].is-moving svg { animation: none; } }
+
+/* Compact anatomy shares the reading's row rather than adding another row to the call rail. */
+.lv-tiles.is-compact .lv-tile { grid-template-columns: 36px minmax(0, 1fr) auto; column-gap: 8px; }
+.lv-tiles.is-compact .lv-organ { grid-column: 1; grid-row: 1 / span 4; width: 36px; height: 42px; }
+.lv-tiles.is-compact .lv-organ svg { width: 30px; height: 30px; }
+.lv-tiles.is-compact .lv-tile-head { grid-column: 2; grid-row: 1; }
+.lv-tiles.is-compact .lv-value { grid-column: 3; grid-row: 1; flex-wrap: wrap; justify-content: flex-end; }
+.lv-tiles.is-compact .lv-range { grid-column: 2 / -1; grid-row: 2; }
+.lv-tiles.is-compact .lv-spark { grid-column: 2 / -1; grid-row: 3; width: 100%; }
+.lv-tiles.is-compact .lv-prov { grid-column: 2 / -1; grid-row: 4; }

@@ -55,6 +55,9 @@ extension LiveVitals {
     ]
 
     enum Words {
+        static let motionNote = "Illustrations animate for orientation only. Their rhythm does not represent a measured heartbeat or breathing rate."
+        static let patientHeading = "Your triage readings"
+        static let patientIntro = "Preview the readings you, your nurse and your doctor would review together. These are synthetic examples, not measurements of you."
         static let heading = "Live readings from {patient}’s devices"
         static let compactHeading = "Patient’s devices, live (simulated)"
         static let intro = "Every instrument in the kit, and the patient’s own watch, sending a reading every few seconds. A reading is shown with its unit, the instrument it stands for, where it came from and how long ago it arrived, and its place against the record’s reference range is said in words."

@@ -59,6 +59,13 @@ test.describe('the doctor’s Triage page', () => {
     await expect(board.locator('.lv-tile[data-stream]')).toHaveCount(live.streams.length);
     /* The default scenario has a reading from every instrument it streams. */
     await expect(board.locator('.lv-tile.is-silent')).toHaveCount(0);
+    const heart = board.locator('[data-stream="pulse"] .lv-organ svg');
+    const oxygen = board.locator('[data-stream="oxygen"] .lv-organ svg');
+    expect(await heart.evaluate(el => getComputedStyle(el).animationName)).toBe('lv-heart');
+    expect(await oxygen.evaluate(el => getComputedStyle(el).animationName)).toBe('lv-breathe');
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    expect(await heart.evaluate(el => getComputedStyle(el).animationName)).toBe('none');
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
     const first = await values(board);
     await expect.poll(async () => (await values(board)).join(' '), { timeout: 12_000 }).not.toBe(first.join(' '));
     /* Each tile says where it came from, and that it was simulated. */
@@ -75,6 +82,7 @@ test.describe('the doctor’s Triage page', () => {
 
     await board.getByRole('button', { name: live.board.pause }).click();
     await expect(board.locator('.lv-status [role="status"]')).toHaveText(live.board.paused);
+    expect(await heart.evaluate(el => getComputedStyle(el).animationName)).toBe('none');
     const held = (await values(board)).join(' ');
     await page.waitForTimeout(live.pace.tickMs * 2 + 500);
     expect((await values(board)).join(' ')).toBe(held);
@@ -122,6 +130,10 @@ test.describe('the doctor’s consultation', () => {
     await d.getByRole('button', { name: /Open the call/ }).click();
     await d.getByRole('button', { name: /Skip the wait/ }).click();
 
+    await expect(d.locator('.tcx-video-preview')).toBeVisible();
+    await d.locator('.tcx-context summary').click();
+    await expect(d.locator('.tcx-context')).toContainText('Medication requests');
+    await d.locator('.tcx-context summary').click();
     const panel = d.locator('.tcx-aside .lv-panel');
     await expect(panel.getByRole('heading', { name: live.board.compactHeading })).toBeVisible();
     await bannerStands(panel);

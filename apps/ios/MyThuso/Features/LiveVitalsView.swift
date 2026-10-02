@@ -10,12 +10,12 @@ import SwiftUI
    against the record's range in words. Where the Lovable export drew a score, a triage colour, an
    interpretation, alarms and a heatmap, the panel draws the contract's sentence saying why not.
 
-   MOTION. None. The numbers change every two seconds while the simulation runs; nothing animates, so Reduce
-   Motion has nothing to stop. The timer is the view's own and ends with it. VoiceOver reads each row as one
-   element; nothing is a live region, because a panel announcing itself every two seconds would talk over
-   the consultation it sits beside. */
+   Decorative organ motion stops with Pause, stale or missing readings and Reduce Motion. Its rhythm
+   is illustrative rather than measured. VoiceOver reads the text, never the decorative icon.
+ */
 struct LiveVitalsPanel: View {
     let subject: String
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var presetId = LiveVitals.defaultPreset
     @State private var tick = 0
     @State private var running = true
@@ -32,6 +32,7 @@ struct LiveVitalsPanel: View {
         CareCard {
             Text(W.compactHeading).font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                 .accessibilityAddTraits(.isHeader)
+            Text(W.motionNote).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
             banner
             Picker(W.scenario, selection: $presetId) {
                 ForEach(LiveVitals.presets) { Text($0.name).tag($0.id) }
@@ -93,7 +94,12 @@ struct LiveVitalsPanel: View {
     @ViewBuilder private func row(_ index: Int, _ stream: LiveStreamSpec) -> some View {
         let history = LiveVitals.history(presetId, seed: seed, stream: index, tick: tick)
         VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
-            HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .top) {
+                Image(systemName: stream.id == "oxygen" ? "lungs.fill" : ["pulse", "watch-pulse"].contains(stream.id) ? "heart.fill" : stream.id == "temperature" ? "thermometer.medium" : stream.id == "glucose" ? "drop.fill" : "waveform.path.ecg")
+                    .font(.thuso(.title2)).foregroundStyle(ThusoRole.primary)
+                    .frame(width: 52, height: 52).background(ThusoRole.muted, in: RoundedRectangle(cornerRadius: 16))
+                    .symbolEffect(.pulse, options: .repeating, isActive: running && live && !reduceMotion && !history.isEmpty)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(stream.label).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
                     Text("\(W.simulatedClass) · \(LiveVitals.fill(W.standsFor, ["instrument": stream.instrument]))")

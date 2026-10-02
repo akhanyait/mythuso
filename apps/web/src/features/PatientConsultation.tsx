@@ -1,8 +1,12 @@
+import liveVitals from '../../../../packages/catalog/live-vitals.json';
+import { lazy, Suspense } from 'react';
 import { ArrowRight, CameraOff, Clock3, Video } from 'lucide-react';
 import { NotConnected } from '../components/NotConnected';
 import { Button, Card } from '../ui';
 import { maximumWaitMinutes, media, participants, recording, waitingRoom } from '../lib/teleconsult';
 import { PatientHeader } from './PatientHeader';
+
+const LiveVitalsPanel = lazy(() => import('./LiveVitals').then(m => ({ default: m.LiveVitalsPanel })));
 
 /* The online consultation from the patient's side — the export's page (patient-space.tsx, OnlineConsultation)
  * as a waiting room, because a waiting room is the part of it this build can say truthfully.
@@ -56,6 +60,7 @@ export function PatientConsultation({ navigate }: { navigate: (page: string) => 
    </div>
 
    <div className="ps-consult-rail">
+  <Card padding="md" className="ps-panel"><h2>{liveVitals.board.patientHeading}</h2><p>{liveVitals.board.patientIntro}</p><Suspense fallback={<p>Opening readings…</p>}><LiveVitalsPanel subject="patient-preview"/></Suspense></Card>
     <Card padding="md" className="ps-panel">
      <div className="ps-panel-head"><div><h2>Who would be on the call</h2><p>And the question you would be asked about each of them before the call opens.</p></div></div>
      <ul className="ps-people">

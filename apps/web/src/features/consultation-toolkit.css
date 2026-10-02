@@ -100,3 +100,13 @@
  .ctk-tool-state span { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; white-space: normal; }
  .ctk-tool.is-shut .ctk-tool-state { position: static; }
 }
+
+/* Put the call's tools above the room so its patient rail begins alongside the video. */
+@container (min-width: 960px) {
+ .ctk[data-surface="teleconsult"] .ctk-grid { grid-template-areas: 'tools tools' 'main side'; grid-template-rows: auto 1fr; }
+ .ctk[data-surface="teleconsult"] .ctk-tool-list { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+ .ctk[data-surface="teleconsult"] .ctk-tool { display: flex; justify-content: center; padding: 8px; font-size: 13px; }
+ .ctk[data-surface="teleconsult"] .ctk-tool-short { display: inline; }
+ .ctk[data-surface="teleconsult"] .ctk-tool-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+ .ctk[data-surface="teleconsult"] .ctk-tool-state span { display: none; }
+}

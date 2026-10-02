@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react';
 import type { Hold } from '../../../packages/engines/src/access/domain/booking.ts';
 import type { Thread } from '../../../packages/engines/src/access/domain/thread.ts';
 import { ArrowRight, LogOut, ShieldCheck, X } from 'lucide-react';
@@ -147,6 +147,11 @@ import { useDecor, usePointerLight } from './lib/motion';
  * rather than being deleted with it: the household record opens from a family member, and the
  * shareable health summary from Thuso Pass. */
 
+/* Deferred patient screens share one status surface so adding a screen does not duplicate its loader. */
+function loadingNotice(children: ReactNode) {
+ return <p className="helper" role="status">{children}</p>;
+}
+
 export default function App() {
  const [locale, setLocale] = useState<LocaleCode>('en-ZA');
  return <LocaleContext.Provider value={locale}><PatientApp locale={locale} setLocale={setLocale}/></LocaleContext.Provider>;
@@ -247,6 +252,8 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
    : row));
  if (onboarding) return <Onboarding locale={locale} setLocale={setLocale} recover={onboarding === 'recovery'} onDone={() => { setOnboarding(''); setSignedIn(true); navigate('Overview'); }} onSkip={() => { setOnboarding(''); setSignedIn(true); navigate('Overview'); }}/>;
  if (!signedIn) return <SignIn live={live} onSignIn={() => setSignedIn(true)} onCreate={() => setOnboarding('first-run')} onRecover={() => setOnboarding('recovery')}/>;
+ /* One loader for the deferred patient screens keeps their first-load cost shared. */
+ const patientScreenLoading = loadingNotice(patientScreenOpenings[page]);
  return <>
   <PatientShell page={page} navigate={navigate} open={setModal} locale={locale} location={location} visitCount={rows.filter(row => row.group === 'upcoming').length}
    signOut={signOut} query={query} setQuery={setQuery}
@@ -265,44 +272,44 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
           onRemove={id => setWellbeing(wellbeing.filter(entry => entry.id !== id))}
           nextVisit={rows.find(row => row.group === 'upcoming')?.id ?? null} viewVisit={setViewing}/>
        : page === 'Health trends' ? <HealthTrends navigate={navigate}/>
-       : page === 'Share part of your record' ? <Suspense fallback={<p className="helper" role="status">Opening your share links.</p>}><ShareLinksPage navigate={navigate}/></Suspense>
-       : page === 'Your emergency card' ? <Suspense fallback={<p className="helper" role="status">Opening your emergency card.</p>}><EmergencyCardPage navigate={navigate} open={setModal}/></Suspense>
-       : page === 'Who opened your record' ? <Suspense fallback={<p className="helper" role="status">Opening who opened your record.</p>}><PassportLogPage navigate={navigate}/></Suspense>
+       : page === 'Share part of your record' ? <Suspense fallback={loadingNotice("Opening your share links.")}><ShareLinksPage navigate={navigate}/></Suspense>
+       : page === 'Your emergency card' ? <Suspense fallback={loadingNotice("Opening your emergency card.")}><EmergencyCardPage navigate={navigate} open={setModal}/></Suspense>
+       : page === 'Who opened your record' ? <Suspense fallback={loadingNotice("Opening who opened your record.")}><PassportLogPage navigate={navigate}/></Suspense>
        : page === 'What readings mean' ? <ReadingsExplained navigate={navigate} open={setModal}/>
        : page === 'Care timeline' ? <CareTimeline navigate={navigate} open={setModal}/>
        : page === 'Your care team' ? <CareTeam navigate={navigate} open={setModal}/>
        : page === 'What happens to a prescription' ? <PrescriptionJourney navigate={navigate} open={setModal}/>
        : page === 'Arrival' ? <Arrival row={rows.find(row => row.id === tracking) ?? rows.find(row => row.group === 'upcoming')} navigate={navigate} view={setViewing}/>
-       : page === 'Door check' ? <Suspense fallback={<p className="helper" role="status">Opening the door check.</p>}><DoorCheckPage row={rows.find(row => row.id === tracking) ?? rows.find(row => row.group === 'upcoming')} back={() => navigate('Arrival')}/></Suspense>
-       : page.startsWith('Complaint · ') ? <Suspense fallback={<p className="helper" role="status">Opening the complaint.</p>}><ComplaintPage row={rows.find(row => row.id === page.slice('Complaint · '.length))} back={() => navigate('My visits')}/></Suspense>
+       : page === 'Door check' ? <Suspense fallback={loadingNotice("Opening the door check.")}><DoorCheckPage row={rows.find(row => row.id === tracking) ?? rows.find(row => row.group === 'upcoming')} back={() => navigate('Arrival')}/></Suspense>
+       : page.startsWith('Complaint · ') ? <Suspense fallback={loadingNotice("Opening the complaint.")}><ComplaintPage row={rows.find(row => row.id === page.slice('Complaint · '.length))} back={() => navigate('My visits')}/></Suspense>
        : page === 'Help & support' ? <GettingHelp navigate={navigate} open={setModal}/>
-       : page === 'Care you sponsor' ? <Suspense fallback={<p className="helper" role="status">Opening the care you pay for.</p>}><SponsoredCarePage person={people[1]} relation={relationOf(people[1], people)} navigate={navigate} open={setModal}/></Suspense>
+       : page === 'Care you sponsor' ? <Suspense fallback={loadingNotice("Opening the care you pay for.")}><SponsoredCarePage person={people[1]} relation={relationOf(people[1], people)} navigate={navigate} open={setModal}/></Suspense>
        : page === 'My family' ? <Family members={members} invitations={invitations} onRevoke={id => setInvitations(invitations.map(i => i.id === id ? { ...i, status: 'Revoked' } : i))} open={setModal} navigate={navigate}/>
         : page === 'Care plans' ? <Plans open={setModal} family={{ sponsor: people[0]!, parents: people.filter(p => relationOf(p, people) === 'Mother') }}/>
          /* Group payers and claims: three screens on their own dynamic imports, opened from the wallet and the passport. */
-         : page === 'Groups that pay for you' ? <Suspense fallback={<p className="helper" role="status">Opening your groups.</p>}><GroupMembershipPage/></Suspense>
-         : page === 'A group you pay for' ? <Suspense fallback={<p className="helper" role="status">Opening your group.</p>}><GroupAdminPage/></Suspense>
-         : page === 'Claims to your medical scheme' ? <Suspense fallback={<p className="helper" role="status">Opening your claims.</p>}><ClaimsPage/></Suspense>
+         : page === 'Groups that pay for you' ? <Suspense fallback={loadingNotice("Opening your groups.")}><GroupMembershipPage/></Suspense>
+         : page === 'A group you pay for' ? <Suspense fallback={loadingNotice("Opening your group.")}><GroupAdminPage/></Suspense>
+         : page === 'Claims to your medical scheme' ? <Suspense fallback={loadingNotice("Opening your claims.")}><ClaimsPage/></Suspense>
          /* Gift a visit: the giver's screen and the beneficiary's, each its own dynamic import, opened from the wallet. */
-         : page === 'Gift a visit' ? <Suspense fallback={<p className="helper" role="status">Opening gift a visit.</p>}><GiftAVisitPage/></Suspense>
-         : page === 'Gifts sent to you' ? <Suspense fallback={<p className="helper" role="status">Opening your gifts.</p>}><GiftInboxPage/></Suspense>
-         : page === 'Place a real market order' ? <Suspense fallback={<p className="helper" role="status">Opening the order.</p>}><MarketOrderPage/></Suspense>
-         : page === careTipsRoute.opens ? <Suspense fallback={<p className="helper" role="status">{careTipsRoute.opening}</p>}><CareTipsPage open={setModal}/></Suspense>
-         : page === 'Split a visit between you' ? <Suspense fallback={<p className="helper" role="status">Opening the split.</p>}><BillSplitPage/></Suspense>
+         : page === 'Gift a visit' ? <Suspense fallback={loadingNotice("Opening gift a visit.")}><GiftAVisitPage/></Suspense>
+         : page === 'Gifts sent to you' ? <Suspense fallback={loadingNotice("Opening your gifts.")}><GiftInboxPage/></Suspense>
+         : page === 'Place a real market order' ? <Suspense fallback={loadingNotice("Opening the order.")}><MarketOrderPage/></Suspense>
+         : page === careTipsRoute.opens ? <Suspense fallback={loadingNotice(careTipsRoute.opening)}><CareTipsPage open={setModal}/></Suspense>
+         : page === 'Split a visit between you' ? <Suspense fallback={loadingNotice("Opening the split.")}><BillSplitPage/></Suspense>
          : page === 'Thuso Wallet' ? <WalletPage open={setModal} navigate={navigate}/>
           : page === 'Privacy & settings' ? <Privacy key="privacy" open={setModal}/>
            : page === 'Language & access' ? <Privacy key="access" open={setModal} initial="Language & access"/>
             : page === 'Explore MyThuso' ? <Explore open={openModal} onOnboarding={() => setOnboarding('first-run')} navigate={navigate}/>
-             : IconGallery && page === 'Icons' ? <Suspense fallback={<p className="helper" role="status">Opening the icon family.</p>}><IconGallery/></Suspense>
-             : UiGallery && page === 'UI' ? <Suspense fallback={<p className="helper" role="status">Opening the shared components.</p>}><UiGallery/></Suspense>
-              : page === patientScreenRoutes.devices.opens ? <Suspense fallback={<p className="helper" role="status">{patientScreenOpenings[page]}</p>}><PatientDevicesPage navigate={navigate} open={setModal}/></Suspense>
-              : page === patientScreenRoutes.messages.opens ? <Suspense fallback={<p className="helper" role="status">{patientScreenOpenings[page]}</p>}><PatientMessagesPage rows={rows} threads={threads} onThread={(id, next) => setThreads(held => ({ ...held, [id]: next }))} view={setViewing} navigate={navigate}/></Suspense>
-              : page === patientScreenRoutes.results.opens ? <Suspense fallback={<p className="helper" role="status">{patientScreenOpenings[page]}</p>}><PatientResultsPage navigate={navigate} open={setModal}/></Suspense>
-              : page === patientScreenRoutes.consultation.opens ? <Suspense fallback={<p className="helper" role="status">{patientScreenOpenings[page]}</p>}><PatientConsultationPage navigate={navigate}/></Suspense>
-              : patientPageNames.includes(page) ? <Suspense fallback={<p className="helper" role="status">{patientPageOpenings[page]}</p>}><PatientPagesView page={page} navigate={navigate} open={setModal} book={setBooking} entries={wellbeing}/></Suspense>
+             : IconGallery && page === 'Icons' ? <Suspense fallback={loadingNotice("Opening the icon family.")}><IconGallery/></Suspense>
+             : UiGallery && page === 'UI' ? <Suspense fallback={loadingNotice("Opening the shared components.")}><UiGallery/></Suspense>
+              : page === patientScreenRoutes.devices.opens ? <Suspense fallback={patientScreenLoading}><PatientDevicesPage navigate={navigate} open={setModal}/></Suspense>
+              : page === patientScreenRoutes.messages.opens ? <Suspense fallback={patientScreenLoading}><PatientMessagesPage rows={rows} threads={threads} onThread={(id, next) => setThreads(held => ({ ...held, [id]: next }))} view={setViewing} navigate={navigate}/></Suspense>
+              : page === patientScreenRoutes.results.opens ? <Suspense fallback={patientScreenLoading}><PatientResultsPage navigate={navigate} open={setModal}/></Suspense>
+              : page === patientScreenRoutes.consultation.opens ? <Suspense fallback={patientScreenLoading}><PatientConsultationPage navigate={navigate}/></Suspense>
+              : patientPageNames.includes(page) ? <Suspense fallback={loadingNotice(patientPageOpenings[page])}><PatientPagesView page={page} navigate={navigate} open={setModal} book={setBooking} entries={wellbeing}/></Suspense>
                : <MoreHub navigate={navigate} open={setModal} onSignOut={signOut}/>}
   </PatientShell>
-  {booking &&<Modal surface={SURFACE} title="A nurse, at your door." onClose={() => setBooking(null)}><Suspense fallback={<p className="helper" role="status">Opening the booking.</p>}><BookingFlow service={booking} person={forPerson ?? undefined} held={heldHours(rows)} previousNurseFor={person => previousNurseIn(rows, person)} onComplete={v => { setRows([rowFor(v, `VIS-01${rows.length}`), ...rows]); setBooking(null); navigate('My visits'); }}/></Suspense></Modal>}
+  {booking &&<Modal surface={SURFACE} title="A nurse, at your door." onClose={() => setBooking(null)}><Suspense fallback={loadingNotice("Opening the booking.")}><BookingFlow service={booking} person={forPerson ?? undefined} held={heldHours(rows)} previousNurseFor={person => previousNurseIn(rows, person)} onComplete={v => { setRows([rowFor(v, `VIS-01${rows.length}`), ...rows]); setBooking(null); navigate('My visits'); }}/></Suspense></Modal>}
   {/* Looking at a visit, moving one and standing one down are three screens rather than three
       sentences in a roadmap dialog. Each one closes by going back to the list it came from, so no
       branch of this ends on a dialog with nothing behind it. */}
@@ -313,7 +320,7 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
     rebook={() => bookFor(rowById(viewing)!.visit.person)} track={track} notes={wellbeing}
     thread={threads[viewing]} onThread={next => setThreads({ ...threads, [viewing]: next })}/></Modal>}
   {managing && rowById(managing.id) && <Modal surface={SURFACE} title={managing.action === 'reschedule' ? 'Move this visit' : 'Cancel this visit'} onClose={() => setManaging(null)}>
-   <Suspense fallback={<p className="helper" role="status">Opening the visit.</p>}>
+   <Suspense fallback={loadingNotice("Opening the visit.")}>
    {managing.action === 'reschedule'
     ? <RescheduleFlow visit={rowById(managing.id)!.visit} onMove={(date, start) => { moveVisit(managing.id, date, start); setManaging(null); navigate('My visits'); }}/>
     : <CancelFlow visit={rowById(managing.id)!.visit} onCancel={reason => { standDown(managing.id, reason); setManaging(null); navigate('My visits'); }}/>}
@@ -389,13 +396,13 @@ function modalBody(p: BodyProps) {
  if (modal === 'Share my passport') return <Sharing/>;
  if (modal.startsWith('Prescription ') || modal === 'Pharmacy orders') return <PrescriptionDetail reference={modal.replace('Prescription ', '')} partner={false}/>;
  if (modal.startsWith('Laboratory order ') || modal === 'Laboratory results') return <LabOrderDetail reference={modal.replace('Laboratory order ', '')} partner={false}/>;
- if (modal === 'medicine-collection') return <Suspense fallback={<p className="helper" role="status">{capability('medicine-collection').name}</p>}><AuthoriseCollectorFlow/></Suspense>;
+ if (modal === 'medicine-collection') return <Suspense fallback={loadingNotice(capability('medicine-collection').name)}><AuthoriseCollectorFlow/></Suspense>;
  /* Three integrations that could not be opened at all. Each one now says what would be read, what
     would never be, and — from the contract rather than from a paragraph of its own — that no device
     has been contacted and no Bluetooth permission is declared. */
  { const integration = integrationIn(modal); if (integration) return <DevicePermission integration={integration} navigate={p.navigate}/>; }
  if (modal === 'Thuso SOS' || modal === 'Emergency & urgent care') return <Suspense fallback={<EmergencyWhileSosLoads/>}><ThusoSos/></Suspense>;
- if (modal === 'Next of kin') return <Suspense fallback={<p className="helper" role="status">Opening your next of kin.</p>}><NextOfKinSettings/></Suspense>;
+ if (modal === 'Next of kin') return <Suspense fallback={loadingNotice("Opening your next of kin.")}><NextOfKinSettings/></Suspense>;
  /* The household record and the shareable summary were reachable only from a design-review menu,
     which is another way of saying they were finished screens with no door. A family member is
     exactly the question the household record answers — what may each of us see of the others — and
@@ -411,8 +418,8 @@ function modalBody(p: BodyProps) {
      dayOffset={past.dayOffset} rebook={() => p.bookFor(past.visit.person)} navigate={p.navigate}/>
   : <p className="muted">There is no completed visit on this account yet. A visit summary is written after a nurse has been, so this document appears once one has.</p>; }
  if (modal === 'Medical certificate') return <MedicalCertificate navigate={p.navigate}/>;
- if (modal === 'Thuso Family') return <Suspense fallback={<p className="helper" role="status">Opening the household record.</p>}><HouseholdRecordPage/></Suspense>;
- if (modal === 'Thuso Pass') return <Suspense fallback={<p className="helper" role="status">Opening your health summary.</p>}><HealthSummaryPage/></Suspense>;
+ if (modal === 'Thuso Family') return <Suspense fallback={loadingNotice("Opening the household record.")}><HouseholdRecordPage/></Suspense>;
+ if (modal === 'Thuso Pass') return <Suspense fallback={loadingNotice("Opening your health summary.")}><HealthSummaryPage/></Suspense>;
  if (modal === 'Your consents') return <ConsentCentre/>;
  /* Replaces the two-line sample that used to live in Detail: a real access log, refusals included. */
  if (modal === 'Access history') return <AccessHistory/>;
@@ -486,7 +493,7 @@ function Detail({ title, close, navigate, signOut }: { title: string; close: () 
     that names a capability the screen does not depend on is worse than no notice: it is the honesty
     machinery pointing at the wrong thing. */
  const isRoadmap = !isRequest && title !== 'Your profile';
- return <div className="form-stack">{isRoadmap ? null : <NotConnected of={isRequest ? 'messaging' : 'accounts'} tone="inline"/>}{title === 'Your profile' ? <><div className="profile-summary"><span className="avatar">LM</span><div><h3>Lerato Molefe</h3><p>Fictional patient · Personal account</p></div></div><button className="secondary full" onClick={() => navigate('Privacy & settings')}>Manage privacy & preferences<ArrowRight size={17}/></button><button className="secondary full sign-out" onClick={signOut}><LogOut size={16}/>Log out</button></> : isRequest ? <><p>{title.includes('deletion') ? 'Request account deletion. Some clinical records may need to be retained under an applicable retention schedule.' : 'Ask for inaccurate personal information to be corrected.'}</p><label>Reason (fictional information only)<textarea aria-label="Request reason" placeholder="Describe your request…" maxLength={500}/></label><button className="primary" onClick={() => setDone(true)} disabled={done}>{done ? 'Request recorded in this tab' : 'Preview request'}</button><p className="helper" role="status">{done ? 'Nothing has been submitted. This previews the acknowledgement state.' : 'Nothing is submitted from here.'}</p></> : <><h3>{detailCopy(title)[0]}</h3><p className="muted">{detailCopy(title)[1]}</p>{/* Even the roadmap has somewhere to go: the module list it came from. */}<div className="button-row"><button className="secondary" onClick={close}>Close</button><button className="primary" onClick={() => navigate('Explore MyThuso')}>See the whole roadmap<ArrowRight size={16}/></button></div></>}</div>
+ return <div className="form-stack">{isRoadmap ? null : <NotConnected of={isRequest ? 'messaging' : 'accounts'} tone="inline"/>}{title === 'Your profile' ? <><div className="profile-summary"><span className="avatar">LM</span><div><h3>Lerato Molefe</h3><p>Fictional patient · Personal account</p></div></div><button className="secondary full" onClick={() => navigate('Privacy & settings')}>Manage privacy & preferences<ArrowRight size={17}/></button><button className="secondary full sign-out" onClick={signOut}><LogOut size={16}/>Log out</button></> : isRequest ? <><p>{title.includes('deletion') ? 'Request account deletion. Some clinical records may need to be retained under an applicable retention schedule.' : 'Ask for inaccurate personal information to be corrected.'}</p><label>Reason (fictional information only)<textarea aria-label="Request reason" placeholder="Describe your request…" maxLength={500}/></label><button className="primary" onClick={() => setDone(true)} disabled={done}>{done ? 'Request recorded in this tab' : 'Preview request'}</button>{loadingNotice(done ? 'Nothing has been submitted. This previews the acknowledgement state.' : 'Nothing is submitted from here.')}</> : <><h3>{detailCopy(title)[0]}</h3><p className="muted">{detailCopy(title)[1]}</p>{/* Even the roadmap has somewhere to go: the module list it came from. */}<div className="button-row"><button className="secondary" onClick={close}>Close</button><button className="primary" onClick={() => navigate('Explore MyThuso')}>See the whole roadmap<ArrowRight size={16}/></button></div></>}</div>
 }
 /* The last dialog in the patient app, and it used to be pressed twenty-eight times: every roadmap
    card, every care plan, every family member, the wallet's two actions and the visit controls all

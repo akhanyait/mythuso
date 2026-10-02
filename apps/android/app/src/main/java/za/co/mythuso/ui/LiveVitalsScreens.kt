@@ -1,5 +1,7 @@
 package za.co.mythuso.ui
 
+import androidx.compose.animation.core.*
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -44,10 +46,9 @@ import za.co.mythuso.ui.components.ThusoButtonVariant
    against the record's range in words. Where the Lovable export drew a score, a triage colour, an
    interpretation, alarms and a heatmap, the panel draws the contract's sentence saying why not.
 
-   MOTION. None. The numbers change every two seconds while the simulation runs; nothing animates, so the
-   system's animation scale has nothing to stop. The clock is a LaunchedEffect, cancelled when the panel
-   leaves the composition. TalkBack reads each row as one node; nothing is a live region, because a panel
-   announcing itself every two seconds would talk over the consultation it sits beside. */
+   Decorative organ motion stops with Pause, stale or missing readings and reduced motion. The rhythm
+   is illustrative rather than measured. TalkBack reads the text and ignores the icon.
+ */
 @Composable fun LiveVitalsPanel(subject: String) {
     val w = LiveVitalsData.Words
     var presetId by remember { mutableStateOf(LiveVitalsData.defaultPreset) }
@@ -82,6 +83,7 @@ import za.co.mythuso.ui.components.ThusoButtonVariant
                 Text(w.notice, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
             }
         }
+        Text(w.motionNote, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
         Text(w.scenario, style = MaterialTheme.typography.labelMedium, color = theme.mutedForeground)
         FlowRowChips(LiveVitalsData.presets.map { it.name }, setOf(LiveVitals.preset(presetId)?.name ?: "")) { name ->
             val next = LiveVitalsData.presets.firstOrNull { it.name == name } ?: return@FlowRowChips
@@ -98,7 +100,7 @@ import za.co.mythuso.ui.components.ThusoButtonVariant
                  style = MaterialTheme.typography.bodySmall, color = theme.foreground)
         }
         LiveVitalsData.streams.forEachIndexed { index, stream ->
-            StreamRow(stream, LiveVitals.history(presetId, seed, index, tick), live, receivedAt, startedAt, now)
+            StreamRow(stream, LiveVitals.history(presetId, seed, index, tick), live, receivedAt, startedAt, now, running)
         }
         LiveVitalsData.notStreamed.forEach { line ->
             Text(line, style = MaterialTheme.typography.bodySmall, color = theme.mutedForeground)
@@ -118,7 +120,7 @@ import za.co.mythuso.ui.components.ThusoButtonVariant
     }
 }
 
-@Composable private fun StreamRow(stream: LiveStreamSpec, history: List<LiveReading>, live: Boolean, receivedAt: Long, startedAt: Long, now: Long) {
+@Composable private fun StreamRow(stream: LiveStreamSpec, history: List<LiveReading>, live: Boolean, receivedAt: Long, startedAt: Long, now: Long, running: Boolean) {
     val w = LiveVitalsData.Words
     val latest = history.lastOrNull()
     Column(
@@ -126,7 +128,8 @@ import za.co.mythuso.ui.components.ThusoButtonVariant
             .semantics(mergeDescendants = true) {},
         verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space4)
     ) {
-        Row(verticalAlignment = Alignment.Top) {
+        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Organ(stream.id, running && live && latest != null)
             Column(Modifier.weight(1f)) {
                 Text(stream.label, style = MaterialTheme.typography.labelLarge, color = theme.foreground)
                 Text("${w.simulatedClass} · ${LiveVitals.fill(w.standsFor, mapOf("instrument" to stream.instrument))}",
@@ -173,6 +176,39 @@ import za.co.mythuso.ui.components.ThusoButtonVariant
             val path = Path()
             history.forEachIndexed { i, r -> if (i == 0) path.moveTo(x(i), y(r.value)) else path.lineTo(x(i), y(r.value)) }
             drawPath(path, line, style = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+        }
+    }
+}
+
+/* Draw anatomy locally so no image download is needed on a metered connection. */
+@Composable private fun Organ(id: String, moving: Boolean) {
+    val animate = moving && !prefersReducedMotion()
+    val scale = if (animate) {
+        val transition = rememberInfiniteTransition(label = "organ")
+        val value by transition.animateFloat(.94f, 1.06f, infiniteRepeatable(tween(1400), RepeatMode.Reverse), label = "breathing")
+        value
+    } else 1f
+    val ink = theme.primary
+    Canvas(Modifier.size(48.dp).graphicsLayer { scaleX = scale; scaleY = scale }.clearAndSetSemantics {}) {
+        val path = Path()
+        if (id == "oxygen") {
+            path.moveTo(.43f * size.width, .3f * size.height)
+            path.cubicTo(0f, .1f * size.height, 0f, size.height, .43f * size.width, .8f * size.height)
+            path.close()
+            path.moveTo(.57f * size.width, .3f * size.height)
+            path.cubicTo(size.width, .1f * size.height, size.width, size.height, .57f * size.width, .8f * size.height)
+            path.close()
+            drawPath(path, ink.copy(alpha = .7f))
+            drawLine(ink, Offset(size.width / 2, 0f), Offset(size.width / 2, size.height * .5f), strokeWidth = 3.dp.toPx())
+        } else if (id == "pulse" || id == "watch-pulse") {
+            path.moveTo(size.width * .5f, size.height * .9f)
+            path.cubicTo(-size.width * .3f, size.height * .4f, size.width * .15f, -size.height * .1f, size.width * .5f, size.height * .25f)
+            path.cubicTo(size.width * .85f, -size.height * .1f, size.width * 1.3f, size.height * .4f, size.width * .5f, size.height * .9f)
+            drawPath(path, ink.copy(alpha = .7f))
+        } else {
+            drawCircle(ink.copy(alpha = .12f))
+            drawLine(ink, Offset(size.width * .5f, size.height * .2f), Offset(size.width * .5f, size.height * .7f), strokeWidth = 4.dp.toPx())
+            drawCircle(ink, radius = 5.dp.toPx(), center = Offset(size.width * .5f, size.height * .75f))
         }
     }
 }

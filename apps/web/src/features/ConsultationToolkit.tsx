@@ -8,7 +8,7 @@ import { EmptyNote } from '../components/UI';
 import { Alert, Button } from '../ui';
 import { subjectById } from '../lib/vetting-fixtures';
 import { roleOf } from '../lib/roles';
-import { clinicalLimits, participants, ruleById } from '../lib/teleconsult';
+import { clinicalLimits, media, participants, ruleById } from '../lib/teleconsult';
 import { handOver, preview as carePreview, sentences as careSentences, stages as careStages, useCareVisit } from '../lib/care-visit';
 import {
  fileOf, fill, gates, refusalsOn, refusedOn, stateOf, stateWord, surfaceById, toolsOf, words,
@@ -20,6 +20,7 @@ import { ClinicalProtocols, ReferralLetter, VisitAssessment } from './Clinical';
 import { PatientFile } from './PatientFile';
 import './consultation-toolkit.css';
 /* The board and the cases arrive when their tool is first opened, not with the toolkit. */
+const CallSummary = lazy(() => import('./CallSummary').then(m => ({ default: m.CallSummary })));
 const LiveVitalsBoard = lazy(() => import('./LiveVitals').then(m => ({ default: m.LiveVitalsBoard })));
 const LiveVitalsPanel = lazy(() => import('./LiveVitals').then(m => ({ default: m.LiveVitalsPanel })));
 const NurseCases = lazy(() => import('./CaseFile').then(m => ({ default: m.NurseCases })));
@@ -141,7 +142,7 @@ export function ConsultationToolkit({ surface: surfaceId, subjectId, reference, 
     {/* The devices once, never twice: the aside's panel steps aside while the full board is the open tool, so two
         clocks are never counting the same patient's readings differently on one screen. */}
     {current !== 'devices' && <div className="ctk-aside">{aside ?? <section className="ctk-devices" aria-label={words.summaryHeading}>
-     <Suspense fallback={null}><LiveVitalsPanel subject={patient} level={level === 'h2' ? 'h3' : 'h4'}/></Suspense></section>}</div>}
+     <Suspense fallback={null}><CallSummary patient={patient} rule="" readings={false}/><LiveVitalsPanel subject={patient} level={level === 'h2' ? 'h3' : 'h4'}/></Suspense></section>}</div>}
     {refused.length > 0 && <section className="ctk-refused" aria-labelledby={`${id}-refused`}>
      <Heading className="ctk-subhead" id={`${id}-refused`}>{words.refusedHeading}</Heading>
      <ul>{refused.map(r => <li key={r.tool.id} data-refused={r.tool.id}><Lock aria-hidden="true"/><p><strong>{r.tool.name}.</strong> {r.sentence}</p></li>)}</ul>
@@ -260,6 +261,10 @@ function CallADoctorIn({ level }: { level: Level }) {
  const nurse = participants.find(p => p.id === 'nurse')!;
  const Sub = (level === 'h2' ? 'h3' : level === 'h3' ? 'h4' : 'h5') as 'h3' | 'h4' | 'h5';
  return <div className="ctk-call-in">
+  <section className="tcx-video-preview" aria-label="Doctor video preview">
+   <div className="tcx-video-person"><Video size={36} aria-hidden="true"/><Sub>Doctor consultation</Sub><p>{media.sentence}</p></div>
+   <div className="tcx-video-caption">Consultation room · simulated</div>
+  </section>
   <dl className="ctk-facts">
    <div><dt>{words.callDoctorWhere}</dt><dd>{nurse.where}</dd></div>
    <div><dt>{words.callDoctorSees}</dt><dd>{nurse.sees}</dd></div>

@@ -10,9 +10,18 @@
   { "id": "doctor-triage", "role": "doctor", "shows": "board" },
   { "id": "teleconsult", "role": "doctor", "shows": "panel" },
   { "id": "consultation-record", "role": "doctor", "shows": "panel" },
-  { "id": "care-visit", "role": "nurse", "shows": "panel" }
+  { "id": "care-visit", "role": "nurse", "shows": "panel" },
+  { "id": "patient-devices", "role": "patient", "shows": "board" },
+  { "id": "patient-consultation", "role": "patient", "shows": "panel" },
+  { "id": "patient-passport", "role": "patient", "shows": "panel" }
  ],
- "_surfacesNote": "Where the board stands and for whom. Since 2 October 2026 (packages/catalog/consultation-toolkit.json) the nurse sees the compact panel in her visit, from the moment the visit code opens it, and either clinician opens the whole board as a tool of the consultation — the same streams, the same simulated banner, the same refusals. Nothing is drawn for the nurse that is not drawn for the doctor: no score, no priority, no colour.",
+ "_surfacesNote": "Where the board stands and for whom. The patient opens the same synthetic readings on the web devices and consultation pages and from both native Health Passports, clearly labelled as examples rather than their own measurements. Since 2 October 2026 (packages/catalog/consultation-toolkit.json) the nurse sees the compact panel in her visit, from the moment the visit code opens it, and either clinician opens the whole board as a tool of the consultation — the same streams, the same simulated banner, the same refusals. Nothing is drawn for the nurse that is not drawn for the doctor: no score, no priority, no colour.",
+
+ "motion": {
+  "kind": "decorative",
+  "stopsWhen": ["paused", "stale", "missing-reading", "reduced-motion"],
+  "representsMeasuredRate": false
+ },
 
  "pace": {
   "tickMs": 2000,
@@ -48,6 +57,9 @@
  },
 
  "board": {
+  "motionNote": "Illustrations animate for orientation only. Their rhythm does not represent a measured heartbeat or breathing rate.",
+  "patientHeading": "Your triage readings",
+  "patientIntro": "Preview the readings you, your nurse and your doctor would review together. These are synthetic examples, not measurements of you.",
   "heading": "Live readings from {patient}’s devices",
   "compactHeading": "Patient’s devices, live (simulated)",
   "intro": "Every instrument in the kit, and the patient’s own watch, sending a reading every few seconds. A reading is shown with its unit, the instrument it stands for, where it came from and how long ago it arrived, and its place against the record’s reference range is said in words.",

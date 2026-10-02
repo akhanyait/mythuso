@@ -17,7 +17,8 @@
  *      arithmetic, which takes them from records.json.
  *   5. It says it is simulated: the contract's banner and the devices capability's notice over every board.
  *   6. It is pure and leaves nothing behind: no Math.random or clock in the arithmetic, no browser storage in
- *      any of its files, the interval cleared on unmount, nothing animated.
+ *      any of its files, the interval cleared on unmount, and decorative organs stopped for Pause, stale or
+ *      missing readings and reduced motion (the founder’s amendment, 2 October 2026).
  *   7. It is never on a patient's first view: the screen is reached only through dynamic imports.
  *   8. The phones say the same: both native views render the banner, the notice and the refusals, and their
  *      arithmetic draws no judgement either.
@@ -93,8 +94,13 @@ export function checkLiveVitals({ read, files }) {
   for (const file of [SCREEN, ENGINE]) if (/\b(localStorage|sessionStorage|indexedDB)\b/.test(read(file))) fail(`${file} names browser storage. The board keeps nothing.`);
   if (!/return \(\) => clearInterval\(/.test(screen)) fail(`${SCREEN}'s interval is not cleared when the board goes.`);
   const css = read(CSS).replace(/\/\*[\s\S]*?\*\//g, " ");
-  const moving = css.match(/@keyframes|animation\s*:|transition\s*:/);
-  if (moving) fail(`${CSS} moves something (${moving[0]}). The numbers change because readings arrive; nothing on the board animates.`);
+  if (!/@media\s*\(prefers-reduced-motion:\s*reduce\)/.test(css) || !/animation:\s*none/.test(css))
+    fail(`${CSS} must stop decorative organ motion for reduced motion.`);
+  if (!/moving=\{!!latest && live.live && live.running\}/.test(screen))
+    fail(`${SCREEN} must stop organ motion for paused, stale or missing readings.`);
+  if (/\.lv-spark[^{}]*\{[^}]*animation\s*:/.test(css))
+    fail(`${CSS} moves something in the measured trend. Only decorative organs may animate.`);
+
 
   /* 7. Never on a patient's first view. */
   for (const f of files("apps/web/src").filter((f) => /\.tsx?$/.test(f) && f !== SCREEN)) {
@@ -116,5 +122,5 @@ export function checkLiveVitals({ read, files }) {
     if (/dangerInk|\.danger\b|theme\.danger|ThusoRole\.danger/.test(code)) fail(`${file} colours something as danger. No reading on the panel is coloured by where it stands.`);
   }
 
-  return `The live vitals board · ${contract.streams.length} streams joined to the record's measures and capture.json's instruments, each preset reading in the record's unit; ${needed.length} refusals standing while no triage protocol is ratified; no score, priority or severity word, no badge but the neutral one, no typed range; the simulated banner and the devices notice over it; pure arithmetic, no storage, the interval cleared, nothing animated; behind ${importers.length} dynamic imports and none static; both phones rendering the banner, the notice and the refusals.`;
+  return `The live vitals board · ${contract.streams.length} streams joined to the record's measures and capture.json's instruments, each preset reading in the record's unit; ${needed.length} refusals standing while no triage protocol is ratified; no score, priority or severity word, no badge but the neutral one, no typed range; the simulated banner and the devices notice over it; pure arithmetic, no storage, the interval cleared, decorative organs respecting Pause and reduced motion; behind ${importers.length} dynamic imports and none static; both phones rendering the banner, the notice and the refusals.`;
 }

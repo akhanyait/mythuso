@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Activity, ArrowRight, Bluetooth, Droplets, Heart, Scale, Smartphone, Thermometer, Wind, type LucideIcon } from 'lucide-react';
 import { NotConnected } from '../components/NotConnected';
 import { Badge, Button, Card } from '../ui';
@@ -6,6 +7,8 @@ import { deviceIntegrations, kitInstruments } from '../lib/passport';
 import { observations } from '../lib/observations';
 import devices from '../../../../packages/catalog/devices.json';
 import { PatientHeader } from './PatientHeader';
+
+const LiveVitalsBoard = lazy(() => import('./LiveVitals').then(m => ({ default: m.LiveVitalsBoard })));
 
 /* Connected devices — the export's page (patient-space.tsx, ConnectedDevices), drawn over what is true.
  *
@@ -59,6 +62,7 @@ export function PatientDevices({ navigate, open }: { navigate: (page: string) =>
    lead="The instruments a nurse brings to your visit and the phone stores you could link, with what each one measures. None of them is connected to you."
    back={{ label: 'Back to your Health Passport', go: () => navigate('Health Passport') }}/>
   <NotConnected of="devices"/>
+  <Card padding="md" className="ps-panel"><Suspense fallback={<p>Opening readings…</p>}><LiveVitalsBoard subject="patient-preview" patient="you" own/></Suspense></Card>
 
   {/* Three figures, and only the first is a number: it is the count of the rows in the grid below, so
       anybody can check it by counting. The other two are what is true about a device that has never been

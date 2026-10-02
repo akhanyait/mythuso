@@ -64,6 +64,13 @@ struct PassportView: View {
                        the assessment's own observations. The three charts that used to be here were
                        literal arrays dated "12 Aug" through "4 Sep": right the week they were typed
                        and a year wrong by the following winter. */
+                    CareCard {
+                        Text(LiveVitals.Words.patientHeading).font(.thuso(.headline))
+                        Text(LiveVitals.Words.patientIntro).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
+                        NavigationLink(LiveVitals.Words.patientHeading) {
+                            ScrollView { LiveVitalsPanel(subject: "patient-preview").padding() }.navigationTitle(LiveVitals.Words.patientHeading)
+                        }.buttonStyle(QuietButton())
+                    }
                     lastVisit
                     /* The question a person opens their passport with, which seven ranges and no
                        words never answered. It sits above the charts because "what does this mean"

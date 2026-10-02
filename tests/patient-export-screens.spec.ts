@@ -223,3 +223,14 @@ test('the vaccination record books the injection-and-vaccination visit', async (
  await expect(dialog).toBeVisible();
  await expect(dialog).toContainText(service.name);
 });
+
+test('patients can review animated synthetic readings in devices and beside their consultation', async ({ page }) => {
+ await reach(page, 'Connected devices');
+ const board = page.locator('.lv-board');
+ await expect(board).toBeVisible();
+ await expect(board.locator('.lv-tile')).toHaveCount(json('live-vitals.json').streams.length);
+ await expect(board.locator('.lv-banner')).toContainText(json('live-vitals.json').board.banner);
+ await reach(page, 'Online consultation');
+ await expect(page.locator('.ps-consult-rail .lv-panel')).toBeVisible();
+ expect(await nothingSideways(page)).toEqual([]);
+});

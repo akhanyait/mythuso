@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { ArrowDown, ArrowUp, Ban, Check, Pause, Play } from 'lucide-react';
+import { ArrowDown, ArrowUp, Ban, Check, Pause, Play, Droplets, Thermometer, Activity } from 'lucide-react';
 import { Alert, Badge, Button, Select } from '../ui';
 import { noticeFor } from '../lib/capabilities';
 import { intervalText } from '../lib/devices';
@@ -27,9 +27,8 @@ import './live-vitals.css';
  * last one arrived and whether it is paused, and nothing else. Nothing is stored anywhere — the readings
  * are worked out again from the number every time — and the one timer is cleared when the board goes.
  *
- * MOTION. None. The values change and nothing pulses, blinks or slides: a board a doctor reads during a
- * consultation does not move on its own beyond the numbers it exists to show. The status says in words
- * whether the simulation is running, and Pause stops it.
+ * MOTION. Decorative organ illustrations are a founder-requested orientation aid, never a measured
+ * rhythm. Pause, stale or missing readings and reduced motion stop them; numbers remain readable.
  *
  * Every component here arrives behind a dynamic import, from the doctor's pages, the call and the
  * consultation record, so none of it is on a patient's first view. */
@@ -82,6 +81,17 @@ function Spark({ stream, history, compact }: { stream: LiveStream; history: read
  </svg>;
 }
 
+
+/* Decorative anatomy carries no clinical interpretation; all readings and ranges stay textual. */
+function Organ({ id, moving }: { id: string; moving: boolean }) {
+ const heart = ['pulse', 'watch-pulse'].includes(id);
+ return <span className={`lv-organ${moving ? ' is-moving' : ''}`} data-organ={heart ? 'heart' : id} aria-hidden="true">
+  {heart ? <svg viewBox="0 0 64 64" fill="none"><path d="M30 18c-6-8-19-5-20 6-2 14 13 27 23 32 8-8 19-17 19-29 0-10-9-16-18-9" fill="currentColor" opacity=".22"/><path d="M29 20V9l7-3 4 8M35 20l9-9 5 5-8 10M29 20c-7-9-18-4-19 6-1 12 13 25 23 30 10-10 19-18 19-29 0-10-10-15-18-7l-5 14 4 14M15 29l12 4M38 31l10 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+  : id === 'oxygen' ? <svg viewBox="0 0 64 64" fill="none"><path d="M27 20C18 18 8 32 8 45c0 10 14 8 20 3V24m9-4c9-2 19 12 19 25 0 10-14 8-20 3V24" fill="currentColor" opacity=".2"/><path d="M27 20C18 18 8 32 8 45c0 10 14 8 20 3V24m9-4c9-2 19 12 19 25 0 10-14 8-20 3V24M32 8v21m0-9-9 14m9-14 9 14M23 34l-6 4m24-4 6 4" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>
+  : id === 'temperature' ? <Thermometer/> : id === 'glucose' ? <Droplets/> : <Activity/>}
+ </span>;
+}
+
 const placeIcon = { inside: Check, below: ArrowDown, above: ArrowUp } as const;
 function RangeWords({ stream, value }: { stream: LiveStream; value: number }) {
  const place = rangePlace(stream, value);
@@ -126,6 +136,7 @@ function Tile({ live, seed, index, compact }: { live: Live; seed: number; index:
  const latest = history[history.length - 1];
  const at = latest ? (live.live ? live.receivedAt : live.startedAt + latest.atOffsetMs) : 0;
  return <li className={`lv-tile${latest ? '' : ' is-silent'}`} data-stream={stream.id}>
+  <Organ id={stream.id} moving={!!latest && live.live && live.running}/>
   <div className="lv-tile-head">
    <span className="lv-tile-label">{stream.label}</span>
    <span className="lv-tile-device">{simulatedClass.label} · {fill(words.standsFor, { instrument: stream.instrument })}</span>
@@ -169,18 +180,19 @@ function Foot() {
 }
 
 /** The whole board, for the doctor's Triage page: the export's arrangement, honestly. */
-export function LiveVitalsBoard({ subject, patient, level = 'h2' }: { subject: string; patient: string; level?: Level }) {
+export function LiveVitalsBoard({ subject, patient, level = 'h2', own = false }: { subject: string; patient: string; level?: Level; own?: boolean }) {
  const live = useLiveVitals();
  const seed = seedOf(subject);
  const Heading = level;
  const sub = (level === 'h2' ? 'h3' : 'h4') as Level;
  return <section className="lv-board" aria-label={fill(words.heading, { patient })}>
   <div className="lv-board-head">
-   <div><Heading>{fill(words.heading, { patient })}</Heading><p>{words.intro}</p></div>
+   <div><Heading>{own ? words.patientHeading : fill(words.heading, { patient })}</Heading><p>{own ? words.patientIntro : words.intro}</p></div>
    <Controls live={live}/>
   </div>
   <Banner/>
   <Status live={live}/>
+  <p className="lv-motion-note">{words.motionNote}</p>
   <ul className="lv-tiles">
    {streams.map((s, i) => <Tile key={s.id} live={live} seed={seed} index={i}/>)}
   </ul>
@@ -202,6 +214,7 @@ export function LiveVitalsPanel({ subject, level = 'h3', children }: { subject: 
   <Banner compact/>
   <Controls live={live} compact/>
   <Status live={live}/>
+  <p className="lv-motion-note">{words.motionNote}</p>
   <ul className="lv-tiles is-compact">{streams.map((s, i) => <Tile key={s.id} live={live} seed={seed} index={i} compact/>)}</ul>
   <NotStreamed level={sub}/>
   <Foot/>

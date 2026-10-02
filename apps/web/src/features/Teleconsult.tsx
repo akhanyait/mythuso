@@ -525,6 +525,10 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
   : stage === 3 ? withTools(<div className="form-stack tcx-stage">
    <NotConnected of="teleconsultation"/>
 
+   <section className="tcx-video-preview" aria-label="Consultation video preview">
+    <div className="tcx-video-person"><VideoOff size={36} aria-hidden="true"/><h3>{patient}</h3></div>
+    <div className="tcx-video-caption"><span>Consultation room · simulated</span><span>{doctor.name}</span></div>
+   </section>
    <LineInstrument connectionId={connectionId} allowed={allowedNow}/>
 
    {/* The line is not a control a doctor has. The rail below is a review device and says so, which
