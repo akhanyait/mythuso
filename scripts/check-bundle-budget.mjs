@@ -84,6 +84,12 @@ const over = total - CEILING;
 console.log(`The patient entry, ${rows.length} files, gzipped at level 9:`);
 for (const { ref, gz } of rows) console.log(`  ${kb(gz).padStart(8)} kB  ${ref}`);
 console.log(`\n  ${kb(total).padStart(8)} kB  total`);
+/* The same bytes, said in both units. On 2 October 2026 a sweep went looking for "~6 kB" the patient's
+   first load had gained since 255.80, and found 0.31: figures of 261.50 and 262.25 had been taken by
+   dividing bytes by 1,000 and quoted beside figures divided by 1,024, and at this size the two differ by
+   about six. A figure quoted from this script is the first one; the second is printed so nobody has to
+   derive it, and so it is never compared with the first. */
+console.log(`  ${String(total).padStart(8)} bytes — kB above is 1,024 bytes, as the ceiling was measured; the same bytes are ${(total / 1000).toFixed(2)} kB of 1,000, which is not comparable with it`);
 console.log(`  ${kb(CEILING).padStart(8)} kB  ceiling (CLAUDE.md)`);
 console.log(`  ${kb(Math.abs(over)).padStart(8)} kB  ${over <= 0 ? 'headroom' : 'OVER'}`);
 
