@@ -1,0 +1,202 @@
+{
+ "_note": "The open-source engines GilbertOne could connect to for knowledge and reasoning, proposed on 2 October 2026 at the founder's request (\"for the scope of GilbertOne what other opensource engines can we connect to for knowledge and smartness pls put them as connectors on the control tower\"). Each connector is a card on the control tower's API Registry, in its own Open-source connectors group, and this file is where its details live: what it is, its licence, where it would run, what it would add, what it is never for, and which seam already in the tree it would sit behind. Every one is proposed and off. No adapter, no dependency, no model weight, no variable and no route exists for any of them, and scripts/check-boundaries.mjs sweeps every service, app and manifest for the names each card lists, so the first line of code that could call one fails the build until its card records the adapter and its gate. The choice favours what can run on a host MyThuso controls, because an engine that runs onshore sends nothing across a border, and that is the hardest question every offshore provider on the registry is still waiting on.",
+ "version": 1,
+ "engine": "assistant",
+ "status": "proposed",
+ "compiledOn": "2026-10-02",
+ "policy": {
+  "statement": "Every connector below is proposed and off. Nothing in MyThuso can call one, and nothing in this file switches one on.",
+  "activationRequires": "1) Its licence read against the model card or project page and recorded, including whether commercial use is allowed; 2) where it would run, recorded against docs/governance/DATA-RESIDENCY-OPTIONS.md, with the host's capacity measured rather than assumed; 3) an adapter behind the seam it names, built dark, with its card in packages/catalog/api-registry.json moved from proposed in the same change; 4) for anything that would shape a clinical answer, a ratified entry in the Clinician Review Queue first.",
+  "licenceNote": "Each licence below is the one the project publishes as recalled when this file was written on 2 October 2026, and none has yet been read from its primary source in this repository, unlike packages/catalog/open-source.json, which verifies every licence it records. Each connector therefore says licenceVerified false, and the screen draws it that way. Reading it is the first step of activation, not a formality.",
+  "licenceUnverified": "Not yet read from its primary source.",
+  "alreadyRegistered": "HAPI FHIR, OpenMRS, OpenHIM, Whisper, Meta MMS and the other modules ThusoIQ names are already on packages/catalog/open-source.json with verified licences, and are not repeated here: this file adds only engines that register does not hold.",
+  "whySelfHosted": "An engine that runs on a host MyThuso controls processes a question where MyThuso already holds it. That does not remove the residency decision, because the host still needs one, but it removes the cross-border transfer that every offshore provider on the registry is waiting on."
+ },
+ "groups": [
+  { "id": "open-model", "label": "Open-weight models", "sentence": "Language models whose weights can be downloaded and served on MyThuso's own host, through the Ollama adapter that is already built and dark." },
+  { "id": "knowledge", "label": "Knowledge", "sentence": "Bodies of reference that could sit beside the catalogue's own knowledge files, each behind the federation's dark-by-default rule." },
+  { "id": "retrieval", "label": "Retrieval", "sentence": "Engines that find the right catalogue entry for a question, so an answer quotes a source rather than a model's memory." },
+  { "id": "understanding", "label": "Language understanding", "sentence": "Clinical text tools that read a sentence for what it names and what it denies, before anything is composed." },
+  { "id": "safety", "label": "Safety", "sentence": "Classifiers and rails that check a model's answer after the deterministic layer has already had its say, never instead of it." }
+ ],
+ "connectors": [
+  {
+   "id": "biomistral",
+   "group": "open-model",
+   "name": "BioMistral 7B",
+   "project": "BioMistral, a Mistral 7B model further trained on PubMed Central",
+   "licence": "Apache 2.0",
+   "commercialUse": "allowed",
+   "licenceVerified": false,
+   "runs": "Self-hosted, through Ollama on a host MyThuso controls.",
+   "adds": "A small model trained on biomedical literature, for wording general health information more precisely than a general model of the same size.",
+   "neverFor": "Diagnosis, dosing or any individual clinical decision. Its authors publish it for research and warn against clinical use without evaluation.",
+   "sitsBehind": "apps/assistant-api/src/lib/llm-adapter.ts OllamaProvider, as an OLLAMA_MODEL value"
+  },
+  {
+   "id": "meditron",
+   "group": "open-model",
+   "name": "Meditron 7B",
+   "project": "Meditron, EPFL's Llama 2 model adapted to medical guidelines and literature",
+   "licence": "Llama 2 Community Licence",
+   "commercialUse": "allowed under the licence's own conditions",
+   "licenceVerified": false,
+   "runs": "Self-hosted, through Ollama on a host MyThuso controls.",
+   "adds": "Training that includes clinical practice guidelines, which is closer to what the catalogue's guideline-graded entries hold than general web text.",
+   "neverFor": "Diagnosis, dosing or any individual clinical decision. Its authors advise against deployment in medical settings without further testing.",
+   "sitsBehind": "apps/assistant-api/src/lib/llm-adapter.ts OllamaProvider, as an OLLAMA_MODEL value"
+  },
+  {
+   "id": "medgemma",
+   "group": "open-model",
+   "name": "MedGemma",
+   "project": "MedGemma, Google's Gemma-based medical text and image model",
+   "licence": "Health AI Developer Foundations Terms of Use",
+   "commercialUse": "allowed under the terms, which are not an open-source licence and carry their own use restrictions",
+   "licenceVerified": false,
+   "runs": "Self-hosted, through Ollama on a host MyThuso controls.",
+   "adds": "A medical model with an image half as well as a text half. Google's own published evaluations place it above earlier open medical models of its size; nothing has been measured here.",
+   "neverFor": "Diagnosis, dosing, reading a patient's images, or any individual clinical decision. Its terms require the developer to validate it for the use.",
+   "sitsBehind": "apps/assistant-api/src/lib/llm-adapter.ts OllamaProvider, as an OLLAMA_MODEL value"
+  },
+  {
+   "id": "inkubalm",
+   "group": "open-model",
+   "name": "InkubaLM",
+   "project": "InkubaLM, Lelapa AI's small language model for African languages, built in Johannesburg",
+   "licence": "To be confirmed from the model card before anything else is done",
+   "commercialUse": "to be confirmed; if the licence is non-commercial, it is refused for production and stays a research note",
+   "licenceVerified": false,
+   "runs": "Self-hosted, through Ollama on a host MyThuso controls.",
+   "adds": "isiZulu and isiXhosa among its languages, which is where a general model is weakest for the people MyThuso serves.",
+   "neverFor": "Translating anything clinical, an emergency or a refusal. Those are said in the catalogue's own reviewed words in every language, never generated.",
+   "sitsBehind": "apps/assistant-api/src/lib/llm-adapter.ts OllamaProvider, as an OLLAMA_MODEL value"
+  },
+  {
+   "id": "kiwix-wikimed",
+   "group": "knowledge",
+   "name": "Kiwix with WikiMed",
+   "project": "kiwix-serve, serving the offline medical subset of Wikipedia",
+   "licence": "GPL-3.0 for kiwix-serve; CC BY-SA 4.0 for the articles",
+   "commercialUse": "allowed, with attribution and share-alike on the articles",
+   "licenceVerified": false,
+   "runs": "Self-hosted, offline: the whole library is one file on the host and no request leaves it.",
+   "adds": "A broad general-reference library for background on conditions, which works with no connection at all.",
+   "neverFor": "Being quoted as fact. Wikipedia is not an evidence grade the federation recognises, so an answer may point to it as further reading and never as its source.",
+   "sitsBehind": "packages/catalog/knowledge/federation.json, as a new source row shipping \"active\": false, with an adapter under apps/assistant-api/src/lib/sources"
+  },
+  {
+   "id": "bge-m3",
+   "group": "retrieval",
+   "name": "BGE-M3 embeddings",
+   "project": "BGE-M3, BAAI's multilingual embedding model",
+   "licence": "MIT",
+   "commercialUse": "allowed",
+   "licenceVerified": false,
+   "runs": "Self-hosted, on a host MyThuso controls.",
+   "adds": "Embeddings made on MyThuso's own host rather than by the configured offshore model, and multilingual, so a question in isiZulu can find an entry written in English.",
+   "neverFor": "Anything but finding catalogue entries. An embedding is a search key, never an answer.",
+   "sitsBehind": "apps/assistant-api/src/lib/knowledge.ts and the Qdrant index, which is built and dark"
+  },
+  {
+   "id": "bge-reranker",
+   "group": "retrieval",
+   "name": "BGE reranker v2 M3",
+   "project": "bge-reranker-v2-m3, BAAI's multilingual cross-encoder",
+   "licence": "Apache 2.0",
+   "commercialUse": "allowed",
+   "licenceVerified": false,
+   "runs": "Self-hosted, on a host MyThuso controls.",
+   "adds": "A second, closer reading of the top search results, so the entry quoted is the one that answers the question and not just the one that shares its words.",
+   "neverFor": "Changing what an entry says, or ranking a source the federation has not activated.",
+   "sitsBehind": "apps/assistant-api/src/lib/knowledge.ts, after retrieval and before an answer is composed"
+  },
+  {
+   "id": "opensearch",
+   "group": "retrieval",
+   "name": "OpenSearch",
+   "project": "OpenSearch, the Linux Foundation's search engine",
+   "licence": "Apache 2.0",
+   "commercialUse": "allowed",
+   "licenceVerified": false,
+   "runs": "Self-hosted, on a host MyThuso controls.",
+   "adds": "Keyword search beside the vector search, so an exact medicine or condition name is never lost to a near neighbour.",
+   "neverFor": "Logging or indexing a patient's questions. It would index the catalogue and nothing else.",
+   "sitsBehind": "apps/assistant-api/src/lib/knowledge.ts, beside the Qdrant index"
+  },
+  {
+   "id": "scispacy",
+   "group": "understanding",
+   "name": "scispaCy",
+   "project": "scispaCy, the Allen Institute's biomedical spaCy models",
+   "licence": "Apache 2.0",
+   "commercialUse": "allowed",
+   "licenceVerified": false,
+   "runs": "Self-hosted, as a small sidecar on loopback, because the assistant service is Node and scispaCy is Python.",
+   "adds": "Recognising the conditions and medicines a question names, so retrieval looks for the right entry.",
+   "neverFor": "Recognising an emergency. That is packages/gilbertone's versioned term list and nothing else, first on every message.",
+   "sitsBehind": "apps/assistant-api/src/lib/knowledge-federation.ts, before a lookup, on the topic words only"
+  },
+  {
+   "id": "medspacy",
+   "group": "understanding",
+   "name": "medspaCy",
+   "project": "medspaCy, clinical text processing with negation and context detection",
+   "licence": "MIT",
+   "commercialUse": "allowed",
+   "licenceVerified": false,
+   "runs": "Self-hosted, in the same loopback sidecar as scispaCy.",
+   "adds": "Telling \"I have chest pain\" from \"I don't have chest pain\" and \"my mother had chest pain\", so a question is searched for what it actually asks.",
+   "neverFor": "Overruling the emergency recognition. A message the deterministic layer treats as an emergency stays one whatever a negation detector thinks.",
+   "sitsBehind": "apps/assistant-api/src/lib/knowledge-federation.ts, before a lookup, on the topic words only"
+  },
+  {
+   "id": "nemo-guardrails",
+   "group": "safety",
+   "name": "NeMo Guardrails",
+   "project": "NeMo Guardrails, NVIDIA's programmable rails for language-model applications",
+   "licence": "Apache 2.0",
+   "commercialUse": "allowed",
+   "licenceVerified": false,
+   "runs": "Self-hosted, on a host MyThuso controls.",
+   "adds": "Written rules checked against a model's answer before it is shown — for example that no answer names a dose — as a second check behind the catalogue's refusals.",
+   "neverFor": "Replacing packages/gilbertone. The deterministic layer answers first on every message, and a rail only ever removes or refuses, never adds.",
+   "sitsBehind": "apps/assistant-api/src/lib/orchestrator.ts, after the model answers and before the answer is returned"
+  },
+  {
+   "id": "llama-guard",
+   "group": "safety",
+   "name": "Llama Guard 3",
+   "project": "Llama Guard 3, Meta's open-weight safety classifier",
+   "licence": "Llama 3.1 Community Licence",
+   "commercialUse": "allowed under the licence's own conditions",
+   "licenceVerified": false,
+   "runs": "Self-hosted, through Ollama on a host MyThuso controls.",
+   "adds": "A classifier that flags an unsafe question or answer, including self-harm, in a form the escalation path can act on.",
+   "neverFor": "Deciding that something is not an emergency. It can only add a flag, never clear one the deterministic layer raised.",
+   "sitsBehind": "apps/assistant-api/src/lib/orchestrator.ts, beside the guardrails, through the Ollama adapter"
+  }
+ ],
+ "refusals": [
+  {
+   "id": "no-connector-is-called-while-proposed",
+   "statement": "A proposed connector is never called. No code, dependency or model weight for one exists, and the build fails the day one appears without its card saying so.",
+   "why": "The API Registry's own a-disabled-provider-is-never-called refusal, held for these cards by the same sweep."
+  },
+  {
+   "id": "no-model-answers-before-the-deterministic-layer",
+   "statement": "No connector answers before packages/gilbertone does, and none can clear an emergency, a refusal or an escalation it raised.",
+   "why": "The deterministic layer is what answers when everything else is dark. A model or classifier that could overrule it would make the safest part of GilbertOne depend on the least predictable."
+  },
+  {
+   "id": "no-non-commercial-licence-in-production",
+   "statement": "A connector whose licence forbids commercial use is never activated in production.",
+   "why": "A licence read after the connector is live is a licence breached for every day before. It is read first, and recorded on this file."
+  },
+  {
+   "id": "no-clinical-answer-from-an-unreviewed-connector",
+   "statement": "Nothing a connector produces reaches a patient as clinical information until the Clinician Review Queue has ratified that use.",
+   "why": "Every one of these engines is published for research or general use. None has been evaluated for South African patients, and the medical models' own authors say so."
+  }
+ ]
+}

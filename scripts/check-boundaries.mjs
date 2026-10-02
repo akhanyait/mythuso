@@ -33298,7 +33298,7 @@ const p2Summary = {};
    so nothing exists that could call it. When the switch exists, the check it needs is a route test
    asserting the capability's not-connected sentence, and this sweep stays as its floor. */
 {
-  const categories = new Set(["llm", "speech", "payments", "sms", "maps", "push", "email", "device-gateway", "vector-store", "knowledge-source"]);
+  const categories = new Set(["llm", "speech", "payments", "sms", "maps", "push", "email", "device-gateway", "vector-store", "knowledge-source", "open-source"]);
   const statuses = new Set(p2.registry.cardStatuses.map((s) => s.id));
   const code = [
     ...files("apps/assistant-api/src"),

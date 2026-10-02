@@ -574,7 +574,8 @@
     { "id": "email", "label": "Email" },
     { "id": "device-gateway", "label": "Device gateway" },
     { "id": "vector-store", "label": "Vector store" },
-    { "id": "knowledge-source", "label": "Knowledge sources" }
+    { "id": "knowledge-source", "label": "Knowledge sources" },
+    { "id": "open-source", "label": "Open-source connectors" }
    ],
    "noKey": "No key is needed.",
    "addHeading": "Add a provider",
