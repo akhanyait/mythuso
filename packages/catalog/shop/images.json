@@ -1,0 +1,126 @@
+{
+ "_note": "Where every picture in the shop came from. packages/catalog/shop.json says how each is drawn and labelled; this file says who made it, with what, when and from which words, so that anybody who asks whether a picture is a photograph of a real product can be answered exactly. Kept apart from shop.json because that file is read into the storefront's bundle. scripts/check-boundaries.mjs holds every product and kit in shop.json to an entry here, and every entry to a file on disk under the size cap. It sits in a folder of its own rather than beside shop.json because scripts/emit-clinical-review-pack.mjs reads every top-level catalogue file for a protocol's id, and a prompt that describes a wound-care kit is not a contract that names the wound-care protocol.",
+ "generator": "Creatify model playground",
+ "model": "nano-banana-pro",
+ "settings": {
+  "aspectRatio": "4:3",
+  "resolution": "1K",
+  "format": "jpeg",
+  "imagesPerPrompt": 1
+ },
+ "made": "2026-10-02",
+ "madeBy": "The storefront rebuild, on the founder's decision of 2 October 2026: AI-generated, photo-realistic, unbranded studio product photographs in one consistent style, each marked as an illustrative image.",
+ "retries": 0,
+ "processing": "Each 1200×896 source was centre-cropped to 4:3 and resized with Pillow (Lanczos) to 960×720 WebP at quality 78 and 480×360 WebP at quality 76 for the web, and to 480×360 JPEG at quality 74 (iOS asset catalogue) and WebP at quality 72 (Android drawable-nodpi) for the phones. The sources were deleted after conversion.",
+ "reviewed": "Every image was looked at full size before it was kept: no maker's name, logo or printed word appears on any of them. The digits on screens are generic. The glucose meter's screen shows the unit mmol/L, and the first-aid box carries a moulded cross, neither of which names anybody.",
+ "images": {
+  "bp-upper": {
+   "prompt": "Photo-realistic studio product photograph of an automatic upper-arm blood pressure monitor: a compact white and light-grey plastic unit with a small monochrome LCD screen showing plausible generic digits 118 over 78 and 72, two simple round buttons, a soft dark-grey fabric arm cuff loosely coiled beside it, connected by a thin grey air tube. Completely unbranded: no logos, no brand names, no words or printed text anywhere on the device, cuff or surface. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, product centred with generous empty space around it, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no props.",
+   "asset": "3e215794-2e58-4e25-b251-0c6ee562adc7"
+  },
+  "bp-cuff-large": {
+   "prompt": "Photo-realistic studio product photograph of a large adult upper-arm blood pressure cuff on its own: soft dark-grey fabric, wider than a standard cuff, partly unrolled to show its hook-and-loop fastening and inner bladder seam, with a thin grey air tube ending in a small plain connector. Completely unbranded: no logos, no brand names, no words, size markings or printed text anywhere. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, product centred with generous empty space around it, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no props.",
+   "asset": "835f1ad4-d18f-4955-af4d-a4916a3a8422"
+  },
+  "bp-pregnancy": {
+   "prompt": "Photo-realistic studio product photograph of an automatic upper-arm blood pressure monitor with a softly rounded white body and a pale lilac-grey front panel, a clear LCD screen showing plausible generic digits 112 over 72 and 80, one large round button, with a light-grey fabric arm cuff and a thin air tube resting beside it. Completely unbranded: no logos, no brand names, no words or printed text anywhere on the device, cuff or surface. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, product centred with generous empty space around it, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no props.",
+   "asset": "4626ec72-d1ba-42ce-8d69-879d3f3416b5"
+  },
+  "oximeter": {
+   "prompt": "Photo-realistic studio product photograph of a small fingertip pulse oximeter: a white and light-grey plastic clip with its hinge slightly open, a tiny bright OLED display on top showing plausible generic digits 98 and 72, a short plain grey lanyard looped beside it. Completely unbranded: no logos, no brand names, no words or printed text anywhere on the device or surface. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, product centred with generous empty space around it, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no props.",
+   "asset": "725807c6-4534-4282-aabe-d79996219e95"
+  },
+  "glucometer": {
+   "prompt": "Photo-realistic studio product photograph of a home blood glucose meter set: a compact handheld meter in white and slate grey with a small screen showing plausible generic digits 5.4, a slim pen-shaped lancing device beside it, and a small plain white unlabelled vial of test strips with one thin strip lying in front. Completely unbranded: no logos, no brand names, no words or printed text anywhere on the devices, vial or surface. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, products grouped in the centre with generous empty space around them, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no props.",
+   "asset": "da3a8482-f999-4c29-9574-d81b86f8f420"
+  },
+  "glucose-strips": {
+   "prompt": "Photo-realistic studio product photograph of two plain unlabelled white plastic vials of blood glucose test strips with flip-top lids, one vial open, a few thin white-and-grey test strips fanned out neatly in front of them. Completely unbranded: no logos, no brand names, no words, numbers or printed text anywhere on the vials, strips or surface. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, products centred with generous empty space around them, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no props.",
+   "asset": "5e255f64-364e-4508-94dc-7111daa6232c"
+  },
+  "lancets": {
+   "prompt": "Photo-realistic studio product photograph of sterile single-use blood lancets: a small neat heap of lancets with soft pastel twist-off caps in pale blue, mint and lilac, spilling gently from an open plain white cardboard box. Completely unbranded: no logos, no brand names, no words or printed text anywhere on the box, lancets or surface. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, product centred with generous empty space around it, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no props.",
+   "asset": "f4189103-6f2c-4a11-87d0-2870ee09f602"
+  },
+  "smart-scale": {
+   "prompt": "Photo-realistic studio product photograph of a slim square bathroom scale with a white tempered-glass top and a small hidden LED display glowing with plausible generic digits 68.4. Completely unbranded: no logos, no brand names, no words or printed text anywhere on the scale or surface. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, product centred with generous empty space around it, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no feet, no props.",
+   "asset": "1d9090c8-3747-4257-93bc-6ad6ebd400b1"
+  },
+  "peak-flow": {
+   "prompt": "Photo-realistic studio product photograph of an adult peak flow meter: a transparent and white plastic tube with a small sliding red marker along an unnumbered scale of fine tick marks, a white disposable cardboard mouthpiece fitted to one end. Completely unbranded: no logos, no brand names, no words, numbers or printed text anywhere on the device or surface. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, product centred with generous empty space around it, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no props.",
+   "asset": "4dbf1c7e-fb24-412b-b7a5-0f631fa71022"
+  },
+  "ecg-single": {
+   "prompt": "Photo-realistic studio product photograph of a small credit-card-sized single-lead personal ECG recorder in matte charcoal grey with two round brushed-metal electrode pads, lying beside a plain modern smartphone whose white screen shows only a single thin dark heart rhythm trace line and nothing else. Completely unbranded: no logos, no brand names, no words, numbers, icons or printed text anywhere on the device, the phone screen or the surface. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, products centred with generous empty space around them, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no props.",
+   "asset": "e394ef39-ea05-4a8f-a84f-af93082195c9"
+  },
+  "thermometer": {
+   "prompt": "Photo-realistic studio product photograph of a slim digital stick thermometer, white with a light-grey metal tip and a tiny LCD window showing plausible generic digits 36.8, lying beside its open clear plastic storage case. Completely unbranded: no logos, no brand names, no words or printed text anywhere on the thermometer, case or surface. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, product centred with generous empty space around it, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no props.",
+   "asset": "52ff2acd-f487-4154-95cd-eebd88e8f31a"
+  },
+  "ear-thermometer": {
+   "prompt": "Photo-realistic studio product photograph of a handheld infrared ear thermometer, white with a soft grey rubberised grip, a short rounded probe tip and a small backlit screen showing plausible generic digits 36.9, with a single clear disposable probe cover lying beside it. Completely unbranded: no logos, no brand names, no words or printed text anywhere on the device or surface. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, product centred with generous empty space around it, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no props.",
+   "asset": "f6a03486-0aac-4ba4-8b99-453d912d42be"
+  },
+  "baby-thermometer": {
+   "prompt": "Photo-realistic studio product photograph of a gentle, softly rounded non-contact forehead infrared thermometer for babies, white with a pale mint-green accent ring, a small screen showing plausible generic digits 36.6, resting beside a neatly folded soft white cotton muslin cloth. Completely unbranded: no logos, no brand names, no words or printed text anywhere on the device, cloth or surface. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, product centred with generous empty space around it, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no babies, no props.",
+   "asset": "9e96e660-b759-4fcc-979f-51c6004a22b8"
+  },
+  "baby-scale": {
+   "prompt": "Photo-realistic studio product photograph of a digital baby weighing scale with a smooth curved white tray on a slim base, a small screen on the front of the base showing plausible generic digits 4.25, a neatly folded soft white cotton muslin cloth lying in the tray. Completely unbranded: no logos, no brand names, no words or printed text anywhere on the scale, cloth or surface. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, product centred with generous empty space around it, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no babies, no props.",
+   "asset": "5d65a0b2-55ec-4942-b626-85f12a637cd7"
+  },
+  "fall-pendant": {
+   "prompt": "Photo-realistic studio product photograph of a small rounded personal alarm pendant in white with one large soft-grey push button on its face (no symbol on it), hanging from a plain grey breakaway lanyard cord that curls on the surface, beside a small round white charging dock. Completely unbranded: no logos, no brand names, no words, symbols or printed text anywhere on the pendant, dock or surface. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, product centred with generous empty space around it, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no props.",
+   "asset": "1d0ea461-d10e-490e-a8d9-5080a1321faf"
+  },
+  "pill-organiser": {
+   "prompt": "Photo-realistic studio product photograph of an electronic seven-day organiser box: a white plastic tray of seven small square compartments in a row, each with a translucent pale-grey flip lid, one lid open and empty, and a small display panel at one end showing a plausible generic clock time 08:00. Completely unbranded: no logos, no brand names, no day names, no words or printed text anywhere on the box or surface. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, product centred with generous empty space around it, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no props.",
+   "asset": "107d0e39-c8d6-4bec-9b2b-95778ba57db7"
+  },
+  "grab-rail": {
+   "prompt": "Photo-realistic studio product photograph of a brushed stainless steel bathroom grab rail, about 450 millimetres long, a straight round bar with a round wall flange at each end showing two screw holes, lying diagonally on the surface. Completely unbranded: no logos, no brand names, no words or printed text anywhere on the rail or surface. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, product centred with generous empty space around it, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no props.",
+   "asset": "d214d66c-62c8-46dd-a3ca-92acfeb26657"
+  },
+  "walker": {
+   "prompt": "Photo-realistic studio product photograph of a lightweight folding aluminium walking frame standing upright: four satin-silver legs with grey rubber feet, soft grey foam hand grips on the two top rails, a simple cross brace. Completely unbranded: no logos, no brand names, no words, height markings or printed text anywhere on the frame or surface. Three-quarter angle view, the whole frame in shot. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, product centred with generous empty space around it, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no props.",
+   "asset": "33c8934d-d4e2-4498-85cd-ffc6d0618f03"
+  },
+  "dressings": {
+   "prompt": "Photo-realistic studio product photograph of an open home wound-care kit: a plain white zip pouch laid open, with sterile gauze swabs in sealed plain white paper packets, a roll of white adhesive tape, a few adhesive dressings, a rolled cream crepe bandage and small blunt-ended scissors, neatly arranged. Completely unbranded: no logos, no brand names, no words or printed text anywhere on the pouch, packets or surface. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, products centred with generous empty space around them, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no blood, no props.",
+   "asset": "84f7b51b-2fd3-415e-81c0-a986160ff059"
+  },
+  "firstaid-home": {
+   "prompt": "Photo-realistic studio product photograph of a household first-aid box in matte white plastic with a soft green cross moulded on the lid, the lid open to show neatly packed plasters, rolled bandages, folded disposable gloves, small scissors and a folded silver foil blanket. Completely unbranded: no logos, no brand names, no words or printed text anywhere on the box, contents or surface. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, product centred with generous empty space around it, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no props.",
+   "asset": "fe16aa63-fd94-444e-b4e8-19d0fabccc3f"
+  },
+  "compression": {
+   "prompt": "Photo-realistic studio product photograph of a pair of below-knee graduated compression stockings in soft natural beige knit, one neatly folded and the other laid out flat beside it to show its shape and fine ribbed texture, closed toe. Completely unbranded: no logos, no brand names, no words, size tags or printed text anywhere on the stockings or surface. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, product centred with generous empty space around it, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no legs, no props.",
+   "asset": "892f7d20-9dea-4ac7-8093-f41289c7192f"
+  },
+  "maternity-pillow": {
+   "prompt": "Photo-realistic studio product photograph of a full-length U-shaped maternity support pillow in a soft light-grey jersey cover, its long curved arms resting on the surface, plump and smooth. Completely unbranded: no logos, no brand names, no labels, words or printed text anywhere on the pillow or surface. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, product centred with generous empty space around it, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no props.",
+   "asset": "1504c80a-c0b0-4a6a-8449-7418f997d80e"
+  },
+  "bp-diary": {
+   "prompt": "Photo-realistic studio product photograph of a plain A5 notebook with a soft sage-green linen cover lying open to show neatly ruled empty columns on cream pages, nothing written in it, a plain natural wooden pencil resting across the pages. Completely unbranded: no logos, no title, no handwriting, no words or printed text anywhere on the notebook or surface. Three-quarter angle view from slightly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, a gentle soft contact shadow, product centred with generous empty space around it, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces, no props.",
+   "asset": "f187b16d-61f6-41b0-aa26-1626797851b1"
+  },
+  "kit-bp": {
+   "prompt": "Photo-realistic overhead flat-lay studio photograph of a home blood pressure kit, neatly arranged with even spacing: a white automatic upper-arm blood pressure monitor with a small LCD screen showing plausible generic digits 118 over 78, its dark-grey fabric arm cuff and coiled grey air tube, and a closed plain A5 notebook with a sage-green linen cover with a natural wooden pencil beside it. Completely unbranded: no logos, no brand names, no words or printed text anywhere. Shot from directly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, gentle soft shadows, items grouped in the centre with generous empty space around them, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces.",
+   "asset": "d1d646b2-da73-4c81-87d9-92ffa85bdbed"
+  },
+  "kit-diabetes": {
+   "prompt": "Photo-realistic overhead flat-lay studio photograph of a home blood glucose kit, neatly arranged with even spacing: a compact white and slate-grey glucose meter with a small screen showing plausible generic digits 5.4, a slim pen-shaped lancing device, two plain unlabelled white vials of test strips, a small row of lancets with pastel twist-off caps, and a closed plain A5 notebook with a sage-green linen cover. Completely unbranded: no logos, no brand names, no words or printed text anywhere. Shot from directly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, gentle soft shadows, items grouped in the centre with generous empty space around them, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces.",
+   "asset": "8dd58585-71e3-4cdc-9c29-f639ad5bd4b9"
+  },
+  "kit-mom": {
+   "prompt": "Photo-realistic overhead flat-lay studio photograph of a pregnancy home-readings kit, neatly arranged with even spacing: a softly rounded white upper-arm blood pressure monitor with a pale lilac-grey front panel and LCD screen showing plausible generic digits 112 over 72, its light-grey fabric arm cuff and air tube, a slim square white glass bathroom scale, and a slim white digital stick thermometer. Completely unbranded: no logos, no brand names, no words or printed text anywhere. Shot from directly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, gentle soft shadows, items grouped in the centre with generous empty space around them, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces.",
+   "asset": "9f9ac50e-f032-424b-ac3c-da5ec6c880a2"
+  },
+  "kit-elder": {
+   "prompt": "Photo-realistic overhead flat-lay studio photograph of a home safety kit for an older person, neatly arranged with even spacing: a small rounded white personal alarm pendant with one large soft-grey button on a curled grey lanyard, a brushed stainless steel bathroom grab rail with round wall flanges, and an electronic seven-day organiser box with seven small lidded compartments in a row and a small display showing 08:00. Completely unbranded: no logos, no brand names, no words or printed text anywhere. Shot from directly above. Warm off-white seamless paper background in a single even colour close to #F5F4EF, soft diffused daylight from the upper left, gentle soft shadows, items grouped in the centre with generous empty space around them, neutral natural colour grading, crisp detail, premium catalogue photography. No people, no faces.",
+   "asset": "b2680d8c-4fe2-4644-93b3-d30705d41721"
+  }
+ }
+}
