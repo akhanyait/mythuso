@@ -232,35 +232,28 @@ private fun alertFor(state: ToolkitToolState) = when (state) {
             ScreenWindow { ConsultationRecordScreen(store, reference, patient, writerId = subject.id, signable = !lineOpen, devices = false) }
         }
         "context" -> {
-            /* The file by the name on the consultation, or nothing, said as nothing — never another patient's.
-               This phone's patient file opens on its own first patient and takes no patient to open on, so it is
-               opened only when that first patient is this one. */
+            /* The file by the name on the consultation, opened on that patient by the id the fixtures hold for her,
+               or nothing, said as nothing. It is never opened on whoever the fixtures list first: that would be
+               another patient's file in this one's place. */
             val file = filePatients.firstOrNull { it.name == patient }
-            when {
-                file == null -> {
-                    NotConnected("clinical-records")
-                    Note(ConsultationToolkit.fill(ConsultationToolkitData.Gates.notOnFile, mapOf("patient" to patient)))
-                }
-                file.id == filePatients.first().id -> ScreenWindow {
-                    PatientFileScreen(store) { link ->
-                        val to = when {
-                            link.startsWith("Consultation record") -> "notes"
-                            link.startsWith("Prescri") -> "prescribe"
-                            link.startsWith("Laboratory") -> "tests"
-                            link.startsWith("Referral") -> "refer"
-                            else -> null
-                        }
-                        if (to != null && to in surface.tools) choose(to) else open(link)
+            if (file == null) {
+                NotConnected("clinical-records")
+                Note(ConsultationToolkit.fill(ConsultationToolkitData.Gates.notOnFile, mapOf("patient" to patient)))
+            } else ScreenWindow {
+                PatientFileScreen(store, patientId = file.id) { link ->
+                    val to = when {
+                        link.startsWith("Consultation record") -> "notes"
+                        link.startsWith("Prescri") -> "prescribe"
+                        link.startsWith("Laboratory") -> "tests"
+                        link.startsWith("Referral") -> "refer"
+                        else -> null
                     }
-                }
-                else -> {
-                    NotConnected("clinical-records")
-                    Note(ConsultationToolkit.fill(ConsultationToolkitData.Gates.fileElsewhere, mapOf("patient" to patient)))
+                    if (to != null && to in surface.tools) choose(to) else open(link)
                 }
             }
         }
         "assessment" -> ScreenWindow {
-            VisitAssessmentScreen(store, reference = CareData.Preview.appointmentRef, close = back, open = open)
+            VisitAssessmentScreen(store, reference = reference, patient = patient, close = back, open = open)
         }
         /* sick-note.json's own composer and refusals; its notice is drawn here, because the composer draws none. */
         "sick-note" -> {

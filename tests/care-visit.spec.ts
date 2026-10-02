@@ -124,7 +124,10 @@ test('signed off in the assessment, the visit is handed over, completed with the
   await expect(d.getByRole('heading', { name: 'Readings and sign-off' })).toBeVisible();
   await d.getByRole('button', { name: 'Open the visit assessment' }).click();
 
-  /* The assessment the preview's record is: the same five stages the schedule's visit walks. */
+  /* The assessment the preview's record is: the same five stages the schedule's visit walks, naming the
+     visit's own patient — the reference the toolkit beside it names — and never the assessment's default. */
+  await expect(d).toContainText(`Ask ${care.preview.subjectRef} for the six-digit code`);
+  await expect(d).not.toContainText('Lerato');
   await d.getByLabel('Visit code, digit 1 of 6').fill(care.preview.visitCode);
   await d.getByRole('checkbox').first().check();
   await d.getByRole('button', { name: 'Confirm identity' }).click();

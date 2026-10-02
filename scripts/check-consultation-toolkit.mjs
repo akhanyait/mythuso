@@ -24,6 +24,11 @@
  *   9. A sentence lives in one place: no contract sentence is typed into a screen on any platform.
  *  10. The phones say the same: both native toolkits read the surfaces, the refused sentences and the gates from
  *      the generated data, and both nurse visits draw the live panel.
+ *  11. One patient per visit: the assessment opened under the care preview's appointment names that visit's own
+ *      patient (care.json's subjectRef) on every platform, and the toolkit's assessment names the toolkit's patient
+ *      — so the name at the head of the assessment is the one beside it in the toolkit, never a default.
+ *  12. The file beside a consultation is the consultation patient's: both phones open the patient file on her id,
+ *      and neither compares her with the fixtures' first patient or opens the file without saying whose.
  *
  * Each rule is proven to fire by scripts/prove-consultation-toolkit.mjs, which hands this module broken files. */
 export function checkConsultationToolkit({ read, files, exists }) {
@@ -162,5 +167,37 @@ export function checkConsultationToolkit({ read, files, exists }) {
     if (!/care-visit/.test(code)) fail(`${file} no longer opens the nurse's toolkit.`);
   }
 
-  return `The consultation toolkit · ${contract.tools.length} tools on ${contract.surfaces.length} surfaces, each capability the register's and each notice drawn by its screen or the toolkit; no role offered what it is never granted and none refused what it holds; no nurse surface with a prescription or a sick note, both said to be a doctor's; neither started on a call for a patient nobody in the room examined; every short name inside its long one; the devices on every surface and the live panel beside the nurse's visit; behind ${importers.length} dynamic imports, nothing stored, nothing moving, no sentence typed twice; both phones reading the same contract.`;
+  /* 11. One patient per visit. Until 2 October 2026 the assessment opened from the care visit and from its toolkit
+     fell back to its default patient's name on all three platforms while the toolkit beside it named the visit's
+     reference — two patients on one screen. Each call is read up to its first closing bracket, so the patient is
+     written beside the reference, where a reader looks for it. */
+  const careCalls = [
+    ["apps/web/src/shells/StaffShell.tsx", /<VisitAssessment\b[^>]*>/g, "patient={carePreview.subjectRef}"],
+    [SCREEN, /<VisitAssessment\b[^>]*>/g, "patient={patient}"],
+    [IOS_VISIT, /VisitAssessmentView\([^)]*\)/g, "patient: CareData.Preview.subjectRef"],
+    [IOS_VIEW, /VisitAssessmentView\([^)]*\)/g, "patient: patient"],
+    ["apps/android/app/src/main/java/za/co/mythuso/ui/AccountScreens.kt", /VisitAssessmentScreen\([^)]*\)/g, "patient = za.co.mythuso.model.CareData.Preview.subjectRef"],
+    [KT_VIEW, /VisitAssessmentScreen\([^)]*\)/g, "patient = patient"],
+  ];
+  for (const [file, call, names] of careCalls) {
+    const code = uncommented(read(file));
+    const calls = [...code.matchAll(call)].map((m) => m[0]);
+    const toolkit = file === SCREEN || file === IOS_VIEW || file === KT_VIEW;
+    const care = toolkit ? calls : calls.filter((c) => /appointmentRef/.test(c));
+    if (!care.length) fail(`${file} no longer opens the visit assessment ${toolkit ? "from the toolkit" : "under the care preview's appointment"}; this check needs updating with it.`);
+    for (const c of care) if (!c.includes(names)) fail(`${file} opens the assessment as ${c.slice(0, 120)} without ${names}. It would name its default patient beside a toolkit naming the visit's own.`);
+  }
+
+  /* 12. The file beside a consultation is the consultation patient's. */
+  for (const [file, opens, screen, takes] of [
+    [IOS_VIEW, "PatientFileView(viewerId: subjectId, patientId: file.id)", "apps/ios/MyThuso/Features/PatientFileView.swift", "init(viewerId: String = \"D-401\", patientId: String? = nil)"],
+    [KT_VIEW, "PatientFileScreen(store, patientId = file.id)", "apps/android/app/src/main/java/za/co/mythuso/ui/PatientFileScreens.kt", "fun PatientFileScreen(store: PreviewStore, patientId: String? = null"],
+  ]) {
+    const code = uncommented(read(file));
+    if (!code.includes(opens)) fail(`${file} no longer opens the patient file on the consultation's patient (${opens}).`);
+    if (/PatientFixtures\.all\.first|filePatients\.first\(\)/.test(code)) fail(`${file} compares the consultation's patient with the fixtures' first. The file opens on her id; whoever is listed first is nobody's business here.`);
+    if (!read(screen).includes(takes)) fail(`${screen} no longer takes a patient to open on, so a consultation could only open whoever the fixtures list first.`);
+  }
+
+  return `The consultation toolkit · ${contract.tools.length} tools on ${contract.surfaces.length} surfaces, each capability the register's and each notice drawn by its screen or the toolkit; no role offered what it is never granted and none refused what it holds; no nurse surface with a prescription or a sick note, both said to be a doctor's; neither started on a call for a patient nobody in the room examined; every short name inside its long one; the devices on every surface and the live panel beside the nurse's visit; behind ${importers.length} dynamic imports, nothing stored, nothing moving, no sentence typed twice; both phones reading the same contract; the assessment naming the visit's own patient and the file opening on the consultation's, on every platform.`;
 }

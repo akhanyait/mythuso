@@ -195,17 +195,16 @@ private struct ToolkitToolScreen: View {
                 ConsultationRecordView(reference: reference, patient: patient, writerId: subjectId,
                                        signingHeld: (call.map { !$0.ended } ?? false) ? Toolkit.Gates.notesDuringCall : nil)
             case "assessment":
-                VisitAssessmentView(reference: reference, nurseId: subjectId)
+                VisitAssessmentView(reference: reference, patient: patient, nurseId: subjectId)
             case "sick-note":
                 /* sick-note.json's own composer and refusals; its notice is drawn here, because the composer draws none. */
                 described { SickNoteComposer(reference: reference, patient: patient, writer: subjectId) }
             case "context":
-                /* The file screen opens on the first patient in the fixtures and takes no patient from
-                   outside, so it is opened only when that is this consultation's patient. Anything else
+                /* The file opens on this consultation's patient, by the id the fixtures hold for her, or
+                   it is said to be missing. It is never opened on whoever the fixtures list first: that
                    would be another patient's file in this one's place. */
                 if let file = Toolkit.fileOf(patient) {
-                    if file.id == PatientFixtures.all.first?.id { PatientFileView(viewerId: subjectId) }
-                    else { described { note(Toolkit.fill(Toolkit.Gates.fileElsewhere, ["patient": patient])) } }
+                    PatientFileView(viewerId: subjectId, patientId: file.id)
                 } else {
                     described { note(Toolkit.fill(Toolkit.Gates.notOnFile, ["patient": patient])) }
                 }

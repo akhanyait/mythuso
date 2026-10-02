@@ -47,16 +47,26 @@ private func grantSentence(_ roleId: String, _ capability: String) -> String? {
 struct PatientFileView: View {
     /// Which party the file opens as. A workspace passes its own; the design review changes it.
     var viewerId = "D-401"
+    /// Whose file it opens on. A consultation passes its own patient's, so the file beside a
+    /// consultation is never the fixtures' first patient standing in for this one; nil is the
+    /// fixtures' first, which is what a workspace's own file row has always opened.
+    var patientId: String? = nil
     @EnvironmentObject private var store: PreviewStore
     @ObservedObject private var vetting = VettingStore.shared
-    @State private var patientId = PatientFixtures.all[0].id
+    @State private var shownPatientId: String
+
+    init(viewerId: String = "D-401", patientId: String? = nil) {
+        self.viewerId = viewerId
+        self.patientId = patientId
+        _shownPatientId = State(initialValue: patientId.flatMap { PatientFixtures.patient($0)?.id } ?? PatientFixtures.all[0].id)
+    }
     @State private var viewer = ""
     @State private var tabName = Records.fileTabs[0].name
     @State private var feed: LoadState = .ready
     @State private var notice = ""
 
     private var viewers: [VettingSubject] { patientFileViewerIds.compactMap { vetting.subject($0) } }
-    private var patient: PatientRecord { PatientFixtures.patient(patientId) ?? PatientFixtures.all[0] }
+    private var patient: PatientRecord { PatientFixtures.patient(shownPatientId) ?? PatientFixtures.all[0] }
     private var subject: VettingSubject { viewers.first { $0.id == viewer } ?? viewers.first ?? VettingFixtures.subjects[0] }
     private var tab: PatientFileTab { Records.fileTabs.first { $0.name == tabName } ?? Records.fileTabs[0] }
     private var decision: VettingDecision { canOpenTab(subject, tab) }
@@ -85,7 +95,7 @@ struct PatientFileView: View {
         .thusoGround()
         .navigationTitle(thuso(.patientFile, store.locale)).navigationBarTitleDisplayMode(.inline)
         .onAppear { if viewer.isEmpty { viewer = viewers.contains { $0.id == viewerId } ? viewerId : (viewers.first?.id ?? "") } }
-        .onChange(of: patientId) { _, _ in notice = "" }
+        .onChange(of: shownPatientId) { _, _ in notice = "" }
         .onChange(of: viewer) { _, _ in notice = "" }
     }
 
@@ -113,7 +123,7 @@ struct PatientFileView: View {
         VStack(alignment: .leading, spacing: ThusoSpacing.space12) {
             DeckSectionHead(title: "The same file, through different eyes",
                             note: "Every tab, action and field group below asks the vetting module whether this party may see it. Change the viewer and watch the file change shape — that is the demonstration, and it is the only way to tell whether a refusal was designed or assumed.")
-            DeckPills(label: thuso(.openFileOf, store.locale), selection: $patientId,
+            DeckPills(label: thuso(.openFileOf, store.locale), selection: $shownPatientId,
                       options: PatientFixtures.all.map { ($0.id, "\($0.name) · \($0.id)") }, onNight: false)
             DeckPills(label: thuso(.viewingAs, store.locale), selection: $viewer,
                       options: viewers.map { ($0.id, "\($0.name) · \($0.role?.name ?? $0.roleId)") }, onNight: false)

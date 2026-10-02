@@ -282,10 +282,11 @@ struct CareVisitView: View {
         }
     }
 
-    /* The assessment this visit is signed off in, opened under the visit's own reference, so the
-       sign-off it seals is the one handover and completion ask for. */
+    /* The assessment this visit is signed off in, opened under the visit's own reference and naming the
+       visit's own patient, so the sign-off it seals is the one handover and completion ask for and the
+       name at its head is the one the toolkit beside it uses. */
     private var assessmentLink: some View {
-        NavigationLink { VisitAssessmentView(reference: CareData.Preview.appointmentRef) } label: {
+        NavigationLink { VisitAssessmentView(reference: CareData.Preview.appointmentRef, patient: CareData.Preview.subjectRef) } label: {
             NavPillLabel(title: "Open the visit assessment", subtitle: "Identity, consent, readings, findings, sign-off", symbol: "list.clipboard")
         }
         .buttonStyle(.plain)

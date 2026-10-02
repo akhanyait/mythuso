@@ -42,7 +42,6 @@ object ConsultationToolkitData {
         const val notAConsultation = "This encounter did not count as a consultation, so nothing is decided from it here. {tool} stays closed for this appointment."
         const val notesDuringCall = "Notes written during the call stay a draft until the call ends as a consultation. An interrupted encounter has no assessment, no plan and no signature, so nothing here is signed while the line is open."
         const val notOnFile = "{patient} has no file in this preview’s records, so no file is shown. A tool never opens another patient’s file in place of this one."
-        const val fileElsewhere = "{patient} is on file, and the patient file on this phone opens on another patient first, so it is not opened here. A tool never opens another patient’s file in place of this one."
         const val beingBuilt = "{tool} is being built. When it lands it opens here, under the clinician’s registration and with its own refusals, like every other tool."
         const val notOnThisPhone = "{tool} is written in the web workspace in this preview. On this phone it says what it is, who may use it and what it will not do, and opens nothing."
         const val notYetAtHandover = "This visit is handed to a doctor once its readings are attached and signed off. It is at “{stage}” now, and the handover opens when the visit reaches it."

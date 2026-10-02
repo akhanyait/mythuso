@@ -71,14 +71,17 @@ private fun viewerLabel(subject: VettingSubject) = "${subject.name} · ${vetting
 private fun grantSentence(roleId: String, capability: String): String? =
     vettingRoleById(roleId)?.grants?.firstOrNull { it.capability == capability }?.refusal
 
-@Composable fun PatientFileScreen(store: PreviewStore, open: (String) -> Unit) {
+/* `patientId` is whose file it opens on. A consultation passes its own patient's, so the file beside a
+   consultation is never the fixtures' first patient standing in for this one; null is the fixtures' first,
+   which is what a workspace's own file row has always opened. */
+@Composable fun PatientFileScreen(store: PreviewStore, patientId: String? = null, open: (String) -> Unit) {
     val viewers = remember(store) { fileViewerIds.mapNotNull { store.vetting.subject(it) } }
-    var patientId by remember { mutableStateOf(filePatients.first().id) }
+    var shownPatientId by remember(patientId) { mutableStateOf(patientId?.let { filePatientById(it)?.id } ?: filePatients.first().id) }
     var viewerId by remember { mutableStateOf(viewers.first().id) }
     var tabName by remember { mutableStateOf(fileTabs.first().name) }
     var state by remember { mutableStateOf(LoadState.READY) }
     var notice by remember { mutableStateOf("") }
-    val patient = filePatientById(patientId) ?: filePatients.first()
+    val patient = filePatientById(shownPatientId) ?: filePatients.first()
     val viewer = viewers.firstOrNull { it.id == viewerId } ?: viewers.first()
     val tab = fileTabs.firstOrNull { it.name == tabName } ?: fileTabs.first()
     val decision = canOpenTab(viewer, tab)
@@ -138,7 +141,7 @@ private fun grantSentence(roleId: String, capability: String): String? =
             "The same file, through different eyes",
             note = "Every tab, action and field group below asks the vetting module whether this party may see it. Change the viewer and watch the file change shape — that is the demonstration, and it is the only way to tell whether a refusal was designed or assumed."
         )
-        DeckPills("Open the file of", patient.id, filePatients.map { it.id to it.name }, onNight = false) { patientId = it; notice = "" }
+        DeckPills("Open the file of", patient.id, filePatients.map { it.id to it.name }, onNight = false) { shownPatientId = it; notice = "" }
         /* The pill carries the role as well as the name, because “Kagiso Molefe” does not tell a
            reviewer that the next tap is a Control Tower operator, and that is the whole point of the
            switch. */

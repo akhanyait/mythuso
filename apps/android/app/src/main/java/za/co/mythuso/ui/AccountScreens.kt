@@ -380,7 +380,7 @@ import za.co.mythuso.model.mokoenaHousehold
            under the visit's own reference, so the sign-off it seals is the one handover and completion
            ask for, and closing it returns to the visit. */
         title == "Care visit" -> CareVisitScreen(store, open)
-        title == "Care assessment" -> VisitAssessmentScreen(store, reference = za.co.mythuso.model.CareData.Preview.appointmentRef, close = { open("Care visit") }, open = open)
+        title == "Care assessment" -> VisitAssessmentScreen(store, reference = za.co.mythuso.model.CareData.Preview.appointmentRef, patient = za.co.mythuso.model.CareData.Preview.subjectRef, close = { open("Care visit") }, open = open)
         /* The whole visit, one level up from the readings. Its own route because it is worth opening
            when no instrument is anywhere near — it is where the morning’s work sits when there is no
            signal, and on this platform it is on the disk rather than in memory. */
@@ -410,7 +410,7 @@ import za.co.mythuso.model.mokoenaHousehold
         /* The clinician-facing file and the encounter that writes into it. They are one route each
            because both are read about somebody else: the Passport is the patient's own view, and
            putting them behind the same door would blur whose record is whose. */
-        title == "Patient file" -> PatientFileScreen(store, open)
+        title == "Patient file" -> PatientFileScreen(store, open = open)
         title == "Consultation record" -> ConsultationRecordScreen(store, tools = true)
         /* The household and the summary a person hands out of it. Both are about several people at
            once, which is exactly why they are separate routes: a screen that opened a household and

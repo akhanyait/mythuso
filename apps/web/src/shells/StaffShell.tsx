@@ -817,7 +817,7 @@ function staffModalBody(modal: string, close: () => void, open: (m: string) => v
     assessment is opened under the visit's own reference, so the sign-off it seals is the one Care's
     handover and completion ask for; closing it returns to the visit rather than to the day. */
  if (modal === 'Care visit') return <CareVisit open={open} onClose={close}/>;
- if (modal === 'Care assessment') return <VisitAssessment reference={carePreview.appointmentRef} onClose={() => open('Care visit')}/>;
+ if (modal === 'Care assessment') return <VisitAssessment reference={carePreview.appointmentRef} patient={carePreview.subjectRef} onClose={() => open('Care visit')}/>;
  if (modal === 'Visit assessment' || modal.startsWith('Nurse case:')) return <VisitAssessment {...visitFrom(modal)} onClose={close}/>;
  if (modal.startsWith('Doctor review') || modal.startsWith('Doctor case:')) return <DoctorReview reference={referenceIn(modal) ?? undefined} open={open} onClose={close}/>;
  if (modal.startsWith('Prescription ') || modal === 'Pharmacy orders') return <PrescriptionDetail reference={referenceIn(modal) ?? undefined} open={open} partner={partner}/>;
