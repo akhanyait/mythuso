@@ -37,8 +37,8 @@ const banner = () => [
  'Do not edit by hand — run `npm run skin-check`. The build fails if this file and its sources',
  'disagree, so an edit here is lost rather than merely wrong.',
  '',
- 'General information from public health sources, not reviewed by a clinician yet. No photo is',
- 'read by anything on any platform; see photoReading.'
+ 'General information from public health sources, not reviewed by a clinician yet. No photo or',
+ 'clip is read by anything on any platform; see photoReading. A clip plays without its sound.'
 ].map(line => (line ? `// ${line}` : '//')).join('\n');
 
 export function emitSkinCheck(root = '') {
@@ -122,12 +122,25 @@ enum SkinCheckData {
         static let alt = ${swift(c.photo.alt)}
         static let held = ${swift(c.photo.held)}
         static let noReader = ${swift(c.photo.noReader)}
-        static let videoRefused = ${swift(c.photo.videoRefused)}
         static let notImage = ${swift(c.photo.notImage)}
         static let howOnThisPhone = ${swift(c.photo.platforms.ios.note)}
         /// From packages/catalog/assistant-chat-ui.json#attachments, the panel's own limit.
         static let limitBytes = ${attachments.limitBytes}
         static let tooLarge = ${swift(attachments.tooLarge)}
+    }
+
+    /// A short clip, since the founder's decision of 2 October 2026: muted, no longer than maxSeconds.
+    enum Clip {
+        static let maxSeconds: Double = ${c.clip.maxSeconds}
+        static let label = ${swift(c.clip.label)}
+        static let playLabel = ${swift(c.clip.playLabel)}
+        static let pauseLabel = ${swift(c.clip.pauseLabel)}
+        static let removeLabel = ${swift(c.clip.removeLabel)}
+        static let sound = ${swift(c.clip.sound)}
+        static let tooLong = ${swift(c.clip.tooLong)}
+        static let lengthUnknown = ${swift(c.clip.lengthUnknown)}
+        static let cannotPlay = ${swift(c.clip.cannotPlay)}
+        static let howOnThisPhone = ${swift(c.clip.platforms.ios.note)}
     }
 
     enum SisterToday {
@@ -159,6 +172,7 @@ enum SkinCheckData {
         /// "{question}" and "{answer}" are filled by the screen.
         static let line = ${swift(c.summary.line)}
         static let photoLine = ${swift(c.summary.photoLine)}
+        static let clipLine = ${swift(c.summary.clipLine)}
         static let copyLabel = ${swift(c.summary.copyLabel)}
         static let copiedLabel = ${swift(c.summary.copiedLabel)}
         static let sendLead = ${swift(c.summary.sendLead)}
@@ -252,11 +266,23 @@ object SkinCheckData {
         const val alt = ${kotlin(c.photo.alt)}
         const val held = ${kotlin(c.photo.held)}
         const val noReader = ${kotlin(c.photo.noReader)}
-        const val videoRefused = ${kotlin(c.photo.videoRefused)}
         const val notImage = ${kotlin(c.photo.notImage)}
         /** From packages/catalog/assistant-chat-ui.json#attachments, the panel's own limit. */
         const val limitBytes = ${attachments.limitBytes}
         const val tooLarge = ${kotlin(attachments.tooLarge)}
+    }
+
+    /** A short clip, since the founder's decision of 2 October 2026: muted, no longer than maxSeconds. */
+    object Clip {
+        const val maxSeconds = ${c.clip.maxSeconds}
+        const val label = ${kotlin(c.clip.label)}
+        const val playLabel = ${kotlin(c.clip.playLabel)}
+        const val pauseLabel = ${kotlin(c.clip.pauseLabel)}
+        const val removeLabel = ${kotlin(c.clip.removeLabel)}
+        const val sound = ${kotlin(c.clip.sound)}
+        const val tooLong = ${kotlin(c.clip.tooLong)}
+        const val lengthUnknown = ${kotlin(c.clip.lengthUnknown)}
+        const val cannotPlay = ${kotlin(c.clip.cannotPlay)}
     }
 
     object SisterToday {
@@ -288,6 +314,7 @@ object SkinCheckData {
         /** "{question}" and "{answer}" are filled by the screen. */
         const val line = ${kotlin(c.summary.line)}
         const val photoLine = ${kotlin(c.summary.photoLine)}
+        const val clipLine = ${kotlin(c.summary.clipLine)}
         const val copyLabel = ${kotlin(c.summary.copyLabel)}
         const val copiedLabel = ${kotlin(c.summary.copiedLabel)}
         const val sendLead = ${kotlin(c.summary.sendLead)}

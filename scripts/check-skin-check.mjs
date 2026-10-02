@@ -13,9 +13,16 @@
       option whose own words the existing emergency terms raise, and no other option or question raises
       them; a rule for today reads the knowledge base back or says why it cannot; general information
       never names a single entry; every entry named exists, and every new one says nobody has reviewed it.
-   3. The photo is held and never read or sent: no video, no capture attribute, no storage, no request, no
-      reader of its bytes on the web; no save, no file, no camera permission on either phone; every object
-      URL revoked. The photo reader is declared and refused everywhere, with no route behind it.
+   3. The photo is held and never read or sent: no capture attribute, no storage, no request, no reader of
+      its bytes on the web; no save, no file, no camera permission on either phone; every object URL
+      revoked. The photo reader is declared and refused everywhere, with no route behind it.
+   3a. A short clip, since the founder's decision of 2 October 2026 (this replaced the rule that took still
+      photos only, "a video carries sound"): held as the photo is, no longer than the contract's cap —
+      which no screen restates — and played muted with no control that could turn the sound on, and
+      nothing that records, decodes for itself, reads or sends its sound. On the web through the same one
+      object URL hook and one video element; on iOS one temporary copy written and deleted in one place on
+      every way out, and a player of the picture track alone; on Android the picker's own address, no
+      file, the system player at zero volume. No microphone or camera is asked for by the check.
    4. The screens say only the contract's words and show the review state, decide nothing themselves, hand
       an emergency to the conversation's own answer, and arrive on the web behind a dynamic import.
    5. The generator, its registrations, the journey and the map row. */
@@ -29,6 +36,11 @@ const IOS_VIEW = "apps/ios/MyThuso/Features/SkinCheckView.swift";
 const IOS_MODEL = "apps/ios/MyThuso/Models/SkinCheck.swift";
 const ANDROID_SCREEN = "apps/android/app/src/main/java/za/co/mythuso/ui/SkinCheckScreens.kt";
 const ANDROID_MODEL = "apps/android/app/src/main/java/za/co/mythuso/model/SkinCheck.kt";
+const IOS_HELD = "private enum SkinClipFile {";
+/* The cap is said to the patient in words (a sentence names no digit), so the build holds the words to the number. */
+const UNITS = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
+const TENS = ["", "", "twenty", "thirty", "forty", "fifty"];
+const inWords = (n) => (n < 20 ? UNITS[n] : `${TENS[Math.floor(n / 10)]}${n % 10 ? `-${UNITS[n % 10]}` : ""}`);
 const TELLS_HER = /\b(you have|you've got|you’ve got|you have got|your (rash|skin) is (a|an)\b|diagnos\w*)/i;
 
 export function checkSkinCheck({ read, stems, hasSequence, existsSync }) {
@@ -56,7 +68,7 @@ export function checkSkinCheck({ read, stems, hasSequence, existsSync }) {
     fail(`${SKIN} says it renders on ${JSON.stringify(contract.platforms)}. It is built on all three platforms, and each is held below.`);
   /* Everything addressed to the patient, walked: no digit (a number lives in one other place), and nothing
      that tells her what she has. The reasoning, the ids and the references are not addressed to her. */
-  const NOT_SAID = new Set(["_note", "why", "rule", "exclusiveWhy", "requiredWhy", "rulesWhy", "maxShownWhy", "tooLargeWhy", "tooLargeFrom", "routeWhy", "sendFrom", "keptBecause", "accept", "platforms", "fixtures", "changelog", "id", "question", "anyOf", "oftenSeenIn", "checkFirst", "drawsOn", "outcome", "kind", "exclusive", "required", "status", "decidedBy", "on", "version", "route", "always", "forCondition", "everywhere", "inPlace", "reviewedBy", "emergencyHandsTo", "why"]);
+  const NOT_SAID = new Set(["_note", "why", "rule", "exclusiveWhy", "requiredWhy", "rulesWhy", "maxShownWhy", "tooLargeWhy", "tooLargeFrom", "routeWhy", "sendFrom", "keptBecause", "accept", "platforms", "fixtures", "changelog", "id", "question", "anyOf", "oftenSeenIn", "checkFirst", "drawsOn", "outcome", "kind", "exclusive", "required", "status", "decidedBy", "on", "version", "route", "always", "forCondition", "everywhere", "inPlace", "reviewedBy", "emergencyHandsTo", "why", "maxSecondsWhy", "sizeWhy"]);
   const said = [];
   const walk = (node, path) => {
     if (typeof node === "string") said.push([path, node]);
@@ -138,13 +150,29 @@ export function checkSkinCheck({ read, stems, hasSequence, existsSync }) {
   for (const id of named) if (!entry(id)?.source?.authority) fail(`${id} has no source authority. Every entry the check shows names where it came from.`);
 
   /* ---- 3. The photo is held, never read or sent ---------------------------------------------------- */
-  if ((contract.photo.accept ?? []).some((t) => !/^image\//.test(t))) fail(`${SKIN} accepts ${contract.photo.accept.join(", ")}. A photo is taken and nothing else: a video carries sound, and this build records none outside push-to-talk.`);
-  if (!contract.photo.videoRefused || !contract.photo.noReader || !contract.photo.held) fail(`${SKIN} has lost a sentence saying where the photo is, that nothing reads it, or that video is not taken.`);
+  if (!(contract.photo.accept ?? []).length || contract.photo.accept.some((t) => !/^image\//.test(t))) fail(`${SKIN} accepts ${contract.photo.accept.join(", ")} as a photo. A photo is an image; a clip is the clip's, held to its own rules below.`);
+  if (!contract.photo.noReader || !contract.photo.held) fail(`${SKIN} has lost a sentence saying where the photo is or that nothing reads it.`);
   const reading = contract.photoReading;
   if (reading?.status !== "refused" || reading.everywhere !== true || reading.route !== null || !reading.waitsOn?.length || reading.waitsOn.some((w) => w.inPlace !== false))
     fail(`${SKIN}'s photo reader is not refused everywhere with nothing in place and no route. Reading a photo of skin waits on a ratified protocol with a named reviewer, an impact assessment that covers images, an Information Officer and a processor decision; none exists.`);
   if (!/protocol/i.test(reading.sentence) || !/impact assessment/i.test(reading.sentence) || !/Information Officer/.test(reading.sentence) || !/process/i.test(reading.sentence))
     fail(`${SKIN}'s photo-reader sentence no longer names all four things it waits on.`);
+  /* 3a. The clip, as the contract holds it. */
+  const clip = contract.clip ?? {};
+  if (!/founder/i.test(String(clip.decidedBy)) || clip.on !== "2026-10-02" || !clip.why)
+    fail(`${SKIN}'s clip has lost who decided it, when, or why. A clip is taken on the founder's decision of 2 October 2026 and on nothing wider.`);
+  if (!Number.isInteger(clip.maxSeconds) || clip.maxSeconds < 1 || clip.maxSeconds > 59)
+    fail(`${SKIN}'s clip.maxSeconds is ${JSON.stringify(clip.maxSeconds)}. A clip is short: a whole number of seconds under a minute, and every platform refuses a longer one.`);
+  if (!new RegExp(`\\b${inWords(clip.maxSeconds)} seconds\\b`, "i").test(String(clip.tooLong)))
+    fail(`${SKIN}'s clip.tooLong does not say "${inWords(clip.maxSeconds)} seconds", and clip.maxSeconds is ${clip.maxSeconds}. The sentence a patient reads and the cap every platform enforces are one number.`);
+  if (!(clip.accept ?? []).length || clip.accept.some((t) => !/^video\//.test(t)))
+    fail(`${SKIN}'s clip accepts ${JSON.stringify(clip.accept)}. A clip is a video; an audio file is never taken, because nothing here plays or reads a sound.`);
+  if (!/not played or used/i.test(String(clip.sound)) || !/no control/i.test(String(clip.sound)))
+    fail(`${SKIN}'s clip.sound no longer says the sound is not played or used and that there is no control to turn it on. Every platform shows that sentence beside the clip.`);
+  for (const key of ["label", "playLabel", "pauseLabel", "removeLabel", "lengthUnknown", "cannotPlay"]) if (!clip[key]) fail(`${SKIN}'s clip has no ${key}.`);
+  if (!contract.whatItIsNot.some((s) => /does not look at your photo or your clip/i.test(s)) || !/clip/i.test(contract.photo.noReader))
+    fail(`${SKIN} no longer says that nothing looks at the clip as well as the photo.`);
+  if (contract.photo.videoRefused !== undefined) fail(`${SKIN} still carries photo.videoRefused beside a clip it takes. The screen would say video is not taken while taking one.`);
   const photoRoute = apis.routes.find((r) => /photo|image|vision|skin/i.test(r.path) && r.status !== "withdrawn");
   if (photoRoute) fail(`packages/catalog/apis/assistant.json declares ${photoRoute.method} ${photoRoute.path}. The skin check sends no photo anywhere; a photo route is proposed only when the four things the reader waits on exist, and the contract's route field changes with it.`);
   const web = strip(read(WEB_SCREEN));
@@ -152,22 +180,66 @@ export function checkSkinCheck({ read, stems, hasSequence, existsSync }) {
   const shared = strip(read(SHARED));
   for (const [file, code] of [[WEB_SCREEN, web], [WEB_LIB, webLib], [SHARED, shared]]) {
     const reach = code.match(/\b(fetch|XMLHttpRequest|sendBeacon|WebSocket|EventSource|FormData|FileReader|localStorage|sessionStorage|indexedDB|caches|getContext|createImageBitmap|arrayBuffer|serviceWorker)\b|document\.cookie/);
-    if (reach) fail(`${file} reaches for ${reach[0]}. The photo is shown back through an object URL and nothing else: nothing reads its bytes, stores it or sends it.`);
+    if (reach) fail(`${file} reaches for ${reach[0]}. The photo and the clip are shown back through an object URL and nothing else: nothing reads their bytes, stores them or sends them.`);
+    const hears = code.match(/\b(AudioContext|webkitAudioContext|OfflineAudioContext|createMediaElementSource|captureStream|MediaRecorder|getUserMedia|SpeechRecognition|webkitSpeechRecognition|audioTracks|speechSynthesis)\b|<audio\b/);
+    if (hears) fail(`${file} reaches for ${hears[0]}. A clip's sound is not played or used: nothing records it, routes it, transcribes it or reads it.`);
+    if (new RegExp(`\\b${clip.maxSeconds}\\b`).test(code)) fail(`${file} types ${clip.maxSeconds}, the clip's cap. The cap is skinContract.clip.maxSeconds, read where it is checked.`);
   }
   const creates = (web.match(/URL\.createObjectURL/g) ?? []).length, revokes = (web.match(/URL\.revokeObjectURL/g) ?? []).length;
-  if (creates !== 1 || revokes !== 1 || !/return \(\) => URL\.revokeObjectURL\(next\)/.test(web))
-    fail(`${WEB_SCREEN} makes ${creates} object URL${creates === 1 ? "" : "s"} and revokes ${revokes}. There is one, made in an effect whose clean-up revokes it, so replacing, removing, ending and closing all let the photo go.`);
-  const input = web.match(/<input\b[^>]*>/g) ?? [];
-  if (input.length !== 1 || !/type="file"/.test(input[0]) || !/accept="image\/\*"/.test(input[0]) || /\bcapture\b/.test(input[0]))
-    fail(`${WEB_SCREEN}'s file input is not one input asking for an image with no capture attribute.`);
+  if (creates !== 1 || revokes !== 1 || !/return \(\) => URL\.revokeObjectURL\(next\)/.test(web) || !/= useHeldUrl\(file\)/.test(web) || !/= useHeldUrl\(clip\)/.test(web))
+    fail(`${WEB_SCREEN} makes ${creates} object URL${creates === 1 ? "" : "s"} and revokes ${revokes}, or the photo or the clip does not take its URL from useHeldUrl. There is one place a URL is made, an effect whose clean-up revokes it, and both pass through it, so replacing, removing, ending and closing all let them go.`);
+  const input = web.match(/<input\b[\s\S]*?\/>/g) ?? [];
+  if (input.length !== 1 || !/type="file"/.test(input[0]) || !/accept="image\/\*,video\/\*"/.test(input[0]) || /\bcapture\b/.test(input[0]))
+    fail(`${WEB_SCREEN}'s file input is not one input asking for an image or a video with no capture attribute.`);
+  /* The one video element: muted, inline, no controls attribute (the browser's controls carry a volume), the
+     browser's own menu refused, and it mutes itself again whatever turns it up. */
+  const videos = web.match(/<video\b[\s\S]*?\/>/g) ?? [];
+  const player = videos[0] ?? "";
+  if (videos.length !== 1 || !/\n\s*muted\n/.test(player) || !/\bplaysInline\b/.test(player) || /\bcontrols\b|\bautoPlay\b/.test(player) || !/src=\{clipUrl\}/.test(player)
+      || !/onVolumeChange=\{\(event\) => silence\(event\.currentTarget\)\}/.test(player) || !/onContextMenu=\{\(event\) => event\.preventDefault\(\)\}/.test(player)
+      || !/onLoadedMetadata=\{\(event\) => measured\(event\.currentTarget\)\}/.test(player))
+    fail(`${WEB_SCREEN} does not draw the clip in one muted, inline video element with no controls and no autoplay, that refuses the browser's menu, silences itself on any volume change and measures its length on its metadata.`);
+  const silence = web.match(/const silence = \(video: HTMLVideoElement \| null\) => \{([\s\S]*?)\n\};/);
+  if (!silence || !/video\.muted = true;/.test(silence[1]) || !/video\.defaultMuted = true;/.test(silence[1]) || !/video\.volume = 0;/.test(silence[1]))
+    fail(`${WEB_SCREEN}'s silence() no longer sets muted, defaultMuted and a volume of nought.`);
+  const unmute = web.match(/\.muted\s*=(?!\s*true\b)|muted=\{(?!true\b)|\.volume\s*=(?!\s*0;)/);
+  if (unmute) fail(`${WEB_SCREEN} sets ${unmute[0]}. The clip's sound is never played: nothing turns it on.`);
+  if (!/const why = clipLengthProblem\(element\.duration\);\s*if \(why\) \{\s*holdClip\(null\);/.test(web) || !/seconds > skinContract\.clip\.maxSeconds\) return skinContract\.clip\.tooLong/.test(webLib) || !/Number\.isFinite\(seconds\)/.test(webLib))
+    fail(`${WEB_SCREEN} no longer lets go of a clip longer than the contract's cap, or of no length the browser can tell, as soon as its metadata is read.`);
   const ios = strip(read(IOS_VIEW)), iosModel = strip(read(IOS_MODEL));
-  const iosReach = (ios + iosModel).match(/\b(PHPhotoLibrary|PHAssetCreationRequest|UIImageWriteToSavedPhotosAlbum|UIImagePickerController|AVCaptureDevice|FileManager|URLSession|UserDefaults|NSCameraUsageDescription)\b|\.write\(to:/);
-  if (iosReach) fail(`${IOS_VIEW} reaches for ${iosReach[0]}. The photo is chosen with PhotosPicker and held in memory: nothing saves it to the library or a file, sends it, or asks for the camera.`);
-  if (!/PhotosPicker\(/.test(ios)) fail(`${IOS_VIEW} no longer chooses the photo with PhotosPicker, the one way in that needs no permission.`);
+  /* The one place a file is written: the clip's temporary copy, in SkinClipFile, which nothing else in the
+     check's two files may reach around. */
+  const heldAt = ios.indexOf(IOS_HELD);
+  const heldEnd = heldAt < 0 ? -1 : ios.indexOf("\n}\n", heldAt);
+  const iosHeld = heldAt < 0 ? "" : ios.slice(heldAt, heldEnd);
+  const iosOutside = heldAt < 0 ? ios : ios.slice(0, heldAt) + ios.slice(heldEnd);
+  const iosReach = (iosOutside + iosHeld.replace(/FileManager/g, "") + iosModel).match(/\b(PHPhotoLibrary|PHAssetCreationRequest|UIImageWriteToSavedPhotosAlbum|UISaveVideoAtPathToSavedPhotosAlbum|UIImagePickerController|AVCaptureDevice|AVCaptureSession|AVAudioSession|AVAudioRecorder|AVAudioEngine|AVAssetReader|AVAssetWriter|AVAssetExportSession|AVPlayerViewController|VideoPlayer|SFSpeechRecognizer|requestRecordPermission|FileManager|URLSession|UserDefaults|NSCameraUsageDescription|NSMicrophoneUsageDescription)\b|\.write\(to:|import AVFoundation|isMuted = false|withMediaType: \.audio/);
+  if (iosReach) fail(`${IOS_VIEW} reaches for ${iosReach[0]}. The photo is held in memory and the clip's one temporary copy is SkinClipFile's: nothing saves either to the library or another file, sends it, asks for the camera or the microphone, plays a clip with system controls or its sound, or reads its sound.`);
+  if (!/PhotosPicker\(selection: \$picked, matching: \.any\(of: \[\.images, \.videos\]\)/.test(ios)) fail(`${IOS_VIEW} no longer chooses the photo or the clip with PhotosPicker, the one way in that needs no permission.`);
+  const fileCalls = new Set([...iosHeld.matchAll(/FileManager\.default\.(\w+)/g)].map((m) => m[1]));
+  const allowed = new Set(["temporaryDirectory", "copyItem", "removeItem", "setAttributes", "contentsOfDirectory"]);
+  if (heldAt < 0 || [...fileCalls].some((f) => !allowed.has(f)) || !fileCalls.has("removeItem") || !/\.temporaryDirectory\s*\.appendingPathComponent\(prefix/.test(iosHeld) || /\.write\(to:|\bcreateFile|\bmoveItem|\bcreateDirectory|\breplaceItem/.test(iosHeld))
+    fail(`${IOS_VIEW}'s SkinClipFile does more than copy a clip into the temporary folder under the check's prefix, protect it, and delete it: it calls ${[...fileCalls].join(", ") || "nothing"}.`);
+  if (!/withMediaType: \.video/.test(iosHeld) || !/player\.isMuted = true/.test(iosHeld) || !/AVMutableComposition\(\)/.test(iosHeld))
+    fail(`${IOS_VIEW} no longer plays a composition of the clip's picture track alone in a muted player, so its sound would be decoded.`);
+  /* Every way out deletes the copy: removed, refused, replaced, ended, closed, an emergency; and a copy a killed app left is swept. */
+  const letGo = ios.match(/private func letGoOfClip\(\) \{([\s\S]*?)\n    \}/);
+  if (!letGo || !/SkinClipFile\.delete\(clip\?\.url\)/.test(letGo[1])
+      || (ios.match(/letGoOfClip\(\)\s*onEmergency\(says\)/g) ?? []).length !== 2
+      || !/private func end\(\) \{[^}]*letGoOfClip\(\)/.test(ios)
+      || !/\.onDisappear \{[^}]*letGoOfClip\(\); SkinClipFile\.sweep\(\) \}/.test(ios) || !/\.onAppear \{ SkinClipFile\.sweep\(\) \}/.test(ios)
+      || !/if let why = SkinCheck\.clipProblem\(seconds: seconds\) \{ SkinClipFile\.delete\(url\);/.test(ios)
+      || !/seconds > SkinCheckData\.Clip\.maxSeconds/.test(iosModel))
+    fail(`${IOS_VIEW} no longer deletes the clip's temporary copy on every way out — removed, refused for its length, ended, closed, an emergency — or no longer sweeps one a closed app left behind.`);
   const android = strip(read(ANDROID_SCREEN)), androidModel = strip(read(ANDROID_MODEL));
-  const androidReach = (android + androidModel).match(/\b(FileOutputStream|openFileOutput|MediaStore|cacheDir|createTempFile|FileProvider|SharedPreferences|HttpURLConnection|OkHttp\w*|Manifest\.permission\.CAMERA|CaptureVideo)\b|TakePicture\(\)/);
-  if (androidReach) fail(`${ANDROID_SCREEN} reaches for ${androidReach[0]}. The photo comes from the photo picker or the camera's in-memory preview: no file is written, nothing is sent and no permission is declared.`);
-  if (!/PickVisualMedia\.ImageOnly/.test(android) || !/TakePicturePreview\(\)/.test(android)) fail(`${ANDROID_SCREEN} no longer takes the photo from the image-only picker and the in-memory camera preview.`);
+  const androidReach = (android + androidModel).match(/\b(FileOutputStream|openFileOutput|MediaStore|cacheDir|createTempFile|FileProvider|SharedPreferences|HttpURLConnection|OkHttp\w*|Manifest\.permission\.(CAMERA|RECORD_AUDIO)|RECORD_AUDIO|CaptureVideo|MediaRecorder|AudioRecord|MediaController|setMediaController|MediaExtractor|MediaCodec|AudioTrack|Visualizer|SpeechRecognizer|ExoPlayer|requestAudioFocus)\b|TakePicture\(\)|ImageOnly/);
+  if (androidReach) fail(`${ANDROID_SCREEN} reaches for ${androidReach[0]}. The photo comes from the picker or the camera's in-memory preview and the clip from the picker's own address: no file is written, nothing is sent, no permission is asked for, and a clip's sound is never played, controlled or read.`);
+  if (!/PickVisualMedia\.ImageAndVideo/.test(android) || !/TakePicturePreview\(\)/.test(android)) fail(`${ANDROID_SCREEN} no longer takes the photo or the clip from the picker and the photo from the in-memory camera preview.`);
+  if (!/setAudioFocusRequest\(AudioManager\.AUDIOFOCUS_NONE\)/.test(android) || !/setOnPreparedListener \{ media -> media\.setVolume\(0f, 0f\)/.test(android) || /setVolume\((?!0f, 0f)/.test(android) || !/onRelease = \{ view -> view\.stopPlayback\(\)/.test(android))
+    fail(`${ANDROID_SCREEN} no longer plays the clip at zero volume without taking audio focus, or no longer stops the player when the clip goes.`);
+  if (!/SkinCheck\.clipProblem\(clipLength\(context, uri\)\)/.test(android) || !/millis > SkinCheckData\.Clip\.maxSeconds \* 1000L/.test(androidModel)
+      || !/fun handOver\(words: String\) \{[^}]*holdClip\(null\)/.test(android) || !/photo = null; holdClip\(null\); answers = emptyMap\(\)/.test(android))
+    fail(`${ANDROID_SCREEN} no longer refuses a clip over the contract's cap or of unknown length before holding it, or no longer lets it go on an emergency or when the check ends.`);
 
   /* ---- 4. The screens say the contract's words and decide nothing ---------------------------------- */
   /* Text between tags that reads like a phrase — two words, none of the punctuation code carries — is a
@@ -216,7 +288,9 @@ export function checkSkinCheck({ read, stems, hasSequence, existsSync }) {
   const journey = "tests/skin-check.spec.ts";
   if (!existsSync(journey) || !/setInputFiles/.test(read(journey)) || /test\.skip|testInfo\.project/.test(read(journey)))
     fail(`${journey} no longer chooses a photo, or skips a viewport. The journey runs on both.`);
+  if (!/mimeType: "video\/webm"/.test(read(journey)) || !/skin\.clip\.tooLong/.test(read(journey)) || !/\.muted/.test(read(journey)))
+    fail(`${journey} no longer chooses a clip, holds that it plays muted, and refuses one over the cap.`);
   if (!/skin-check\.json/.test(read("docs/FEATURE-MAP.md"))) fail("docs/FEATURE-MAP.md has no row for the skin check.");
 
-  return `Skin check · ${contract.questions.length} questions and ${contract.rules.length} rules from ${SKIN}, ${emergencyOptions.size} emergency rules each handing the conversation an option its own emergency terms raise and no other option raising them; ${named.size} knowledge entries named, every option that names entries naming at least two, every added entry awaiting clinical review; no digit and no you-have sentence addressed to the patient; the photo held in memory on all three platforms — one object URL revoked by its own clean-up, no capture attribute, no storage, no request and no reader on the web, PhotosPicker and no save on iOS, the picker and the in-memory preview and no file on Android — and the photo reader refused everywhere with no route; the screens type no sentence, show the review state and decide nothing; the web screen behind the panel's dynamic import; generator, project, journey and map row in place.`;
+  return `Skin check · ${contract.questions.length} questions and ${contract.rules.length} rules from ${SKIN}, ${emergencyOptions.size} emergency rules each handing the conversation an option its own emergency terms raise and no other option raising them; ${named.size} knowledge entries named, every option that names entries naming at least two, every added entry awaiting clinical review; no digit and no you-have sentence addressed to the patient; the photo held in memory on all three platforms — one object URL revoked by its own clean-up, no capture attribute, no storage, no request and no reader on the web, PhotosPicker and no save on iOS, the picker and the in-memory preview and no file on Android — and a clip of at most ${clip.maxSeconds} seconds ("${inWords(clip.maxSeconds)} seconds" in its sentence) held the same way, muted with no audio control and no sound read anywhere: one muted video element through the same URL hook on the web, one temporary copy deleted on every way out and the picture track alone on iOS, the picker's address at zero volume and no file on Android; the photo reader refused everywhere with no route; the screens type no sentence, show the review state and decide nothing; the web screen behind the panel's dynamic import; generator, project, journey and map row in place.`;
 }

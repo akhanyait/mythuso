@@ -682,6 +682,11 @@ export function emitClinicalReviewPack(root = '') {
   line();
   line(`From \`packages/catalog/skin-check.json\`. ${skin.whatItIsNot.join(' ')} "${skin.order.rule}"`);
   line();
+  /* 2 October 2026: a short clip beside the photo, on the founder's decision. */
+  if (skin.clip) {
+    line(`**A short clip** may be shown instead of the photo or beside it, no longer than ${skin.clip.maxSeconds} seconds (\`clip.maxSeconds\`), held as the photo is and read by nothing. The patient reads: "${skin.clip.sound}" A longer clip is refused: "${skin.clip.tooLong}" **Question for the reviewer:** is a clip of that length enough to show a nurse what a rash does — spreading under a stretch, welts that come and go — and does a clip add anything a nurse would want that a photo does not?`);
+    line();
+  }
   line('| Question | Kind | Options, and the entries an option names |');
   line('|---|---|---|');
   for (const q of skin.questions) line(`| ${cell(q.ask)} (${tick(q.id)}) | ${cell(q.kind)} | ${(q.options ?? []).map(o => o.oftenSeenIn ? `${cell(o.label)} — ${named(o.oftenSeenIn)}` : cell(o.label)).join('; ')} |`);

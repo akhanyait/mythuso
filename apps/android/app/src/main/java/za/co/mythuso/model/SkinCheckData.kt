@@ -2,15 +2,15 @@
 // Do not edit by hand — run `npm run skin-check`. The build fails if this file and its sources
 // disagree, so an edit here is lost rather than merely wrong.
 //
-// General information from public health sources, not reviewed by a clinician yet. No photo is
-// read by anything on any platform; see photoReading.
+// General information from public health sources, not reviewed by a clinician yet. No photo or
+// clip is read by anything on any platform; see photoReading. A clip plays without its sound.
 
 package za.co.mythuso.model
 
 object SkinCheckData {
-    const val version = 1
+    const val version = 2
     const val chipLabel = "Show GilbertOne a rash"
-    val whatItIsNot = listOf("GilbertOne does not look at your photo. Nothing reads it in this build — it is there for you to compare later and to show your nurse.", "GilbertOne will not say what your rash is. Only a nurse or doctor who sees it can say what yours is.", "Nothing here is a prescription. The care steps are general first aid from public health sources.")
+    val whatItIsNot = listOf("GilbertOne does not look at your photo or your clip. Nothing reads them in this build — they are there for you to compare later and to show your nurse.", "GilbertOne will not say what your rash is. Only a nurse or doctor who sees it can say what yours is.", "Nothing here is a prescription. The care steps are general first aid from public health sources.")
     val required = listOf("who", "signs")
 
     object Review {
@@ -23,30 +23,42 @@ object SkinCheckData {
 
     object Screen {
         const val title = "Show GilbertOne a rash"
-        const val lead = "Take or choose a photo of the skin and answer a few set questions. GilbertOne will tell you what public health sources say about rashes like this, and whether a sign means a sister should see it today."
+        const val lead = "Take or choose a photo or a short clip of the skin and answer a few set questions. GilbertOne will tell you what public health sources say about rashes like this, and whether a sign means a sister should see it today."
         const val backLabel = "Back to the conversation"
         const val seeLabel = "See what GilbertOne can tell you"
         const val changeLabel = "Change my answers"
         const val endLabel = "End the check"
-        const val ended = "The check has ended. The photo is gone from this screen and nothing was kept."
+        const val ended = "The check has ended. The photo and the clip are gone from this screen and nothing was kept."
         const val multiHint = "Choose all that fit."
         const val textHint = "In your own words, or leave it empty."
         const val missing = "Answer who the rash is on and the question about signs first. Those two decide what GilbertOne may show you."
     }
 
     object Photo {
-        const val chooseLabel = "Choose a photo"
+        const val chooseLabel = "Choose a photo or a short clip"
         const val takeLabel = "Take a photo"
-        const val replaceLabel = "Choose a different photo"
+        const val replaceLabel = "Choose another photo or clip"
         const val removeLabel = "Remove the photo"
         const val alt = "Your photo of the skin, held on this phone only"
-        const val held = "Your photo stays on this phone, on this screen only. It is not uploaded, not saved and not sent to anyone, and it is gone when the check ends."
-        const val noReader = "Nothing looks at your photo in this build — not GilbertOne, not a computer program and not a person at MyThuso."
-        const val videoRefused = "Video is not taken here. A video carries sound, and this build records no sound outside the push-to-talk the founder approved; a still photo shows a rash just as well to your nurse."
-        const val notImage = "Choose a photo. Other kinds of file are not taken here."
+        const val held = "Your photo or clip stays on this phone, on this screen only. It is not uploaded, not saved and not sent to anyone, and it is gone when the check ends."
+        const val noReader = "Nothing looks at your photo or your clip in this build — not GilbertOne, not a computer program and not a person at MyThuso."
+        const val notImage = "Choose a photo or a short clip. Other kinds of file are not taken here."
         /** From packages/catalog/assistant-chat-ui.json#attachments, the panel's own limit. */
         const val limitBytes = 10485760
         const val tooLarge = "Choose a file smaller than 10 MB."
+    }
+
+    /** A short clip, since the founder's decision of 2 October 2026: muted, no longer than maxSeconds. */
+    object Clip {
+        const val maxSeconds = 15
+        const val label = "Your short clip of the skin, held on this phone only, playing without sound"
+        const val playLabel = "Play the clip"
+        const val pauseLabel = "Pause the clip"
+        const val removeLabel = "Remove the clip"
+        const val sound = "The clip plays with its sound off, and there is no control to turn it on. The sound is not played or used — nothing listens to it, writes it down or sends it."
+        const val tooLong = "That clip is longer than fifteen seconds, so it is not taken here. Choose a shorter one, or trim it on your phone first."
+        const val lengthUnknown = "This clip does not say how long it is, so it is not taken here. Choose another, or a photo."
+        const val cannotPlay = "This phone cannot play that clip here, so it is not taken. Choose another, or a photo."
     }
 
     object SisterToday {
@@ -78,6 +90,7 @@ object SkinCheckData {
         /** "{question}" and "{answer}" are filled by the screen. */
         const val line = "{question}: {answer}"
         const val photoLine = "A photo is on your phone only. Show it to your sister at the visit."
+        const val clipLine = "A short clip is on your phone only. Show it to your sister at the visit."
         const val copyLabel = "Copy the notes"
         const val copiedLabel = "Copied"
         const val sendLead = "Sending these notes to a nurse from here is not built."

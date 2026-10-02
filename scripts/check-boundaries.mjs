@@ -17562,6 +17562,15 @@ for (const file of files("apps/web/src").filter((f) => /\.(ts|tsx)$/.test(f))) {
       "",
     );
   }
+  /* Narrowed on 2 October 2026, when the founder said yes to a short clip in the skin check. Its one input
+     may ask for a video, and only that input, in that file, with no capture attribute: what a clip may be
+     there — muted with no audio control, its sound never read, never stored or sent, no longer than the
+     contract's cap, its object URL revoked — is held by scripts/check-skin-check.mjs. Every other web
+     surface is still refused audio and video, and no surface is offered audio. */
+  if (file === "apps/web/src/features/SkinCheck.tsx")
+    code = code.replace(/<input\b[\s\S]*?\/>/g, (input) =>
+      /\baccept="image\/\*,video\/\*"/.test(input) && !/\bcapture\b/.test(input) ? "" : input,
+    );
   const picker = code.match(
     /<input\b[^>]*\bcapture\b[^>]*>|accept\s*[=:]\s*[{'"`][^}'"`]*\b(audio|video)\b/,
   );

@@ -66,12 +66,25 @@
   justify-items: start;
   margin: 0;
 }
-.sk-preview img {
+.sk-preview img,
+.sk-clip {
   display: block;
   max-width: 100%;
   max-height: 240px;
   border-radius: var(--r-control);
   object-fit: contain;
+}
+/* A clip is held out of sight until its length has been read; `hidden` alone loses to the grid above. */
+.sk-preview[hidden] {
+  display: none;
+}
+.sk-clip {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+.sk-clip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
 }
 .sk-chips {
   display: flex;

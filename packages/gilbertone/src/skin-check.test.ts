@@ -88,4 +88,7 @@ test("the notes carry each answer beside its question and the photo line, never 
   const rows = skinSummaryRows({ who: ["self"], looks: ["welts", "dots"], signs: ["none"] }, "a new soap", true);
   assert.deepEqual(rows.map((r) => r.value), ["On me", "Raised bumps or welts, Small dots or pin-pricks", "None of these", "a new soap", skinContract.summary.photoLine]);
   assert.equal(skinReviewSentence(), skinContract.review.unreviewed);
+  /* A clip held beside the photo is a line of its own, after the photo's; a clip alone is its line alone. */
+  assert.deepEqual(skinSummaryRows({ who: ["self"] }, "", true, true).map((r) => r.value), ["On me", skinContract.summary.photoLine, skinContract.summary.clipLine]);
+  assert.deepEqual(skinSummaryRows({ who: ["self"] }, "", false, true).map((r) => r.value), ["On me", skinContract.summary.clipLine]);
 });

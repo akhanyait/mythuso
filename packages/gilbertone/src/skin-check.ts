@@ -13,8 +13,8 @@ import { hasSequence, stems } from "./stems.ts";
    knowledge entries that outcome shows, and the notes a patient carries to the visit. Three
    outcomes, decided only by the contract's rules — the conversation's emergency answer, a sign that
    public first-aid guidance says should be seen today, or general information about rashes that
-   look like hers. The photo is not here and never could be: this package has no way to read one,
-   and the check's photo lives in the screen's memory on each platform until the check ends.
+   look like hers. The photo and the clip are not here and never could be: this package has no way to
+   read either, and each lives with the screen on its platform until the check ends.
 
    THE ORDER IS THE SAFETY PROPERTY, as it is for the intake. Words she typed are asked of the
    emergency matcher before anything else reads them — the emergency terms by the conversation's own
@@ -224,9 +224,9 @@ export function pressSkinOption(answers: SkinAnswers, questionId: string, option
 }
 
 /* The notes for the sister: one row per answered question in the contract's order, the options'
-   labels joined, the typed answer as typed, and the photo line when a photo is held — never the
-   photo. */
-export function skinSummaryRows(answers: SkinAnswers, typed = "", photoHeld = false): SkinSummaryRow[] {
+   labels joined, the typed answer as typed, and the photo line when a photo is held and the clip line
+   when a clip is — never the photo or the clip. */
+export function skinSummaryRows(answers: SkinAnswers, typed = "", photoHeld = false, clipHeld = false): SkinSummaryRow[] {
   const rows: SkinSummaryRow[] = [];
   for (const question of contract.questions) {
     const value =
@@ -236,6 +236,7 @@ export function skinSummaryRows(answers: SkinAnswers, typed = "", photoHeld = fa
     if (value) rows.push({ label: question.ask, value, line: fill(contract.summary.line, { question: question.ask, answer: value }) });
   }
   if (photoHeld) rows.push({ label: "", value: contract.summary.photoLine, line: contract.summary.photoLine });
+  if (clipHeld) rows.push({ label: "", value: contract.summary.clipLine, line: contract.summary.clipLine });
   return rows;
 }
 

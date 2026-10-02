@@ -5,7 +5,10 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.media.AudioManager
+import android.media.MediaMetadataRetriever
 import android.net.Uri
+import android.widget.VideoView
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -19,7 +22,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -33,6 +39,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import za.co.mythuso.model.SkinCheck
 import za.co.mythuso.model.SkinCheckData
 import za.co.mythuso.model.SkinFirstAidEntry
@@ -52,6 +59,15 @@ import za.co.mythuso.ui.components.ThusoCard
  * limit and decoded; nothing is copied, saved, sent or read for meaning. Removing it, ending the check,
  * closing the screen or an emergency all let it go.
  *
+ * A CLIP (the founder's decision of 2 October 2026) comes from the same picker, which offers photos and
+ * clips. Nothing copies it: the picker hands back an address this activity may read while it is open,
+ * its length is read from its metadata — the one thing read about it — and one longer than the
+ * contract's cap, or of no length the player can tell, is let go with the contract's sentence. It plays
+ * in the system's VideoView at zero volume, without asking for audio focus, so it neither sounds nor
+ * pauses anything she is listening to, and with no MediaController, whose bar has the volume; play and
+ * pause are this screen's own buttons. Its sound is not recorded, read or sent by anything. The camera's
+ * video capture is not offered: it needs a file shared with the camera app, which records sound into it.
+ *
  * THE ANSWERS reach an outcome only through SkinCheck.outcome, the arithmetic every platform shares by
  * fixture. A pressed sign that raises an emergency rule, or typed words the emergency terms raise, hand
  * the words to the conversation at once (onEmergency): its own emergency answer is the one she reads.
@@ -62,14 +78,22 @@ import za.co.mythuso.ui.components.ThusoCard
     var answers by remember { mutableStateOf<Map<String, List<String>>>(emptyMap()) }
     var typed by remember { mutableStateOf("") }
     var photo by remember { mutableStateOf<Bitmap?>(null) }
+    var clip by remember { mutableStateOf<Uri?>(null) }
+    var playing by remember { mutableStateOf(false) }
+    var player by remember { mutableStateOf<VideoView?>(null) }
     var problem by remember { mutableStateOf("") }
     var outcome by remember { mutableStateOf<SkinOutcome?>(null) }
     var ended by remember { mutableStateOf(false) }
     var copied by remember { mutableStateOf(false) }
-    DisposableEffect(Unit) { onDispose { photo = null } }
+    fun holdClip(next: Uri?) { clip = next; playing = false }
+    DisposableEffect(Unit) { onDispose { photo = null; clip = null } }
 
     val choose = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) {
+        if (uri != null && context.contentResolver.getType(uri)?.startsWith("video/") == true) {
+            val why = SkinCheck.clipProblem(clipLength(context, uri))
+            problem = why ?: ""
+            if (why == null) holdClip(uri)
+        } else if (uri != null) {
             val (image, why) = loadPhoto(context, uri)
             problem = why
             if (image != null) photo = image
@@ -78,7 +102,7 @@ import za.co.mythuso.ui.components.ThusoCard
     val take = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { image ->
         if (image != null) { problem = ""; photo = image }
     }
-    fun handOver(words: String) { photo = null; onEmergency(words) }
+    fun handOver(words: String) { photo = null; holdClip(null); onEmergency(words) }
     fun press(questionId: String, optionId: String) {
         val next = SkinCheck.press(answers, questionId, optionId)
         val now = SkinCheck.outcome(next)
@@ -92,7 +116,7 @@ import za.co.mythuso.ui.components.ThusoCard
             .padding(horizontal = ThusoSpacing.space20, vertical = ThusoSpacing.space16),
         verticalArrangement = Arrangement.spacedBy(ThusoSpacing.space16)
     ) {
-        ThusoButton(SkinCheckData.Screen.backLabel, onClick = { photo = null; onBack() }, variant = ThusoButtonVariant.Ghost, leadingIcon = Icons.AutoMirrored.Filled.ArrowBack)
+        ThusoButton(SkinCheckData.Screen.backLabel, onClick = { photo = null; holdClip(null); onBack() }, variant = ThusoButtonVariant.Ghost, leadingIcon = Icons.AutoMirrored.Filled.ArrowBack)
         Text(SkinCheckData.Screen.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold, color = theme.foreground, modifier = Modifier.semantics { heading() })
         SkPara(SkinCheckData.Screen.lead)
         SkinCheckData.whatItIsNot.forEach { SkBullet(it) }
@@ -103,8 +127,8 @@ import za.co.mythuso.ui.components.ThusoCard
         }
         ThusoCard(gap = ThusoSpacing.space8) {
             ThusoButton(SkinCheckData.Photo.takeLabel, onClick = { take.launch(null) }, variant = ThusoButtonVariant.Secondary, leadingIcon = Icons.Outlined.CameraAlt, modifier = Modifier.fillMaxWidth())
-            ThusoButton(if (photo == null) SkinCheckData.Photo.chooseLabel else SkinCheckData.Photo.replaceLabel,
-                onClick = { choose.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+            ThusoButton(if (photo == null && clip == null) SkinCheckData.Photo.chooseLabel else SkinCheckData.Photo.replaceLabel,
+                onClick = { choose.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) },
                 variant = ThusoButtonVariant.Secondary, leadingIcon = Icons.Outlined.PhotoLibrary, modifier = Modifier.fillMaxWidth())
             if (problem.isNotEmpty()) SkPara(problem)
             photo?.let { image ->
@@ -112,9 +136,33 @@ import za.co.mythuso.ui.components.ThusoCard
                     modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp).clip(RoundedCornerShape(ThusoRadius.control)))
                 ThusoButton(SkinCheckData.Photo.removeLabel, onClick = { photo = null }, variant = ThusoButtonVariant.Ghost)
             }
+            clip?.let { address ->
+                key(address) {
+                    AndroidView(
+                        factory = { viewContext ->
+                            VideoView(viewContext).apply {
+                                setAudioFocusRequest(AudioManager.AUDIOFOCUS_NONE)
+                                setOnPreparedListener { media -> media.setVolume(0f, 0f); media.isLooping = true }
+                                setOnErrorListener { _, _, _ -> holdClip(null); problem = SkinCheckData.Clip.cannotPlay; true }
+                                setVideoURI(address)
+                                player = this
+                            }
+                        },
+                        onRelease = { view -> view.stopPlayback(); if (player === view) player = null },
+                        modifier = Modifier.fillMaxWidth().height(240.dp).clip(RoundedCornerShape(ThusoRadius.control))
+                            .semantics { contentDescription = SkinCheckData.Clip.label }
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(ThusoSpacing.space8)) {
+                    ThusoButton(if (playing) SkinCheckData.Clip.pauseLabel else SkinCheckData.Clip.playLabel, onClick = {
+                        player?.let { view -> if (playing) view.pause() else view.start(); playing = !playing }
+                    }, variant = ThusoButtonVariant.Secondary, leadingIcon = if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow)
+                    ThusoButton(SkinCheckData.Clip.removeLabel, onClick = { holdClip(null) }, variant = ThusoButtonVariant.Ghost, leadingIcon = Icons.Outlined.Close)
+                }
+            }
             SkNote(SkinCheckData.Photo.held)
             SkNote(SkinCheckData.Photo.noReader)
-            SkNote(SkinCheckData.Photo.videoRefused)
+            SkNote(SkinCheckData.Clip.sound)
         }
         if (!shown) SkinCheckData.questions.forEach { question ->
             SkQuestionCard(question, answers[question.id] ?: emptyList(), typed, { typed = it }) { press(question.id, it) }
@@ -126,7 +174,7 @@ import za.co.mythuso.ui.components.ThusoCard
             else -> Unit
         }
         if (shown) {
-            val lines = SkinCheck.summary(answers, typed, photo != null)
+            val lines = SkinCheck.summary(answers, typed, photo != null, clip != null)
             ThusoCard(gap = ThusoSpacing.space8) {
                 Text(SkinCheckData.Summary.title, style = MaterialTheme.typography.titleMedium, color = theme.foreground, modifier = Modifier.semantics { heading() })
                 lines.forEach { SkBullet(it) }
@@ -146,7 +194,7 @@ import za.co.mythuso.ui.components.ThusoCard
             }, modifier = Modifier.fillMaxWidth())
         }
         ThusoButton(SkinCheckData.Screen.endLabel, onClick = {
-            photo = null; answers = emptyMap(); typed = ""; outcome = null; problem = ""; ended = true
+            photo = null; holdClip(null); answers = emptyMap(); typed = ""; outcome = null; problem = ""; ended = true
         }, variant = ThusoButtonVariant.Ghost, modifier = Modifier.fillMaxWidth())
         SkNote(SkinCheckData.photoReading)
     }
@@ -169,6 +217,18 @@ private fun loadPhoto(context: Context, uri: Uri): Pair<Bitmap?, String> {
     val image = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null to SkinCheckData.Photo.notImage
     return image to ""
 }
+
+/* A clip's length in milliseconds from its own metadata, or null when it carries none or cannot be read.
+   Nothing else of the clip is read: not a frame, not its sound. */
+private fun clipLength(context: Context, uri: Uri): Long? = runCatching {
+    val retriever = MediaMetadataRetriever()
+    try {
+        retriever.setDataSource(context, uri)
+        retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
+    } finally {
+        retriever.release()
+    }
+}.getOrNull()
 
 @Composable private fun SkQuestionCard(question: SkinQuestion, chosen: List<String>, typed: String, onTyped: (String) -> Unit, press: (String) -> Unit) {
     ThusoCard(gap = ThusoSpacing.space8) {

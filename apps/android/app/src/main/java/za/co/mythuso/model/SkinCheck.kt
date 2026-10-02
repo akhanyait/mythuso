@@ -11,7 +11,7 @@ package za.co.mythuso.model
  * options it names — and general information lists the entries the chosen options name, most-named
  * first, a tie going to the lower id, at most maxShown of them.
  *
- * It never sees the photo, names no rash, sets no priority and composes no sentence. Its emergency
+ * It never sees the photo or the clip — all it is told of a clip is its length — names no rash, sets no priority and composes no sentence. Its emergency
  * matcher is the conversation's own: the term list, then the escalation ruleset (Escalation.kt,
  * generated from escalation.ts since 2 October 2026), as the web's skinEmergency. A JVM test
  * (SkinCheckFixturesTest) runs the contract's fixtures. */
@@ -108,13 +108,21 @@ object SkinCheck {
         return answers + (questionId to next)
     }
 
-    /** The notes for the sister: one line per answered question, and the photo line — never the photo. */
-    fun summary(answers: Map<String, List<String>>, typed: String, photoHeld: Boolean): List<String> {
+    /** The notes for the sister: one line per answered question, and the photo and clip lines — never either. */
+    fun summary(answers: Map<String, List<String>>, typed: String, photoHeld: Boolean, clipHeld: Boolean = false): List<String> {
         val lines = SkinCheckData.questions.mapNotNull { q ->
             val value = if (q.kind == "text") typed.trim() else (answers[q.id] ?: emptyList()).joinToString(", ") { label(q.id, it) }
             if (value.isEmpty()) null else fill(SkinCheckData.Summary.line, mapOf("question" to q.ask, "answer" to value))
         }
-        return if (photoHeld) lines + SkinCheckData.Summary.photoLine else lines
+        return lines + listOfNotNull(SkinCheckData.Summary.photoLine.takeIf { photoHeld }, SkinCheckData.Summary.clipLine.takeIf { clipHeld })
+    }
+
+    /** Why a clip this many milliseconds long is not taken, or null: an unknown length is refused, never
+     *  guessed, and one over the contract's cap is refused, never cut — as the web's clipLengthProblem. */
+    fun clipProblem(millis: Long?): String? = when {
+        millis == null || millis <= 0 -> SkinCheckData.Clip.lengthUnknown
+        millis > SkinCheckData.Clip.maxSeconds * 1000L -> SkinCheckData.Clip.tooLong
+        else -> null
     }
 
     val reviewSentence: String

@@ -11,8 +11,8 @@ import Foundation
    question includes one of the options it names — and general information lists the entries the
    chosen options name, most-named first, a tie going to the lower id, at most maxShown of them.
 
-   What it does not do is as deliberate. It never sees the photo: the screen holds that, in memory,
-   and lets it go when the check ends. It names no rash, sets no priority and composes no sentence.
+   What it does not do is as deliberate. It never sees the photo or the clip: the screen holds those
+   and lets them go when the check ends, and all it is told of a clip is its length in seconds. It names no rash, sets no priority and composes no sentence.
    And its emergency matcher is the conversation's own: the term list, then the escalation ruleset
    (Escalation.swift, generated from escalation.ts since 2 October 2026), as the web's skinEmergency. */
 
@@ -194,8 +194,8 @@ enum SkinCheck {
         return out
     }
 
-    /// The notes for the sister: one line per answered question, and the photo line — never the photo.
-    static func summary(_ answers: Answers, typed: String, photoHeld: Bool) -> [String] {
+    /// The notes for the sister: one line per answered question, and the photo and clip lines — never either.
+    static func summary(_ answers: Answers, typed: String, photoHeld: Bool, clipHeld: Bool = false) -> [String] {
         var lines: [String] = []
         for question in SkinCheckData.questions {
             let value = question.kind == "text"
@@ -204,7 +204,15 @@ enum SkinCheck {
             if !value.isEmpty { lines.append(fill(SkinCheckData.Summary.line, ["question": question.ask, "answer": value])) }
         }
         if photoHeld { lines.append(SkinCheckData.Summary.photoLine) }
+        if clipHeld { lines.append(SkinCheckData.Summary.clipLine) }
         return lines
+    }
+
+    /// Why a clip of this many seconds is not taken, or nil: an unknown length is refused, never guessed,
+    /// and one over the contract's cap is refused, never cut — as the web's clipLengthProblem.
+    static func clipProblem(seconds: Double) -> String? {
+        guard seconds.isFinite, seconds > 0 else { return SkinCheckData.Clip.lengthUnknown }
+        return seconds > SkinCheckData.Clip.maxSeconds ? SkinCheckData.Clip.tooLong : nil
     }
 
     static var reviewSentence: String {

@@ -45,4 +45,15 @@ class SkinCheckFixturesTest {
             assertTrue(rule.id, Gilbert.emergencyGroups((outcome as SkinOutcome.Emergency).says).isNotEmpty())
         }
     }
+
+    /* A clip at the cap is taken; a millisecond over is refused, never cut; a clip of no length the
+       player can tell is refused, never guessed. The notes carry its line after the photo's. */
+    @Test fun aClipIsHeldToTheContractsLength() {
+        val cap = SkinCheckData.Clip.maxSeconds * 1000L
+        assertEquals(null, SkinCheck.clipProblem(cap))
+        assertEquals(SkinCheckData.Clip.tooLong, SkinCheck.clipProblem(cap + 1))
+        assertEquals(SkinCheckData.Clip.lengthUnknown, SkinCheck.clipProblem(null))
+        assertEquals(SkinCheckData.Clip.lengthUnknown, SkinCheck.clipProblem(0))
+        assertEquals(listOf(SkinCheckData.Summary.photoLine, SkinCheckData.Summary.clipLine), SkinCheck.summary(emptyMap(), "", photoHeld = true, clipHeld = true))
+    }
 }

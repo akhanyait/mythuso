@@ -1,6 +1,8 @@
+import AVKit
 import PhotosUI
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 /* Show GilbertOne a rash, on iPhone — ported from apps/web/src/features/SkinCheck.tsx and opened from
    GilbertOne's suggestions (AssistantView.swift) as a sheet.
@@ -11,6 +13,19 @@ import UIKit
    photo is loaded into memory as an image and held in this view's state only: nothing writes it to the
    photo library, to a file or to anywhere else, nothing sends it, and nothing reads it. Removing it,
    ending the check, closing the sheet or an emergency all let it go.
+
+   A CLIP (the founder's decision of 2 October 2026) comes from the same picker. PhotosPicker hands a
+   video over as a file that lasts only while it is being received, so SkinClipFile copies it once into
+   the app's own temporary folder — the one file this feature writes, protected until the phone is
+   unlocked — and deletes it on every way out: removed, replaced, refused, the check ended, the sheet
+   closed, an emergency. A copy a killed app left behind is swept when the check next opens or closes.
+   Its length is read and one over the contract's cap, or of no length, is deleted with the contract's
+   sentence. What plays is a composition of the clip's picture track alone, so its sound track is never
+   decoded, in a muted player drawn by a bare AVPlayerLayer — no system controls, which carry a volume;
+   play and pause are this screen's own buttons. AVKit is imported for the picture; AVFoundation is not
+   imported by name, because the build keeps that import to GilbertVoice.swift, where the microphone
+   lives, and still reads this file for any audio session, recorder or recogniser. No camera or
+   microphone usage description is declared.
 
    THE ANSWERS reach an outcome only through SkinCheck.outcome, the arithmetic every platform shares by
    fixture. A pressed sign that raises an emergency rule, or typed words the emergency terms raise, hand
@@ -27,6 +42,8 @@ struct SkinCheckView: View {
     @State private var typed = ""
     @State private var picked: PhotosPickerItem?
     @State private var photo: UIImage?
+    @State private var clip: HeldClip?
+    @State private var playing = false
     @State private var problem = ""
     @State private var outcome: SkinCheck.Outcome?
     @State private var ended = false
@@ -69,11 +86,17 @@ struct SkinCheckView: View {
         .navigationTitle(SkinCheckData.Screen.title).navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button(SkinCheckData.Screen.backLabel) { photo = nil; onBack() }
+                Button(SkinCheckData.Screen.backLabel) { photo = nil; letGoOfClip(); onBack() }
             }
         }
         .onChange(of: picked) { _, item in load(item) }
-        .onDisappear { photo = nil; picked = nil }
+        .onReceive(NotificationCenter.default.publisher(for: AVPlayerItem.didPlayToEndTimeNotification)) { note in
+            guard let clip, (note.object as? AVPlayerItem) === clip.player.currentItem else { return }
+            clip.player.seek(to: .zero)
+            playing = false
+        }
+        .onAppear { SkinClipFile.sweep() }
+        .onDisappear { photo = nil; picked = nil; letGoOfClip(); SkinClipFile.sweep() }
     }
 
     // MARK: - Pieces
@@ -90,8 +113,8 @@ struct SkinCheckView: View {
 
     private var photoCard: some View {
         ThusoCard(padding: .sm, spacing: ThusoSpacing.space8) {
-            PhotosPicker(selection: $picked, matching: .images, photoLibrary: .shared()) {
-                Label(photo == nil ? SkinCheckData.Photo.chooseLabel : SkinCheckData.Photo.replaceLabel, systemImage: "photo")
+            PhotosPicker(selection: $picked, matching: .any(of: [.images, .videos]), photoLibrary: .shared()) {
+                Label(photo == nil && clip == nil ? SkinCheckData.Photo.chooseLabel : SkinCheckData.Photo.replaceLabel, systemImage: "photo")
                     .frame(maxWidth: .infinity, minHeight: 44)
             }
             .buttonStyle(ThusoButtonStyle(.secondary, size: .md, fullWidth: true))
@@ -103,10 +126,22 @@ struct SkinCheckView: View {
                 Button(SkinCheckData.Photo.removeLabel) { self.photo = nil; picked = nil }
                     .buttonStyle(ThusoButtonStyle(.ghost, size: .md))
             }
+            if let clip {
+                MutedClipView(player: clip.player).frame(maxWidth: .infinity).frame(height: 240)
+                    .clipShape(RoundedRectangle(cornerRadius: ThusoRadius.control, style: .continuous))
+                    .accessibilityElement().accessibilityLabel(SkinCheckData.Clip.label)
+                HStack(spacing: ThusoSpacing.space8) {
+                    Button(playing ? SkinCheckData.Clip.pauseLabel : SkinCheckData.Clip.playLabel) { toggle(clip.player) }
+                        .buttonStyle(ThusoButtonStyle(.secondary, size: .md))
+                    Button(SkinCheckData.Clip.removeLabel) { letGoOfClip() }
+                        .buttonStyle(ThusoButtonStyle(.ghost, size: .md))
+                }
+            }
             note(SkinCheckData.Photo.howOnThisPhone)
             note(SkinCheckData.Photo.held)
+            note(SkinCheckData.Clip.howOnThisPhone)
             note(SkinCheckData.Photo.noReader)
-            note(SkinCheckData.Photo.videoRefused)
+            note(SkinCheckData.Clip.sound)
         }
     }
 
@@ -202,7 +237,7 @@ struct SkinCheckView: View {
     }
 
     private var notes: some View {
-        let lines = SkinCheck.summary(answers, typed: typed, photoHeld: photo != nil)
+        let lines = SkinCheck.summary(answers, typed: typed, photoHeld: photo != nil, clipHeld: clip != nil)
         return ThusoCard(padding: .sm, spacing: ThusoSpacing.space8) {
             Text(SkinCheckData.Summary.title).font(.thuso(.headline)).foregroundStyle(ThusoRole.foreground)
                 .accessibilityAddTraits(.isHeader)
@@ -259,6 +294,15 @@ struct SkinCheckView: View {
        reference to it either. */
     private func load(_ item: PhotosPickerItem?) {
         guard let item else { return }
+        if item.supportedContentTypes.contains(where: { $0.conforms(to: .movie) }) {
+            Task { @MainActor in
+                let received = try? await item.loadTransferable(type: PickedClip.self)
+                picked = nil
+                guard let received else { problem = SkinCheckData.Clip.cannotPlay; return }
+                await hold(received.url)
+            }
+            return
+        }
         Task {
             let data = try? await item.loadTransferable(type: Data.self)
             await MainActor.run {
@@ -271,10 +315,40 @@ struct SkinCheckView: View {
         }
     }
 
+    /* The clip's length first, and then a player for its picture track alone. A clip refused for either
+       is deleted at once; a clip taken replaces, and deletes, the one before it. */
+    @MainActor private func hold(_ url: URL) async {
+        let asset = AVURLAsset(url: url)
+        let seconds = (try? await asset.load(.duration)).map(CMTimeGetSeconds) ?? .nan
+        if let why = SkinCheck.clipProblem(seconds: seconds) { SkinClipFile.delete(url); problem = why; return }
+        guard let player = await SkinClipFile.pictureOnly(asset) else {
+            SkinClipFile.delete(url)
+            problem = SkinCheckData.Clip.cannotPlay
+            return
+        }
+        letGoOfClip()
+        problem = ""
+        clip = HeldClip(url: url, player: player)
+    }
+
+    private func toggle(_ player: AVPlayer) {
+        player.isMuted = true
+        if playing { player.pause() } else { player.play() }
+        playing.toggle()
+    }
+
+    private func letGoOfClip() {
+        clip?.player.pause()
+        SkinClipFile.delete(clip?.url)
+        clip = nil
+        playing = false
+    }
+
     private func press(_ questionId: String, _ optionId: String) {
         let next = SkinCheck.press(answers, question: questionId, option: optionId)
         if case .emergency(let says, _) = SkinCheck.outcome(next) {
             photo = nil
+            letGoOfClip()
             onEmergency(says)
             return
         }
@@ -287,6 +361,7 @@ struct SkinCheckView: View {
         let now = SkinCheck.outcome(answers, typed: typed)
         if case .emergency(let says, _) = now {
             photo = nil
+            letGoOfClip()
             onEmergency(says)
             return
         }
@@ -296,10 +371,96 @@ struct SkinCheckView: View {
     private func end() {
         photo = nil
         picked = nil
+        letGoOfClip()
         answers = [:]
         typed = ""
         outcome = nil
         problem = ""
         ended = true
+    }
+}
+
+/// A clip on the screen: its temporary copy, and the muted player for its picture.
+private struct HeldClip {
+    let url: URL
+    let player: AVPlayer
+}
+
+/// A clip as PhotosPicker hands it over, already copied by SkinClipFile out of the file that lasts only
+/// while it is received.
+private struct PickedClip: Transferable {
+    let url: URL
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(importedContentType: .movie) { received in
+            PickedClip(url: try SkinClipFile.copy(received.file))
+        }
+    }
+}
+
+/* The only place this feature writes or deletes a file, and the only file it writes: one copy of a picked
+   clip in the app's temporary folder, named with the check's prefix so a sweep finds every one. */
+private enum SkinClipFile {
+    static let prefix = "skin-check-clip-"
+
+    static func copy(_ received: URL) throws -> URL {
+        let copy = FileManager.default.temporaryDirectory
+            .appendingPathComponent(prefix + UUID().uuidString).appendingPathExtension(received.pathExtension)
+        try FileManager.default.copyItem(at: received, to: copy)
+        try? FileManager.default.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: copy.path)
+        return copy
+    }
+
+    static func delete(_ url: URL?) {
+        guard let url else { return }
+        try? FileManager.default.removeItem(at: url)
+    }
+
+    /// Every copy the check left behind, if a killed app or a sheet closed mid-pick left one.
+    static func sweep() {
+        let folder = FileManager.default.temporaryDirectory
+        for name in (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? [] where name.hasPrefix(prefix) {
+            delete(folder.appendingPathComponent(name))
+        }
+    }
+
+    /// A muted player for a composition of the clip's picture track and nothing else, so its sound is never
+    /// decoded; nil when the clip has no picture this phone can play.
+    @MainActor static func pictureOnly(_ asset: AVURLAsset) async -> AVPlayer? {
+        guard let track = try? await asset.loadTracks(withMediaType: .video).first,
+              let range = try? await track.load(.timeRange),
+              let turn = try? await track.load(.preferredTransform) else { return nil }
+        let picture = AVMutableComposition()
+        guard let only = picture.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid),
+              (try? only.insertTimeRange(range, of: track, at: .zero)) != nil else { return nil }
+        only.preferredTransform = turn
+        let player = AVPlayer(playerItem: AVPlayerItem(asset: picture))
+        player.isMuted = true
+        player.volume = 0
+        return player
+    }
+}
+
+/// The picture alone, on a bare AVPlayerLayer: no system playback controls, which carry a volume.
+private struct MutedClipView: UIViewRepresentable {
+    let player: AVPlayer
+
+    func makeUIView(context: Context) -> PlayerLayerView {
+        let view = PlayerLayerView()
+        view.playerLayer.videoGravity = .resizeAspect
+        view.playerLayer.player = player
+        return view
+    }
+
+    func updateUIView(_ view: PlayerLayerView, context: Context) {
+        view.playerLayer.player = player
+    }
+
+    static func dismantleUIView(_ view: PlayerLayerView, coordinator: ()) {
+        view.playerLayer.player = nil
+    }
+
+    final class PlayerLayerView: UIView {
+        override class var layerClass: AnyClass { AVPlayerLayer.self }
+        var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
     }
 }

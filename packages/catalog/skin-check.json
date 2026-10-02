@@ -1,21 +1,22 @@
 {
-  "_note": "Show GilbertOne a rash: a photo the patient takes or chooses, held on her own phone and shown back to her, set questions about the skin, and one of three outcomes decided by the rules below and nothing else — the emergency answer the conversation already gives, a sign that public first-aid guidance says should be seen by a nurse or doctor today, or general information from the knowledge base about rashes that look like hers. Not triage and not a diagnosis: no model looks at the photo, no answer names what her rash is, and every outcome says only a nurse or doctor who sees it can. packages/gilbertone/src/skin-check.ts reads this file for the web; scripts/emit-skin-check.mjs writes it, with the knowledge entries it draws on, into Swift and Kotlin; scripts/check-skin-check.mjs holds it.",
-  "version": 1,
+  "_note": "Show GilbertOne a rash: a photo or a short clip the patient takes or chooses, held on her own phone and shown back to her — a clip without its sound — set questions about the skin, and one of three outcomes decided by the rules below and nothing else — the emergency answer the conversation already gives, a sign that public first-aid guidance says should be seen by a nurse or doctor today, or general information from the knowledge base about rashes that look like hers. Not triage and not a diagnosis: no model looks at the photo or the clip, no answer names what her rash is, and every outcome says only a nurse or doctor who sees it can. packages/gilbertone/src/skin-check.ts reads this file for the web; scripts/emit-skin-check.mjs writes it, with the knowledge entries it draws on, into Swift and Kotlin; scripts/check-skin-check.mjs holds it.",
+  "version": 2,
   "decidedBy": "Founder",
   "on": "2026-10-01",
   "changelog": [
-    { "version": 1, "on": "2026-10-01", "what": "The photo, nine set questions, five rules and the knowledge entries behind them; the photo reader declared and refused." }
+    { "version": 1, "on": "2026-10-01", "what": "The photo, nine set questions, five rules and the knowledge entries behind them; the photo reader declared and refused." },
+    { "version": 2, "on": "2026-10-02", "what": "A short clip beside the photo, on the founder's decision of 2 October 2026: no longer than the clip's maxSeconds, played without its sound and with no control to turn it on, held as the photo is, never read, stored or sent. The video refusal is withdrawn; the photo reader's refusal covers a clip unchanged." }
   ],
   "why": "The founder's ask of 1 October 2026: a module that can take a picture of a condition such as a skin rash and give information about what the issue might be — take a picture, GilbertOne gives information, and suggests whether it must be escalated to a sister or how to look after it. Built as intake plus general information, because GilbertOne does symptom intake and not triage (packages/catalog/symptom-intake.json), and because reading a photo of somebody's skin is a clinical act this build has no protocol, reviewer, impact assessment or processor for.",
   "whatItIsNot": [
-    "GilbertOne does not look at your photo. Nothing reads it in this build — it is there for you to compare later and to show your nurse.",
+    "GilbertOne does not look at your photo or your clip. Nothing reads them in this build — they are there for you to compare later and to show your nurse.",
     "GilbertOne will not say what your rash is. Only a nurse or doctor who sees it can say what yours is.",
     "Nothing here is a prescription. The care steps are general first aid from public health sources."
   ],
   "order": {
     "rule": "Words typed into the skin check pass through the emergency matcher before anything reads them — the emergency terms in packages/catalog/gilbert-emergency-terms.json and, on the web, the escalation ruleset in packages/gilbertone/src/escalation.ts — and a match ends the check with the conversation's own emergency answer. The emergency rules below come next, then the questions every outcome needs, then the rules for a sign to be seen today, and general information last.",
     "why": "The check sits at the end of the chain for the reason the intake does: it can never be the thing that was listening when an emergency was said. An emergency rule is not a new emergency word — each one hands the conversation an option whose own words the existing emergency terms already raise, and the build refuses one that they do not.",
-    "emergencyHandsTo": "The conversation's emergency answer, with the words of the option or the sentence that raised it as what was asked. The check ends there and the photo is let go: nothing said in an emergency is a note for later."
+    "emergencyHandsTo": "The conversation's emergency answer, with the words of the option or the sentence that raised it as what was asked. The check ends there and the photo and the clip are let go: nothing said in an emergency is a note for later."
   },
   "entry": {
     "chipLabel": "Show GilbertOne a rash",
@@ -23,34 +24,55 @@
   },
   "screen": {
     "title": "Show GilbertOne a rash",
-    "lead": "Take or choose a photo of the skin and answer a few set questions. GilbertOne will tell you what public health sources say about rashes like this, and whether a sign means a sister should see it today.",
+    "lead": "Take or choose a photo or a short clip of the skin and answer a few set questions. GilbertOne will tell you what public health sources say about rashes like this, and whether a sign means a sister should see it today.",
     "backLabel": "Back to the conversation",
     "seeLabel": "See what GilbertOne can tell you",
     "changeLabel": "Change my answers",
     "endLabel": "End the check",
-    "ended": "The check has ended. The photo is gone from this screen and nothing was kept.",
+    "ended": "The check has ended. The photo and the clip are gone from this screen and nothing was kept.",
     "multiHint": "Choose all that fit.",
     "textHint": "In your own words, or leave it empty.",
     "missing": "Answer who the rash is on and the question about signs first. Those two decide what GilbertOne may show you."
   },
   "photo": {
-    "addLabel": "Take or choose a photo",
+    "addLabel": "Take or choose a photo or a short clip",
     "takeLabel": "Take a photo",
-    "chooseLabel": "Choose a photo",
-    "replaceLabel": "Choose a different photo",
+    "chooseLabel": "Choose a photo or a short clip",
+    "replaceLabel": "Choose another photo or clip",
     "removeLabel": "Remove the photo",
     "alt": "Your photo of the skin, held on this phone only",
-    "held": "Your photo stays on this phone, on this screen only. It is not uploaded, not saved and not sent to anyone, and it is gone when the check ends.",
-    "noReader": "Nothing looks at your photo in this build — not GilbertOne, not a computer program and not a person at MyThuso.",
-    "videoRefused": "Video is not taken here. A video carries sound, and this build records no sound outside the push-to-talk the founder approved; a still photo shows a rash just as well to your nurse.",
-    "notImage": "Choose a photo. Other kinds of file are not taken here.",
+    "held": "Your photo or clip stays on this phone, on this screen only. It is not uploaded, not saved and not sent to anyone, and it is gone when the check ends.",
+    "noReader": "Nothing looks at your photo or your clip in this build — not GilbertOne, not a computer program and not a person at MyThuso.",
+    "notImage": "Choose a photo or a short clip. Other kinds of file are not taken here.",
     "tooLargeFrom": "packages/catalog/assistant-chat-ui.json#attachments",
     "tooLargeWhy": "The size a photo may be and the sentence for one that is larger are the panel's attachment limits, read from there rather than restated.",
     "accept": ["image/jpeg", "image/png", "image/webp", "image/heic"],
     "platforms": {
-      "web": { "how": "file-input", "why": "One file input that accepts a photo. On a phone the browser offers the camera or the gallery itself; the input carries no capture attribute, because the build refuses one on every web surface but the panel's own attachment preview." },
-      "ios": { "how": "photos-picker", "note": "On iPhone, take the photo with the Camera app first and then choose it here. MyThuso does not ask for your camera.", "why": "PhotosPicker runs outside the app and needs no permission. Taking the photo inside the app would need a camera usage description, which the build refuses because the consultation screens tell a patient none is declared." },
-      "android": { "how": "photo-picker-and-camera-preview", "why": "The system photo picker, and the camera's own preview capture, which hands back a small picture in memory and writes no file. Neither needs a permission, and none is declared." }
+      "web": { "how": "file-input", "why": "One file input that accepts a photo or a clip. On a phone the browser offers the camera or the gallery itself; the input carries no capture attribute, because the build refuses one on every web surface but the panel's own attachment preview." },
+      "ios": { "how": "photos-picker", "note": "On iPhone, take the photo or the clip with the Camera app first and then choose it here. MyThuso does not ask for your camera or your microphone.", "why": "PhotosPicker runs outside the app and needs no permission. Taking the photo inside the app would need a camera usage description, which the build refuses because the consultation screens tell a patient none is declared." },
+      "android": { "how": "photo-picker-and-camera-preview", "why": "The system photo picker, which offers photos and clips, and the camera's own preview capture, which hands back a small picture in memory and writes no file. Neither needs a permission, and none is declared." }
+    }
+  },
+  "clip": {
+    "decidedBy": "Founder",
+    "on": "2026-10-02",
+    "why": "The founder's decision of 2 October 2026: video, yes. A short clip shows what a still photo cannot — a rash under a stretch of the skin, welts that come and go, how a child scratches — and is held exactly as the photo is: on the phone, on this screen, gone when the check ends, read by nothing. A clip carries sound, and the speech amendment of 21 September 2026 keeps the only audio MyThuso handles to GilbertOne's own conversation, on the device. So a clip's sound is never played or used: it plays muted with no control that could turn the sound on, and nothing on any platform records, transcribes, reads or sends it.",
+    "maxSeconds": 15,
+    "maxSecondsWhy": "Long enough to move the camera across a rash or show it under a stretch; short enough that a nurse watches all of it. A longer clip is refused, never cut: cutting it would mean the app decoding and rewriting her video. The sentence for a longer clip names the length in words, and the build holds the two together.",
+    "accept": ["video/mp4", "video/webm", "video/quicktime"],
+    "sizeWhy": "The panel's attachment limit is a photo's, and a few seconds of a phone's video is larger than it, so the length is a clip's limit. Nothing copies a clip into memory on the web or Android — the browser and the system player read it where it already is — and iOS keeps one temporary copy, deleted when the clip goes.",
+    "label": "Your short clip of the skin, held on this phone only, playing without sound",
+    "playLabel": "Play the clip",
+    "pauseLabel": "Pause the clip",
+    "removeLabel": "Remove the clip",
+    "sound": "The clip plays with its sound off, and there is no control to turn it on. The sound is not played or used — nothing listens to it, writes it down or sends it.",
+    "tooLong": "That clip is longer than fifteen seconds, so it is not taken here. Choose a shorter one, or trim it on your phone first.",
+    "lengthUnknown": "This clip does not say how long it is, so it is not taken here. Choose another, or a photo.",
+    "cannotPlay": "This phone cannot play that clip here, so it is not taken. Choose another, or a photo.",
+    "platforms": {
+      "web": { "how": "file-input-muted-video", "why": "The photo's own file input, asking for a photo or a clip and still with no capture attribute. The clip is shown back through one object URL, revoked when it goes, in a video element that is muted, carries no controls attribute, refuses the browser's own menu and mutes itself again if anything turns its volume up. Its length is read from the element's metadata, and nothing else of it is read." },
+      "ios": { "how": "photos-picker-video-track-only", "note": "On iPhone the clip is copied into MyThuso's own temporary folder so that it can play, and the copy is deleted when you remove the clip, end the check or close it.", "why": "PhotosPicker hands a clip over as a file that lasts only while it is being received, so it is copied once into the app's temporary folder and deleted on every way out, and any copy a closed app left behind is deleted when the check next opens. What plays is a composition of the clip's picture track alone, so its sound is never decoded, and the player is muted besides. No camera or microphone usage description is declared." },
+      "android": { "how": "photo-picker-muted-player", "why": "The system photo picker hands back an address the app may read while it is open; the clip is played from there by the system player at zero volume, without taking audio focus, and its length is read from its metadata. No file is written. The camera's video capture is not offered: it would need a file the app shares with the camera app, which records sound into it." }
     }
   },
   "questions": [
@@ -255,11 +277,12 @@
     "title": "Notes for your sister",
     "line": "{question}: {answer}",
     "photoLine": "A photo is on your phone only. Show it to your sister at the visit.",
+    "clipLine": "A short clip is on your phone only. Show it to your sister at the visit.",
     "copyLabel": "Copy the notes",
     "copiedLabel": "Copied",
     "sendFrom": "packages/catalog/apis/assistant.json#POST /v1/handover/submit@3 clinician-routing-not-built",
     "sendLead": "Sending these notes to a nurse from here is not built.",
-    "why": "The answers as lines the patient reads or shows at the visit. The photo stays on her phone and is never part of the notes. Sending them is the handover submit route's refusal, read from the API contract rather than restated, because there is still no destination contract for a handover to reach."
+    "why": "The answers as lines the patient reads or shows at the visit. The photo and the clip stay on her phone and are never part of the notes. Sending them is the handover submit route's refusal, read from the API contract rather than restated, because there is still no destination contract for a handover to reach."
   },
   "knowledge": {
     "label": "From {authority}.",

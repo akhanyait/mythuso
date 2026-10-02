@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Camera, X } from "lucide-react";
+import { ArrowLeft, Camera, Pause, Play, X } from "lucide-react";
 import {
   entryReviewSentence,
   entrySourceSentence,
@@ -12,7 +12,7 @@ import {
   type SkinAnswers,
   type SkinOutcome,
 } from "../../../../packages/gilbertone/src/skin-check.ts";
-import { notesText, photoProblem } from "../lib/skin-check";
+import { clipLengthProblem, notesText, takenAs } from "../lib/skin-check";
 import { skinSendRefusal } from "../lib/skin-check.generated";
 import { Button } from "../ui/Button";
 import "./skin-check.css";
@@ -21,12 +21,20 @@ import "./skin-check.css";
    GilbertOne panel on its own dynamic import (features/Assistant.tsx), so neither this screen, its
    contract nor the knowledge entries behind it reach the patient's first view.
 
-   THE PHOTO. One file input that asks for an image; the browser on a phone offers its camera or its
-   gallery. The file is held in this component's state and nowhere else, shown back through an object
-   URL that is revoked when the photo is replaced, removed, the check ends or the screen closes — the
-   effect's own clean-up, so no path can leave one behind. Nothing reads its bytes and nothing sends
-   it: no request, no storage of any kind, no canvas. The contract's sentences under it say exactly that,
-   and that nothing looks at it.
+   THE PHOTO AND THE CLIP. One file input that asks for an image or a video; the browser on a phone
+   offers its camera or its gallery. A photo and a clip may both be held, one of each. Each file is
+   held in this component's state and nowhere else, shown back through an object URL made in one hook
+   whose clean-up revokes it when the file is replaced, removed, the check ends or the screen closes,
+   so no path can leave one behind. Nothing reads their bytes and nothing sends them: no request, no
+   storage of any kind, no canvas. The contract's sentences under them say exactly that, and that
+   nothing looks at either.
+
+   A CLIP'S SOUND is never played or used (the founder's decision of 2 October 2026, inside the speech
+   amendment of 21 September). The video element is muted before it has a source, carries no controls
+   attribute — the browser's controls have a volume — refuses the browser's own menu, which offers to
+   show them, and mutes itself again if anything turns it up. Play and pause are this screen's own
+   buttons. The clip is held hidden until the element has read its metadata, and one longer than the
+   contract's cap, or of no length the browser can tell, is let go with the contract's sentence.
 
    THE ANSWERS reach an outcome only through packages/gilbertone/src/skin-check.ts. Every press is asked
    whether it raised an emergency rule, and one that did hands the option's own words to the
@@ -66,21 +74,10 @@ function FirstAid({ entry }: { entry: ShownFirstAid }) {
   );
 }
 
-export default function SkinCheck({ onBack, onEmergency }: Props) {
-  const heading = useRef<HTMLHeadingElement>(null);
-  const input = useRef<HTMLInputElement>(null);
-  const [answers, setAnswers] = useState<SkinAnswers>({});
-  const [typed, setTyped] = useState("");
-  const [file, setFile] = useState<File | null>(null);
+/* The one place an object URL is made, and the clean-up that revokes it: a photo or a clip replaced,
+   removed, the check ending and the screen closing all pass through here. */
+function useHeldUrl(file: File | null): string {
   const [url, setUrl] = useState("");
-  const [problem, setProblem] = useState("");
-  const [outcome, setOutcome] = useState<SkinOutcome | null>(null);
-  const [ended, setEnded] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => heading.current?.focus(), []);
-  /* The one place an object URL is made, and the clean-up that revokes it: replacing the photo,
-     removing it, ending the check and closing the screen all pass through here. */
   useEffect(() => {
     if (!file) {
       setUrl("");
@@ -90,20 +87,80 @@ export default function SkinCheck({ onBack, onEmergency }: Props) {
     setUrl(next);
     return () => URL.revokeObjectURL(next);
   }, [file]);
+  return url;
+}
 
+/* Muted as a property and by volume, before the source arrives and again on any change to either. */
+const silence = (video: HTMLVideoElement | null) => {
+  if (!video) return;
+  video.defaultMuted = true;
+  video.muted = true;
+  video.volume = 0;
+};
+
+export default function SkinCheck({ onBack, onEmergency }: Props) {
+  const heading = useRef<HTMLHeadingElement>(null);
+  const input = useRef<HTMLInputElement>(null);
+  const [answers, setAnswers] = useState<SkinAnswers>({});
+  const [typed, setTyped] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [clip, setClip] = useState<File | null>(null);
+  const [clipReady, setClipReady] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const video = useRef<HTMLVideoElement | null>(null);
+  const url = useHeldUrl(file);
+  const clipUrl = useHeldUrl(clip);
+  const [problem, setProblem] = useState("");
+  const [outcome, setOutcome] = useState<SkinOutcome | null>(null);
+  const [ended, setEnded] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => heading.current?.focus(), []);
+
+  const letGo = () => {
+    setFile(null);
+    holdClip(null);
+  };
+  const holdClip = (next: File | null) => {
+    setClip(next);
+    setClipReady(false);
+    setPlaying(false);
+  };
   const choose = (picked: HTMLInputElement) => {
     const next = picked.files?.[0];
     picked.value = "";
     if (!next) return;
-    const why = photoProblem(next);
-    setProblem(why ?? "");
-    if (!why) setFile(next);
+    const taken = takenAs(next);
+    setProblem(taken.as === "refused" ? taken.why : "");
+    if (taken.as === "photo") setFile(next);
+    if (taken.as === "clip") holdClip(next);
+  };
+  /* The clip's length, from the element's own metadata — the one thing read about it. */
+  const measured = (element: HTMLVideoElement) => {
+    const why = clipLengthProblem(element.duration);
+    if (why) {
+      holdClip(null);
+      setProblem(why);
+      return;
+    }
+    setClipReady(true);
+  };
+  const unplayable = () => {
+    holdClip(null);
+    setProblem(c.clip.cannotPlay);
+  };
+  const toggle = () => {
+    const element = video.current;
+    if (!element) return;
+    silence(element);
+    if (element.paused) void element.play().catch(() => setPlaying(false));
+    else element.pause();
   };
   const press = (questionId: string, optionId: string) => {
     const next = pressSkinOption(answers, questionId, optionId);
     const now = skinOutcome(next);
     if (now.kind === "emergency") {
-      setFile(null);
+      letGo();
       onEmergency(now.says);
       return;
     }
@@ -114,14 +171,14 @@ export default function SkinCheck({ onBack, onEmergency }: Props) {
   const see = () => {
     const now = skinOutcome(answers, typed);
     if (now.kind === "emergency") {
-      setFile(null);
+      letGo();
       onEmergency(now.says);
       return;
     }
     setOutcome(now);
   };
   const end = () => {
-    setFile(null);
+    letGo();
     setAnswers({});
     setTyped("");
     setOutcome(null);
@@ -129,14 +186,14 @@ export default function SkinCheck({ onBack, onEmergency }: Props) {
     setEnded(true);
   };
   const copy = () => {
-    void navigator.clipboard?.writeText(notesText(answers, typed, file !== null)).then(
+    void navigator.clipboard?.writeText(notesText(answers, typed, file !== null, clip !== null && clipReady)).then(
       () => setCopied(true),
       () => undefined,
     );
   };
 
   const shown = outcome && outcome.kind !== "incomplete" && outcome.kind !== "emergency";
-  const rows = skinSummaryRows(answers, typed, file !== null);
+  const rows = skinSummaryRows(answers, typed, file !== null, clip !== null && clipReady);
 
   return (
     <section className="sk" aria-labelledby="sk-title">
@@ -167,12 +224,12 @@ export default function SkinCheck({ onBack, onEmergency }: Props) {
               ref={input}
               className="sk-file"
               type="file"
-              accept="image/*"
+              accept="image/*,video/*"
               aria-label={c.photo.addLabel}
               onChange={(event) => choose(event.currentTarget)}
             />
             <Button variant="secondary" onClick={() => input.current?.click()} leadingIcon={<Camera size={18} aria-hidden="true" />}>
-              {file ? c.photo.replaceLabel : c.photo.addLabel}
+              {file || clip ? c.photo.replaceLabel : c.photo.addLabel}
             </Button>
             {problem && <p role="alert">{problem}</p>}
             {url && (
@@ -183,9 +240,47 @@ export default function SkinCheck({ onBack, onEmergency }: Props) {
                 </Button>
               </figure>
             )}
+            {clipUrl && (
+              <figure className="sk-preview" hidden={!clipReady}>
+                <video
+                  ref={(element) => {
+                    video.current = element;
+                    silence(element);
+                  }}
+                  className="sk-clip"
+                  src={clipUrl}
+                  muted
+                  playsInline
+                  loop
+                  preload="metadata"
+                  disablePictureInPicture
+                  disableRemotePlayback
+                  aria-label={c.clip.label}
+                  onContextMenu={(event) => event.preventDefault()}
+                  onVolumeChange={(event) => silence(event.currentTarget)}
+                  onLoadedMetadata={(event) => measured(event.currentTarget)}
+                  onError={unplayable}
+                  onPlay={() => setPlaying(true)}
+                  onPause={() => setPlaying(false)}
+                />
+                <div className="sk-clip-actions">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={toggle}
+                    leadingIcon={playing ? <Pause size={16} aria-hidden="true" /> : <Play size={16} aria-hidden="true" />}
+                  >
+                    {playing ? c.clip.pauseLabel : c.clip.playLabel}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => holdClip(null)} leadingIcon={<X size={16} aria-hidden="true" />}>
+                    {c.clip.removeLabel}
+                  </Button>
+                </div>
+              </figure>
+            )}
             <p className="sk-quiet">{c.photo.held}</p>
             <p className="sk-quiet">{c.photo.noReader}</p>
-            <p className="sk-quiet">{c.photo.videoRefused}</p>
+            <p className="sk-quiet">{c.clip.sound}</p>
           </div>
 
           {!shown &&

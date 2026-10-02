@@ -2,15 +2,15 @@
 // Do not edit by hand — run `npm run skin-check`. The build fails if this file and its sources
 // disagree, so an edit here is lost rather than merely wrong.
 //
-// General information from public health sources, not reviewed by a clinician yet. No photo is
-// read by anything on any platform; see photoReading.
+// General information from public health sources, not reviewed by a clinician yet. No photo or
+// clip is read by anything on any platform; see photoReading. A clip plays without its sound.
 
 import Foundation
 
 enum SkinCheckData {
-    static let version = 1
+    static let version = 2
     static let chipLabel = "Show GilbertOne a rash"
-    static let whatItIsNot: [String] = ["GilbertOne does not look at your photo. Nothing reads it in this build — it is there for you to compare later and to show your nurse.", "GilbertOne will not say what your rash is. Only a nurse or doctor who sees it can say what yours is.", "Nothing here is a prescription. The care steps are general first aid from public health sources."]
+    static let whatItIsNot: [String] = ["GilbertOne does not look at your photo or your clip. Nothing reads them in this build — they are there for you to compare later and to show your nurse.", "GilbertOne will not say what your rash is. Only a nurse or doctor who sees it can say what yours is.", "Nothing here is a prescription. The care steps are general first aid from public health sources."]
     static let required: [String] = ["who", "signs"]
 
     enum Review {
@@ -23,31 +23,44 @@ enum SkinCheckData {
 
     enum Screen {
         static let title = "Show GilbertOne a rash"
-        static let lead = "Take or choose a photo of the skin and answer a few set questions. GilbertOne will tell you what public health sources say about rashes like this, and whether a sign means a sister should see it today."
+        static let lead = "Take or choose a photo or a short clip of the skin and answer a few set questions. GilbertOne will tell you what public health sources say about rashes like this, and whether a sign means a sister should see it today."
         static let backLabel = "Back to the conversation"
         static let seeLabel = "See what GilbertOne can tell you"
         static let changeLabel = "Change my answers"
         static let endLabel = "End the check"
-        static let ended = "The check has ended. The photo is gone from this screen and nothing was kept."
+        static let ended = "The check has ended. The photo and the clip are gone from this screen and nothing was kept."
         static let multiHint = "Choose all that fit."
         static let textHint = "In your own words, or leave it empty."
         static let missing = "Answer who the rash is on and the question about signs first. Those two decide what GilbertOne may show you."
     }
 
     enum Photo {
-        static let chooseLabel = "Choose a photo"
+        static let chooseLabel = "Choose a photo or a short clip"
         static let takeLabel = "Take a photo"
-        static let replaceLabel = "Choose a different photo"
+        static let replaceLabel = "Choose another photo or clip"
         static let removeLabel = "Remove the photo"
         static let alt = "Your photo of the skin, held on this phone only"
-        static let held = "Your photo stays on this phone, on this screen only. It is not uploaded, not saved and not sent to anyone, and it is gone when the check ends."
-        static let noReader = "Nothing looks at your photo in this build — not GilbertOne, not a computer program and not a person at MyThuso."
-        static let videoRefused = "Video is not taken here. A video carries sound, and this build records no sound outside the push-to-talk the founder approved; a still photo shows a rash just as well to your nurse."
-        static let notImage = "Choose a photo. Other kinds of file are not taken here."
-        static let howOnThisPhone = "On iPhone, take the photo with the Camera app first and then choose it here. MyThuso does not ask for your camera."
+        static let held = "Your photo or clip stays on this phone, on this screen only. It is not uploaded, not saved and not sent to anyone, and it is gone when the check ends."
+        static let noReader = "Nothing looks at your photo or your clip in this build — not GilbertOne, not a computer program and not a person at MyThuso."
+        static let notImage = "Choose a photo or a short clip. Other kinds of file are not taken here."
+        static let howOnThisPhone = "On iPhone, take the photo or the clip with the Camera app first and then choose it here. MyThuso does not ask for your camera or your microphone."
         /// From packages/catalog/assistant-chat-ui.json#attachments, the panel's own limit.
         static let limitBytes = 10485760
         static let tooLarge = "Choose a file smaller than 10 MB."
+    }
+
+    /// A short clip, since the founder's decision of 2 October 2026: muted, no longer than maxSeconds.
+    enum Clip {
+        static let maxSeconds: Double = 15
+        static let label = "Your short clip of the skin, held on this phone only, playing without sound"
+        static let playLabel = "Play the clip"
+        static let pauseLabel = "Pause the clip"
+        static let removeLabel = "Remove the clip"
+        static let sound = "The clip plays with its sound off, and there is no control to turn it on. The sound is not played or used — nothing listens to it, writes it down or sends it."
+        static let tooLong = "That clip is longer than fifteen seconds, so it is not taken here. Choose a shorter one, or trim it on your phone first."
+        static let lengthUnknown = "This clip does not say how long it is, so it is not taken here. Choose another, or a photo."
+        static let cannotPlay = "This phone cannot play that clip here, so it is not taken. Choose another, or a photo."
+        static let howOnThisPhone = "On iPhone the clip is copied into MyThuso's own temporary folder so that it can play, and the copy is deleted when you remove the clip, end the check or close it."
     }
 
     enum SisterToday {
@@ -79,6 +92,7 @@ enum SkinCheckData {
         /// "{question}" and "{answer}" are filled by the screen.
         static let line = "{question}: {answer}"
         static let photoLine = "A photo is on your phone only. Show it to your sister at the visit."
+        static let clipLine = "A short clip is on your phone only. Show it to your sister at the visit."
         static let copyLabel = "Copy the notes"
         static let copiedLabel = "Copied"
         static let sendLead = "Sending these notes to a nurse from here is not built."
