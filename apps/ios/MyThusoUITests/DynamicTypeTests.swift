@@ -106,6 +106,11 @@ final class DynamicTypeTests: XCTestCase {
         auditBothSizes("The Health Passport", journey: openPassport)
     }
 
+    /* The moon left the home with the identity of 29 September 2026 (docs/FEATURE-MAP.md: "the moon
+       artwork [is] gone"), and lives on where the journal card leads, at the head of Live well. This
+       followed it there: the card still has to be a still, hittable control, and the moon still has to
+       move without moving the words laid out under it. Before, it screenshotted the card for a moon
+       that had not been drawn on it since, and failed on two identical pictures. */
     func testTheWellbeingArtworkMovesWithoutMovingItsAction() {
         let app = launchApp()
         let card = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Open your journal'")).firstMatch
@@ -115,11 +120,15 @@ final class DynamicTypeTests: XCTestCase {
             start.press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4)))
         }
         XCTAssertTrue(card.isHittable)
-        let frame = card.frame
-        let first = card.screenshot()
+        card.tap()
+        XCTAssertTrue(app.navigationBars["Live well"].waitForExistence(timeout: 10))
+        let lead = app.staticTexts["Live well."].firstMatch
+        XCTAssertTrue(lead.waitForExistence(timeout: 10))
+        let frame = lead.frame
+        let first = app.screenshot()
         Thread.sleep(forTimeInterval: 1.2)
-        let second = card.screenshot()
-        XCTAssertEqual(card.frame, frame, "Artwork motion must not move the journal control")
+        let second = app.screenshot()
+        XCTAssertEqual(lead.frame, frame, "Artwork motion must not move the words laid out under it")
         XCTAssertNotEqual(first.pngRepresentation, second.pngRepresentation, "The visible moon should animate with standard motion settings")
         for (name, screenshot) in [("Wellbeing motion first frame", first), ("Wellbeing motion second frame", second)] {
             let attachment = XCTAttachment(screenshot: screenshot)
@@ -127,8 +136,6 @@ final class DynamicTypeTests: XCTestCase {
             attachment.lifetime = .keepAlways
             add(attachment)
         }
-        card.tap()
-        XCTAssertTrue(app.navigationBars["Live well"].waitForExistence(timeout: 10))
     }
 
     // MARK: - Text that answers the setting
