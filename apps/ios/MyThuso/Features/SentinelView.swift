@@ -89,6 +89,7 @@ struct SentinelSection: View {
             }
         }
         .pickerStyle(.menu)
+        .frame(minHeight: 44)
         ForEach(Sentinel.rungs) { option in
             Button {
                 rung = option.rung
@@ -176,11 +177,13 @@ struct SafeguardingReportView: View {
                         ForEach(Sentinel.groups) { group in Text(group.label).tag(String?.some(group.id)) }
                     }
                     .pickerStyle(.menu)
+                    .frame(minHeight: 44)
                     Picker(Sentinel.ReportText.category, selection: $categoryCode) {
                         Text("Choose…").tag(String?.none)
                         ForEach(Sentinel.categories) { category in Text(category.label).tag(String?.some(category.id)) }
                     }
                     .pickerStyle(.menu)
+                    .frame(minHeight: 44)
                     Text(Sentinel.RuleText.categoryIsProtected).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(Sentinel.RuleText.noNarrative).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
