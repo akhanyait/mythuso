@@ -59,6 +59,11 @@ import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { IconButton } from "../ui/IconButton";
 import { crisisLines, showsCrisisLines } from "../lib/crisis-lines";
+import {
+  demoConnectorNames,
+  sourceOf,
+  sourcesCaption,
+} from "../lib/gilbertone-sources";
 import { latestCaseFor, useCases } from "../lib/case";
 import { sendOnEnter, useGrowingField } from "../lib/composer";
 import {
@@ -1076,6 +1081,11 @@ export default function Assistant({
                           </p>
                         )}
                     </div>
+                    {/* What produced this answer, beneath it and outside it — the reply's words stay the
+                        contract's alone — never on the welcome or while waiting. */}
+                    {asked && turn.asked && !pendingReplies.has(turn.id) && (
+                      <Sources replyKind={turn.reply.kind} />
+                    )}
                   </li>
                 ))}
               </ol>
@@ -1523,6 +1533,29 @@ function stageOf(
     figure: null,
     figureLabel: null,
   };
+}
+
+/* The sources caption under an answer: what produced it, read from the reply's kind, and — kept apart
+   and folded — the connectors switched on for the demo, each called simulated and not consulted. */
+function Sources({ replyKind }: { replyKind: string }) {
+  const source = sourceOf(replyKind);
+  return (
+    <div className="as-sources" data-source={source}>
+      <p>
+        <span className="as-sources-label">{sourcesCaption.label}:</span>{" "}
+        {sourcesCaption[source]}
+      </p>
+      {demoConnectorNames.length > 0 && (
+        <details className="as-sources-demo">
+          <summary>
+            {sourcesCaption.demoSummary} ({demoConnectorNames.length})
+          </summary>
+          <p>{demoConnectorNames.join(" · ")}</p>
+          <p>{sourcesCaption.demoNotConsulted}</p>
+        </details>
+      )}
+    </div>
+  );
 }
 
 function Unread({

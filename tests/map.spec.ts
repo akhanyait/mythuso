@@ -164,19 +164,14 @@ for (const [name, open] of staff) {
     for (const url of stubbed) expect(new URL(url).host, `a map request went somewhere the contract does not name: ${url}`).toBe(source.host);
     for (const url of asked) expect(/mapbox\.com/.test(url), `a build with no token asked Mapbox for something: ${url}`).toBe(false);
 
-    /* Off is one press away, back to a picture that needs nobody, and the choice is not kept.
-
-       What is counted is what the schematic asks for, not what the streets were still finishing: the
-       map may have a tile in flight when the switch is pressed, and that request reached the stub a
-       few milliseconds after the count was taken, failing every few runs with 2 against 1 (audit of
-       1 October 2026). So the tile traffic settles first — no new request for half a second — and the
-       count is taken again once the schematic is drawn, which is the moment streets are off. */
+    /* Off is one press away, back to a picture that needs nobody, and the choice is not kept. The count
+       is taken once the streets have stopped asking: the style arrives first and its sprite and glyphs
+       after it, so a count taken mid-load blamed the schematic for a request the streets made. */
     let settled = -1;
-    await expect.poll(() => { const same = stubbed.length === settled; settled = stubbed.length; return same; },
-      { message: 'the street tiles never stopped loading', intervals: [500], timeout: 10_000 }).toBe(true);
+    await expect.poll(() => { const same = stubbed.length === settled; settled = stubbed.length; return same; }, { intervals: [500] }).toBe(true);
+    const before = stubbed.length;
     await toggle.click();
     await expect(page.locator('.livemap-canvas.schematic').first()).toBeVisible();
-    const before = stubbed.length;
     await expect(page.locator('.map-pin').first()).toBeVisible();
     await expect(page.getByText(say(tiles.offSentence)).first()).toBeVisible();
     await expect(page.getByText(tiles.notRememberedOn).first()).toBeVisible();

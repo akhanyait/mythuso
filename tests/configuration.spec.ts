@@ -101,6 +101,10 @@ async function openSettings(page: Page) {
 }
 
 test('every engine’s settings are drawn from its contract: in force, the default and who decided it, what an admin may set, what a change reaches and what no value may do', async ({ page }, info) => {
+  /* Every engine's settings, opened and read one by one: a minute alone on a quiet machine since the
+     engines passed a dozen, so the default thirty seconds failed it on every runner without anything
+     on the screen being wrong. */
+  test.setTimeout(180_000);
   const area = await openSettings(page);
   await expect(area).toContainText(say.intro);
   await expect(area).toContainText(say.preview);

@@ -1,8 +1,8 @@
 import { Suspense, lazy, useMemo, useState, type ReactNode } from 'react';
-import { Activity, ArrowRight, BookOpen, CalendarDays, ClipboardList, FileText, Receipt, Route, Search, Send, ShieldCheck, Stethoscope, Video, House } from 'lucide-react';
+import { Activity, ArrowRight, BookOpen, CalendarDays, CircleCheck, CircleDashed, ClipboardList, Clock, FileText, Lock, OctagonAlert, Receipt, Route, Search, Send, ShieldAlert, ShieldCheck, Stethoscope, TriangleAlert, Video, House } from 'lucide-react';
 import { Alert, Badge, Button, Input, MetricCard } from '../ui';
 import { useThusoIQ } from '../lib/thusoiq';
-import { thusoiq } from '../../../../packages/thusoiq/index.ts';
+import { latestSample, sampleFreshness, thusoiq } from '../../../../packages/thusoiq/index.ts';
 import { roleOf, whoIs } from '../lib/roles';
 import { dayOf as clinicalDay, inboxNow, notTriaged, triageStages, useClinical } from '../lib/clinical';
 import { DOCTOR, fill, labStateOf, outcomeLabel, outcomeReason, scheduleName, stateLabel, stateOf, useMedicines, words as medicinesWords } from '../lib/medicines';
@@ -13,7 +13,10 @@ import { doctorFeeNow, useSettingsHistories } from '../lib/settings';
 import { initialsOf } from '../lib/names';
 import clinicalContract from '../../../../packages/catalog/clinical.json' with { type: 'json' };
 import protocolsContract from '../../../../packages/catalog/protocols.json' with { type: 'json' };
-import { observations } from '../lib/observations';
+import { observations, observationsNote } from '../lib/observations';
+import { bandsText, formatReading, governance, governanceLine, lineReached, markedFor, markerOf, moreUrgent, readingsFor, reviewed, sparkFor, words as triageWords, worstOf, type Marked, type MarkerId } from '../lib/triage-markers';
+import { useDecor } from '../lib/motion';
+import { VitalIcon } from './VitalIcons';
 import { GuidanceStart, TriageStart } from './ClinicalIntelligence';
 import { ApplicationStanding, VettingApplication } from './Vetting';
 import { PatientFile } from './PatientFile';
@@ -21,8 +24,6 @@ import { DeckTitleLevel } from './ClinicalDeck';
 import './doctor-pages.css';
 /* Sentinel carries the Safety, Core and Devices domains; it arrives when a doctor opens Triage, not before. */
 const SentinelState = lazy(() => import('./Sentinel').then(m => ({ default: m.SentinelState })));
-/* The live vitals board arrives when a doctor opens Triage, the same way. */
-const LiveVitalsBoard = lazy(() => import('./LiveVitals').then(m => ({ default: m.LiveVitalsBoard })));
 
 /* The doctor's pages from the Lovable export's arrangement (30 September 2026).
  *
@@ -212,34 +213,141 @@ export function DoctorCredentials() {
 
 /* ---- Triage ------------------------------------------------------------------------------------------
    The export's live triage page — live vitals, three triage layers, an early-warning score, a heatmap, a
-   device-versus-nurse table — in the only form this product can honestly draw. Since 1 October 2026 (the
-   founder: "live triage simulation, all IoT devices") the patient chosen from the ThusoIQ sandbox has every
-   instrument in the kit and their own watch streaming simulated readings on features/LiveVitals.tsx's
-   board, each with its unit, its source, how long ago it arrived, a trend line and where it stands against
-   the record's range in words. Where the export drew a device triage, a score, an interpretation, alarms and
-   a heatmap, the board draws packages/catalog/live-vitals.json's sentence saying why not: no protocol is a
-   ratified triage protocol, and no engine reads a reading and concludes anything. Then the triage stages and
-   the answer that nothing was triaged, the guidance answers, and Sentinel's hand-raised tier. */
+   device-versus-nurse table — in the only form this product can honestly draw: the patients in the
+   ThusoIQ sandbox, how fresh each wearable reading is and nothing about what it means, the triage stages
+   and the answer that nothing was triaged, the guidance answers, and Sentinel's hand-raised tier. No
+   severity badge, no score, no heatmap and no interpretation: no protocol is a ratified triage protocol,
+   and no engine reads a sample and concludes anything. */
+/* Redesigned 2 October 2026, at the founder's request, to be read at a glance, and moved the same morning
+   toward the founder's reference mockup: a banner naming any reading past an alert line, the patient's
+   queue with the reading that put them first, and a card per measure with its icon, its value in the
+   marker's colour, its range and a sparkline of the readings behind it. The heart beats and the lungs
+   breathe at the recorded rate (features/VitalIcons.tsx), under the page's pause control.
+
+   What the mockup drew and this does not: "Live readings", a connected band and its battery, because no
+   device is connected and the readings were taken at the door; an "AI Triage Assessment" with a risk
+   level, because a marker is never added up into a figure about a person and nothing here is a validated
+   score; "Recommended actions" with ticks, because what happens next is a clinician's call; and a
+   "POPIA Compliant · Secure & Encrypted" badge, because no such review has happened.
+
+   The markers are lib/triage-markers.ts's, from two contracts and no typed number; the lines are demo
+   defaults the Clinical Governance Lead owns, and the banner over them says so until a review is written
+   into packages/catalog/triage-markers.json. A patient without consent shows the refusal rather than an
+   empty board. The wearable feeds keep their own panel: freshness only, as before. */
+const markerIcon = { 'in-range': CircleCheck, watch: TriangleAlert, act: OctagonAlert, none: CircleDashed } as const;
+function MarkerPill({ id, long }: { id: MarkerId; long?: boolean }) {
+ const m = markerOf(id), Icon = markerIcon[id];
+ return <span className={`tri-pill is-${id}`}><Icon size={15} aria-hidden="true"/>{long ? m.label : m.short}</span>;
+}
+function Sparkline({ spec, series }: { spec: Marked['spec']; series: readonly number[] }) {
+ if (series.length < 2) return null;
+ const spark = sparkFor(spec, series);
+ return <span className="tri-spark" aria-hidden="true">
+  <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+   <rect className="tri-spark-band" x="0" y={spark.band.top} width="100" height={Math.max(spark.band.bottom - spark.band.top, 0)}/>
+   <polyline className="tri-spark-line" points={spark.points} vectorEffect="non-scaling-stroke"/>
+  </svg>
+  {spark.last && <i className="tri-spark-dot" style={{ left: `${spark.last.x}%`, top: `${spark.last.y}%` }}/>}
+ </span>;
+}
+function VitalCard({ spec, value, marker, series }: Marked) {
+ return <li className={`tri-vital is-${marker}`}>
+  <div className="tri-vital-top"><VitalIcon id={spec.id} value={value}/><span className="tri-vital-label">{spec.label}</span><MarkerPill id={marker}/></div>
+  <p className="tri-vital-value">{value === undefined ? <span>—</span> : <><strong>{formatReading(spec, value)}</strong><span>{spec.unit}</span></>}</p>
+  <small>{bandsText(spec.id)}</small>
+  <Sparkline spec={spec} series={series}/>
+ </li>;
+}
 export function DoctorTriage() {
  const { state } = useThusoIQ();
- const [patientId, setPatientId] = useState(state.patients[0]?.id ?? '');
- const patient = state.patients.find(p => p.id === patientId);
- return <section className="dp-page" aria-labelledby="dp-triage">
-  <div className="dp-head"><div><h1 id="dp-triage">Triage</h1><p>{clinicalContract.triage.triageProtocols.why}</p></div>
+ const decor = useDecor();
+ const [now] = useState(() => new Date().toISOString());
+ const board = useMemo(() => state.patients.map(p => {
+  const marked = p.consent ? markedFor(p.id) : [];
+  const worst = worstOf(marked.map(m => m.marker));
+  return { p, marked, worst, lead: marked.find(m => m.marker === worst && worst !== 'in-range' && worst !== 'none'), taken: p.consent ? readingsFor(p.id) : undefined };
+ }).sort((a, b) => moreUrgent(a.worst, b.worst) || a.p.name.localeCompare(b.p.name)), [state.patients]);
+ const [patientId, setPatientId] = useState(board[0]?.p.id ?? '');
+ const row = board.find(r => r.p.id === patientId);
+ const acting = row?.marked.filter(m => m.marker === 'act' && m.value !== undefined) ?? [];
+ const count = (id: MarkerId) => board.filter(r => r.worst === id).length;
+ const freshness = { missing: 'No reading yet', recent: 'Recent', stale: 'Stale' } as const;
+ return <section className="dp-page tri" aria-labelledby="dp-triage">
+  <div className="dp-head"><div><h1 id="dp-triage">Triage</h1><p>{triageWords.intro}</p></div>
    <Badge variant="neutral">{notTriaged.label}</Badge></div>
-  <Alert variant="warning" title={notTriaged.human}>{thusoiq.wearables.neverInferred}</Alert>
-  <div className="dp-panel">
-   <div className="dp-panel-head"><h2>Patients in the sandbox</h2><span>{state.patients.length}</span></div>
-   <div className="dp-chips" role="group" aria-label="Choose a patient">{state.patients.map(p =>
-    <button key={p.id} className="dp-chip" aria-pressed={p.id === patientId} onClick={() => setPatientId(p.id)}>{p.name}</button>)}</div>
-   {patient && <>
-    <p className="dp-note">{patient.name} · {patient.reason}</p>
-    {/* Keyed by the patient, so choosing another starts their board from its first reading. */}
-    <Suspense fallback={<p className="dp-note">Opening the board…</p>}><LiveVitalsBoard key={patient.id} subject={patient.id} patient={patient.name}/></Suspense>
-   </>}
+  <div className={`tri-gov${reviewed ? ' is-reviewed' : ''}`} role="note">
+   <ShieldAlert size={20} aria-hidden="true"/>
+   <div><strong>{governanceLine()}</strong><small>Owner: {governance.owner} · {governance.source}</small></div>
   </div>
+  {acting.length > 0 && <div className="tri-act-banner" role="alert">
+   <OctagonAlert size={22} aria-hidden="true"/>
+   <div><strong>{row!.p.name}: {acting.length === 1 ? `${acting[0].spec.label} past its alert line` : `${acting.length} readings past their alert lines`}</strong>
+    {acting.map(m => <span key={m.spec.id}>{fill(triageWords.actBanner, { measure: m.spec.label, value: formatReading(m.spec, m.value!), unit: m.spec.unit, line: lineReached(m.spec.id, m.value!) })}</span>)}</div>
+  </div>}
+  <ul className="tri-legend" aria-label="What each marker means">{(['in-range', 'watch', 'act'] as const).map(id =>
+   <li key={id}><MarkerPill id={id} long/><span>{markerOf(id).meaning}</span></li>)}</ul>
+  <Strip label="The board, counted by each patient's most urgent marker" figures={[
+   { label: markerOf('act').short, value: String(count('act')), trend: count('act') === 1 ? 'Patient with a reading past an alert line' : 'Patients with a reading past an alert line' },
+   { label: markerOf('watch').short, value: String(count('watch')), trend: 'Outside range, short of the alert line' },
+   { label: markerOf('in-range').label, value: String(count('in-range')), trend: 'Every reading inside its range' },
+   { label: 'Not shown', value: String(board.filter(r => !r.p.consent).length), trend: 'No consent to share readings' }
+  ]}/>
+  <div className="tri-layout">
+   <div className="dp-panel tri-board">
+    <div className="dp-panel-head"><h2>{triageWords.board}</h2><span>{board.length}</span></div>
+    <ol className="tri-patients">{board.map(({ p, marked, worst, lead, taken }) => <li key={p.id}>
+     <button className={`tri-patient is-${p.consent ? worst : 'none'}`} aria-pressed={p.id === patientId} onClick={() => setPatientId(p.id)}>
+      <span className="tri-avatar" aria-hidden="true">{initialsOf(p.name)}</span>
+      <span className="tri-patient-what"><span className="tri-patient-top"><strong>{p.name}</strong>{p.consent ? <MarkerPill id={worst}/> : null}</span>
+       <small>{p.reason}{taken ? ` · ${taken.minutesAgo} min ago` : ''}</small>
+       {lead && lead.value !== undefined && <span className={`tri-lead is-${lead.marker}`} title={lead.spec.label}><span className="visually-hidden">{lead.spec.label} </span>{formatReading(lead.spec, lead.value)} {lead.spec.unit}</span>}
+       {p.consent
+        ? <span className="tri-dots" aria-label={marked.map(m => `${m.spec.label}: ${markerOf(m.marker).short}`).join(', ')}>{marked.map(m => <i key={m.spec.id} className={`is-${m.marker}`}/>)}</span>
+        : <span className="tri-locked"><Lock size={13} aria-hidden="true"/>No consent</span>}</span>
+     </button>
+    </li>)}</ol>
+    <p className="dp-note">{triageWords.boardNote}</p>
+   </div>
+   <div className="dp-panel tri-detail" aria-live="polite">
+    {row && <>
+     <div className="tri-who">
+      <span className="tri-avatar is-large" aria-hidden="true">{initialsOf(row.p.name)}</span>
+      <div><h2>{row.p.name}</h2><p className="dp-note">{row.p.reason}</p></div>
+      {row.taken && <span className="tri-taken"><Clock size={16} aria-hidden="true"/><span><strong>{row.taken.by}</strong><small>{row.taken.minutesAgo} min ago</small></span></span>}
+     </div>
+     {row.p.consent
+      ? <>
+       <div className="tri-vitals-head">
+        <h3><Activity size={18} aria-hidden="true"/> Vital signs</h3>
+        {!decor.reduced && <Button variant="secondary" size="sm" onClick={decor.toggle}>{decor.playing ? 'Pause motion' : 'Play motion'}</Button>}
+       </div>
+       <p className="dp-note">{triageWords.notLive}</p>
+       <ul className="tri-vitals" data-motion={decor.reduced ? 'still' : decor.playing ? 'running' : 'paused'} aria-label={`${row.p.name}’s readings, each marked`}>{row.marked.map(m => <VitalCard key={m.spec.id} {...m}/>)}</ul>
+       {row.taken && <p className="dp-note">{fill(triageWords.trend, { count: String(Math.max(...row.marked.map(m => m.series.length))), interval: String(row.taken.intervalMinutes) })}</p>}
+      </>
+      : <Alert variant="warning" title="Readings withheld">{triageWords.noConsent}</Alert>}
+     <p className="dp-note">{observationsNote}</p>
+    </>}
+   </div>
+  </div>
+  <div className="dp-panel">
+   <div className="dp-panel-head"><h2>Wearable feeds</h2><span>{row?.p.name}</span></div>
+   <Alert variant="warning" title={notTriaged.human}>{thusoiq.wearables.neverInferred}</Alert>
+   {row && <ul className="dp-tiles" aria-label={`How fresh ${row.p.name}’s wearable readings are`}>{thusoiq.wearables.metrics.map(metric => {
+    const latest = latestSample(state.samples, row.p.id, metric.id as 'heart-rate');
+    const fresh = sampleFreshness(latest, now);
+    return <li key={metric.id} className={`dp-tile is-${fresh}`}>
+     <span className="dp-tile-label">{metric.name}</span>
+     <strong>{freshness[fresh]}</strong>
+     <small>{latest ? `Measured ${clock(latest.measuredAt)}` : 'Nothing has been received for this patient.'}</small>
+    </li>;
+   })}</ul>}
+   <p className="dp-note">Freshness only. A wearable’s value is read in the Wearables tool of the ThusoIQ workspace, and is not marked here.</p>
+  </div>
+  <p className="dp-note">{clinicalContract.triage.triageProtocols.why}</p>
   <TriageStart/>
   <GuidanceStart/>
+  <div className="dp-panel tri-where"><h2>{triageWords.where}</h2><p className="dp-note">{triageWords.whereNote}</p></div>
   <Suspense fallback={null}><SentinelState workspace="doctor"/></Suspense>
  </section>;
 }

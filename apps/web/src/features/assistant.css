@@ -2513,3 +2513,26 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* The sources caption beneath an answer (2 October 2026): small and quiet, because it is a footnote to
+   the answer rather than a second one. The demo connectors are folded so the answer stays the thing read. */
+.as-sources {
+  margin-top: var(--space-8);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.as-sources p {
+  margin: 0;
+}
+.as-sources-label {
+  font-weight: 600;
+}
+.as-sources-demo summary {
+  cursor: pointer;
+  min-height: 24px;
+  padding-top: var(--space-4);
+}
+.as-sources-demo p + p {
+  margin-top: var(--space-4);
+  font-style: italic;
+}

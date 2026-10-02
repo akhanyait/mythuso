@@ -1,5 +1,6 @@
 import { Suspense, lazy } from 'react';
 import registry from '../../../../../../packages/catalog/api-registry.json' with { type: 'json' };
+import connectors from '../../../../../../packages/catalog/gilbertone-connectors.json' with { type: 'json' };
 import founder from '../../../../../../packages/catalog/founder-access.json' with { type: 'json' };
 import providers from '../../../../../../packages/catalog/model-providers.json' with { type: 'json' };
 import { noticeFor } from '../../../lib/capabilities';
@@ -32,9 +33,19 @@ import { VoicePreview } from './VoicePreview';
  * component the Speech settings screen uses. Since 27 September 2026 it plays — through the one
  * text-to-speech provider that is built and configured, and only on that provider's card: on any other
  * card the panel says so in the contract's sentence and offers no Play, because a preview that called
- * a provider the registry records as proposed would be the call its refusal exists to stop. */
+ * a provider the registry records as proposed would be the call its refusal exists to stop.
+ *
+ * The Open-source connectors group (2 October 2026) is the engines the founder asked GilbertOne could
+ * connect to for knowledge and reasoning. Each is an ordinary proposed card, and its details — licence,
+ * where it would run, what it adds, what it is never for, the seam it would sit behind — are read from
+ * packages/catalog/gilbertone-connectors.json, the one place they live, rather than copied onto the card. */
 
 const isTts = (card: Card) => (card.serves ?? []).includes('tts');
+const connectorOf = (card: Card) => connectors.connectors.find(c => c.id === card.id);
+const groupOf = (id: string) => connectors.groups.find(g => g.id === id);
+/* On for the demo is the founder's switch of 2 October 2026, and it is drawn beside the card's own state
+   rather than in place of it: the card stays not-configured, because nothing is installed. */
+const onForDemo = (id: string) => connectors.demo.on && connectors.demo.connectors.includes(id);
 /* The two cards whose key founder access can reveal, read from its contract: the panel is drawn on
    those and on no other, behind its own dynamic import. */
 const founderCard = (card: Card) => founder.keys.some(k => k.card === card.id);
@@ -54,10 +65,12 @@ export function ApiRegistryScreen() {
   </details>
 
   {groups.map(group => <Region key={group.id} title={group.label} count={group.cards.length}>
+   {group.id === 'open-source' && <><p>{connectors.policy.statement}</p><p className="helper">{connectors.policy.whySelfHosted}</p></>}
    <RovingList label={`${group.cards.length} ${group.label} cards`} className="g1-cards" rows={group.cards.map(card => {
     const notice = card.capabilityRef ? noticeFor(card.capabilityRef) : null;
+    const connector = connectorOf(card);
     return { key: card.id, content: <article className="pt-card g1-card" aria-label={card.name}>
-     <h3>{card.name} <CardStatusWord id={card.statusToday}/> <BuildWord id={card.buildStatus}/></h3>
+     <h3>{card.name} <CardStatusWord id={card.statusToday}/> <BuildWord id={card.buildStatus}/>{onForDemo(card.id) && <> <span className="g1-tag g1-demo">{connectors.demo.statusWord}</span></>}</h3>
      <p>{card.why}</p>
      {notice && <p className="g1-notice">{notice}</p>}
      {card.statusToday === 'demonstration' && <p className="g1-notice" role="note"><strong>{demonstration.disclaimer.label}.</strong> {demonstrationDisclaimer}</p>}
@@ -66,6 +79,15 @@ export function ApiRegistryScreen() {
       {card.environment.length > 0 && <div className="g1-fact"><dt>Environment</dt><dd>{card.environment.join(', ')}</dd></div>}
       {card.prohibitedFor && <div className="g1-fact"><dt>Prohibited for</dt><dd>{card.prohibitedFor}</dd></div>}
       {card.calledFrom && <div className="g1-fact"><dt>Called from</dt><dd>{card.calledFrom}</dd></div>}
+      {connector && <>
+       {onForDemo(card.id) && <div className="g1-fact"><dt>{connectors.demo.statusWord}</dt><dd>{connectors.demo.sentence}</dd></div>}
+       <div className="g1-fact"><dt>What it is</dt><dd>{connector.project}. {groupOf(connector.group)?.label}.</dd></div>
+       <div className="g1-fact"><dt>Licence</dt><dd>{connector.licence}. Commercial use: {connector.commercialUse}. {!connector.licenceVerified && connectors.policy.licenceUnverified}</dd></div>
+       <div className="g1-fact"><dt>Would run</dt><dd>{connector.runs}</dd></div>
+       <div className="g1-fact"><dt>Would add</dt><dd>{connector.adds}</dd></div>
+       <div className="g1-fact"><dt>Never for</dt><dd>{connector.neverFor}</dd></div>
+       <div className="g1-fact"><dt>Would sit behind</dt><dd>{connector.sitsBehind}</dd></div>
+      </>}
       <div className="g1-fact"><dt>Health check</dt><dd>{providers.panels.health.why}</dd></div>
       <div className="g1-fact"><dt>Key</dt><dd>{card.keyRequired === false ? words.noKey : g1.modelProviders.keyRegistryEmpty}</dd></div>
      </dl>
@@ -78,6 +100,12 @@ export function ApiRegistryScreen() {
     </article> };
    })}/>
   </Region>)}
+
+  <Region title="What the open-source connectors refuse" count={connectors.refusals.length}>
+   <p className="helper">{connectors.policy.activationRequires}</p>
+   <p className="helper">{connectors.policy.licenceNote} {connectors.policy.alreadyRegistered}</p>
+   <ul className="pt-refusals">{connectors.refusals.map(r => <li key={r.id}><strong>{r.statement}</strong> <span>{r.why}</span></li>)}</ul>
+  </Region>
 
   <Region title={words.addHeading}>
    <Empty heading={refusal('a-region-is-not-a-section-72-determination')}>{registry.addProvider.residencySelector.sentence}</Empty>

@@ -7,7 +7,6 @@
  "instruments": "packages/catalog/capture.json#devices",
 
  "surfaces": [
-  { "id": "doctor-triage", "role": "doctor", "shows": "board" },
   { "id": "teleconsult", "role": "doctor", "shows": "panel" },
   { "id": "consultation-record", "role": "doctor", "shows": "panel" },
   { "id": "care-visit", "role": "nurse", "shows": "panel" },
@@ -15,7 +14,7 @@
   { "id": "patient-consultation", "role": "patient", "shows": "panel" },
   { "id": "patient-passport", "role": "patient", "shows": "panel" }
  ],
- "_surfacesNote": "Where the board stands and for whom. The patient opens the same synthetic readings on the web devices and consultation pages and from both native Health Passports, clearly labelled as examples rather than their own measurements. Since 2 October 2026 (packages/catalog/consultation-toolkit.json) the nurse sees the compact panel in her visit, from the moment the visit code opens it, and either clinician opens the whole board as a tool of the consultation — the same streams, the same simulated banner, the same refusals. Nothing is drawn for the nurse that is not drawn for the doctor: no score, no priority, no colour.",
+ "_surfacesNote": "Where the board stands and for whom. The patient opens the same synthetic readings on the web devices and consultation pages and from both native Health Passports, clearly labelled as examples rather than their own measurements. Since 2 October 2026 (packages/catalog/consultation-toolkit.json) the nurse sees the compact panel in her visit, from the moment the visit code opens it, and either clinician opens the whole board as a tool of the consultation (the doctor's Triage page itself draws the marked cards of triage-markers.json instead, since the merge of 2 October 2026) — the same streams, the same simulated banner, the same refusals. Nothing is drawn for the nurse that is not drawn for the doctor: no score, no priority, no colour.",
 
  "motion": {
   "kind": "decorative",

@@ -1,0 +1,101 @@
+{
+  "_note": "The safety markers the doctor's Triage screen draws beside each reading, and the one place their alert lines are kept. Founder instruction, 2 October 2026: make triage visual, mark each reading good or bad, and use standard readings for the demo that an officer can change and review later. So this file is the officer's: every number in `lines` may be changed here, by the Clinical Governance Lead, and nowhere else. The green edge is not here: in range means inside the indicative adult range in packages/catalog/records.json#observations, which the nurse's assessment, the Passport and the Protocols table already read, so a reading cannot be in range on one screen and out of it on another. What this file adds is the line past which an out-of-range reading is marked for action now. A marker draws a clinician's eye to a reading; it is not a score, it is not added up, it is not adjusted for age, pregnancy or medication, and nothing in MyThuso decides, escalates or notifies from it.",
+  "version": 1,
+
+  "governance": {
+    "status": "demo-defaults",
+    "owner": "Clinical Governance Lead",
+    "reviewedBy": null,
+    "reviewedOn": null,
+    "source": "Adult bands adapted from the Royal College of Physicians' NEWS2 chart (2017) for pulse, breathing, temperature, oxygen and low blood pressure; the hypertension guideline's 180/110 for very high blood pressure; and the 3.0 and 14.0 mmol/L lines for very low and very high glucose.",
+    "banner": "Demo thresholds. These lines are standard adult defaults chosen for the preview and have not been reviewed by the Clinical Governance Lead.",
+    "reviewedBanner": "Thresholds reviewed by {reviewer} on {day}.",
+    "why": "A line that decides whether a reading is drawn red is a clinical decision, and it belongs to a named role under a date. Until the role is filled and the review is written here, every screen that draws a marker says the lines are demo defaults, and a check fails the build if this file claims a review without a reviewer and a day."
+  },
+
+  "markers": [
+    {
+      "id": "in-range",
+      "label": "In range",
+      "short": "Good",
+      "meaning": "Inside the indicative adult range."
+    },
+    {
+      "id": "watch",
+      "label": "Outside range",
+      "short": "Watch",
+      "meaning": "Outside the indicative range but short of the alert line. Look again and read it beside the rest."
+    },
+    {
+      "id": "act",
+      "label": "Past the alert line",
+      "short": "Act now",
+      "meaning": "At or past the alert line. A clinician should see this reading now."
+    },
+    {
+      "id": "none",
+      "label": "No reading",
+      "short": "None",
+      "meaning": "Nothing has been recorded for this measure."
+    }
+  ],
+
+  "lines": [
+    { "id": "systolic", "actAtOrBelow": 90, "actAtOrAbove": 180 },
+    { "id": "diastolic", "actAtOrBelow": 50, "actAtOrAbove": 110 },
+    { "id": "pulse", "actAtOrBelow": 40, "actAtOrAbove": 131 },
+    { "id": "respiratory", "actAtOrBelow": 8, "actAtOrAbove": 25 },
+    { "id": "temperature", "actAtOrBelow": 35, "actAtOrAbove": 39.1 },
+    { "id": "oxygen", "actAtOrBelow": 91, "actAtOrAbove": null },
+    { "id": "glucose", "actAtOrBelow": 3, "actAtOrAbove": 14 }
+  ],
+  "linesNote": "Inclusive: a reading equal to a line is past it. `null` means the measure has no alert line on that side — oxygen saturation cannot be dangerously high on room air. Each line must sit on or outside the edge of the indicative range in records.json; where one touches the edge, as low systolic does at 90, a reading on it is past the alert line, because the line is the more cautious of the two. The build checks it.",
+
+  "screen": {
+    "intro": "Every reading for the patients in the sandbox, marked against the indicative range and the alert lines. The markers point a clinician's eye. They decide nothing.",
+    "board": "Patients, most urgent marker first",
+    "boardNote": "Ordered by the most urgent marker on the patient's latest readings, then by name. The order is a reading aid; who is seen first is a clinician's call.",
+    "noConsent": "No reading is shown. This patient has not agreed to their readings being shared with the care team.",
+    "actBanner": "{measure} is {value} {unit}, at or past the alert line ({line}). A clinician should see this reading now.",
+    "notLive": "Taken at the door, not streamed. The heart and the lungs move at the rate recorded, so the picture is the reading rather than a live feed.",
+    "trend": "The last {count} readings, {interval} minutes apart. The shaded band is the indicative range.",
+    "where": "Where these lines live",
+    "whereNote": "The alert lines are packages/catalog/triage-markers.json, changed by the Clinical Governance Lead. The green band is the indicative range in packages/catalog/records.json, the same one the nurse's assessment and the Passport read."
+  },
+
+  "preview": {
+    "why": "Fictional readings for the three sandbox patients in packages/thusoiq/fixtures.ts, so the board has something to mark. Each series is the readings a nurse took at the door, oldest first, `intervalMinutes` apart; the last is the latest, taken `minutesAgo`. One patient is running a fever with a climbing pulse, one has chronic readings to watch, and the third has not consented, so the screen shows the refusal instead of their readings — and none are written here for them. None of it is live and none came from a device.",
+    "readings": [
+      {
+        "patientId": "demo-thabo",
+        "minutesAgo": 12,
+        "intervalMinutes": 30,
+        "by": "Nurse at the door",
+        "series": {
+          "systolic": [112, 110, 111, 109, 108, 108],
+          "diastolic": [70, 71, 69, 68, 69, 68],
+          "pulse": [96, 102, 108, 112, 115, 118],
+          "respiratory": [18, 19, 19, 21, 22, 22],
+          "temperature": [38.2, 38.5, 38.8, 39.0, 39.2, 39.3],
+          "oxygen": [97, 96, 96, 96, 95, 95],
+          "glucose": [6.4, 6.3, 6.2, 6.2, 6.1, 6.1]
+        }
+      },
+      {
+        "patientId": "demo-lerato",
+        "minutesAgo": 34,
+        "intervalMinutes": 30,
+        "by": "Nurse at the door",
+        "series": {
+          "systolic": [148, 150, 155, 151, 149, 152],
+          "diastolic": [92, 93, 95, 94, 92, 94],
+          "pulse": [76, 80, 79, 77, 78, 78],
+          "respiratory": [16, 15, 16, 17, 16, 16],
+          "temperature": [36.6, 36.7, 36.6, 36.8, 36.7, 36.7],
+          "oxygen": [97, 98, 97, 97, 98, 97],
+          "glucose": [8.8, 9.1, 9.6, 9.2, 9.0, 9.4]
+        }
+      }
+    ]
+  }
+}

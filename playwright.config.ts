@@ -45,4 +45,11 @@ const baseURL = `http://127.0.0.1:${port}`;
    suite has outgrown the parallelism its own comment was written for, and the number should be
    measured again when the box is quiet rather than inferred from the core count. What must not
    happen is leaving it to the default and calling the result flaky when it varies. */
-export default defineConfig({ testDir: './tests', fullyParallel: true, workers: 2, use: { baseURL, trace: 'retain-on-failure' }, webServer: { command: `npm run dev -- --port ${port}`, url: baseURL, reuseExistingServer: false }, projects: [{ name: 'desktop', use: { browserName: 'chromium', viewport: { width: 1440, height: 1100 } } }, { name: 'mobile', use: { browserName: 'chromium', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } }] });
+/* Johannesburg, whatever the machine running the suite says. The sample visit takes the next slot by the
+   browser's own clock while the arrival screen reads the day and the window in Africa/Johannesburg, so
+   on a runner set to UTC the pinned eight o'clock was six, the first slot was the one starting now,
+   and the nurse had already arrived before the journey looked for her. Every person this is built for
+   is in that timezone; a suite that passes only on a machine that happens to be is not a suite. */
+const timezoneId = 'Africa/Johannesburg';
+
+export default defineConfig({ testDir: './tests', fullyParallel: true, workers: 2, use: { baseURL, timezoneId, trace: 'retain-on-failure' }, webServer: { command: `npm run dev -- --port ${port}`, url: baseURL, reuseExistingServer: false }, projects: [{ name: 'desktop', use: { browserName: 'chromium', viewport: { width: 1440, height: 1100 } } }, { name: 'mobile', use: { browserName: 'chromium', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } }] });

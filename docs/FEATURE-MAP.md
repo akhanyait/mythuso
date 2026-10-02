@@ -259,6 +259,15 @@ The words that make GilbertOne show the ambulance numbers are a versioned config
 - **What must still pass.** `npm run check` replays the changelog and fails on a term changed without an entry, a removal nobody named, or a version and changelog that disagree. `npm run assistant` regenerates Swift and Kotlin. The shared fixtures in `assistant.json` must still pass on the web (Playwright), iOS (the debug self-test in `AssistantTests`) and Android (`GilbertFixturesTest`), so a change cannot silence a listed emergency. `falsePositives` — ordinary sentences the list raises, such as "I feel fit" — are reported by those tests and never block: tuning one out is a change to this file alone.
 - **Decided, not edited.** The 30-second listening cap with tap-to-talk (`voice.listeningDecision`) and "Your Thuso AI Doctor · not a person, and not a doctor" (`identity.descriptorDecision`) are founder decisions of 14 September 2026; the build fails if the live value and the decision record disagree.
 
+## Delivered — the doctor's Triage, marked, 2 October 2026
+
+The doctor's Triage page draws every reading for the sandbox patients on a scale with a marker beside it: **Good** inside the indicative range, **Watch** outside it but short of the alert line, **Act now** at or past the alert line. The board orders patients by their most urgent marker. Founder instruction: visual, good and bad readings marked, standard demo thresholds an officer changes and reviews later.
+
+- **Where the numbers live.** The green band is `packages/catalog/records.json#observations`, the same range the nurse's assessment and the Passport read. The alert lines are `packages/catalog/triage-markers.json#lines`, which belongs to the Clinical Governance Lead. Nothing else types either.
+- **Changing a line.** Edit the number in `lines` (inclusive; `null` where a measure has no line on that side). Each line must sit on or outside the edge of its indicative range, or `npm run check` fails. When the lines are reviewed, set `governance.status` to `reviewed` with `reviewedBy` and `reviewedOn` (YYYY-MM-DD); the screen's banner then names the reviewer instead of saying "Demo thresholds".
+- **What it refuses.** A marker is per reading and never summed into a figure about a person. A patient without consent shows the refusal rather than an empty green board. Wearables stay freshness only. Nothing escalates, notifies or decides from a marker, and the board's order says it is a reading aid.
+- **Not yet.** Web only: the native apps have no doctor's Triage screen. The lines are not yet an engine setting on the Control Tower's settings review.
+
 ## Feature coverage
 
 | Area                           | Web preview                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Native iOS / Android preview                                                                                               | Later functionality                                                                                                                                             |
@@ -2860,3 +2869,42 @@ This founder-requested redesign supersedes the earlier live-board decision to sh
 | What landed | What it refuses | Evidence |
 | --- | --- | --- |
 | The shared vitals board draws a decorative pulsing heart, breathing lungs for oxygen and measurement illustrations, with larger values, trends, provenance and reference ranges. Patient web devices and consultation pages and both native Health Passports open the same synthetic readings view; nurses retain it in their visit and doctors in triage and consultations. Web clinician summaries keep available sandbox patient details, allergies and medication requests beside the readings, with details expandable during the call. The web doctor call and nurse’s call-doctor tool carry labelled video placeholders. | No media or device connection is opened. Requests are not a reconciled medication list. An unknown patient is never replaced by another patient’s record. Motion stops when paused, stale, missing or reduced; its rhythm never represents a measured heart or breathing rate. All clinical refusals remain. | `packages/catalog/live-vitals.json`, `scripts/emit-live-vitals.mjs`, `features/LiveVitals.tsx`, `LiveVitalsView.swift`, `LiveVitalsScreens.kt`, `scripts/prove-live-vitals.mjs`, `tests/live-vitals.spec.ts`, `tests/patient-export-screens.spec.ts` |
+## Delivered — GilbertOne's open-source connectors on the API Registry, 2 October 2026 (web and contract only)
+
+The founder asked which open-source engines GilbertOne could connect to "for knowledge and smartness", and for them
+to be put on the control tower as connectors. They are twelve proposed cards in a new **Open-source connectors**
+group on GilbertOne API Administration's API Registry tab, every one `proposed · not-configured`, with their details
+in `packages/catalog/gilbertone-connectors.json` and nowhere else.
+
+| What landed | The refusals it adds |
+|---|---|
+| **The contract** — `packages/catalog/gilbertone-connectors.json`: five groups (open-weight models — BioMistral 7B, Meditron 7B, MedGemma, InkubaLM; knowledge — Kiwix with WikiMed; retrieval — BGE-M3, the BGE reranker, OpenSearch; language understanding — scispaCy, medspaCy; safety — NeMo Guardrails, Llama Guard 3), each with its licence, whether commercial use is allowed, where it would run (every one self-hostable, so nothing would cross a border), what it would add, what it is never for and the seam already in the tree it would sit behind. Every licence is marked `licenceVerified: false`: none was read from its primary source in this change, unlike `open-source.json`'s. Engines that register already holds — HAPI FHIR, OpenMRS, Whisper, Meta MMS and the rest — are not repeated. | A proposed connector is never called; no connector answers before `packages/gilbertone` or clears an emergency, refusal or escalation it raised; a non-commercial licence is never activated in production; nothing a connector produces reaches a patient as clinical information until the Clinician Review Queue ratifies that use. |
+| **The registry** — twelve cards in `api-registry.json` under the new `open-source` category, labelled in `control-tower-portal.json`, each naming the strings its code would have to use. | Check 12's never-called sweep now holds all twelve: the first line of service, app or manifest code naming one fails the build. Proven by adding `'medspacy'` to `ApiRegistry.tsx` and watching the build fail, then restored. |
+| **Web** — `ApiRegistry.tsx` draws each connector's facts from the contract on its card, the group's policy above the cards, and a region of the four refusals with the activation steps. | No new control: the cards carry the same founder and gated actions as every other proposed card, which the service answers as not configured. |
+
+**Verified.** `npm run check` passes. `tests/gilbertone-admin.spec.ts` passes 28 of 28 on both viewports, its API
+Registry journey reading every card in every group, the new twelve included. The iOS and Android builds were not run:
+neither phone draws the API Registry, and nothing native changed.
+
+**Open.** Each licence needs reading from its primary source, InkubaLM's above all (recorded as to be confirmed). The
+host for any self-hosted engine has no residency decision and no measured capacity: `liqzar-server` is the box
+DATA-RESIDENCY-OPTIONS.md §2 recommends hold no health information.
+
+## Delivered — the open-source connectors on for the demo, and a sources caption under GilbertOne's answers, 2 October 2026 (web only)
+
+The founder asked for the connectors to be switched on "for demo of live intelligence", with "a small caption under
+GilbertOne that shows sources its getting information from". None of the twelve is installed, so on for the demo
+means shown, not running: `gilbertone-connectors.json#demo` carries the founder's switch, and every card on the API
+Registry says **On for the demo** beside its unchanged `not-configured` state, with the sentence saying nothing
+reaches it.
+
+| What landed | The refusals it adds |
+|---|---|
+| **The caption** — beneath every answer in the web panel, outside the reply so the reply's words stay the contract's: what produced it, read from the reply's own kind (`apps/web/src/lib/gilbertone-sources.ts`) — the catalogue's approved answers, the language model through GilbertOne's service, the emergency rules or the safe fallback on the device — and, folded, the demo connectors by name, called simulated and not consulted. Words in `gilbertone-connectors.json#caption`. | A connector switched on for the demo is never named as the source of an answer (`no-demo-connector-named-as-a-source`). |
+
+**Verified.** `npm run check` passes. Twenty journey files that open the assistant or the control tower were run; the
+caption first sat inside the reply and broke the intake journey's every-word-is-the-contract's check, and moving it
+outside fixed that. What still fails — `assistant.spec.ts:3288`, `configuration.spec.ts:99`,
+`control-tower-portal.spec.ts:142`, `landing.spec.ts:453`, `patient-pages.spec.ts:40` and `gilbertone.spec.ts:322`
+— fails the same way with this change stashed. iOS and Android carry no caption: the founder's ask was the demo, and
+the phones' panels are untouched.

@@ -24,15 +24,15 @@ const dark = async (page: Page) => {
 /* Read the whole screen, and say which words fell short if any did. */
 const clears = async (page: Page, where: string, { notice = false } = {}) => {
  await expect(page.locator('main').getByRole('heading').first()).toBeVisible();
- const { failures, measured, notices } = await lowContrast(page);
+ /* Measured until it holds, for up to the usual five seconds. A workspace's sheet arrives on its own
+    dynamic import, and on a busy runner the heading drew a beat before the sheet that darkens the panels
+    under it, so a single reading caught pale words on a ground that was about to change. A defect does
+    not change, and still fails here with the words that fell short. */
+ let reading = await lowContrast(page);
+ await expect.poll(async () => (reading = await lowContrast(page)).failures, { message: `${where}, in the dark theme: words under their contrast floor` }).toEqual([]);
+ const { measured, notices } = reading;
  expect(measured, `${where}: nothing was measured, so nothing was proved`).toBeGreaterThan(10);
  if (notice) expect(notices, `${where}: the not-connected notice was not among the words measured`).toBeGreaterThan(0);
- /* The floor is a property of the screen at rest. Measured in the frame the theme switch lands, the header's
-    own toggle read 1.16 against its ground about one run in three on the mobile partner board, and at rest it
-    clears; so the words are read again until they settle, and a screen that is still short after five
-    seconds fails with the words that fell short. */
- if (failures.length) await expect.poll(async () => (await lowContrast(page)).failures,
-  { message: `${where}, in the dark theme: words under their contrast floor`, timeout: 5000 }).toEqual([]);
 };
 
 test.beforeEach(async ({ page }) => {

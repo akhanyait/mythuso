@@ -46,76 +46,9 @@ async function bannerStands(board: Locator) {
   await expect(banner).toContainText(noticeFor('devices'));
 }
 
-test.describe('the doctor’s Triage page', () => {
-  test.beforeEach(async ({ page }) => {
-    await openWorkspace(page, 'Doctor');
-    await goSection(page, 'Triage');
-  });
-
-  test('every instrument streams, the values move, and pause stops them', async ({ page }) => {
-    const board = page.locator('.lv-board');
-    await expect(board).toBeVisible();
-    await bannerStands(board);
-    await expect(board.locator('.lv-tile[data-stream]')).toHaveCount(live.streams.length);
-    /* The default scenario has a reading from every instrument it streams. */
-    await expect(board.locator('.lv-tile.is-silent')).toHaveCount(0);
-    const heart = board.locator('[data-stream="pulse"] .lv-organ svg');
-    const oxygen = board.locator('[data-stream="oxygen"] .lv-organ svg');
-    expect(await heart.evaluate(el => getComputedStyle(el).animationName)).toBe('lv-heart');
-    expect(await oxygen.evaluate(el => getComputedStyle(el).animationName)).toBe('lv-breathe');
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    expect(await heart.evaluate(el => getComputedStyle(el).animationName)).toBe('none');
-    await page.emulateMedia({ reducedMotion: 'no-preference' });
-    const first = await values(board);
-    await expect.poll(async () => (await values(board)).join(' '), { timeout: 12_000 }).not.toBe(first.join(' '));
-    /* Each tile says where it came from, and that it was simulated. */
-    for (const tile of await board.locator('.lv-tile[data-stream]').all()) {
-      await expect(tile).toContainText(devices.deviceClasses.find((c: { id: string }) => c.id === 'simulator').label);
-      await expect(tile.locator('.lv-prov')).toContainText(devices.marks.find((m: { id: string }) => m.id === 'simulated').label);
-      await expect(tile.locator('svg.lv-spark')).toHaveCount(1);
-    }
-    /* The range is the record's, in words. */
-    const sys = measure('systolic');
-    await expect(board.locator('.lv-tile[data-stream="systolic"] .lv-range')).toContainText(`${sys.low}–${sys.high} ${sys.unit}`);
-    await expect(board.locator('.lv-tile[data-stream="systolic"] .lv-range')).toContainText(/(Inside|Below|Above) the reference range/);
-    await page.screenshot({ path: `${shots}/triage-${test.info().project.name}.png`, fullPage: true });
-
-    await board.getByRole('button', { name: live.board.pause }).click();
-    await expect(board.locator('.lv-status [role="status"]')).toHaveText(live.board.paused);
-    expect(await heart.evaluate(el => getComputedStyle(el).animationName)).toBe('none');
-    const held = (await values(board)).join(' ');
-    await page.waitForTimeout(live.pace.tickMs * 2 + 500);
-    expect((await values(board)).join(' ')).toBe(held);
-    await board.getByRole('button', { name: live.board.resume }).click();
-    await expect.poll(async () => (await values(board)).join(' '), { timeout: 12_000 }).not.toBe(held);
-    expect(await noSidewaysScroll(page, '.lv-board')).toEqual([]);
-  });
-
-  test('a scenario decides which instruments send, and draws no judgement', async ({ page }) => {
-    const board = page.locator('.lv-board');
-    await board.getByLabel(live.board.scenario).selectOption(presets.find(p => p.id === 'sim.hypox')!.name);
-    /* Progressive hypoxia sends nothing from the glucometer, and the tile says so rather than borrowing. */
-    await expect(board.locator('.lv-tile[data-stream="glucose"]')).toContainText(live.board.nothing);
-    const ox = measure('oxygen');
-    await expect(board.locator('.lv-tile[data-stream="oxygen"] .lv-range')).toContainText(`Below the reference range, ${ox.low}–${ox.high} ${ox.unit}`, { timeout: 15_000 });
-    await drawsNoJudgement(board);
-    await page.screenshot({ path: `${shots}/triage-hypox-${test.info().project.name}.png`, fullPage: true });
-
-    /* The stale scenario sends nothing live: it says so in the Devices contract's own words, and Pause has nothing to stop. */
-    await board.getByLabel(live.board.scenario).selectOption(presets.find(p => p.id === 'sim.stale')!.name);
-    await expect(board.locator('.lv-status')).toContainText(devices.screens.nurse.staleSince.split('{interval}')[0].trim());
-    await expect(board.getByRole('button', { name: live.board.pause })).toBeDisabled();
-    await expect(board.locator('.lv-tile[data-stream="pulse"] .lv-ago')).toContainText(/h ago/);
-  });
-
-  test('what cannot be streamed is said, and the record’s caveat stands under the board', async ({ page }) => {
-    const board = page.locator('.lv-board');
-    await expect(board.locator('.lv-notstreamed')).toContainText(live.board.notStreamedHeading);
-    await expect(board.locator('.lv-absent > li')).toHaveCount(3);
-    const note = records.consultation.sections.find((s: { id: string }) => s.id === 'observations').note;
-    await expect(board.locator('.lv-foot')).toContainText(note);
-  });
-});
+/* The doctor's Triage page no longer draws this board: from 2 October 2026 it draws the marked cards of
+   lib/triage-markers.ts (tests/doctor-pages.spec.ts). The board stays in the call, the consultation and the
+   patient's own pages, below. */
 
 test.describe('the doctor’s consultation', () => {
   test('the call room carries the patient’s devices, live, and so does the record it ends in', async ({ page }) => {

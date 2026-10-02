@@ -13,7 +13,9 @@ const json = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta
 const clinical = json('../packages/catalog/clinical.json');
 const thusoiq = json('../packages/catalog/thusoiq.json');
 const medicines = json('../packages/catalog/medicines.json');
-const liveVitals = json('../packages/catalog/live-vitals.json');
+const records = json('../packages/catalog/records.json') as { observations: { measures: { id: string; label: string; low: number; high: number }[] } };
+const markers = json('../packages/catalog/triage-markers.json');
+const markerShort = (id: string) => (markers.markers as { id: string; short: string }[]).find(m => m.id === id)!.short;
 const protocols = json('../packages/catalog/protocols.json') as { protocols: { id: string; version: number; status: string }[] };
 
 const main = (page: Page) => page.locator('main .cl-chapter');
@@ -100,7 +102,7 @@ test('Credentials is read from the register: eight checks, nothing to edit and n
   await expect(main(page)).not.toContainText(/Settings saved|Changes saved/i);
 });
 
-test('Triage says it is not formed in the contract’s words and interprets nothing', async ({ page }) => {
+test('Triage marks every reading against the range and the officer’s alert lines, under the demo banner, and adds nothing up', async ({ page }) => {
   await goSection(page, 'Triage');
   const screen = main(page);
   await expect(screen.getByRole('heading', { level: 1, name: 'Triage' })).toBeVisible();
@@ -108,17 +110,43 @@ test('Triage says it is not formed in the contract’s words and interprets noth
   await expect(screen).toContainText(clinical.triage.notTriaged.human);
   await expect(screen).toContainText(thusoiq.wearables.neverInferred);
   for (const stage of clinical.triage.stages) await expect(screen).toContainText(stage.label);
-  /* Since 1 October 2026 the patient's devices stream on the live board (tests/live-vitals.spec.ts holds it
-     to its contract). The score, the heatmap and the early-warning figure are named only in the board's
-     refusals, which say why they are not drawn; nowhere else on the panel is any of them drawn. */
-  await expect(screen.locator('.lv-tiles > .lv-tile[data-stream]')).toHaveCount(liveVitals.streams.length);
-  for (const word of [/early.warning/i, /NEWS2/, /heatmap/i, /severity/i, /\bscore\b/i]) {
-    await expect(screen.locator('.lv-tiles')).not.toContainText(word);
-    await expect(screen.locator('.lv-status')).not.toContainText(word);
-  }
-  for (const r of liveVitals.refusals) await expect(screen.locator('.lv-refusals')).toContainText(r.sentence);
+  /* The lines are demo defaults until the Clinical Governance Lead's review is written into the contract. */
+  await expect(screen.locator('.tri-gov')).toContainText(markers.governance.banner);
+  await expect(screen.locator('.tri-gov')).toContainText(markers.governance.owner);
+  /* The board: the most urgent marker first, every patient on it, and the figure counted off it. */
+  const patients = screen.locator('.tri-patient');
+  await expect(patients).toHaveCount(3); // the sandbox's three fictional patients, packages/thusoiq/fixtures.ts
+  await expect(patients.first()).toHaveClass(/is-act/);
+  await expect(patients.first()).toHaveAttribute('aria-pressed', 'true');
+  expect(await figure(page, markerShort('act'))).toBe(await screen.locator('.tri-patient.is-act').count());
+  /* Every observation drawn, each with a marker in words and the numbers it was marked against. */
+  const vitals = screen.locator('.tri-vital');
+  await expect(vitals).toHaveCount(records.observations.measures.length);
+  await expect(screen.locator('.tri-vital.is-act').first()).toContainText(markerShort('act'));
+  for (const m of records.observations.measures) await expect(vitals.filter({ hasText: m.label })).toContainText(`In range ${m.low}–${m.high}`);
+  /* A reading past its alert line is named in a banner, in the contract's words. */
+  await expect(screen.locator('.tri-act-banner')).toContainText(markers.screen.actBanner.replace(/^.*\{unit\}, /, '').split(' (')[0]);
+  /* The heart beats and the lungs breathe at the recorded rate, and the page's pause control stops both. */
+  await expect(screen.locator('.vi-heart.is-moving')).toHaveCount(1);
+  await expect(screen.locator('.vi-lungs.is-moving')).toHaveCount(1);
+  const motion = screen.locator('.tri-vitals');
+  await expect(motion).toHaveAttribute('data-motion', 'running');
+  await screen.getByRole('button', { name: 'Pause motion' }).click();
+  await expect(motion).toHaveAttribute('data-motion', 'paused');
+  await screen.getByRole('button', { name: 'Play motion' }).click();
+  await expect(motion).toHaveAttribute('data-motion', 'running');
+  await expect(screen).toContainText(markers.screen.notLive);
+  /* Nothing on the board or the cards is summed into a figure about a person. */
+  for (const word of [/heatmap/i, /severity/i, /\bscore\b/i, /\blive readings\b/i, /\brisk\b/i]) for (const part of await screen.locator('.tri-board, .tri-vitals').all()) await expect(part).not.toContainText(word);
+  /* A patient who has not consented shows the refusal, never an empty green board. */
+  await screen.locator('.tri-patient.is-none').click();
+  await expect(screen.locator('.tri-detail')).toContainText(markers.screen.noConsent);
+  await expect(screen.locator('.tri-vital')).toHaveCount(0);
+  /* Wearables stay freshness only. */
+  await expect(screen.locator('.dp-tile')).toHaveCount(thusoiq.wearables.metrics.length);
   await screen.getByRole('button', { name: clinical.triage.screen.start }).click();
   await expect(screen.locator('.ci-answer')).toContainText(clinical.triage.notTriaged.label);
+  expect(await noSidewaysScroll(page)).toEqual([]);
 });
 
 test('Write a prescription lists by reference and state, and never says "Issued" or "no interactions"', async ({ page }) => {

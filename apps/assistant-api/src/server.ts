@@ -216,6 +216,11 @@ function writeEvent(res: ServerResponse, event: string, data: unknown): void {
 async function readJsonBody(
   req: IncomingMessage,
 ): Promise<{ ok: true; value: unknown } | { ok: false; status: 400 | 413 }> {
+  /* An oversized body is read to its end and thrown away, never left half-read. Leaving the loop
+     early destroys the request, and with it the socket the 413 has to travel back on — so a client
+     still sending got a reset instead of the refusal, whenever its body outran the loopback buffer.
+     Nothing past the ceiling is kept; nginx caps what reaches here, and the server's own request
+     timeout caps how long a sender can go on. */
   const chunks: Buffer[] = [];
   let size = 0;
   /* A caller that hangs up halfway through its body makes the iteration throw ("aborted",
@@ -226,12 +231,13 @@ async function readJsonBody(
   try {
     for await (const chunk of req as AsyncIterable<Buffer>) {
       size += chunk.length;
-      if (size > MAX_BODY_BYTES) return { ok: false, status: 413 };
-      chunks.push(chunk);
+      if (size > MAX_BODY_BYTES) chunks.length = 0;
+      else chunks.push(chunk);
     }
   } catch {
     return { ok: false, status: 400 };
   }
+  if (size > MAX_BODY_BYTES) return { ok: false, status: 413 };
   if (!chunks.length) return { ok: true, value: {} };
   try {
     return {

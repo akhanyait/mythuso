@@ -3295,6 +3295,9 @@ test("a blood pressure in a person's own words is explained from records.json, h
   await ask(page, "what does 136/85 mean?");
   const reply = log(page).locator(".as-reply").last();
   await expect(reply).toHaveAttribute("data-outcome", "answer");
+  /* The cue is about a second long, so it is read the moment the answer lands. Asked after the dozen
+     checks below, a slow runner had already let it finish and found the rig at rest. */
+  await expect(panel(page).locator(".as-rig")).toHaveAttribute("data-cue", faceOf("reading").cue);
   await expect(reply).toHaveAttribute("data-question", "reading");
   await expect(reply.locator(".as-headline")).toHaveText("Blood pressure");
   await expect(reply).toContainText(explanationOf("systolic").measures);
@@ -3312,7 +3315,6 @@ test("a blood pressure in a person's own words is explained from records.json, h
   await expect(small.nth(2)).toHaveText(provenance.ranges);
   await expect(reply).not.toContainText(/\b(normal|abnormal)\b/i);
   await expect(reply.locator(".as-unread")).toHaveCount(0);
-  await expect(panel(page).locator(".as-rig")).toHaveAttribute("data-cue", faceOf("reading").cue);
   await expect(panel(page).locator(".as-rig")).toHaveAttribute("data-pulse", "guiding");
 });
 
