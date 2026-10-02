@@ -81,6 +81,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
     var holdLeft by remember { mutableIntStateOf(callReconnect.holdSeconds) }
     var decisionReached by remember { mutableStateOf(false) }
     var refusedClinician by remember { mutableStateOf(false) }
+    var toolOpen by remember { mutableStateOf<String?>(null) }
 
     val doctor = store.vetting.subject(doctorId)
     val consult = doctor?.let { can(it, "sign-clinical-review") }
@@ -138,6 +139,18 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                 }
             }
         }
+    }
+
+    /* The call room, and what comes after it, carry the toolkit: every tool the doctor needs beside the call,
+       opened under it rather than instead of it, so the line and the roster keep running. An encounter that
+       never reached the room — a refused clinician, a failed code — has nothing to write up and no tools. */
+    val roomReached = stage == 3 || (stage == 4 && !refusedClinician && identityConfirmed)
+    @Composable fun CallToolkit() {
+        if (roomReached) ConsultationToolkitPanel(
+            store, "teleconsult", doctorId, reference, patient,
+            ToolkitCall(connectionId, nursePresent, ended = stage == 4, countsAsConsultation = outcome.countsAsConsultation),
+            open = open, onToolChange = { toolOpen = it }
+        )
     }
 
     @Composable fun Refusal(item: CallRefusal) { ThusoAlert(item.sentence, variant = ThusoAlertVariant.Danger) }
@@ -286,7 +299,8 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
 
                 /* The patient beside the call: their devices, live and simulated (1 October 2026). Each reading
                    carries its source and its range, which is what four bare numerals beside a call did not. */
-                LiveVitalsPanel(patient)
+                if (toolOpen != "devices") LiveVitalsPanel(patient)
+                CallToolkit()
 
                 Text("In the room", style = MaterialTheme.typography.titleMedium)
                 Roster(canAsk = true)
@@ -394,6 +408,7 @@ private val callStageNames = listOf("Who is in the room", "Identity", "Recording
                         ThusoAlertText("There is no button on this screen that closes this encounter as a completed consultation, for anybody, in any state.")
                     }
                 }
+                CallToolkit()
                 Text("What this screen will not do", style = MaterialTheme.typography.titleMedium)
                 callRefusals.filterNot { it.id == "half-a-consultation" || it.id == "charge-for-a-failure" }.forEach { Refusal(it) }
                 Note("${Teleconsult.rule("no-media-in-this-build").sentence} Nothing was transmitted, no encounter was written and no clinician was notified.")

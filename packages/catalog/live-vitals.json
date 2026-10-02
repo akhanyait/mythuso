@@ -6,6 +6,14 @@
  "rangeNote": "packages/catalog/records.json#consultation.sections[observations].note",
  "instruments": "packages/catalog/capture.json#devices",
 
+ "surfaces": [
+  { "id": "doctor-triage", "role": "doctor", "shows": "board" },
+  { "id": "teleconsult", "role": "doctor", "shows": "panel" },
+  { "id": "consultation-record", "role": "doctor", "shows": "panel" },
+  { "id": "care-visit", "role": "nurse", "shows": "panel" }
+ ],
+ "_surfacesNote": "Where the board stands and for whom. Since 2 October 2026 (packages/catalog/consultation-toolkit.json) the nurse sees the compact panel in her visit, from the moment the visit code opens it, and either clinician opens the whole board as a tool of the consultation — the same streams, the same simulated banner, the same refusals. Nothing is drawn for the nurse that is not drawn for the doctor: no score, no priority, no colour.",
+
  "pace": {
   "tickMs": 2000,
   "ticksPerStep": 3,

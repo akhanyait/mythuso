@@ -120,6 +120,7 @@ struct CareVisitView: View {
                 if store.accepted {
                     rail
                     stageContent
+                    visitTools
                 } else {
                     SurfacePanel {
                         careNote("There is no visit to continue. An offer is accepted from your schedule, and the visit opens here once you have.")
@@ -264,6 +265,21 @@ struct CareVisitView: View {
         }
         if store.refusal?.stage == .handover { assessmentLink }
         Button("Hand to a doctor") { store.handOver() }.buttonStyle(CareButton())
+    }
+
+    /* The nurse's tools and the patient's devices (2 October 2026), from the stage the contract names — the
+       visit code has opened the door — until the visit is complete. Never on the road or at the door: she
+       reads a patient's readings in the house she was let into. The board is the doctor's own, with its
+       banner, its notice and its refusals. */
+    @ViewBuilder private var visitTools: some View {
+        let stages = CareVisitStore.Stage.allCases
+        if !store.completed, let from = ConsultationToolkit.surface("care-visit")?.from,
+           let first = stages.firstIndex(where: { $0.rawValue == from }),
+           let at = stages.firstIndex(of: store.stage), at >= first {
+            ConsultationToolkitSection(surfaceId: "care-visit", subjectId: CareData.Preview.clinicianRef,
+                                       reference: CareData.Preview.appointmentRef, patient: CareData.Preview.subjectRef)
+            LiveVitalsPanel(subject: CareData.Preview.subjectRef)
+        }
     }
 
     /* The assessment this visit is signed off in, opened under the visit's own reference, so the

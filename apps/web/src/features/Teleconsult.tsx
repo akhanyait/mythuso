@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
  ArrowLeft, ArrowRight, BadgeCheck, Ban, Check, CircleAlert, CircleSlash, ClipboardList, DoorOpen,
  Hourglass, Info, KeyRound, Lock, MicOff, PhoneCall, PhoneOff, ShieldX, Signal, Users, VideoOff, WifiOff
@@ -8,7 +8,6 @@ import { EmptyNote, SectionTitle } from '../components/UI';
 import { Badge, Button, StatusIndicator } from '../ui';
 import { NotConnected } from '../components/NotConnected';
 import { CodeInput, StepHead } from '../components/Steps';
-import { ConsultationComposer } from './Consultation';
 import { CallSummary } from './CallSummary';
 import { demoVisitCode } from './Clinical';
 import { initialsOf } from '../lib/names';
@@ -24,6 +23,8 @@ import {
  participantId as interpreterParticipant, refusalById as interpreterRefusal,
  useSaslRequirement, withdrawal as interpreterWithdrawal
 } from '../lib/interpreting';
+/* Every tool the doctor needs on the call, beside it (2 October 2026): fetched when the call room opens. */
+const ConsultationToolkit = lazy(() => import('./ConsultationToolkit').then(m => ({ default: m.ConsultationToolkit })));
 
 /* The teleconsultation call.
  *
@@ -261,7 +262,9 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
  const [holdLeft, setHoldLeft] = useState(reconnect.holdSeconds);
  const [decisionReached, setDecisionReached] = useState(false);
  const [closed, setClosed] = useState<string | null>(null);
- const [consultation, setConsultation] = useState(false);
+ /* The tool open beside the call. "Write it up" after the call opens the notes rather than a second record, so a
+    note begun during the call is the note that is signed. */
+ const [tool, setTool] = useState('call');
 
  /* An interpreter the account requires is present whatever the roster control says. The control is
     disabled rather than hidden, because a control that vanishes teaches nobody why. */
@@ -299,22 +302,28 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
  const outcome = outcomeOf({ ...attempt, ...(closed === 'clinician-refused' ? { clinicianAllowed: false } : {}) });
  const finish = (why?: string) => { setClosed(why ?? 'ended'); setStage(4); };
 
- if (consultation) {
-  /* The encounter ends in the record it produced — the same twelve sections a nurse's visit and a
-     doctor's review write into, opened as the doctor who held the call, seeded with what the call
-     actually established. Not a parallel structure with the word "teleconsultation" on it. */
-  const line = connectionById(connectionId);
-  return <ConsultationComposer reference={reference} patient={patient} writer={doctorId} onClose={onClose} liveDevices
+ /* The call room, and what comes after it, carry the toolkit: the call is its first entry and every tool the
+    doctor needs is beside it. An encounter that never reached the room — a refused clinician, a failed code —
+    has nothing to write up and no tools. The record the notes open is the same twelve sections a nurse's visit
+    and a doctor's review write into, seeded with what the call actually established. */
+ const roomReached = stage === 3 || closed === 'ended' || closed === 'interpreter-withdrawn';
+ const line = connectionById(connectionId);
+ const inTheRoom = participants.filter(p => p.essential || (present[p.id] && consented[p.id])).map(p => nameOf(p, p.id === 'doctor' ? doctor : subjectFor(p), patient));
+ const withTools = (home: ReactNode) => !roomReached ? home : <Suspense fallback={home}>
+  <ConsultationToolkit surface="teleconsult" subjectId={doctorId} reference={reference} patient={patient} home={home} tool={tool} onTool={setTool}
+   call={{ connectionId, nursePresent, ended: stage === 4, countsAsConsultation: outcome.countsAsConsultation }}
+   homeStatus={{ text: `${line.name} · ${inTheRoom.length} in the room`, urgent: stage === 3 && dropped ? line.doctorSees : undefined }}
    line={<LineLadder connectionId={connectionId} allowed={allowedNow}/>}
+   aside={<CallSummary patient={patient} rule={ruleById('dropped-is-not-finished').sentence}/>}
    seed={{
     reason: `Teleconsultation · ${reference}`,
-    history: `Held ${line.name.toLowerCase()}. In the room: ${participants.filter(p => p.essential || (present[p.id] && consented[p.id])).map(p => nameOf(p, p.id === 'doctor' ? doctor : subjectFor(p), patient)).join(', ')}.`
+    history: `Held ${line.name.toLowerCase()}. In the room: ${inTheRoom.join(', ')}.`
      + (everDropped ? ` The line dropped during the consultation and was re-established; identity was confirmed again before continuing.` : ''),
     notes: nursePresent
      ? 'Anything examined during this call was examined by the nurse in the room and is recorded under her registration.'
      : 'No clinician was in the room. Nothing was examined during this call.'
-   }}/>;
- }
+   }}/>
+ </Suspense>;
 
  return <div className="teleconsult tcx">
   {/* The appointment, and where in the encounter this reader is. One bar rather than two rows: the
@@ -511,9 +520,9 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
    </div>
   </div>
 
-  /* The call room: the stage in the middle and, from a wide screen, the patient beside it — the Lovable
-     export's arrangement, without its video stage, its vital signs or its notes box (features/CallSummary.tsx). */
-  : stage === 3 ? <div className="tcx-room"><div className="form-stack tcx-stage">
+  /* The call room: the stage, with the toolkit beside it and the patient under the tools — the Lovable export's
+     arrangement, without its video stage, its vital signs or its notes box (features/CallSummary.tsx). */
+  : stage === 3 ? withTools(<div className="form-stack tcx-stage">
    <NotConnected of="teleconsultation"/>
 
    <LineInstrument connectionId={connectionId} allowed={allowedNow}/>
@@ -609,10 +618,9 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
    </div>
    {!mayConclude(connectionId, nursePresent) && <p className="tc-cost" role="status"><WifiOff size={14}/>The line does not currently allow a decision to be reached, so there is no way to close this encounter as a completed consultation.</p>}
    {!consented.doctor && <p className="tc-cost" role="status"><ShieldX size={14}/>Consent to the consultation has been withdrawn. {consentItems.find(c => c.id === 'consult')!.revokedMidCall}</p>}
-  </div>
-  <CallSummary patient={patient} rule={ruleById('dropped-is-not-finished').sentence}/></div>
+  </div>)
 
-  : <div className="form-stack tcx-stage">
+  : withTools(<div className="form-stack tcx-stage">
    {/* The verdict, as one statement. The outcome, whether it counts, whether it is charged and the
        sentence the contract writes for it were four separate things stacked down the page; a reader
        had to assemble the answer. */}
@@ -648,7 +656,7 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
 
    {outcome.countsAsConsultation ? <>
     <p className="tcx-hint">{ruleById('dropped-is-not-finished').sentence}</p>
-    <Button variant="secondary" onClick={() => setConsultation(true)}><ClipboardList size={17}/>Write it up in the consultation record</Button>
+    <Button variant="secondary" onClick={() => setTool('notes')}><ClipboardList size={17}/>Write it up in the consultation record</Button>
    </> : <>
     <div className="tcx-stop"><ShieldX size={19}/><p>{ruleById('dropped-is-not-finished').sentence} There is no button on this screen that closes this encounter as a completed consultation, for anybody, in any state.</p></div>
    </>}
@@ -669,10 +677,10 @@ export function Teleconsult({ reference = 'TH-2048', patient = 'Lerato Molefe', 
    </section>
    <EmptyNote>{ruleById('no-media-in-this-build').sentence} Nothing was transmitted, no encounter was written and no clinician was notified.</EmptyNote>
    <div className="button-row">
-    <Button variant="secondary" onClick={() => { setStage(0); setClosed(null); setDecisionReached(false); setResumed(false); setEverDropped(false); setConnectionId(session.connection.id); setWaitingAt(0); setCode(''); setCodeError(''); setIdentityConfirmed(false); setConsented({ doctor: false, nurse: false, guardian: false, interpreter: false }); setWithdrawnNote(null); setChosen({ nurse: true, guardian: false, interpreter: false }); }}><ArrowLeft size={16}/>Start again</Button>
+    <Button variant="secondary" onClick={() => { setStage(0); setClosed(null); setDecisionReached(false); setResumed(false); setEverDropped(false); setConnectionId(session.connection.id); setWaitingAt(0); setCode(''); setCodeError(''); setIdentityConfirmed(false); setConsented({ doctor: false, nurse: false, guardian: false, interpreter: false }); setWithdrawnNote(null); setChosen({ nurse: true, guardian: false, interpreter: false }); setTool('call'); }}><ArrowLeft size={16}/>Start again</Button>
     {onClose && <Button variant="primary" onClick={onClose}>Close<Check size={17}/></Button>}
    </div>
-  </div>}
+  </div>)}
  </div>;
 }
 

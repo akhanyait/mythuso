@@ -44,6 +44,7 @@ import za.co.mythuso.model.CareOffer
 import za.co.mythuso.model.CareOfferState
 import za.co.mythuso.model.CareStage
 import za.co.mythuso.model.CareVisitState
+import za.co.mythuso.model.ConsultationToolkit
 import za.co.mythuso.model.PreviewStore
 import za.co.mythuso.ui.components.*
 
@@ -129,6 +130,7 @@ private const val TICK_MILLIS = 15_000L
 @Composable fun CareVisitScreen(store: PreviewStore, open: (String) -> Unit) {
     val care = store.careVisit
     var code by rememberSaveable { mutableStateOf("") }
+    var toolOpen by rememberSaveable { mutableStateOf<String?>(null) }
     LaunchedEffect(care) { while (true) { delay(TICK_MILLIS); care.tick() } }
     val zoneName = care.visitZone?.name.orEmpty()
     ScreenColumn {
@@ -223,6 +225,18 @@ private const val TICK_MILLIS = 15_000L
                 care.complete(code)
                 code = ""
             }
+        }
+        /* The nurse's tools and the patient's devices (2 October 2026) — the same panel the doctor has, with its
+           banner, notice and refusals — from the stage the toolkit's contract names until the visit is complete.
+           Never on the road or at the door: she reads a patient's readings in the house the visit code let her
+           into. Under the stage's own action, because the visit is what she opened this screen for. */
+        val toolsFrom = CareStage.values().firstOrNull { it.id == ConsultationToolkit.surface("care-visit").from }
+        if (toolsFrom != null && care.stage.ordinal >= toolsFrom.ordinal) {
+            if (toolOpen != "devices") LiveVitalsPanel(subject = CareData.Preview.subjectRef)
+            ConsultationToolkitPanel(
+                store, "care-visit", CareData.Preview.clinicianRef, CareData.Preview.appointmentRef, CareData.Preview.subjectRef,
+                call = null, open = open, onToolChange = { toolOpen = it }
+            )
         }
     }
 }

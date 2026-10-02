@@ -1,0 +1,102 @@
+/* The consultation toolkit (2 October 2026). Fetched with the call, the record and the visit, never on a
+   patient's first load.
+
+   WHAT DOMINATES. The work: the call, the record, the visit, or the tool that has taken its place. The tools
+   are a quiet list beside it — white, one hairline, the current one on the accent's tint with its words in the
+   ink and a heavier weight, the same rule the workspace's own navigation keeps, so where-you-are is never told
+   by colour alone. A tool that is not open carries a lock and a word, never a red.
+
+   THE TOOLKIT'S OWN WIDTH DECIDES. A container query rather than a media query, because the nurse's visit is
+   a dialog five hundred pixels wide on any window: narrow, the tools are a grid of short names above the work;
+   wide, they are a list beside it with the patient and the devices under them. The reading order is the
+   source order in both.
+
+   MOTION. None. A panel replaces the one before it; nothing slides in, because the thing being replaced is a
+   consultation in progress and a doctor looking back at it does not need it to move. */
+
+.ctk { container-type: inline-size; min-width: 0; }
+.ctk-grid { display: grid; gap: var(--space-16); min-width: 0; }
+.ctk-main, .ctk-side, .ctk-aside { display: grid; gap: var(--space-16); align-content: start; min-width: 0; }
+.ctk-panel { display: grid; gap: var(--space-12); align-content: start; min-width: 0; }
+.ctk-panel[hidden] { display: none; }
+.ctk-panel.is-home { gap: 0; }
+
+/* ---- The tools ------------------------------------------------------------------------------------------ */
+.ctk-tools { display: grid; gap: var(--space-8); min-width: 0; padding: var(--space-12); border: 1px solid var(--color-border); border-radius: var(--r-card); background: var(--color-surface); }
+.ctk-tools-title { margin: 0; padding: 0 var(--space-4); font-family: var(--font-text); font-size: 13px; font-weight: 600; letter-spacing: .04em; line-height: 1.4; text-transform: uppercase; color: var(--color-muted-foreground); }
+.ctk-tool-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+.ctk-tool-list > li { display: flex; min-width: 0; }
+
+/* Narrow: a tile — the icon over the short name — at least the 44-pixel target in both directions. */
+.ctk-tool { position: relative; display: grid; justify-items: center; align-content: center; gap: var(--space-4); width: 100%; min-height: 60px; min-width: 0; padding: var(--space-8) var(--space-4);
+ border: 1px solid transparent; border-radius: var(--r-tile); background: transparent; color: var(--color-foreground); font: inherit; font-size: 13px; line-height: 1.3; text-align: center; cursor: pointer; }
+.ctk-tool:hover { background: var(--color-muted); }
+.ctk-tool.is-current { background: color-mix(in oklab, var(--color-accent) 15%, transparent); border-color: color-mix(in oklab, var(--color-accent) 40%, transparent); font-weight: 600; }
+.ctk-tool:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
+.ctk-tool-icon { width: var(--space-20); height: var(--space-20); flex: none; color: var(--color-primary); }
+.ctk-tool-say { display: grid; gap: var(--space-4); min-width: 0; }
+.ctk-tool-name { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.ctk-tool-short { overflow-wrap: anywhere; }
+.ctk-tool-state { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-4); color: var(--color-muted-foreground); font-weight: 400; }
+.ctk-tool-state svg { width: 13px; height: 13px; flex: none; }
+/* On a tile the state is the lock alone, its word kept for a screen reader: four words under a short name in
+   114 pixels would be a paragraph. On the wide list the word is shown. */
+.ctk-tool-state span { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.ctk-tool.is-shut .ctk-tool-state { position: absolute; top: var(--space-4); right: var(--space-4); }
+
+/* ---- An open tool --------------------------------------------------------------------------------------- */
+.ctk-panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-8) var(--space-16); }
+.ctk-line { display: inline-flex; align-items: center; gap: var(--space-8); margin: 0; font-size: 14px; line-height: 1.4; color: var(--color-muted-foreground); }
+.ctk-line svg { width: var(--space-16); height: var(--space-16); flex: none; }
+.ctk-panel-title { display: flex; align-items: flex-start; gap: var(--space-12); min-width: 0; padding-top: var(--space-4); }
+.ctk-panel-mark { display: grid; place-items: center; flex: none; width: var(--space-40); height: var(--space-40); border-radius: var(--r-tile); background: var(--color-muted); color: var(--color-primary); }
+.ctk-panel-mark svg { width: var(--space-20); height: var(--space-20); }
+.ctk-panel-title > div { display: grid; gap: var(--space-4); min-width: 0; }
+.ctk-panel-title :is(h2, h3, h4) { margin: 0; font-family: var(--font-display); font-size: 22px; font-weight: 600; line-height: 1.25; color: var(--color-foreground); }
+.ctk-panel-title :is(h2, h3, h4):focus { outline: none; }
+.ctk-panel-title :is(h2, h3, h4):focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
+.ctk-panel-for { margin: 0; font-size: 14px; line-height: 1.4; color: var(--color-muted-foreground); overflow-wrap: anywhere; }
+.ctk-panel-summary { margin: 0; max-width: 72ch; font-size: 15px; line-height: 1.5; color: var(--color-foreground); }
+.ctk-asked { margin: 0; font-size: 13px; line-height: 1.4; color: var(--color-muted-foreground); }
+.ctk-panel-body { display: grid; gap: var(--space-16); min-width: 0; }
+.ctk-panel-body[inert] { opacity: .55; }
+/* The composer's own rail stands above its record inside a tool, as it does in a dialog: the column is the
+   toolkit's, not the window's. */
+.ctk .consultation-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: none; }
+.ctk .consultation-layout > * { grid-area: auto; position: static; }
+
+/* ---- The nurse: what is a doctor's, and the two tools the toolkit draws itself --------------------------- */
+.ctk-refused, .ctk-rules { display: grid; gap: var(--space-8); min-width: 0; }
+.ctk-subhead { margin: 0; font-family: var(--font-text); font-size: 13px; font-weight: 600; letter-spacing: .04em; line-height: 1.4; text-transform: uppercase; color: var(--color-muted-foreground); }
+.ctk-refused ul, .ctk-rules ul, .ctk-limits { display: grid; gap: var(--space-8); margin: 0; padding: 0; list-style: none; }
+.ctk-refused li, .ctk-rules li { display: grid; grid-template-columns: var(--space-16) minmax(0, 1fr); gap: var(--space-8); align-items: start; }
+.ctk-refused li svg, .ctk-rules li svg { width: var(--space-16); height: var(--space-16); margin-top: 3px; color: var(--color-muted-foreground); }
+.ctk-refused p, .ctk-rules p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-foreground); }
+.ctk-refused { padding: var(--space-12); border: 1px dashed var(--color-border); border-radius: var(--r-card); }
+.ctk-rules { padding-top: var(--space-12); border-top: 1px solid var(--color-border); }
+.ctk-facts { display: grid; gap: var(--space-8); margin: 0; }
+.ctk-facts > div { display: grid; grid-template-columns: minmax(7rem, 10rem) minmax(0, 1fr); gap: var(--space-12); }
+.ctk-facts dt { font-size: 14px; font-weight: 600; color: var(--color-muted-foreground); }
+.ctk-facts dd { margin: 0; font-size: 15px; line-height: 1.45; }
+.ctk-limits li { display: grid; gap: var(--space-4); padding: var(--space-8) 0; border-top: 1px solid var(--color-border); }
+.ctk-limits strong { font-size: 15px; }
+.ctk-limits span, .ctk-rule { margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-muted-foreground); }
+.ctk-call-in, .ctk-hand { display: grid; gap: var(--space-12); min-width: 0; }
+.ctk-done { display: flex; align-items: center; gap: var(--space-8); margin: 0; font-size: 15px; }
+.ctk-done svg { width: var(--space-16); height: var(--space-16); flex: none; }
+@media (max-width: 480px) { .ctk-facts > div { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); } }
+
+/* ---- Wide: the tools beside the work -------------------------------------------------------------------- */
+@container (min-width: 960px) {
+ .ctk-grid { grid-template-columns: minmax(0, 1fr) minmax(280px, 21rem); grid-template-rows: auto 1fr; grid-template-areas: 'main tools' 'main side'; column-gap: var(--space-24); align-items: start; }
+ .ctk-tools { grid-area: tools; }
+ .ctk-main { grid-area: main; }
+ .ctk-side { grid-area: side; }
+ .ctk-tool-list { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+ .ctk-tool { grid-template-columns: var(--space-20) minmax(0, 1fr); justify-items: start; align-items: center; gap: var(--space-12); min-height: var(--ui-target, 44px); padding: var(--space-8) var(--space-12); font-size: 15px; text-align: left; }
+ .ctk-tool-name { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; white-space: normal; }
+ .ctk-tool-short { display: none; }
+ .ctk-tool-state { justify-content: flex-start; font-size: 13px; }
+ .ctk-tool-state span { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; white-space: normal; }
+ .ctk-tool.is-shut .ctk-tool-state { position: static; }
+}

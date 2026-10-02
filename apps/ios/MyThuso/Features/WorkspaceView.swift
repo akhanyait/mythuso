@@ -430,7 +430,7 @@ struct WorkspaceSectionView: View {
             /* A doctor's queue and a doctor's record are the same authority asked twice, so the record
                opens as this doctor rather than as an anonymous reader. The file itself is the raised
                card standing on the deck above. */
-            deckRow("Consultation record", "One structure for every encounter", "square.and.pencil") { ConsultationRecordView(writerId: "D-401") }
+            deckRow("Consultation record", "One structure for every encounter", "square.and.pencil") { ConsultationRecordView(writerId: "D-401", tools: true) }
         case ("Doctor", "Protocols"):
             /* Still the roadmap's placeholder, and saying so by destination: the web's pathway is prose
                typed into a component, not a contract a native screen could render word for word. */

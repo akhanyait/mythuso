@@ -135,15 +135,18 @@ test.describe('the doctor’s consultation', () => {
 
     await d.getByRole('button', { name: /Reach a decision and end the consultation/ }).click();
     await d.getByRole('button', { name: /Write it up in the consultation record/ }).click();
-    const rail = d.locator('.cr-devices .lv-panel');
+    /* The record opens as the call's notes tool, and the devices stay where they were, beside it, rather than
+       again in the composer's rail: one panel, one clock (consultation-toolkit.json). */
+    const rail = d.locator('.tcx-aside .lv-panel');
     await expect(rail.getByRole('heading', { name: live.board.compactHeading })).toBeVisible();
     await bannerStands(rail);
   });
 
-  test('the consultation records composer carries the patient’s devices in its rail', async ({ page }) => {
+  test('the consultation records composer carries the patient’s devices beside it', async ({ page }) => {
     await openWorkspace(page, 'Doctor');
     await goSection(page, 'Consultation records');
-    const rail = page.locator('main .cr-devices .lv-panel');
+    /* Beside the record in its toolkit since 2 October 2026, rather than in the composer's own rail. */
+    const rail = page.locator('main .ctk-aside .lv-panel');
     await expect(rail.getByRole('heading', { name: live.board.compactHeading })).toBeVisible();
     await bannerStands(rail);
     const first = (await values(rail)).join(' ');
@@ -151,6 +154,6 @@ test.describe('the doctor’s consultation', () => {
     await drawsNoJudgement(rail);
     await rail.scrollIntoViewIfNeeded();
     await page.screenshot({ path: `${shots}/record-${test.info().project.name}.png` });
-    expect(await noSidewaysScroll(page, '.cr-devices')).toEqual([]);
+    expect(await noSidewaysScroll(page, '.ctk-aside')).toEqual([]);
   });
 });

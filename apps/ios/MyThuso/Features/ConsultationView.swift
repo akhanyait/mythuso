@@ -95,6 +95,11 @@ struct ConsultationRecordView: View {
     var patient = "Lerato Molefe"
     /// Which party the form opens as. A workspace passes its own.
     var writerId = "N-205"
+    /// The doctor's consultation toolkit beside the record (2 October 2026). Off by default, so a record
+    /// opened from a toolkit's own notes tool never draws a second toolkit inside the first.
+    var tools = false
+    /// Why this record may not be signed yet, when something outside it says so — a call still open.
+    var signingHeld: String? = nil
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var vetting = VettingStore.shared
     @ObservedObject private var kit = CaptureStore.shared
@@ -158,6 +163,11 @@ struct ConsultationRecordView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: ThusoSpacing.space16) {
                 header
+                /* The record surface lists no notes tool — the record is home — so this cannot recurse. Asked
+                   of the writer on the form, because the writer can be changed above it. */
+                if tools, subject.roleId == ConsultationToolkit.surface("consultation-record")?.role {
+                    ConsultationToolkitSection(surfaceId: "consultation-record", subjectId: subject.id, reference: reference, patient: patient)
+                }
                 /* The patient's devices, live and simulated, for a doctor writing — the founder's ask of
                    1 October 2026. A nurse's record and the patient's reading of one are unchanged. */
                 if mayDiagnose && signature == nil { LiveVitalsPanel(subject: patient) }
@@ -407,13 +417,18 @@ struct ConsultationRecordView: View {
                 Text("None of these refuses a reading. Each of them marks one, and you are about to put your registration to the record that holds them.")
                     .font(.thuso(.caption2)).foregroundStyle(DeckInk.sheetQuiet)
             }
+            if let signingHeld {
+                Label(signingHeld, systemImage: "lock")
+                    .font(.thuso(.caption)).foregroundStyle(DeckInk.sheetInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             Button("Sign demo consultation") {
                 signature = ConsultationSignature(name: subject.name, reference: subject.reference,
                                                   role: role?.name ?? "—", at: Date(),
                                                   diagnosis: mayDiagnose && !value(ConsultationFieldIds.diagnosis).isEmpty)
             }
             .buttonStyle(CareButton())
-            .disabled(!mayWrite.allowed || !outstanding.isEmpty)
+            .disabled(!mayWrite.allowed || !outstanding.isEmpty || signingHeld != nil)
         }
     }
 

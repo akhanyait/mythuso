@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState, type CSSProperties } from 'react';
+import { Suspense, lazy, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { ArrowRight, BadgeCheck, Check, ClipboardList, Clock3, KeyRound, Route, ShieldAlert, ShieldCheck } from 'lucide-react';
 import protocolsContract from '../../../../packages/catalog/protocols.json' with { type: 'json' };
 import { NotConnected } from '../components/NotConnected';
@@ -17,6 +17,7 @@ import {
 import { Alert, Badge, Button, Card, MyThusoHealthIcon, MyThusoVisitIcon } from '../ui';
 import { CashAtTheDoor } from './CashCode';
 import { useVisitQueue } from './VisitQueue';
+import { surfaceFrom } from '../lib/consultation-toolkit';
 import './care-visit.css';
 import '../surface/nurse-identity.css';
 
@@ -42,6 +43,9 @@ import '../surface/nurse-identity.css';
    Devices registry — behind a dynamic import for the reason Thuso Kit gives: the registry carries every
    engine's settings, and nothing on the nurse's day needs it until she reaches the readings. */
 const CaptureSource = lazy(() => import('./Devices').then(m => ({ default: m.CaptureSource })));
+/* Her tools and the patient's devices beside the visit (2 October 2026), fetched once the code has opened it. */
+const VisitWithTools = lazy(() => import('./ConsultationToolkit').then(m => ({ default: m.VisitWithTools })));
+const toolsFrom = stages.findIndex(s => s.id === surfaceFrom('care-visit'));
 
 const clock = (iso: string) =>
  new Intl.DateTimeFormat('en-GB', { timeZone: timezone, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso));
@@ -251,6 +255,10 @@ export function CareVisit({ open, onClose }: { open: (modal: string) => void; on
    <Button variant="accent" disabled={code.length < 6} onClick={() => { run(code); setCode(''); }} trailingIcon={<ArrowRight aria-hidden="true"/>}>{label}</Button>
   </div>
  </div>;
+ /* From the stage the contract names — once the visit code has opened the visit, never on the road — the stage
+    is the first entry of her toolkit, with the patient's devices under it and a doctor's tools said where they
+    would be. A finished visit has no tools: she is leaving the house. */
+ const withTools = (home: ReactNode) => done || at < toolsFrom ? home : <Suspense fallback={home}><VisitWithTools home={home}/></Suspense>;
 
  return <div className="care-visit nurse-field nurse-ui">
   <header className="nurse-field__intro">
@@ -268,7 +276,7 @@ export function CareVisit({ open, onClose }: { open: (modal: string) => void; on
    </li>;
   })}</ol>
 
-  <section className="nurse-field__stage" aria-labelledby="care-stage-title">
+  {withTools(<section className="nurse-field__stage" aria-labelledby="care-stage-title">
    {done ? <>
     <h4 id="care-stage-title">The visit is complete</h4>
     <p className="nurse-fact" role="status"><BadgeCheck aria-hidden="true"/>{sentences.billable}</p>
@@ -349,6 +357,6 @@ export function CareVisit({ open, onClose }: { open: (modal: string) => void; on
     {visit.handover && <><p className="nurse-fact"><Check aria-hidden="true"/>{sentences.queued}</p><NotConnected of="doctor-review" tone="inline"/></>}
     {codeStep('complete', complete, 'Complete the visit')}
    </>}
-  </section>
+  </section>)}
  </div>;
 }

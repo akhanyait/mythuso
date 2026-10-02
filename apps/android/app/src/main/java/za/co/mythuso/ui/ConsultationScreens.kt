@@ -90,10 +90,19 @@ private data class ConsultationSignature(
     val name: String, val reference: String, val role: String, val at: LocalDateTime, val diagnosis: Boolean
 )
 
+/* Opened from the consultation toolkit (2 October 2026), the record is the clinician's on the screen rather than
+   a choice of three — `writerId` — and signs only when the host says it may: on an open call an encounter has
+   no plan and no signature yet. `devices` is false where the host already draws the patient's devices, so one
+   screen never runs two clocks over the same readings; `tools` gives a doctor's record its toolkit. */
 @Composable fun ConsultationRecordScreen(
-    store: PreviewStore, reference: String = "TH-2048", patient: String = "Lerato Molefe"
+    store: PreviewStore, reference: String = "TH-2048", patient: String = "Lerato Molefe",
+    writerId: String? = null, tools: Boolean = false, signable: Boolean = true, devices: Boolean = true
 ) {
-    val writers = remember(store) { consultationWriterIds.mapNotNull { store.vetting.subject(it) } }
+    val writers = remember(store, writerId) {
+        writerId?.let { id -> listOfNotNull(store.vetting.subject(id)) }?.takeIf { it.isNotEmpty() }
+            ?: consultationWriterIds.mapNotNull { store.vetting.subject(it) }
+    }
+    var toolOpen by remember { mutableStateOf<String?>(null) }
     var writerId by remember { mutableStateOf(writers.first().id) }
     var view by remember { mutableStateOf("Full record") }
     val record = remember { mutableStateMapOf<String, String>() }
@@ -153,7 +162,11 @@ private data class ConsultationSignature(
         }
         /* The patient's devices, live and simulated, for a doctor writing — the founder's ask of 1 October 2026.
            A nurse's record is unchanged. */
-        if (mayDiagnose && signature == null) LiveVitalsPanel(patient)
+        if (mayDiagnose && signature == null && devices && toolOpen != "devices") LiveVitalsPanel(patient)
+        /* The surface's tools leave the notes out, so the record never opens itself inside itself. */
+        if (tools && mayDiagnose) ConsultationToolkitPanel(
+            store, "consultation-record", writer.id, reference, patient, call = null, onToolChange = { toolOpen = it }
+        )
         val perRow = if (LocalDensity.current.fontScale >= 1.3f) 1 else 2
         val figures: List<@Composable (Modifier) -> Unit> = listOf(
             { m -> ThusoMetricCard(
@@ -273,7 +286,7 @@ private data class ConsultationSignature(
                         mayDiagnose && value(DIAGNOSIS).isNotEmpty()
                     )
                 },
-                enabled = mayWrite.allowed && outstanding.isEmpty()
+                enabled = mayWrite.allowed && outstanding.isEmpty() && signable
             )
         }
     }

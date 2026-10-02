@@ -411,7 +411,7 @@ import za.co.mythuso.model.mokoenaHousehold
            because both are read about somebody else: the Passport is the patient's own view, and
            putting them behind the same door would blur whose record is whose. */
         title == "Patient file" -> PatientFileScreen(store, open)
-        title == "Consultation record" -> ConsultationRecordScreen(store)
+        title == "Consultation record" -> ConsultationRecordScreen(store, tools = true)
         /* The household and the summary a person hands out of it. Both are about several people at
            once, which is exactly why they are separate routes: a screen that opened a household and
            a record in the same breath would be the back door the whole design is written to close. */

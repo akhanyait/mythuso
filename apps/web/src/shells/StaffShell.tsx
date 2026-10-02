@@ -92,6 +92,8 @@ const NurseResources = lazy(() => import('../features/NurseDesk').then(m => ({ d
 const NurseProfile = lazy(() => import('../features/NurseDesk').then(m => ({ default: m.NurseProfile })));
 /* Device Lab: the synthetic vital-sign simulator, staff only, fetched when the Control Tower opens it. */
 const DeviceLab = lazy(() => import('../features/DeviceLab').then(m => ({ default: m.DeviceLab })));
+/* The consultation record with every tool beside it (2 October 2026), fetched when Consultation records opens. */
+const RecordWithTools = lazy(() => import('../features/ConsultationToolkit').then(m => ({ default: m.RecordWithTools })));
 /* The parallel run's notice, fetched only at ?legacy=1: it reads the portal's contract, which nobody
    opening a nurse's schedule needs to download. */
 const LegacyNotice = lazy(() => import('../features/portal/LegacyNotice'));
@@ -500,7 +502,7 @@ function renderSection(role: StaffRole, section: string, open: (m: string) => vo
   /* The patient list beside the file replaces the file's own select (features/DoctorPages.tsx). */
   if (section === 'Patient context') return <OnDeck role={role}><DoctorPatients open={open}/><PromSchedule/><Suspense fallback={null}><SentinelState workspace="doctor"/><SafeguardingReport workspace="doctor"/></Suspense>{ride('doctor')}</OnDeck>;
   /* The list heads the page, so the composer's deck steps down a level under it. */
-  if (section === 'Consultation records') return <OnDeck role={role}><DoctorRecordsList/><DeckTitleLevel.Provider value="h2"><ConsultationFrame/><ConsultationRecord title="Write a consultation record"/></DeckTitleLevel.Provider></OnDeck>;
+  if (section === 'Consultation records') return <OnDeck role={role}><DoctorRecordsList/><DeckTitleLevel.Provider value="h2"><ConsultationFrame/><Suspense fallback={null}><RecordWithTools title="Write a consultation record"/></Suspense></DeckTitleLevel.Provider></OnDeck>;
   if (section === medicinesWords.prescribe.heading) return <OnDeck role={role}><DoctorPrescriptionsList/><DoctorPrescribe/></OnDeck>;
   if (section === medicinesWords.results.heading) return <OnDeck role={role}><DoctorResultsStrip/><LabResults/></OnDeck>;
   if (section === 'Referral pathway') return <OnDeck role={role}><DoctorReferralsList/><ReferralPathway/></OnDeck>;

@@ -44,6 +44,7 @@ import { checkCasePathway } from "./check-case-pathway.mjs";
 import { checkSkinCheck } from "./check-skin-check.mjs";
 import { checkSickNote } from "./check-sick-note.mjs";
 import { checkLiveVitals } from "./check-live-vitals.mjs";
+import { checkConsultationToolkit } from "./check-consultation-toolkit.mjs";
 import { emitLocales } from "./emit-locales.mjs";
 import { emitDispensing } from "./emit-dispensing.mjs";
 import { emitProgrammes } from "./emit-programmes.mjs";
@@ -71,6 +72,7 @@ import { emitVerifyInService } from "./emit-verify-in-service.mjs";
 import { emitPassportSharing } from "./emit-passport-sharing.mjs";
 import { emitDevices } from "./emit-devices.mjs";
 import { emitLiveVitals } from "./emit-live-vitals.mjs";
+import { emitConsultationToolkit } from "./emit-consultation-toolkit.mjs";
 import { emitGroups } from "./emit-groups.mjs";
 import { emitHousehold } from "./emit-household.mjs";
 import { emitMomEssential } from "./emit-mom-essential.mjs";
@@ -2980,6 +2982,13 @@ const generated = [
     source: "packages/catalog/capabilities.json",
     command: "npm run live-vitals",
     files: emitLiveVitals(),
+  },
+  /* ConsultationToolkitData carries consultation-toolkit.json alone: the notices, the call refusals and the clinical
+    limits it names travel as ids, read on each phone from the generated data that already holds them. */
+  {
+    source: "packages/catalog/consultation-toolkit.json",
+    command: "npm run consultation-toolkit",
+    files: emitConsultationToolkit(),
   },
   /* MomEssentialData carries mom-essential.json's journey words, the refusal a sponsor reads from apis/money.json, the
     caregiver ceiling from consent.json and money.json's providerless sentence, so a change to any of the four regenerates it. */
@@ -38235,6 +38244,9 @@ console.log(
        consultation record, so it is off the patient's entry and its Alert, Badge, Button and Select join the ui.css the
        clinical chunk already downloads. */
     "apps/web/src/features/LiveVitals.tsx",
+    /* The consultation toolkit (2 October 2026): behind dynamic imports from the call, the record and the visit, so
+       it is off the patient's entry and its Alert and Button join the ui.css the clinical chunk already downloads. */
+    "apps/web/src/features/ConsultationToolkit.tsx",
     /* The Lovable alignment of 30 September 2026, builder S1: the staff shell's top bar and attention band, whose
        band is the shared Alert. Imported only by StaffShell.tsx, so it rides the staff chunk and never the patient's
        entry, and its Alert joins the ui.css that chunk already downloads. */
@@ -39649,6 +39661,7 @@ console.log(
    the export the founder liked and with none of its claims. The checks live in scripts/check-live-vitals.mjs so each
    can be proven to fire in isolation (scripts/prove-live-vitals.mjs hands the module broken files). */
 console.log(checkLiveVitals({ read, files }));
+console.log(checkConsultationToolkit({ read, files, exists: existsSync }));
 
 /* The laboratory order draws only what a contract holds — 30 September 2026 */
 /* apps/web/src/features/OrderDetails.tsx carried a panel of four typed results, each with a unit, a

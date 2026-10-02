@@ -57,6 +57,9 @@ struct TeleconsultView: View {
     @State private var decisionReached = false
     @State private var refusedClinician = false
     @State private var openRecord = false
+    /// Whether the call room was ever opened. The toolkit belongs to a call that happened, so a refused
+    /// clinician or a failed identity check reaches "Afterwards" without one.
+    @State private var callOpened = false
     private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     private var doctor: VettingSubject? { vetting.subject(doctorId) }
@@ -232,7 +235,7 @@ struct TeleconsultView: View {
             Text(Teleconsult.recording.whenItExists.afterwards).font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
         }
         refusalCard(Teleconsult.refusal("covert-recording"))
-        Button("Open the call") { stage = 3 }.buttonStyle(CareButton())
+        Button("Open the call") { callOpened = true; stage = 3 }.buttonStyle(CareButton())
         Button("Back") { stage = 1 }.buttonStyle(QuietButton())
     }
 
@@ -254,6 +257,7 @@ struct TeleconsultView: View {
 
         /* The patient beside the call: their devices, live and simulated (1 October 2026). Each reading
            carries its source and its range, which is what four bare numerals beside a call did not. */
+        toolkit
         LiveVitalsPanel(subject: patient)
 
         Text("In the room").font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
@@ -374,6 +378,7 @@ struct TeleconsultView: View {
                 .padding(ThusoSpacing.space16).frame(maxWidth: .infinity, alignment: .leading)
                 .background(ThusoRole.dangerTint, in: RoundedRectangle(cornerRadius: ThusoRadius.panel, style: .continuous))
         }
+        if callOpened { toolkit }
         Text("What this screen will not do").font(.thuso(.body, weight: .semibold)).foregroundStyle(ThusoRole.foreground)
         ForEach(Teleconsult.refusals.filter { !["half-a-consultation", "charge-for-a-failure"].contains($0.id) }) { item in
             refusalCard(item)
@@ -381,13 +386,22 @@ struct TeleconsultView: View {
         Text("\(Teleconsult.rule("no-media-in-this-build").sentence) Nothing was transmitted, no encounter was written and no clinician was notified.")
             .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
         Button("Start again") {
-            stage = 0; refusedClinician = false; decisionReached = false; resumed = false; everDropped = false
+            stage = 0; refusedClinician = false; decisionReached = false; resumed = false; everDropped = false; callOpened = false
             connectionId = "video"; code = ""; codeError = ""; identityConfirmed = false; withdrawnNote = nil
             consented = ["doctor": false, "nurse": false, "guardian": false, "interpreter": false]
         }.buttonStyle(QuietButton())
     }
 
     // MARK: - Pieces
+
+    /* The doctor's tools on this call (2 October 2026), asked of the line and the room as they stand now:
+       a decision waits while the line cannot carry one, and closes for good if the encounter ends without
+       counting as a consultation. */
+    private var toolkit: some View {
+        ConsultationToolkitSection(surfaceId: "teleconsult", subjectId: doctorId, reference: reference, patient: patient,
+                                   call: ToolkitCall(connectionId: connectionId, nursePresent: nursePresent,
+                                                     ended: stage == 4, countsAsConsultation: outcome.countsAsConsultation))
+    }
 
     /* Everyone who can hear the patient, with the vetting register's name against the contract's
        role. A roster carrying its own names would be a second copy of the vetting record, and the
