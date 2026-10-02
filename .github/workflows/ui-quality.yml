@@ -88,7 +88,20 @@ jobs:
           udid=$(xcrun simctl list devices available | grep -E '^ +iPhone' | head -1 | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
           test -n "$udid" || { echo "no iPhone simulator on this runner"; xcrun simctl list devices available; exit 1; }
           echo "udid=$udid" >> "$GITHUB_OUTPUT"
-      - run: xcodebuild test -project apps/ios/MyThuso.xcodeproj -scheme MyThuso -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}"
+      - run: xcodebuild test -project apps/ios/MyThuso.xcodeproj -scheme MyThuso -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" -resultBundlePath build/MyThusoTests.xcresult
+      # The UI tests print some fourteen thousand lines, and a failure's own message lands far above
+      # the end of the log, where nobody reading the job's tail can find it. So when one fails, the
+      # failures are printed again from the result bundle, last, and the bundle is kept for a person
+      # to open in Xcode.
+      - name: Say which tests failed, and why
+        if: failure()
+        run: xcrun xcresulttool get test-results summary --path build/MyThusoTests.xcresult --compact || true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ios-test-results
+          path: build/MyThusoTests.xcresult
+          retention-days: 7
   android:
     runs-on: ubuntu-latest
     steps:
