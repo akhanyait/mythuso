@@ -1,5 +1,5 @@
 import { Suspense, lazy, useMemo, useState, type ReactNode } from 'react';
-import { Activity, ArrowRight, BookOpen, CalendarDays, ClipboardList, FileText, Receipt, Route, Search, Send, ShieldCheck, Stethoscope, Video, House } from 'lucide-react';
+import { Activity, ArrowRight, BookOpen, CalendarDays, CircleCheck, CircleDashed, ClipboardList, Clock, FileText, Lock, OctagonAlert, Receipt, Route, Search, Send, ShieldAlert, ShieldCheck, Stethoscope, TriangleAlert, Video, House } from 'lucide-react';
 import { Alert, Badge, Button, Input, MetricCard } from '../ui';
 import { useThusoIQ } from '../lib/thusoiq';
 import { latestSample, sampleFreshness, thusoiq } from '../../../../packages/thusoiq/index.ts';
@@ -13,7 +13,8 @@ import { doctorFeeNow, useSettingsHistories } from '../lib/settings';
 import { initialsOf } from '../lib/names';
 import clinicalContract from '../../../../packages/catalog/clinical.json' with { type: 'json' };
 import protocolsContract from '../../../../packages/catalog/protocols.json' with { type: 'json' };
-import { observations } from '../lib/observations';
+import { observations, observationsNote } from '../lib/observations';
+import { bandsText, formatReading, gaugeFor, governance, governanceLine, markedFor, markerOf, moreUrgent, readingsFor, reviewed, words as triageWords, worstOf, type Marked, type MarkerId } from '../lib/triage-markers';
 import { GuidanceStart, TriageStart } from './ClinicalIntelligence';
 import { ApplicationStanding, VettingApplication } from './Vetting';
 import { PatientFile } from './PatientFile';
@@ -213,36 +214,101 @@ export function DoctorCredentials() {
    and the answer that nothing was triaged, the guidance answers, and Sentinel's hand-raised tier. No
    severity badge, no score, no heatmap and no interpretation: no protocol is a ratified triage protocol,
    and no engine reads a sample and concludes anything. */
+/* Redesigned 2 October 2026, at the founder's request, to be read at a glance: every reading drawn on a
+   scale with a green, amber or red marker beside it, and the patients on the board ordered by their most
+   urgent one. The markers are lib/triage-markers.ts's, from two contracts and no typed number; the lines
+   are demo defaults the Clinical Governance Lead owns, and the banner over them says so until a review is
+   written into packages/catalog/triage-markers.json. A marker never adds up into a figure about a person,
+   a patient without consent shows the refusal rather than an empty board, and nothing here decides,
+   escalates or notifies. The wearable feeds keep their own panel: freshness only, as before. */
+const markerIcon = { 'in-range': CircleCheck, watch: TriangleAlert, act: OctagonAlert, none: CircleDashed } as const;
+function MarkerPill({ id, long }: { id: MarkerId; long?: boolean }) {
+ const m = markerOf(id), Icon = markerIcon[id];
+ return <span className={`tri-pill is-${id}`}><Icon size={15} aria-hidden="true"/>{long ? m.label : m.short}</span>;
+}
+function VitalCard({ spec, value, marker }: Marked) {
+ const gauge = gaugeFor(spec, value);
+ return <li className={`tri-vital is-${marker}`}>
+  <div className="tri-vital-top"><span className="tri-vital-label">{spec.label}</span><MarkerPill id={marker}/></div>
+  <p className="tri-vital-value">{value === undefined ? <span>—</span> : <><strong>{formatReading(spec, value)}</strong><span>{spec.unit}</span></>}</p>
+  <span className="tri-gauge" aria-hidden="true">
+   <span className="tri-track">{gauge.zones.map((z, i) => <i key={i} className={`tri-zone is-${z.marker}`} style={{ left: `${z.from}%`, width: `${z.to - z.from}%` }}/>)}</span>
+   {gauge.at !== null && <b className="tri-pin" style={{ left: `${gauge.at}%` }}/>}
+  </span>
+  <small>{bandsText(spec.id)}</small>
+ </li>;
+}
 export function DoctorTriage() {
  const { state } = useThusoIQ();
- const [patientId, setPatientId] = useState(state.patients[0]?.id ?? '');
  const [now] = useState(() => new Date().toISOString());
- const patient = state.patients.find(p => p.id === patientId);
+ const board = useMemo(() => state.patients.map(p => {
+  const marked = p.consent ? markedFor(p.id) : [];
+  return { p, marked, worst: worstOf(marked.map(m => m.marker)), taken: p.consent ? readingsFor(p.id) : undefined };
+ }).sort((a, b) => moreUrgent(a.worst, b.worst) || a.p.name.localeCompare(b.p.name)), [state.patients]);
+ const [patientId, setPatientId] = useState(board[0]?.p.id ?? '');
+ const row = board.find(r => r.p.id === patientId);
+ const count = (id: MarkerId) => board.filter(r => r.worst === id).length;
  const freshness = { missing: 'No reading yet', recent: 'Recent', stale: 'Stale' } as const;
- return <section className="dp-page" aria-labelledby="dp-triage">
-  <div className="dp-head"><div><h1 id="dp-triage">Triage</h1><p>{clinicalContract.triage.triageProtocols.why}</p></div>
+ return <section className="dp-page tri" aria-labelledby="dp-triage">
+  <div className="dp-head"><div><h1 id="dp-triage">Triage</h1><p>{triageWords.intro}</p></div>
    <Badge variant="neutral">{notTriaged.label}</Badge></div>
-  <Alert variant="warning" title={notTriaged.human}>{thusoiq.wearables.neverInferred}</Alert>
-  <div className="dp-panel">
-   <div className="dp-panel-head"><h2>Patients in the sandbox</h2><span>{state.patients.length}</span></div>
-   <div className="dp-chips" role="group" aria-label="Choose a patient">{state.patients.map(p =>
-    <button key={p.id} className="dp-chip" aria-pressed={p.id === patientId} onClick={() => setPatientId(p.id)}>{p.name}</button>)}</div>
-   {patient && <>
-    <p className="dp-note">{patient.name} · {patient.reason}</p>
-    <ul className="dp-tiles" aria-label={`How fresh ${patient.name}’s readings are`}>{thusoiq.wearables.metrics.map(metric => {
-     const latest = latestSample(state.samples, patient.id, metric.id as 'heart-rate');
-     const fresh = sampleFreshness(latest, now);
-     return <li key={metric.id} className={`dp-tile is-${fresh}`}>
-      <span className="dp-tile-label">{metric.name}</span>
-      <strong>{freshness[fresh]}</strong>
-      <small>{latest ? `Measured ${clock(latest.measuredAt)}` : 'Nothing has been received for this patient.'}</small>
-     </li>;
-    })}</ul>
-    <p className="dp-note">Freshness only. A reading is read, with its value and where it came from, in the Wearables tool of the ThusoIQ workspace, and never judged here.</p>
-   </>}
+  <div className={`tri-gov${reviewed ? ' is-reviewed' : ''}`} role="note">
+   <ShieldAlert size={20} aria-hidden="true"/>
+   <div><strong>{governanceLine()}</strong><small>Owner: {governance.owner} · {governance.source}</small></div>
   </div>
+  <ul className="tri-legend" aria-label="What each marker means">{(['in-range', 'watch', 'act'] as const).map(id =>
+   <li key={id}><MarkerPill id={id} long/><span>{markerOf(id).meaning}</span></li>)}</ul>
+  <Strip label="The board, counted by each patient's most urgent marker" figures={[
+   { label: markerOf('act').short, value: String(count('act')), trend: count('act') === 1 ? 'Patient with a reading past an alert line' : 'Patients with a reading past an alert line' },
+   { label: markerOf('watch').short, value: String(count('watch')), trend: 'Outside range, short of the alert line' },
+   { label: markerOf('in-range').label, value: String(count('in-range')), trend: 'Every reading inside its range' },
+   { label: 'Not shown', value: String(board.filter(r => !r.p.consent).length), trend: 'No consent to share readings' }
+  ]}/>
+  <div className="tri-layout">
+   <div className="dp-panel tri-board">
+    <div className="dp-panel-head"><h2>{triageWords.board}</h2><span>{board.length}</span></div>
+    <ol className="tri-patients">{board.map(({ p, marked, worst, taken }) => <li key={p.id}>
+     <button className={`tri-patient is-${p.consent ? worst : 'none'}`} aria-pressed={p.id === patientId} onClick={() => setPatientId(p.id)}>
+      <span className="tri-avatar" aria-hidden="true">{initialsOf(p.name)}</span>
+      <span className="tri-patient-what"><span className="tri-patient-top"><strong>{p.name}</strong>{p.consent ? <MarkerPill id={worst}/> : null}</span>
+       <small>{p.reason}{taken ? ` · ${taken.minutesAgo} min ago` : ''}</small>
+       {p.consent
+        ? <span className="tri-dots" aria-label={marked.map(m => `${m.spec.label}: ${markerOf(m.marker).short}`).join(', ')}>{marked.map(m => <i key={m.spec.id} className={`is-${m.marker}`}/>)}</span>
+        : <span className="tri-locked"><Lock size={13} aria-hidden="true"/>No consent</span>}</span>
+     </button>
+    </li>)}</ol>
+    <p className="dp-note">{triageWords.boardNote}</p>
+   </div>
+   <div className="dp-panel tri-detail" aria-live="polite">
+    {row && <>
+     <div className="dp-panel-head"><h2>{row.p.name}</h2>
+      {row.taken && <span><Clock size={14} aria-hidden="true"/> {row.taken.by} · {row.taken.minutesAgo} min ago</span>}</div>
+     <p className="dp-note">{row.p.reason}</p>
+     {row.p.consent
+      ? <ul className="tri-vitals" aria-label={`${row.p.name}’s readings, each marked`}>{row.marked.map(m => <VitalCard key={m.spec.id} {...m}/>)}</ul>
+      : <Alert variant="warning" title="Readings withheld">{triageWords.noConsent}</Alert>}
+     <p className="dp-note">{observationsNote}</p>
+    </>}
+   </div>
+  </div>
+  <div className="dp-panel">
+   <div className="dp-panel-head"><h2>Wearable feeds</h2><span>{row?.p.name}</span></div>
+   <Alert variant="warning" title={notTriaged.human}>{thusoiq.wearables.neverInferred}</Alert>
+   {row && <ul className="dp-tiles" aria-label={`How fresh ${row.p.name}’s wearable readings are`}>{thusoiq.wearables.metrics.map(metric => {
+    const latest = latestSample(state.samples, row.p.id, metric.id as 'heart-rate');
+    const fresh = sampleFreshness(latest, now);
+    return <li key={metric.id} className={`dp-tile is-${fresh}`}>
+     <span className="dp-tile-label">{metric.name}</span>
+     <strong>{freshness[fresh]}</strong>
+     <small>{latest ? `Measured ${clock(latest.measuredAt)}` : 'Nothing has been received for this patient.'}</small>
+    </li>;
+   })}</ul>}
+   <p className="dp-note">Freshness only. A wearable’s value is read in the Wearables tool of the ThusoIQ workspace, and is not marked here.</p>
+  </div>
+  <p className="dp-note">{clinicalContract.triage.triageProtocols.why}</p>
   <TriageStart/>
   <GuidanceStart/>
+  <div className="dp-panel tri-where"><h2>{triageWords.where}</h2><p className="dp-note">{triageWords.whereNote}</p></div>
   <Suspense fallback={null}><SentinelState workspace="doctor"/></Suspense>
  </section>;
 }

@@ -38905,3 +38905,59 @@ console.log(
     throw new Error(`${f}'s laboratory order carries ${found.join("; ")}. No contract holds a laboratory reference range and the synthetic laboratory returns no value, so the order names its tests from the laboratory's menu and types no result, unit, range or flag.`);
   console.log(`The laboratory order · ${requested[1].match(/'/g).length / 2} tests from the laboratory's menu, no typed result, unit, range or flag, under the laboratory's own notice and in the medicines contract's words.`);
 }
+
+/* The triage markers are the officer's lines, and only theirs — 2 October 2026 */
+/* The founder asked for the doctor's Triage screen to mark each reading good or bad against standard demo
+   readings an officer changes later. packages/catalog/triage-markers.json is that officer's file. Held here:
+   1. Every observation records.json declares has a line, and no line names an observation it does not.
+   2. Each alert line sits on or outside the edge of the indicative range, so no reading is both green and
+      red, and a low line is below a high one.
+   3. The file claims a review only with a reviewer and a day, and while it claims none the screen says the
+      lines are demo defaults — governanceLine() is what draws the banner, and it is drawn.
+   4. Nothing else types a line: lib/triage-markers.ts and the Triage screen read the contract, and a marker
+      is never added into a figure about a person.
+   5. The preview's readings are for sandbox patients who consented, and for observations that exist. */
+{
+  const tmFile = "packages/catalog/triage-markers.json";
+  const tm = JSON.parse(read(tmFile));
+  const tmFail = (message) => { throw new Error(`The triage markers: ${message}`); };
+  const obs = new Map(measures.map((m) => [m.id, m]));
+  /* 1. */
+  for (const m of measures) if (!tm.lines.some((l) => l.id === m.id)) tmFail(`${tmFile} has no alert line for "${m.id}", which records.json observes. A reading with no line could never be marked for action.`);
+  for (const l of tm.lines) if (!obs.has(l.id)) tmFail(`${tmFile} draws an alert line for "${l.id}", which records.json does not observe.`);
+  /* 2. */
+  for (const l of tm.lines) {
+    const m = obs.get(l.id);
+    for (const side of ["actAtOrBelow", "actAtOrAbove"])
+      if (l[side] !== null && typeof l[side] !== "number") tmFail(`"${l.id}" ${side} is ${JSON.stringify(l[side])}; a line is a number, or null where the measure has none on that side.`);
+    if (l.actAtOrBelow === null && l.actAtOrAbove === null) tmFail(`"${l.id}" has no alert line on either side, so nothing it reads could ever be marked for action.`);
+    if (l.actAtOrBelow !== null && l.actAtOrBelow > m.low) tmFail(`"${l.id}" acts at or below ${l.actAtOrBelow}, inside its indicative range ${m.low}–${m.high}: a reading would be in range and past the alert line at once.`);
+    if (l.actAtOrAbove !== null && l.actAtOrAbove <= m.high) tmFail(`"${l.id}" acts at or above ${l.actAtOrAbove}, on or inside its indicative range ${m.low}–${m.high}: a reading would be in range and past the alert line at once.`);
+  }
+  /* 3. */
+  const g = tm.governance;
+  if (!["demo-defaults", "reviewed"].includes(g.status)) tmFail(`governance.status is "${g.status}"; it is demo-defaults or reviewed.`);
+  if (g.status === "reviewed" && (!g.reviewedBy || !/^\d{4}-\d{2}-\d{2}$/.test(g.reviewedOn ?? ""))) tmFail("the lines claim a review with no reviewer or no day. A threshold that decides what is drawn red belongs to a named role under a date.");
+  if (g.status !== "reviewed" && (g.reviewedBy || g.reviewedOn)) tmFail("the lines name a reviewer while still calling themselves demo defaults. Either the review happened and the status says so, or it did not.");
+  if (!g.owner || !g.banner || !g.source) tmFail("governance lost its owner, its banner or its source.");
+  /* 4. */
+  const tmLib = "apps/web/src/lib/triage-markers.ts", tmScreen = "apps/web/src/features/DoctorPages.tsx";
+  const lib = read(tmLib), screen = read(tmScreen);
+  if (!/import contract from '[./]*packages\/catalog\/triage-markers\.json'/.test(lib) || !/from '\.\/observations'/.test(lib)) tmFail(`${tmLib} no longer reads its lines from the contract and its green band from lib/observations.`);
+  for (const l of tm.lines) for (const f of [tmLib, tmScreen]) {
+    const typed = read(f).split("\n").some((line) => line.includes(`'${l.id}'`) && [l.actAtOrBelow, l.actAtOrAbove].some((n) => n !== null && (line.match(/\d+(\.\d+)?/g) || []).map(Number).includes(n)));
+    if (typed) tmFail(`${f} types the alert line for "${l.id}". It lives in ${tmFile}, which is the Clinical Governance Lead's to change.`);
+  }
+  const triage = screen.slice(screen.indexOf("export function DoctorTriage"), screen.indexOf("/* ---- Prescriptions"));
+  if (!triage.includes("governanceLine()")) tmFail("the Triage screen draws markers without the governance line, so demo defaults would read as reviewed thresholds.");
+  if (/\.reduce\(|\bscore\b/i.test(uncommented(triage))) tmFail("the Triage screen adds markers up. A marker is per reading; a sum of them is an early-warning score nobody has validated.");
+  /* 5. */
+  const sandbox = read("packages/thusoiq/fixtures.ts");
+  for (const r of tm.preview.readings) {
+    const p = sandbox.match(new RegExp(`id:'${r.patientId}'[^}]*consent:(true|false)`));
+    if (!p) tmFail(`the preview has readings for "${r.patientId}", who is not a sandbox patient in packages/thusoiq/fixtures.ts.`);
+    if (p[1] !== "true") tmFail(`the preview has readings for "${r.patientId}", who has not consented to sharing them.`);
+    for (const id of Object.keys(r.values)) if (!obs.has(id)) tmFail(`the preview reads "${id}" for ${r.patientId}, which records.json does not observe.`);
+  }
+  console.log(`The triage markers · ${tm.lines.length} alert lines, each on or outside its indicative range, owned by the ${g.owner} and ${g.status === "reviewed" ? `reviewed on ${g.reviewedOn}` : "drawn under the demo banner"}; nothing typed, nothing summed; ${tm.preview.readings.length} consented sandbox patients with readings.`);
+}
