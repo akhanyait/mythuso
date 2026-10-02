@@ -1,54 +1,1345 @@
 {
- "_note": "The MyThuso shop. Devices, consumables and wellness goods a household buys between visits — and nothing else. Read directly by apps/web; generated into Swift and Kotlin by scripts/emit-shop.mjs. Prices are indicative rands from the funding proposal's retail line, not trading results. Delivery zones are not restated here: they are the coverage areas in packages/catalog/geography.json, so a suburb dispatch cannot reach is a suburb this shop cannot deliver to, by the same arithmetic. Dates are day offsets from today so the preview never goes stale.",
-
+ "_note": "The MyThuso shop. Devices, consumables and wellness goods a household buys between visits — and nothing else. Read directly by apps/web; generated into Swift and Kotlin by scripts/emit-shop.mjs. Prices are reference shelf prices for each product type at South African retailers, checked on the day each `reference` says, and never a trading result. Delivery zones are not restated here: they are the coverage areas in packages/catalog/geography.json, so a suburb dispatch cannot reach is a suburb this shop cannot deliver to, by the same arithmetic. Dates are day offsets from today so the preview never goes stale.",
  "_lawNote": "Two Acts decide the shape of this file. The Medicines and Related Substances Act 101 of 1965 makes selling or supplying a medicine an activity for a licensed pharmacy holding a prescription where one is required — so no medicine is listed here at all, scheduled or not, and `neverSold` is enforced by scripts/check-boundaries.mjs rather than trusted. Section 18A of the same Act prohibits supplying a medicine according to any bonus, rebate or incentive scheme; packages/catalog/rewards.json therefore earns and redeems nothing against anything in this file that is a medicine, which is trivially true because there is nothing in this file that is a medicine, and stays true because the check fails the build if one ever appears. The Consumer Protection Act 68 of 2008 is why a listing states what a thing does and never what it treats.",
-
+ "_brandNote": "No product here names a maker. A brand name on a listing implies a reseller agreement with that maker, and MyThuso has none. Each listing is a product type with the specification a model would have to meet before it was sold — and where a validation list decides which models qualify, the listing names the list rather than a model. `brandsNeverNamed` is read by scripts/check-boundaries.mjs, which fails the build if any product, kit or image description names one.",
+ "brandsNeverNamed": [
+  "Omron",
+  "Beurer",
+  "Microlife",
+  "Accu-Chek",
+  "Accuchek",
+  "OneTouch",
+  "Contour",
+  "FreeStyle",
+  "Kardia",
+  "AliveCor",
+  "Withings",
+  "Braun",
+  "Philips",
+  "Medisana",
+  "Rossmax",
+  "iHealth",
+  "Masimo",
+  "Nonin",
+  "Tommee Tippee",
+  "Dis-Chem",
+  "Clicks",
+  "Takealot",
+  "Medela",
+  "Apple",
+  "Samsung"
+ ],
+ "_regulatoryNote": "A medical device is regulated in South Africa under the Medicines and Related Substances Act 101 of 1965 and the Medical Devices Regulations (GN R1515 of 9 December 2016). Anybody who distributes or wholesales one needs a medical device establishment licence from SAHPRA, and MyThuso does not hold one. Each listing carries the risk class its type is expected to fall in under the classification rules those regulations adopted; the class of a particular model is the registrant's to confirm with SAHPRA, and nothing here has been confirmed.",
+ "regulatory": {
+  "licenceHeld": false,
+  "sentence": "Selling medical devices needs a SAHPRA establishment licence, and MyThuso does not hold one yet. Nothing here can be sold until it does.",
+  "classes": [
+   {
+    "id": "A",
+    "label": "SAHPRA class A",
+    "meaning": "Low risk."
+   },
+   {
+    "id": "B",
+    "label": "SAHPRA class B",
+    "meaning": "Low to moderate risk."
+   },
+   {
+    "id": "C",
+    "label": "SAHPRA class C",
+    "meaning": "Moderate to high risk."
+   },
+   {
+    "id": "IVD-C",
+    "label": "SAHPRA IVD class C",
+    "meaning": "A diagnostic test used at home on a blood sample, where a wrong result could lead to a wrong decision about care."
+   },
+   {
+    "id": "none",
+    "label": "Not a medical device",
+    "meaning": "A household product, sold as one."
+   }
+  ]
+ },
  "currency": "ZAR",
-
+ "_priceNote": "Each `price` is a whole-rand shelf price chosen inside the `reference` range, which is what the product type cost at South African pharmacy chains and online retailers on the day in `checked`. The range is rounded on purpose: a reference price is a sense of the market on one day, and a figure to the cent would claim a precision nobody has. Retailers are named by type and never by name, for the same reason products are unbranded. A kit has no price of its own — it is the sum of its items, worked out wherever it is shown, and the build fails if a kit ever carries one.",
  "categories": [
-  { "id": "measuring", "name": "Measuring devices", "blurb": "Things that take a reading at home.", "pointsEligible": true },
-  { "id": "consumable", "name": "Consumables", "blurb": "Dressings, strips and the parts that run out.", "pointsEligible": true },
-  { "id": "maternity", "name": "Mother and baby", "blurb": "For pregnancy and a baby's first year.", "pointsEligible": true },
-  { "id": "mobility", "name": "Mobility and safety", "blurb": "Getting around the house, and not falling in it.", "pointsEligible": true },
-  { "id": "firstaid", "name": "First aid", "blurb": "What a household keeps in the cupboard.", "pointsEligible": true }
+  {
+   "id": "measuring",
+   "name": "Measuring devices",
+   "blurb": "Things that take a reading at home, and what happens to the reading afterwards.",
+   "pointsEligible": true
+  },
+  {
+   "id": "maternity",
+   "name": "Mother and baby",
+   "blurb": "For pregnancy and a baby’s first year.",
+   "pointsEligible": true
+  },
+  {
+   "id": "mobility",
+   "name": "Safety and daily living",
+   "blurb": "Getting around the house, not falling in it, and getting help if you do.",
+   "pointsEligible": true
+  },
+  {
+   "id": "consumable",
+   "name": "Care supplies",
+   "blurb": "Dressings, strips, stockings and the parts that run out.",
+   "pointsEligible": true
+  }
  ],
-
- "_productNote": "`does` is what the object physically does. There is no `treats` field and no `claims` field, and adding one is a build error rather than a review comment — a shop listing is the single easiest place in this product to make a medical claim by accident, because the sentence that sells a thing and the sentence that claims it cures something are one word apart.",
-
+ "_productNote": "`does` is what the object physically does. There is no `treats` field and no `claims` field, and adding one is a build error rather than a review comment — a shop listing is the single easiest place in this product to make a medical claim by accident, because the sentence that sells a thing and the sentence that claims it cures something are one word apart. `captureKind` names the instrument in packages/catalog/capture.json the product is, and what it measures is that instrument's `measures` — never a second list here; a product with no Bluetooth names the record measures it is typed into in `typedMeasures` instead. `sees` names lines in `seenLines` rather than carrying sentences, so the same promise reads the same on every product and a line can be held to the contract that makes it true. `captureKind` names the instrument in packages/catalog/capture.json the product is, and what it measures is that instrument's `measures` — never a second list here; a product with no Bluetooth names the record measures it is typed into in `typedMeasures` instead. `sees` names lines in `seenLines` rather than carrying sentences, so the same promise reads the same on every product and a line can be held to the contract that makes it true. `captureKind` names the instrument in packages/catalog/capture.json the product is, and what it measures is that instrument's `measures` — never a second list here; a product with no Bluetooth names the record measures it is typed into in `typedMeasures` instead. `sees` names lines in `seenLines` rather than carrying sentences, so the same promise reads the same on every product and a line can be held to the contract that makes it true. `captureKind` names the instrument in packages/catalog/capture.json the product is, and what it measures is that instrument's `measures` — never a second list here; a product with no Bluetooth names the record measures it is typed into in `typedMeasures` instead. `sees` names lines in `seenLines` rather than carrying sentences, so the same promise reads the same on every product and a line can be held to the contract that makes it true. `captureKind` names the instrument in packages/catalog/capture.json the product is, and what it measures is that instrument's `measures` — never a second list here; a product with no Bluetooth names the record measures it is typed into in `typedMeasures` instead. `sees` names lines in `seenLines` rather than carrying sentences, so the same promise reads the same on every product and a line can be held to the contract that makes it true.",
  "products": [
-  { "id": "bp-upper", "name": "Upper-arm blood pressure monitor", "category": "measuring", "price": 749, "stock": 24, "does": "Takes a blood pressure reading from the upper arm and stores the last sixty.", "needsReading": true },
-  { "id": "oximeter", "name": "Fingertip pulse oximeter", "category": "measuring", "price": 329, "stock": 40, "does": "Estimates oxygen saturation and pulse from a fingertip.", "needsReading": true },
-  { "id": "thermometer", "name": "Digital thermometer", "category": "measuring", "price": 149, "stock": 60, "does": "Takes a temperature under the arm or in the mouth.", "needsReading": true },
-  { "id": "glucose-strips", "name": "Glucose test strips, 50", "category": "consumable", "price": 289, "stock": 35, "does": "Fifty single-use strips for a compatible glucose meter.", "needsReading": true },
-  { "id": "bp-cuff-large", "name": "Large blood pressure cuff", "category": "consumable", "price": 219, "stock": 18, "does": "A wider cuff for an upper arm the standard cuff does not close around.", "needsReading": false },
-  { "id": "dressings", "name": "Sterile dressing pack", "category": "consumable", "price": 189, "stock": 52, "does": "Sterile gauze, pads and tape for covering a wound between visits.", "needsReading": false },
-  { "id": "maternity-pillow", "name": "Maternity support pillow", "category": "maternity", "price": 459, "stock": 14, "does": "Supports the back and the abdomen while sleeping in later pregnancy.", "needsReading": false },
-  { "id": "baby-scale", "name": "Baby weighing scale", "category": "maternity", "price": 899, "stock": 9, "does": "Weighs an infant to the nearest ten grams.", "needsReading": true },
-  { "id": "grab-rail", "name": "Bathroom grab rail", "category": "mobility", "price": 279, "stock": 26, "does": "Bolts to a wall to hold onto beside a bath or a toilet.", "needsReading": false },
-  { "id": "walker", "name": "Folding walking frame", "category": "mobility", "price": 1099, "stock": 7, "does": "Takes a person's weight through the arms while walking, and folds flat.", "needsReading": false },
-  { "id": "firstaid-home", "name": "Household first-aid kit", "category": "firstaid", "price": 349, "stock": 31, "does": "Plasters, bandages, gloves, scissors and a foil blanket in one box.", "needsReading": false },
-  { "id": "bp-diary", "name": "Home readings notebook", "category": "firstaid", "price": 59, "stock": 80, "does": "A printed book for writing down a reading and the date beside it.", "needsReading": false }
+  {
+   "id": "bp-upper",
+   "name": "Upper-arm blood pressure monitor",
+   "category": "measuring",
+   "price": 1499,
+   "reference": {
+    "low": 1100,
+    "high": 2550,
+    "checked": "2026-10-02",
+    "from": "national pharmacy chains, online retailers and medical suppliers"
+   },
+   "stock": 24,
+   "does": "Takes a blood pressure and pulse reading from the upper arm, stores the last sixty, and sends each one to the Thuso app over Bluetooth.",
+   "needsReading": true,
+   "captureKind": "bp-cuff",
+   "validation": "bp-general",
+   "sahpra": "B",
+   "welcome": true,
+   "features": [
+    "A standard cuff for an upper arm of 22 to 32 centimetres; the large cuff below fits 32 to 42.",
+    "Two readings a minute apart, averaged on the screen if you take them that way.",
+    "Runs on four AA batteries or a mains adapter."
+   ],
+   "forWhom": "For anybody a nurse or doctor has asked to watch their blood pressure at home, and for the household that wants to know before it is asked.",
+   "sees": {
+    "patient": [
+     "explain",
+     "far-outside",
+     "trend",
+     "paired",
+     "bp-technique",
+     "bp-series"
+    ],
+    "nurse": [
+     "n-own-mark",
+     "n-repeat",
+     "n-cuff",
+     "n-technique"
+    ],
+    "doctor": [
+     "d-live",
+     "d-range-words",
+     "d-provenance",
+     "d-weight",
+     "d-case",
+     "d-bp-average"
+    ]
+   },
+   "whatItIsNot": [
+    "Not a diagnosis of high blood pressure. That takes a series of readings on different days and a clinician who reads them.",
+    "Not a wrist monitor. Upper-arm monitors are the kind home-monitoring guidance asks for, because a wrist reading moves with the height of the hand."
+   ],
+   "image": {
+    "alt": "A white blood pressure monitor with a small screen, beside a grey fabric arm cuff and its air tube."
+   }
+  },
+  {
+   "id": "bp-cuff-large",
+   "name": "Large blood pressure cuff",
+   "category": "measuring",
+   "price": 349,
+   "reference": {
+    "low": 330,
+    "high": 430,
+    "checked": "2026-10-02",
+    "from": "national pharmacy chains and online retailers"
+   },
+   "stock": 18,
+   "does": "A wider cuff for an upper arm of 32 to 42 centimetres, which the standard cuff does not close around properly.",
+   "needsReading": false,
+   "sahpra": "B",
+   "features": [
+    "Fits the upper-arm monitor in this shop.",
+    "Hook-and-loop closure, wipe-clean lining."
+   ],
+   "forWhom": "For an arm the standard cuff is too small for. A cuff that is too small reads high, and the error cannot be corrected afterwards.",
+   "whatItIsNot": [
+    "Not a monitor on its own. It needs the upper-arm monitor to take a reading."
+   ],
+   "image": {
+    "alt": "A large grey fabric blood pressure cuff, partly unrolled, with its air tube and connector."
+   }
+  },
+  {
+   "id": "oximeter",
+   "name": "Fingertip pulse oximeter",
+   "category": "measuring",
+   "price": 999,
+   "reference": {
+    "low": 500,
+    "high": 1000,
+    "checked": "2026-10-02",
+    "from": "online retailers; the pharmacy chains stocked no Bluetooth model"
+   },
+   "stock": 40,
+   "does": "Estimates oxygen saturation and pulse from a fingertip, and sends each reading to the Thuso app over Bluetooth.",
+   "needsReading": true,
+   "captureKind": "pulse-oximeter",
+   "sahpra": "B",
+   "features": [
+    "Clips onto a finger; a reading settles in about ten seconds.",
+    "A lanyard, and two AAA batteries."
+   ],
+   "forWhom": "For a household looking after somebody with a chest or heart condition, or recovering from a chest infection, where a nurse has asked for readings between visits.",
+   "caveats": [
+    "skin-pigmentation"
+   ],
+   "sees": {
+    "patient": [
+     "explain",
+     "far-outside",
+     "paired"
+    ],
+    "nurse": [
+     "n-own-mark",
+     "n-repeat"
+    ],
+    "doctor": [
+     "d-live",
+     "d-range-words",
+     "d-provenance",
+     "d-weight"
+    ]
+   },
+   "whatItIsNot": [
+    "Not a way to rule out a low oxygen level on its own. A normal-looking number from a person who feels breathless is still a reason to ask somebody today.",
+    "Not a breathing monitor. It reads the finger it is on, while it is on it."
+   ],
+   "image": {
+    "alt": "A small white fingertip pulse oximeter with its hinge open and a bright screen, beside a grey lanyard."
+   }
+  },
+  {
+   "id": "glucometer",
+   "name": "Blood glucose meter set",
+   "category": "measuring",
+   "price": 289,
+   "reference": {
+    "low": 200,
+    "high": 400,
+    "checked": "2026-10-02",
+    "from": "national pharmacy chains and online retailers"
+   },
+   "stock": 30,
+   "does": "Measures blood glucose from a drop of blood on a test strip, with a lancing device and ten strips to start, and sends each reading to the Thuso app over Bluetooth.",
+   "needsReading": true,
+   "captureKind": "glucometer",
+   "sahpra": "IVD-C",
+   "features": [
+    "A reading in about five seconds from a small drop.",
+    "Ten strips and ten lancets in the box; the strips and lancets below are what runs out.",
+    "Remembers the last five hundred readings with their times."
+   ],
+   "forWhom": "For somebody living with diabetes whose nurse or doctor has asked for home readings, and for the person who helps them take one.",
+   "sees": {
+    "patient": [
+     "explain",
+     "far-outside",
+     "paired"
+    ],
+    "nurse": [
+     "n-own-mark",
+     "n-repeat",
+     "n-strip-lot"
+    ],
+    "doctor": [
+     "d-live",
+     "d-range-words",
+     "d-provenance",
+     "d-weight"
+    ]
+   },
+   "whatItIsNot": [
+    "Not a continuous monitor. It reads the drop it is given, once.",
+    "Not a dose calculator. Nothing here tells anybody how much of anything to take."
+   ],
+   "image": {
+    "alt": "A white and grey glucose meter showing a reading, a pen-shaped lancing device and a small white vial of test strips."
+   }
+  },
+  {
+   "id": "smart-scale",
+   "name": "Bluetooth bathroom scale",
+   "category": "measuring",
+   "price": 549,
+   "reference": {
+    "low": 350,
+    "high": 1150,
+    "checked": "2026-10-02",
+    "from": "online retailers and national pharmacy chains"
+   },
+   "stock": 22,
+   "does": "Weighs a person standing, to the nearest hundred grams, and sends each weight to the Thuso app over Bluetooth.",
+   "needsReading": true,
+   "captureKind": "scale",
+   "sahpra": "A",
+   "features": [
+    "Tempered-glass top, up to 180 kilograms.",
+    "Switches on when stood on; two AAA batteries."
+   ],
+   "forWhom": "For a pregnancy, for heart failure where a nurse watches weight from day to day, and for anybody asked to keep a weekly weight.",
+   "sees": {
+    "patient": [
+     "paired"
+    ],
+    "nurse": [
+     "n-own-mark"
+    ],
+    "doctor": []
+   },
+   "whatItIsNot": [
+    "Not a body-fat or body-water measurement. Some scales show those numbers; nobody here reads them, and the record has no place for them."
+   ],
+   "image": {
+    "alt": "A slim square white glass bathroom scale with a small lit display."
+   }
+  },
+  {
+   "id": "peak-flow",
+   "name": "Peak flow meter",
+   "category": "measuring",
+   "price": 259,
+   "reference": {
+    "low": 230,
+    "high": 340,
+    "checked": "2026-10-02",
+    "from": "national pharmacy chains and online retailers"
+   },
+   "stock": 28,
+   "does": "Measures how fast a person can breathe out, read off a sliding marker on the tube in litres a minute.",
+   "needsReading": true,
+   "typedMeasures": [
+    "peak-flow"
+   ],
+   "sahpra": "A",
+   "features": [
+    "Mechanical: no battery, no Bluetooth, nothing to charge.",
+    "Two disposable mouthpieces; the tube rinses clean in warm water."
+   ],
+   "forWhom": "For somebody living with asthma whose nurse or doctor has asked for a peak flow diary.",
+   "sees": {
+    "patient": [
+     "typed",
+     "peak-flow-diary"
+    ],
+    "nurse": [],
+    "doctor": []
+   },
+   "whatItIsNot": [
+    "Not an inhaler, and not a test that says how bad an attack is on its own. A person struggling to breathe calls for help first and measures later."
+   ],
+   "image": {
+    "alt": "A clear and white plastic peak flow meter with a sliding red marker and a mouthpiece."
+   }
+  },
+  {
+   "id": "ecg-single",
+   "name": "Single-lead ECG recorder",
+   "category": "measuring",
+   "price": 2599,
+   "reference": {
+    "low": 1700,
+    "high": 4700,
+    "checked": "2026-10-02",
+    "from": "national pharmacy chains, online retailers and medical suppliers"
+   },
+   "stock": 10,
+   "does": "Records a thirty-second single-lead trace of the heart rhythm from two fingertips, shown on a phone over Bluetooth.",
+   "needsReading": true,
+   "captureKind": "ecg",
+   "sahpra": "B",
+   "features": [
+    "Card-sized, with two metal pads to rest a finger of each hand on.",
+    "A coin-cell battery that lasts about a year of daily traces."
+   ],
+   "forWhom": "For somebody whose doctor has asked them to record a trace when they feel their heart racing or skipping.",
+   "sees": {
+    "patient": [
+     "paired"
+    ],
+    "nurse": [],
+    "doctor": [
+     "d-ecg-trace"
+    ]
+   },
+   "whatItIsNot": [
+    "Not a heart-attack detector. A single-lead trace cannot show one, and chest pain is a reason to call 10177, not to take a trace.",
+    "Not a monitor that watches all day. It records the thirty seconds you hold it."
+   ],
+   "image": {
+    "alt": "A small charcoal card-sized ECG recorder with two round metal pads, beside a phone showing a heart rhythm line."
+   }
+  },
+  {
+   "id": "thermometer",
+   "name": "Digital thermometer",
+   "category": "measuring",
+   "price": 149,
+   "reference": {
+    "low": 60,
+    "high": 350,
+    "checked": "2026-10-02",
+    "from": "national pharmacy chains and online retailers"
+   },
+   "stock": 60,
+   "does": "Takes a temperature under the arm or in the mouth in about a minute.",
+   "needsReading": true,
+   "typedMeasures": [
+    "temperature"
+   ],
+   "sahpra": "B",
+   "features": [
+    "Flexible tip and a beep when the reading is done.",
+    "No Bluetooth: you type the reading into the app, and it says so."
+   ],
+   "forWhom": "For every household. The cheapest reading in this shop, and one of the most asked-for.",
+   "sees": {
+    "patient": [
+     "explain",
+     "far-outside",
+     "typed"
+    ],
+    "nurse": [
+     "n-repeat"
+    ],
+    "doctor": [
+     "d-provenance",
+     "d-weight"
+    ]
+   },
+   "whatItIsNot": [
+    "Not a diagnosis. A reading is one number on one morning, and what it means is decided by a nurse or a doctor who knows you."
+   ],
+   "image": {
+    "alt": "A slim white digital stick thermometer with a small screen, beside its clear plastic case."
+   }
+  },
+  {
+   "id": "ear-thermometer",
+   "name": "Infrared ear thermometer",
+   "category": "measuring",
+   "price": 849,
+   "reference": {
+    "low": 500,
+    "high": 1500,
+    "checked": "2026-10-02",
+    "from": "national pharmacy chains and online retailers"
+   },
+   "stock": 20,
+   "does": "Takes a temperature in the ear in about a second, read off a backlit screen.",
+   "needsReading": true,
+   "typedMeasures": [
+    "temperature"
+   ],
+   "sahpra": "B",
+   "features": [
+    "Twenty disposable probe covers in the box.",
+    "No Bluetooth: no ear thermometer sold in South Africa had it when we checked, so you type the reading in."
+   ],
+   "forWhom": "For a household with a restless child or an older person who will not hold a thermometer under the tongue for a minute.",
+   "sees": {
+    "patient": [
+     "explain",
+     "far-outside",
+     "typed"
+    ],
+    "nurse": [
+     "n-repeat"
+    ],
+    "doctor": [
+     "d-provenance",
+     "d-weight"
+    ]
+   },
+   "whatItIsNot": [
+    "Not a diagnosis. A reading is one number on one morning, and what it means is decided by a nurse or a doctor who knows you.",
+    "Not a forehead reading. Where a temperature is taken changes it, and the site is recorded with it."
+   ],
+   "image": {
+    "alt": "A white handheld ear thermometer with a soft grey grip and a lit screen, beside a clear probe cover."
+   }
+  },
+  {
+   "id": "bp-pregnancy",
+   "name": "Pregnancy-validated blood pressure monitor",
+   "category": "maternity",
+   "price": 1599,
+   "reference": {
+    "low": 1500,
+    "high": 2200,
+    "checked": "2026-10-02",
+    "from": "medical suppliers and an online specialist; partly an estimate, because few pregnancy-validated models are stocked locally"
+   },
+   "stock": 12,
+   "does": "Takes a blood pressure and pulse reading from the upper arm, on a model validated for use in pregnancy, and sends each one to the Thuso app over Bluetooth.",
+   "needsReading": true,
+   "captureKind": "bp-cuff",
+   "validation": "bp-pregnancy",
+   "sahpra": "B",
+   "features": [
+    "Validated in pregnancy as a separate study, not only in the general adult population.",
+    "A wide-range cuff for 22 to 42 centimetres, because arms change in pregnancy."
+   ],
+   "forWhom": "For a pregnancy MyThuso is looking after, and especially one where a nurse or midwife has asked for home readings.",
+   "sees": {
+    "patient": [
+     "explain",
+     "far-outside",
+     "trend",
+     "paired",
+     "bp-technique",
+     "bp-series"
+    ],
+    "nurse": [
+     "n-own-mark",
+     "n-repeat",
+     "n-cuff",
+     "n-technique"
+    ],
+    "doctor": [
+     "d-live",
+     "d-range-words",
+     "d-provenance",
+     "d-weight",
+     "d-case",
+     "d-bp-average"
+    ]
+   },
+   "whatItIsNot": [
+    "Not a test for pre-eclampsia. A rising blood pressure is one of its first signs, and the readings go to a nurse or doctor who decides what they mean, with the other signs only they can check."
+   ],
+   "image": {
+    "alt": "A rounded white blood pressure monitor with a pale lilac front and a lit screen, beside a light grey arm cuff."
+   }
+  },
+  {
+   "id": "baby-thermometer",
+   "name": "Baby forehead thermometer",
+   "category": "maternity",
+   "price": 799,
+   "reference": {
+    "low": 250,
+    "high": 1300,
+    "checked": "2026-10-02",
+    "from": "national pharmacy chains and online retailers"
+   },
+   "stock": 26,
+   "does": "Takes a temperature from the forehead without touching it, in about a second, and sends each reading to the Thuso app over Bluetooth.",
+   "needsReading": true,
+   "captureKind": "thermometer",
+   "sahpra": "B",
+   "features": [
+    "Silent mode, so a sleeping baby is not woken by a beep.",
+    "Holds the last thirty readings with their times."
+   ],
+   "forWhom": "For a baby’s first year, when a temperature is the reading a nurse asks about first.",
+   "sees": {
+    "patient": [
+     "explain",
+     "far-outside",
+     "paired"
+    ],
+    "nurse": [
+     "n-own-mark",
+     "n-repeat"
+    ],
+    "doctor": [
+     "d-live",
+     "d-range-words",
+     "d-provenance",
+     "d-weight"
+    ]
+   },
+   "whatItIsNot": [
+    "Not a diagnosis. A reading is one number on one morning, and what it means is decided by a nurse or a doctor who knows you.",
+    "Not a replacement for looking at the baby. A baby under three months with a raised temperature is a reason to be seen today, whatever the screen says."
+   ],
+   "image": {
+    "alt": "A rounded white forehead thermometer with a pale mint ring and a small screen, beside a folded muslin cloth."
+   }
+  },
+  {
+   "id": "baby-scale",
+   "name": "Baby weighing scale",
+   "category": "maternity",
+   "price": 1199,
+   "reference": {
+    "low": 500,
+    "high": 1200,
+    "checked": "2026-10-02",
+    "from": "online retailers only; an estimate, because the pharmacy chains listed none"
+   },
+   "stock": 9,
+   "does": "Weighs an infant lying in a curved tray to the nearest ten grams, and sends each weight to the Thuso app over Bluetooth.",
+   "needsReading": true,
+   "captureKind": "scale",
+   "sahpra": "A",
+   "features": [
+    "A tare button, so a blanket in the tray is not weighed with the baby.",
+    "Up to 20 kilograms; the tray lifts off to wipe."
+   ],
+   "forWhom": "For the first months, when weight gain between clinic days is the question a nurse is most often asked.",
+   "sees": {
+    "patient": [
+     "paired"
+    ],
+    "nurse": [
+     "n-own-mark"
+    ],
+    "doctor": []
+   },
+   "whatItIsNot": [
+    "Not a growth chart. Where a weight sits for a baby’s age is read by the nurse against the Road to Health booklet, not by this shop."
+   ],
+   "image": {
+    "alt": "A white digital baby scale with a curved tray holding a folded muslin cloth, and a small display on its base."
+   }
+  },
+  {
+   "id": "maternity-pillow",
+   "name": "Maternity support pillow",
+   "category": "maternity",
+   "price": 499,
+   "reference": {
+    "low": 350,
+    "high": 800,
+    "checked": "2026-10-02",
+    "from": "online retailers and national pharmacy chains"
+   },
+   "stock": 14,
+   "does": "Supports the back and the abdomen while sleeping on one side in later pregnancy.",
+   "needsReading": false,
+   "sahpra": "none",
+   "features": [
+    "Full-length U shape, so it supports both sides without being turned.",
+    "A removable jersey cover that goes in a washing machine."
+   ],
+   "forWhom": "For the third trimester, when sleeping on one side is what a midwife suggests and staying there is the hard part.",
+   "whatItIsNot": [
+    "Not a medical device. It is a pillow, and is sold as one."
+   ],
+   "image": {
+    "alt": "A long U-shaped maternity pillow in a soft light grey cover."
+   }
+  },
+  {
+   "id": "fall-pendant",
+   "name": "Fall-detection pendant",
+   "category": "mobility",
+   "price": 2999,
+   "reference": {
+    "low": 1600,
+    "high": 3650,
+    "checked": "2026-10-02",
+    "from": "personal emergency response providers and online electronics retailers, for the pendant alone"
+   },
+   "stock": 15,
+   "does": "Worn on a cord, it raises an alert when it senses a hard fall or when its button is pressed, through the phone it is paired with.",
+   "needsReading": false,
+   "sahpra": "none",
+   "linksTo": "emergency",
+   "features": [
+    "One large button, easy to find in the dark.",
+    "A breakaway cord, so it cannot hold a person by the neck.",
+    "Charges on a small dock about once a week."
+   ],
+   "forWhom": "For an older person who lives alone or is alone for much of the day, and for the family who worries about it.",
+   "sosLink": "Linked to Thuso SOS: a press or a sensed fall would open the same door as the SOS button in the app, on the phone it is paired with. In this preview nothing is paired and nothing is dispatched.",
+   "whatItIsNot": [
+    "Not an ambulance service, and not monitored by a control room in this preview. A fall it does not sense raises nothing, so the button is there for the fall it misses.",
+    "Not a subscription. Any monitoring service would be a separate decision, priced separately, and none is offered yet."
+   ],
+   "image": {
+    "alt": "A small rounded white alarm pendant with one large grey button on a grey cord, beside its round charging dock."
+   }
+  },
+  {
+   "id": "pill-organiser",
+   "name": "Seven-day organiser with alarm",
+   "category": "mobility",
+   "price": 349,
+   "reference": {
+    "low": 170,
+    "high": 680,
+    "checked": "2026-10-02",
+    "from": "online retailers and national pharmacy chains"
+   },
+   "stock": 20,
+   "does": "A seven-compartment box with a clock that sounds an alarm at up to four times a day that you set.",
+   "needsReading": false,
+   "sahpra": "none",
+   "features": [
+    "Seven lidded compartments in a row, one for each day.",
+    "A loud alarm and a flashing light, for somebody who does not hear well."
+   ],
+   "forWhom": "For somebody with several things to take at set times, and for the family member who fills the box on a Sunday.",
+   "whatItIsNot": [
+    "Not a dispenser that locks anything away, and it does not know what is inside it. Filling it is a person’s job.",
+    "It earns no points for being used. Rewarding somebody for taking a medicine is an incentive scheme the law forbids."
+   ],
+   "image": {
+    "alt": "A white seven-compartment organiser box with translucent lids, one open, and a small clock display at one end."
+   }
+  },
+  {
+   "id": "grab-rail",
+   "name": "Bathroom grab rail",
+   "category": "mobility",
+   "price": 449,
+   "reference": {
+    "low": 250,
+    "high": 550,
+    "checked": "2026-10-02",
+    "from": "online retailers and national pharmacy chains"
+   },
+   "stock": 26,
+   "does": "Bolts to a wall to hold onto beside a bath, a shower or a toilet.",
+   "needsReading": false,
+   "sahpra": "none",
+   "features": [
+    "Brushed stainless steel, 450 millimetres between the flanges.",
+    "Must be fixed into brick or a stud, not into tile alone; fixings for brick are in the box."
+   ],
+   "forWhom": "For anybody who has to steady themselves getting into or out of a bath, which is where most falls at home happen.",
+   "whatItIsNot": [
+    "Not fitted by MyThuso. The nurse can say where one would help; fitting it is a handyman’s job."
+   ],
+   "image": {
+    "alt": "A brushed stainless steel grab rail with a round wall flange at each end."
+   }
+  },
+  {
+   "id": "walker",
+   "name": "Folding walking frame",
+   "category": "mobility",
+   "price": 949,
+   "reference": {
+    "low": 850,
+    "high": 1250,
+    "checked": "2026-10-02",
+    "from": "national pharmacy chains and online retailers"
+   },
+   "stock": 7,
+   "does": "Takes a person’s weight through the arms while walking, and folds flat to fit in a car boot.",
+   "needsReading": false,
+   "sahpra": "A",
+   "features": [
+    "Aluminium, height adjustable, up to 100 kilograms.",
+    "Rubber feet; no wheels, so it does not run away on a slope."
+   ],
+   "forWhom": "For somebody recovering from a fall, an operation or an illness who has been told to use one by a nurse or a physiotherapist.",
+   "whatItIsNot": [
+    "Not fitted to the person by this shop. The right height is set at a visit, with the person standing in their own shoes."
+   ],
+   "image": {
+    "alt": "A folding aluminium walking frame with grey hand grips and rubber feet."
+   }
+  },
+  {
+   "id": "glucose-strips",
+   "name": "Glucose test strips, 50",
+   "category": "consumable",
+   "price": 169,
+   "reference": {
+    "low": 150,
+    "high": 320,
+    "checked": "2026-10-02",
+    "from": "national pharmacy chains and online retailers"
+   },
+   "stock": 35,
+   "does": "Fifty single-use strips for the glucose meter in this shop.",
+   "needsReading": false,
+   "sahpra": "IVD-C",
+   "usedWith": "glucometer",
+   "features": [
+    "Two vials of twenty-five. A vial once opened is used within the time printed on it."
+   ],
+   "forWhom": "For whoever has the glucose meter set, once its ten strips are gone.",
+   "whatItIsNot": [
+    "Not interchangeable with another make of meter. A strip from a different system reads wrongly, or not at all."
+   ],
+   "image": {
+    "alt": "Two plain white vials of glucose test strips, one open, with a few strips fanned out in front."
+   }
+  },
+  {
+   "id": "lancets",
+   "name": "Lancets, 100",
+   "category": "consumable",
+   "price": 199,
+   "reference": {
+    "low": 150,
+    "high": 290,
+    "checked": "2026-10-02",
+    "from": "national pharmacy chains and online retailers"
+   },
+   "stock": 40,
+   "does": "One hundred sterile single-use lancets for the lancing device in the glucose meter set.",
+   "needsReading": false,
+   "sahpra": "B",
+   "usedWith": "glucometer",
+   "features": [
+    "Each one used once, then put in a sharps container — never in the household bin."
+   ],
+   "forWhom": "For whoever has the glucose meter set.",
+   "whatItIsNot": [
+    "Not for sharing between people, ever, even within a family."
+   ],
+   "image": {
+    "alt": "A small heap of lancets with pastel twist-off caps spilling from an open white box."
+   }
+  },
+  {
+   "id": "dressings",
+   "name": "Wound-care kit",
+   "category": "consumable",
+   "price": 179,
+   "reference": {
+    "low": 130,
+    "high": 200,
+    "checked": "2026-10-02",
+    "from": "national pharmacy chains and online retailers"
+   },
+   "stock": 52,
+   "does": "Sterile gauze swabs, adhesive dressings, tape, a crepe bandage and blunt scissors for covering a wound between visits.",
+   "needsReading": false,
+   "sahpra": "A",
+   "features": [
+    "Each swab sealed on its own, so opening one does not expose the rest.",
+    "A zip pouch that keeps the rest clean."
+   ],
+   "forWhom": "For a household where a nurse is caring for a wound, and has asked for dressings to be at hand between visits.",
+   "whatItIsNot": [
+    "Not a replacement for the nurse’s dressing. A wound that is redder, hotter, more painful or smelling is a reason to ask today."
+   ],
+   "image": {
+    "alt": "An open white pouch of sterile gauze packets, tape, dressings, a crepe bandage and small scissors."
+   }
+  },
+  {
+   "id": "firstaid-home",
+   "name": "Household first-aid kit",
+   "category": "consumable",
+   "price": 399,
+   "reference": {
+    "low": 170,
+    "high": 540,
+    "checked": "2026-10-02",
+    "from": "national pharmacy chains and online retailers"
+   },
+   "stock": 31,
+   "does": "Plasters, bandages, gloves, scissors and a foil blanket in one box.",
+   "needsReading": false,
+   "sahpra": "A",
+   "features": [
+    "A wipe-clean box with a lid that stays shut in a cupboard.",
+    "A contents list inside the lid, so what has been used can be replaced."
+   ],
+   "forWhom": "For every household. The thing that is needed at the moment nobody can go to the shops.",
+   "whatItIsNot": [
+    "Not training. A first-aid course is what makes the box useful."
+   ],
+   "image": {
+    "alt": "An open white first-aid box with a green cross on the lid, packed with plasters, bandages, gloves, scissors and a foil blanket."
+   }
+  },
+  {
+   "id": "compression",
+   "name": "Compression stockings, below knee",
+   "category": "consumable",
+   "price": 449,
+   "reference": {
+    "low": 290,
+    "high": 460,
+    "checked": "2026-10-02",
+    "from": "national pharmacy chains and online retailers"
+   },
+   "stock": 24,
+   "does": "A pair of graduated below-knee stockings that press firmest at the ankle and less towards the knee.",
+   "needsReading": false,
+   "sahpra": "A",
+   "features": [
+    "Class 1, the lightest graduated pressure.",
+    "Sized from the ankle and calf measurements, which the nurse takes."
+   ],
+   "forWhom": "For somebody whose nurse or doctor has said compression stockings would help, after measuring their legs.",
+   "whatItIsNot": [
+    "Not to be bought on a guess. Stockings that are the wrong size, or worn on a leg with poor circulation, can do harm — the nurse measures first."
+   ],
+   "image": {
+    "alt": "A pair of beige below-knee compression stockings, one folded and one laid flat."
+   }
+  },
+  {
+   "id": "bp-diary",
+   "name": "Home readings notebook",
+   "category": "consumable",
+   "price": 149,
+   "reference": {
+    "low": 130,
+    "high": 200,
+    "checked": "2026-10-02",
+    "from": "online retailers only; an estimate"
+   },
+   "stock": 80,
+   "does": "A printed book for writing down a reading, the date and the time beside it.",
+   "needsReading": false,
+   "sahpra": "none",
+   "features": [
+    "Columns for morning and evening, two readings each.",
+    "Fits in the monitor’s case."
+   ],
+   "forWhom": "For anybody taking readings at home, and especially anybody without a smartphone to pair a device with.",
+   "whatItIsNot": [
+    "Not a record anybody else reads until you show it to them. That is the point of it."
+   ],
+   "image": {
+    "alt": "An open notebook with a sage green cover and ruled empty columns, with a pencil across the pages."
+   }
+  }
  ],
-
+ "_kitNote": "A kit is a list of products and nothing else. Its price is the sum of its items, worked out by every screen that shows it; it has no `price` field, and the build fails if one is added, because a typed kit price is a second copy of five numbers that would drift the first time one of them changed.",
+ "kits": [
+  {
+   "id": "kit-bp",
+   "name": "Blood pressure kit",
+   "items": [
+    "bp-upper",
+    "bp-diary"
+   ],
+   "does": "The upper-arm monitor and the readings notebook: everything a seven-day home series needs.",
+   "forWhom": "For a first home series, when a nurse or doctor has asked for one.",
+   "image": {
+    "alt": "Flat-lay of a blood pressure monitor with its cuff, and a green notebook with a pencil."
+   }
+  },
+  {
+   "id": "kit-diabetes",
+   "name": "Diabetes kit",
+   "items": [
+    "glucometer",
+    "glucose-strips",
+    "lancets",
+    "bp-diary"
+   ],
+   "does": "The glucose meter set, fifty more strips, a hundred lancets and the readings notebook.",
+   "forWhom": "For somebody living with diabetes who is starting to test at home.",
+   "image": {
+    "alt": "Flat-lay of a glucose meter, a lancing device, two vials of strips, a row of lancets and a green notebook."
+   }
+  },
+  {
+   "id": "kit-mom",
+   "name": "Mom kit",
+   "items": [
+    "bp-pregnancy",
+    "smart-scale",
+    "thermometer"
+   ],
+   "does": "A pregnancy-validated blood pressure monitor, a scale and a thermometer: the three home readings a nurse asks about between antenatal visits.",
+   "forWhom": "For a pregnancy MyThuso is looking after. Pre-eclampsia shows itself first as a rising blood pressure, which is why the monitor in this kit is one validated in pregnancy.",
+   "image": {
+    "alt": "Flat-lay of a white and lilac blood pressure monitor with its cuff, a square glass scale and a stick thermometer."
+   }
+  },
+  {
+   "id": "kit-elder",
+   "name": "Elder safety kit",
+   "items": [
+    "fall-pendant",
+    "grab-rail",
+    "pill-organiser"
+   ],
+   "does": "A fall-detection pendant, a bathroom grab rail and a seven-day organiser with an alarm.",
+   "forWhom": "For an older person living alone, chosen with the family at a first visit.",
+   "image": {
+    "alt": "Flat-lay of a white alarm pendant on a cord, a stainless steel grab rail and a seven-compartment organiser."
+   }
+  }
+ ],
+ "images": {
+  "_note": "One picture per product and per kit, generated rather than photographed: unbranded studio product photographs in one consistent style, made with an image model because no product here has a maker whose photograph could be used. Each is labelled with `label` wherever it is drawn, so nobody takes it for a photograph of the thing that would arrive. Who made each one, with which model, on which day and from which prompt is in packages/catalog/shop/images.json — kept out of this file because this file is read into the storefront's bundle, and a prompt is not something a shopper downloads.",
+  "label": "Illustrative image",
+  "dir": "/products/",
+  "width": 960,
+  "height": 720,
+  "small": {
+   "suffix": "-480",
+   "width": 480,
+   "height": 360
+  },
+  "maxBytes": 153600,
+  "native": {
+   "width": 480,
+   "height": 360,
+   "maxBytes": 40960
+  }
+ },
+ "notInRecord": {
+  "_note": "A measure a product takes that packages/catalog/records.json does not hold. Devices takes in no measure the record does not hold (packages/catalog/live-vitals.json, notStreamed), so a reading of one of these stays on the device and in the person's own notebook, and the listing says so rather than implying a doctor sees it.",
+  "weight": {
+   "name": "Weight",
+   "sentence": "Your record does not hold a weight measure yet, so a weight stays on the scale and in your own notebook. No nurse or doctor sees it through MyThuso until the record does."
+  },
+  "ecg": {
+   "name": "Heart rhythm trace",
+   "sentence": "Your record does not hold a heart rhythm trace yet, so a trace stays on the phone it was taken on. Show it to the doctor at a consultation."
+  },
+  "peak-flow": {
+   "name": "Peak flow",
+   "sentence": "Your record does not hold a peak flow measure yet, so the reading goes in your own notebook."
+  }
+ },
+ "seenLines": {
+  "_note": "Every promise a listing makes about who sees what. `status` is `in-preview` only when the thing exists in this repository, with the file that makes it so in `evidence`; anything else is `planned` and is drawn as planned. `needs` names what a product must measure for the line to be true of it, and scripts/check-boundaries.mjs holds each product to it: `explained` — a measure packages/catalog/reading-questions.json explains; `far-outside` — a measure with far-outside bounds there; `case` — a measure packages/catalog/case.json puts in a case; `live` — a measure packages/catalog/live-vitals.json streams; `paired` — a Bluetooth instrument; `typed` — no Bluetooth.",
+  "explain": {
+   "audience": "patient",
+   "status": "in-preview",
+   "evidence": "packages/gilbertone/src/readings.ts",
+   "needs": "explained",
+   "text": "Ask GilbertOne what a reading means and it reads you the paragraph a doctor can check in advance, chosen by where the number sits against your record’s indicative range — never a grade."
+  },
+  "far-outside": {
+   "audience": "patient",
+   "status": "in-preview",
+   "evidence": "packages/catalog/reading-questions.json",
+   "needs": "far-outside",
+   "text": "A reading far outside that range is never answered with the everyday paragraph. You get the urgent answer first: the ambulance numbers and the Thuso SOS door."
+  },
+  "trend": {
+   "audience": "patient",
+   "status": "in-preview",
+   "evidence": "packages/catalog/case.json",
+   "needs": "case",
+   "text": "Your blood pressure in a case drawn as a trend once there are {trendNeeds} readings, so one odd number reads as one odd number."
+  },
+  "paired": {
+   "audience": "patient",
+   "status": "planned",
+   "needs": "paired",
+   "text": "Each reading arriving in the app by itself once the device is paired, with the time the device took it. Pairing is simulated in this preview."
+  },
+  "typed": {
+   "audience": "patient",
+   "status": "in-preview",
+   "evidence": "packages/catalog/capture.json",
+   "needs": "typed",
+   "text": "You type each reading in yourself, and it is filed as reported by you — what you said, not what a clinician observed."
+  },
+  "bp-technique": {
+   "audience": "patient",
+   "status": "planned",
+   "text": "Before each reading, how to sit for it: back supported, feet flat, arm resting at heart height, five quiet minutes first, and no coffee or cigarette in the half-hour before."
+  },
+  "bp-series": {
+   "audience": "patient",
+   "status": "planned",
+   "text": "A seven-day series set out morning and evening, two readings a minute apart each time, the way home-monitoring guidance asks for it."
+  },
+  "peak-flow-diary": {
+   "audience": "patient",
+   "status": "planned",
+   "text": "A page to write each peak flow beside its date, so your nurse sees the week rather than the morning."
+  },
+  "n-own-mark": {
+   "audience": "nurse",
+   "status": "in-preview",
+   "evidence": "packages/catalog/devices.json",
+   "needs": "paired",
+   "text": "Every home reading marked as from your own device, so she can tell it from a reading she took on her kit instrument."
+  },
+  "n-repeat": {
+   "audience": "nurse",
+   "status": "in-preview",
+   "evidence": "packages/catalog/capture.json",
+   "text": "At a visit she repeats the reading on her own calibrated kit instrument, and both are kept: nothing is merged and nothing is discarded."
+  },
+  "n-cuff": {
+   "audience": "nurse",
+   "status": "planned",
+   "text": "Your arm measured and the cuff size checked at the first visit, because a reading on the wrong cuff is wrong in a direction nobody can correct for afterwards."
+  },
+  "n-technique": {
+   "audience": "nurse",
+   "status": "planned",
+   "text": "One reading taken in front of her, so technique is put right once rather than a month of readings being wrong the same way."
+  },
+  "n-strip-lot": {
+   "audience": "nurse",
+   "status": "planned",
+   "text": "The strip lot and its expiry beside each reading, because an expired strip reads low."
+  },
+  "d-live": {
+   "audience": "doctor",
+   "status": "in-preview",
+   "evidence": "packages/catalog/live-vitals.json",
+   "needs": "live",
+   "text": "The live devices panel beside the consultation: each reading with its unit, the instrument it stands for, where it came from and how long ago it arrived. Simulated in this preview."
+  },
+  "d-range-words": {
+   "audience": "doctor",
+   "status": "in-preview",
+   "evidence": "packages/catalog/live-vitals.json",
+   "needs": "live",
+   "text": "Its place against the record’s reference range, said in words — never a score, a colour or an alarm."
+  },
+  "d-provenance": {
+   "audience": "doctor",
+   "status": "in-preview",
+   "evidence": "packages/catalog/capture.json",
+   "text": "Where each reading came from: a device reading carries the device, its serial and the date it was last calibrated; a typed one says who typed it."
+  },
+  "d-weight": {
+   "audience": "doctor",
+   "status": "in-preview",
+   "evidence": "packages/catalog/devices.json",
+   "text": "Whether a reading carries clinical weight. One from your own device is marked and guides the conversation; it is never acted on alone."
+  },
+  "d-case": {
+   "audience": "doctor",
+   "status": "in-preview",
+   "evidence": "packages/catalog/case.json",
+   "needs": "case",
+   "text": "In a case, your own reading with its source, beside the nurse’s repeat."
+  },
+  "d-bp-average": {
+   "audience": "doctor",
+   "status": "planned",
+   "text": "The seven-day home average, morning and evening apart, with the first day left out — as the European Society of Hypertension’s home-monitoring guidance sets out."
+  },
+  "d-ecg-trace": {
+   "audience": "doctor",
+   "status": "planned",
+   "text": "The trace itself, to read at a consultation. Any interpretation is decision support a doctor signs or does not."
+  }
+ },
+ "validations": [
+  {
+   "id": "bp-general",
+   "label": "Clinically validated",
+   "sentence": "Validated means the model was tested against readings taken by trained observers on at least 85 people, under the AAMI/ESH/ISO universal standard (ISO 81060-2:2018) or the earlier ESH or BHS protocol, and passed. We would sell only a model that appears on a published validation list such as STRIDE BP, and the listing names the list rather than a maker.",
+   "list": "STRIDE BP",
+   "url": "https://www.stridebp.org/bp-monitors"
+  },
+  {
+   "id": "bp-pregnancy",
+   "label": "Validated in pregnancy",
+   "sentence": "Validated in pregnancy is a separate study from validation in adults generally, because a monitor that passes in the general population can under-read in pre-eclampsia. We would sell only a model on STRIDE BP’s list of monitors validated in pregnancy and pre-eclampsia.",
+   "list": "STRIDE BP — pregnancy",
+   "url": "https://www.stridebp.org/pregnancy-pdf/"
+  }
+ ],
+ "caveats": [
+  {
+   "id": "skin-pigmentation",
+   "heading": "On darker skin",
+   "text": "A pulse oximeter can read higher than the true oxygen level in a person with darker skin, which can hide a level that is low. The United States Food and Drug Administration and the United Kingdom’s medicines regulator have both said so. A nurse reads the number with that in mind, watches how it changes rather than the number alone, and asks how you feel.",
+   "sources": [
+    {
+     "name": "US Food and Drug Administration, 19 February 2021",
+     "url": "https://www.fda.gov/news-events/fda-brief/fda-brief-fda-warns-about-limitations-and-accuracy-pulse-oximeters"
+    },
+    {
+     "name": "MHRA, 26 March 2021",
+     "url": "https://www.gov.uk/guidance/the-use-and-regulation-of-pulse-oximeters-information-for-healthcare-professionals"
+    }
+   ]
+  }
+ ],
+ "welcome": {
+  "_note": "The welcome device: the lead's decision of 2 October 2026, on the founder's ask that a person who signs up gets a free device. It is the upper-arm blood pressure monitor, one per household. It is a planned launch offer and is drawn as one wherever it appears, because sign-up is not live: the accounts capability in packages/catalog/capabilities.json is not connected, and scripts/check-boundaries.mjs fails the build if `status` leaves `planned` while it is not. The monitor stays the household's own device, so its home readings are what packages/catalog/case.json calls own-device readings — marked, and guiding the conversation — and the nurse's repeat on her kit instrument is the reading that carries clinical weight.",
+  "productId": "bp-upper",
+  "status": "planned",
+  "label": "Planned launch offer — sign-up is not live yet",
+  "headline": "A blood pressure monitor for every household that joins.",
+  "intro": "When sign-up opens, the first nurse visit brings a validated upper-arm monitor, set up in your home and yours to keep.",
+  "covers": [
+   {
+    "id": "record",
+    "text": "Blood pressure and pulse into your record, each reading marked as from your own monitor."
+   },
+   {
+    "id": "visit",
+    "text": "The nurse’s first visit: she brings it, checks your arm for the right cuff, and shows you how to take a reading."
+   },
+   {
+    "id": "consultation",
+    "text": "The doctor’s consultation: your readings on the live devices panel beside the conversation."
+   },
+   {
+    "id": "case",
+    "text": "The case pathway: a reading you take goes into a case with its source, beside the nurse’s repeat."
+   },
+   {
+    "id": "urgent",
+    "text": "The urgent answer: a reading far outside the range gets the ambulance numbers and the Thuso SOS door first."
+   }
+  ],
+  "conditions": [
+   {
+    "id": "one-per-household",
+    "text": "One per household, however many people the account looks after."
+   },
+   {
+    "id": "when",
+    "text": "Given once an account is created and the first nurse visit is booked. The nurse brings it to that visit; it is not posted."
+   },
+   {
+    "id": "large-cuff",
+    "text": "If the standard cuff does not fit your arm, the nurse brings the large cuff at no cost."
+   },
+   {
+    "id": "not-cash",
+    "text": "It cannot be exchanged for money, points or another product."
+   },
+   {
+    "id": "yours",
+    "text": "It is yours to keep. Nothing is owed for it if you stop using MyThuso."
+   }
+  ],
+  "why": {
+   "text": "Raised blood pressure is the commonest long-term condition among South African adults, and a monitor connects to more of what Thuso already does than any other device: the record, the visit, the consultation, the case and the urgent answer.",
+   "women": 46,
+   "men": 44,
+   "ages": "15 and over",
+   "measure": "measured at or above 140/90 mmHg, or taking medicine for it",
+   "source": "South Africa Demographic and Health Survey 2016, final report (FR337)",
+   "url": "https://dhsprogram.com/pubs/pdf/FR337/FR337.pdf"
+  },
+  "cost": {
+   "_note": "For the founder, not for the shelf: what the offer would cost the business, worked out from the monitor's reference shelf price rather than restated. `wholesaleShare` is an assumption, not a supplier quote — no supplier has been asked — and is the share of the shelf price a distributor commonly pays for a mid-range home monitor. The large cuff is costed the same way, for the households whose arm needs it.",
+   "wholesaleShare": {
+    "low": 0.5,
+    "high": 0.65
+   },
+   "addsWhenNeeded": "bp-cuff-large",
+   "quote": null,
+   "supplierCatalogue": {
+    "label": "As stated in an unverified supplier catalogue, 2 Oct 2026",
+    "source": "The sourcing catalogue the founder supplied on 2 October 2026 (an AI-prepared transcription of B2B listings), items 16, 22 and 23. Makers and sellers are kept in the back-office supplier register, never here.",
+    "sentence": "None of the catalogue's items is an upper-arm monitor on its own, so it does not price this offer. Item 16 is a Bluetooth gateway that would relay a monitor's readings over 4G or Wi-Fi, at USD 13–15 a piece with a 1,000-piece minimum; item 22 is a nine-in-one home check monitor at USD 200–350; item 23 is a ring pulse oximeter at USD 55–99. None is a quote, none has been checked against a validation list, and none changes the estimate above."
+   }
+  }
+ },
  "_neverSoldNote": "Not a disclaimer. scripts/check-boundaries.mjs reads this list, and fails the build if any product's name, id or `does` sentence matches one of these words, if any product declares a schedule, or if any id in this file also appears in packages/catalog/dispensing.json. The shop cannot grow into a pharmacy by increments.",
- "neverSold": ["medicine", "medication", "tablet", "capsule", "syrup", "antibiotic", "analgesic", "schedule", "prescription", "pharmacy-only", "supplement", "vitamin", "remedy", "treatment"],
-
- "orderStates": [
-  { "id": "basket", "name": "Basket", "meaning": "Chosen, not committed. Nothing is reserved and nothing is owed." },
-  { "id": "reserved", "name": "Stock held", "meaning": "The items are held for this household. In a real service this is where payment would begin; here it is where it stops." },
-  { "id": "quoted", "name": "Quoted", "meaning": "What it would cost, in writing, including delivery. No card is charged." },
-  { "id": "cancelled", "name": "Cancelled", "meaning": "Released back to stock. Any points that were held are returned unspent." }
+ "neverSold": [
+  "medicine",
+  "medication",
+  "tablet",
+  "capsule",
+  "syrup",
+  "antibiotic",
+  "analgesic",
+  "schedule",
+  "prescription",
+  "pharmacy-only",
+  "supplement",
+  "vitamin",
+  "remedy",
+  "treatment"
  ],
-
- "delivery": { "standardDays": 3, "fee": 65, "freeAbove": 750, "_feeNote": "One fee, one threshold, both stated before a basket is opened. A delivery fee that appears at the last step is how a shop makes a person agree to something they did not choose." },
-
+ "orderStates": [
+  {
+   "id": "basket",
+   "name": "Basket",
+   "meaning": "Chosen, not committed. Nothing is reserved and nothing is owed."
+  },
+  {
+   "id": "reserved",
+   "name": "Stock held",
+   "meaning": "The items are held for this household. In a real service this is where payment would begin; here it is where it stops."
+  },
+  {
+   "id": "quoted",
+   "name": "Quoted",
+   "meaning": "What it would cost, in writing, including delivery. No card is charged."
+  },
+  {
+   "id": "cancelled",
+   "name": "Cancelled",
+   "meaning": "Released back to stock. Any points that were held are returned unspent."
+  }
+ ],
+ "delivery": {
+  "standardDays": 3,
+  "fee": 65,
+  "freeAbove": 750,
+  "_feeNote": "One fee, one threshold, both stated before a basket is opened. A delivery fee that appears at the last step is how a shop makes a person agree to something they did not choose."
+ },
  "refusals": [
-  { "id": "no-medicine", "sentence": "We do not sell medicine here. A medicine reaches you through a pharmacy that has seen a prescription, not through a shop.", "why": "Supplying medicine is a licensed activity under the Medicines and Related Substances Act 101 of 1965. A shop that sells a monitor today and a painkiller tomorrow has become a pharmacy without a licence, and the step between the two is small enough to take by accident." },
-  { "id": "no-payment", "sentence": "This is a preview. No card is charged, no order is placed and nothing is delivered.", "why": "Nothing in this repository is a real service. A shop is the screen a person is most likely to mistake for one, because shops are the thing they have used most often online." },
-  { "id": "no-claim", "sentence": "This tells you what the item does. It does not say what it will do for you — a nurse or a doctor decides that.", "why": "A listing that says a device manages a condition has made a medical claim to somebody with that condition, alone, at night, with a card in their hand." },
-  { "id": "reading-is-not-advice", "sentence": "This device takes a reading. It does not tell you what the reading means, and a reading on its own is not a diagnosis.", "why": "A person who buys an oximeter because a screen implied it would tell them whether they are ill will act on a number nobody has interpreted. Every product that produces a number carries this sentence." },
-  { "id": "outside-coverage", "sentence": "We cannot deliver to this address yet. It is outside the areas MyThuso reaches, and we would rather say so than take the order.", "why": "Delivery is held to the same coverage areas as a home visit. A shop that quietly accepts an order it cannot fulfil has sold a person a wait." },
-  { "id": "stock-held-once", "sentence": "Someone else reserved the last one while this basket was open. It is no longer held for you.", "why": "Stock reserved twice is stock sold twice. The refusal is at the moment of reserving, not at the moment of delivering, because that is the moment a person can still choose something else." },
-  { "id": "no-minor-account", "sentence": "This account belongs to someone under eighteen. A guardian has to place the order.", "why": "A minor may hold a health record here under a guardian. Holding a record is not the same as entering a sale, and conflating the two would let a child commit a household to a cost." }
+  {
+   "id": "no-medicine",
+   "sentence": "We do not sell medicine here. A medicine reaches you through a pharmacy that has seen a prescription, not through a shop.",
+   "why": "Supplying medicine is a licensed activity under the Medicines and Related Substances Act 101 of 1965. A shop that sells a monitor today and a painkiller tomorrow has become a pharmacy without a licence, and the step between the two is small enough to take by accident."
+  },
+  {
+   "id": "no-payment",
+   "sentence": "This is a preview. No card is charged, no order is placed and nothing is delivered.",
+   "why": "Nothing in this repository is a real service. A shop is the screen a person is most likely to mistake for one, because shops are the thing they have used most often online."
+  },
+  {
+   "id": "no-claim",
+   "sentence": "This tells you what the item does. It does not say what it will do for you — a nurse or a doctor decides that.",
+   "why": "A listing that says a device manages a condition has made a medical claim to somebody with that condition, alone, at night, with a card in their hand."
+  },
+  {
+   "id": "reading-is-not-advice",
+   "sentence": "This device takes a reading. It does not tell you what the reading means, and a reading on its own is not a diagnosis.",
+   "why": "A person who buys an oximeter because a screen implied it would tell them whether they are ill will act on a number nobody has interpreted. Every product that produces a number carries this sentence."
+  },
+  {
+   "id": "outside-coverage",
+   "sentence": "We cannot deliver to this address yet. It is outside the areas MyThuso reaches, and we would rather say so than take the order.",
+   "why": "Delivery is held to the same coverage areas as a home visit. A shop that quietly accepts an order it cannot fulfil has sold a person a wait."
+  },
+  {
+   "id": "stock-held-once",
+   "sentence": "Someone else reserved the last one while this basket was open. It is no longer held for you.",
+   "why": "Stock reserved twice is stock sold twice. The refusal is at the moment of reserving, not at the moment of delivering, because that is the moment a person can still choose something else."
+  },
+  {
+   "id": "no-minor-account",
+   "sentence": "This account belongs to someone under eighteen. A guardian has to place the order.",
+   "why": "A minor may hold a health record here under a guardian. Holding a record is not the same as entering a sale, and conflating the two would let a child commit a household to a cost."
+  },
+  {
+   "id": "illustrative-image",
+   "sentence": "Every picture here is an illustrative image, made for this shop. It shows the kind of thing, not the one that would arrive.",
+   "why": "A product photograph is read as a promise about the object. These were generated, so each one says so where it is drawn, and none shows a maker's name."
+  },
+  {
+   "id": "unbranded",
+   "sentence": "We do not name makers. Each listing is a type of product and the standard a model must meet before we would sell it.",
+   "why": "A brand on a listing implies an agreement with that maker. There is none, and a shop that borrows a maker's name has borrowed its trust too."
+  },
+  {
+   "id": "no-device-licence",
+   "sentence": "Selling medical devices needs a SAHPRA establishment licence, and MyThuso does not hold one yet. Nothing here can be sold until it does.",
+   "why": "The Medical Devices Regulations make distributing a medical device a licensed activity. A shop that took an order first and a licence later would be trading without one."
+  },
+  {
+   "id": "pairing-simulated",
+   "sentence": "Pairing is simulated. No device is connected to the Thuso app, and nothing is read from one.",
+   "why": "The devices capability in packages/catalog/capabilities.json is not connected. A listing that said a reading reaches a doctor, without saying that no reading reaches anybody yet, would overstate what exists."
+  },
+  {
+   "id": "welcome-not-live",
+   "sentence": "Sign-up is not live yet, so nobody can claim the welcome monitor. No device is given, reserved or posted from this page.",
+   "why": "The identity service is switched off until DNS, TLS and an SMS provider exist. An offer that looked claimable would be a promise made to somebody the product cannot yet sign up."
+  }
  ]
 }

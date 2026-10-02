@@ -7,40 +7,312 @@
 // Act 101 of 1965, and a shop that sells a monitor today and a painkiller tomorrow has become a
 // pharmacy without a licence. A listing says what a thing does and never what it treats.
 //
-// Prices are integer cents. Nothing here is a real service: no card is charged, no order is
+// Prices are integer cents, and a kit has none of its own. Nothing here is a real service: no card is charged, no order is
 // placed and nothing is delivered.
 
 package za.co.mythuso.model
 
+import za.co.mythuso.R
+
 data class ShopProduct(
     val id: String, val name: String, val category: String,
-    val priceCents: Int, val stock: Int, val does: String, val needsReading: Boolean
+    val priceCents: Int, val stock: Int, val does: String, val needsReading: Boolean,
+    /** The storefront's own detail, derived where the contract derives it — see the generator. */
+    val detail: ShopDetail? = null
 )
+/** One line of "what you, your nurse and your doctor see". `planned` is drawn as planned. */
+data class ShopSeen(val text: String, val planned: Boolean)
+data class ShopDetail(
+    val image: Int, val alt: String, val readings: List<String>, val outsideRecord: List<String>,
+    val connection: String, val forWhom: String, val features: List<String>, val whatItIsNot: List<String>,
+    val patient: List<ShopSeen>, val nurse: List<ShopSeen>, val doctor: List<ShopSeen>,
+    val regulatory: String, val referenceLowCents: Int, val referenceHighCents: Int,
+    val referenceChecked: String, val referenceFrom: String
+)
+/** A kit is a list of products. Its price is the sum of theirs — `ShopData.priceCents(kit)` — and is never stored. */
+data class ShopKit(val id: String, val name: String, val items: List<String>, val does: String, val forWhom: String, val image: Int, val alt: String)
 data class ShopCategory(val id: String, val name: String, val blurb: String, val pointsEligible: Boolean)
 data class ShopRefusal(val id: String, val sentence: String)
 
 val shopCategories = listOf(
-    ShopCategory("measuring", "Measuring devices", "Things that take a reading at home.", true),
-    ShopCategory("consumable", "Consumables", "Dressings, strips and the parts that run out.", true),
-    ShopCategory("maternity", "Mother and baby", "For pregnancy and a baby's first year.", true),
-    ShopCategory("mobility", "Mobility and safety", "Getting around the house, and not falling in it.", true),
-    ShopCategory("firstaid", "First aid", "What a household keeps in the cupboard.", true)
+    ShopCategory("measuring", "Measuring devices", "Things that take a reading at home, and what happens to the reading afterwards.", true),
+    ShopCategory("maternity", "Mother and baby", "For pregnancy and a baby’s first year.", true),
+    ShopCategory("mobility", "Safety and daily living", "Getting around the house, not falling in it, and getting help if you do.", true),
+    ShopCategory("consumable", "Care supplies", "Dressings, strips, stockings and the parts that run out.", true)
 )
 
 val shopProducts = listOf(
-    ShopProduct("bp-upper", "Upper-arm blood pressure monitor", "measuring", 74900, 24, "Takes a blood pressure reading from the upper arm and stores the last sixty.", true),
-    ShopProduct("oximeter", "Fingertip pulse oximeter", "measuring", 32900, 40, "Estimates oxygen saturation and pulse from a fingertip.", true),
-    ShopProduct("thermometer", "Digital thermometer", "measuring", 14900, 60, "Takes a temperature under the arm or in the mouth.", true),
-    ShopProduct("glucose-strips", "Glucose test strips, 50", "consumable", 28900, 35, "Fifty single-use strips for a compatible glucose meter.", true),
-    ShopProduct("bp-cuff-large", "Large blood pressure cuff", "consumable", 21900, 18, "A wider cuff for an upper arm the standard cuff does not close around.", false),
-    ShopProduct("dressings", "Sterile dressing pack", "consumable", 18900, 52, "Sterile gauze, pads and tape for covering a wound between visits.", false),
-    ShopProduct("maternity-pillow", "Maternity support pillow", "maternity", 45900, 14, "Supports the back and the abdomen while sleeping in later pregnancy.", false),
-    ShopProduct("baby-scale", "Baby weighing scale", "maternity", 89900, 9, "Weighs an infant to the nearest ten grams.", true),
-    ShopProduct("grab-rail", "Bathroom grab rail", "mobility", 27900, 26, "Bolts to a wall to hold onto beside a bath or a toilet.", false),
-    ShopProduct("walker", "Folding walking frame", "mobility", 109900, 7, "Takes a person's weight through the arms while walking, and folds flat.", false),
-    ShopProduct("firstaid-home", "Household first-aid kit", "firstaid", 34900, 31, "Plasters, bandages, gloves, scissors and a foil blanket in one box.", false),
-    ShopProduct("bp-diary", "Home readings notebook", "firstaid", 5900, 80, "A printed book for writing down a reading and the date beside it.", false)
+    ShopProduct("bp-upper", "Upper-arm blood pressure monitor", "measuring", 149900, 24, "Takes a blood pressure and pulse reading from the upper arm, stores the last sixty, and sends each one to the Thuso app over Bluetooth.", true,
+        ShopDetail(R.drawable.shop_bp_upper, "A white blood pressure monitor with a small screen, beside a grey fabric arm cuff and its air tube.",
+            listOf("Blood pressure", "Pulse"),
+            listOf(),
+            "bluetooth", "For anybody a nurse or doctor has asked to watch their blood pressure at home, and for the household that wants to know before it is asked.",
+            listOf("A standard cuff for an upper arm of 22 to 32 centimetres; the large cuff below fits 32 to 42.", "Two readings a minute apart, averaged on the screen if you take them that way.", "Runs on four AA batteries or a mains adapter."),
+            listOf("Not a diagnosis of high blood pressure. That takes a series of readings on different days and a clinician who reads them.", "Not a wrist monitor. Upper-arm monitors are the kind home-monitoring guidance asks for, because a wrist reading moves with the height of the hand."),
+            listOf(ShopSeen("Ask GilbertOne what a reading means and it reads you the paragraph a doctor can check in advance, chosen by where the number sits against your record’s indicative range — never a grade.", false), ShopSeen("A reading far outside that range is never answered with the everyday paragraph. You get the urgent answer first: the ambulance numbers and the Thuso SOS door.", false), ShopSeen("Your blood pressure in a case drawn as a trend once there are 3 readings, so one odd number reads as one odd number.", false), ShopSeen("Each reading arriving in the app by itself once the device is paired, with the time the device took it. Pairing is simulated in this preview.", true), ShopSeen("Before each reading, how to sit for it: back supported, feet flat, arm resting at heart height, five quiet minutes first, and no coffee or cigarette in the half-hour before.", true), ShopSeen("A seven-day series set out morning and evening, two readings a minute apart each time, the way home-monitoring guidance asks for it.", true)),
+            listOf(ShopSeen("Every home reading marked as from your own device, so she can tell it from a reading she took on her kit instrument.", false), ShopSeen("At a visit she repeats the reading on her own calibrated kit instrument, and both are kept: nothing is merged and nothing is discarded.", false), ShopSeen("Your arm measured and the cuff size checked at the first visit, because a reading on the wrong cuff is wrong in a direction nobody can correct for afterwards.", true), ShopSeen("One reading taken in front of her, so technique is put right once rather than a month of readings being wrong the same way.", true)),
+            listOf(ShopSeen("The live devices panel beside the consultation: each reading with its unit, the instrument it stands for, where it came from and how long ago it arrived. Simulated in this preview.", false), ShopSeen("Its place against the record’s reference range, said in words — never a score, a colour or an alarm.", false), ShopSeen("Where each reading came from: a device reading carries the device, its serial and the date it was last calibrated; a typed one says who typed it.", false), ShopSeen("Whether a reading carries clinical weight. One from your own device is marked and guides the conversation; it is never acted on alone.", false), ShopSeen("In a case, your own reading with its source, beside the nurse’s repeat.", false), ShopSeen("The seven-day home average, morning and evening apart, with the first day left out — as the European Society of Hypertension’s home-monitoring guidance sets out.", true)),
+            "SAHPRA class B. Low to moderate risk.", 110000, 255000, "2026-10-02", "national pharmacy chains, online retailers and medical suppliers")),
+    ShopProduct("bp-cuff-large", "Large blood pressure cuff", "measuring", 34900, 18, "A wider cuff for an upper arm of 32 to 42 centimetres, which the standard cuff does not close around properly.", false,
+        ShopDetail(R.drawable.shop_bp_cuff_large, "A large grey fabric blood pressure cuff, partly unrolled, with its air tube and connector.",
+            listOf(),
+            listOf(),
+            "", "For an arm the standard cuff is too small for. A cuff that is too small reads high, and the error cannot be corrected afterwards.",
+            listOf("Fits the upper-arm monitor in this shop.", "Hook-and-loop closure, wipe-clean lining."),
+            listOf("Not a monitor on its own. It needs the upper-arm monitor to take a reading."),
+            listOf(),
+            listOf(),
+            listOf(),
+            "SAHPRA class B. Low to moderate risk.", 33000, 43000, "2026-10-02", "national pharmacy chains and online retailers")),
+    ShopProduct("oximeter", "Fingertip pulse oximeter", "measuring", 99900, 40, "Estimates oxygen saturation and pulse from a fingertip, and sends each reading to the Thuso app over Bluetooth.", true,
+        ShopDetail(R.drawable.shop_oximeter, "A small white fingertip pulse oximeter with its hinge open and a bright screen, beside a grey lanyard.",
+            listOf("Oxygen saturation", "Pulse"),
+            listOf(),
+            "bluetooth", "For a household looking after somebody with a chest or heart condition, or recovering from a chest infection, where a nurse has asked for readings between visits.",
+            listOf("Clips onto a finger; a reading settles in about ten seconds.", "A lanyard, and two AAA batteries."),
+            listOf("Not a way to rule out a low oxygen level on its own. A normal-looking number from a person who feels breathless is still a reason to ask somebody today.", "Not a breathing monitor. It reads the finger it is on, while it is on it."),
+            listOf(ShopSeen("Ask GilbertOne what a reading means and it reads you the paragraph a doctor can check in advance, chosen by where the number sits against your record’s indicative range — never a grade.", false), ShopSeen("A reading far outside that range is never answered with the everyday paragraph. You get the urgent answer first: the ambulance numbers and the Thuso SOS door.", false), ShopSeen("Each reading arriving in the app by itself once the device is paired, with the time the device took it. Pairing is simulated in this preview.", true)),
+            listOf(ShopSeen("Every home reading marked as from your own device, so she can tell it from a reading she took on her kit instrument.", false), ShopSeen("At a visit she repeats the reading on her own calibrated kit instrument, and both are kept: nothing is merged and nothing is discarded.", false)),
+            listOf(ShopSeen("The live devices panel beside the consultation: each reading with its unit, the instrument it stands for, where it came from and how long ago it arrived. Simulated in this preview.", false), ShopSeen("Its place against the record’s reference range, said in words — never a score, a colour or an alarm.", false), ShopSeen("Where each reading came from: a device reading carries the device, its serial and the date it was last calibrated; a typed one says who typed it.", false), ShopSeen("Whether a reading carries clinical weight. One from your own device is marked and guides the conversation; it is never acted on alone.", false)),
+            "SAHPRA class B. Low to moderate risk.", 50000, 100000, "2026-10-02", "online retailers; the pharmacy chains stocked no Bluetooth model")),
+    ShopProduct("glucometer", "Blood glucose meter set", "measuring", 28900, 30, "Measures blood glucose from a drop of blood on a test strip, with a lancing device and ten strips to start, and sends each reading to the Thuso app over Bluetooth.", true,
+        ShopDetail(R.drawable.shop_glucometer, "A white and grey glucose meter showing a reading, a pen-shaped lancing device and a small white vial of test strips.",
+            listOf("Blood glucose"),
+            listOf(),
+            "bluetooth", "For somebody living with diabetes whose nurse or doctor has asked for home readings, and for the person who helps them take one.",
+            listOf("A reading in about five seconds from a small drop.", "Ten strips and ten lancets in the box; the strips and lancets below are what runs out.", "Remembers the last five hundred readings with their times."),
+            listOf("Not a continuous monitor. It reads the drop it is given, once.", "Not a dose calculator. Nothing here tells anybody how much of anything to take."),
+            listOf(ShopSeen("Ask GilbertOne what a reading means and it reads you the paragraph a doctor can check in advance, chosen by where the number sits against your record’s indicative range — never a grade.", false), ShopSeen("A reading far outside that range is never answered with the everyday paragraph. You get the urgent answer first: the ambulance numbers and the Thuso SOS door.", false), ShopSeen("Each reading arriving in the app by itself once the device is paired, with the time the device took it. Pairing is simulated in this preview.", true)),
+            listOf(ShopSeen("Every home reading marked as from your own device, so she can tell it from a reading she took on her kit instrument.", false), ShopSeen("At a visit she repeats the reading on her own calibrated kit instrument, and both are kept: nothing is merged and nothing is discarded.", false), ShopSeen("The strip lot and its expiry beside each reading, because an expired strip reads low.", true)),
+            listOf(ShopSeen("The live devices panel beside the consultation: each reading with its unit, the instrument it stands for, where it came from and how long ago it arrived. Simulated in this preview.", false), ShopSeen("Its place against the record’s reference range, said in words — never a score, a colour or an alarm.", false), ShopSeen("Where each reading came from: a device reading carries the device, its serial and the date it was last calibrated; a typed one says who typed it.", false), ShopSeen("Whether a reading carries clinical weight. One from your own device is marked and guides the conversation; it is never acted on alone.", false)),
+            "SAHPRA IVD class C. A diagnostic test used at home on a blood sample, where a wrong result could lead to a wrong decision about care.", 20000, 40000, "2026-10-02", "national pharmacy chains and online retailers")),
+    ShopProduct("smart-scale", "Bluetooth bathroom scale", "measuring", 54900, 22, "Weighs a person standing, to the nearest hundred grams, and sends each weight to the Thuso app over Bluetooth.", true,
+        ShopDetail(R.drawable.shop_smart_scale, "A slim square white glass bathroom scale with a small lit display.",
+            listOf(),
+            listOf("Weight. Your record does not hold a weight measure yet, so a weight stays on the scale and in your own notebook. No nurse or doctor sees it through MyThuso until the record does."),
+            "bluetooth", "For a pregnancy, for heart failure where a nurse watches weight from day to day, and for anybody asked to keep a weekly weight.",
+            listOf("Tempered-glass top, up to 180 kilograms.", "Switches on when stood on; two AAA batteries."),
+            listOf("Not a body-fat or body-water measurement. Some scales show those numbers; nobody here reads them, and the record has no place for them."),
+            listOf(ShopSeen("Each reading arriving in the app by itself once the device is paired, with the time the device took it. Pairing is simulated in this preview.", true)),
+            listOf(ShopSeen("Every home reading marked as from your own device, so she can tell it from a reading she took on her kit instrument.", false)),
+            listOf(),
+            "SAHPRA class A. Low risk.", 35000, 115000, "2026-10-02", "online retailers and national pharmacy chains")),
+    ShopProduct("peak-flow", "Peak flow meter", "measuring", 25900, 28, "Measures how fast a person can breathe out, read off a sliding marker on the tube in litres a minute.", true,
+        ShopDetail(R.drawable.shop_peak_flow, "A clear and white plastic peak flow meter with a sliding red marker and a mouthpiece.",
+            listOf(),
+            listOf("Peak flow. Your record does not hold a peak flow measure yet, so the reading goes in your own notebook."),
+            "typed", "For somebody living with asthma whose nurse or doctor has asked for a peak flow diary.",
+            listOf("Mechanical: no battery, no Bluetooth, nothing to charge.", "Two disposable mouthpieces; the tube rinses clean in warm water."),
+            listOf("Not an inhaler, and not a test that says how bad an attack is on its own. A person struggling to breathe calls for help first and measures later."),
+            listOf(ShopSeen("You type each reading in yourself, and it is filed as reported by you — what you said, not what a clinician observed.", false), ShopSeen("A page to write each peak flow beside its date, so your nurse sees the week rather than the morning.", true)),
+            listOf(),
+            listOf(),
+            "SAHPRA class A. Low risk.", 23000, 34000, "2026-10-02", "national pharmacy chains and online retailers")),
+    ShopProduct("ecg-single", "Single-lead ECG recorder", "measuring", 259900, 10, "Records a thirty-second single-lead trace of the heart rhythm from two fingertips, shown on a phone over Bluetooth.", true,
+        ShopDetail(R.drawable.shop_ecg_single, "A small charcoal card-sized ECG recorder with two round metal pads, beside a phone showing a heart rhythm line.",
+            listOf(),
+            listOf("Heart rhythm trace. Your record does not hold a heart rhythm trace yet, so a trace stays on the phone it was taken on. Show it to the doctor at a consultation."),
+            "bluetooth", "For somebody whose doctor has asked them to record a trace when they feel their heart racing or skipping.",
+            listOf("Card-sized, with two metal pads to rest a finger of each hand on.", "A coin-cell battery that lasts about a year of daily traces."),
+            listOf("Not a heart-attack detector. A single-lead trace cannot show one, and chest pain is a reason to call 10177, not to take a trace.", "Not a monitor that watches all day. It records the thirty seconds you hold it."),
+            listOf(ShopSeen("Each reading arriving in the app by itself once the device is paired, with the time the device took it. Pairing is simulated in this preview.", true)),
+            listOf(),
+            listOf(ShopSeen("The trace itself, to read at a consultation. Any interpretation is decision support a doctor signs or does not.", true)),
+            "SAHPRA class B. Low to moderate risk.", 170000, 470000, "2026-10-02", "national pharmacy chains, online retailers and medical suppliers")),
+    ShopProduct("thermometer", "Digital thermometer", "measuring", 14900, 60, "Takes a temperature under the arm or in the mouth in about a minute.", true,
+        ShopDetail(R.drawable.shop_thermometer, "A slim white digital stick thermometer with a small screen, beside its clear plastic case.",
+            listOf("Temperature"),
+            listOf(),
+            "typed", "For every household. The cheapest reading in this shop, and one of the most asked-for.",
+            listOf("Flexible tip and a beep when the reading is done.", "No Bluetooth: you type the reading into the app, and it says so."),
+            listOf("Not a diagnosis. A reading is one number on one morning, and what it means is decided by a nurse or a doctor who knows you."),
+            listOf(ShopSeen("Ask GilbertOne what a reading means and it reads you the paragraph a doctor can check in advance, chosen by where the number sits against your record’s indicative range — never a grade.", false), ShopSeen("A reading far outside that range is never answered with the everyday paragraph. You get the urgent answer first: the ambulance numbers and the Thuso SOS door.", false), ShopSeen("You type each reading in yourself, and it is filed as reported by you — what you said, not what a clinician observed.", false)),
+            listOf(ShopSeen("At a visit she repeats the reading on her own calibrated kit instrument, and both are kept: nothing is merged and nothing is discarded.", false)),
+            listOf(ShopSeen("Where each reading came from: a device reading carries the device, its serial and the date it was last calibrated; a typed one says who typed it.", false), ShopSeen("Whether a reading carries clinical weight. One from your own device is marked and guides the conversation; it is never acted on alone.", false)),
+            "SAHPRA class B. Low to moderate risk.", 6000, 35000, "2026-10-02", "national pharmacy chains and online retailers")),
+    ShopProduct("ear-thermometer", "Infrared ear thermometer", "measuring", 84900, 20, "Takes a temperature in the ear in about a second, read off a backlit screen.", true,
+        ShopDetail(R.drawable.shop_ear_thermometer, "A white handheld ear thermometer with a soft grey grip and a lit screen, beside a clear probe cover.",
+            listOf("Temperature"),
+            listOf(),
+            "typed", "For a household with a restless child or an older person who will not hold a thermometer under the tongue for a minute.",
+            listOf("Twenty disposable probe covers in the box.", "No Bluetooth: no ear thermometer sold in South Africa had it when we checked, so you type the reading in."),
+            listOf("Not a diagnosis. A reading is one number on one morning, and what it means is decided by a nurse or a doctor who knows you.", "Not a forehead reading. Where a temperature is taken changes it, and the site is recorded with it."),
+            listOf(ShopSeen("Ask GilbertOne what a reading means and it reads you the paragraph a doctor can check in advance, chosen by where the number sits against your record’s indicative range — never a grade.", false), ShopSeen("A reading far outside that range is never answered with the everyday paragraph. You get the urgent answer first: the ambulance numbers and the Thuso SOS door.", false), ShopSeen("You type each reading in yourself, and it is filed as reported by you — what you said, not what a clinician observed.", false)),
+            listOf(ShopSeen("At a visit she repeats the reading on her own calibrated kit instrument, and both are kept: nothing is merged and nothing is discarded.", false)),
+            listOf(ShopSeen("Where each reading came from: a device reading carries the device, its serial and the date it was last calibrated; a typed one says who typed it.", false), ShopSeen("Whether a reading carries clinical weight. One from your own device is marked and guides the conversation; it is never acted on alone.", false)),
+            "SAHPRA class B. Low to moderate risk.", 50000, 150000, "2026-10-02", "national pharmacy chains and online retailers")),
+    ShopProduct("bp-pregnancy", "Pregnancy-validated blood pressure monitor", "maternity", 159900, 12, "Takes a blood pressure and pulse reading from the upper arm, on a model validated for use in pregnancy, and sends each one to the Thuso app over Bluetooth.", true,
+        ShopDetail(R.drawable.shop_bp_pregnancy, "A rounded white blood pressure monitor with a pale lilac front and a lit screen, beside a light grey arm cuff.",
+            listOf("Blood pressure", "Pulse"),
+            listOf(),
+            "bluetooth", "For a pregnancy MyThuso is looking after, and especially one where a nurse or midwife has asked for home readings.",
+            listOf("Validated in pregnancy as a separate study, not only in the general adult population.", "A wide-range cuff for 22 to 42 centimetres, because arms change in pregnancy."),
+            listOf("Not a test for pre-eclampsia. A rising blood pressure is one of its first signs, and the readings go to a nurse or doctor who decides what they mean, with the other signs only they can check."),
+            listOf(ShopSeen("Ask GilbertOne what a reading means and it reads you the paragraph a doctor can check in advance, chosen by where the number sits against your record’s indicative range — never a grade.", false), ShopSeen("A reading far outside that range is never answered with the everyday paragraph. You get the urgent answer first: the ambulance numbers and the Thuso SOS door.", false), ShopSeen("Your blood pressure in a case drawn as a trend once there are 3 readings, so one odd number reads as one odd number.", false), ShopSeen("Each reading arriving in the app by itself once the device is paired, with the time the device took it. Pairing is simulated in this preview.", true), ShopSeen("Before each reading, how to sit for it: back supported, feet flat, arm resting at heart height, five quiet minutes first, and no coffee or cigarette in the half-hour before.", true), ShopSeen("A seven-day series set out morning and evening, two readings a minute apart each time, the way home-monitoring guidance asks for it.", true)),
+            listOf(ShopSeen("Every home reading marked as from your own device, so she can tell it from a reading she took on her kit instrument.", false), ShopSeen("At a visit she repeats the reading on her own calibrated kit instrument, and both are kept: nothing is merged and nothing is discarded.", false), ShopSeen("Your arm measured and the cuff size checked at the first visit, because a reading on the wrong cuff is wrong in a direction nobody can correct for afterwards.", true), ShopSeen("One reading taken in front of her, so technique is put right once rather than a month of readings being wrong the same way.", true)),
+            listOf(ShopSeen("The live devices panel beside the consultation: each reading with its unit, the instrument it stands for, where it came from and how long ago it arrived. Simulated in this preview.", false), ShopSeen("Its place against the record’s reference range, said in words — never a score, a colour or an alarm.", false), ShopSeen("Where each reading came from: a device reading carries the device, its serial and the date it was last calibrated; a typed one says who typed it.", false), ShopSeen("Whether a reading carries clinical weight. One from your own device is marked and guides the conversation; it is never acted on alone.", false), ShopSeen("In a case, your own reading with its source, beside the nurse’s repeat.", false), ShopSeen("The seven-day home average, morning and evening apart, with the first day left out — as the European Society of Hypertension’s home-monitoring guidance sets out.", true)),
+            "SAHPRA class B. Low to moderate risk.", 150000, 220000, "2026-10-02", "medical suppliers and an online specialist; partly an estimate, because few pregnancy-validated models are stocked locally")),
+    ShopProduct("baby-thermometer", "Baby forehead thermometer", "maternity", 79900, 26, "Takes a temperature from the forehead without touching it, in about a second, and sends each reading to the Thuso app over Bluetooth.", true,
+        ShopDetail(R.drawable.shop_baby_thermometer, "A rounded white forehead thermometer with a pale mint ring and a small screen, beside a folded muslin cloth.",
+            listOf("Temperature"),
+            listOf(),
+            "bluetooth", "For a baby’s first year, when a temperature is the reading a nurse asks about first.",
+            listOf("Silent mode, so a sleeping baby is not woken by a beep.", "Holds the last thirty readings with their times."),
+            listOf("Not a diagnosis. A reading is one number on one morning, and what it means is decided by a nurse or a doctor who knows you.", "Not a replacement for looking at the baby. A baby under three months with a raised temperature is a reason to be seen today, whatever the screen says."),
+            listOf(ShopSeen("Ask GilbertOne what a reading means and it reads you the paragraph a doctor can check in advance, chosen by where the number sits against your record’s indicative range — never a grade.", false), ShopSeen("A reading far outside that range is never answered with the everyday paragraph. You get the urgent answer first: the ambulance numbers and the Thuso SOS door.", false), ShopSeen("Each reading arriving in the app by itself once the device is paired, with the time the device took it. Pairing is simulated in this preview.", true)),
+            listOf(ShopSeen("Every home reading marked as from your own device, so she can tell it from a reading she took on her kit instrument.", false), ShopSeen("At a visit she repeats the reading on her own calibrated kit instrument, and both are kept: nothing is merged and nothing is discarded.", false)),
+            listOf(ShopSeen("The live devices panel beside the consultation: each reading with its unit, the instrument it stands for, where it came from and how long ago it arrived. Simulated in this preview.", false), ShopSeen("Its place against the record’s reference range, said in words — never a score, a colour or an alarm.", false), ShopSeen("Where each reading came from: a device reading carries the device, its serial and the date it was last calibrated; a typed one says who typed it.", false), ShopSeen("Whether a reading carries clinical weight. One from your own device is marked and guides the conversation; it is never acted on alone.", false)),
+            "SAHPRA class B. Low to moderate risk.", 25000, 130000, "2026-10-02", "national pharmacy chains and online retailers")),
+    ShopProduct("baby-scale", "Baby weighing scale", "maternity", 119900, 9, "Weighs an infant lying in a curved tray to the nearest ten grams, and sends each weight to the Thuso app over Bluetooth.", true,
+        ShopDetail(R.drawable.shop_baby_scale, "A white digital baby scale with a curved tray holding a folded muslin cloth, and a small display on its base.",
+            listOf(),
+            listOf("Weight. Your record does not hold a weight measure yet, so a weight stays on the scale and in your own notebook. No nurse or doctor sees it through MyThuso until the record does."),
+            "bluetooth", "For the first months, when weight gain between clinic days is the question a nurse is most often asked.",
+            listOf("A tare button, so a blanket in the tray is not weighed with the baby.", "Up to 20 kilograms; the tray lifts off to wipe."),
+            listOf("Not a growth chart. Where a weight sits for a baby’s age is read by the nurse against the Road to Health booklet, not by this shop."),
+            listOf(ShopSeen("Each reading arriving in the app by itself once the device is paired, with the time the device took it. Pairing is simulated in this preview.", true)),
+            listOf(ShopSeen("Every home reading marked as from your own device, so she can tell it from a reading she took on her kit instrument.", false)),
+            listOf(),
+            "SAHPRA class A. Low risk.", 50000, 120000, "2026-10-02", "online retailers only; an estimate, because the pharmacy chains listed none")),
+    ShopProduct("maternity-pillow", "Maternity support pillow", "maternity", 49900, 14, "Supports the back and the abdomen while sleeping on one side in later pregnancy.", false,
+        ShopDetail(R.drawable.shop_maternity_pillow, "A long U-shaped maternity pillow in a soft light grey cover.",
+            listOf(),
+            listOf(),
+            "", "For the third trimester, when sleeping on one side is what a midwife suggests and staying there is the hard part.",
+            listOf("Full-length U shape, so it supports both sides without being turned.", "A removable jersey cover that goes in a washing machine."),
+            listOf("Not a medical device. It is a pillow, and is sold as one."),
+            listOf(),
+            listOf(),
+            listOf(),
+            "Not a medical device. A household product, sold as one.", 35000, 80000, "2026-10-02", "online retailers and national pharmacy chains")),
+    ShopProduct("fall-pendant", "Fall-detection pendant", "mobility", 299900, 15, "Worn on a cord, it raises an alert when it senses a hard fall or when its button is pressed, through the phone it is paired with.", false,
+        ShopDetail(R.drawable.shop_fall_pendant, "A small rounded white alarm pendant with one large grey button on a grey cord, beside its round charging dock.",
+            listOf(),
+            listOf(),
+            "", "For an older person who lives alone or is alone for much of the day, and for the family who worries about it.",
+            listOf("One large button, easy to find in the dark.", "A breakaway cord, so it cannot hold a person by the neck.", "Charges on a small dock about once a week."),
+            listOf("Not an ambulance service, and not monitored by a control room in this preview. A fall it does not sense raises nothing, so the button is there for the fall it misses.", "Not a subscription. Any monitoring service would be a separate decision, priced separately, and none is offered yet."),
+            listOf(),
+            listOf(),
+            listOf(),
+            "Not a medical device. A household product, sold as one.", 160000, 365000, "2026-10-02", "personal emergency response providers and online electronics retailers, for the pendant alone")),
+    ShopProduct("pill-organiser", "Seven-day organiser with alarm", "mobility", 34900, 20, "A seven-compartment box with a clock that sounds an alarm at up to four times a day that you set.", false,
+        ShopDetail(R.drawable.shop_pill_organiser, "A white seven-compartment organiser box with translucent lids, one open, and a small clock display at one end.",
+            listOf(),
+            listOf(),
+            "", "For somebody with several things to take at set times, and for the family member who fills the box on a Sunday.",
+            listOf("Seven lidded compartments in a row, one for each day.", "A loud alarm and a flashing light, for somebody who does not hear well."),
+            listOf("Not a dispenser that locks anything away, and it does not know what is inside it. Filling it is a person’s job.", "It earns no points for being used. Rewarding somebody for taking a medicine is an incentive scheme the law forbids."),
+            listOf(),
+            listOf(),
+            listOf(),
+            "Not a medical device. A household product, sold as one.", 17000, 68000, "2026-10-02", "online retailers and national pharmacy chains")),
+    ShopProduct("grab-rail", "Bathroom grab rail", "mobility", 44900, 26, "Bolts to a wall to hold onto beside a bath, a shower or a toilet.", false,
+        ShopDetail(R.drawable.shop_grab_rail, "A brushed stainless steel grab rail with a round wall flange at each end.",
+            listOf(),
+            listOf(),
+            "", "For anybody who has to steady themselves getting into or out of a bath, which is where most falls at home happen.",
+            listOf("Brushed stainless steel, 450 millimetres between the flanges.", "Must be fixed into brick or a stud, not into tile alone; fixings for brick are in the box."),
+            listOf("Not fitted by MyThuso. The nurse can say where one would help; fitting it is a handyman’s job."),
+            listOf(),
+            listOf(),
+            listOf(),
+            "Not a medical device. A household product, sold as one.", 25000, 55000, "2026-10-02", "online retailers and national pharmacy chains")),
+    ShopProduct("walker", "Folding walking frame", "mobility", 94900, 7, "Takes a person’s weight through the arms while walking, and folds flat to fit in a car boot.", false,
+        ShopDetail(R.drawable.shop_walker, "A folding aluminium walking frame with grey hand grips and rubber feet.",
+            listOf(),
+            listOf(),
+            "", "For somebody recovering from a fall, an operation or an illness who has been told to use one by a nurse or a physiotherapist.",
+            listOf("Aluminium, height adjustable, up to 100 kilograms.", "Rubber feet; no wheels, so it does not run away on a slope."),
+            listOf("Not fitted to the person by this shop. The right height is set at a visit, with the person standing in their own shoes."),
+            listOf(),
+            listOf(),
+            listOf(),
+            "SAHPRA class A. Low risk.", 85000, 125000, "2026-10-02", "national pharmacy chains and online retailers")),
+    ShopProduct("glucose-strips", "Glucose test strips, 50", "consumable", 16900, 35, "Fifty single-use strips for the glucose meter in this shop.", false,
+        ShopDetail(R.drawable.shop_glucose_strips, "Two plain white vials of glucose test strips, one open, with a few strips fanned out in front.",
+            listOf(),
+            listOf(),
+            "", "For whoever has the glucose meter set, once its ten strips are gone.",
+            listOf("Two vials of twenty-five. A vial once opened is used within the time printed on it."),
+            listOf("Not interchangeable with another make of meter. A strip from a different system reads wrongly, or not at all."),
+            listOf(),
+            listOf(),
+            listOf(),
+            "SAHPRA IVD class C. A diagnostic test used at home on a blood sample, where a wrong result could lead to a wrong decision about care.", 15000, 32000, "2026-10-02", "national pharmacy chains and online retailers")),
+    ShopProduct("lancets", "Lancets, 100", "consumable", 19900, 40, "One hundred sterile single-use lancets for the lancing device in the glucose meter set.", false,
+        ShopDetail(R.drawable.shop_lancets, "A small heap of lancets with pastel twist-off caps spilling from an open white box.",
+            listOf(),
+            listOf(),
+            "", "For whoever has the glucose meter set.",
+            listOf("Each one used once, then put in a sharps container — never in the household bin."),
+            listOf("Not for sharing between people, ever, even within a family."),
+            listOf(),
+            listOf(),
+            listOf(),
+            "SAHPRA class B. Low to moderate risk.", 15000, 29000, "2026-10-02", "national pharmacy chains and online retailers")),
+    ShopProduct("dressings", "Wound-care kit", "consumable", 17900, 52, "Sterile gauze swabs, adhesive dressings, tape, a crepe bandage and blunt scissors for covering a wound between visits.", false,
+        ShopDetail(R.drawable.shop_dressings, "An open white pouch of sterile gauze packets, tape, dressings, a crepe bandage and small scissors.",
+            listOf(),
+            listOf(),
+            "", "For a household where a nurse is caring for a wound, and has asked for dressings to be at hand between visits.",
+            listOf("Each swab sealed on its own, so opening one does not expose the rest.", "A zip pouch that keeps the rest clean."),
+            listOf("Not a replacement for the nurse’s dressing. A wound that is redder, hotter, more painful or smelling is a reason to ask today."),
+            listOf(),
+            listOf(),
+            listOf(),
+            "SAHPRA class A. Low risk.", 13000, 20000, "2026-10-02", "national pharmacy chains and online retailers")),
+    ShopProduct("firstaid-home", "Household first-aid kit", "consumable", 39900, 31, "Plasters, bandages, gloves, scissors and a foil blanket in one box.", false,
+        ShopDetail(R.drawable.shop_firstaid_home, "An open white first-aid box with a green cross on the lid, packed with plasters, bandages, gloves, scissors and a foil blanket.",
+            listOf(),
+            listOf(),
+            "", "For every household. The thing that is needed at the moment nobody can go to the shops.",
+            listOf("A wipe-clean box with a lid that stays shut in a cupboard.", "A contents list inside the lid, so what has been used can be replaced."),
+            listOf("Not training. A first-aid course is what makes the box useful."),
+            listOf(),
+            listOf(),
+            listOf(),
+            "SAHPRA class A. Low risk.", 17000, 54000, "2026-10-02", "national pharmacy chains and online retailers")),
+    ShopProduct("compression", "Compression stockings, below knee", "consumable", 44900, 24, "A pair of graduated below-knee stockings that press firmest at the ankle and less towards the knee.", false,
+        ShopDetail(R.drawable.shop_compression, "A pair of beige below-knee compression stockings, one folded and one laid flat.",
+            listOf(),
+            listOf(),
+            "", "For somebody whose nurse or doctor has said compression stockings would help, after measuring their legs.",
+            listOf("Class 1, the lightest graduated pressure.", "Sized from the ankle and calf measurements, which the nurse takes."),
+            listOf("Not to be bought on a guess. Stockings that are the wrong size, or worn on a leg with poor circulation, can do harm — the nurse measures first."),
+            listOf(),
+            listOf(),
+            listOf(),
+            "SAHPRA class A. Low risk.", 29000, 46000, "2026-10-02", "national pharmacy chains and online retailers")),
+    ShopProduct("bp-diary", "Home readings notebook", "consumable", 14900, 80, "A printed book for writing down a reading, the date and the time beside it.", false,
+        ShopDetail(R.drawable.shop_bp_diary, "An open notebook with a sage green cover and ruled empty columns, with a pencil across the pages.",
+            listOf(),
+            listOf(),
+            "", "For anybody taking readings at home, and especially anybody without a smartphone to pair a device with.",
+            listOf("Columns for morning and evening, two readings each.", "Fits in the monitor’s case."),
+            listOf("Not a record anybody else reads until you show it to them. That is the point of it."),
+            listOf(),
+            listOf(),
+            listOf(),
+            "Not a medical device. A household product, sold as one.", 13000, 20000, "2026-10-02", "online retailers only; an estimate"))
 )
+
+val shopKits = listOf(
+    ShopKit("kit-bp", "Blood pressure kit", listOf("bp-upper", "bp-diary"), "The upper-arm monitor and the readings notebook: everything a seven-day home series needs.", "For a first home series, when a nurse or doctor has asked for one.", R.drawable.shop_kit_bp, "Flat-lay of a blood pressure monitor with its cuff, and a green notebook with a pencil."),
+    ShopKit("kit-diabetes", "Diabetes kit", listOf("glucometer", "glucose-strips", "lancets", "bp-diary"), "The glucose meter set, fifty more strips, a hundred lancets and the readings notebook.", "For somebody living with diabetes who is starting to test at home.", R.drawable.shop_kit_diabetes, "Flat-lay of a glucose meter, a lancing device, two vials of strips, a row of lancets and a green notebook."),
+    ShopKit("kit-mom", "Mom kit", listOf("bp-pregnancy", "smart-scale", "thermometer"), "A pregnancy-validated blood pressure monitor, a scale and a thermometer: the three home readings a nurse asks about between antenatal visits.", "For a pregnancy MyThuso is looking after. Pre-eclampsia shows itself first as a rising blood pressure, which is why the monitor in this kit is one validated in pregnancy.", R.drawable.shop_kit_mom, "Flat-lay of a white and lilac blood pressure monitor with its cuff, a square glass scale and a stick thermometer."),
+    ShopKit("kit-elder", "Elder safety kit", listOf("fall-pendant", "grab-rail", "pill-organiser"), "A fall-detection pendant, a bathroom grab rail and a seven-day organiser with an alarm.", "For an older person living alone, chosen with the family at a first visit.", R.drawable.shop_kit_elder, "Flat-lay of a white alarm pendant on a cord, a stainless steel grab rail and a seven-compartment organiser.")
+)
+
+/** The welcome monitor — a planned launch offer, drawn as one. Sign-up is not live. */
+object ShopWelcome {
+    const val productId = "bp-upper"
+    const val label = "Planned launch offer — sign-up is not live yet"
+    const val headline = "A blood pressure monitor for every household that joins."
+    const val intro = "When sign-up opens, the first nurse visit brings a validated upper-arm monitor, set up in your home and yours to keep."
+    val covers = listOf("Blood pressure and pulse into your record, each reading marked as from your own monitor.", "The nurse’s first visit: she brings it, checks your arm for the right cuff, and shows you how to take a reading.", "The doctor’s consultation: your readings on the live devices panel beside the conversation.", "The case pathway: a reading you take goes into a case with its source, beside the nurse’s repeat.", "The urgent answer: a reading far outside the range gets the ambulance numbers and the Thuso SOS door first.")
+    val conditions = listOf("One per household, however many people the account looks after.", "Given once an account is created and the first nurse visit is booked. The nurse brings it to that visit; it is not posted.", "If the standard cuff does not fit your arm, the nurse brings the large cuff at no cost.", "It cannot be exchanged for money, points or another product.", "It is yours to keep. Nothing is owed for it if you stop using MyThuso.")
+}
 
 val shopNeverSold = listOf("medicine", "medication", "tablet", "capsule", "syrup", "antibiotic", "analgesic", "schedule", "prescription", "pharmacy-only", "supplement", "vitamin", "remedy", "treatment")
 
@@ -51,7 +323,12 @@ val shopRefusals = listOf(
     ShopRefusal("reading-is-not-advice", "This device takes a reading. It does not tell you what the reading means, and a reading on its own is not a diagnosis."),
     ShopRefusal("outside-coverage", "We cannot deliver to this address yet. It is outside the areas MyThuso reaches, and we would rather say so than take the order."),
     ShopRefusal("stock-held-once", "Someone else reserved the last one while this basket was open. It is no longer held for you."),
-    ShopRefusal("no-minor-account", "This account belongs to someone under eighteen. A guardian has to place the order.")
+    ShopRefusal("no-minor-account", "This account belongs to someone under eighteen. A guardian has to place the order."),
+    ShopRefusal("illustrative-image", "Every picture here is an illustrative image, made for this shop. It shows the kind of thing, not the one that would arrive."),
+    ShopRefusal("unbranded", "We do not name makers. Each listing is a type of product and the standard a model must meet before we would sell it."),
+    ShopRefusal("no-device-licence", "Selling medical devices needs a SAHPRA establishment licence, and MyThuso does not hold one yet. Nothing here can be sold until it does."),
+    ShopRefusal("pairing-simulated", "Pairing is simulated. No device is connected to the Thuso app, and nothing is read from one."),
+    ShopRefusal("welcome-not-live", "Sign-up is not live yet, so nobody can claim the welcome monitor. No device is given, reserved or posted from this page.")
 )
 
 object ShopData {
@@ -60,7 +337,11 @@ object ShopData {
     const val deliveryFreeAboveCents = 75000
     const val deliveryStandardDays = 3
 
+    /** Every picture is generated, and says so wherever it is drawn. */
+    const val imageLabel = "Illustrative image"
+
     fun product(id: String) = shopProducts.firstOrNull { it.id == id }
+    fun priceCents(kit: ShopKit) = kit.items.sumOf { product(it)?.priceCents ?: 0 }
     fun category(id: String) = shopCategories.firstOrNull { it.id == id }
     fun refusal(id: String) = shopRefusals.firstOrNull { it.id == id }
 }

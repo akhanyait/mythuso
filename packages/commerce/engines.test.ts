@@ -43,10 +43,10 @@ test('a failed line leaves no earlier line deducted', () => {
 
 test('points are earned on goods and spent at the contract rate, never below zero', () => {
  const f = fixture();
- fill(f, 'bp-upper', 1); // R749 -> 749 points
+ fill(f, 'bp-upper', 1); // one point per rand of its price, read from the contract rather than typed
  f.run({ type: 'order.reserve', shopperId, spendPoints: 0 });
  const earned = balanceOf(f.port.snapshot(), shopperId, 'household', now).points;
- assert.equal(earned, 749);
+ assert.equal(earned, shop.products.find(p => p.id === 'bp-upper')!.price);
  fill(f, 'thermometer', 1); // R149 = 14900c; 149 points = 1490c
  f.run({ type: 'order.reserve', shopperId, spendPoints: 149 });
  const order = f.port.snapshot().orders.at(-1)!;
@@ -57,7 +57,7 @@ test('points are earned on goods and spent at the contract rate, never below zer
 
 test('a redemption is refused when it is larger than the order or the balance', () => {
  const f = fixture();
- fill(f, 'bp-diary', 1); // R59
+ fill(f, 'bp-diary', 1); // a notebook, worth far less than ten thousand points
  assert.throws(() => f.run({ type: 'order.reserve', shopperId, spendPoints: 10_000 }), /more points than this account has/);
 });
 
