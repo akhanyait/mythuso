@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { ArrowLeft, ArrowRight, BadgeCheck, Ban, Check, CircleAlert, Fingerprint, KeyRound, MapPin, MessageSquare, Phone, ShieldCheck, Users } from 'lucide-react';
 import { Pill } from '../components/UI';
 import { NotConnected } from '../components/NotConnected';
@@ -51,6 +51,9 @@ function Door({ promise, steps, note, children }: {
  </div>;
 }
 
+/* The planned welcome monitor, behind a dynamic import so the patient entry does not carry it. */
+const WelcomeDevice = lazy(() => import('./WelcomeDevice'));
+
 const steps = ['Welcome', 'Your number', 'Verify', 'Identity', 'Recovery', 'Consent'] as const;
 /* Pill rows, the same shape the navigation takes everywhere else, so six steps read as a place you
    are rather than six things you have not done. On a phone they wrap into a strip and only the
@@ -88,6 +91,7 @@ export function Onboarding({ locale, setLocale, onDone, onSkip, recover = false 
    <h1>Care that comes to you.</h1>
    <p className="muted">Let’s set up your MyThuso account. It takes about two minutes, and you can stop at any point.</p>
    <NotConnected of="accounts"/>
+   <Suspense fallback={null}><WelcomeDevice/></Suspense>
    <fieldset className="locale-choice"><legend>Choose your language</legend>{locales.map(l => <label key={l.code} className={locale === l.code ? 'selected' : ''}><input type="radio" name="locale" checked={locale === l.code} onChange={() => setLocale(l.code)}/><span>{l.native}</span></label>)}</fieldset>
    <p className="helper">Navigation and the main actions are translated. Clinical wording stays in English until a clinical language review is complete.</p>
    <div className="door-actions"><button className="primary full" onClick={() => setStep(1)}>Create my account<ArrowRight size={17}/></button></div>

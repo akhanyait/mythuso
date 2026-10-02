@@ -1,95 +1,272 @@
 /* The shop, styled as its own page rather than as a screen inside the app, on the design handoff since 28
-   September 2026: an ink header, white cards, compact corners, the accent for a chosen tab or filter. The one rule this
-   sheet is careful about is the heading colour: the workspace shell paints every `.clinical h2`
-   charcoal, and a heading on a dark ground that inherits that is invisible. Nothing here inherits
-   a colour it has not set. */
-.shop-page{max-width:1180px;margin:0 auto;padding:28px 22px 64px;color:var(--ink)}
-.shop-head{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;background:var(--brand-ink);color:var(--surface);border-radius:var(--r-lg);padding:30px 32px}
-.shop-head h1{font-size:32px;font-family:var(--font-display);font-weight:600;line-height:1.12;letter-spacing:-1px;margin:12px 0 8px;color:var(--surface)}
-.shop-head p{margin:0;color:var(--studio-line);font-size:15px}
-.shop-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;letter-spacing:1.4px;font-weight:600;color:var(--brand-lime)}
-.shop-balance{text-align:right;background:color-mix(in srgb,var(--surface) 8%,transparent);border-radius:var(--r-md);padding:16px 20px;min-width:190px}
-.shop-balance span{display:block;font-size:13px;letter-spacing:1.2px;color:var(--brand-lime)}
-.shop-balance strong{display:block;font-size:32px;line-height:1.1;margin:4px 0;color:var(--surface)}
-.shop-balance small,.shop-balance em{display:block;font-size:13px;font-style:normal;color:var(--studio-line)}
-.shop-balance em{margin-top:6px;font-weight:600;color:var(--brand-lime)}
+   September 2026: an ink header, white cards, compact corners, the accent for a chosen tab or filter.
 
-.shop-banner{display:flex;gap:10px;align-items:flex-start;margin:14px 0 0;padding:13px 16px;border-radius:var(--r-md);background:var(--mist,#eef1ee);font-size:14px;line-height:1.5}
-.shop-banner.warn{background:var(--mango-soft)}
+   Since 2 October 2026 it is a storefront with pictures, and the pictures decide two things here. Every
+   product photograph was made on the studio paper colour, so the frame it sits in is painted that same
+   token and the edge of the picture disappears into it; and every frame is the same 4:3, so a row of
+   cards lines up on the image, the name and the price without anybody measuring. The one rule this
+   sheet is careful about is the heading colour: the workspace shell paints every `.clinical h2`
+   charcoal, and a heading on a dark ground that inherits that is invisible. Nothing here inherits a
+   colour it has not set. Motion is a border colour on hover, and none at all under reduced motion. */
+.shop-page{max-width:1240px;margin:0 auto;padding:28px 24px 64px;color:var(--ink)}
+.shop-head{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;background:var(--brand-ink);color:var(--surface);border-radius:var(--r-card);padding:32px}
+.shop-head h1{font-size:32px;font-family:var(--font-display);font-weight:600;line-height:1.12;letter-spacing:-1px;margin:12px 0 8px;color:var(--surface)}
+.shop-head p{margin:0;color:var(--studio-line);font-size:15px;line-height:1.5;max-width:620px}
+.shop-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;letter-spacing:1.4px;font-weight:600;color:var(--brand-lime)}
+.shop-balance{text-align:right;background:color-mix(in srgb,var(--surface) 8%,transparent);border-radius:var(--r-control);padding:16px 20px;min-width:190px}
+.shop-balance span{display:block;font-size:13px;letter-spacing:1.2px;color:var(--brand-lime)}
+.shop-balance strong{display:block;font-size:32px;line-height:1.1;margin:4px 0;color:var(--surface);font-variant-numeric:tabular-nums}
+.shop-balance small,.shop-balance em{display:block;font-size:13px;font-style:normal;color:var(--studio-line)}
+.shop-balance em{margin-top:8px;font-weight:600;color:var(--brand-lime)}
+
+.shop-banners{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:8px;margin-top:16px}
+.shop-banner{display:flex;gap:12px;align-items:flex-start;margin:0;padding:12px 16px;border-radius:var(--r-control);background:var(--surface);border:1px solid var(--line);font-size:14px;line-height:1.5}
+.shop-banner.warn{background:var(--mango-soft);border-color:transparent}
 .shop-banner svg{flex:0 0 16px;margin-top:2px}
 
 /* The design system lays a `nav` out as a column — it is the app shell's sidebar that wants
    that — so this row states its direction rather than inheriting one meant for somewhere else. */
-.shop-tabs{display:flex;flex-direction:row;flex-wrap:wrap;gap:8px;margin:22px 0 18px}
+.shop-tabs{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px;margin:24px 0 16px}
 /* core.css gives every `nav button` width:100% for the app shell's sidebar. These are tabs in a
    row, so they size to their own text. */
-.shop-tabs button{display:inline-flex;width:auto;align-items:center;gap:7px;border:1px solid var(--line,#dcdfda);background:var(--surface,#fff);color:var(--ink);border-radius:var(--r-md);min-height:44px;padding:9px 18px;font-size:14px}
-.shop-tabs button[aria-selected=true]{background:color-mix(in srgb,var(--brand-green) 10%,var(--surface));color:var(--ink);border-color:var(--brand-green);box-shadow:inset 0 0 0 1px var(--brand-green)}
+.shop-tabs button{display:inline-flex;width:auto;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:var(--r-control);min-height:44px;padding:8px 16px;font-size:14px}
+.shop-tabs button[aria-selected=true],.shop-filters button[aria-pressed=true]{background:color-mix(in srgb,var(--brand-green) 10%,var(--surface));color:var(--ink);border-color:var(--brand-green);box-shadow:inset 0 0 0 1px var(--brand-green)}
+.shop-jump{margin-left:auto;display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;border-radius:var(--r-control);background:var(--brand-ink);color:var(--surface);font-size:14px;font-weight:600;text-decoration:none;font-variant-numeric:tabular-nums}
+/* Only where the basket is below the shelf rather than beside it. */
+@media (min-width:1101px){.shop-jump{display:none}}
 
-.shop-filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px}
-.shop-filters button{border:1px solid var(--line,#dcdfda);background:var(--surface,#fff);color:var(--ink);border-radius:var(--r-md);min-height:44px;padding:8px 15px;font-size:14px}
-.shop-filters button[aria-pressed=true]{background:color-mix(in srgb,var(--brand-green) 10%,var(--surface));color:var(--ink);border-color:var(--brand-green);box-shadow:inset 0 0 0 1px var(--brand-green)}
+/* The shelf and the basket side by side on a wide screen; on a phone the basket follows the shelf,
+   and the jump link in the tab row is how a person gets to it without scrolling past twenty-three cards. */
+.shop-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
+.shop-main{min-width:0;padding:0;margin:0;max-width:none}
+.shop-aside{position:sticky;top:16px}
 
-.shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:16px}
-.shop-card{display:flex;flex-direction:column;gap:9px;border:1px solid var(--line,#dcdfda);border-radius:var(--r-lg);padding:20px;background:var(--surface,#fff)}
-.shop-card h2{font-size:18px;line-height:1.3;margin:0;color:var(--ink)}
-.shop-card .does{margin:0;font-size:14px;line-height:1.5;color:var(--faint,#5d6360)}
-.shop-card footer{display:flex;justify-content:space-between;align-items:baseline;margin-top:auto;padding-top:6px}
-.shop-card footer strong{font-size:22px}
-.shop-card .in-stock{font-size:13px;color:var(--faint,#5d6360)}
-.shop-card .out{font-size:13px;color:var(--danger,#a3322a)}
-.shop-caveat{margin:0;font-size:13px;line-height:1.5;color:var(--faint,#5d6360);border-left:3px solid var(--line,#dcdfda);padding-left:10px}
+.shop-honest{list-style:none;margin:0 0 16px;padding:16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card)}
+.shop-honest li{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.5;color:var(--body)}
+.shop-honest svg{flex:0 0 16px;margin-top:2px;color:var(--brand-ink)}
 
-.shop-page button.primary{background:var(--brand-ink);border:1px solid transparent;color:var(--surface);border-radius:var(--r-md);min-height:44px;padding:10px 18px;font-size:14px;font-weight:600}
-.shop-page button.primary:disabled{background:var(--mist,#eef1ee);color:var(--faint,#5d6360)}
-.shop-page button.secondary{background:var(--surface,#fff);border:1px solid var(--line,#dcdfda);color:var(--ink);border-radius:var(--r-md);min-height:44px;padding:10px 18px;font-size:14px}
-.shop-page button.big{width:100%;margin-top:10px}
-.shop-page button.icon{background:none;border:none;color:var(--faint,#5d6360);min-height:44px;padding:0 6px}
+.shop-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.shop-filters button{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:var(--r-control);min-height:44px;padding:8px 14px;font-size:14px}
+.shop-filters button span{font-size:13px;color:var(--faint);font-variant-numeric:tabular-nums}
+.shop-blurb{margin:-4px 0 16px;font-size:15px;color:var(--body)}
 
-.shop-basket,.shop-orders,.shop-points{margin-top:28px;border:1px solid var(--line,#dcdfda);border-radius:var(--r-lg);padding:22px;background:var(--surface,#fff)}
-.shop-basket h2,.shop-orders h2,.shop-points h2{display:flex;align-items:center;gap:9px;font-size:20px;margin:0 0 14px;color:var(--ink)}
+/* Every picture is a 4:3 frame on the paper it was photographed on, with its label in the corner. */
+.shop-picture{position:relative;margin:0;background:var(--studio-paper);aspect-ratio:4/3;overflow:hidden}
+.shop-picture img{display:block;width:100%;height:100%;object-fit:cover}
+.shop-illustrative{position:absolute;left:8px;bottom:8px;font-size:13px;line-height:1;padding:4px 8px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--surface) 88%,transparent);color:var(--ink)}
+
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:16px}
+.shop-card{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface);overflow:hidden}
+.shop-card-media{display:block}
+.shop-card-body{display:flex;flex-direction:column;gap:8px;padding:16px;flex:1}
+.shop-cat{font-size:13px;color:var(--faint)}
+.shop-card h2{font-size:16px;line-height:1.35;margin:0;color:var(--ink);font-weight:600}
+.shop-card h2 a,.shop-kit h3 a{color:inherit;text-decoration:none}
+.shop-card h2 a:hover,.shop-kit h3 a:hover{text-decoration:underline}
+.shop-card .does{margin:0;font-size:14px;line-height:1.5;color:var(--body);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.shop-card footer{display:flex;justify-content:space-between;align-items:baseline;margin-top:auto;padding-top:8px}
+.shop-card footer strong{font-size:22px;font-variant-numeric:tabular-nums}
+.in-stock{font-size:13px;color:var(--faint)}
+.out{font-size:13px;color:var(--danger)}
+.shop-card-actions{display:grid;gap:8px}
+.shop-card footer a{display:inline-flex;align-items:center;min-height:44px;font-size:14px;color:var(--ink);text-decoration:none}
+.shop-card footer a:hover{text-decoration:underline}
+.shop-card footer div{display:flex;flex-direction:column}
+.shop-caveat{margin:0;font-size:13px;line-height:1.5;color:var(--faint);border-left:3px solid var(--line);padding-left:8px}
+@media (hover:hover) and (prefers-reduced-motion:no-preference){.shop-card,.shop-kit{transition:border-color var(--motion-duration,.2s) var(--ease-soft,ease)}}
+.shop-card:hover,.shop-kit:hover{border-color:var(--brand-green)}
+
+/* What a product reads, as chips. Colour carries nothing here: a measure the record does not hold
+   is dashed and the words beside it say so, and the Bluetooth chip has its own icon and word. */
+.shop-readings{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px}
+.shop-readings li{display:inline-flex;align-items:center;gap:4px;font-size:13px;line-height:1;padding:6px 8px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--brand-green) 10%,var(--surface));color:var(--ink)}
+.shop-readings li.outside{background:var(--surface);border:1px dashed var(--line)}
+.shop-readings li.how{background:var(--surface);border:1px solid var(--line);color:var(--body)}
+
+.shop-page button.primary,.shop-page a.primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--brand-ink);border:1px solid transparent;color:var(--surface);border-radius:var(--r-control);min-height:44px;padding:8px 16px;font-size:14px;font-weight:600;text-decoration:none}
+.shop-page button.primary:disabled{background:var(--mist);color:var(--faint)}
+.shop-page button.secondary,.shop-page a.secondary{display:inline-flex;align-items:center;justify-content:center;gap:4px;background:var(--surface);border:1px solid var(--line);color:var(--ink);border-radius:var(--r-control);min-height:44px;padding:8px 14px;font-size:14px;text-decoration:none}
+.shop-page button.big{width:100%;margin-top:8px}
+.shop-page button.icon{background:none;border:none;color:var(--faint);min-height:44px;min-width:44px;padding:0}
+
+/* The welcome monitor: the one feature on the shelf, and the one thing on it that is a plan. */
+.shop-welcome{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr);align-items:stretch;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden;margin-bottom:16px}
+/* The picture is a framed tile inside the card, at its own 4:3, rather than a column stretched to the
+   height of the words: stretched, it was cropped to a close-up of half a monitor. */
+.shop-welcome-media{padding:24px 0 24px 24px}
+.shop-welcome-media .shop-picture{border-radius:var(--r-tile)}
+.shop-welcome-body{padding:24px;display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+.shop-welcome h2{font-family:var(--font-display);font-size:24px;line-height:1.2;letter-spacing:-.4px;margin:0;color:var(--ink)}
+.shop-welcome .lede{margin:0;font-size:15px;line-height:1.5;color:var(--body)}
+/* A word on a tint, for a state: planned or in this preview. The word carries it; the tint only groups. */
+.shop-tag{display:inline-flex;align-items:center;gap:4px;font-size:13px;line-height:1.2;font-weight:600;padding:4px 8px;border-radius:var(--r-pill);color:var(--ink)}
+.shop-tag.planned{background:var(--mango-soft)}
+.shop-tag.now{background:color-mix(in srgb,var(--brand-green) 14%,var(--surface))}
+.shop-tag.later{background:var(--mist);font-weight:400}
+.shop-covers-wrap{width:100%}
+.shop-covers-wrap summary{cursor:pointer;font-weight:600;font-size:14px;min-height:44px;display:flex;align-items:center}
+@media (min-width:821px){.shop-covers-wrap summary{display:none}}
+.shop-covers{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:8px 20px}
+.shop-covers li{display:flex;gap:8px;font-size:14px;line-height:1.5}
+.shop-covers svg{flex:0 0 16px;margin-top:2px;color:var(--brand-green)}
+.shop-conditions{width:100%;border-top:1px solid var(--line);padding-top:12px;font-size:14px;line-height:1.5}
+.shop-conditions summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;align-items:center}
+.shop-conditions ul{margin:4px 0 8px;padding-left:20px}
+.shop-conditions p{margin:0;color:var(--body)}
+.shop-welcome-refusal{margin:0;font-size:14px;font-weight:600}
+.shop-welcome.compact{grid-template-columns:1fr;margin:24px 0}
+
+.shop-section-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px;margin:32px 0 12px}
+.shop-section-head h2{font-size:22px;margin:0;color:var(--ink)}
+.shop-section-head p{margin:0;font-size:14px;color:var(--body)}
+.shop-kit-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.shop-kit{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface);overflow:hidden}
+.shop-kit.wide{border:none;background:none;margin-top:8px}
+.shop-kit-body{display:flex;flex-direction:column;gap:12px;padding:16px;flex:1}
+.shop-kit.wide .shop-kit-body{padding:0}
+.shop-kit h3{font-size:18px;margin:0;color:var(--ink)}
+.shop-kit .does{margin:0;font-size:14px;line-height:1.5;color:var(--body)}
+.shop-kit fieldset{border:none;margin:0;padding:0;display:grid}
+.shop-kit legend{font-size:13px;color:var(--faint);margin-bottom:4px;padding:0}
+.shop-kit label{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:8px;min-height:44px;font-size:14px;border-bottom:1px solid var(--line);cursor:pointer}
+.shop-kit label:not(.on) span,.shop-kit label:not(.on) strong{color:var(--faint);text-decoration:line-through}
+.shop-kit label input{width:20px;height:20px;margin:0;accent-color:var(--brand-ink)}
+.shop-kit label strong{font-variant-numeric:tabular-nums;font-weight:600}
+.shop-kit-total{display:flex;justify-content:space-between;align-items:baseline;margin-top:auto;font-size:14px}
+.shop-kit-total strong{font-size:22px;font-variant-numeric:tabular-nums}
+
+/* A product, opened. */
+.shop-back{display:inline-flex;align-items:center;gap:8px;min-height:44px;font-size:14px;color:var(--ink);text-decoration:none;margin-bottom:8px}
+.shop-back:hover{text-decoration:underline}
+.shop-detail-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start}
+.shop-gallery .shop-picture{border-radius:var(--r-card)}
+.shop-thumbs{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.shop-thumbs button{padding:0;border:1px solid var(--line);border-radius:var(--r-tile);overflow:hidden;background:var(--studio-paper);width:96px;height:72px}
+.shop-thumbs button[aria-pressed=true]{border-color:var(--brand-green);box-shadow:inset 0 0 0 1px var(--brand-green)}
+.shop-thumbs img{display:block;width:100%;height:100%;object-fit:cover}
+.shop-buy{display:flex;flex-direction:column;gap:8px}
+.shop-buy h1{font-family:var(--font-display);font-size:28px;line-height:1.15;letter-spacing:-.5px;margin:0;color:var(--ink)}
+.shop-buy .lede{margin:0;font-size:16px;line-height:1.5;color:var(--body)}
+.shop-buy > p{margin:0;font-size:15px;line-height:1.5}
+.shop-price{display:flex;align-items:baseline;gap:12px;margin-top:8px}
+.shop-price strong{font-size:32px;font-variant-numeric:tabular-nums}
+.shop-reference{margin:0;font-size:13px;line-height:1.5;color:var(--faint)}
+.shop-facts{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:12px;border-top:1px solid var(--line);padding-top:12px}
+.shop-facts li{display:flex;gap:8px;font-size:14px;line-height:1.5;color:var(--body)}
+.shop-facts strong{color:var(--ink)}
+.shop-facts svg{flex:0 0 16px;margin-top:3px;color:var(--brand-ink)}
+.shop-facts a,.shop-section a,.shop-conditions a{color:var(--ink)}
+
+.shop-section{margin-top:24px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:20px}
+.shop-section h2{display:flex;align-items:center;gap:8px;font-size:18px;margin:0 0 12px;color:var(--ink)}
+.shop-section > p{margin:0 0 8px;font-size:15px;line-height:1.5}
+.shop-section > p.shop-caveat{font-size:13px;margin-top:4px}
+.shop-warning{border-left:4px solid var(--brand-orange)}
+.shop-warning .sources{font-size:13px;color:var(--faint)}
+.shop-reads{margin:0 0 12px;display:grid}
+.shop-reads div{display:grid;grid-template-columns:minmax(160px,220px) 1fr;gap:16px;padding:12px 0;border-bottom:1px solid var(--line)}
+.shop-reads div:first-child{padding-top:0}
+.shop-reads dt{font-weight:600;font-size:15px}
+.shop-reads dt span{font-weight:400;color:var(--faint)}
+.shop-reads dd{margin:0;font-size:14px;line-height:1.5;color:var(--body)}
+
+/* Three people, three columns, read across: the hierarchy of the detail view. Each line says whether
+   it is something this preview does or something planned, in a word, never by colour alone. */
+.shop-sees{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.shop-see{border-top:3px solid var(--brand-ink);padding-top:12px}
+.shop-see h3{display:flex;align-items:center;gap:8px;font-size:16px;margin:0 0 8px;color:var(--ink)}
+.shop-see ul{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.shop-see li{display:flex;flex-direction:column;align-items:flex-start;gap:4px;font-size:14px;line-height:1.5}
+.shop-empty{margin:0;font-size:14px;line-height:1.5;color:var(--faint)}
+.shop-record-note{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);font-size:14px;line-height:1.5}
+.shop-record-note p{margin:0 0 8px}
+.shop-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.shop-columns .shop-section{margin-top:24px}
+.shop-columns .shop-section > p{font-size:14px}
+.shop-list{margin:0;padding-left:18px;display:grid;gap:8px;font-size:14px;line-height:1.5}
+.shop-section .shop-small{margin:12px 0 0;font-size:13px;line-height:1.5;color:var(--faint)}
+.shop-kit-links,.shop-kit-items{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.shop-kit-links a,.shop-kit-items a{display:flex;align-items:center;gap:12px;min-height:44px;color:var(--ink);text-decoration:none;font-size:15px;font-weight:600}
+.shop-kit-links a span{margin-left:auto;font-weight:400;font-size:14px;color:var(--faint);font-variant-numeric:tabular-nums}
+.shop-kit-items img{border-radius:var(--r-tile);background:var(--studio-paper);flex:0 0 120px}
+.shop-kit-items span{display:flex;flex-direction:column;gap:4px;flex:1}
+.shop-kit-items small{font-size:14px;font-weight:400;line-height:1.5;color:var(--body)}
+.shop-kit-items svg{flex:0 0 16px}
+
+.shop-basket{border:1px solid var(--line);border-radius:var(--r-card);padding:20px;background:var(--surface)}
+.shop-basket h2{display:flex;align-items:center;gap:8px;font-size:18px;margin:0 0 12px;color:var(--ink)}
+.shop-basket h2 .count{margin-left:auto;font-size:13px;background:var(--brand-ink);color:var(--surface);border-radius:var(--r-pill);padding:4px 8px;font-variant-numeric:tabular-nums}
 .shop-basket ul{list-style:none;margin:0;padding:0}
-.shop-basket li{display:grid;grid-template-columns:1fr auto auto auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line,#dcdfda)}
-.shop-basket .qty{display:inline-flex;align-items:center;gap:9px}
-.shop-basket .qty button{background:var(--mist,#eef1ee);border:none;border-radius:var(--r-md);width:44px;height:44px;display:grid;place-items:center;color:var(--ink)}
-.shop-total{margin:16px 0 0}
-.shop-total div{display:flex;justify-content:space-between;padding:5px 0;font-size:14px}
-.shop-total dt{display:flex;align-items:center;gap:6px;color:var(--faint,#5d6360)}
-.shop-total dd{margin:0}
-.shop-total .grand{border-top:1px solid var(--line,#dcdfda);margin-top:8px;padding-top:11px;font-size:18px;font-weight:700}
+.shop-basket li{display:grid;grid-template-columns:1fr auto auto;grid-template-areas:"name name remove" "qty total total";gap:4px 8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.shop-basket li .name{grid-area:name;font-size:14px;font-weight:600}
+.shop-basket li .qty{grid-area:qty}
+.shop-basket li strong{grid-area:total;justify-self:end;font-size:14px;font-variant-numeric:tabular-nums}
+.shop-basket li .icon{grid-area:remove}
+.shop-basket .qty{display:inline-flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums}
+.shop-basket .qty button{background:var(--mist);border:none;border-radius:var(--r-control);width:44px;height:44px;display:grid;place-items:center;color:var(--ink)}
+.shop-total{margin:12px 0 0}
+.shop-total div{display:flex;justify-content:space-between;padding:4px 0;font-size:14px}
+.shop-total dt{display:flex;align-items:center;gap:8px;color:var(--faint)}
+.shop-total dd{margin:0;font-variant-numeric:tabular-nums}
+.shop-total .grand{border-top:1px solid var(--line);margin-top:8px;padding-top:12px;font-size:18px;font-weight:700}
 .shop-total .grand dt{color:var(--ink)}
-.shop-spend{display:block;margin:14px 0;font-size:14px}
+.shop-spend{display:block;margin:12px 0;font-size:14px}
 .shop-spend input{width:100%;margin:8px 0 4px}
-.shop-spend output{font-size:13px;color:var(--faint,#5d6360)}
+.shop-spend output{font-size:13px;color:var(--faint)}
+.shop-basket .shop-caveat{margin-top:12px}
 
-.shop-orders article{border:1px solid var(--line,#dcdfda);border-radius:var(--r-lg);padding:15px;margin-bottom:11px}
+.shop-orders{margin-top:20px;border-top:1px solid var(--line);padding-top:16px}
+.shop-orders h3{font-size:16px;margin:0 0 8px}
+.shop-orders article{border:1px solid var(--line);border-radius:var(--r-control);padding:12px;margin-bottom:8px}
 .shop-orders article.cancelled{opacity:.62}
-.shop-orders article p{margin:6px 0;font-size:14px;color:var(--faint,#5d6360)}
-.shop-chip{display:inline-block;margin-left:9px;font-size:13px;background:var(--mist,#eef1ee);border-radius:var(--r-md);padding:4px 10px;color:var(--ink)}
+.shop-orders article p{margin:4px 0;font-size:14px;color:var(--faint)}
+.shop-chip{display:inline-block;margin-left:8px;font-size:13px;background:var(--mist);border-radius:var(--r-pill);padding:4px 8px;color:var(--ink)}
 
-.shop-earn{display:grid;grid-template-columns:repeat(auto-fill,minmax(238px,1fr));gap:13px;margin:16px 0 26px}
-.shop-earn article{border:1px solid var(--line,#dcdfda);border-radius:var(--r-lg);padding:15px;display:flex;flex-direction:column;gap:6px}
+.shop-points{margin-top:8px;border:1px solid var(--line);border-radius:var(--r-card);padding:20px;background:var(--surface)}
+.shop-points h2{font-size:20px;margin:0 0 12px;color:var(--ink)}
+.shop-earn{display:grid;grid-template-columns:repeat(auto-fill,minmax(238px,1fr));gap:12px;margin:16px 0 24px}
+.shop-earn article{border:1px solid var(--line);border-radius:var(--r-card);padding:16px;display:flex;flex-direction:column;gap:4px}
 .shop-earn strong{font-size:14px}
 .shop-earn span{font-size:13px;color:var(--ink)}
-.shop-earn small{font-size:13px;color:var(--faint,#5d6360);line-height:1.45}
+.shop-earn small{font-size:13px;color:var(--faint);line-height:1.5}
 .shop-points table{width:100%;border-collapse:collapse;font-size:14px}
-.shop-points th,.shop-points td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line,#dcdfda)}
-.shop-points th{font-size:13px;letter-spacing:.6px;color:var(--faint,#5d6360);text-transform:uppercase}
-.shop-points h3{font-size:16px;margin:22px 0 8px}
+.shop-points th,.shop-points td{text-align:left;padding:8px;border-bottom:1px solid var(--line)}
+.shop-points th{font-size:13px;letter-spacing:.6px;color:var(--faint);text-transform:uppercase}
+.shop-points h3{font-size:16px;margin:24px 0 8px}
 
-.shop-message{margin:18px 0 0;padding:13px 16px;border-radius:var(--r-md);background:var(--mist,#eef1ee);font-size:14px}
-.shop-message.error{background:var(--mango-soft);color:var(--danger-ink,#6d2019)}
-.shop-foot{margin-top:34px;border-top:1px solid var(--line,#dcdfda);padding-top:22px}
+.shop-message{margin:16px 0 0;padding:12px 16px;border-radius:var(--r-control);background:var(--surface);border:1px solid var(--line);font-size:14px}
+.shop-message.error{background:var(--mango-soft);border-color:transparent;color:var(--mango-ink)}
+.shop-foot{margin-top:40px;border-top:1px solid var(--line);padding-top:24px}
 .shop-foot h2{font-size:18px;margin:0 0 12px;color:var(--ink)}
-.shop-foot ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:10px}
-.shop-foot li{display:flex;gap:9px;align-items:flex-start;font-size:14px;line-height:1.5;color:var(--faint,#5d6360)}
-.shop-foot li svg{flex:0 0 15px;margin-top:3px;color:var(--studio-ink,#2b3a30)}
-.muted{color:var(--faint,#5d6360);font-size:14px}
+.shop-foot ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:12px}
+.shop-foot li{display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.5;color:var(--body)}
+.shop-foot li svg{flex:0 0 15px;margin-top:3px;color:var(--brand-ink)}
+.muted{color:var(--faint);font-size:14px}
 
-@media(max-width:640px){
- .shop-head{flex-direction:column;padding:22px}
- .shop-balance{text-align:left;width:100%}
- .shop-basket li{grid-template-columns:1fr auto;row-gap:6px}
- .shop-page{padding:16px 14px 48px}
+@media (max-width:1100px){
+ .shop-layout{grid-template-columns:1fr}
+ .shop-aside{position:static}
+ .shop-columns,.shop-sees{grid-template-columns:1fr}
 }
-@media (max-width:600px){.shop-head h1{font-size:28px}}
+@media (max-width:820px){
+ .shop-welcome,.shop-detail-top{grid-template-columns:1fr}
+ .shop-honest{grid-template-columns:1fr}
+ .shop-welcome-media{padding:0}
+ .shop-welcome-media .shop-picture{border-radius:0}
+}
+@media (max-width:640px){
+ .shop-page{padding:16px 16px 48px}
+ .shop-head{flex-direction:column;padding:24px}
+ .shop-head h1{font-size:28px}
+ .shop-balance{text-align:left;width:100%}
+ .shop-jump{margin-left:0}
+ .shop-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+ .shop-card-body{padding:12px}
+ .shop-card .does{display:none}
+ .shop-card footer strong{font-size:18px}
+ .shop-reads div{grid-template-columns:1fr;gap:4px}
+ .shop-welcome-body{padding:20px}
+ .shop-welcome h2{font-size:22px}
+ .shop-buy h1{font-size:24px}
+}
+@media (max-width:360px){.shop-grid{grid-template-columns:1fr}}

@@ -1,0 +1,14 @@
+/* The welcome monitor on sign-up's first step: a picture in its paper frame and four lines beside it,
+   quieter than the step's own heading because it is a plan rather than the thing being asked for. On a
+   phone the picture stays beside the words rather than above them, so the step's own question — the
+   language — is not pushed onto the second screen. */
+.welcome-device{display:grid;grid-template-columns:120px 1fr;gap:16px;align-items:start;margin:16px 0;padding:16px;border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface)}
+.welcome-device figure{margin:0;display:grid;gap:4px}
+.welcome-device figure img{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;background:var(--studio-paper);border-radius:var(--r-tile)}
+.welcome-device figcaption{font-size:13px;line-height:1.3;color:var(--faint)}
+.welcome-device-label{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:600;color:var(--ink);background:var(--mango-soft);border-radius:var(--r-pill);padding:4px 8px}
+.welcome-device h2{font-size:16px;line-height:1.35;margin:8px 0 4px;color:var(--ink)}
+.welcome-device p{margin:0 0 4px;font-size:14px;line-height:1.5;color:var(--body)}
+.welcome-device .welcome-device-refusal{color:var(--ink);font-weight:600}
+.welcome-device a{display:inline-flex;align-items:center;min-height:44px;font-size:14px;color:var(--ink)}
+@media (max-width:420px){.welcome-device{grid-template-columns:96px 1fr;gap:12px;padding:12px}}
