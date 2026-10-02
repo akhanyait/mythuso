@@ -204,18 +204,39 @@ export async function searchOpenFda(
 
 /* ── Drug-interaction query ─────────────────────────────────────────────────────────────────────
 
-   The interaction endpoint is a separate call from the label search above. It queries openFDA's
-   adverse-event-report index for reports where two named medicines appear together, and returns
-   what the reports record — never a clinical judgement.
+   WHAT openFDA PUBLISHES, AND THEREFORE WHAT THIS ASKS. openFDA has no interaction endpoint: its drug
+   APIs are event, label, ndc, enforcement, drugsfda, orangebook and drugshortages
+   (open.fda.gov/apis/drug, read 2 October 2026). Until that day this function asked an
+   "interaction" path under drug/, which does not exist — every call answered 404, and was silently
+   empty — and joined its two names with plus-AND-plus inside URLSearchParams, which encodes the plus
+   signs (%2BAND%2B), so even a real endpoint would have read one literal phrase rather than two
+   clauses. Co-reported medicines in the adverse-event index would not have been an interaction
+   either: two drugs on one report is a coincidence of a patient's list, not a finding.
+
+   The published source for "does the regulator's label say these two interact" is the label's own
+   `drug_interactions` section, in the same drug/label index searchOpenFda() reads. So this asks
+   drug/label for medicine A's labels whose interactions section names medicine B, and then the other
+   way round when A's labels say nothing. AND is written as a space-delimited ` AND `, which
+   URLSearchParams encodes as `+AND+` — openFDA's documented syntax (open.fda.gov/apis/query-syntax).
+
+   WHAT IT WILL NOT RELAY. A label's interactions section is full of dose instructions ("reduce the
+   dose of…", "do not exceed 10 mg"), and federation.json's notFor for this source refuses any dose
+   answer: a US dose read to a South African patient is the harm that line exists to stop. So only the
+   sentences that name the other medicine and carry no dosing word are quoted; when every such
+   sentence is about dose, the result says the label names the pair and that its wording is not
+   relayed. Every result is attributed to openFDA as US labelling, and the label grades no severity,
+   so none is invented: it reads "not graded".
 
    DARK BY DEFAULT, LIKE EVERYTHING ELSE. queryInteractions() reads openFdaInteractionConfig(),
    which gates on OPENFDA_ENABLED === 'true'. When the env var is unset (every deployment today),
-   the function returns an empty array without touching the network.
+   the function returns an empty array without touching the network. Both terms pass through
+   outgoingTerm() and plainTerm(), as the label search's does, so only plain medicine words leave.
 
-   SILENT ON EVERY FAILURE. Network error, timeout, non-200, malformed JSON, missing fields —
-   all return an empty array. The drug-check tool treats an empty array as "OpenFDA had nothing",
-   which is honest: the tool's own local pairs still stand, and the "no record is never safe"
-   invariant is preserved by the caller, not by this adapter. */
+   SILENT ON EVERY FAILURE. Network error, timeout, non-200 (openFDA answers a search that matched
+   nothing with 404), malformed JSON, missing fields — all return an empty array. The drug-check tool
+   treats an empty array as "openFDA had nothing", which is honest: the tool's own local pairs still
+   stand, and the "no record is never safe" invariant is preserved by the caller, not by this
+   adapter. */
 
 export type InteractionResult = {
   drug1: string;
@@ -226,116 +247,121 @@ export type InteractionResult = {
   source: string;
 };
 
-type OpenFdaInteractionReport = {
-  patient?: {
-    drug?: {
-      medicinalproduct?: string;
-      openfda?: { pharm_class_epc?: unknown };
-    }[];
-    reaction?: { reactionmeddrapt?: string }[];
-  };
+type OpenFdaLabelInteractionRecord = {
+  id?: string;
+  openfda?: { generic_name?: unknown; brand_name?: unknown };
+  drug_interactions?: unknown;
 };
 
-type OpenFdaInteractionBody = {
-  results?: OpenFdaInteractionReport[];
+type OpenFdaLabelInteractionBody = {
+  results?: OpenFdaLabelInteractionRecord[];
 };
 
 const INTERACTION_MAX_RESULTS = 5;
 const INTERACTION_GATE_ID = "openfda-interaction";
+const INTERACTION_TERM_LENGTH = 80;
 
-/* Pull the first string out of a pharm_class_epc array (openFDA returns it as string[]). */
-const firstPharmClass = (value: unknown): string => {
-  if (typeof value === "string") return value.trim();
-  if (Array.isArray(value)) {
-    for (const item of value)
-      if (typeof item === "string" && item.trim()) return item.trim();
-  }
-  return "";
+/* The label grades nothing, so the result says so rather than borrowing a word that sounds like a
+   grade. */
+export const OPENFDA_LABEL_SEVERITY = "not graded (US label)";
+export const OPENFDA_LABEL_SOURCE =
+  "openFDA drug label, US Food and Drug Administration (api.fda.gov/drug/label.json) — US labelling, not South African guidance";
+
+/* Any sentence carrying one of these is a dose instruction, and is never quoted. Broad on purpose — a
+   sentence wrongly withheld costs a quote, a dose wrongly relayed costs a patient — but not so broad
+   that "may increase the effect of" is withheld: that sentence is the interaction itself. */
+const DOSING =
+  /(?:\b(?:dose|doses|dosage|dosages|dosing|overdosage|mg|mcg|mg\/kg|milligrams?|micrograms?|titrat\w*|units?)\b|µg)/i;
+
+const allStrings = (value: unknown): string[] =>
+  typeof value === "string"
+    ? [value]
+    : Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === "string")
+      : [];
+
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/* A medicine's name as a whole word, any case. */
+const mentionOf = (term: string): RegExp => new RegExp(`\\b${escapeRegExp(term)}\\b`, "i");
+
+/* The sentences of a label's interactions section that name `other` and carry no dosing word. */
+export const interactionSentences = (section: string, other: string): string[] => {
+  const name = mentionOf(other);
+  return section
+    .replace(/\s+/g, " ")
+    .split(/(?<=[.;])\s+(?=[A-Z(])/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => name.test(sentence) && !DOSING.test(sentence));
 };
 
 export async function queryInteractions(
   drugA: string,
   drugB: string,
+  deps: Pick<AdapterDeps, "fetchImpl" | "env" | "now"> = {},
 ): Promise<InteractionResult[]> {
-  const config = openFdaInteractionConfig();
+  const config = openFdaInteractionConfig(deps.env ?? process.env);
   if (!config.active) return [];
 
-  const a = (drugA ?? "").trim();
-  const b = (drugB ?? "").trim();
+  const a = plainTerm(outgoingTerm(drugA ?? "", INTERACTION_TERM_LENGTH));
+  const b = plainTerm(outgoingTerm(drugB ?? "", INTERACTION_TERM_LENGTH));
   if (!a || !b) return [];
 
+  const fetchImpl = deps.fetchImpl ?? fetch;
+  const now = deps.now ?? (() => new Date());
   /* Rate-limit through the shared gate. The gate ID is separate from the label-search gate so
-     the two endpoints' budgets do not interfere with each other. */
+     the two callers' budgets do not interfere with each other; each direction is one request. */
   const gate = rateGateFor(INTERACTION_GATE_ID, config.rateLimitPerMinute);
-  const nowMs = Date.now();
-  if (!gate.take(nowMs)) return [];
 
-  const params = new URLSearchParams();
-  params.set("search", `${a}+AND+${b}`);
-  params.set("limit", String(INTERACTION_MAX_RESULTS));
-  if (config.apiKey) params.set("api_key", config.apiKey);
-
-  const url = `${config.baseUrl}/drug/interaction.json?${params.toString()}`;
-
-  let body: OpenFdaInteractionBody;
-  try {
-    const response = await fetch(url, {
-      headers: { accept: "application/json" },
-      signal: AbortSignal.timeout(config.timeoutMs),
+  const ask = async (labelOf: string, naming: string): Promise<InteractionResult[]> => {
+    const nowMs = now().getTime();
+    if (!gate.take(nowMs)) return [];
+    const params = new URLSearchParams({
+      search: `openfda.generic_name:"${labelOf}" AND drug_interactions:"${naming}"`,
+      limit: String(INTERACTION_MAX_RESULTS),
     });
-    if (!response.ok) return [];
-    body = (await response.json()) as OpenFdaInteractionBody;
-  } catch {
-    return [];
-  }
+    if (config.apiKey) params.set("api_key", config.apiKey);
 
-  const reports = Array.isArray(body.results) ? body.results : [];
-  const results: InteractionResult[] = [];
+    let body: OpenFdaLabelInteractionBody;
+    try {
+      const response = await fetchImpl(`${config.baseUrl}/drug/label.json?${params.toString()}`, {
+        headers: { accept: "application/json" },
+        signal: AbortSignal.timeout(config.timeoutMs),
+      });
+      if (!response.ok) return [];
+      body = (await response.json()) as OpenFdaLabelInteractionBody;
+    } catch {
+      return [];
+    }
 
-  for (const report of reports.slice(0, INTERACTION_MAX_RESULTS)) {
-    const patient = report.patient;
-    if (!patient) continue;
+    const records = Array.isArray(body?.results) ? body.results : [];
+    const results: InteractionResult[] = [];
+    const seen = new Set<string>();
+    for (const record of records.slice(0, INTERACTION_MAX_RESULTS)) {
+      const section = allStrings(record.drug_interactions).join(" ");
+      if (!mentionOf(naming).test(section)) continue;
+      const labelName = firstString(record.openfda?.generic_name) || labelOf;
+      const quoted = interactionSentences(section, naming);
+      const effect = quoted.length
+        ? `The US label for ${labelName} says: "${truncate(quoted.join(" "), SNIPPET_LENGTH)}"`
+        : `The US label for ${labelName} names ${naming} in its drug-interactions section. Its wording there is about dose, which MyThuso does not relay.`;
+      /* Many manufacturers file one generic's label; the same words twice are one finding. */
+      if (seen.has(effect)) continue;
+      seen.add(effect);
+      results.push({
+        drug1: labelName,
+        drug2: naming,
+        severity: OPENFDA_LABEL_SEVERITY,
+        effect,
+        recommendation:
+          "This is US FDA label wording, not South African guidance and not clinical advice. " +
+          "A pharmacist, nurse or doctor should be consulted before combining these medicines.",
+        source: OPENFDA_LABEL_SOURCE,
+      });
+    }
+    return results;
+  };
 
-    /* Collect the drug names the report actually records, so the result names the pair the
-       report is about rather than echoing back whatever the caller typed. */
-    const drugs = patient.drug ?? [];
-    const names = drugs
-      .map((d) => (d.medicinalproduct ?? "").trim())
-      .filter(Boolean)
-      .slice(0, 2);
-    if (names.length < 2) continue;
-
-    /* The reaction text is what the adverse-event report recorded — it is a reported outcome,
-       never a clinical prediction. */
-    const reactions = (patient.reaction ?? [])
-      .map((r) => (r.reactionmeddrapt ?? "").trim())
-      .filter(Boolean);
-    const effect = reactions.length
-      ? `Adverse event report: ${reactions.join(", ")}`
-      : "Adverse event report recorded";
-
-    /* The pharm class from the first drug that carries one — context for the report, not a
-       severity grading. */
-    const pharmClass = drugs
-      .map((d) => firstPharmClass(d.openfda?.pharm_class_epc))
-      .find(Boolean) ?? "";
-
-    const severity = pharmClass ? "REPORTED" : "REPORTED";
-    const description = pharmClass
-      ? `${effect} (pharmacological class: ${pharmClass})`
-      : effect;
-
-    results.push({
-      drug1: names[0],
-      drug2: names[1],
-      severity,
-      effect: description,
-      recommendation:
-        "This is an adverse event report from the US FDA database, not clinical guidance. " +
-        "A pharmacist, nurse or doctor should be consulted before combining these medicines.",
-      source: "openfda.gov/drug/interaction",
-    });
-  }
-
-  return results;
+  const forward = await ask(a, b);
+  return forward.length ? forward : ask(b, a);
 }

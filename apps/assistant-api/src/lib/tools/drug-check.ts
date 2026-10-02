@@ -98,9 +98,10 @@ export async function checkDrugInteraction(drugA: string, drugB: string): Promis
     ].join("\n");
   }
 
-  /* No local match — supplement with OpenFDA when the deployment has activated it. The adapter
-     returns an empty array when dark, rate-limited, timed out or errored: every failure is
-     silent, so the tool degrades to its local-only answer without the caller knowing why. */
+  /* No local match — supplement with openFDA when the deployment has activated it: the US label's
+     own drug-interactions section, never a dose (openfda-adapter.ts says why). The adapter returns
+     an empty array when dark, rate-limited, timed out or errored: every failure is silent, so the
+     tool degrades to its local-only answer without the caller knowing why. */
   const openFdaResults = await queryInteractions(a, b);
 
   if (openFdaResults.length) {
@@ -112,10 +113,10 @@ export async function checkDrugInteraction(drugA: string, drugB: string): Promis
       ].join("\n"),
     );
     return [
-      `${openFdaResults.length === 1 ? "One reported interaction" : `${openFdaResults.length} reported interactions`} found between ${capitalise(keyA)} and ${capitalise(keyB)} (from US FDA adverse-event reports):`,
+      `${openFdaResults.length === 1 ? "One labelled interaction" : `${openFdaResults.length} labelled interactions`} found between ${capitalise(keyA)} and ${capitalise(keyB)} (from US FDA drug labels):`,
       ...blocks,
-      "This is a record of reported adverse events, not clinical guidance or advice to take, change or stop either medicine — only a clinician who knows the person's own history may decide that.",
-      "Sources: openfda.gov/drug/interaction.",
+      "This is US label wording, not South African guidance, not clinical guidance and not advice to take, change or stop either medicine — only a clinician who knows the person's own history may decide that.",
+      `Sources: ${[...new Set(openFdaResults.map((result) => result.source))].join("; ")}.`,
     ].join("\n");
   }
 

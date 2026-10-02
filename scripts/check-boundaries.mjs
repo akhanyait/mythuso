@@ -32505,13 +32505,30 @@ console.log(
         `${sourcesDir}/${name} names source "${adapterId ?? "<none>"}", which ${knowledgeDir}/federation.json does not allowlist — an adapter for a source nobody reviewed is the wiring the dark flag exists to stop.`,
       );
   }
+  /* openFDA publishes event, label, ndc, enforcement, drugsfda, orangebook and drugshortages — no
+     interaction endpoint. Until 2 October 2026 the interaction query asked /drug/interaction.json and
+     wrote `+AND+` into URLSearchParams, which encodes the plus signs, so every call was a silent 404.
+     Every path the adapter asks must be one openFDA publishes, and AND is written as a space. */
+  {
+    const openFdaSource = read(`${sourcesDir}/openfda-adapter.ts`);
+    const published = new Set(["event", "label", "ndc", "enforcement", "drugsfda", "orangebook", "drugshortages"]);
+    for (const [, path] of openFdaSource.matchAll(/\/drug\/([a-z]+)\.json/g))
+      if (!published.has(path))
+        throw new Error(
+          `${sourcesDir}/openfda-adapter.ts asks /drug/${path}.json, which openFDA does not publish (open.fda.gov/apis/drug) — every call would be a 404 the adapter reads as "nothing found".`,
+        );
+    if (/search[^\n]*\+AND\+/.test(openFdaSource))
+      throw new Error(
+        `${sourcesDir}/openfda-adapter.ts writes +AND+ into a search value — URLSearchParams encodes the plus signs as %2B, so openFDA reads one literal phrase rather than two clauses. Write " AND ".`,
+      );
+  }
   const adapterSpecifier =
     /["'][^"']*sources\/(?:config|rate-gate|icd11-adapter|openfda-adapter|pubmed-adapter|medlineplus-adapter|cdc-adapter|wikidata-adapter)\.ts["']/;
   const federationSpecifier = /["'][^"']*knowledge-federation(?:\.ts)?["']/;
-  /* The drug-check tool was deliberately wired to the openFDA adapter on 2026-09-23: it queries
-     interaction reports behind the adapter's own dark guard (OPENFDA_ENABLED), and the local
-     catalogue pairs stand alone when the adapter is dark. This is the decision the check exists
-     to make explicit. */
+  /* The drug-check tool was deliberately wired to the openFDA adapter on 2026-09-23: since 2 October
+     2026 it asks the drug label's own drug_interactions section behind the adapter's own dark guard
+     (OPENFDA_ENABLED), and the local catalogue pairs stand alone when the adapter is dark. This is
+     the decision the check exists to make explicit. */
   const adapterAllowlist = new Set([
     "apps/assistant-api/src/lib/tools/drug-check.ts",
   ]);

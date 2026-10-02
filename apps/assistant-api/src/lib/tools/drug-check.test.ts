@@ -33,28 +33,11 @@ const withOpenFdaEnabled = (body: () => Promise<void>): (() => Promise<void>) =>
   };
 };
 
-/* A minimal OpenFDA interaction response shaped like the real API's adverse-event reports. */
-const openFdaInteractionBody = (
-  drug1: string,
-  drug2: string,
-  reaction: string,
-  pharmClass?: string,
-): string =>
+/* A minimal openFDA drug-label response: the label of `generic`, whose drug_interactions section is
+   `section`. The shape is the published drug/label record's (open.fda.gov/apis/drug/label). */
+const openFdaLabelBody = (generic: string, section: string, id = "label-1"): string =>
   JSON.stringify({
-    results: [
-      {
-        patient: {
-          drug: [
-            {
-              medicinalproduct: drug1,
-              openfda: pharmClass ? { pharm_class_epc: [pharmClass] } : {},
-            },
-            { medicinalproduct: drug2, openfda: {} },
-          ],
-          reaction: [{ reactionmeddrapt: reaction }],
-        },
-      },
-    ],
+    results: [{ id, openfda: { generic_name: [generic] }, drug_interactions: [section] }],
   });
 
 /* ── Local floor: unchanged behaviour ────────────────────────────────────────────────────────── */
@@ -76,7 +59,7 @@ test("drug-check: local pair fires first — warfarin + aspirin", async () => {
     assert.ok(output.includes("Avoid the combination"), "local recommendation is returned");
     assert.equal(fetchCalled, false, "OpenFDA must not be called when local data matches");
     assert.ok(
-      !output.includes("openfda.gov/drug/interaction"),
+      !output.includes("openFDA"),
       "Sources line must not mention OpenFDA when only local data contributed",
     );
   } finally {
@@ -122,40 +105,33 @@ test('drug-check: "no record" never says "safe" — both sources empty', async (
 /* ── OpenFDA supplementation ─────────────────────────────────────────────────────────────────── */
 
 test(
-  "drug-check: OpenFDA supplements when local has no data",
+  "drug-check: OpenFDA supplements when local has no data — from the label's interactions section",
   withOpenFdaEnabled(async () => {
-    /* paracetamol + loratadine is not in the local list. With OpenFDA enabled and a
-       stubbed response, the tool must return the OpenFDA results. */
-    const restore = stubFetch(
-      (async () =>
-        new Response(
-          openFdaInteractionBody(
-            "PARACETAMOL",
-            "LORATADINE",
-            "HEPATOTOXICITY",
-            "Analgesic",
-          ),
-          { status: 200, headers: { "content-type": "application/json" } },
-        )) as unknown as typeof fetch,
-    );
+    /* paracetamol + loratadine is not in the local list. With openFDA enabled and a stubbed label,
+       the tool quotes the label's own interactions sentence, attributed, ungraded and never as
+       guidance. */
+    const urls: string[] = [];
+    const restore = stubFetch((async (input: string | URL | Request) => {
+      urls.push(String(input));
+      return new Response(
+        openFdaLabelBody(
+          "ACETAMINOPHEN",
+          "7 DRUG INTERACTIONS Loratadine may increase the plasma concentration of this medicine. Use the lowest dose of loratadine for the shortest time.",
+        ),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    }) as unknown as typeof fetch);
     try {
       const output = await checkDrugInteraction("paracetamol", "loratadine");
-      assert.ok(
-        output.includes("reported interaction"),
-        "OpenFDA results are presented as reported interactions",
-      );
-      assert.ok(output.includes("PARACETAMOL"), "the report's own drug name is carried");
-      assert.ok(output.includes("LORATADINE"), "the report's own drug name is carried");
-      assert.ok(output.includes("HEPATOTOXICITY"), "the reported reaction is carried");
-      assert.ok(output.includes("severity: REPORTED"), "severity is REPORTED for adverse events");
-      assert.ok(
-        output.includes("adverse event report"),
-        "the output says what the data actually is",
-      );
-      assert.ok(
-        output.includes("not clinical guidance"),
-        "the output never presents a report as guidance",
-      );
+      assert.equal(urls.length, 1, "one request answers when the first direction finds the label");
+      assert.ok(urls[0].startsWith("https://api.fda.gov/drug/label.json?"), "asks openFDA's published label index");
+      assert.ok(output.includes("labelled interaction"), "presented as what a label says");
+      assert.ok(output.includes("ACETAMINOPHEN"), "the label's own generic name is carried");
+      assert.ok(output.includes("may increase the plasma concentration"), "the label's own interaction sentence is quoted");
+      assert.equal(output.includes("lowest dose"), false, "a dosing sentence is never relayed");
+      assert.ok(output.includes("severity: NOT GRADED (US LABEL)"), "the label grades nothing, and the answer invents no grade");
+      assert.ok(output.includes("not South African guidance"), "US wording never stands as SA guidance");
+      assert.ok(output.includes("Sources: openFDA drug label"), "attributed to openFDA");
     } finally {
       restore();
     }
@@ -167,17 +143,17 @@ test(
   withOpenFdaEnabled(async () => {
     const restore = stubFetch(
       (async () =>
-        new Response(
-          openFdaInteractionBody("DRUGX", "DRUGY", "RASH"),
-          { status: 200, headers: { "content-type": "application/json" } },
-        )) as unknown as typeof fetch,
+        new Response(openFdaLabelBody("DRUGX", "Druggy may cause a rash when taken with this medicine."), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        })) as unknown as typeof fetch,
     );
     try {
-      /* Use a pair not in the local list so OpenFDA is the only contributor. */
+      /* Use a pair not in the local list so openFDA is the only contributor. */
       const output = await checkDrugInteraction("drugx", "druggy");
       assert.ok(
-        output.includes("Sources: openfda.gov/drug/interaction"),
-        "the Sources line names OpenFDA when it contributed results",
+        output.includes("Sources: openFDA drug label, US Food and Drug Administration (api.fda.gov/drug/label.json)"),
+        "the Sources line names openFDA's label index when it contributed results",
       );
     } finally {
       restore();
@@ -201,7 +177,7 @@ test(
       assert.ok(output.includes("That is not the same as safe to combine"));
       assert.ok(output.includes("Sources: MyThuso interaction list"));
       assert.equal(
-        output.includes("openfda"),
+        output.toLowerCase().includes("openfda"),
         false,
         "a failed OpenFDA call must not appear in the Sources line",
       );

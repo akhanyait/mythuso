@@ -167,10 +167,11 @@ export const plainTerm = (term: string): string =>
    because the JSON is the governed artefact; the env var is the deployment's own switch, so a
    deployment that has not set it gets the same dark-by-default behaviour the JSON records.
 
-   baseUrl, rateLimitPerMinute and timeoutMs are the interaction-endpoint-specific settings the
-   drug-check tool reads through the adapter — separate from the label-search config the existing
-   searchOpenFda() function uses, because the interaction endpoint has a different path and the
-   deployment may want a different ceiling for it. */
+   baseUrl, rateLimitPerMinute and timeoutMs are the interaction query's own settings, which the
+   drug-check tool reads through the adapter — separate from the label-search config searchOpenFda()
+   uses, because the deployment may want a different ceiling for it. Both ask the same published
+   drug/label index (openFDA publishes no interaction endpoint); the interaction query searches the
+   label's own drug_interactions section. */
 export type OpenFdaInteractionConfig = {
   active: boolean;
   baseUrl: string;
