@@ -2561,3 +2561,22 @@ neither phone draws the API Registry, and nothing native changed.
 **Open.** Each licence needs reading from its primary source, InkubaLM's above all (recorded as to be confirmed). The
 host for any self-hosted engine has no residency decision and no measured capacity: `liqzar-server` is the box
 DATA-RESIDENCY-OPTIONS.md §2 recommends hold no health information.
+
+## Delivered — the open-source connectors on for the demo, and a sources caption under GilbertOne's answers, 2 October 2026 (web only)
+
+The founder asked for the connectors to be switched on "for demo of live intelligence", with "a small caption under
+GilbertOne that shows sources its getting information from". None of the twelve is installed, so on for the demo
+means shown, not running: `gilbertone-connectors.json#demo` carries the founder's switch, and every card on the API
+Registry says **On for the demo** beside its unchanged `not-configured` state, with the sentence saying nothing
+reaches it.
+
+| What landed | The refusals it adds |
+|---|---|
+| **The caption** — beneath every answer in the web panel, outside the reply so the reply's words stay the contract's: what produced it, read from the reply's own kind (`apps/web/src/lib/gilbertone-sources.ts`) — the catalogue's approved answers, the language model through GilbertOne's service, the emergency rules or the safe fallback on the device — and, folded, the demo connectors by name, called simulated and not consulted. Words in `gilbertone-connectors.json#caption`. | A connector switched on for the demo is never named as the source of an answer (`no-demo-connector-named-as-a-source`). |
+
+**Verified.** `npm run check` passes. Twenty journey files that open the assistant or the control tower were run; the
+caption first sat inside the reply and broke the intake journey's every-word-is-the-contract's check, and moving it
+outside fixed that. What still fails — `assistant.spec.ts:3288`, `configuration.spec.ts:99`,
+`control-tower-portal.spec.ts:142`, `landing.spec.ts:453`, `patient-pages.spec.ts:40` and `gilbertone.spec.ts:322`
+— fails the same way with this change stashed. iOS and Android carry no caption: the founder's ask was the demo, and
+the phones' panels are untouched.

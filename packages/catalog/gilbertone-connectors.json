@@ -5,7 +5,7 @@
  "status": "proposed",
  "compiledOn": "2026-10-02",
  "policy": {
-  "statement": "Every connector below is proposed and off. Nothing in MyThuso can call one, and nothing in this file switches one on.",
+  "statement": "Every connector below is proposed, and none is installed or callable: nothing in MyThuso can send one a question. The demo switch below names them as sources in the preview; it does not run them.",
   "activationRequires": "1) Its licence read against the model card or project page and recorded, including whether commercial use is allowed; 2) where it would run, recorded against docs/governance/DATA-RESIDENCY-OPTIONS.md, with the host's capacity measured rather than assumed; 3) an adapter behind the seam it names, built dark, with its card in packages/catalog/api-registry.json moved from proposed in the same change; 4) for anything that would shape a clinical answer, a ratified entry in the Clinician Review Queue first.",
   "licenceNote": "Each licence below is the one the project publishes as recalled when this file was written on 2 October 2026, and none has yet been read from its primary source in this repository, unlike packages/catalog/open-source.json, which verifies every licence it records. Each connector therefore says licenceVerified false, and the screen draws it that way. Reading it is the first step of activation, not a formality.",
   "licenceUnverified": "Not yet read from its primary source.",
@@ -197,6 +197,44 @@
    "id": "no-clinical-answer-from-an-unreviewed-connector",
    "statement": "Nothing a connector produces reaches a patient as clinical information until the Clinician Review Queue has ratified that use.",
    "why": "Every one of these engines is published for research or general use. None has been evaluated for South African patients, and the medical models' own authors say so."
+  },
+  {
+   "id": "no-demo-connector-named-as-a-source",
+   "statement": "A connector switched on for the demo is never named as the source of an answer. Beneath an answer it is listed apart, as simulated and not consulted.",
+   "why": "The demo switch shows where GilbertOne's intelligence would come from. Attributing an answer to an engine that did not give it would make the preview overstate the product, which no screen here may do."
   }
- ]
+ ],
+ "demo": {
+  "on": true,
+  "since": "2026-10-02",
+  "decidedBy": "Founder",
+  "instruction": "switch these connectors on for demo of live intelligence. Maybe put a small caption under GilbertOne that shows sources its getting information from",
+  "statusWord": "On for the demo",
+  "sentence": "Switched on for the demonstration by the founder on 2 October 2026. In the preview, GilbertOne lists it beneath each answer as a demo connector. It is not installed or running, so no question reaches it and no answer comes from it, and the caption says so on the same line.",
+  "why": "The founder wants the demonstration to show where GilbertOne's intelligence would come from. Showing the connectors is honest; showing one as the source of an answer it did not give would be the overstatement this codebase refuses, so the caption keeps the two apart: what answered, then what is switched on for the demo and was not consulted.",
+  "connectors": [
+   "biomistral",
+   "meditron",
+   "medgemma",
+   "inkubalm",
+   "kiwix-wikimed",
+   "bge-m3",
+   "bge-reranker",
+   "opensearch",
+   "scispacy",
+   "medspacy",
+   "nemo-guardrails",
+   "llama-guard"
+  ]
+ },
+ "caption": {
+  "label": "Sources",
+  "_why": "Beneath every answer GilbertOne gives in the web panel, what actually produced it, read from the reply's own kind: the catalogue's approved words, the language model through GilbertOne's service, the emergency rules or the safe fallback on the device. Never a source that was not used.",
+  "catalogue": "MyThuso's approved answers, reviewed and written in advance",
+  "model": "A language model, through GilbertOne's service",
+  "emergency": "GilbertOne's emergency rules, on this device",
+  "fallback": "GilbertOne's safe fallback, on this device",
+  "demoSummary": "Demo connectors on",
+  "demoNotConsulted": "Simulated for the demonstration: switched on here, not installed, and not consulted for this answer."
+ }
 }

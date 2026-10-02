@@ -41,6 +41,9 @@ import { VoicePreview } from './VoicePreview';
 const isTts = (card: Card) => (card.serves ?? []).includes('tts');
 const connectorOf = (card: Card) => connectors.connectors.find(c => c.id === card.id);
 const groupOf = (id: string) => connectors.groups.find(g => g.id === id);
+/* On for the demo is the founder's switch of 2 October 2026, and it is drawn beside the card's own state
+   rather than in place of it: the card stays not-configured, because nothing is installed. */
+const onForDemo = (id: string) => connectors.demo.on && connectors.demo.connectors.includes(id);
 /* The two cards whose key founder access can reveal, read from its contract: the panel is drawn on
    those and on no other, behind its own dynamic import. */
 const founderCard = (card: Card) => founder.keys.some(k => k.card === card.id);
@@ -65,7 +68,7 @@ export function ApiRegistryScreen() {
     const notice = card.capabilityRef ? noticeFor(card.capabilityRef) : null;
     const connector = connectorOf(card);
     return { key: card.id, content: <article className="pt-card g1-card" aria-label={card.name}>
-     <h3>{card.name} <CardStatusWord id={card.statusToday}/> <BuildWord id={card.buildStatus}/></h3>
+     <h3>{card.name} <CardStatusWord id={card.statusToday}/> <BuildWord id={card.buildStatus}/>{onForDemo(card.id) && <> <span className="g1-tag g1-demo">{connectors.demo.statusWord}</span></>}</h3>
      <p>{card.why}</p>
      {notice && <p className="g1-notice">{notice}</p>}
      <dl className="pt-facts">
@@ -74,6 +77,7 @@ export function ApiRegistryScreen() {
       {card.prohibitedFor && <div className="g1-fact"><dt>Prohibited for</dt><dd>{card.prohibitedFor}</dd></div>}
       {card.calledFrom && <div className="g1-fact"><dt>Called from</dt><dd>{card.calledFrom}</dd></div>}
       {connector && <>
+       {onForDemo(card.id) && <div className="g1-fact"><dt>{connectors.demo.statusWord}</dt><dd>{connectors.demo.sentence}</dd></div>}
        <div className="g1-fact"><dt>What it is</dt><dd>{connector.project}. {groupOf(connector.group)?.label}.</dd></div>
        <div className="g1-fact"><dt>Licence</dt><dd>{connector.licence}. Commercial use: {connector.commercialUse}. {!connector.licenceVerified && connectors.policy.licenceUnverified}</dd></div>
        <div className="g1-fact"><dt>Would run</dt><dd>{connector.runs}</dd></div>
