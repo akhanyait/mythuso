@@ -242,7 +242,7 @@ button.dp-row:focus-visible { outline: 2px solid var(--color-ring); outline-offs
 .tri-pill.is-none { background: var(--color-muted); color: var(--color-muted-foreground); }
 
 .tri-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 var(--space-24); }
-@media (min-width: 1100px) { .tri-layout { grid-template-columns: minmax(320px, 2fr) minmax(0, 5fr); align-items: start; } }
+@media (min-width: 1100px) { .tri-layout { grid-template-columns: minmax(280px, 1.5fr) minmax(0, 5fr); align-items: start; } }
 
 .tri-patients { display: grid; gap: var(--space-8); margin: 0; padding: 0; list-style: none; }
 .tri-patient { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--space-12); width: 100%; min-height: 64px; padding: var(--space-12); border: 1px solid var(--color-border); border-left-width: 4px; border-radius: var(--r-md); background: var(--color-surface); color: var(--color-foreground); font: inherit; text-align: left; cursor: pointer; transition: border-color var(--t-quick) var(--ease-soft), background-color var(--t-quick) var(--ease-soft); }
@@ -270,25 +270,57 @@ button.dp-row:focus-visible { outline: 2px solid var(--color-ring); outline-offs
 .tri-vital.is-in-range { border-top-color: var(--tri-good); }
 .tri-vital.is-watch { border-top-color: var(--tri-watch); }
 .tri-vital.is-act { border-top-color: var(--tri-act); background: color-mix(in srgb, var(--tri-act-soft) 60%, var(--color-surface)); }
-.tri-vital-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-8); }
-.tri-vital-label { font-size: 13px; font-weight: 600; line-height: 1.35; letter-spacing: .02em; text-transform: uppercase; color: var(--color-muted-foreground); }
+.tri-vital-top { display: flex; align-items: flex-start; gap: var(--space-8); }
+.tri-vital-label { font-size: 15px; font-weight: 600; line-height: 1.3; color: var(--color-foreground); }
 .tri-vital-value { display: flex; align-items: baseline; gap: var(--space-4); margin: 0; }
 .tri-vital-value strong { font-family: var(--font-display); font-size: 32px; font-weight: 600; line-height: 1.1; letter-spacing: -.01em; color: var(--color-foreground); font-variant-numeric: tabular-nums; }
 .tri-vital-value span { font-size: 14px; color: var(--color-muted-foreground); }
 .tri-vital small { font-size: 13px; line-height: 1.4; color: var(--color-muted-foreground); }
 
-/* The gauge: the zones laid edge to edge, the pin a ringed dot where the value falls. */
-.tri-gauge { position: relative; display: block; height: 10px; margin: var(--space-4) 0; border-radius: var(--r-pill); background: var(--color-muted); }
-.tri-track { position: absolute; inset: 0; overflow: hidden; border-radius: var(--r-pill); }
-.tri-zone { position: absolute; top: 0; bottom: 0; }
-.tri-zone.is-in-range { background: color-mix(in srgb, var(--tri-good) 55%, var(--color-surface)); }
-.tri-zone.is-watch { background: color-mix(in srgb, var(--tri-watch) 60%, var(--color-surface)); }
-.tri-zone.is-act { background: color-mix(in srgb, var(--tri-act) 55%, var(--color-surface)); }
-.tri-pin { position: absolute; top: 50%; width: 18px; height: 18px; border: 3px solid var(--color-surface); border-radius: var(--r-pill); background: var(--color-foreground); box-shadow: 0 0 0 1px var(--color-foreground); transform: translate(-50%, -50%); }
+/* The banner a reading past its alert line raises: the danger wash, the reading in words, never a sound. */
+.tri-act-banner { display: flex; align-items: flex-start; gap: var(--space-12); margin: 0 0 var(--space-16); padding: var(--space-16); border: 1px solid color-mix(in srgb, var(--tri-act) 45%, var(--color-border)); border-left-width: 4px; border-left-color: var(--tri-act); border-radius: var(--r-md); background: var(--tri-act-soft); color: var(--color-foreground); }
+.tri-act-banner > svg { flex: none; color: var(--tri-act); }
+.tri-act-banner > div { display: grid; gap: var(--space-4); min-width: 0; font-size: 14px; line-height: 1.45; }
+.tri-act-banner strong { font-size: 16px; color: var(--tri-act); }
+
+/* The chosen patient, as the mockup heads its panel: who, why, and when the readings were taken. */
+.tri-who { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-12) var(--space-16); }
+.tri-who h2 { margin: 0; font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1.2; }
+.tri-avatar.is-large { width: 56px; height: 56px; font-size: 18px; }
+.tri-taken { display: inline-flex; align-items: center; gap: var(--space-8); color: var(--color-muted-foreground); }
+.tri-taken > span { display: grid; }
+.tri-taken strong { font-size: 14px; color: var(--color-foreground); }
+.tri-taken small { font-size: 13px; }
+.tri-vitals-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-8); }
+.tri-vitals-head h3 { display: inline-flex; align-items: center; gap: var(--space-8); margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; }
+.tri-lead { justify-self: start; margin-top: var(--space-4); padding: 0 var(--space-8); border-radius: var(--r-pill); font-size: 13px; font-weight: 700; line-height: 1.6; }
+.tri-lead.is-act { background: var(--tri-act); color: var(--color-primary-foreground); }
+.tri-lead.is-watch { background: var(--tri-watch-soft); color: var(--color-foreground); box-shadow: inset 0 0 0 1px var(--tri-watch); }
+
+/* The icon tile takes the marker's colour; the value takes it too where the reading is out of range. */
+.tri-vital .vi { color: var(--tri-good); background: var(--tri-good-soft); }
+.tri-vital.is-watch .vi { color: var(--mango-ink); background: var(--tri-watch-soft); }
+.tri-vital.is-act .vi { color: var(--tri-act); background: var(--tri-act-soft); }
+.tri-vital.is-none .vi { color: var(--color-muted-foreground); background: var(--color-muted); }
+.tri-vital.is-act .tri-vital-value strong { color: var(--tri-act); }
+.tri-vital-top .tri-vital-label { flex: 1; min-width: 0; align-self: center; }
+
+/* The sparkline: the indicative range shaded, the readings as a line, the latest as a ringed dot. */
+.tri-spark { position: relative; display: block; height: 48px; margin-top: var(--space-4); }
+.tri-spark svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.tri-spark-band { fill: color-mix(in srgb, var(--tri-good) 10%, transparent); }
+.tri-spark-line { fill: none; stroke: var(--tri-good); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.tri-vital.is-watch .tri-spark-line { stroke: var(--mango-ink); }
+.tri-vital.is-act .tri-spark-line { stroke: var(--tri-act); }
+.tri-spark-dot { position: absolute; width: 10px; height: 10px; border: 2px solid var(--color-surface); border-radius: var(--r-pill); background: var(--tri-good); box-shadow: 0 0 0 1px var(--tri-good); transform: translate(-50%, -50%); }
+.tri-vital.is-watch .tri-spark-dot { background: var(--mango-ink); box-shadow: 0 0 0 1px var(--mango-ink); }
+.tri-vital.is-act .tri-spark-dot { background: var(--tri-act); box-shadow: 0 0 0 1px var(--tri-act); }
 
 .tri-where h2 { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 600; }
 
 @media (prefers-reduced-motion: reduce) { .tri-patient { transition: none; } }
 @media (max-width: 600px) {
  .tri-vital-value strong { font-size: 28px; }
+ .tri-who { grid-template-columns: auto minmax(0, 1fr); }
+ .tri-taken { grid-column: 1 / -1; }
 }

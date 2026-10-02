@@ -124,8 +124,20 @@ test('Triage marks every reading against the range and the officer’s alert lin
   await expect(vitals).toHaveCount(records.observations.measures.length);
   await expect(screen.locator('.tri-vital.is-act').first()).toContainText(markerShort('act'));
   for (const m of records.observations.measures) await expect(vitals.filter({ hasText: m.label })).toContainText(`In range ${m.low}–${m.high}`);
+  /* A reading past its alert line is named in a banner, in the contract's words. */
+  await expect(screen.locator('.tri-act-banner')).toContainText(markers.screen.actBanner.replace(/^.*\{unit\}, /, '').split(' (')[0]);
+  /* The heart beats and the lungs breathe at the recorded rate, and the page's pause control stops both. */
+  await expect(screen.locator('.vi-heart.is-moving')).toHaveCount(1);
+  await expect(screen.locator('.vi-lungs.is-moving')).toHaveCount(1);
+  const motion = screen.locator('.tri-vitals');
+  await expect(motion).toHaveAttribute('data-motion', 'running');
+  await screen.getByRole('button', { name: 'Pause motion' }).click();
+  await expect(motion).toHaveAttribute('data-motion', 'paused');
+  await screen.getByRole('button', { name: 'Play motion' }).click();
+  await expect(motion).toHaveAttribute('data-motion', 'running');
+  await expect(screen).toContainText(markers.screen.notLive);
   /* Nothing on the board or the cards is summed into a figure about a person. */
-  for (const word of [/heatmap/i, /severity/i, /\bscore\b/i]) for (const part of await screen.locator('.tri-board, .tri-vitals').all()) await expect(part).not.toContainText(word);
+  for (const word of [/heatmap/i, /severity/i, /\bscore\b/i, /\blive readings\b/i, /\brisk\b/i]) for (const part of await screen.locator('.tri-board, .tri-vitals').all()) await expect(part).not.toContainText(word);
   /* A patient who has not consented shows the refusal, never an empty green board. */
   await screen.locator('.tri-patient.is-none').click();
   await expect(screen.locator('.tri-detail')).toContainText(markers.screen.noConsent);

@@ -38957,7 +38957,18 @@ console.log(
     const p = sandbox.match(new RegExp(`id:'${r.patientId}'[^}]*consent:(true|false)`));
     if (!p) tmFail(`the preview has readings for "${r.patientId}", who is not a sandbox patient in packages/thusoiq/fixtures.ts.`);
     if (p[1] !== "true") tmFail(`the preview has readings for "${r.patientId}", who has not consented to sharing them.`);
-    for (const id of Object.keys(r.values)) if (!obs.has(id)) tmFail(`the preview reads "${id}" for ${r.patientId}, which records.json does not observe.`);
+    for (const [id, series] of Object.entries(r.series)) {
+      if (!obs.has(id)) tmFail(`the preview reads "${id}" for ${r.patientId}, which records.json does not observe.`);
+      if (!Array.isArray(series) || !series.length || series.some((v) => typeof v !== "number")) tmFail(`the preview's "${id}" for ${r.patientId} is not a series of numbers, oldest first.`);
+    }
   }
+  /* 6. The heart and the lungs move at the recorded rate, under the page's pause control, and never under reduced motion. */
+  const viCss = read("apps/web/src/features/vital-icons.css").replace(/\/\*[\s\S]*?\*\//g, "");
+  for (const m of viCss.matchAll(/([^{}]*)\{[^{}]*animation:(?!\s*none\b)[^;}]*/g))
+    if (!m[1].includes("[data-motion='running']")) tmFail(`apps/web/src/features/vital-icons.css animates "${m[1].trim()}" outside [data-motion='running'], where the pause control cannot reach it.`);
+  if (!/prefers-reduced-motion:\s*reduce/.test(viCss)) tmFail("apps/web/src/features/vital-icons.css says nothing about a reader who asked for less motion.");
+  for (const m of viCss.matchAll(/@keyframes\s+([\w-]+)\s*\{((?:[^{}]|\{[^{}]*\})*)\}/g))
+    for (const prop of [...m[2].matchAll(/([a-z-]+)\s*:/g)].map((p) => p[1])) if (prop !== "transform") tmFail(`vital-icons.css's @keyframes ${m[1]} animates ${prop}. Transform only.`);
+  if (!/data-motion=\{decor\.reduced \? 'still' : decor\.playing \? 'running' : 'paused'\}/.test(triage)) tmFail("the Triage screen no longer hands its vitals the page's motion flag, so the heart would beat with no way to stop it.");
   console.log(`The triage markers · ${tm.lines.length} alert lines, each on or outside its indicative range, owned by the ${g.owner} and ${g.status === "reviewed" ? `reviewed on ${g.reviewedOn}` : "drawn under the demo banner"}; nothing typed, nothing summed; ${tm.preview.readings.length} consented sandbox patients with readings.`);
 }

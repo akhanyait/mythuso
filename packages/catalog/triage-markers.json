@@ -56,39 +56,44 @@
     "board": "Patients, most urgent marker first",
     "boardNote": "Ordered by the most urgent marker on the patient's latest readings, then by name. The order is a reading aid; who is seen first is a clinician's call.",
     "noConsent": "No reading is shown. This patient has not agreed to their readings being shared with the care team.",
+    "actBanner": "{measure} is {value} {unit}, at or past the alert line ({line}). A clinician should see this reading now.",
+    "notLive": "Taken at the door, not streamed. The heart and the lungs move at the rate recorded, so the picture is the reading rather than a live feed.",
+    "trend": "The last {count} readings, {interval} minutes apart. The shaded band is the indicative range.",
     "where": "Where these lines live",
     "whereNote": "The alert lines are packages/catalog/triage-markers.json, changed by the Clinical Governance Lead. The green band is the indicative range in packages/catalog/records.json, the same one the nurse's assessment and the Passport read."
   },
 
   "preview": {
-    "why": "Fictional readings for the three sandbox patients in packages/thusoiq/fixtures.ts, taken minutes ago, so the board has something to mark. One is calm, one has chronic readings to watch, and one has a fever with a fast pulse. The third patient has not consented, so the screen shows the refusal instead of their readings — and none are written here for them.",
+    "why": "Fictional readings for the three sandbox patients in packages/thusoiq/fixtures.ts, so the board has something to mark. Each series is the readings a nurse took at the door, oldest first, `intervalMinutes` apart; the last is the latest, taken `minutesAgo`. One patient is running a fever with a climbing pulse, one has chronic readings to watch, and the third has not consented, so the screen shows the refusal instead of their readings — and none are written here for them. None of it is live and none came from a device.",
     "readings": [
       {
         "patientId": "demo-thabo",
         "minutesAgo": 12,
+        "intervalMinutes": 30,
         "by": "Nurse at the door",
-        "values": {
-          "systolic": 108,
-          "diastolic": 68,
-          "pulse": 118,
-          "respiratory": 22,
-          "temperature": 39.3,
-          "oxygen": 95,
-          "glucose": 6.1
+        "series": {
+          "systolic": [112, 110, 111, 109, 108, 108],
+          "diastolic": [70, 71, 69, 68, 69, 68],
+          "pulse": [96, 102, 108, 112, 115, 118],
+          "respiratory": [18, 19, 19, 21, 22, 22],
+          "temperature": [38.2, 38.5, 38.8, 39.0, 39.2, 39.3],
+          "oxygen": [97, 96, 96, 96, 95, 95],
+          "glucose": [6.4, 6.3, 6.2, 6.2, 6.1, 6.1]
         }
       },
       {
         "patientId": "demo-lerato",
         "minutesAgo": 34,
+        "intervalMinutes": 30,
         "by": "Nurse at the door",
-        "values": {
-          "systolic": 152,
-          "diastolic": 94,
-          "pulse": 78,
-          "respiratory": 16,
-          "temperature": 36.7,
-          "oxygen": 97,
-          "glucose": 9.4
+        "series": {
+          "systolic": [148, 150, 155, 151, 149, 152],
+          "diastolic": [92, 93, 95, 94, 92, 94],
+          "pulse": [76, 80, 79, 77, 78, 78],
+          "respiratory": [16, 15, 16, 17, 16, 16],
+          "temperature": [36.6, 36.7, 36.6, 36.8, 36.7, 36.7],
+          "oxygen": [97, 98, 97, 97, 98, 97],
+          "glucose": [8.8, 9.1, 9.6, 9.2, 9.0, 9.4]
         }
       }
     ]
