@@ -556,7 +556,7 @@ Glass: A glass panel may not sit on top of text. Blur behind a word is the one p
 
 Chapter 7 logged the motion system's timing and, until this edition, none of its movements — the gap docs/ROADMAP.md's Gap 1 names. It is closed by derivation, not transcription. The handoff master `packages/brand/lovable-handoff/handoff/src/styles/theme.css` specifies 33 named `@keyframes`; porting them by name was refused, because the product already speaks the handoff's motion language — one curve, three durations, entrances on `data-reveal`, ambient loops gated on `data-decor` — and 31 orphan keyframes would have been a second motion system wearing the first one's clothes. Only 2 of the handoff's names the product carries (`mythuso-signal` and `impact-halo-pulse`); the movement it lacked it was given in its own voice, each with a real player on a screen and a test that walks it. `scripts/check-boundaries.mjs` refuses a keyframe nothing plays and an endless animation the pause control cannot stop, so no movement below is an orphan.
 
-The product's own stylesheets carry 56 named movements across 23 files, on the tokens' curve and durations, finite unless one of the ambient loops the pause control stops, and removed — not shortened — under reduced motion. The motion tests (`tests/chart-motion.spec.ts`, `tests/gilbertone-motion.spec.ts`, `tests/map.spec.ts`, `tests/motion.spec.ts`, `tests/patient-pages.spec.ts`) walk them on both viewports.
+The product's own stylesheets carry 58 named movements across 24 files, on the tokens' curve and durations, finite unless one of the ambient loops the pause control stops, and removed — not shortened — under reduced motion. The motion tests (`tests/chart-motion.spec.ts`, `tests/gilbertone-motion.spec.ts`, `tests/map.spec.ts`, `tests/motion.spec.ts`, `tests/patient-pages.spec.ts`) walk them on both viewports.
 
 | Surface | Movements it plays |
 | --- | --- |
@@ -571,6 +571,7 @@ The product's own stylesheets carry 56 named movements across 23 files, on the t
 | `features/portal/fields.css` | `fc-tick` `fc-saved-odd` `fc-saved-even` `fc-settle-odd` `fc-settle-even` |
 | `features/portal/portal.css` | `cf-arrive` `cf-unfold` `cf-land` `cf-refused` `cf-fill` `pt-ring-in` |
 | `features/public-assistant.css` | `public-assistant-rise` |
+| `features/vital-icons.css` | `vi-beat` `vi-breathe` |
 | `landing.css` | `il-travel` `il-breathe` `impact-halo-pulse` `reveal-rise` `service-settle` `ecg-draw` |
 | `map/map.css` | `map-pin-arrive` |
 | `shells/shells.css` | `psb-ring` |
