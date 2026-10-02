@@ -69,6 +69,10 @@ async function openAccessLog(page: Page) {
 test('losing the connection says so, and does not quietly show yesterday’s log', async ({ page, context }) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   await page.goto('/app/');
+  /* The connection is lost after the app has arrived, which is the case this is about. Cut before the
+     shell's own modules have loaded, there is no app to say anything, and the journey failed looking
+     for a navigation that was never going to draw. */
+  await expect(page.getByRole('navigation', { name: 'Main navigation' }).or(page.locator('.tabbar')).first()).toBeVisible();
   await context.setOffline(true);
 
   const dialog = await openAccessLog(page);
