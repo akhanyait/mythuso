@@ -39679,3 +39679,177 @@ console.log(checkLiveVitals({ read, files }));
 
   console.log("The patient's home on three platforms · the on-record sentence from passport.json under the readings on all three; the next visit ordered by nextFirst on all three; Android's nurse the visit's own or nobody; the CI document reads each phone's faces from the platform.");
 }
+
+/* ─── The storefront: real product types, generated pictures, and a welcome monitor that is a plan ───
+   2 October 2026. The founder asked for a shop with real products, proper pictures, what each device
+   reads and what the doctor sees, and a free device on sign-up. Each of those is a place a shop can
+   overstate itself, so each is held here as arithmetic or absence rather than as a sentence:
+
+   1. A kit has no price. It is the sum of its items wherever it is drawn, and the phones' generated
+      copies add it up too — a typed kit price is five numbers waiting to drift.
+   2. What a device measures is its instrument's, from capture.json, or record measures it is typed
+      into; never a list of its own. Each measure is in records.json or has a sentence saying the
+      record does not hold it — so no listing implies a doctor sees a weight the record cannot keep.
+   3. Every "who sees what" line exists, holds for the product it is on (an urgent far-outside answer
+      only for a measure with far-outside bounds, the live panel only for a measure it streams), and
+      says `in-preview` only with a file on disk as evidence.
+   4. No maker is named, anywhere a shopper or a prompt could read one: a brand implies a reseller
+      agreement that does not exist.
+   5. No payment path: nothing the storefront runs opens a request, and the shop entry's policy
+      reaches no other origin.
+   6. Every product and kit has a picture that exists, is the size the contract says and under its
+      cap, on the web and on both phones; alt text; provenance in shop/images.json; and the
+      "Illustrative image" label is drawn by every surface that draws a picture. The pictures are
+      not under /shop/, because nginx answers every path under /shop/ with shop.html.
+   7. The welcome monitor is `planned` while the accounts capability is not connected, its label
+      says so, its refusal is drawn wherever it is, and sign-up loads it behind a dynamic import.
+   8. Every price sits inside a reference range with the day it was checked and the kind of retailer
+      it came from. */
+{
+  const { shopDerivation } = await import("./emit-shop.mjs");
+  const sf = (m) => { throw new Error(`The storefront: ${m}`); };
+  const d = shopDerivation();
+  const { shop } = d;
+  const art = JSON.parse(read("packages/catalog/shop/images.json"));
+  const caps = JSON.parse(read("packages/catalog/capabilities.json"));
+  const capList = caps.capabilities ?? caps;
+  const webShop = read("apps/web/src/features/Shop.tsx");
+  const webLib = read("apps/web/src/lib/shop-catalogue.ts");
+  const webWelcome = read("apps/web/src/features/WelcomeDevice.tsx");
+  const onboarding = read("apps/web/src/features/Onboarding.tsx");
+  const iosShop = read("apps/ios/MyThuso/Features/ShopView.swift");
+  const androidShop = read("apps/android/app/src/main/java/za/co/mythuso/ui/ShopScreens.kt");
+  const [iosData, androidData] = emitShop().map((f) => f.content);
+  const productIds = new Set(shop.products.map((p) => p.id));
+
+  /* 1. */
+  for (const kit of shop.kits) {
+    for (const field of ["price", "priceCents", "total", "cost"]) if (field in kit) sf(`the kit "${kit.id}" carries a "${field}". A kit costs the sum of its items, worked out wherever it is shown.`);
+    if (kit.items.length < 2) sf(`the kit "${kit.id}" has fewer than two items, which is a product rather than a kit.`);
+    for (const id of kit.items) if (!productIds.has(id)) sf(`the kit "${kit.id}" names "${id}", which the shop does not sell.`);
+  }
+  if (!/export const kitCents = /.test(webLib) || /kit\.price\b/.test(webShop)) sf("the web no longer adds a kit up from its items in lib/shop-catalogue.ts.");
+  if (!/static func priceCents\(of kit: Kit\)/.test(iosData) || /priceCents: \d+, stock: \d+[^\n]*\n[^\n]*items:/.test(iosData)) sf("ShopData.swift no longer adds a kit up from its items.");
+  if (!/fun priceCents\(kit: ShopKit\)/.test(androidData)) sf("ShopData.kt no longer adds a kit up from its items.");
+
+  /* 2. */
+  const recordIds = new Set(d.records.observations.measures.map((m) => m.id));
+  const captureIds = new Set(d.capture.devices.map((x) => x.id));
+  for (const p of shop.products) {
+    if ("measures" in p) sf(`"${p.id}" lists its own measures. They are its instrument's in capture.json, or the record measures it is typed into.`);
+    if (p.captureKind && p.typedMeasures) sf(`"${p.id}" is both a Bluetooth instrument and typed in. It is one or the other.`);
+    if (p.captureKind && !captureIds.has(p.captureKind)) sf(`"${p.id}" names the instrument "${p.captureKind}", which packages/catalog/capture.json has not got.`);
+    for (const m of d.measuresOf(p))
+      if (!recordIds.has(m) && !shop.notInRecord[m]?.sentence) sf(`"${p.id}" measures "${m}", which records.json does not hold and notInRecord says nothing about — the listing would imply a doctor sees it.`);
+    if (p.needsReading && d.measuresOf(p).length === 0) sf(`"${p.id}" says it produces a reading but measures nothing.`);
+    if (p.captureKind === "bp-cuff" && !shop.validations.some((v) => v.id === p.validation)) sf(`"${p.id}" is a blood pressure monitor with no validation. A monitor is sold only from a published validation list.`);
+    if (p.captureKind === "pulse-oximeter" && !(p.caveats ?? []).includes("skin-pigmentation")) sf(`"${p.id}" is a pulse oximeter without the caveat about darker skin.`);
+    if (!shop.regulatory.classes.some((c) => c.id === p.sahpra)) sf(`"${p.id}" has no regulatory class from shop.json's list.`);
+  }
+  for (const c of shop.caveats) if (!c.sources?.length || c.sources.some((s) => !/^https:\/\//.test(s.url))) sf(`the caveat "${c.id}" cites no source.`);
+  for (const v of shop.validations) if (!/^https:\/\//.test(v.url)) sf(`the validation "${v.id}" names no list to check a model against.`);
+
+  /* 3. */
+  for (const [id, line] of Object.entries(shop.seenLines)) {
+    if (id.startsWith("_")) continue;
+    if (!["in-preview", "planned"].includes(line.status)) sf(`the line "${id}" is "${line.status}". A line is in this preview, with evidence, or planned.`);
+    if (line.status === "in-preview" && !(line.evidence && existsSync(line.evidence))) sf(`the line "${id}" says it is in this preview and names no file that makes it so.`);
+    if (/\d/.test(line.text.replace("{trendNeeds}", ""))) sf(`the line "${id}" types a number. A number in a promise comes from the contract that owns it.`);
+  }
+  for (const p of shop.products)
+    for (const [audience, ids] of Object.entries(p.sees ?? {}))
+      for (const id of ids) {
+        const line = shop.seenLines[id];
+        if (!line) sf(`"${p.id}" promises the line "${id}", which seenLines has not got.`);
+        if (line.audience !== audience) sf(`"${p.id}" lists "${id}" under ${audience}, and the line is the ${line.audience}'s.`);
+        if (!d.holds(p, line.needs)) sf(`"${p.id}" promises "${id}", which needs "${line.needs}" — and nothing "${p.id}" measures meets it.`);
+      }
+
+  /* 4. */
+  const brand = new RegExp(`\\b(${shop.brandsNeverNamed.map((b) => b.replace(/[-]/g, "\\-")).join("|")})\\b`, "i");
+  const shelf = JSON.stringify({ products: shop.products, kits: shop.kits, welcome: shop.welcome, validations: shop.validations, caveats: shop.caveats, seenLines: shop.seenLines, prompts: art.images });
+  const named = shelf.match(brand);
+  if (named) sf(`a listing, a picture's description or a prompt names "${named[0]}". Nothing in the shop names a maker.`);
+  for (const [file, code] of [["Shop.tsx", webShop], ["ShopView.swift", iosShop], ["ShopScreens.kt", androidShop], ["WelcomeDevice.tsx", webWelcome]]) {
+    const hit = code.match(brand);
+    if (hit) sf(`${file} names "${hit[0]}".`);
+  }
+
+  /* 5. */
+  for (const [file, code] of [["apps/web/src/features/Shop.tsx", webShop], ["apps/web/src/lib/shop-catalogue.ts", webLib], ["apps/web/src/lib/commerce.ts", read("apps/web/src/lib/commerce.ts")], ["apps/web/src/features/WelcomeDevice.tsx", webWelcome]]) {
+    if (/\bfetch\(|XMLHttpRequest|sendBeacon|new WebSocket|window\.open\(|['"`]\/api\//.test(code)) sf(`${file} opens a request. Nothing in the storefront reaches anything: no card is charged and no order is placed.`);
+    if (/\b(payfast|yoco|peach|stripe|paystack|ozow|checkout)\b/i.test(code.replace(/\/\*[\s\S]*?\*\//g, ""))) sf(`${file} names a payment provider or a checkout.`);
+  }
+  const shopPolicy = read("apps/web/shop.html").match(/http-equiv="Content-Security-Policy" content="[^"]*connect-src ([^;"]+)/)?.[1] ?? "";
+  if (shopPolicy.split(/\s+/).some((s) => s && !["'self'", "ws:"].includes(s))) sf(`apps/web/shop.html lets the page connect to ${shopPolicy}. The storefront reaches no payment provider, because there is no payment.`);
+  if (webShop.indexOf("refusal('no-payment')") < 0 || webShop.indexOf("refusal('no-payment')") > webShop.indexOf("<Shelf ")) sf("Shop.tsx no longer draws the no-payment refusal above the shelf.");
+
+  /* 6. */
+  const webpSize = (buf) => {
+    const kind = buf.toString("ascii", 12, 16);
+    if (kind === "VP8 ") return [buf.readUInt16LE(26) & 0x3fff, buf.readUInt16LE(28) & 0x3fff];
+    if (kind === "VP8L") { const b = buf.readUInt32LE(21); return [(b & 0x3fff) + 1, ((b >> 14) & 0x3fff) + 1]; }
+    if (kind === "VP8X") return [buf.readUIntLE(24, 3) + 1, buf.readUIntLE(27, 3) + 1];
+    return [0, 0];
+  };
+  const jpegSize = (buf) => {
+    for (let i = 2; i < buf.length;) {
+      const marker = buf[i + 1], length = buf.readUInt16BE(i + 2);
+      if (marker >= 0xc0 && marker <= 0xc3) return [buf.readUInt16BE(i + 7), buf.readUInt16BE(i + 5)];
+      i += 2 + length;
+    }
+    return [0, 0];
+  };
+  const img = shop.images;
+  if (img.dir.startsWith("/shop/")) sf(`the pictures are served from ${img.dir}, and deploy/nginx/mythuso.conf answers every path under /shop/ with shop.html.`);
+  if (!art.generator || !art.model || !/^\d{4}-\d{2}-\d{2}$/.test(art.made ?? "")) sf("packages/catalog/shop/images.json does not say which generator and model made the pictures, or on which day.");
+  const pictured = [...shop.products, ...shop.kits];
+  for (const item of pictured) {
+    if (!item.image?.alt || !/\.$/.test(item.image.alt) || item.image.alt.length < 20) sf(`"${item.id}" has no alt text that describes its picture in a sentence.`);
+    if (!art.images[item.id]?.prompt || !art.images[item.id]?.asset) sf(`"${item.id}" has a picture with no provenance in shop/images.json.`);
+    const checks = [
+      [`apps/web/public${img.dir}${item.id}.webp`, img.width, img.height, img.maxBytes, webpSize],
+      [`apps/web/public${img.dir}${item.id}${img.small.suffix}.webp`, img.small.width, img.small.height, img.maxBytes, webpSize],
+      [`apps/ios/MyThuso/Assets.xcassets/Shop-${item.id}.imageset/shop-${item.id}.jpg`, img.native.width, img.native.height, img.native.maxBytes, jpegSize],
+      [`apps/android/app/src/main/res/drawable-nodpi/shop_${item.id.replace(/-/g, "_")}.webp`, img.native.width, img.native.height, img.native.maxBytes, webpSize],
+    ];
+    for (const [file, w, h, cap, size] of checks) {
+      if (!existsSync(file)) sf(`"${item.id}" has no picture at ${file}.`);
+      const buf = readFileSync(file);
+      if (buf.length > cap) sf(`${file} is ${buf.length} bytes, over the ${cap} the contract allows. The shop is opened on metered data.`);
+      const [aw, ah] = size(buf);
+      if (aw !== w || ah !== h) sf(`${file} is ${aw}×${ah}, and the contract says ${w}×${h}.`);
+    }
+  }
+  for (const id of Object.keys(art.images)) if (!pictured.some((p) => p.id === id)) sf(`shop/images.json describes "${id}", which the shop does not list.`);
+  if (!/shop\.images\.label/.test(webShop) || !/images\.label/.test(webWelcome) || !/ShopData\.imageLabel/.test(iosShop) || !/ShopData\.imageLabel/.test(androidShop))
+    sf(`a surface draws a picture without the "${img.label}" label: Shop.tsx, WelcomeDevice.tsx, ShopView.swift and ShopScreens.kt each read it from the contract.`);
+
+  /* 7. */
+  const w = shop.welcome;
+  const accounts = capList.find((c) => c.id === "accounts");
+  if (!accounts?.connected && w.status !== "planned") sf(`the welcome monitor is "${w.status}" while sign-up is not connected. It is a planned launch offer until accounts are live.`);
+  if (!/planned/i.test(w.label) || !/not live/i.test(w.label)) sf("the welcome monitor's label no longer says it is planned and that sign-up is not live.");
+  if (!productIds.has(w.productId) || !shop.products.find((p) => p.id === w.productId).welcome) sf("the welcome monitor names a product the shop does not mark as the welcome device.");
+  if (!shop.refusals.some((r) => r.id === "welcome-not-live")) sf("the welcome-not-live refusal is gone.");
+  if (!/welcome\.label/.test(webShop) || !/refusal\('welcome-not-live'\)/.test(webShop)) sf("Shop.tsx draws the welcome monitor without its label or its refusal.");
+  if (!/welcome\.label/.test(webWelcome) || !/'welcome-not-live'/.test(webWelcome)) sf("WelcomeDevice.tsx draws the welcome monitor without its label or its refusal.");
+  if (!/ShopData\.Welcome\.label/.test(iosShop) || !/"welcome-not-live"/.test(iosShop) || !/ShopWelcome\.label/.test(androidShop) || !/"welcome-not-live"/.test(androidShop))
+    sf("a phone draws the welcome monitor without its label or its refusal.");
+  if (!/lazy\(\(\) => import\('\.\/WelcomeDevice'\)\)/.test(onboarding) || /^import[^\n]*WelcomeDevice/m.test(onboarding)) sf("sign-up loads the welcome monitor statically. It sits behind a dynamic import so the patient entry does not grow.");
+  if (!/^https:\/\//.test(w.why.url) || !(w.why.women > 0 && w.why.men > 0)) sf("the welcome monitor's reason no longer cites the survey it comes from.");
+  if (!(w.cost.wholesaleShare.low < w.cost.wholesaleShare.high && w.cost.wholesaleShare.high < 1) || "amount" in w.cost) sf("the welcome monitor's cost is typed rather than worked out from the reference price and a stated share.");
+
+  /* 8. */
+  const today = new Date().toISOString().slice(0, 10);
+  for (const p of shop.products) {
+    const r = p.reference;
+    if (!r || !(r.low <= p.price && p.price <= r.high)) sf(`"${p.id}" costs R${p.price}, outside its reference range.`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(r.checked) || r.checked > today) sf(`"${p.id}" has a reference price with no day it was checked.`);
+    if (!r.from || r.from.length < 10) sf(`"${p.id}" has a reference price that does not say what kind of retailer it came from.`);
+    if (r.low % 10 || r.high % 10) sf(`"${p.id}" has a reference range to the rand. A reference price is rounded; a figure to the rand claims a precision nobody has.`);
+  }
+
+  const kitTotals = shop.kits.map((k) => `${k.name} R${d.kitCents(k) / 100}`).join(", ");
+  console.log(`The storefront · ${shop.products.length} products and ${shop.kits.length} kits priced from their items (${kitTotals}); every measure from capture.json and records.json; ${Object.keys(shop.seenLines).length - 1} who-sees-what lines held to what each product measures, ${Object.values(shop.seenLines).filter((l) => l.status === "in-preview").length} of them in this preview with evidence; ${pictured.length} pictures × 4 files sized and capped, each with alt text and provenance; no maker named; no request opened; the welcome monitor planned while sign-up is not live; every price inside a dated reference range.`);
+}

@@ -408,6 +408,7 @@ struct MoreView: View {
                        choose. The row's words are the contract's, so the door and the screen cannot drift apart. */
                     row(GroupsData.Words.heading, GroupsData.Words.intro, "person.3") { GroupOptInView() }
                     row("Payments", "Cards, history and refunds", "creditcard") { WalletView() }
+                    row("Shop", "Monitors, care supplies and kits. Nothing is charged", "bag") { ShopView() }
                 }
                 group("Your account") {
                     row("Notifications", "Visit updates and messages", "bell") { NotificationsView() }
