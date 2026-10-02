@@ -3,6 +3,7 @@ import {
   authEnvName,
   federationSource,
   isSourceActive,
+  outgoingTerm,
   type AdapterDeps,
   type AdapterOutcome,
   type FederatedResult,
@@ -115,14 +116,14 @@ async function fetchToken(
 export async function searchIcd11(query: string, deps: AdapterDeps = {}): Promise<AdapterOutcome> {
   const config = deps.config ?? federationSource(SOURCE_ID);
   if (!config) return { status: "unavailable", sourceId: SOURCE_ID, detail: "no config for this source in federation.json" };
-  if (!isSourceActive(config))
+  if (!isSourceActive(config, deps.override))
     return {
       status: "dark",
       sourceId: config.id,
-      detail: `${config.id} is dark (active: false) — activation requires the recorded licence and POPIA review, credentials in the deployment environment, then a deliberate edit of federation.json`,
+      detail: `${config.id} is dark (active: false, and the demonstration override does not open it) — activation requires the recorded licence and POPIA review, credentials in the deployment environment, then a deliberate edit of federation.json`,
     };
 
-  const trimmed = (query ?? "").trim().slice(0, MAX_QUERY_LENGTH);
+  const trimmed = outgoingTerm(query, MAX_QUERY_LENGTH);
   if (!trimmed)
     return { status: "unavailable", sourceId: config.id, detail: "no query was given; nothing left the process" };
 
@@ -153,7 +154,8 @@ export async function searchIcd11(query: string, deps: AdapterDeps = {}): Promis
   try {
     const url = `${endpoint}?q=${encodeURIComponent(trimmed)}&flatResults=true`;
     const response = await fetchImpl(url, {
-      headers: { authorization: `Bearer ${token.token}`, accept: "application/json" },
+      /* WHO's ICD API v2 answers only a request that names its API version and a language. */
+      headers: { authorization: `Bearer ${token.token}`, accept: "application/json", "api-version": "v2", "accept-language": "en" },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     if (!response.ok) return { status: "unavailable", sourceId: config.id, detail: `the search answered ${response.status}` };

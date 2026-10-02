@@ -35,6 +35,7 @@ const providers = json('../packages/catalog/model-providers.json');
 const levels = json('../packages/catalog/intelligence-levels.json');
 const corpus = json('../packages/catalog/knowledge-corpus-tiers.json');
 const federation = json('../packages/catalog/knowledge/federation.json');
+const demonstration = json('../packages/catalog/demonstration-override.json');
 const pack = json('../packages/catalog/compliance-pack.json');
 const registry = json('../packages/catalog/api-registry.json');
 const assistant = json('../packages/catalog/assistant.json');
@@ -550,14 +551,19 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   await holdsNothingOpen(page, 'Intelligence');
  });
 
- test('Knowledge: two corpora, three sources none of them active, the clinical lock, and no address drawn', async ({ page }) => {
+ test('Knowledge: two corpora, every source flagged off, those the demonstration override opens saying so, the clinical lock, and no address drawn', async ({ page }) => {
   await start(page, 'Knowledge');
   for (const t of corpus.corpusTiers) await expect(panel(page)).toContainText(t.sentence);
-  const sources = panel(page).getByRole('list', { name: `${federation.sources.length} external sources, none active` });
+  /* Since 2 October 2026 the founder's demonstration override opens the sources it lists whose licences
+     permit; every flag still reads false, and the rest are drawn not active. */
+  const opened = (id: string) => demonstration.inForce && demonstration.gates.some((g: { id: string }) => g.id === `knowledge-source:${id}`);
+  const openCount = federation.sources.filter((s: { id: string }) => opened(s.id)).length;
+  const sources = panel(page).getByRole('list', { name: `${federation.sources.length} external sources, ${openCount} on for demonstration` });
   await expect(sources.locator('li')).toHaveCount(federation.sources.length);
+  await expect(panel(page)).toContainText(demonstration.disclaimer.sentence);
   for (const s of federation.sources) {
    expect(s.active).toBe(false);
-   await expect(sources.getByRole('article', { name: s.name })).toContainText(g1.knowledge.inactiveWord);
+   if (!opened(s.id)) await expect(sources.getByRole('article', { name: s.name })).toContainText(g1.knowledge.inactiveWord);
    await expect(panel(page)).not.toContainText(s.endpoint);
   }
   await expect(panel(page).locator('.g1-locked')).toContainText(corpus.refusals.find((r: { id: string }) => r.id === 'no-clinical-corpus-refresh-outside-the-review-queue').statement);

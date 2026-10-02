@@ -2,13 +2,21 @@ import { retrieveKnowledge, tokenize, type KnowledgeResult } from "./knowledge.t
 import { isExpired, type SourceCitation } from "./knowledge-provenance.ts";
 import {
   abstentionSentence,
+  federationSources,
   federationState,
+  isSourceActive,
+  openedByDemonstration,
+  type AdapterDeps,
   type AdapterOutcome,
   type FederatedResult,
 } from "./sources/config.ts";
+import { demonstrationOverride, overrideGate, type DemonstrationOverride } from "./demonstration-override.ts";
+import { searchCdc } from "./sources/cdc-adapter.ts";
 import { searchIcd11 } from "./sources/icd11-adapter.ts";
+import { searchMedlinePlus } from "./sources/medlineplus-adapter.ts";
 import { searchOpenFda } from "./sources/openfda-adapter.ts";
 import { searchPubMed } from "./sources/pubmed-adapter.ts";
+import { searchWikidata } from "./sources/wikidata-adapter.ts";
 
 /* The governed knowledge federation, added on 22 September 2026.
 
@@ -17,9 +25,12 @@ import { searchPubMed } from "./sources/pubmed-adapter.ts";
    federation.json row says "active": false — which is every source today), merges whatever comes
    back under one provenance discipline, and answers — when it cannot answer — with an explicit
    abstention instead of a guess. It is the only module in this service allowed to import the
-   adapters in ./sources (a boundary check enforces exactly that), it is not imported by any route
-   yet, and in production today it can only ever return local results plus a record that every
-   external source was dark. That is the designed behaviour, not a stub.
+   adapters in ./sources (a boundary check enforces exactly that). Since 2 October 2026 one caller
+   imports it, deliberately: the reference_sources tool (./tools/reference-sources.ts), which the
+   orchestrator's model tier may call. The founder's demonstration override of that day
+   (packages/catalog/demonstration-override.json) opens the sources whose licences allow a commercial
+   service's use, without the two signatures each still waits on; with the override switched off every
+   source is dark again, and this module returns local results plus a record that each one was dark.
 
    THE RULES, IN ORDER.
 
@@ -103,17 +114,27 @@ export type FederationDeps = {
      search; tests inject a deterministic one. */
   localSearch?: (query: string, topK: number) => Promise<KnowledgeResult[]>;
   adapters?: FederationAdapter[];
+  /* Handed to every default adapter: a test's stub fetch, or a closed override proving the go-live
+     path. Production passes nothing. */
+  adapterDeps?: AdapterDeps;
   now?: () => Date;
 };
 
-/* The allowlisted sources, in the order their results would appear. Registered from the adapters
-   above — each reads its own federation.json row and refuses while dark, so adding an adapter here
-   can never imply an active source. */
-const defaultAdapters = (): FederationAdapter[] => [
-  { id: "icd11-who", search: (query) => searchIcd11(query) },
-  { id: "openfda", search: (query) => searchOpenFda(query) },
-  { id: "pubmed-europepmc", search: (query) => searchPubMed(query) },
+/* The allowlisted sources that have an adapter, in the order their results would appear. Registered
+   from the adapters above — each reads its own federation.json row and the override, and refuses while
+   dark, so adding an adapter here can never imply an active source. SNOMED CT and LOINC have none: they
+   wait on a licence registration and an account, and an adapter written against neither would be
+   tested against nothing. */
+const defaultAdapters = (deps: AdapterDeps = {}): FederationAdapter[] => [
+  { id: "icd11-who", search: (query) => searchIcd11(query, deps) },
+  { id: "openfda", search: (query) => searchOpenFda(query, deps) },
+  { id: "pubmed-europepmc", search: (query) => searchPubMed(query, deps) },
+  { id: "medlineplus-nlm", search: (query) => searchMedlinePlus(query, deps) },
+  { id: "cdc-content-services", search: (query) => searchCdc(query, deps) },
+  { id: "wikidata", search: (query) => searchWikidata(query, deps) },
 ];
+
+export const federationAdapterIds = (): string[] => defaultAdapters().map((adapter) => adapter.id);
 
 /* The excluded things of federation.json's scope, in the phrasings a person actually uses. Narrow
    on purpose: each pattern is a request FOR one of the four excluded services, never a topic that
@@ -218,7 +239,7 @@ export async function federatedSearch(
     local = [];
   }
 
-  const adapters = options.adapters ?? defaultAdapters();
+  const adapters = options.adapters ?? defaultAdapters(options.adapterDeps);
   const outcomes = await Promise.all(
     adapters.map(async (adapter): Promise<AdapterOutcome> => {
       try {
@@ -293,3 +314,35 @@ export async function federatedSearch(
    read from federation.json through ./sources/config, so the answer cannot drift from the file the
    adapters obey. */
 export const federationStatus = federationState;
+
+/* Each source's posture for a caller that must say it — the reference tool and its tests: whether it
+   answers, whether only because of the demonstration override, what it waits for when the override
+   opens it without its credentials, and the attribution and audience it is shown with. Read through
+   ./sources/config, so the posture a caller prints is the one the adapters obey. */
+export type ReferencePosture = {
+  id: string;
+  name: string;
+  on: boolean;
+  demonstration: boolean;
+  hasAdapter: boolean;
+  waitingFor: string;
+  attribution: string;
+  audience: string;
+};
+
+export const referencePosture = (override: DemonstrationOverride = demonstrationOverride()): ReferencePosture[] => {
+  const withAdapters = new Set(federationAdapterIds());
+  return federationSources().map((source) => {
+    const gate = overrideGate(`knowledge-source:${source.id}`, override);
+    return {
+      id: source.id,
+      name: source.name ?? source.id,
+      on: isSourceActive(source, override),
+      demonstration: openedByDemonstration(source, override),
+      hasAdapter: withAdapters.has(source.id),
+      waitingFor: gate?.state === "waiting-for-credentials" ? (gate.waitingFor ?? "") : "",
+      attribution: source.licensing?.attribution ?? source.authority ?? source.id,
+      audience: source.audience ?? "",
+    };
+  });
+};

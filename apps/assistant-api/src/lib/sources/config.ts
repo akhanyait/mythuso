@@ -1,4 +1,6 @@
 import federation from "../../../../../packages/catalog/knowledge/federation.json" with { type: "json" };
+import { redactPHI } from "../../../../../packages/gilbertone/src/phi.ts";
+import { demonstrationOverride, overrideOpens, type DemonstrationOverride } from "../demonstration-override.ts";
 import type { KnowledgeCode, SourceCitation } from "../knowledge-provenance.ts";
 import type { RateGate } from "./rate-gate.ts";
 
@@ -23,7 +25,9 @@ export type SourceRateLimit = {
 
 export type SourceLicensing = {
   licence?: string;
+  verdict?: string;
   attributionRequired?: boolean;
+  attribution?: string;
   notes?: string;
 };
 
@@ -49,6 +53,7 @@ export type SourceConfig = {
   dataResidency?: SourceResidency;
   useFor?: string;
   notFor?: string;
+  audience?: string;
 };
 
 export type FederationManifest = {
@@ -63,6 +68,7 @@ export type FederationManifest = {
     popiaNote?: string;
   };
   evidenceGrades?: Record<string, string>;
+  licenceVerdicts?: Record<string, { mayActivate?: boolean; requiresPermissionRecord?: boolean }>;
   abstention?: Record<string, string>;
   scope?: { approved?: string[]; excluded?: string[]; statement?: string };
   sources?: SourceConfig[];
@@ -103,6 +109,9 @@ export type AdapterDeps = {
   now?: () => Date;
   gate?: RateGate;
   env?: { [key: string]: string | undefined };
+  /* The founder's demonstration override (packages/catalog/demonstration-override.json). Production
+     passes nothing and reads the contract; a test passes a closed copy to prove the go-live path. */
+  override?: DemonstrationOverride;
 };
 
 export const federationManifest = (): FederationManifest => federation as FederationManifest;
@@ -115,8 +124,43 @@ export const federationSources = (): SourceConfig[] => {
 export const federationSource = (id: string): SourceConfig | null =>
   federationSources().find((source) => source.id === id) ?? null;
 
-/* The one question every adapter asks first. Anything but an explicit true is dark. */
-export const isSourceActive = (source: SourceConfig | null): boolean => source?.active === true;
+/* Whether a source's licence lets the demonstration override open it: a verdict that may activate and
+   needs no written permission on file. Asked here as well as by the build, so an override that listed a
+   permission-required source by mistake would still find it dark — a licence is law, not a gate the
+   founder can stand in for. */
+export const licencePermitsDemonstration = (source: SourceConfig | null): boolean => {
+  const verdict = federationManifest().licenceVerdicts?.[source?.licensing?.verdict ?? ""];
+  return verdict?.mayActivate === true && verdict.requiresPermissionRecord !== true;
+};
+
+/* The one question every adapter asks first. A source answers when it is signed — its own "active":
+   true, which federation.json's validator allows only with both signatures — or when the founder's
+   demonstration override of 2 October 2026 lists it, is in force, and its licence permits. Anything
+   else is dark. Going live sets the override's inForce to false, and this answers as it did before. */
+export const isSourceActive = (
+  source: SourceConfig | null,
+  override: DemonstrationOverride = demonstrationOverride(),
+): boolean =>
+  source?.active === true ||
+  (source !== null && overrideOpens(`knowledge-source:${source.id}`, override) && licencePermitsDemonstration(source));
+
+/* On, and on only because of the override: what a surface marks with the disclaimer. */
+export const openedByDemonstration = (
+  source: SourceConfig | null,
+  override: DemonstrationOverride = demonstrationOverride(),
+): boolean => source?.active !== true && isSourceActive(source, override);
+
+/* What leaves the process for a source: the topic words, through the same redaction every model call
+   gets, whitespace folded and capped. Never the person's sentence untouched, even though the tool that
+   calls an adapter is handed a topic rather than a message. */
+export const outgoingTerm = (query: string, max: number): string =>
+  redactPHI(query ?? "").replace(/\s+/g, " ").trim().slice(0, max);
+
+/* A term safe to place inside a query language (openFDA's search syntax, SPARQL's string literal):
+   letters, digits, spaces, hyphens and apostrophes, and nothing a query language could read as
+   syntax. Losing punctuation costs a search nothing; an injected quote costs the query its meaning. */
+export const plainTerm = (term: string): string =>
+  term.normalize("NFC").replace(/[^\p{L}\p{N} '\-]/gu, " ").replace(/\s+/g, " ").trim();
 
 /* The OpenFDA interaction config, read from federation.json but with its `active` flag overridden
    by the OPENFDA_ENABLED env var at runtime. The federation.json entry stays dark ("active": false)

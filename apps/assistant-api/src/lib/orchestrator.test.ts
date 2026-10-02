@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer, type Server } from 'node:http';
 import { orchestrate } from './orchestrator.ts';
-import { LLM_MAX_OUTPUT_TOKENS } from './llm-adapter.ts';
+import { LLM_MAX_OUTPUT_TOKENS, LLM_REPLY_LIMIT } from './llm-adapter.ts';
+import { demonstrationDisclaimer } from './demonstration-override.ts';
 
 /* The orchestrator tier's own tests, added with it on 21 September 2026. The model behind the
    tier is a scripted server speaking the OpenAI chat protocol on a local port — the same wire
@@ -181,6 +182,40 @@ test('a tool call is dispatched, its result fed back, and its sources become the
    assert.ok(String(toolMessages[0].content).includes('Sources: '));
   });
  } finally {
+  await provider.close();
+ }
+});
+
+test('an answer that drew on the reference sources ends with the demonstration disclaimer, word for word, inside the cap', async () => {
+ /* The founder's demonstration override of 2 October 2026: the sources it opens are asked from
+    production, so the answer says so mechanically rather than trusting the model to. The external
+    sources are answered by a stub here — every request that is not the scripted model's is caught —
+    and the model's answer is long enough to need the room the disclaimer keeps. */
+ const provider = await scriptedProvider([
+  nerEmpty,
+  assistantToolCall('reference_sources', { query: 'sunburn' }),
+  assistantAnswer(`MedlinePlus, from the US National Library of Medicine, says sunburn is a sign of skin damage. ${'Stay out of the midday sun. '.repeat(60)}`),
+ ]);
+ const originalFetch = globalThis.fetch;
+ const asked: string[] = [];
+ globalThis.fetch = (async (input: unknown, init?: RequestInit) => {
+  const url = new URL(String(input instanceof Request ? input.url : input));
+  if (url.hostname === '127.0.0.1') return originalFetch(input as Parameters<typeof fetch>[0], init);
+  asked.push(url.hostname);
+  return new Response('{}', { status: 503 });
+ }) as unknown as typeof fetch;
+ try {
+  await withEnv({ OLLAMA_URL: provider.url }, async () => {
+   const result = await orchestrate('what does medlineplus say about sunburn');
+   assert.equal(result.degraded, false);
+   assert.deepEqual(result.toolsUsed, ['reference_sources']);
+   assert.ok(result.answer.startsWith('MedlinePlus, from the US National Library of Medicine'));
+   assert.ok(result.answer.endsWith(demonstrationDisclaimer()), 'the disclaimer closes the answer');
+   assert.ok(result.answer.length <= LLM_REPLY_LIMIT, 'and the answer still fits the cap');
+   assert.ok(asked.length > 0, 'the opened sources were asked (here, of a stub)');
+  });
+ } finally {
+  globalThis.fetch = originalFetch;
   await provider.close();
  }
 });

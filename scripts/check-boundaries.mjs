@@ -32260,8 +32260,13 @@ console.log(
         licence, rate limit basis, data-residency position and use boundaries a reviewer signs off,
         and the four abstention sentences present. Activation is a deliberate edit of that file.
      4. Darkness is structural, not merely configured: only the federation module may import the
-        adapters, no file may import the federation module yet, and each adapter's dark guard sits
-        before it wires its fetch — so an accidental import cannot wake a source. */
+        adapters, only the reference_sources tool may import the federation module, and each
+        adapter's dark guard sits before it wires its fetch — so an accidental import cannot wake a
+        source.
+     5. The founder's demonstration override of 2 October 2026 (packages/catalog/demonstration-
+        override.json) opens sources beside their flags, never by moving one: every "active" stays
+        false, every signature stays null, and scripts/demonstration-override.mjs holds what it may
+        open — only what it lists, only a licence that permits it — for this check and the tests. */
 {
   const {
     KNOWLEDGE_FILES,
@@ -32270,6 +32275,9 @@ console.log(
     validateEntryCodes,
     validateSourceGovernance,
   } = await import("./knowledge-codes.mjs");
+  const { validateDemonstrationOverride, sourceOn } = await import(
+    "./demonstration-override.mjs"
+  );
   const knowledgeDir = "packages/catalog/knowledge";
   /* The fourteen sources assessed and allowlisted, dark, on 1 October 2026. */
   const KNOWLEDGE_SOURCES_FLOOR = 14;
@@ -32347,6 +32355,37 @@ console.log(
     throw new Error(
       `Knowledge source governance:\n  ${governanceFindings.join("\n  ")}`,
     );
+  /* 3b. The demonstration override opens only what it lists, only under a licence that permits it, and
+     never what it records as left closed; with inForce false, no source answers at all. */
+  const demonstration = JSON.parse(
+    read("packages/catalog/demonstration-override.json"),
+  );
+  const overrideFindings = validateDemonstrationOverride(
+    demonstration,
+    federation,
+  );
+  if (overrideFindings.length)
+    throw new Error(
+      `Demonstration override:\n  ${overrideFindings.join("\n  ")}`,
+    );
+  const openWhenLive = sources.filter((source) =>
+    sourceOn({ ...demonstration, inForce: false }, federation, source),
+  );
+  if (openWhenLive.length)
+    throw new Error(
+      `With the demonstration override switched off, ${openWhenLive.map((source) => source.id).join(", ")} still answer${openWhenLive.length === 1 ? "s" : ""}. Going live is inForce false and nothing else, so nothing may stay open once it is.`,
+    );
+  const openedByOverride = sources.filter((source) =>
+    sourceOn(demonstration, federation, source),
+  );
+  const sourcesCard = JSON.parse(
+    read("packages/catalog/api-registry.json"),
+  ).cards.find((card) => card.id === "knowledge-sources");
+  const cardShouldRead = openedByOverride.length ? "demonstration" : "dark";
+  if (sourcesCard?.statusToday !== cardShouldRead)
+    throw new Error(
+      `packages/catalog/api-registry.json's knowledge-sources card reads "${sourcesCard?.statusToday}", and with the demonstration override ${demonstration.inForce ? "in force" : "switched off"} it reads "${cardShouldRead}". The card says what the sources do, so going live moves it with the override.`,
+    );
   const sourceIds = new Set();
   for (const source of sources) {
     const id = source.id ?? "<no id>";
@@ -32395,27 +32434,30 @@ console.log(
   /* 4. Darkness is structural. */
   const sourcesDir = "apps/assistant-api/src/lib/sources";
   const federationModule = `${sourcesDir.replace(/\/sources$/, "")}/knowledge-federation.ts`;
-  for (const name of [
-    "config.ts",
-    "rate-gate.ts",
+  const adapterFiles = [
     "icd11-adapter.ts",
     "openfda-adapter.ts",
     "pubmed-adapter.ts",
-  ])
+    "medlineplus-adapter.ts",
+    "cdc-adapter.ts",
+    "wikidata-adapter.ts",
+  ];
+  for (const name of ["config.ts", "rate-gate.ts", ...adapterFiles])
     if (!existsSync(`${sourcesDir}/${name}`))
       throw new Error(
         `${sourcesDir}/${name} is gone — the federation's ${name === "config.ts" || name === "rate-gate.ts" ? "plumbing" : "adapter"} is what keeps its sources dark; removing a file is not how a source is retired.`,
       );
-  const guardString = "isSourceActive(config)";
-  for (const name of [
-    "icd11-adapter.ts",
-    "openfda-adapter.ts",
-    "pubmed-adapter.ts",
-  ]) {
+  /* The guard asks the source's flag and the demonstration override together, and nothing else. */
+  const guardString = "isSourceActive(config, deps.override)";
+  for (const name of adapterFiles) {
     const source = read(`${sourcesDir}/${name}`);
     if (!source.includes(guardString))
       throw new Error(
-        `${sourcesDir}/${name} no longer asks isSourceActive(config) — the dark guard is what makes "active": false mean anything.`,
+        `${sourcesDir}/${name} no longer asks isSourceActive(config, deps.override) — the dark guard is what makes "active": false mean anything, and the override is the one thing beside it.`,
+      );
+    if (!source.includes("outgoingTerm(query"))
+      throw new Error(
+        `${sourcesDir}/${name} no longer passes its query through outgoingTerm() — the redaction every model call gets is what keeps a person off a lookup that crosses the border.`,
       );
     if (!source.includes("gate.take(nowMs)"))
       throw new Error(
@@ -32432,7 +32474,7 @@ console.log(
       );
   }
   const adapterSpecifier =
-    /["'][^"']*sources\/(?:config|rate-gate|icd11-adapter|openfda-adapter|pubmed-adapter)\.ts["']/;
+    /["'][^"']*sources\/(?:config|rate-gate|icd11-adapter|openfda-adapter|pubmed-adapter|medlineplus-adapter|cdc-adapter|wikidata-adapter)\.ts["']/;
   const federationSpecifier = /["'][^"']*knowledge-federation(?:\.ts)?["']/;
   /* The drug-check tool was deliberately wired to the openFDA adapter on 2026-09-23: it queries
      interaction reports behind the adapter's own dark guard (OPENFDA_ENABLED), and the local
@@ -32441,6 +32483,10 @@ console.log(
   const adapterAllowlist = new Set([
     "apps/assistant-api/src/lib/tools/drug-check.ts",
   ]);
+  /* The reference_sources tool was wired to the federation on 2026-10-02, with the founder's
+     demonstration override: it is the one road from the model tier to an external source, and the
+     decision this check exists to make explicit. */
+  const referenceTool = "apps/assistant-api/src/lib/tools/reference-sources.ts";
   let federationSwept = 0;
   for (const file of files("apps/assistant-api/src").filter(
     (f) => f.endsWith(".ts") && !f.includes(".test."),
@@ -32452,15 +32498,30 @@ console.log(
       throw new Error(
         `${file} imports the federation's source adapters. Only ${federationModule} may reach them — every other road to an adapter is a road around the dark guard.`,
       );
-    if (federationSpecifier.test(source))
+    if (federationSpecifier.test(source) && file !== referenceTool)
       throw new Error(
-        `${file} imports knowledge-federation.ts. No route, engine, tool or store imports it yet — the federated answer ships only when a caller is wired deliberately, and this check makes that wiring a decision rather than an accident.`,
+        `${file} imports knowledge-federation.ts. Only ${referenceTool} does — the federated answer reaches a person through that one tool, wired deliberately, and this check makes any other wiring a decision rather than an accident.`,
       );
   }
   if (federationSwept < 25)
     throw new Error(
       `scripts/check-boundaries.mjs swept ${federationSwept} files in apps/assistant-api/src for federation reachability, so the check that only knowledge-federation.ts may import the adapters is reading almost nothing.`,
     );
+  {
+    const orchestrator = uncommented(
+      read("apps/assistant-api/src/lib/orchestrator.ts"),
+    );
+    if (
+      !federationSpecifier.test(read(referenceTool)) ||
+      !/^\s*referenceSourcesTool,$/m.test(orchestrator) ||
+      !/includes\(REFERENCE_SOURCES_TOOL\) && referenceSourcesOnForDemonstration\(\)[\s\S]{0,40}\? demonstrationDisclaimer\(\)/.test(
+        orchestrator,
+      )
+    )
+      throw new Error(
+        `${referenceTool} no longer reaches the federation, or apps/assistant-api/src/lib/orchestrator.ts no longer carries it among its tools and closes an answer that used it with the demonstration override's disclaimer. A source opened for demonstration says so in the answer itself, not only on a screen.`,
+      );
+  }
 
   /* 5. Governance's Knowledge sources screen proposes and never activates (1 October 2026). A pasted link
      is held in the screen's memory and nowhere else: neither the screen nor its lib may reach the
@@ -32526,8 +32587,59 @@ console.log(
       );
   }
 
+  /* 6. The demonstration override says so wherever it opens (2 October 2026). Every file a kind lists
+     as rendering it shows the disclaimer through the override's own module, every gate a file asks for
+     by name is one the override lists, and nothing the override must never reach — the Passport, the
+     identity service, the mock, deploy/ — names it at all. */
+  const demonstrationRendered = Object.values(demonstration.kinds).flatMap(
+    (kind) => kind.renderedAt,
+  );
+  for (const file of demonstrationRendered) {
+    if (!existsSync(file))
+      throw new Error(
+        `packages/catalog/demonstration-override.json lists ${file} as rendering the override, and it does not exist.`,
+      );
+    /* Drawn or called, not merely imported: {demonstrationDisclaimer} in a screen, demonstrationDisclaimer()
+       in the service. */
+    if (
+      !/\{demonstrationDisclaimer\}|\bdemonstrationDisclaimer\((?:override)?\)/.test(
+        uncommented(read(file)),
+      )
+    )
+      throw new Error(
+        `${file} shows a gate the demonstration override opens and does not render its disclaimer (demonstrationDisclaimer). ${demonstration.refusals.find((r) => r.id === "override-says-so-everywhere").statement}`,
+      );
+  }
+  const listedGates = new Set(demonstration.gates.map((gate) => gate.id));
+  let overrideSwept = 0;
+  for (const tree of ["apps/assistant-api/src", "apps/web/src", "apps/ios", "apps/android/app/src"])
+    for (const file of files(tree).filter((f) => /\.(ts|tsx|swift|kt)$/.test(f))) {
+      overrideSwept += 1;
+      for (const m of uncommented(read(file)).matchAll(
+        /overrideOpens\(\s*["'`]([^"'`$]+)["'`]/g,
+      ))
+        if (!listedGates.has(m[1]))
+          throw new Error(
+            `${file} asks the demonstration override for "${m[1]}", which it does not list. ${demonstration.refusals.find((r) => r.id === "override-opens-only-what-it-lists").statement}`,
+          );
+    }
+  for (const file of trackedFiles.filter(
+    (f) =>
+      /^(?:apps\/passport|apps\/api|packages\/mock-api|deploy)\//.test(f) &&
+      textualFile.test(f) &&
+      existsSync(f),
+  ))
+    if (/demonstration-override/.test(read(file)))
+      throw new Error(
+        `${file} names the demonstration override. ${demonstration.refusals.find((r) => r.id === "override-never-keeps-personal-information").statement}`,
+      );
+  if (overrideSwept < 200)
+    throw new Error(
+      `scripts/check-boundaries.mjs swept ${overrideSwept} files for demonstration-override gates, so the check is reading almost nothing.`,
+    );
+
   console.log(
-    `Knowledge federation · ${entriesSwept} catalogue entries across nine files carry a complete source object and ${codedSwept} across the eight clinical files carry a codes object whose every SNOMED CT, ICD-11 and LOINC value passes its issuing authority's checksum or format; ${sources.length} allowlisted external sources all read "active": false with endpoint, licence, licence verdict, rate limit, residency and use boundaries recorded, both signatures unsigned while nobody is appointed to give them, ${(federation.assessedNotAdmitted ?? []).length} more assessed and turned away with their reasons, and each adapter's dark guard sitting before its fetch; Governance's Knowledge sources screen proposes in memory and switches nothing on; and of ${federationSwept} files swept in apps/assistant-api/src, ${federationModule} alone reaches the adapters and nothing imports it.`,
+    `Knowledge federation · ${entriesSwept} catalogue entries across nine files carry a complete source object and ${codedSwept} across the eight clinical files carry a codes object whose every SNOMED CT, ICD-11 and LOINC value passes its issuing authority's checksum or format; ${sources.length} allowlisted external sources all read "active": false with endpoint, licence, licence verdict, rate limit, residency and use boundaries recorded, both signatures unsigned while nobody is appointed to give them, ${(federation.assessedNotAdmitted ?? []).length} more assessed and turned away with their reasons, and each adapter's dark guard sitting before its fetch; Governance's Knowledge sources screen proposes in memory and switches nothing on; and of ${federationSwept} files swept in apps/assistant-api/src, ${federationModule} alone reaches the adapters and the reference_sources tool alone imports it. The founder's demonstration override ${demonstration.inForce ? "is in force and opens" : "is switched off and would open"} ${openedByOverride.length} sources whose licences permit it, ${demonstration.gates.filter((g) => g.state === "waiting-for-credentials").length} of them waiting for credentials, without moving a flag or a signature; with it switched off none answers; its disclaimer is rendered in ${demonstrationRendered.length} files, and of ${overrideSwept} files swept none asks it for a gate it does not list.`,
   );
 }
 

@@ -128,7 +128,7 @@
       {
         "id": "knowledge-federation",
         "heading": "Where answers come from",
-        "body": "Health information may be retrieved from an approved knowledge catalogue and, later, from federated authoritative sources. Every fact carries its source; where there is no source to stand on, GilbertOne abstains rather than guessing. A language model may phrase an answer, and it is disclosed when it does."
+        "body": "Health information may be retrieved from an approved knowledge catalogue and from external reference sources the founder has switched on for demonstration, which no Information Officer or clinical reviewer has approved yet. Only the topic words of a question are sent to them, never who you are. Every fact carries its source; where there is no source to stand on, GilbertOne abstains rather than guessing. A language model may phrase an answer, and it is disclosed when it does."
       },
       {
         "id": "triage-handover",

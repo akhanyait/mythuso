@@ -3,6 +3,7 @@ import registry from '../../../../../../packages/catalog/api-registry.json' with
 import founder from '../../../../../../packages/catalog/founder-access.json' with { type: 'json' };
 import providers from '../../../../../../packages/catalog/model-providers.json' with { type: 'json' };
 import { noticeFor } from '../../../lib/capabilities';
+import { demonstration, demonstrationDisclaimer } from '../../../lib/demonstration-override';
 import { cardsByCategory, founderRegistryActions, g1, gatedRegistryActions, type Card } from '../../../lib/gilbertone-admin';
 import { BuildWord, Empty, Region, RovingList } from '../Parts';
 import { CardStatusWord, GatedAction, GatedActions, ShapeField } from './Controls';
@@ -17,7 +18,8 @@ import { VoicePreview } from './VoicePreview';
  * and every provider the plan lists that nothing can call is not-configured. A card that names a
  * capability shows that capability's own not-connected sentence from packages/catalog/capabilities.json,
  * never a sentence of its own. There is no health, usage or balance reading for any card, and the card
- * says so instead of drawing the wireframe's figures.
+ * says so instead of drawing the wireframe's figures. A card the founder's demonstration override of 2
+ * October 2026 opens reads demonstration, and carries the override's disclaimer word for word.
  *
  * Five of the six card actions are the founder's since the instruction of 28 September 2026 — "API
  * Registry … I cannot set them. I need to be able to control all these aspects, I am the owner": Enable,
@@ -58,6 +60,7 @@ export function ApiRegistryScreen() {
      <h3>{card.name} <CardStatusWord id={card.statusToday}/> <BuildWord id={card.buildStatus}/></h3>
      <p>{card.why}</p>
      {notice && <p className="g1-notice">{notice}</p>}
+     {card.statusToday === 'demonstration' && <p className="g1-notice" role="note"><strong>{demonstration.disclaimer.label}.</strong> {demonstrationDisclaimer}</p>}
      <dl className="pt-facts">
       {card.gate && <div className="g1-fact"><dt>Gate</dt><dd>{card.gate}</dd></div>}
       {card.environment.length > 0 && <div className="g1-fact"><dt>Environment</dt><dd>{card.environment.join(', ')}</dd></div>}

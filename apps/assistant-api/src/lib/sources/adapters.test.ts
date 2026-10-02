@@ -5,6 +5,10 @@ import { RateGate } from './rate-gate.ts';
 import { searchIcd11 } from './icd11-adapter.ts';
 import { searchOpenFda } from './openfda-adapter.ts';
 import { searchPubMed } from './pubmed-adapter.ts';
+import { searchMedlinePlus } from './medlineplus-adapter.ts';
+import { searchCdc } from './cdc-adapter.ts';
+import { searchWikidata, wikidataQuery } from './wikidata-adapter.ts';
+import { overrideClosed } from '../demonstration-override.ts';
 
 /* The three external-source adapters' own tests, added on 22 September 2026 with the governed
    federation work. Every adapter is dark by default, and the first test block holds all three to
@@ -28,13 +32,18 @@ const mustNotFetch = (calls: string[]) =>
  }) as unknown as typeof fetch;
 
 test('every adapter refuses to operate while its source is dark, and sends nothing', async () => {
+ /* Dark is the go-live state: the real federation.json rows with the founder's demonstration override
+    switched off (inForce false). */
  const calls: string[] = [];
  const fetchImpl = mustNotFetch(calls);
- const where = { fetchImpl };
+ const where = { fetchImpl, override: overrideClosed };
  const outcomes = [
   await searchIcd11('gout', where),
   await searchOpenFda('warfarin', where),
   await searchPubMed('hypertension', where),
+  await searchMedlinePlus('sunburn', where),
+  await searchCdc('hand washing', where),
+  await searchWikidata('diabetes', where),
  ];
  for (const outcome of outcomes) {
   assert.equal(outcome.status, 'dark', `${outcome.sourceId} must refuse while active: false`);
@@ -50,7 +59,7 @@ test('every adapter refuses to operate while its source is dark, and sends nothi
 test('an activated copy of the real config still validates as dark against the catalogue', () => {
  /* The injection seam must be a copy of the real row, not a shape of its own: if federation.json
     ever renames the flag or a source id, the tests that activate a copy fail here first. */
- for (const id of ['icd11-who', 'openfda', 'pubmed-europepmc']) {
+ for (const id of ['icd11-who', 'openfda', 'pubmed-europepmc', 'medlineplus-nlm', 'cdc-content-services', 'wikidata']) {
   const source = federationSource(id);
   assert.ok(source, `${id} should exist in federation.json`);
   assert.equal(source!.active, false, `${id} must ship dark`);
@@ -110,7 +119,10 @@ test('openFDA: label records come back attributed, with the licence and a checka
  assert.equal(result.citation.sourceId, 'openfda');
  assert.ok(result.citation.url?.includes('id%3A%22abc-123%22'), 'the URL is how the record is found again');
  assert.ok(urls[0].startsWith('https://api.fda.gov/drug/label.json?'));
- assert.ok(urls[0].includes('search=%22warfarin%22'), 'the term rides the documented search parameter');
+ assert.ok(
+  urls[0].includes('search=openfda.generic_name%3A%22warfarin%22+openfda.brand_name%3A%22warfarin%22'),
+  "the term is searched as a medicine's generic or brand name, not as any phrase in any label",
+ );
  assert.ok(urls[0].includes('limit=5'));
 });
 
@@ -226,6 +238,15 @@ test('PubMed: only records with a checkable identifier are handed over, each wit
        pubYear: '2026',
        journalTitle: 'Am J Hypertens',
        abstractText: 'This study investigates arginine metabolism in hypertensive adults.',
+       license: 'cc by',
+      },
+      {
+       pmid: '42000001',
+       title: 'A non-commercial paper.',
+       pubYear: '2025',
+       journalTitle: 'J Example',
+       abstractText: 'Text a commercial service may not reword.',
+       license: 'cc by-nc',
       },
       { title: 'A record with nothing to check it against', pubYear: '2020' },
      ],
@@ -242,8 +263,11 @@ test('PubMed: only records with a checkable identifier are handed over, each wit
  });
  assert.equal(outcome.status, 'ok');
  if (outcome.status !== 'ok') return;
- assert.equal(outcome.results.length, 1, 'the untraceable record is not a citation');
- const [result] = outcome.results;
+ assert.equal(outcome.results.length, 2, 'the untraceable record is not a citation');
+ const [result, nonCommercial] = outcome.results;
+ assert.ok(result.snippet.includes('arginine metabolism'), "a CC BY abstract's opening is carried");
+ assert.equal(nonCommercial.snippet.includes('may not reword'), false, 'a CC BY-NC abstract is not carried: title and identifier only');
+ assert.ok(nonCommercial.snippet.includes('PMID:42000001'));
  assert.equal(result.id, 'pubmed-europepmc:PMID:42149813');
  assert.ok(result.snippet.includes('PMID:42149813'));
  assert.equal(result.citation.authority, 'Europe PMC (EMBL-EBI)');
@@ -280,4 +304,112 @@ test('the rate gate is a rolling window, and a spent daily budget waits for tomo
  assert.equal(daily.take(start + 61_000), false, 'the daily ceiling outlasts the minute window');
  const wait = daily.waitMsUntilAllowed(start + 61_000);
  assert.ok(wait > 0 && wait <= 24 * 60 * 60 * 1000, 'the wait runs to the next UTC midnight, and no further');
+});
+
+/* The three adapters written on 2 October 2026, when the founder's demonstration override opened their
+   sources. Each is held to its licence's conditions with a stubbed fetch; nothing reaches a network. */
+
+test('every adapter sends only the redacted topic words, never a person', async () => {
+ const urls: string[] = [];
+ const fetchImpl = (async (input: unknown) => {
+  urls.push(decodeURIComponent(String(input)));
+  return new Response('{}', { status: 503 });
+ }) as unknown as typeof fetch;
+ const typed = 'rash on Thandi call 082 555 1234 thandi@example.com 8001015009087';
+ for (const search of [searchOpenFda, searchPubMed, searchMedlinePlus, searchCdc, searchWikidata])
+  await search(typed, { fetchImpl, gate: new RateGate(10), env: {} });
+ assert.equal(urls.length, 5);
+ for (const url of urls) {
+  assert.equal(url.includes('082 555 1234'), false, url);
+  assert.equal(url.includes('thandi@example.com'), false, url);
+  assert.equal(url.includes('8001015009087'), false, url);
+ }
+});
+
+test('MedlinePlus: health topics only, de-tagged and attributed; the encyclopedia and drug monographs are never carried', async () => {
+ const urls: string[] = [];
+ const xml = `<?xml version="1.0" encoding="UTF-8"?><nlmSearchResult><list num="3">
+  <document rank="0" url="https://medlineplus.gov/sunexposure.html">
+   <content name="title">&lt;span class="qt1"&gt;Sun Exposure&lt;/span&gt;</content>
+   <content name="FullSummary">&lt;p&gt;Ultraviolet (UV) rays are an invisible form of radiation. &lt;span class="qt0"&gt;Sunburns&lt;/span&gt; are a sign of skin damage.&lt;/p&gt;</content>
+  </document>
+  <document rank="1" url="https://medlineplus.gov/ency/article/003227.htm">
+   <content name="title">Sunburn (A.D.A.M.)</content>
+   <content name="FullSummary">Encyclopedia text that may only be linked to.</content>
+  </document>
+  <document rank="2" url="https://medlineplus.gov/druginfo/meds/a682159.html">
+   <content name="title">Ibuprofen (ASHP)</content>
+  </document>
+ </list></nlmSearchResult>`;
+ const fetchImpl = (async (input: unknown) => {
+  urls.push(String(input));
+  return new Response(xml, { status: 200, headers: { 'content-type': 'text/xml' } });
+ }) as unknown as typeof fetch;
+ const outcome = await searchMedlinePlus('sunburn', { config: activeConfig('medlineplus-nlm'), fetchImpl, gate: new RateGate(10) });
+ assert.equal(outcome.status, 'ok');
+ if (outcome.status !== 'ok') return;
+ assert.equal(outcome.results.length, 1, 'the A.D.A.M. and ASHP pages are dropped');
+ const [result] = outcome.results;
+ assert.equal(result.title, 'Sun Exposure');
+ assert.ok(result.snippet.startsWith('Ultraviolet (UV) rays'), 'the summary arrives as plain text');
+ assert.equal(result.snippet.includes('<'), false);
+ assert.equal(result.citation.url, 'https://medlineplus.gov/sunexposure.html');
+ assert.equal(result.citation.sourceId, 'medlineplus-nlm');
+ assert.ok(urls[0].startsWith('https://wsearch.nlm.nih.gov/ws/query?db=healthTopics&term=sunburn'), 'the health-topics database alone');
+});
+
+test("CDC: only CDC's own items on cdc.gov, carried unchanged, never a third party's", async () => {
+ const fetchImpl = (async () =>
+  new Response(
+   JSON.stringify({
+    results: [
+     { id: 397629, name: 'Key Facts About Seasonal Flu Vaccine', description: 'Vaccination has been shown to reduce the risk of flu illness, hospitalization and flu-related death.', sourceUrl: 'https://www.cdc.gov/flu/vaccines/keyfacts.html', source: { acronym: 'CDC' } },
+     { id: 1, name: 'A state page', description: 'Not CDC material.', sourceUrl: 'https://health.example.gov/flu', source: { acronym: 'STATE' } },
+     { id: 2, name: 'Off cdc.gov', description: 'Hosted elsewhere.', sourceUrl: 'https://example.org/flu', source: { acronym: 'CDC' } },
+     { id: 3, name: 'A long description', description: 'x'.repeat(500), sourceUrl: 'https://www.cdc.gov/long.html', source: { acronym: 'CDC' } },
+    ],
+   }),
+   { status: 200, headers: { 'content-type': 'application/json' } },
+  )) as unknown as typeof fetch;
+ const outcome = await searchCdc('flu', { config: activeConfig('cdc-content-services'), fetchImpl, gate: new RateGate(10) });
+ assert.equal(outcome.status, 'ok');
+ if (outcome.status !== 'ok') return;
+ assert.deepEqual(outcome.results.map((r) => r.title), ['Key Facts About Seasonal Flu Vaccine', 'A long description']);
+ assert.equal(outcome.results[0].snippet, 'Vaccination has been shown to reduce the risk of flu illness, hospitalization and flu-related death.', "CDC's words, unchanged");
+ assert.equal(outcome.results[1].snippet, 'A long description', 'a description too long to carry whole is left out, not cut');
+});
+
+test('Wikidata: labels in four South African languages and cross-references, never a code and never a health statement', async () => {
+ let sent = '';
+ let agent = '';
+ const fetchImpl = (async (input: unknown, init?: { headers?: Record<string, string> }) => {
+  sent = new URL(String(input)).searchParams.get('query') ?? '';
+  agent = init?.headers?.['user-agent'] ?? '';
+  const v = (value: string) => ({ value });
+  return new Response(
+   JSON.stringify({
+    results: {
+     bindings: [
+      { item: v('http://www.wikidata.org/entity/Q12206'), en: v('diabetes'), zu: v('isifo sikashukela'), af: v('suikersiekte'), st: v('Lefu la Tswekere'), snomed: v('73211009'), mesh: v('D003920') },
+      { item: v('http://www.wikidata.org/entity/Q12206'), en: v('diabetes'), xh: v('iswekile yemellitus'), icd11: v('465177735') },
+     ],
+    },
+   }),
+   { status: 200 },
+  );
+ }) as unknown as typeof fetch;
+ const outcome = await searchWikidata('diabetes"} ; DROP', { config: activeConfig('wikidata'), fetchImpl, gate: new RateGate(10) });
+ assert.equal(outcome.status, 'ok');
+ if (outcome.status !== 'ok') return;
+ assert.equal(outcome.results.length, 1, 'rows for one item fold into one result');
+ const [result] = outcome.results;
+ assert.equal(result.title, 'diabetes (Wikidata Q12206)');
+ for (const label of ['isiZulu: isifo sikashukela', 'isiXhosa: iswekile yemellitus', 'Afrikaans: suikersiekte', 'Sesotho: Lefu la Tswekere', 'SNOMED CT 73211009', 'MeSH D003920'])
+  assert.ok(result.snippet.includes(label), label);
+ assert.ok(result.snippet.includes('not yet checked by a first-language reviewer'));
+ assert.deepEqual(result.codes, {}, 'a crowd-sourced identifier is not written in as a verified code');
+ assert.equal(result.citation.url, 'https://www.wikidata.org/wiki/Q12206');
+ assert.ok(sent.includes('mwapi:search "diabetes DROP"'), 'the term reaches the query as plain words, its quote and braces gone');
+ assert.equal(sent, wikidataQuery('diabetes DROP'));
+ assert.ok(/mythuso\.co\.za/.test(agent), "Wikimedia's policy: the agent names the deployment and a contact");
 });

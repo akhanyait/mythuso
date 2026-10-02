@@ -1,4 +1,5 @@
 import federation from '../../../../packages/catalog/knowledge/federation.json' with { type: 'json' };
+import { overrideGate } from './demonstration-override';
 
 /* Knowledge sources, as Governance reads them (founder's ask of 27 September and 1 October 2026: paste
    a link in the Control Tower, have it signed off, make GilbertOne's first-aid and skin answers
@@ -18,7 +19,12 @@ import federation from '../../../../packages/catalog/knowledge/federation.json' 
      about a patient.
    - No source is switched on here, whatever its state. Activation needs both signatures, a licence
      verdict that permits a commercial service's use (and the written permission where the verdict asks
-     for one), and then a commit; the screen can only say which of those is missing. */
+     for one), and then a commit; the screen can only say which of those is missing.
+   - Since 2 October 2026 the founder's demonstration override (packages/catalog/demonstration-
+     override.json) opens, without the two signatures, the sources it lists whose licences permit a
+     commercial service's use. The screen says which, with the override's disclaimer; it never says a
+     signature exists, and it never opens a source the licence keeps off, nor a proposal nobody has
+     assessed. */
 
 export type Refusal = { readonly id: string; readonly statement: string; readonly why: string };
 export type Verdict = { readonly label: string; readonly mayActivate: boolean; readonly requiresPermissionRecord?: boolean; readonly sentence: string };
@@ -59,6 +65,30 @@ export function activationRefusals(source: { licensing: { verdict: string; permi
  else if (verdict.requiresPermissionRecord && !source.licensing.permissionRef) out.push('permission-required-before-activation');
  if (signatureRoles.some(role => !signatureOf(source, role.id))) out.push('no-activation-without-two-signatures');
  return out;
+}
+
+/* Whether the founder's demonstration override opens a source, and how: on, or on and waiting for its
+   credentials. Null when the source is signed (it needs no override), when the override does not list
+   it, or when its licence does not permit a commercial service's use without written permission — the
+   override never cures a licence, so the screen asks the verdict as well as the override. */
+export type DemonstrationState = 'on' | 'waiting-for-credentials' | null;
+export function demonstrationStateOf(source: { id: string; active?: boolean; licensing: { verdict: string } }): DemonstrationState {
+ if (source.active === true) return null;
+ const verdict = verdicts[source.licensing.verdict];
+ if (!verdict || !verdict.mayActivate || verdict.requiresPermissionRecord) return null;
+ const gate = overrideGate(`knowledge-source:${source.id}`);
+ if (!gate) return null;
+ return gate.state === 'waiting-for-credentials' ? 'waiting-for-credentials' : 'on';
+}
+
+/* What a source opened while waiting for credentials is waiting for, in the override's words. */
+export const waitingForOf = (source: { id: string }): string => overrideGate(`knowledge-source:${source.id}`)?.waitingFor ?? '';
+
+/* A source the licence keeps off: a verdict that never activates, or one that waits on written
+   permission not on file. */
+export function licenceKeepsOff(source: { licensing: { verdict: string; permissionRef?: string | null } }): boolean {
+ const verdict = verdicts[source.licensing.verdict];
+ return !verdict || !verdict.mayActivate || Boolean(verdict.requiresPermissionRecord && !source.licensing.permissionRef);
 }
 
 /* ---- Proposals: session memory only ---- */

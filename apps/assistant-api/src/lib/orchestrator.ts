@@ -28,6 +28,8 @@ import { medicationInfoTool } from "./tools/medication-info.ts";
 import { emergencyNumbers, emergencyNumbersTool } from "./tools/emergency-numbers.ts";
 import { knowledgeSearchTool } from "./tools/knowledge-search.ts";
 import { literatureSearchTool } from "./tools/literature-search.ts";
+import { REFERENCE_SOURCES_TOOL, referenceSourcesOnForDemonstration, referenceSourcesTool } from "./tools/reference-sources.ts";
+import { demonstrationDisclaimer } from "./demonstration-override.ts";
 import { coverageLookupTool } from "./tools/coverage-lookup.ts";
 import {
   checkEntityEscalation,
@@ -112,6 +114,7 @@ const TOOLS = [
   emergencyNumbersTool,
   coverageLookupTool,
   literatureSearchTool,
+  referenceSourcesTool,
 ] as const;
 
 /* LangChain's tool classes are generic over each schema, so a union of them has no callable
@@ -138,6 +141,7 @@ const TOOL_GUIDE = [
   "- emergency_numbers: when a message asks who to call, or names a crisis of any kind.",
   "- coverage_lookup: when a message asks to find a clinic, pharmacy or nearby facility, or names a suburb and asks if MyThuso reaches it. It answers coverage only — MyThuso holds no directory of real facilities — so say that plainly rather than implying a result names a place to go.",
   "- literature_search: when a message asks for research, evidence, a study or 'what does the literature say' about a topic. It returns real, cited papers from Europe PMC (title, authors, year, identifier) — never a conclusion. Report what it found as citations to check, never as a finding you endorse or a reason to change anything.",
+  "- reference_sources: after knowledge_search, when MyThuso's own knowledge base has too little on a topic, or when someone asks for a health term in isiZulu, isiXhosa, Afrikaans or Sesotho. It returns US public-health pages, US medicine labels, papers and crowd-sourced labels, each with its attribution — say who said it, never present it as South African guidance, and never use it for a dose or a diagnosis.",
   "",
   "How to work:",
   "1. Call a tool when one fits; call at most one tool per step, and wait for its result.",
@@ -570,10 +574,17 @@ async function nodeCompose(state: GraphState): Promise<Partial<GraphState>> {
   if (state.degraded || state.composed) return {};
 
   if (state.result !== null) {
-    const answer = redactPHI(state.result)
-      .trim()
-      .slice(0, LLM_REPLY_LIMIT);
-    return { result: answer, composed: true };
+    /* An answer that drew on the reference sources while any of them is on only because of the
+       founder's demonstration override (packages/catalog/demonstration-override.json) ends with the
+       override's disclaimer, word for word — appended here rather than asked of the model, so it cannot
+       be paraphrased or forgotten, and room is kept for it inside the reply cap. */
+    const disclaimer =
+      state.toolsUsed.includes(REFERENCE_SOURCES_TOOL) && referenceSourcesOnForDemonstration()
+        ? demonstrationDisclaimer()
+        : "";
+    const room = disclaimer ? LLM_REPLY_LIMIT - disclaimer.length - 1 : LLM_REPLY_LIMIT;
+    const answer = redactPHI(state.result).trim().slice(0, room);
+    return { result: disclaimer ? `${answer}\n${disclaimer}` : answer, composed: true };
   }
   return {};
 }

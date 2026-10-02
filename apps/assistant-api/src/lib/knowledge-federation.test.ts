@@ -5,16 +5,26 @@ import {
  federatedSearch,
  outsideApprovedScope,
  federationStatus,
+ referencePosture,
  type FederationAdapter,
 } from './knowledge-federation.ts';
+import { demonstrationOverride, overrideClosed } from './demonstration-override.ts';
 import type { KnowledgeResult } from './knowledge.ts';
 import type { FederatedResult } from './sources/config.ts';
 
 /* The governed federation's own tests, added on 22 September 2026 with the federation work.
    Everything here is deterministic: the local search and the adapters are injected through the
    FederationDeps seam, so no test touches the real index, a real network or another test's state.
-   The one test that uses the real registry ("the shipped federation.json") runs the production
-   path on purpose — every adapter dark — and asserts exactly that. */
+   The tests that use the real registry run the production path on purpose with a fetch that records
+   every request and answers nothing: with the founder's demonstration override switched off every
+   adapter is dark and nothing is asked; with it in force exactly the sources whose licences permit are
+   asked, and no request reaches a real network either way. */
+
+const recordingFetch = (hosts: string[]) =>
+ (async (input: unknown) => {
+  hosts.push(new URL(String(input)).hostname);
+  return new Response('{}', { status: 503 });
+ }) as unknown as typeof fetch;
 
 const localResult = (
  id: string,
@@ -140,26 +150,63 @@ test('in-scope questions pass the deny-list and actually search', async () => {
  assert.equal(answer.kind, 'results');
 });
 
-test('with the shipped federation.json every allowlisted source reports dark, and local results still answer', async () => {
- /* The one test on the real registry: production passes no adapters, so these are the shipped
-    three, each reading its own federation.json row. Dark means no request is made — which is the
-    property the notes must state out loud. */
+test('with the demonstration override switched off every allowlisted source reports dark, nothing is asked, and local results still answer', async () => {
+ /* The go-live path on the real registry: production's adapters, each reading its own federation.json
+    row, with the override's inForce false. Dark means no request is made — which is the property the
+    notes must state out loud. */
+ const hosts: string[] = [];
  const answer = await federatedSearch('common cold', {
   localSearch: async () => [localResult('cond-001', 'Common cold', { snomed: '82272006' })],
+  adapterDeps: { override: overrideClosed, fetchImpl: recordingFetch(hosts) },
  });
  assert.equal(answer.kind, 'results');
  if (answer.kind !== 'results') return;
  assert.deepEqual(
   answer.notes.map((note) => note.sourceId).sort(),
-  ['icd11-who', 'openfda', 'pubmed-europepmc'],
+  ['cdc-content-services', 'icd11-who', 'medlineplus-nlm', 'openfda', 'pubmed-europepmc', 'wikidata'],
  );
  for (const note of answer.notes) {
   assert.equal(note.status, 'dark');
   assert.ok(note.detail?.includes('active: false'), 'the note says what the flag is');
  }
+ assert.deepEqual(hosts, [], 'a dark source is never asked');
  assert.equal(answer.results.length, 1);
  assert.equal(answer.results[0].id, 'cond-001');
  assert.equal(answer.results[0].file, 'conditions');
+});
+
+test('with the demonstration override in force, exactly the licence-permitted sources are asked, and ICD-11 waits for its credentials', async () => {
+ const hosts: string[] = [];
+ const answer = await federatedSearch('sunburn', {
+  localSearch: async () => [],
+  adapterDeps: { fetchImpl: recordingFetch(hosts), env: {} },
+ });
+ const statusOf = Object.fromEntries(answer.notes.map((note) => [note.sourceId, note]));
+ for (const id of ['openfda', 'pubmed-europepmc', 'medlineplus-nlm', 'cdc-content-services', 'wikidata'])
+  assert.equal(statusOf[id].status, 'unavailable', `${id} was asked, and the stub answered 503`);
+ assert.equal(statusOf['icd11-who'].status, 'unavailable');
+ assert.ok(statusOf['icd11-who'].detail?.includes('credentials are not configured'), 'ICD-11 is open and says what it waits for');
+ assert.deepEqual(
+  [...new Set(hosts)].sort(),
+  ['api.fda.gov', 'query.wikidata.org', 'tools.cdc.gov', 'wsearch.nlm.nih.gov', 'www.ebi.ac.uk'],
+  'only the opened sources with an adapter were asked, and ICD-11 sent nothing without its credentials',
+ );
+});
+
+test("the posture says which sources are on only for demonstration, which wait for credentials, and that closing the override darkens all", () => {
+ const open = Object.fromEntries(referencePosture().map((source) => [source.id, source]));
+ for (const id of ['openfda', 'pubmed-europepmc', 'medlineplus-nlm', 'cdc-content-services', 'wikidata', 'icd11-who', 'snomed-ct-za', 'loinc-regenstrief']) {
+  assert.equal(open[id].on, true, `${id} is opened by the override`);
+  assert.equal(open[id].demonstration, true, `${id} is on only because of the override`);
+ }
+ for (const id of ['icd11-who', 'snomed-ct-za', 'loinc-regenstrief']) assert.ok(open[id].waitingFor, `${id} says what credentials it waits for`);
+ for (const id of ['ndoh-stg-eml-phc', 'sahpra-medicines', 'westerncape-health', 'ifrc-first-aid-guidelines', 'sa-red-cross-first-aid', 'st-john-sa-first-aid'])
+  assert.equal(open[id].on, false, `${id} waits on its owner's written permission, which the override cannot give`);
+ for (const source of referencePosture(overrideClosed)) assert.equal(source.on, false, `${source.id} is dark once the override is switched off`);
+ /* The override can never open what it does not list, nor what the licence forbids, even if listed. */
+ const listedPermission = { ...demonstrationOverride(), gates: [{ id: 'knowledge-source:ndoh-stg-eml-phc' }] };
+ assert.equal(referencePosture(listedPermission).find((source) => source.id === 'ndoh-stg-eml-phc')!.on, false);
+ assert.equal(referencePosture(listedPermission).find((source) => source.id === 'openfda')!.on, false, 'unlisted is closed');
 });
 
 test('an in-scope question with nothing anywhere abstains with no-evidence, notes and all', async () => {

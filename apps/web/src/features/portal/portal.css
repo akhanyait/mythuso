@@ -2904,3 +2904,14 @@
 .portal .ks-link {
   overflow-wrap: anywhere;
 }
+
+/* ==== The demonstration override on Governance · Knowledge sources (2 October 2026) ====
+   The disclaimer leads the override's record as a warning callout, the founder's words read as a quotation,
+   and what the override leaves closed is an ordinary list beneath its own small heading. */
+.portal .ks-demonstration {
+  margin-bottom: var(--space-12);
+}
+.portal .ks-subheading {
+  margin: var(--space-16) 0 var(--space-8);
+  font-size: 14px;
+}

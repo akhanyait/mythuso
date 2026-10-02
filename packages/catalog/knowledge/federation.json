@@ -1,7 +1,7 @@
 {
-  "version": 2,
+  "version": 3,
   "name": "MyThuso governed knowledge federation",
-  "compiledOn": "2026-10-01",
+  "compiledOn": "2026-10-02",
   "changelog": [
     {
       "version": 1,
@@ -14,12 +14,19 @@
       "by": "Knowledge-governance engineer (Claude), on the founder's ask for more first-aid, skin and consumer-health sources",
       "change": "Eleven sources added, all dark and with no adapter: MedlinePlus, CDC Content Services, the NDoH PHC STGs/EML, SAHPRA's register and directory, SNOMED CT under South Africa's national licence, LOINC, Wikidata, the Western Cape Government's health pages, the IFRC first-aid guidelines 2025, the South African Red Cross Society and St John South Africa. Every source gained a licence verdict, whether commercial use and adaptation are allowed, the page the licence was read from, its hosts, its audience, its languages and two unsigned signatures. Twelve publishers assessed and turned away are recorded in assessedNotAdmitted with their reasons, among them the NHS content API, WHO fact sheets, DermNet, the American Academy of Dermatology and Cochrane. The governance section carries the two signatories, the words of Governance · Knowledge sources and its refusals.",
       "verifiedFrom": "docs/governance/KNOWLEDGE-SOURCES.md"
+    },
+    {
+      "version": 3,
+      "on": "2026-10-02",
+      "by": "Governance lead (Claude), on the founder's demonstration decision of 2 October 2026",
+      "change": "Every source whose licence allows a commercial service's use — openFDA, Europe PMC, MedlinePlus, CDC, Wikidata, ICD-11, SNOMED CT and LOINC — is opened by the founder's demonstration override (packages/catalog/demonstration-override.json) without its two signatures, which stay null; \"active\" stays false on every source, so switching the override off restores the signed rule. ICD-11, SNOMED CT and LOINC wait for credentials. The six sources that need their owner's written permission, and every publisher turned away, stay off for their licences. Each of the eight carries the attribution line it is shown with, and MedlinePlus, CDC and Wikidata gained adapters.",
+      "verifiedFrom": "docs/governance/DEMONSTRATION-OVERRIDE.md"
     }
   ],
   "reviewHorizonMonths": 12,
   "policy": {
     "darkByDefault": true,
-    "statement": "Every external source below starts dark: \"active\": false. Nothing in apps/assistant-api calls one until a deliberate edit flips a single source's flag, with the licence, rate limit and POPIA cross-border position reviewed and recorded first and both signatures — the clinical reviewer's and the Information Officer's — given. The adapters in apps/assistant-api/src/lib/sources refuse to operate while their source is dark, so an accident of wiring cannot spend data or reputation either; the sources added on 1 October 2026 have no adapter at all.",
+    "statement": "Every external source below starts dark: \"active\": false. Nothing in apps/assistant-api calls one until a deliberate edit flips a single source's flag, with the licence, rate limit and POPIA cross-border position reviewed and recorded first and both signatures — the clinical reviewer's and the Information Officer's — given. The adapters in apps/assistant-api/src/lib/sources refuse to operate while their source is dark, so an accident of wiring cannot spend data or reputation either; MedlinePlus, CDC and Wikidata gained adapters on 2 October 2026; the other sources added on 1 October 2026 have none. Since 2 October 2026 the founder's demonstration override (packages/catalog/demonstration-override.json) opens, without the two signatures and with its disclaimer wherever one shows, the sources whose licences allow a commercial service's use; \"active\" stays false on every one of them, and switching the override off makes every source dark again.",
     "activationRequires": "1) Both signatures — the clinical reviewer's and the Information Officer's — recorded in the source's signOff by people appointed to give them; 2) a licence verdict that covers a commercial service, with the owner's written permission recorded in licensing.permissionRef where the verdict asks for it, and a recorded decision on the POPIA s72 cross-border position; 3) credentials, where the source needs any, set in the deployment environment and never in this file; 4) an adapter, where the source has none, reviewed like any production change; 5) one deliberate commit editing that source's \"active\" to true.",
     "patientDataLeavesThisDeployment": false,
     "popiaNote": "No patient identifiers are ever sent to an external source: a federated lookup carries only the topic words of a question. Even so, activation stays gated on a recorded cross-border transfer assessment, because a topic can be personal in context."
@@ -120,6 +127,7 @@
         "commercialUse": true,
         "adaptation": false,
         "attributionRequired": true,
+        "attribution": "Source: WHO ICD-11 (CC BY-ND 3.0 IGO). Codes, titles and addresses as WHO publishes them, unmodified.",
         "notes": "ICD-11 is WHO copyright, licensed CC BY-ND 3.0 IGO: no derivatives. ICD-11 content would be presented unmodified and attributed, never folded into an edited derivative. The API itself is under WHO's ICD-11 software licence, which lets an application that incorporates it be offered for commercial and non-commercial purposes provided each code, title and URI is kept intact and attributed. Mapping, crosswalks and translations — an isiZulu, Afrikaans or Sesotho rendering included — need a separate written agreement with WHO.",
         "verifiedFrom": "https://icd.who.int/en/docs/icd11-license.pdf",
         "verifiedOn": "2026-10-01"
@@ -177,6 +185,7 @@
         "commercialUse": true,
         "adaptation": true,
         "attributionRequired": false,
+        "attribution": "Source: openFDA, US Food and Drug Administration. US labelling, not South African guidance; no endorsement by the FDA is implied.",
         "notes": "openFDA's content, data and documentation are dedicated to the public domain under CC0 1.0 unless otherwise noted; copies of copyrightable works that private parties gave the FDA are the exception, and no use may imply FDA endorsement. MyThuso would still record its origin on every result, because attribution is a habit, not a requirement.",
         "verifiedFrom": "https://open.fda.gov/terms/",
         "verifiedOn": "2026-10-01"
@@ -226,6 +235,7 @@
         "commercialUse": true,
         "adaptation": false,
         "attributionRequired": true,
+        "attribution": "Source: Europe PMC (EMBL-EBI). Each article is attributed to its journal and keeps its own licence.",
         "notes": "Metadata and abstracts are served by Europe PMC under EMBL-EBI's terms, which add no restriction beyond the data owner's and expect attribution. Each article keeps its own licence, returned in the record's license field: only CC BY and CC0 text may ever be shown or reworded; CC BY-NC is not for a commercial service and CC BY-ND may not be adapted. Identifiers, titles and abstract openings only, each attributed to its journal.",
         "verifiedFrom": "https://www.ebi.ac.uk/about/terms-of-use",
         "verifiedOn": "2026-10-01"
@@ -258,7 +268,7 @@
       "role": "consumer-health-information",
       "jurisdiction": "United States",
       "active": false,
-      "activation": "No credentials. Activation needs both signatures, the US-to-South-African adaptation layer the clinical reviewer asks for (emergency numbers, medicine names, services), a recorded POPIA review, an adapter or a reviewed local copy of the daily health-topic XML, and this flag edited to true. No adapter exists for this source; one would be written and reviewed like any production change.",
+      "activation": "No credentials. Activation needs both signatures, the US-to-South-African adaptation layer the clinical reviewer asks for (emergency numbers, medicine names, services), a recorded POPIA review, an adapter or a reviewed local copy of the daily health-topic XML, and this flag edited to true. An adapter exists (apps/assistant-api/src/lib/sources/medlineplus-adapter.ts, written on 2 October 2026) and searches the health-topic summaries only.",
       "endpoint": "https://wsearch.nlm.nih.gov/ws/query",
       "auth": {
         "type": "none",
@@ -275,6 +285,7 @@
         "commercialUse": true,
         "adaptation": true,
         "attributionRequired": true,
+        "attribution": "Source: MedlinePlus, National Library of Medicine.",
         "notes": "Health topic summaries are US Government works and may be reproduced and redistributed. The A.D.A.M. Medical Encyclopedia, the ASHP drug monographs and most images are copyrighted and may only be linked to, never ingested or branded in a health IT system — so only the health-topic summaries would ever be carried. Attributed as \"Source: MedlinePlus, National Library of Medicine\", with no logo and no suggestion of endorsement.",
         "verifiedFrom": "https://medlineplus.gov/about/using/usingcontent/",
         "verifiedOn": "2026-10-01"
@@ -308,7 +319,7 @@
       "role": "consumer-health-information",
       "jurisdiction": "United States",
       "active": false,
-      "activation": "No credentials. Activation needs both signatures, an item-by-item check that what is carried is CDC's own public-domain material and not a third party's, a recorded POPIA review, an adapter, and this flag edited to true. No adapter exists for this source; one would be written and reviewed like any production change.",
+      "activation": "No credentials. Activation needs both signatures, an item-by-item check that what is carried is CDC's own public-domain material and not a third party's, a recorded POPIA review, an adapter, and this flag edited to true. An adapter exists (apps/assistant-api/src/lib/sources/cdc-adapter.ts, written on 2 October 2026) and carries CDC's own items only, unchanged.",
       "endpoint": "https://tools.cdc.gov/api/v2/resources/media",
       "auth": {
         "type": "none",
@@ -325,6 +336,7 @@
         "commercialUse": true,
         "adaptation": false,
         "attributionRequired": true,
+        "attribution": "Source: CDC. This use does not imply endorsement by CDC, HHS or the US Government.",
         "notes": "Most CDC material is in the public domain and may be used without permission. Contractors', grantees', licensed third parties' and state governments' material is not, and CDC's logos never are. CDC's conditions forbid changing the substantive content and require \"Source: CDC\" with a statement that the use does not imply endorsement by CDC, HHS or the US Government.",
         "verifiedFrom": "https://www.cdc.gov/other/agencymaterials.html",
         "verifiedOn": "2026-10-01"
@@ -474,6 +486,7 @@
         "commercialUse": true,
         "adaptation": false,
         "attributionRequired": true,
+        "attribution": "This material includes SNOMED Clinical Terms (SNOMED CT), used by permission of SNOMED International. All rights reserved.",
         "notes": "South Africa joined SNOMED International on 14 May 2026, and its membership extends access to public and private providers alike; use must be registered with the national release centre. The Affiliate Licence's own clauses on attribution, translation and extension were not read, and the Information Officer reads them before signing.",
         "verifiedFrom": "https://www.snomed.org/get-snomed",
         "verifiedOn": "2026-10-01"
@@ -524,6 +537,7 @@
         "commercialUse": true,
         "adaptation": false,
         "attributionRequired": true,
+        "attribution": "This material contains content from LOINC (loinc.org). LOINC is copyright Regenstrief Institute, Inc. and the LOINC Committee, and is available at no cost under the licence at loinc.org/license.",
         "notes": "Free in perpetuity for commercial and non-commercial use, with LOINC's copyright notice carried wherever its content appears. The content and codes may not be changed. The licence page sat behind an automated-access block and was read only through search excerpts, so the Information Officer reads it in full before signing.",
         "verifiedFrom": "https://loinc.org/kb/license/",
         "verifiedOn": "2026-10-01"
@@ -555,7 +569,7 @@
       "role": "terminology-lookup",
       "jurisdiction": "International",
       "active": false,
-      "activation": "No credentials. Activation needs both signatures, a User-Agent that names the deployment and a contact address as Wikimedia's policy requires, a recorded POPIA review or a local copy of the data, and this flag edited to true. No adapter exists for this source; one would be written and reviewed like any production change.",
+      "activation": "No credentials. Activation needs both signatures, a User-Agent that names the deployment and a contact address as Wikimedia's policy requires, a recorded POPIA review or a local copy of the data, and this flag edited to true. An adapter exists (apps/assistant-api/src/lib/sources/wikidata-adapter.ts, written on 2 October 2026) and returns labels and cross-references only.",
       "endpoint": "https://query.wikidata.org/sparql",
       "auth": {
         "type": "none",
@@ -572,6 +586,7 @@
         "commercialUse": true,
         "adaptation": true,
         "attributionRequired": false,
+        "attribution": "Source: Wikidata (CC0). Crowd-sourced labels and cross-references, not a clinical authority.",
         "notes": "Wikidata's structured data is dedicated to the public domain under CC0; other namespaces are CC BY-SA 4.0 and would not be carried. Crowd-sourced, so it is a source of labels and cross-references, never of clinical authority.",
         "verifiedFrom": "https://www.wikidata.org/wiki/Wikidata:Licensing",
         "verifiedOn": "2026-10-01"

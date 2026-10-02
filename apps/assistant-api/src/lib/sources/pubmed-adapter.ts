@@ -2,6 +2,7 @@ import { citationOf } from "../knowledge-provenance.ts";
 import {
   federationSource,
   isSourceActive,
+  outgoingTerm,
   type AdapterDeps,
   type AdapterOutcome,
   type FederatedResult,
@@ -49,11 +50,19 @@ type EuropePmcRecord = {
   pubYear?: string;
   journalTitle?: string;
   abstractText?: string;
+  license?: string;
 };
 
 type EuropePmcBody = {
   resultList?: { result?: EuropePmcRecord[] };
 };
+
+/* The licence condition federation.json records for this source: each article keeps its own licence,
+   and only CC BY and CC0 text may be shown or reworded by a commercial service — CC BY-NC is not for one
+   and CC BY-ND may not be adapted, and GilbertOne's answer rewords what it is given. A record under any
+   other licence, or none, is handed over by its title and identifier alone. */
+const textReusable = (licence: string | undefined): boolean =>
+  /^\s*(?:cc[\s-]?by|cc0)\s*$/i.test(licence ?? "");
 
 const truncate = (value: string, max: number): string =>
   value.length > max ? `${value.slice(0, max).trimEnd()}…` : value;
@@ -89,14 +98,14 @@ export async function searchPubMed(
       sourceId: SOURCE_ID,
       detail: "no config for this source in federation.json",
     };
-  if (!isSourceActive(config))
+  if (!isSourceActive(config, deps.override))
     return {
       status: "dark",
       sourceId: config.id,
-      detail: `${config.id} is dark (active: false) — activation requires the recorded licence and POPIA review, then a deliberate edit of federation.json`,
+      detail: `${config.id} is dark (active: false, and the demonstration override does not open it) — activation requires the recorded licence and POPIA review, then a deliberate edit of federation.json`,
     };
 
-  const trimmed = (query ?? "").trim().slice(0, MAX_QUERY_LENGTH);
+  const trimmed = outgoingTerm(query, MAX_QUERY_LENGTH);
   if (!trimmed)
     return {
       status: "unavailable",
@@ -163,7 +172,7 @@ export async function searchPubMed(
     const title = (record.title ?? "").trim() || "(title not indexed)";
     const year = (record.pubYear ?? "").trim() || "year not indexed";
     const journal = (record.journalTitle ?? "").trim();
-    const abstract = (record.abstractText ?? "").trim();
+    const abstract = textReusable(record.license) ? (record.abstractText ?? "").trim() : "";
     results.push({
       id: `${SOURCE_ID}:${identifier.id}`,
       title,

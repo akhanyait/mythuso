@@ -28,6 +28,7 @@
   { "id": "rate-limited", "sentence": "Configured, and it is refusing calls for now because too many were made.", "why": "A rate limit clears on its own; an administrator reading it as an outage would rotate a key for nothing." },
   { "id": "key-expiring", "sentence": "Its key expires soon. Rotate it before it does.", "why": "The plan's own card state. The period that counts as soon is not decided and is left to the administrator setting it names." },
   { "id": "dark", "sentence": "Built, and unreachable by default.", "why": "The plan's status vocabulary, for an adapter that exists and is not switched on." },
+  { "id": "demonstration", "sentence": "Switched on by the founder's demonstration override of 2 October 2026, without the signatures it waits on. Its disclaimer is shown wherever it is.", "why": "Not in the plan's list, and needed: dark would be untrue once the override opens a source, and configured would claim the review it skipped. packages/catalog/demonstration-override.json is the record, and inForce false returns the card to dark." },
   { "id": "not-configured", "sentence": "Nothing in MyThuso can call this provider. It is a name on a list.", "why": "The honest state of every proposed card: no adapter, no key, no contract." }
  ],
 
@@ -533,15 +534,15 @@
    "name": "External knowledge sources",
    "detailsFrom": "packages/catalog/knowledge/federation.json#sources",
    "buildStatus": "dark",
-   "statusToday": "dark",
+   "statusToday": "demonstration",
    "adapter": { "file": "apps/assistant-api/src/lib/sources/config.ts", "symbol": "isSourceActive" },
    "environment": ["OPENFDA_ENABLED", "OPENFDA_API_KEY"],
    "productionConfigured": null,
-   "_productionConfiguredWhy": "Every source ships active: false in federation.json. openFDA's interaction check can also be switched on by OPENFDA_ENABLED on the box, and the activation record did not read the credentials file for it, so whether production sets it is not recorded here.",
+   "_productionConfiguredWhy": "Every source ships active: false in federation.json, and since 2 October 2026 the founder's demonstration override opens the eight whose licences permit it — live on the box only once a deploy has published it and the service has been restarted by hand. openFDA's interaction check can also be switched on by OPENFDA_ENABLED on the box, and ICD-11 answers only once its client id and secret are there; the activation record did not read the credentials file for either, so whether production sets them is not recorded here.",
    "codeNames": [],
    "capabilityRef": null,
    "feedRef": null,
-   "why": "Every source in federation.json — WHO ICD-11, openFDA and Europe PMC with adapters, and the sources assessed on 1 October 2026 with none — each with its licence verdict, rate limit, residency, use boundaries and the two signatures it waits on. One card here points at them rather than copying them; Governance · Knowledge sources lists them."
+   "why": "Every source in federation.json — WHO ICD-11, openFDA, Europe PMC, MedlinePlus, CDC and Wikidata with adapters, and the other sources assessed on 1 October 2026 with none — each with its licence verdict, rate limit, residency, use boundaries and the two signatures it waits on, and which of them the founder's demonstration override opens. One card here points at them rather than copying them; Governance · Knowledge sources lists them."
   }
  ],
 
@@ -604,6 +605,8 @@
  "dataFlows": [
   { "route": "POST /turn", "version": 1, "field": "text", "providerRef": "azure-openai", "phi": true, "after": "redactPHI: identifiers removed, clinical content kept", "why": "A patient's question may be about their health. Removing identifiers does not make it not health information." },
   { "route": "POST /v1/turn", "version": 1, "field": "text", "providerRef": "azure-openai", "phi": true, "after": "redactPHI: identifiers removed, clinical content kept", "why": "As above, at the versioned address." },
+  { "route": "POST /turn", "version": 1, "field": "text", "providerRef": "knowledge-sources", "phi": true, "after": "only the topic words the model hands the reference_sources tool, through redactPHI again, to the sources the founder's demonstration override opens", "why": "Since 2 October 2026. A topic is not a person, and it can still be personal in context: a lookup about one condition, made during one conversation, says something about whoever asked." },
+  { "route": "POST /v1/turn", "version": 1, "field": "text", "providerRef": "knowledge-sources", "phi": true, "after": "as above", "why": "As above, at the versioned address." },
   { "route": "POST /v1/knowledge/search", "version": 2, "field": "query", "providerRef": "azure-openai", "phi": true, "after": "redactPHI, then embedded", "why": "A search query is a question, and a question may be about somebody's health." },
   { "route": "POST /v1/knowledge/search", "version": 2, "field": "query", "providerRef": "qdrant", "phi": true, "after": "as an embedding, where QDRANT_URL is set", "why": "An embedding of a health question is still derived from it." },
   { "route": "POST /v1/listen", "version": 3, "field": "audioBase64", "providerRef": "azure-speech", "phi": true, "after": "held in memory for the one request, never stored", "why": "What somebody says about their health is health information whether it arrives typed or spoken." },

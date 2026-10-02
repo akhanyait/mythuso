@@ -5,6 +5,13 @@
 > GilbertOne's photo skin-check and first-aid answers. **No source is switched on.** Every source below
 > ships `"active": false` in `packages/catalog/knowledge/federation.json`, and both signatures on every
 > one are blank because neither signatory has been appointed.
+>
+> **Since 2 October 2026 eight of them answer for demonstration.** The founder's demonstration override
+> (`packages/catalog/demonstration-override.json`, explained in
+> [`DEMONSTRATION-OVERRIDE.md`](DEMONSTRATION-OVERRIDE.md)) opens every source whose licence permits a
+> commercial service's use, without the two signatures, which stay blank; every flag stays `false`. The six
+> that need their owner's written permission stay off for their licences. Switching the override off
+> restores everything this page describes.
 
 The contract is the authority: each source's licence, verdict, hosting, audience, languages, use and
 non-use are in `federation.json` and are not restated here beyond the table. Governance · Knowledge

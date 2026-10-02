@@ -4,7 +4,8 @@ import { g1 } from '../../../lib/gilbertone-admin';
 import { Empty, Region, RovingList } from '../Parts';
 import { Locked } from './Controls';
 import { Badge } from '../../../ui/Badge';
-import { governance, signatureRoles, verdictOf } from '../../../lib/knowledge-sources';
+import { demonstrationStateOf, governance, signatureRoles, verdictOf, waitingForOf } from '../../../lib/knowledge-sources';
+import { demonstration, demonstrationDisclaimer, demonstrationWords } from '../../../lib/demonstration-override';
 
 /* GilbertOne · Knowledge (§7.6): the clinical and non-clinical corpora and the external sources.
  *
@@ -15,8 +16,12 @@ import { governance, signatureRoles, verdictOf } from '../../../lib/knowledge-so
  * Queue entry — with no control beside it. The federation sources are packages/catalog/knowledge/
  * federation.json's, every one of them not active, each with its licence, the verdict on it, its rate
  * limit, where it is hosted, what it is for and not for, and the two signatures it waits on. Their
- * addresses are not drawn: nothing calls them. Proposing a source and reading what each signature
- * covers is Governance's (features/portal/KnowledgeSources.tsx), so this screen keeps no control. */
+ * addresses are not drawn. Proposing a source and reading what each signature covers is Governance's
+ * (features/portal/KnowledgeSources.tsx), so this screen keeps no control.
+ *
+ * Since 2 October 2026 the founder's demonstration override opens the sources whose licences permit it,
+ * without their signatures: each such source says so beside its name, the override's disclaimer stands
+ * above the list word for word, and the sentence about its address says who asks it and with what. */
 
 export function KnowledgeScreen() {
  const words = g1.knowledge;
@@ -42,10 +47,13 @@ export function KnowledgeScreen() {
 
   <Region title={words.sourcesHeading} count={federation.sources.length}>
    <p>{federation.policy.statement}</p>
-   <RovingList label={`${federation.sources.length} external sources, none active`} className="g1-cards" rows={federation.sources.map(s => ({
+   {demonstration.inForce && <p className="helper" role="note"><strong>{demonstration.disclaimer.label}.</strong> {demonstrationDisclaimer}</p>}
+   <RovingList label={`${federation.sources.length} external sources, ${federation.sources.filter(s => demonstrationStateOf(s)).length} on for demonstration`} className="g1-cards" rows={federation.sources.map(s => ({
     key: s.id,
     content: <article className="pt-card g1-card" aria-label={s.name}>
-     <h3>{s.name} {!s.active && <Badge size="sm" className="g1-tag">{words.inactiveWord}</Badge>}</h3>
+     <h3>{s.name} {demonstrationStateOf(s)
+      ? <Badge size="sm" variant="success" className="g1-tag">{demonstrationStateOf(s) === 'on' ? demonstration.disclaimer.label : demonstrationWords.waitingForCredentials}</Badge>
+      : !s.active && <Badge size="sm" className="g1-tag">{words.inactiveWord}</Badge>}</h3>
      <dl className="pt-facts">
       <div className="g1-fact"><dt>Authority</dt><dd>{s.authority} · {s.jurisdiction}</dd></div>
       <div className="g1-fact"><dt>Licence</dt><dd>{s.licensing.licence}. {s.licensing.notes}</dd></div>
@@ -55,7 +63,7 @@ export function KnowledgeScreen() {
       <div className="g1-fact"><dt>Residency</dt><dd>{s.dataResidency.hostedIn}. {s.dataResidency.notes}</dd></div>
       <div className="g1-fact"><dt>Use for</dt><dd>{s.useFor}</dd></div>
       <div className="g1-fact"><dt>Never for</dt><dd>{s.notFor}</dd></div>
-      <div className="g1-fact"><dt>Address</dt><dd>{words.endpointSentence}</dd></div>
+      <div className="g1-fact"><dt>Address</dt><dd>{demonstrationStateOf(s) ? `${demonstrationWords.calledBy}${demonstrationStateOf(s) === 'waiting-for-credentials' ? ` ${waitingForOf(s)}` : ''}` : words.endpointSentence}</dd></div>
      </dl>
     </article>
    }))}/>

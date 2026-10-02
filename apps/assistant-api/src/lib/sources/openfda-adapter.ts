@@ -3,6 +3,8 @@ import {
   authEnvName,
   federationSource,
   isSourceActive,
+  outgoingTerm,
+  plainTerm,
   openFdaInteractionConfig,
   type AdapterDeps,
   type AdapterOutcome,
@@ -74,14 +76,14 @@ export async function searchOpenFda(
       sourceId: SOURCE_ID,
       detail: "no config for this source in federation.json",
     };
-  if (!isSourceActive(config))
+  if (!isSourceActive(config, deps.override))
     return {
       status: "dark",
       sourceId: config.id,
-      detail: `${config.id} is dark (active: false) — activation requires the recorded licence and POPIA review, and a deliberate edit of federation.json`,
+      detail: `${config.id} is dark (active: false, and the demonstration override does not open it) — activation requires the recorded licence and POPIA review, and a deliberate edit of federation.json`,
     };
 
-  const trimmed = (query ?? "").trim().slice(0, MAX_QUERY_LENGTH);
+  const trimmed = outgoingTerm(query, MAX_QUERY_LENGTH);
   if (!trimmed)
     return {
       status: "unavailable",
@@ -122,11 +124,16 @@ export async function searchOpenFda(
 
   let body: OpenFdaBody;
   try {
-    /* The quoted phrase searches the label corpus for the term as written; `limit` caps the response
-       where openFDA allows it, and the optional key rides the query string exactly as openFDA's
-       documentation specifies. */
+    /* The term is searched as a medicine's generic or brand name — openFDA reads a space between two
+       clauses as OR — because a bare phrase matches every label whose warnings merely mention it (asked
+       for ibuprofen, it answered with naproxen's label on 2 October 2026). The term is reduced to plain
+       words first, so nothing in it is read as search syntax; `limit` caps the response, and the
+       optional key rides the query string exactly as openFDA's documentation specifies. */
+    const term = plainTerm(trimmed);
+    if (!term)
+      return { status: "unavailable", sourceId: config.id, detail: "the term carried no plain words; nothing left the process" };
     const params = new URLSearchParams({
-      search: `"${trimmed}"`,
+      search: `openfda.generic_name:"${term}" openfda.brand_name:"${term}"`,
       limit: String(MAX_RESULTS),
     });
     if (apiKey) params.set("api_key", apiKey);
@@ -134,6 +141,9 @@ export async function searchOpenFda(
       headers: { accept: "application/json" },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
+    /* openFDA answers a search that matched nothing with 404 NOT_FOUND: an honest empty answer, not an
+       outage. */
+    if (response.status === 404) return { status: "ok", sourceId: config.id, results: [] };
     if (!response.ok)
       return {
         status: "unavailable",
@@ -156,11 +166,12 @@ export async function searchOpenFda(
     const brand = firstString(record.openfda?.brand_name);
     const title = generic || brand;
     if (!title) return;
+    /* Never the label's dosage section: federation.json's notFor for this source refuses any dose
+       answer, and a US dose read to a South African patient is the harm that line exists to stop. */
     const snippetSource =
       firstString(record.boxed_warning) ||
       firstString(record.warnings) ||
-      firstString(record.indications_and_usage) ||
-      firstString(record.dosage_and_administration);
+      firstString(record.indications_and_usage);
     const recordId =
       typeof record.id === "string" && record.id ? record.id : "";
     results.push({
