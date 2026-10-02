@@ -6,12 +6,42 @@ jobs:
   web:
     runs-on: ubuntu-latest
     steps:
+      # The whole history: the API locks are compared with their git history, and the dates below
+      # are read from it.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+      # check-boundaries.mjs decides a generated file is stale when it is older than its source, which
+      # is right on a contributor's machine and meaningless on a fresh checkout, where every file is
+      # dated by when the runner happened to write it. So each file first takes the date of the last
+      # commit that touched it, then every text generator runs again: a generated file that comes out
+      # different from the committed one fails the diff below, which is a stronger check than a date,
+      # and one that comes out the same is now dated after its source. The image generators (banners,
+      # the app icon) are left out: their bytes depend on the Pillow and Chromium on the runner, so
+      # they are judged by their committed dates alone.
+      - name: Date each file by its last commit, regenerate the generated text, and prove nothing moved
+        run: |
+          python3 - <<'PY'
+          import os, subprocess
+          log = subprocess.run(['git', '-c', 'core.quotePath=false', 'log', '--format=@%ct', '--name-only', '--no-renames'], capture_output=True, text=True, check=True).stdout
+          seen, when = set(), None
+          for line in log.splitlines():
+              if line.startswith('@'):
+                  when = int(line[1:])
+              elif line and line not in seen:
+                  seen.add(line)
+                  if os.path.isfile(line):
+                      os.utime(line, (when, when))
+          PY
+          for step in $(node -e "console.log(require('./package.json').scripts.generate.split(' && ').map(s => s.split(' ').pop()).filter(s => !['banners', 'appicon'].includes(s)).join(' '))"); do
+            npm run -s "$step" > /dev/null
+          done
+          git diff --exit-code
       - run: npm run check && npm run build
       # The patient entry's weight, measured against the ceiling in CLAUDE.md. After the build and
       # not before it: it measures bytes that only exist once apps/web/dist has been written, and a
@@ -58,7 +88,20 @@ jobs:
           udid=$(xcrun simctl list devices available | grep -E '^ +iPhone' | head -1 | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
           test -n "$udid" || { echo "no iPhone simulator on this runner"; xcrun simctl list devices available; exit 1; }
           echo "udid=$udid" >> "$GITHUB_OUTPUT"
-      - run: xcodebuild test -project apps/ios/MyThuso.xcodeproj -scheme MyThuso -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}"
+      - run: xcodebuild test -project apps/ios/MyThuso.xcodeproj -scheme MyThuso -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" -resultBundlePath build/MyThusoTests.xcresult
+      # The UI tests print some fourteen thousand lines, and a failure's own message lands far above
+      # the end of the log, where nobody reading the job's tail can find it. So when one fails, the
+      # failures are printed again from the result bundle, last, and the bundle is kept for a person
+      # to open in Xcode.
+      - name: Say which tests failed, and why
+        if: failure()
+        run: xcrun xcresulttool get test-results summary --path build/MyThusoTests.xcresult --compact || true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ios-test-results
+          path: build/MyThusoTests.xcresult
+          retention-days: 7
   android:
     runs-on: ubuntu-latest
     steps:
@@ -67,6 +110,10 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+      # The action's default package list still names the SDK's long-retired "tools" package, which the
+      # repository no longer serves, and sdkmanager fails on it before Gradle runs.
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
       - uses: gradle/actions/setup-gradle@v4
       - run: cd apps/android && ./gradlew :app:assembleDebug :app:lintDebug

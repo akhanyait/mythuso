@@ -87,13 +87,28 @@ final class CancellationTests: XCTestCase {
         var found: Set<String> = []
         let scroller = app.scrollViews.firstMatch.exists ? app.scrollViews.firstMatch : app
         for _ in 0..<steps {
-            let visible = app.staticTexts.allElementsBoundByIndex.map(\.label)
+            let visible = staticLabels(app)
             let before = found.count
             found.formUnion(visible)
             if found.count == before && before > 0 { break }
             scroller.swipeUp()
         }
         return Array(found)
+    }
+
+    /* Read from one snapshot of the tree, the way AccessibilityAudit measures. allElementsBoundByIndex
+       asks for each label by its position afterwards, and a list still settling after a swipe had
+       fewer elements by then: "No matches found for Element at index 30" failed a different test of
+       this file on each run while nothing the tests assert about had changed. */
+    private func staticLabels(_ app: XCUIApplication) -> [String] {
+        guard let root = try? app.snapshot() else { return [] }
+        var labels: [String] = []
+        func walk(_ node: XCUIElementSnapshot) {
+            if node.elementType == .staticText { labels.append(node.label) }
+            for child in node.children { walk(child) }
+        }
+        walk(root)
+        return labels
     }
 
     /// Back to the top of a list a sweep has just scrolled to the bottom of.

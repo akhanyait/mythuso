@@ -164,7 +164,11 @@ for (const [name, open] of staff) {
     for (const url of stubbed) expect(new URL(url).host, `a map request went somewhere the contract does not name: ${url}`).toBe(source.host);
     for (const url of asked) expect(/mapbox\.com/.test(url), `a build with no token asked Mapbox for something: ${url}`).toBe(false);
 
-    /* Off is one press away, back to a picture that needs nobody, and the choice is not kept. */
+    /* Off is one press away, back to a picture that needs nobody, and the choice is not kept. The count
+       is taken once the streets have stopped asking: the style arrives first and its sprite and glyphs
+       after it, so a count taken mid-load blamed the schematic for a request the streets made. */
+    let settled = -1;
+    await expect.poll(() => { const same = stubbed.length === settled; settled = stubbed.length; return same; }, { intervals: [500] }).toBe(true);
     const before = stubbed.length;
     await toggle.click();
     await expect(page.locator('.livemap-canvas.schematic').first()).toBeVisible();

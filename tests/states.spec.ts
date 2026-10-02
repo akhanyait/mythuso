@@ -57,9 +57,13 @@ const serviceIsUp = async (page: Page, log = true) => {
 /* Privacy & settings is in the sidebar on a desktop and behind More on a phone. Both are real
    routes, so this takes whichever one the viewport has — through goSection, which is the one place
    in the suite that knows what the shell looks like. */
-async function openAccessLog(page: Page) {
+async function openPrivacy(page: Page) {
   await goSection(page, 'Privacy & settings');
   await expect(page.getByRole('heading', { name: 'Your data. Your choices.' })).toBeVisible();
+}
+
+async function openAccessLog(page: Page, { alreadyOnPrivacy = false } = {}) {
+  if (!alreadyOnPrivacy) await openPrivacy(page);
   await page.getByRole('button', { name: 'View access history' }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByRole('heading', { name: 'Who opened your record' })).toBeVisible();
@@ -69,9 +73,14 @@ async function openAccessLog(page: Page) {
 test('losing the connection says so, and does not quietly show yesterday’s log', async ({ page, context }) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   await page.goto('/app/');
+  /* The connection is lost with the privacy screen already open, which is the case this is about: the
+     access log is the request that cannot arrive. Cut any earlier and it is the screens' own modules
+     that cannot arrive, so there is no screen to say anything, and the journey failed — on a busy
+     runner, not on a quiet one — waiting for a link that was never going to draw. */
+  await openPrivacy(page);
   await context.setOffline(true);
 
-  const dialog = await openAccessLog(page);
+  const dialog = await openAccessLog(page, { alreadyOnPrivacy: true });
   const block = dialog.locator('.state-block.offline');
   await expect(block).toBeVisible();
 

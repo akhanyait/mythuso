@@ -140,6 +140,9 @@ test.describe('the addresses that must keep working', () => {
  });
 
  test('every old tab and section, named the old way, lands where the tab inventory says', async ({ page }) => {
+  /* One page load per old address, nineteen of them now: thirty-five seconds alone on a quiet machine,
+     which the default thirty failed every time without a single address landing in the wrong place. */
+  test.setTimeout(120_000);
   await healthy(page);
   for (const entry of portal.legacyAddresses as { legacy: string; category: string; tab: string }[]) {
    const [surface, name] = [entry.legacy.slice(0, entry.legacy.indexOf(':')), entry.legacy.slice(entry.legacy.indexOf(':') + 1)];

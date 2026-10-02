@@ -57,14 +57,17 @@ enum Audit {
          as it goes, UIKit widens the touch region past the drawn bounds, and the same notifications \
          are reachable at full size from More. What cannot be done from SwiftUI is make the bar taller.
          """),
-        ("switch “I understand this is a UI preview using fictional information.”", 34,
+        ("switch “I understand this is a UI preview using fictional information.”", 31,
          """
          A SwiftUI Toggle publishes the switch's own row height as its accessibility frame, and \
          nothing in the label reaches it: a frame on the label, padding on the label and padding \
          around the control were all tried and all three came back at the same thirty-four. The row \
          is 354 points wide and tapping the sentence toggles it, so what is short is one dimension \
          of a target that is otherwise the width of the screen. Replacing the control with one that \
-         measures 44 would be a design change on all three platforms rather than an iOS fix.
+         measures 44 would be a design change on all three platforms rather than an iOS fix. \
+         It was thirty-four until iOS 26, whose switch is drawn smaller: the same row came back \
+         362x31 on the iOS 26.2 simulator with nothing in the app changed, so the platform moved \
+         and this number follows it. Thirty-one is still over the 24 WCAG 2.2 sets at AA.
          """),
         ("button “Skip”", 36,
          """
