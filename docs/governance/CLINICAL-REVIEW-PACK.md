@@ -452,7 +452,7 @@ From `packages/catalog/protocols.json`. Named and numbered, and not ratified. A 
 | Status | Draft. Ratified by: nobody. Content: none written |
 | Engine that would work under it | `clinical` |
 | What ratification would allow | A recommendation or act by the clinical engine may cite `medical-certificate-criteria@1` as the ratified protocol it followed. Until then nothing may claim to follow it. |
-| Other contracts that name it | `packages/catalog/care.json` |
+| Other contracts that name it | `packages/catalog/care.json`, `packages/catalog/sick-note.json` |
 
 **Question for the reviewer:** what must the medical certificate criteria protocol contain before it is ratified, who writes it, and should the board ratify it as version 1?
 
@@ -658,7 +658,7 @@ Roles in `packages/catalog/vetting.json` that hold a scope of practice and a cap
 | What the role does | Reviews nurse submissions, signs decisions and prescribes. |
 | Scope of practice | General practice; Family medicine; Internal medicine; Paediatrics; Occupational health; Telemedicine |
 | Rule shown to the person | Asynchronous review and telemedicine are declared separately, because indemnity cover has to name them. |
-| Capabilities granted | `sign-clinical-review`, `prescribe`, `view-patient-summary`, `view-clinical-record`, `view-protected-record`, `view-results`, `write-clinical-note`, `order-test`, `refer-patient` |
+| Capabilities granted | `sign-clinical-review`, `prescribe`, `view-patient-summary`, `view-clinical-record`, `view-protected-record`, `view-results`, `write-clinical-note`, `order-test`, `refer-patient`, `issue-medical-certificate` |
 | Checks | HPCSA registration (high risk, renewed every 12 months); Identity (high risk); Qualifications (standard risk); Prescribing authority (high risk, renewed every 12 months); Professional indemnity (high risk, renewed every 12 months); Police clearance (high risk, renewed every 24 months); Continuing professional development (standard risk, renewed every 12 months); POPIA and confidentiality (standard risk, renewed every 12 months) |
 
 **Question for the reviewer:** does every entry in "Scope of practice" describe work a doctor may lawfully and safely do for MyThuso, is anything missing, and are the checks enough before this role reaches a patient?

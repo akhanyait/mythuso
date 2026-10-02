@@ -1,0 +1,187 @@
+{
+ "_note": "The doctor's medical certificate — the sick note — as data. The founder asked on 2 October 2026 for \"creation of doctors notes and sick notes and referrals\" for the consultation; the notes and the referrals existed and the certificate did not, so a patient's Passport could name a document no doctor could write. This is what a South African certificate must carry, who may sign one, and what the composer refuses, written once and generated into Swift and Kotlin by scripts/emit-sick-note.mjs. Nothing here is issued: the preview signs nothing, sends nothing to an employer and stores nothing, and every screen that draws a certificate says so in notIssued's words.",
+ "decidedBy": "Founder, 2 October 2026: \"creation of doctors notes and sick notes and referrals\" for the consultation.",
+ "on": "2026-10-02",
+ "version": 1,
+ "platforms": ["web", "ios", "android"],
+ "review": {
+  "reviewedBy": null,
+  "status": "awaiting-clinical-review",
+  "why": "The two limits below (how far back, how long) are proposed defaults, not rulings. Neither appears in the HPCSA's rules, and a clinical reviewer — the Medical Director the governance register has not yet appointed — decides them before a real patient is certified."
+ },
+ "sources": [
+  {
+   "id": "hpcsa-rule-16",
+   "title": "Ethical Rules of Conduct for Practitioners Registered under the Health Professions Act, 1974, rule 16, Issuing of medical certificates",
+   "publishedAs": "Government Notice R717 of 4 August 2006, as amended",
+   "url": "https://www.hpcsa-blogs.co.za/hpcsa-guidance-on-medical-certificates/",
+   "holds": "What a certificate of illness must contain, items (a) to (j): the practitioner's name, address and qualification; the patient's name; the employment number where applicable; the date and time of the examination; whether it rests on the practitioner's own observation during an examination or on information received from the patient on acceptable medical grounds; a description of the illness in lay terms only with the patient's informed consent, and otherwise only that the patient is unfit to work; whether the patient is totally unfit or fit for less strenuous duties; the exact period; the date issued; and the practitioner's initials and surname in block letters, personally and originally signed, with the registration number."
+  },
+  {
+   "id": "bcea-s23",
+   "title": "Basic Conditions of Employment Act 75 of 1997, section 23, Proof of incapacity",
+   "url": "https://www.gov.za/documents/basic-conditions-employment-act",
+   "holds": "Section 23(1): an employer need not pay for an absence of more than two consecutive days, or for absences on more than two occasions in eight weeks, without a medical certificate stating that the employee was unable to work for the duration of the absence because of sickness or injury. Section 23(2): the certificate is issued and signed by a medical practitioner, or by anybody else certified to diagnose and treat patients and registered with a professional council established by an Act of Parliament."
+  },
+  {
+   "id": "mps-2015",
+   "title": "Medical Protection Society, \"Medical certificates — avoiding the pitfalls\", Casebook, South Africa, May 2015",
+   "url": "https://www.medicalprotection.org/southafrica/casebook-may-2015/medical-certificates-avoiding-the-pitfalls",
+   "holds": "On rule 16(1)(e): a practitioner may book a patient off retrospectively only where, in their professional opinion, the patient was unable to work during the earlier days, and the certificate must say those days rest on what the patient reported rather than on anything observed. Otherwise a backdated certificate generally constitutes unprofessional conduct."
+  },
+  {
+   "id": "hpcsa-booklet-10",
+   "title": "HPCSA Booklet 10, General ethical guidelines for good practice in telehealth, December 2021, section 5.4",
+   "url": "https://www.hpcsa-blogs.co.za/wp-content/uploads/2022/08/Booklet-10_Telehealth__Dec_2021_.pdf",
+   "holds": "A remote consultation is chosen with the need to physically examine the patient in mind. The booklet says nothing about certificates, and does not say a video call is an examination."
+  }
+ ],
+ "protocol": {
+  "id": "medical-certificate-criteria",
+  "sentence": "The criteria a certificate is written against are a protocol nobody has ratified. This composer holds what rule 16 and section 23 require and its own two limits on the period, and nothing clinical.",
+  "why": "packages/catalog/protocols.json names the medical certificate criteria as a draft with no content, and every screen that shows a draft names it as one. Its name, version and status are read from the register, never typed here."
+ },
+ "notIssued": "Not issued. This is a preview: no certificate was signed, nothing was sent to an employer or a school, and nobody may rely on it. MyThuso does not yet produce a certificate a doctor signs in their own hand.",
+ "notIssuedShort": "Not issued — a preview",
+ "memoryOnly": "It is held only in the app's memory while the app is open. Close or reload it and the certificate is gone: nothing was stored, on this device or anywhere else.",
+ "issuer": {
+  "capability": "issue-medical-certificate",
+  "capabilityWhy": "A certificate is its own act under section 23(2) and rule 16, so it is its own capability on the vetting register rather than a borrowed one: write-clinical-note is held by a nurse too, and prescribe hangs on a Section 22A authority a certificate does not need.",
+  "notADoctor": "A nurse assessment is not a diagnosis. Prescriptions, sick notes and referrals need a registered doctor to review and sign.",
+  "notADoctorWhy": "Section 23(2) would let a nurse who is certified to diagnose and treat sign a certificate. The nurse checks on the vetting register record no such authorisation, so on this register a certificate is a doctor's, and the sentence a nurse already reads on her assessment says so.",
+  "alsoTypedIn": [
+   "apps/web/src/features/Clinical.tsx",
+   "apps/ios/MyThuso/Features/AssessmentView.swift",
+   "apps/android/app/src/main/java/za/co/mythuso/ui/ClinicalScreens.kt"
+  ],
+  "writers": ["N-205", "D-401", "D-402"],
+  "writersWhy": "The three answers a review needs side by side, the same three the consultation record offers: a nurse never granted the capability, a doctor in good standing, and a doctor whose HPCSA registration lapsed."
+ },
+ "fields": [
+  { "id": "practitioner", "label": "Practitioner", "rule": "HPCSA rule 16(1)(a) and (j)", "from": "the vetting register" },
+  { "id": "registration", "label": "HPCSA registration", "rule": "HPCSA rule 16(1)(j)", "from": "the vetting register" },
+  { "id": "qualification", "label": "Qualification", "rule": "HPCSA rule 16(1)(a)", "from": "notHeld" },
+  { "id": "practiceNumber", "label": "Practice number", "rule": "The Board of Healthcare Funders' practice code numbering", "from": "notHeld" },
+  { "id": "practiceAddress", "label": "Practice address", "rule": "HPCSA rule 16(1)(a)", "from": "notHeld" },
+  { "id": "patient", "label": "Patient", "rule": "HPCSA rule 16(1)(b)", "from": "the consultation" },
+  { "id": "consultation", "label": "Consultation", "rule": "HPCSA rule 16(1)(d)", "from": "the consultation" },
+  { "id": "basis", "label": "What it rests on", "rule": "HPCSA rule 16(1)(e)", "from": "the consultation" },
+  { "id": "statement", "label": "Certified", "rule": "HPCSA rule 16(1)(f) and (g)", "from": "the composer" },
+  { "id": "period", "label": "Period of incapacity", "rule": "HPCSA rule 16(1)(h)", "from": "the composer" },
+  { "id": "issued", "label": "Issued", "rule": "HPCSA rule 16(1)(i)", "from": "today" },
+  { "id": "signature", "label": "Signed", "rule": "HPCSA rule 16(1)(j)", "from": "the practitioner's own hand" }
+ ],
+ "notHeld": "Not on the register. A real certificate carries it; this preview says it has none rather than inventing one.",
+ "notCarried": [
+  {
+   "id": "identity-number",
+   "label": "Identity number",
+   "sentence": "No identity number is carried. Rule 16 asks for the patient's name, and a number that opens every other record about a person has no business on a note handed to an employer.",
+   "why": "Rule 16 does not ask for an identity number. Leaving it off is the smallest certificate the rule allows, and a boundary check refuses one appearing."
+  },
+  {
+   "id": "employee-number",
+   "label": "Employment number",
+   "sentence": "No employment number is carried. Rule 16 asks for one where it applies; the patient adds it, because MyThuso holds nothing about anybody's employer.",
+   "why": "Rule 16(1)(c) asks for it where applicable. Carrying it would make MyThuso hold an employment detail for every patient it certifies."
+  }
+ ],
+ "basis": {
+  "homeVisit": "A registered nurse examined the patient in person at home at the consultation named above, and I reviewed what she found. I did not examine the patient myself.",
+  "homeVisitRule": "Rule 16(1)(e) names two grounds: the practitioner's own observation during an examination, or information received on acceptable medical grounds. A nurse's examination reviewed by a doctor is the second, and the certificate says so in words rather than claiming an examination the signing doctor did not make.",
+  "byVideo": "A doctor who joins a visit by video sees the patient on a screen, and that is not an examination. The examination at a home visit is the nurse's.",
+  "backdated": "The days before the consultation are certified on what the patient reported, not on anything anybody observed.",
+  "callOnlyFrom": "packages/catalog/teleconsult.json#issued.items.certificate.condition",
+  "callOnlyWhy": "The consultation contract already refuses a certificate from a call with nobody in the room, and a boundary check holds it to that. One refusal, read from where it lives, rather than a second answer to the same question."
+ },
+ "fitness": [
+  { "id": "unfit", "label": "Unfit for duty", "statement": "In my opinion, based on the examination at this consultation, the patient is unfit for work." },
+  { "id": "light", "label": "Fit for less strenuous duties only", "statement": "In my opinion, based on the examination at this consultation, the patient is fit only for less strenuous duties at work." }
+ ],
+ "fitnessWhy": "Rule 16(1)(g): whether the patient is totally indisposed for duty or able to perform less strenuous duties.",
+ "diagnosis": {
+  "default": "withheld",
+  "consentLabel": "The patient has agreed, in this consultation, to the illness being described on the certificate",
+  "descriptionLabel": "The illness, in plain words",
+  "descriptionHint": "As the patient would say it to somebody who is not a clinician.",
+  "descriptionMaxLength": 160,
+  "withheld": "Not described. The patient has not agreed to the illness being written on a document somebody else will read.",
+  "why": "Rule 16(1)(f): a description in lay terms only with the patient's informed consent; without it, only that the patient is unfit to work. The default is the proviso, so a description is something the patient adds and never something they have to remember to take away."
+ },
+ "period": {
+  "backdateDays": 2,
+  "backdateDaysWhy": "A proposed default, not a ruling. Rule 16 names no number, and the guidance on rule 16(1)(e) allows earlier days only where the practitioner believes the patient could not work and says they rest on what the patient reported. Two days is the absence section 23(1) of the Basic Conditions of Employment Act lets an employee take before a certificate is needed, and so the absence a patient most often has behind them when they are first seen. Anything further back is a judgement this preview will not make without a clinical reviewer.",
+  "maxDays": 14,
+  "maxDaysWhy": "A proposed default, not a ruling. Rule 16(1)(h) asks for the exact period, so the period must end; fourteen days is the most one certificate covers here, so that a longer incapacity is seen again and certified again rather than extended by paperwork. A five-day worker's statutory sick leave is thirty days in a thirty-six month cycle, and a fortnight on one note is already half of it.",
+  "defaultDays": 3,
+  "defaultDaysWhy": "Where the composer starts, never a recommendation: the consultation day and the two after it. The doctor sets the period."
+ },
+ "consultations": [
+  { "reference": "TH-2048", "patient": "Lerato Molefe", "kind": "home-visit", "nurse": "N-205", "service": "certificate", "dayOffset": 0, "time": "09:40" },
+  { "reference": "TH-2039", "patient": "Thabo Molefe", "kind": "home-visit", "nurse": "N-205", "service": "certificate", "dayOffset": -3, "time": "14:10" },
+  { "reference": "TH-2051", "patient": "Nomsa Molefe", "kind": "video-call", "nurse": null, "service": null, "dayOffset": 0, "time": "11:15" },
+  { "reference": "TH-2055", "patient": "Lerato Molefe", "kind": "home-visit", "nurse": "N-205", "service": "certificate", "dayOffset": 1, "time": "08:30" }
+ ],
+ "consultationsWhy": "Four consultations, one per answer: a home visit today, one three days ago that a certificate may still follow, a call with nobody in the room, and a visit booked for tomorrow that has not happened. Day offsets from today, so the preview never goes stale.",
+ "refusals": [
+  { "id": "no-consultation", "sentence": "No consultation, no certificate. A certificate says what was found at a consultation, and there is none on record under this reference." },
+  { "id": "from-a-call", "from": "basis.callOnlyFrom" },
+  { "id": "not-yet-seen", "sentence": "This consultation has not happened yet. A certificate is written about a consultation that has, so the day it was held can never be after the day the certificate is issued." },
+  { "id": "not-this-patient", "sentence": "A certificate names the patient the consultation was about, and nobody else." },
+  { "id": "not-a-doctor", "from": "issuer.notADoctor" },
+  { "id": "registration", "from": "the vetting register's refusal for issue-medical-certificate" },
+  { "id": "period-backwards", "sentence": "The last day of the period is before the first. A period runs forwards." },
+  { "id": "starts-after-issue", "sentence": "The period starts after the day the certificate is issued. A certificate records an incapacity the doctor has found, never one that is expected." },
+  { "id": "backdated-too-far", "sentence": "A certificate reaches back at most {days} days before the consultation, and those days rest on what the patient reported. Earlier than that is not something this consultation can tell anybody." },
+  { "id": "period-too-long", "sentence": "One certificate covers at most {days} days. A longer incapacity is seen again and certified again, so that somebody looks at the patient before the period grows." },
+  { "id": "diagnosis-without-consent", "sentence": "The illness is described only if the patient has agreed to it being on a document somebody else will read. Without that agreement the certificate says only whether the patient can work." },
+  { "id": "consent-without-description", "sentence": "The patient agreed to the illness being described, and nothing is written. Describe it in plain words, or leave the agreement unticked." }
+ ],
+ "fixtures": {
+  "why": "Every refusal once, and the drafts that pass. scripts/check-sick-note.mjs replays them through apps/web/src/lib/sick-note.ts on every check; the phones' SickNote.swift and SickNote.kt are the same rules in the same order. The writer is the vetting register's answer: a doctor in good standing (D-401), a nurse never granted the capability (N-205), a doctor whose registration lapsed (D-402).",
+  "cases": [
+    {"name": "a doctor in good standing, today's visit, three days, nothing described", "reference": "TH-2048", "patient": "Lerato Molefe", "writer": "doctor", "fromOffset": 0, "toOffset": 2, "consent": false, "description": "", "expect": []},
+    {"name": "the visit three days ago, certified for the days after it", "reference": "TH-2039", "patient": "Thabo Molefe", "writer": "doctor", "fromOffset": -3, "toOffset": -1, "consent": false, "description": "", "expect": []},
+    {"name": "two days before the visit, on what the patient reported", "reference": "TH-2048", "patient": "Lerato Molefe", "writer": "doctor", "fromOffset": -2, "toOffset": 0, "consent": false, "description": "", "expect": []},
+    {"name": "described, with the patient's agreement", "reference": "TH-2048", "patient": "Lerato Molefe", "writer": "doctor", "fromOffset": 0, "toOffset": 2, "consent": true, "description": "A stomach bug", "expect": []},
+    {"name": "a nurse", "reference": "TH-2048", "patient": "Lerato Molefe", "writer": "nurse", "fromOffset": 0, "toOffset": 2, "consent": false, "description": "", "expect": ["not-a-doctor"]},
+    {"name": "a doctor whose registration lapsed", "reference": "TH-2048", "patient": "Lerato Molefe", "writer": "lapsed", "fromOffset": 0, "toOffset": 2, "consent": false, "description": "", "expect": ["registration"]},
+    {"name": "three days before the visit", "reference": "TH-2048", "patient": "Lerato Molefe", "writer": "doctor", "fromOffset": -3, "toOffset": 0, "consent": false, "description": "", "expect": ["backdated-too-far"]},
+    {"name": "a call with nobody in the room", "reference": "TH-2051", "patient": "Nomsa Molefe", "writer": "doctor", "fromOffset": 0, "toOffset": 1, "consent": false, "description": "", "expect": ["from-a-call"]},
+    {"name": "a visit booked for tomorrow", "reference": "TH-2055", "patient": "Lerato Molefe", "writer": "doctor", "fromOffset": 0, "toOffset": 1, "consent": false, "description": "", "expect": ["not-yet-seen"]},
+    {"name": "a reference with no consultation", "reference": "TH-9999", "patient": "Lerato Molefe", "writer": "doctor", "fromOffset": 0, "toOffset": 1, "consent": false, "description": "", "expect": ["no-consultation"]},
+    {"name": "somebody else's name", "reference": "TH-2048", "patient": "Thabo Molefe", "writer": "doctor", "fromOffset": 0, "toOffset": 1, "consent": false, "description": "", "expect": ["not-this-patient"]},
+    {"name": "fifteen days", "reference": "TH-2048", "patient": "Lerato Molefe", "writer": "doctor", "fromOffset": 0, "toOffset": 14, "consent": false, "description": "", "expect": ["period-too-long"]},
+    {"name": "a period that starts tomorrow", "reference": "TH-2048", "patient": "Lerato Molefe", "writer": "doctor", "fromOffset": 1, "toOffset": 3, "consent": false, "description": "", "expect": ["starts-after-issue"]},
+    {"name": "a period that runs backwards", "reference": "TH-2048", "patient": "Lerato Molefe", "writer": "doctor", "fromOffset": 0, "toOffset": -1, "consent": false, "description": "", "expect": ["period-backwards"]},
+    {"name": "described without the patient's agreement", "reference": "TH-2048", "patient": "Lerato Molefe", "writer": "doctor", "fromOffset": 0, "toOffset": 2, "consent": false, "description": "A stomach bug", "expect": ["diagnosis-without-consent"]},
+    {"name": "agreed, and nothing described", "reference": "TH-2048", "patient": "Lerato Molefe", "writer": "doctor", "fromOffset": 0, "toOffset": 2, "consent": true, "description": "", "expect": ["consent-without-description"]}
+  ]
+ },
+ "eventsAndRoutes": {
+  "declared": false,
+  "why": "No event and no route is declared. Declaring one freezes its shape in events.lock or apis.lock, and a certificate's shape waits on the clinical review above; its home, the Health Passport's documents, is a development-only service. When one is declared it is certificate.signed@1, carrying the certificate's reference, the consultation's reference and the signing practitioner's registration reference — never the description, the period's reason or anything a subscriber could read an illness from."
+ },
+ "screen": {
+  "title": "Medical certificate",
+  "deskTitle": "Medical certificates",
+  "lead": "A sick note for a patient seen at a consultation: the days they could not work, what that rests on, and the doctor who would sign it.",
+  "deskLead": "Choose the consultation the certificate comes out of. A certificate is tied to one; without it there is nothing to certify.",
+  "consultationLabel": "Consultation",
+  "writingAs": "Writing as",
+  "fitnessLabel": "Certified as",
+  "fromLabel": "First day",
+  "toLabel": "Last day",
+  "daysLabel": "days",
+  "sign": "Sign the certificate",
+  "signed": "Signed in the preview",
+  "close": "Close",
+  "again": "Write another",
+  "refusedHeading": "Why this cannot be signed",
+  "readyLine": "Every rule is met. Signing in the preview shows the certificate as the patient would see it, marked not issued.",
+  "asSeenHeading": "As the patient would see it",
+  "unsigned": "Not signed. A preview signs nothing.",
+  "passportHeading": "Written in this session",
+  "rulesHeading": "What it carries, and why"
+ }
+}

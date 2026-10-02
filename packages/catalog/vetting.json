@@ -71,6 +71,11 @@
    "detail": "Send a patient to another provider or facility"
   },
   {
+   "id": "issue-medical-certificate",
+   "name": "Issue a medical certificate",
+   "detail": "Certify that a patient seen at a consultation could not work"
+  },
+  {
    "id": "dispatch-nurses",
    "name": "Assign a nurse",
    "detail": "Send a named nurse to a named address"
@@ -608,6 +613,10 @@
     {
      "capability": "refer-patient",
      "refusal": "A referral carries the referring clinician's registration to the person receiving it."
+    },
+    {
+     "capability": "issue-medical-certificate",
+     "refusal": "A certificate is signed under a current HPCSA registration. Without one the signature is refused, not warned about."
     }
    ],
    "checks": [

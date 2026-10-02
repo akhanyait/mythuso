@@ -402,6 +402,8 @@ import za.co.mythuso.model.mokoenaHousehold
         title == "Weekly payouts" || title == "Earnings & payouts" -> EarningsScreen(store, open)
         /* A doctor's per-case fees: the cases Money recorded and a fee nobody has decided. */
         title == "Per-case fees" -> DoctorFeesScreen()
+        /* The medical certificate (2 October 2026), named by sick-note.json's own heading. */
+        title == za.co.mythuso.model.SickNoteData.Screen.deskTitle -> SickNoteScreen(store)
         title == "Thuso SOS" || title == "Emergency & urgent care" -> SosScreen(store)
         /* GilbertOne full screen, for a link; the orb on the patient shell opens the same content in a sheet. */
         title == za.co.mythuso.model.GilbertData.name -> GilbertScreen(store, open)
@@ -989,6 +991,10 @@ private fun sectionDeck(role: String, section: String) =
                 CareCard {
                     Text("Your fees", style = MaterialTheme.typography.titleMedium)
                     ToolRow("Per-case fees") { open("Per-case fees") }
+                }
+                CareCard {
+                    Text(za.co.mythuso.model.SickNoteData.Screen.deskTitle, style = MaterialTheme.typography.titleMedium)
+                    ToolRow(za.co.mythuso.model.SickNoteData.Screen.deskTitle) { open(za.co.mythuso.model.SickNoteData.Screen.deskTitle) }
                 }
             }
             role == "Doctor" && section == "Teleconsultation" -> CareCard { ToolRow("Teleconsultation") { open("Teleconsultation") } }

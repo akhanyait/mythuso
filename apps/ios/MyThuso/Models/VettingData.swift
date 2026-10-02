@@ -24,6 +24,7 @@ extension Vetting {
         .init(id: "write-clinical-note", name: "Record a consultation", detail: "Write an encounter into the patient's record, under your own registration"),
         .init(id: "order-test", name: "Request a test", detail: "Raise a laboratory or imaging request against a patient"),
         .init(id: "refer-patient", name: "Refer a patient", detail: "Send a patient to another provider or facility"),
+        .init(id: "issue-medical-certificate", name: "Issue a medical certificate", detail: "Certify that a patient seen at a consultation could not work"),
         .init(id: "dispatch-nurses", name: "Assign a nurse", detail: "Send a named nurse to a named address"),
         .init(id: "review-vetting", name: "Decide a vetting case", detail: "Approve, decline or suspend another party's credentials"),
         .init(id: "run-programme", name: "Run a programme", detail: "Operate an employer or community health programme"),
@@ -121,7 +122,8 @@ extension Vetting {
                     .init(capability: "view-results", refusal: "Results are withheld from a doctor whose registration is not current, held rather than shown."),
                     .init(capability: "write-clinical-note", refusal: "A consultation is written under a registration. Without a current one there is nothing to write it under."),
                     .init(capability: "order-test", refusal: "A test cannot be ordered against a patient by somebody not currently registered to interpret it."),
-                    .init(capability: "refer-patient", refusal: "A referral carries the referring clinician's registration to the person receiving it.")
+                    .init(capability: "refer-patient", refusal: "A referral carries the referring clinician's registration to the person receiving it."),
+                    .init(capability: "issue-medical-certificate", refusal: "A certificate is signed under a current HPCSA registration. Without one the signature is refused, not warned about.")
                    ],
                    checks: [
                     .init(id: "hpcsa-registration", name: "HPCSA registration", detail: "Verified against the Health Professions Council register", authority: "hpcsa", evidence: "Registration number and annual receipt", renewMonths: 12, risk: "high", gate: "credentials"),

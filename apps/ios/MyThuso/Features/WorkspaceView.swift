@@ -630,6 +630,11 @@ struct WorkspaceSectionView: View {
             group("Your fees") {
                 pill("Per-case fees", "Every case you sign is recorded; the fee is not decided", "banknote") { DoctorFeesView() }
             }
+            /* The medical certificate (2 October 2026): written for a consultation, refused in the contract's words,
+               and never issued. Named by sick-note.json's own heading. */
+            group(SickNoteData.Screen.deskTitle) {
+                pill(SickNoteData.Screen.deskTitle, SickNoteData.notIssuedShort, "doc.badge.ellipsis") { SickNoteView() }
+            }
         }
     }
 

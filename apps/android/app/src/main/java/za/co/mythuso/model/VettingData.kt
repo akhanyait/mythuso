@@ -23,6 +23,7 @@ val vettingCapabilities = listOf(
     VettingCapability("write-clinical-note", "Record a consultation", "Write an encounter into the patient's record, under your own registration"),
     VettingCapability("order-test", "Request a test", "Raise a laboratory or imaging request against a patient"),
     VettingCapability("refer-patient", "Refer a patient", "Send a patient to another provider or facility"),
+    VettingCapability("issue-medical-certificate", "Issue a medical certificate", "Certify that a patient seen at a consultation could not work"),
     VettingCapability("dispatch-nurses", "Assign a nurse", "Send a named nurse to a named address"),
     VettingCapability("review-vetting", "Decide a vetting case", "Approve, decline or suspend another party's credentials"),
     VettingCapability("run-programme", "Run a programme", "Operate an employer or community health programme"),
@@ -153,7 +154,8 @@ val vettingRoles = listOf(
             VettingGrant("view-results", "Results are withheld from a doctor whose registration is not current, held rather than shown."),
             VettingGrant("write-clinical-note", "A consultation is written under a registration. Without a current one there is nothing to write it under."),
             VettingGrant("order-test", "A test cannot be ordered against a patient by somebody not currently registered to interpret it."),
-            VettingGrant("refer-patient", "A referral carries the referring clinician's registration to the person receiving it.")
+            VettingGrant("refer-patient", "A referral carries the referring clinician's registration to the person receiving it."),
+            VettingGrant("issue-medical-certificate", "A certificate is signed under a current HPCSA registration. Without one the signature is refused, not warned about.")
         ),
         listOf(
             VettingCheck("hpcsa-registration", "HPCSA registration", "Verified against the Health Professions Council register", "hpcsa", "Registration number and annual receipt", 12, "high", "credentials"),

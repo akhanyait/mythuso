@@ -1,0 +1,74 @@
+/* The doctor's medical certificate (2 October 2026): the composer a consultation embeds, the doctor's own
+   page and the sheet the patient's Passport draws. Fetched with the screen behind its dynamic import, never
+   on a patient's first load.
+
+   White surfaces, one hairline and the card's corner, on the semantic roles only, so it holds in either
+   theme. The not-issued stamp is the one loud thing on it and it is loud by weight and border, never by
+   colour alone. A refusal is a list of sentences, not a red box: a doctor reads why, and the sign button
+   is disabled beside it. No colour, duration or curve is typed; nothing moves. */
+.sn, .sn-desk { display: grid; gap: var(--space-16); min-width: 0; color: var(--color-foreground); }
+.sn p, .sn h3, .sn h4, .sn-desk p { margin: 0; }
+.sn-lead, .sn-quiet, .sn-withheld, .sn-not-carried, .sn-ready { font-size: 14px; line-height: 1.5; color: var(--color-muted-foreground); }
+.sn-banner { display: flex; gap: var(--space-8); align-items: flex-start; padding: var(--space-12); border: 1px solid var(--color-border); border-radius: var(--r-md); background: var(--color-muted); font-size: 14px; line-height: 1.5; }
+.sn-banner svg { flex: none; margin-top: 2px; }
+
+.sn-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr)); gap: var(--space-12); }
+.sn-facts > div, .sn-writer, .sn-period label, .sn-description { display: grid; gap: var(--space-4); min-width: 0; }
+.sn-facts span, .sn-writer span, .sn-period span, .sn-description span, .sn-fitness legend { font-size: 13px; color: var(--color-muted-foreground); }
+.sn-writer select, .sn-period input, .sn-description textarea { min-height: 44px; min-width: 0; padding: var(--space-8) var(--space-12); border: 1px solid var(--color-border); border-radius: var(--r-control); background: var(--color-surface); color: var(--color-foreground); font: inherit; }
+.sn-description textarea { min-height: 88px; resize: vertical; }
+
+.sn-fitness { display: flex; flex-wrap: wrap; gap: var(--space-8) var(--space-20); margin: 0; padding: 0; border: 0; }
+.sn-fitness legend { padding: 0; margin-bottom: var(--space-8); }
+.sn-fitness label, .sn-consent { display: flex; gap: var(--space-8); align-items: flex-start; min-height: 44px; line-height: 1.4; }
+.sn-fitness input, .sn-consent input { width: 20px; height: 20px; margin: 2px 0 0; flex: none; accent-color: var(--color-accent); }
+
+.sn-period { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); gap: var(--space-12); align-items: end; }
+.sn-count { min-height: 44px; display: flex; align-items: center; gap: var(--space-4); font-variant-numeric: tabular-nums; }
+.sn-count strong { font-family: var(--font-display); font-size: 22px; font-weight: 600; }
+
+.sn-withheld { display: flex; gap: var(--space-8); align-items: flex-start; }
+.sn-withheld svg { flex: none; margin-top: 3px; }
+.sn-not-carried { margin: 0; padding-left: var(--space-20); }
+
+.sn-refusals { display: grid; gap: var(--space-8); padding: var(--space-12) var(--space-16); border: 1px solid var(--color-border); border-left: 3px solid var(--color-danger); border-radius: var(--r-md); }
+.sn-refusals h4 { font-size: 15px; font-weight: 600; }
+.sn-refusals ul { display: grid; gap: var(--space-8); margin: 0; padding: 0; list-style: none; }
+.sn-refusals li { display: flex; gap: var(--space-8); align-items: flex-start; font-size: 14px; line-height: 1.5; }
+.sn-refusals li svg { flex: none; margin-top: 3px; color: var(--color-danger); }
+
+.sn-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-8); }
+.sn-actions button { min-height: 44px; display: inline-flex; align-items: center; gap: var(--space-8); }
+.sn-signed { display: flex; flex-wrap: wrap; gap: var(--space-8); align-items: center; }
+.sn-signed span { padding: var(--space-4) var(--space-8); border: 1px solid var(--color-foreground); border-radius: var(--r-pill); font-size: 12px; font-weight: 600; }
+.sn-sub { font-size: 15px; font-weight: 600; }
+
+/* The certificate itself. The stamp sits above the heading and the sentence under the last line, so no
+   crop of the sheet loses both. */
+.sn-certificate { display: grid; gap: var(--space-12); min-width: 0; padding: var(--space-20); border: 1px solid var(--color-border); border-radius: var(--r-lg); background: var(--color-surface); color: var(--color-foreground); }
+.sn-certificate p, .sn-certificate h3 { margin: 0; }
+.sn-stamp { justify-self: start; padding: var(--space-4) var(--space-12); border: 2px solid var(--color-foreground); border-radius: var(--r-pill); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.sn-certificate-head { display: flex; gap: var(--space-12); align-items: center; }
+.sn-certificate-head h3 { font-family: var(--font-display); font-size: 20px; font-weight: 600; }
+.sn-certificate-head p { font-size: 14px; color: var(--color-muted-foreground); }
+.sn-mark { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: var(--r-md); background: var(--color-muted); }
+.sn-lines { display: grid; gap: 0; margin: 0; }
+.sn-line { display: grid; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr); gap: var(--space-4) var(--space-16); padding: var(--space-8) 0; border-top: 1px solid var(--color-border); }
+.sn-line dt { font-size: 13px; color: var(--color-muted-foreground); }
+.sn-line dd { margin: 0; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+@media (max-width: 560px) { .sn-line { grid-template-columns: minmax(0, 1fr); } }
+.sn-not-issued { font-size: 13px; line-height: 1.5; color: var(--color-muted-foreground); }
+
+/* The doctor's page: the consultations as a row of choices, the composer under them. */
+.sn-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: var(--space-8); }
+.sn-choice { display: grid; gap: var(--space-4); min-height: 44px; padding: var(--space-12); text-align: left; border: 1px solid var(--color-border); border-radius: var(--r-md); background: var(--color-surface); color: var(--color-foreground); font: inherit; cursor: pointer; }
+.sn-choice small, .sn-choice span { font-size: 13px; color: var(--color-muted-foreground); }
+.sn-choice[aria-pressed='true'] { border-color: var(--color-foreground); box-shadow: inset 3px 0 0 var(--color-accent); background: var(--color-muted); }
+.sn-rules { font-size: 14px; line-height: 1.5; }
+.sn-rules summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 600; }
+.sn-rules dl { display: grid; gap: var(--space-4); margin: 0 0 var(--space-12); }
+.sn-rules dl div { display: grid; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr); gap: var(--space-16); }
+.sn-rules dt { color: var(--color-muted-foreground); }
+.sn-rules dd { margin: 0; }
+.sn-rules ul { margin: 0; padding-left: var(--space-20); }
+.sn-rules a { color: var(--color-foreground); overflow-wrap: anywhere; }

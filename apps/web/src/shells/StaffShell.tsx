@@ -45,6 +45,10 @@ import { StaffTeam } from '../features/StaffTeam';
 import { ThusoKit } from '../features/Kit';
 import { Earnings } from '../features/Earnings';
 import { DoctorFees } from '../features/DoctorFees';
+/* The doctor's medical certificate (2 October 2026), on its own dynamic import: the composer, its contract and the
+   vetting arithmetic it asks arrive when the page is opened. The section's name is sick-note.json's deskTitle. */
+import { FileBadge } from 'lucide-react';
+const SickNoteDesk = lazy(() => import('../features/SickNote').then(m => ({ default: m.SickNoteDesk })));
 /* The doctor's claim draft, for a visit whose review she signed. It leads with the code set nobody has adopted. */
 import { ClaimDraft } from '../features/Claims';
 import { Dispensing } from '../features/Dispensing';
@@ -207,7 +211,8 @@ const workspaces = {
    { id: 'Consultation records', short: 'Records', icon: ClipboardPlus, tab: true },
    { id: medicinesWords.prescribe.heading, short: 'Prescribe', icon: Pill },
    { id: medicinesWords.results.heading, short: 'Results', icon: TestTube },
-   { id: 'Referral pathway', short: 'Referrals', icon: Route }
+   { id: 'Referral pathway', short: 'Referrals', icon: Route },
+   { id: 'Medical certificates', short: 'Certificates', icon: FileBadge }
   ] },
   /* Protocols is the one "Clinical protocols" More tool was a second door into, so it is one
      destination here and the tool is gone rather than listed twice. */
@@ -499,6 +504,7 @@ function renderSection(role: StaffRole, section: string, open: (m: string) => vo
   if (section === medicinesWords.prescribe.heading) return <OnDeck role={role}><DoctorPrescriptionsList/><DoctorPrescribe/></OnDeck>;
   if (section === medicinesWords.results.heading) return <OnDeck role={role}><DoctorResultsStrip/><LabResults/></OnDeck>;
   if (section === 'Referral pathway') return <OnDeck role={role}><DoctorReferralsList/><ReferralPathway/></OnDeck>;
+  if (section === 'Medical certificates') return <>{head}<Suspense fallback={null}><SickNoteDesk/></Suspense></>;
   if (section === 'Schedule') return <OnDeck role={role}><DoctorSchedule/></OnDeck>;
   if (section === 'Triage') return <OnDeck role={role}><DoctorTriage/></OnDeck>;
   if (section === 'Reports') return <OnDeck role={role}><DoctorReports go={go}/></OnDeck>;

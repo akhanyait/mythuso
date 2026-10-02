@@ -42,6 +42,7 @@ import { emitConsentGrants } from "./emit-consent-grants.mjs";
 import { emitProtocols, previewPathwayOf } from "./emit-protocols.mjs";
 import { checkCasePathway } from "./check-case-pathway.mjs";
 import { checkSkinCheck } from "./check-skin-check.mjs";
+import { checkSickNote } from "./check-sick-note.mjs";
 import { checkLiveVitals } from "./check-live-vitals.mjs";
 import { emitLocales } from "./emit-locales.mjs";
 import { emitDispensing } from "./emit-dispensing.mjs";
@@ -3150,6 +3151,12 @@ const generated = [
   ...(await (async () => {
     const files = (await import("./emit-skin-check.mjs")).emitSkinCheck();
     return ["packages/catalog/skin-check.json", "packages/catalog/knowledge/conditions.json", "packages/catalog/knowledge/first-aid.json", "packages/catalog/apis/assistant.json"].map((source) => ({ source, command: "npm run skin-check", files }));
+  })()),
+  /* The doctor's medical certificate (2 October 2026): the contract's words, limits and consultations for the two
+     phones, and the call-only refusal and the criteria protocol's line for the web. One entry per source. */
+  ...(await (async () => {
+    const files = (await import("./emit-sick-note.mjs")).emitSickNote();
+    return ["packages/catalog/sick-note.json", "packages/catalog/teleconsult.json", "packages/catalog/protocols.json"].map((source) => ({ source, command: "npm run sick-note", files }));
   })()),
   /* The escalation ruleset on the phones (2 October 2026): escalation.ts's rules, translated, with the fold's
      characters and the crisis rules. One entry per source, so the phones' copy is refused the moment it is older
@@ -39613,6 +39620,17 @@ console.log(
 {
   const { stems: stemsOf, hasSequence: sequenceIn } = await import("../packages/gilbertone/src/stems.ts");
   console.log(checkSkinCheck({ read, stems: stemsOf, hasSequence: sequenceIn, existsSync }));
+}
+
+/* The doctor's medical certificate — 2 October 2026 */
+/* The founder's sick note, held to what rule 16 and section 23 allow and to issuing nothing: a vetted doctor
+   alone signs, no identity number is carried, the illness is described only with the patient's agreement, the
+   limits and the not-issued notice are the contract's on all three platforms, and the fixtures replay through
+   the web's own rules. The checks live in scripts/check-sick-note.mjs so each can be proven to fire in isolation
+   (scripts/prove-sick-note.mjs hands the module broken files). */
+{
+  const rules = await import("../apps/web/src/lib/sick-note.ts");
+  console.log(checkSickNote({ read, existsSync, rules }));
 }
 
 /* The case pathway — 29 September 2026 */

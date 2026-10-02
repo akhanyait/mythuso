@@ -36,6 +36,9 @@ import {
  readableMeasures, readingSets, refusalById as passportRefusal, reviewedBy, reviewer, seriesFor, type MeasureId
 } from '../lib/passport';
 import { explanations, provenance, urgentConditions } from '../lib/explain';
+/* A certificate a doctor signed in this session's preview (lib/sick-note.ts's memory, nothing stored), on its own
+   dynamic import so the patient's first load does not carry even its file names. */
+const WrittenThisSession = lazy(() => import('./SickNoteCertificate').then(m => ({ default: m.WrittenThisSession })));
 /* The request to link Apple Health or Health Connect arrives when the patient opens that screen and not before:
    it carries the Devices registry and every engine's settings, which no patient's first load may. */
 const WearableLinkRequest = lazy(() => import('./Devices').then(m => ({ default: m.WearableLinkRequest })));
@@ -572,6 +575,7 @@ export function MedicalCertificate({ navigate }: { navigate: (page: string) => v
  const sickNote = services.find(s => s.name.startsWith('Sick-note'));
  return <div className="form-stack">
   <NotConnected of="clinical-records"/>
+  <Suspense fallback={null}><WrittenThisSession/></Suspense>
   <p className="muted">A certificate says that a named person was seen on a named day by a named clinician, and was or was not fit to work. It is the shortest document in healthcare and the one most often asked for by somebody who is not the patient.</p>
   <dl className="stated">
    <div><dt>What it would carry</dt><dd>The days it covers, the visit it came out of, and the issuing doctor’s name and registration — {reviewedBy}, on the visit of {longDateOf(dateOf(doc.dayOffset))}.</dd></div>
