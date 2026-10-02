@@ -39849,7 +39849,8 @@ console.log(checkLiveVitals({ read, files }));
   const onboarding = read("apps/web/src/features/Onboarding.tsx");
   const iosShop = read("apps/ios/MyThuso/Features/ShopView.swift");
   const androidShop = read("apps/android/app/src/main/java/za/co/mythuso/ui/ShopScreens.kt");
-  const [iosData, androidData] = emitShop().map((f) => f.content);
+  const shopFile = (end) => emitShop().find((f) => f.path.endsWith(end)).content;
+  const [iosData, androidData] = [shopFile("ShopData.swift"), shopFile("ShopData.kt")];
   const productIds = new Set(shop.products.map((p) => p.id));
 
   /* 1. */
@@ -39910,6 +39911,13 @@ console.log(checkLiveVitals({ read, files }));
     if (/\bfetch\(|XMLHttpRequest|sendBeacon|new WebSocket|window\.open\(|['"`]\/api\//.test(code)) sf(`${file} opens a request. Nothing in the storefront reaches anything: no card is charged and no order is placed.`);
     if (/\b(payfast|yoco|peach|stripe|paystack|ozow|checkout)\b/i.test(code.replace(/\/\*[\s\S]*?\*\//g, ""))) sf(`${file} names a payment provider or a checkout.`);
   }
+  /* The storefront is its own entry so the patient's first view never pays for it — and an entry that
+     imports a module the first view also imports makes Rollup split that module into a chunk of its own,
+     which the first view then downloads in more pieces. Measured at +0.8 kB on 2 October 2026, from
+     capture.json, records.json and NotConnected; the storefront reads the generated projection instead. */
+  const firstViewShared = /catalog\/(capture|records|reading-questions|case|live-vitals|devices)\.json|components\/NotConnected/;
+  for (const [file, code] of [["apps/web/src/features/Shop.tsx", webShop], ["apps/web/src/lib/shop-catalogue.ts", webLib]])
+    if (firstViewShared.test(code)) sf(`${file} imports a contract or component the patient app's first view also imports. Read lib/shop-derived.generated.ts, which scripts/emit-shop.mjs writes.`);
   const shopPolicy = read("apps/web/shop.html").match(/http-equiv="Content-Security-Policy" content="[^"]*connect-src ([^;"]+)/)?.[1] ?? "";
   if (shopPolicy.split(/\s+/).some((s) => s && !["'self'", "ws:"].includes(s))) sf(`apps/web/shop.html lets the page connect to ${shopPolicy}. The storefront reaches no payment provider, because there is no payment.`);
   if (webShop.indexOf("refusal('no-payment')") < 0 || webShop.indexOf("refusal('no-payment')") > webShop.indexOf("<Shelf ")) sf("Shop.tsx no longer draws the no-payment refusal above the shelf.");

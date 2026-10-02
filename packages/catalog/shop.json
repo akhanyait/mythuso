@@ -89,7 +89,7 @@
    "pointsEligible": true
   }
  ],
- "_productNote": "`does` is what the object physically does. There is no `treats` field and no `claims` field, and adding one is a build error rather than a review comment — a shop listing is the single easiest place in this product to make a medical claim by accident, because the sentence that sells a thing and the sentence that claims it cures something are one word apart. `captureKind` names the instrument in packages/catalog/capture.json the product is, and what it measures is that instrument's `measures` — never a second list here; a product with no Bluetooth names the record measures it is typed into in `typedMeasures` instead. `sees` names lines in `seenLines` rather than carrying sentences, so the same promise reads the same on every product and a line can be held to the contract that makes it true. `captureKind` names the instrument in packages/catalog/capture.json the product is, and what it measures is that instrument's `measures` — never a second list here; a product with no Bluetooth names the record measures it is typed into in `typedMeasures` instead. `sees` names lines in `seenLines` rather than carrying sentences, so the same promise reads the same on every product and a line can be held to the contract that makes it true. `captureKind` names the instrument in packages/catalog/capture.json the product is, and what it measures is that instrument's `measures` — never a second list here; a product with no Bluetooth names the record measures it is typed into in `typedMeasures` instead. `sees` names lines in `seenLines` rather than carrying sentences, so the same promise reads the same on every product and a line can be held to the contract that makes it true. `captureKind` names the instrument in packages/catalog/capture.json the product is, and what it measures is that instrument's `measures` — never a second list here; a product with no Bluetooth names the record measures it is typed into in `typedMeasures` instead. `sees` names lines in `seenLines` rather than carrying sentences, so the same promise reads the same on every product and a line can be held to the contract that makes it true. `captureKind` names the instrument in packages/catalog/capture.json the product is, and what it measures is that instrument's `measures` — never a second list here; a product with no Bluetooth names the record measures it is typed into in `typedMeasures` instead. `sees` names lines in `seenLines` rather than carrying sentences, so the same promise reads the same on every product and a line can be held to the contract that makes it true.",
+ "_productNote": "`does` is what the object physically does. There is no `treats` field and no `claims` field, and adding one is a build error rather than a review comment — a shop listing is the single easiest place in this product to make a medical claim by accident, because the sentence that sells a thing and the sentence that claims it cures something are one word apart. `captureKind` names the instrument in packages/catalog/capture.json the product is, and what it measures is that instrument's `measures` — never a second list here; a product with no Bluetooth names the record measures it is typed into in `typedMeasures` instead. `sees` names lines in `seenLines` rather than carrying sentences, so the same promise reads the same on every product and a line can be held to the contract that makes it true. `captureKind` names the instrument in packages/catalog/capture.json the product is, and what it measures is that instrument's `measures` — never a second list here; a product with no Bluetooth names the record measures it is typed into in `typedMeasures` instead. `sees` names lines in `seenLines` rather than carrying sentences, so the same promise reads the same on every product and a line can be held to the contract that makes it true. `captureKind` names the instrument in packages/catalog/capture.json the product is, and what it measures is that instrument's `measures` — never a second list here; a product with no Bluetooth names the record measures it is typed into in `typedMeasures` instead. `sees` names lines in `seenLines` rather than carrying sentences, so the same promise reads the same on every product and a line can be held to the contract that makes it true. `captureKind` names the instrument in packages/catalog/capture.json the product is, and what it measures is that instrument's `measures` — never a second list here; a product with no Bluetooth names the record measures it is typed into in `typedMeasures` instead. `sees` names lines in `seenLines` rather than carrying sentences, so the same promise reads the same on every product and a line can be held to the contract that makes it true. `captureKind` names the instrument in packages/catalog/capture.json the product is, and what it measures is that instrument's `measures` — never a second list here; a product with no Bluetooth names the record measures it is typed into in `typedMeasures` instead. `sees` names lines in `seenLines` rather than carrying sentences, so the same promise reads the same on every product and a line can be held to the contract that makes it true. `captureKind` names the instrument in packages/catalog/capture.json the product is, and what it measures is that instrument's `measures` — never a second list here; a product with no Bluetooth names the record measures it is typed into in `typedMeasures` instead. `sees` names lines in `seenLines` rather than carrying sentences, so the same promise reads the same on every product and a line can be held to the contract that makes it true. `captureKind` names the instrument in packages/catalog/capture.json the product is, and what it measures is that instrument's `measures` — never a second list here; a product with no Bluetooth names the record measures it is typed into in `typedMeasures` instead. `sees` names lines in `seenLines` rather than carrying sentences, so the same promise reads the same on every product and a line can be held to the contract that makes it true.",
  "products": [
   {
    "id": "bp-upper",
@@ -293,12 +293,8 @@
    ],
    "forWhom": "For a pregnancy, for heart failure where a nurse watches weight from day to day, and for anybody asked to keep a weekly weight.",
    "sees": {
-    "patient": [
-     "paired"
-    ],
-    "nurse": [
-     "n-own-mark"
-    ],
+    "patient": [],
+    "nurse": [],
     "doctor": []
    },
    "whatItIsNot": [
@@ -368,9 +364,7 @@
    ],
    "forWhom": "For somebody whose doctor has asked them to record a trace when they feel their heart racing or skipping.",
    "sees": {
-    "patient": [
-     "paired"
-    ],
+    "patient": [],
     "nurse": [],
     "doctor": [
      "d-ecg-trace"
@@ -594,12 +588,8 @@
    ],
    "forWhom": "For the first months, when weight gain between clinic days is the question a nurse is most often asked.",
    "sees": {
-    "patient": [
-     "paired"
-    ],
-    "nurse": [
-     "n-own-mark"
-    ],
+    "patient": [],
+    "nurse": [],
     "doctor": []
    },
    "whatItIsNot": [
@@ -1005,7 +995,7 @@
   }
  },
  "seenLines": {
-  "_note": "Every promise a listing makes about who sees what. `status` is `in-preview` only when the thing exists in this repository, with the file that makes it so in `evidence`; anything else is `planned` and is drawn as planned. `needs` names what a product must measure for the line to be true of it, and scripts/check-boundaries.mjs holds each product to it: `explained` — a measure packages/catalog/reading-questions.json explains; `far-outside` — a measure with far-outside bounds there; `case` — a measure packages/catalog/case.json puts in a case; `live` — a measure packages/catalog/live-vitals.json streams; `paired` — a Bluetooth instrument; `typed` — no Bluetooth.",
+  "_note": "Every promise a listing makes about who sees what. `status` is `in-preview` only when the thing exists in this repository, with the file that makes it so in `evidence`; anything else is `planned` and is drawn as planned. `needs` names what a product must measure for the line to be true of it, and scripts/check-boundaries.mjs holds each product to it: `explained` — a measure packages/catalog/reading-questions.json explains; `far-outside` — a measure with far-outside bounds there; `case` — a measure packages/catalog/case.json puts in a case; `live` — a measure packages/catalog/live-vitals.json streams; `paired` — a Bluetooth instrument with a measure the record holds, because a reading the record cannot keep reaches nobody through MyThuso however it is sent; `typed` — no Bluetooth.",
   "explain": {
    "audience": "patient",
    "status": "in-preview",

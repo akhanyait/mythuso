@@ -1,28 +1,21 @@
 import shop from '../../../../packages/catalog/shop.json';
-import { devices as captureDevices } from '../../../../packages/catalog/capture.json';
-import { observations } from '../../../../packages/catalog/records.json';
-import { measures as explainedMeasures, farOutside } from '../../../../packages/catalog/reading-questions.json';
-import { readings as caseReadings } from '../../../../packages/catalog/case.json';
-import { streams as liveStreams } from '../../../../packages/catalog/live-vitals.json';
-import { marks as deviceMarks } from '../../../../packages/catalog/devices.json';
+import { derived, ownDeviceMark as mark } from './shop-derived.generated';
 
-/* What a listing says about a reading, worked out from the contracts that own each fact.
+/* What a listing says about a reading — read from the projection scripts/emit-shop.mjs writes, never
+   worked out here.
 
    A product names the instrument it is (`captureKind`, an id in capture.json) and nothing about what
-   that instrument measures: the measures are capture.json's, their labels, units and indicative
-   ranges are records.json's, whether GilbertOne explains one is reading-questions.json's, whether it
-   goes into a case is case.json's and whether the doctor's live panel streams it is live-vitals.json's.
-   So a range moved in the record moves on the shelf, and a measure the record stops holding stops
-   being promised to a doctor. Named imports, so the storefront's bundle carries the sections it reads
-   and not the record's explanations or the case's pathway.
-
-   The same derivation runs in scripts/emit-shop.mjs for the two phones, and scripts/check-boundaries.mjs
-   holds every product's `sees` lines to it. */
+   that instrument measures: the measures are capture.json's, their labels, units and indicative ranges
+   are records.json's, whether GilbertOne explains one is reading-questions.json's, whether it goes into a
+   case is case.json's and whether the doctor's live panel streams it is live-vitals.json's. The generator
+   works all of that out once, for both phones and for this file, and scripts/check-boundaries.mjs holds
+   every product's `sees` lines to it. The storefront reads the projection rather than those contracts
+   because the patient app reads two of them on its first view, and an entry that shares a module with it
+   reshapes the chunks the patient downloads. */
 
 export type Product = (typeof shop.products)[number];
 export type Kit = (typeof shop.kits)[number];
 export type Audience = 'patient' | 'nurse' | 'doctor';
-type Line = { audience: string; status: string; text: string; needs?: string; evidence?: string };
 
 export const catalogue = shop;
 export const productById = (id: string) => shop.products.find(p => p.id === id);
@@ -44,74 +37,18 @@ export const imageFor = (id: string) => ({
  width: shop.images.width, height: shop.images.height
 });
 
-const instrument = (p: Product) => ('captureKind' in p && p.captureKind ? captureDevices.find(d => d.id === p.captureKind) : undefined);
-/** The record measures a product takes: its instrument's, or the ones it is typed into. */
-export const measuresOf = (p: Product): string[] =>
- instrument(p)?.measures ?? ('typedMeasures' in p && p.typedMeasures ? p.typedMeasures : []);
-export const connection = (p: Product): 'bluetooth' | 'typed' | null =>
- instrument(p) ? 'bluetooth' : measuresOf(p).length ? 'typed' : null;
-export const calibrationMonths = (p: Product) => instrument(p)?.calibrateEveryMonths;
-
-const recordMeasure = (id: string) => observations.measures.find(m => m.id === id);
-const notInRecord = shop.notInRecord as unknown as Record<string, { name: string; sentence: string }>;
-
-export type Chip = { id: string; label: string; unit?: string; range?: string; inRecord: boolean };
-/** One chip per thing a person names — blood pressure is two observations in the record and one word
-    in a kitchen, so the pair reads as one chip, named the way reading-questions.json names it. */
-export function readingChips(p: Product): Chip[] {
- const ids = measuresOf(p);
- const chips: Chip[] = [];
- for (const id of ids) {
-  const pair = explainedMeasures.find(m => 'pairOfNumbers' in m && m.pairOfNumbers && m.explains.includes(id));
-  if (pair) {
-   if (chips.some(c => c.id === pair.id)) continue;
-   const parts = pair.explains.map(recordMeasure).filter(Boolean) as NonNullable<ReturnType<typeof recordMeasure>>[];
-   chips.push({ id: pair.id, label: 'name' in pair && pair.name ? pair.name : parts[0].label, unit: parts[0].unit, inRecord: true,
-    range: `${parts.map(m => m.high).join('/')} and ${parts.map(m => m.low).join('/')} ${parts[0].unit}` });
-   continue;
-  }
-  const m = recordMeasure(id);
-  if (m) chips.push({ id, label: m.label, unit: m.unit, inRecord: true, range: `${m.low}–${m.high} ${m.unit}` });
-  else chips.push({ id, label: notInRecord[id]?.name ?? id, inRecord: false });
- }
- return chips;
-}
-/** The indicative range in words, from records.json's low and high. Never a grade. */
-export const rangeSentence = (c: Chip) => {
- if (!c.inRecord) return notInRecord[c.id]?.sentence ?? '';
- if (c.id === 'blood-pressure') {
-  const [s, d] = ['systolic', 'diastolic'].map(id => recordMeasure(id)!);
-  return `Indicative adult range in your record: ${s.low}–${s.high} over ${d.low}–${d.high} ${s.unit}. A doctor may work to different numbers for you.`;
- }
- const m = recordMeasure(c.id)!;
- return `Indicative adult range in your record: ${m.low}–${m.high} ${m.unit}. A doctor may work to different numbers for you.`;
-};
-
-/* Whether a line's condition holds for a product — the same five tests the build runs. */
-const holds = (p: Product, needs: string | undefined) => {
- const ids = measuresOf(p);
- switch (needs) {
-  case undefined: return true;
-  case 'explained': return ids.some(id => explainedMeasures.some(m => m.explains.includes(id)));
-  case 'far-outside': return ids.some(id => id in farOutside.bounds);
-  case 'case': return ids.some(id => caseReadings.measureIds.includes(id));
-  case 'live': return ids.some(id => liveStreams.some(s => s.measure === id));
-  case 'paired': return connection(p) === 'bluetooth';
-  case 'typed': return connection(p) === 'typed';
-  default: return false;
- }
-};
-const lines = shop.seenLines as unknown as Record<string, Line>;
-export function seen(p: Product, audience: Audience) {
- const ids = ('sees' in p && p.sees ? (p.sees as Record<Audience, string[]>)[audience] : []) ?? [];
- return ids.map(id => lines[id]).filter(l => l && holds(p, l.needs)).map(l => ({
-  text: l.text.replace('{trendNeeds}', String(caseReadings.trendNeeds)),
-  planned: l.status !== 'in-preview'
- }));
-}
+const of = (p: Product) => derived[p.id];
+export const connection = (p: Product) => of(p).connection || null;
+export const calibrationMonths = (p: Product) => of(p).calibrationMonths ?? undefined;
+export type Chip = (typeof derived)[string]['chips'][number];
+/** One chip per thing a person names — blood pressure is two observations in the record and one word in a kitchen. */
+export const readingChips = (p: Product) => of(p).chips;
+/** The indicative range in words, from records.json's low and high, or the sentence saying the record does not hold it. */
+export const rangeSentence = (c: Chip) => c.range;
+export const seen = (p: Product, audience: Audience) => of(p)[audience];
 
 /** How the record treats a reading from a device the household bought: devices.json's own mark. */
-export const ownDeviceMark = deviceMarks.find(m => m.id === 'consumer-device')!;
+export const ownDeviceMark = { sentence: mark };
 export const regulatoryClass = (id: string) => shop.regulatory.classes.find(c => c.id === id);
 export const validationOf = (p: Product) => ('validation' in p && p.validation ? shop.validations.find(v => v.id === p.validation) : undefined);
 export const caveatsOf = (p: Product) => ('caveats' in p && p.caveats ? shop.caveats.filter(c => (p.caveats as string[]).includes(c.id)) : []);

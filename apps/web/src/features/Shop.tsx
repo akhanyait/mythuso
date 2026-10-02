@@ -3,7 +3,6 @@ import { AlertTriangle, ArrowLeft, Award, Bluetooth, Check, ChevronRight, Gift, 
 import { CENTS_PER_POINT, productById as commerceProduct, refusal, rewards, shop, tierFor, type Command } from '../../../../packages/commerce/index.ts';
 import { useCommerce } from '../lib/commerce';
 import { calibrationMonths, caveatsOf, categoryName, connection, imageFor, kitById, kitCents, kitsWith, ownDeviceMark, productById, rands, rangeSentence, readingChips, regulatoryClass, seen, validationOf, welcome, welcomeProduct, type Audience, type Kit, type Product } from '../lib/shop-catalogue';
-import { NotConnected } from '../components/NotConnected';
 import './shop.css';
 
 /* The storefront. Every sentence it refuses with comes out of the contract by id, and every fact it
@@ -299,7 +298,6 @@ function WelcomeOffer({ compact = false }: { compact?: boolean }) {
     <p>{welcome.why.text} It was found in {welcome.why.women}% of women and {welcome.why.men}% of men aged {welcome.why.ages} — {welcome.why.measure}. <a href={welcome.why.url} rel="noreferrer">{welcome.why.source}</a></p>
    </details>
    <p className="shop-welcome-refusal">{refusal('welcome-not-live')}</p>
-   <NotConnected of="accounts" tone="inline"/>
    {!compact && <a className="secondary" href={`#product/${welcomeProduct.id}`}>What the monitor reads, and who sees it<ChevronRight size={15} aria-hidden="true"/></a>}
   </div>
  </section>;
@@ -369,17 +367,16 @@ function ProductDetail({ product: p, stock, onAdd }: { product: Product; stock: 
    <div className="shop-sees">
     {audiences.map(a => { const lines = seen(p, a.id); return <div key={a.id} className="shop-see">
      <h3>{a.icon}{a.heading}</h3>
-     {lines.length === 0 ? <p className="shop-empty">{outside.length && a.id !== 'patient' ? outside.map(c => rangeSentence(c)).join(' ') : a.none}</p>
+     {lines.length === 0 ? <p className="shop-empty">{outside.length ? outside.map(c => rangeSentence(c)).join(' ') : a.none}</p>
       : <ul>{lines.map(l => <li key={l.text}><span>{l.text}</span><span className={`shop-tag ${l.planned ? 'later' : 'now'}`}>{l.planned ? 'Planned' : 'In this preview'}</span></li>)}</ul>}
     </div>; })}
    </div>
    {how === 'bluetooth' && <div className="shop-record-note">
     <p><strong>How your record treats it.</strong> {ownDeviceMark.sentence}{months ? ` An instrument like this is recalibrated every ${months} months; its calibration date travels with each reading.` : ''}</p>
-    <NotConnected of="devices" tone="inline"/>
    </div>}
   </section>}
 
-  {'sosLink' in p && p.sosLink && <section className="shop-section"><h2>How it links to Thuso SOS</h2><p>{p.sosLink}</p><NotConnected of="emergency" tone="inline"/></section>}
+  {'sosLink' in p && p.sosLink && <section className="shop-section"><h2>How it links to Thuso SOS</h2><p>{p.sosLink}</p></section>}
 
   {caveats.map(c => <section key={c.id} className="shop-section shop-warning" aria-label={c.heading}>
    <h2><AlertTriangle size={18} aria-hidden="true"/>{c.heading}</h2>

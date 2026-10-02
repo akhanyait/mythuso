@@ -49,7 +49,7 @@ export function shopDerivation(root = '') {
    case 'far-outside': return ids.some(id => id in questions.farOutside.bounds);
    case 'case': return ids.some(id => kase.readings.measureIds.includes(id));
    case 'live': return ids.some(id => live.streams.some(s => s.measure === id));
-   case 'paired': return connection(p) === 'bluetooth';
+   case 'paired': return connection(p) === 'bluetooth' && ids.some(id => recordMeasure(id));
    case 'typed': return connection(p) === 'typed';
    default: throw new Error(`A seenLines entry needs "${needs}", which shop.json's own note does not define.`);
   }
@@ -68,7 +68,16 @@ export function shopDerivation(root = '') {
   .filter(({ line }) => line && holds(p, line.needs))
   .map(({ id, line }) => ({ id, text: line.text.replace('{trendNeeds}', String(kase.readings.trendNeeds)), planned: line.status !== 'in-preview' }));
  const kitCents = kit => kit.items.reduce((sum, id) => sum + shop.products.find(p => p.id === id).price * 100, 0);
- return { shop, capture, records, questions, kase, live, instrument, measuresOf, connection, recordMeasure, holds, chips, seen, kitCents };
+ /* The indicative range in words, from records.json's low and high. Never a grade. */
+ const rangeSentence = chip => {
+  if (!chip.inRecord) return chip.sentence;
+  const parts = (questions.measures.find(m => m.id === chip.id)?.explains ?? [chip.id]).map(recordMeasure);
+  const span = parts.map(m => `${m.low}–${m.high}`).join(' over ');
+  return `Indicative adult range in your record: ${span} ${parts[0].unit}. A doctor may work to different numbers for you.`;
+ };
+ const unitOf = chip => (chip.inRecord ? recordMeasure(questions.measures.find(m => m.id === chip.id)?.explains[0] ?? chip.id).unit : undefined);
+ const ownDeviceMark = read('packages/catalog/devices.json').marks.find(m => m.id === 'consumer-device').sentence;
+ return { shop, capture, records, questions, kase, live, instrument, measuresOf, connection, recordMeasure, holds, chips, seen, kitCents, rangeSentence, unitOf, ownDeviceMark };
 }
 const FORBIDDEN_FIELDS = ['treats', 'claims', 'indication', 'schedule', 'prescription'];
 
@@ -292,7 +301,42 @@ object ShopData {
 }
 `;
 
+ /* The web's copy. The storefront is its own entry, and every contract it reads that the patient app also
+    reads statically — capture.json, records.json — makes Rollup split a chunk the patient's first view then
+    downloads in more pieces: measured at +0.8 kB on 2 October 2026. So the storefront reads this projection
+    instead of the contracts, and the derivation stays in one place, here. */
+ const webDerived = Object.fromEntries(contract.products.map(p => [p.id, {
+  connection: d.connection(p),
+  calibrationMonths: d.instrument(p)?.calibrateEveryMonths ?? null,
+  chips: d.chips(p).map(c => ({ id: c.id, label: c.label, unit: d.unitOf(c) ?? null, inRecord: c.inRecord, range: d.rangeSentence(c) })),
+  patient: d.seen(p, 'patient').map(({ text, planned }) => ({ text, planned })),
+  nurse: d.seen(p, 'nurse').map(({ text, planned }) => ({ text, planned })),
+  doctor: d.seen(p, 'doctor').map(({ text, planned }) => ({ text, planned }))
+ }]));
+ const webFile = `${banner()}
+//
+// The storefront's projection: for each product, how a reading reaches the app, the readings it takes with
+// their indicative range in words, and the who-sees-what lines that hold for it — worked out from
+// capture.json, records.json, reading-questions.json, case.json and live-vitals.json by the same code that
+// writes the phones' copies, so the shop entry reads none of those contracts itself.
+
+export type ShopChip = { readonly id: string; readonly label: string; readonly unit: string | null; readonly inRecord: boolean; readonly range: string };
+export type ShopSeen = { readonly text: string; readonly planned: boolean };
+export type ShopDerived = {
+ readonly connection: '' | 'bluetooth' | 'typed';
+ readonly calibrationMonths: number | null;
+ readonly chips: readonly ShopChip[];
+ readonly patient: readonly ShopSeen[]; readonly nurse: readonly ShopSeen[]; readonly doctor: readonly ShopSeen[];
+};
+
+/** devices.json's own mark for a reading from a device MyThuso did not issue. */
+export const ownDeviceMark = ${JSON.stringify(d.ownDeviceMark)};
+
+export const derived: Readonly<Record<string, ShopDerived>> = ${JSON.stringify(webDerived, null, 1)};
+`;
+
  return [
+  { path: 'apps/web/src/lib/shop-derived.generated.ts', content: webFile },
   { path: 'apps/ios/MyThuso/Models/ShopData.swift', content: swiftFile },
   { path: 'apps/android/app/src/main/java/za/co/mythuso/model/ShopData.kt', content: kotlinFile }
  ];
