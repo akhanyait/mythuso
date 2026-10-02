@@ -155,6 +155,7 @@ ${contract.stages.map(s => `        Stage(id: ${swift(s.id)}, name: ${swift(s.na
 
     enum Preview {
         static let appointmentRef = ${swift(p.appointmentRef)}
+        static let subjectRef = ${swift(p.subjectRef)}
         static let serviceId = ${swift(p.serviceId)}
         static let zone = ${swift(p.zone)}
         static let dayOffset = ${p.dayOffset}
@@ -203,6 +204,7 @@ ${contract.stages.map(s => `        Stage(${kotlin(s.id)}, ${kotlin(s.name)})`).
 
     object Preview {
         const val appointmentRef = ${kotlin(p.appointmentRef)}
+        const val subjectRef = ${kotlin(p.subjectRef)}
         const val serviceId = ${kotlin(p.serviceId)}
         const val zone = ${kotlin(p.zone)}
         const val dayOffset = ${p.dayOffset}

@@ -89,6 +89,7 @@ enum CareData {
 
     enum Preview {
         static let appointmentRef = "TH-3107"
+        static let subjectRef = "sub-preview-3107"
         static let serviceId = "wound"
         static let zone = "parktown"
         static let dayOffset = 0

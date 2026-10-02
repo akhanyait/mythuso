@@ -89,6 +89,7 @@ object CareData {
 
     object Preview {
         const val appointmentRef = "TH-3107"
+        const val subjectRef = "sub-preview-3107"
         const val serviceId = "wound"
         const val zone = "parktown"
         const val dayOffset = 0
