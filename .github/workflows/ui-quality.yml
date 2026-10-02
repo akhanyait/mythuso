@@ -6,12 +6,42 @@ jobs:
   web:
     runs-on: ubuntu-latest
     steps:
+      # The whole history: the API locks are compared with their git history, and the dates below
+      # are read from it.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+      # check-boundaries.mjs decides a generated file is stale when it is older than its source, which
+      # is right on a contributor's machine and meaningless on a fresh checkout, where every file is
+      # dated by when the runner happened to write it. So each file first takes the date of the last
+      # commit that touched it, then every text generator runs again: a generated file that comes out
+      # different from the committed one fails the diff below, which is a stronger check than a date,
+      # and one that comes out the same is now dated after its source. The image generators (banners,
+      # the app icon) are left out: their bytes depend on the Pillow and Chromium on the runner, so
+      # they are judged by their committed dates alone.
+      - name: Date each file by its last commit, regenerate the generated text, and prove nothing moved
+        run: |
+          python3 - <<'PY'
+          import os, subprocess
+          log = subprocess.run(['git', '-c', 'core.quotePath=false', 'log', '--format=@%ct', '--name-only', '--no-renames'], capture_output=True, text=True, check=True).stdout
+          seen, when = set(), None
+          for line in log.splitlines():
+              if line.startswith('@'):
+                  when = int(line[1:])
+              elif line and line not in seen:
+                  seen.add(line)
+                  if os.path.isfile(line):
+                      os.utime(line, (when, when))
+          PY
+          for step in $(node -e "console.log(require('./package.json').scripts.generate.split(' && ').map(s => s.split(' ').pop()).filter(s => !['banners', 'appicon'].includes(s)).join(' '))"); do
+            npm run -s "$step" > /dev/null
+          done
+          git diff --exit-code
       - run: npm run check && npm run build
       # The patient entry's weight, measured against the ceiling in CLAUDE.md. After the build and
       # not before it: it measures bytes that only exist once apps/web/dist has been written, and a
@@ -67,6 +97,10 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+      # The action's default package list still names the SDK's long-retired "tools" package, which the
+      # repository no longer serves, and sdkmanager fails on it before Gradle runs.
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
       - uses: gradle/actions/setup-gradle@v4
       - run: cd apps/android && ./gradlew :app:assembleDebug :app:lintDebug
