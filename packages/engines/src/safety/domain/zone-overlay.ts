@@ -61,7 +61,7 @@ export type ZoneOpen = {
  readonly open: number;
  /** How many different nurses those open items belong to, each counted once however many she holds. The
      proportion's numerator: a nurse with a panic and two overdue timers is one nurse with something open,
-     and counting her three times drew "3 of 3 nurses" over a suburb where the other two had nothing open.
+     and counting her three times drew her suburb as all three of its nurses, the other two with nothing open.
      A count, never a person — the references it is counted from stay inside zoneOverlay(). */
  readonly holders: number;
  /** How many nurses work this suburb, from the roster. A count of people, never a person. */

@@ -1,5 +1,6 @@
 import contract from '../../../../packages/catalog/dispensing.json';
-import { inDays, type Decision } from './vetting';
+import { inDays, type Decision, type VettingSubject } from './vetting';
+import type { PartnerPrescriberNow } from './settings';
 /* Substitution, and how long a repeat is allowed to live.
  *
  * A pharmacist hands over something other than what was written; a repeat runs out. Both are
@@ -137,5 +138,22 @@ const partner = contract.partner;
 export const prescriberStanding = (decision: Decision) => decision.allowed
  ? partner.prescriberMay
  : partner.prescriberMayNot.replace('{checks}', decision.blockedBy.map(check => check.name).join(partner.checksJoinedBy) || partner.noCheckNamed);
+/* The prescriber as a partner reads them, through the system admin's setting and nowhere else. The founder decided on
+   2 October 2026 that a pharmacist sees the prescriber, and made it the admin's to change (medicines.json's
+   partner-sees-prescriber-identity, and partnerQueue.carriesWhenSet for what it adds). So the name and registration
+   are read here, off the subject the screen looked up, only after the answer from partnerSeesPrescriberNow() says
+   yes; with it off, or with nobody on the register, a partner reads the standing alone, as before. The answer is
+   handed in rather than read here so that this file, which the patient's screens import, never pulls the settings
+   code onto a first load — and it is the whole answer, not a boolean, so a screen cannot pass a `true` it typed.
+   The standing is drawn either way, because a name is not a licence. scripts/check-boundaries.mjs holds every
+   partner screen on three platforms to drawing a prescriber's name through this function alone. */
+export function prescriberAsPartnerSees(subject: VettingSubject | undefined, decision: Decision, setting: PartnerPrescriberNow): string {
+ const standing = prescriberStanding(decision);
+ if (!setting.sees || !subject) return standing;
+ return partner.prescriberNamed.replace('{name}', subject.name).replace('{registration}', subject.reference).replace('{standing}', standing);
+}
+/* Whose decision that is, in the words Configuration uses, for the line under the prescriber on a partner's screen. */
+export const prescriberSettingSays = (setting: PartnerPrescriberNow) =>
+ partner.settingWeb.replace('{label}', setting.label).replace('{choice}', setting.choice).replace('{heading}', setting.heading);
 /* What a laboratory reads where a release control was. Release is a clinician's act; see dispensing.json#_partnerNote. */
 export const releaseWithheld = partner.releaseWithheld;

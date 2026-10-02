@@ -284,10 +284,10 @@
     "unit": "nurses",
     "positive": true,
     "default": {
-     "value": 5,
-     "decidedBy": null,
-     "proposedBy": "Safety lead (Wave 6)",
-     "proposedBecause": "Five is the smallest group a proportion can be drawn over without naming somebody. This is k-anonymity rather than a matter of taste: the roster has nine nurses across six suburbs — Soweto three, Randburg two, and Tembisa, Rosebank, Melville and Alexandra one each — so in Soweto a proportion of one third is one of three named people, and in Melville a proportion is one person described as a percentage of herself. A figure like that is not an aggregate at all; it is a nurse's afternoon with the serial numbers filed off, and it lands on a map a controller reads while deciding where to send the next visit. Five is also the number below which the count itself is already the whole answer, so nothing is lost by drawing the count instead. Nobody has decided it; it is a proposal until Operations sets it."
+     "value": 3,
+     "decidedBy": "Founder",
+     "decidedOn": "2026-10-02",
+     "why": "The founder decided on 2 October 2026, \"Zone overlay floor — make it a parameter by the admin.\" Review found that at the proposed five the proportion was drawn nowhere: the roster has nine nurses across six suburbs — Soweto three, Randburg two, and Tembisa, Rosebank, Melville and Alexandra one each — so every suburb sat below the floor and the setting governed nothing an operator could see. Three is the lowest bound, the smallest group the word proportion is still true of, so the proportion is drawn where the roster can bear it — Soweto today — and withheld everywhere else, and the counts are drawn whole whatever this is. The cost is written here so that it is read: in a suburb of three, one of three nurses with something open is close to a person, which is what the Safety lead's proposal of five was for. An admin who decides it is too close raises it on Configuration, within the same bounds."
     },
     "bounds": {
      "lowest": { "value": 3, "decidedBy": null, "proposedBy": "Safety lead (Wave 6)", "proposedBecause": "Three is the floor beneath which the word proportion stops being true of anything: with two nurses a proportion is one of two people, and with one it is a single nurse's afternoon drawn as a statistic. No value below three may be set, so no setting can turn this overlay into a way of naming an individual on a map." },
@@ -302,7 +302,7 @@
    }
   ],
   "defaults": {
-   "version": 6,
+   "version": 7,
    "changelog": [
     {
      "version": 1,
@@ -365,6 +365,15 @@
       { "setting": "zone-share-minimum-nurses", "from": null, "to": 5 }
      ],
      "why": "The dispatch map's field-safety overlay came onto the engine: what is open in each suburb right now, drawn on the zones a controller already dispatches against. The count of open items needs no setting and has none — it is the desk queue's own rows grouped by suburb, drawn whole, because an open panic in a suburb with one nurse on the roster is exactly the incident the operator most needs to see and a floor that hid it would be a safety feature protecting a suburb's reputation instead of a person. What needed a number is the one figure on that overlay with a denominator, the proportion of a suburb's nurses with something open, because a proportion makes a claim about a place and that claim has to be over a group large enough not to be a claim about a person. How large is an open question nobody has decided, so it is a setting with a proposed default under the founder's instruction that open questions become admin settings. It waits on no clinical review: nothing about it is clinical, and it decides nothing about a patient. What it does sit beside is geography.json's no-history-drawn and this contract's own nothing-is-kept — the overlay draws no score, no trend and no ranking, because a ranking of suburbs would need a record of what happened in each, and there is no reviewer in this repository qualified to make the call a score would make about whether a patient is seen at home or on a screen."
+    },
+    {
+     "version": 7,
+     "on": "2026-10-02",
+     "by": "Founder",
+     "changed": [
+      { "setting": "zone-share-minimum-nurses", "from": 5, "to": 3 }
+     ],
+     "why": "\"Zone overlay floor — make it a parameter by the admin.\" At the proposed five the proportion was drawn over no suburb on the roster, whose largest holds three nurses, so the default moves to the lowest bound and the admin keeps the setting on Configuration. The bounds of three and twenty, and the reasons for them, are unchanged and stay proposals."
     }
    ]
   }

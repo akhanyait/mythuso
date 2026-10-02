@@ -93,7 +93,18 @@
  "partnerQueue": {
   "carries": ["prescriptionRef", "medicationRequestRef", "scheduleCode", "stateCode", "prescribeCheckOutcomeCode", "prescribedAt", "verifiedAt", "dispensedAt"],
   "neverCarries": ["subjectRef", "prescriberRef", "collectorRef", "patient", "name", "address", "phone", "idNumber", "medicalAidNumber", "diagnosis", "indication", "reason"],
-  "why": "A pharmacy is told what to dispense and never who for or why. The MedicationRequest reference is opened through the Passport gateway under the pharmacist's own grant, which is where the patient can see who read it; the queue itself carries nothing about the patient, so a pharmacy's screen, printout or log holds no patient either. Whether the check at prescribe was run is carried, because a pharmacist dispensing against a check that was not run must be told."
+  "why": "A pharmacy is told what to dispense and never who for or why. The MedicationRequest reference is opened through the Passport gateway under the pharmacist's own grant, which is where the patient can see who read it; the queue itself carries nothing about the patient, so a pharmacy's screen, printout or log holds no patient either. Whether the check at prescribe was run is carried, because a pharmacist dispensing against a check that was not run must be told. Who wrote the prescription is the system admin's decision, the setting partner-sees-prescriber-identity below: the founder decided on 2 October 2026 that a pharmacist sees the prescriber, and made it the admin's to change rather than a constant. With it on, the screens a partner opens draw the prescriber's name and registration beside their standing on the vetting register, as carriesWhenSet says; with it off, the standing alone. The queue's rows carry neither way exactly what carries lists, and the patient is drawn to a partner under neither.",
+  "_carriesWhenSetNote": "What a partner is drawn beyond carries, and only while a setting in this contract's settings block says so. It is not the queue: GET /v1/medicines/orders@2 carries exactly carries, and a field here is never a field of that route, so no route is widened by the setting and none is versioned for it. The pharmacist reads the prescriber off the prescription she opens, as she reads the medicine; the screens that draw that prescription draw these fields through the setting and nowhere else, and scripts/check-boundaries.mjs holds them to it on all three platforms.",
+  "carriesWhenSet": [
+   {
+    "setting": "partner-sees-prescriber-identity",
+    "when": true,
+    "fields": ["prescriberName", "prescriberRegistration"],
+    "drawnOn": ["the prescription a pharmacy opens", "the laboratory order a laboratory opens", "Substitution & repeats"],
+    "why": "A South African prescription carries the prescriber's name and HPCSA or SAPC registration, and the pharmacist who dispenses against it must verify them before anything is handed over; a laboratory reads who asked for a test for the same reason. The prescriber's standing on the vetting register is drawn either way, because a name is not a licence."
+   }
+  ],
+  "_neverCarriesNote": "name here is the patient's and the collector's, and prescriberRef is the platform's own reference for the prescriber: none of them reaches a partner whatever the settings say. The prescriber's name and registration are the one exception, drawn only where carriesWhenSet says and only while its setting is on."
  },
 
  "labs": {
@@ -209,11 +220,11 @@
  },
 
  "settings": {
-  "_note": "Medicines' settings, in the shape packages/catalog/settings.json gives every setting. The founder instructed on 15 September 2026 that open questions become admin settings, so how long a PIN works, how many wrong PINs a collector may enter, how long a collection may take and how urgent an unacknowledged result is are proposals an admin changes on the back office within bounds that are themselves proposals. packages/engines/src/medicines reads the collection settings in force when a patient authorises a collection and keeps them on it, and the result rung when a result arrives, so a change never reaches a collection already authorised or a result already raised. The rung waits on a clinical review by somebody who holds sign-clinical-review. GET /v1/medicines/settings@1, POST /v1/medicines/setting-changes@1 and POST /v1/medicines/setting-reviews@1 answer through packages/engines/src/settings.",
+  "_note": "Medicines' settings, in the shape packages/catalog/settings.json gives every setting. The founder instructed on 15 September 2026 that open questions become admin settings, so how long a PIN works, how many wrong PINs a collector may enter, how long a collection may take and how urgent an unacknowledged result is are proposals an admin changes on the back office within bounds that are themselves proposals. packages/engines/src/medicines reads the collection settings in force when a patient authorises a collection and keeps them on it, and the result rung when a result arrives, so a change never reaches a collection already authorised or a result already raised. The rung waits on a clinical review by somebody who holds sign-clinical-review. Whether a partner reads the prescriber's name and registration was decided by the founder on 2 October 2026 and made the system admin's to change; a partner's screen reads it every time it draws an order, because nothing it drew is kept. GET /v1/medicines/settings@1, POST /v1/medicines/setting-changes@1 and POST /v1/medicines/setting-reviews@1 answer through packages/engines/src/settings.",
   "heading": "Medicines & Labs settings",
-  "intro": "How long a patient's hand-over PIN works, how many wrong PINs a collector may enter, how long a collection may take, and how urgently an unacknowledged lab result goes to a clinician.",
+  "intro": "How long a patient's hand-over PIN works, how many wrong PINs a collector may enter, how long a collection may take, how urgently an unacknowledged lab result goes to a clinician, and whether a pharmacy or laboratory reads who prescribed.",
   "defaults": {
-   "version": 1,
+   "version": 2,
    "changelog": [
     {
      "version": 1,
@@ -226,6 +237,15 @@
       { "setting": "result-alert-rung", "from": null, "to": 3 }
      ],
      "why": "The founder instructed that open questions become admin settings. The four are proposed by the Medicines & Labs lead with the reasons beside each, and none is decided."
+    },
+    {
+     "version": 2,
+     "on": "2026-10-02",
+     "by": "Founder",
+     "changed": [
+      { "setting": "partner-sees-prescriber-identity", "from": null, "to": true }
+     ],
+     "why": "\"Pharmacist sees the prescriber — yes, but make this a decision on the system admin.\" A partner read only the prescriber's standing on the vetting register until then, and docs/FEATURE-MAP.md carried whether a pharmacist should read the name as an open question. It is a setting now, on with the founder's answer, and an admin may switch it off; the patient stays hidden from a partner either way, which was not part of the decision."
     }
    ]
   },
@@ -327,6 +347,30 @@
     "guardrail": {
      "statement": "An unacknowledged result always goes to a nurse or a clinician, and is never used to dispatch anybody or tell a family.",
      "forbids": [0, 1, 4, 5]
+    }
+   },
+   {
+    "key": "partner-sees-prescriber-identity",
+    "label": "Pharmacies and laboratories see who prescribed",
+    "help": "Whether a pharmacy or a laboratory reads the prescriber's name and registration on an order it fills, beside whether the vetting register lets that prescriber stand behind it. The patient is never shown to them either way.",
+    "owner": "medicines",
+    "type": "boolean",
+    "unit": null,
+    "default": {
+     "value": true,
+     "decidedBy": "Founder",
+     "decidedOn": "2026-10-02",
+     "why": "The founder decided on 2 October 2026, \"Pharmacist sees the prescriber — yes, but make this a decision on the system admin.\" A South African prescription carries the prescriber's name and HPCSA or SAPC registration, and the pharmacist who dispenses against it must check them before anything is handed over; a laboratory reads who asked for a test for the same reason. The prescriber's standing on the vetting register is drawn beside them, because a name is not a licence."
+    },
+    "allowed": [
+     { "value": true, "label": "Name and registration, beside their standing", "decidedBy": "Founder", "decidedOn": "2026-10-02", "why": "The founder's answer: the pharmacist sees the prescriber, as a real prescription shows them." },
+     { "value": false, "label": "Their standing on the vetting register only", "decidedBy": "Founder", "decidedOn": "2026-10-02", "why": "The founder made this the admin's decision, so the way the preview drew it before stays a choice: a partner reads whether the register lets the prescriber stand behind the order, and not who they are." }
+    ],
+    "changedBy": "admin",
+    "appliesTo": "A change applies the next time a partner's screen draws an order. Nothing a partner was shown is kept, so there is nothing earlier to preserve or take back. A phone has no admin surface and draws the default.",
+    "guardrail": {
+     "statement": "Either way a partner reads the prescriber's standing on the vetting register, never the patient, and never the platform's own reference for the prescriber.",
+     "forbids": ["yes", 1, null]
     }
    }
   ]

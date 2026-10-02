@@ -66,14 +66,15 @@ import za.co.mythuso.model.*
    fictional.
 
    WHO IS READING. This is the pharmacy's screen, and packages/catalog/medicines.json#partnerQueue
-   .neverCarries lists the patient and the prescriber: a pharmacy is told what to dispense and never
-   who for. So the prescription is drawn by its reference and the day it was issued, and the
-   prescriber as the vetting register's answer — whether a doctor who may prescribe stands behind it
-   — and never as a name or an HPCSA number. The demonstration switch between a current and a lapsed
-   doctor is keyed by position, and the subject id stays inside `prescriberAt`. The web stopped
-   naming either on 1 October 2026 and this screen went on doing it until the 2nd;
-   scripts/check-boundaries.mjs holds all three to it now. Whether a pharmacist should read the
-   prescriber's name off a real prescription is an open question in docs/FEATURE-MAP.md. */
+   .neverCarries lists the patient: a pharmacy is told what to dispense and never who for. So the
+   prescription is drawn by its reference and the day it was issued. The prescriber is drawn as the
+   vetting register's answer — whether a doctor who may prescribe stands behind it — and, in front of
+   it, their name and registration only through Dispensing.prescriberAsPartnerSees: the founder
+   decided on 2 October 2026 that a pharmacist sees the prescriber and made it the system admin's to
+   change, and this phone, which has no admin surface, draws the default and says so in
+   DispensingPartner.settingPhone. The demonstration switch between a current and a lapsed doctor is
+   keyed by position, and the subject id stays inside `prescribers`; scripts/check-boundaries.mjs
+   holds all three platforms to it. */
 
 private val dispensingPharmacies = listOf("P-501", "P-502")
 /* A doctor whose registration is current and one whose HPCSA registration lapsed. Switching between
@@ -84,8 +85,9 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
     val pharmacies = remember(store) { dispensingPharmacies.mapNotNull { store.vetting.subject(it) } }
     /* The register's answer for the doctor at each position in the switch, worked out here so that
        only the answer leaves: a doctor missing from the register is a refusal like any other. */
-    val prescriberAt = dispensingPrescribers.map { id ->
-        store.vetting.subject(id)?.let { can(it, "prescribe") } ?: VettingDecision(false, null, emptyList())
+    val prescribers = dispensingPrescribers.map { id -> store.vetting.subject(id) }
+    val prescriberAt = prescribers.map { subject ->
+        subject?.let { can(it, "prescribe") } ?: VettingDecision(false, null, emptyList())
     }
     var pharmacyId by remember { mutableStateOf(pharmacies.first().id) }
     var prescriberKey by remember { mutableStateOf(0) }
@@ -96,7 +98,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
     val pharmacy = pharmacies.firstOrNull { it.id == pharmacyId } ?: pharmacies.first()
     val mayDispense = can(pharmacy, "dispense")
     val mayPrescribe = prescriberAt[prescriberKey]
-    val standings = prescriberAt.map { Dispensing.prescriberStanding(it) }
+    val standings = prescribers.mapIndexed { at, subject -> Dispensing.prescriberAsPartnerSees(subject, prescriberAt[at]) }
     val open = mayDispense.allowed && mayPrescribe.allowed
     val rx = dispensedPrescription
     val auth = chronicAuthorisation
@@ -113,6 +115,7 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
             /* By its reference and the day it was issued, never by the patient's name and birth date. */
             Note("Issued ${rx.issuedInDays * -1} days ago")
             ReviewLine("Prescriber", standings[prescriberKey])
+            Note(DispensingPartner.settingPhone)
             ReviewLine("Dispensed by", "${rx.pharmacist.name} · ${rx.pharmacist.registration}")
             ReviewLine("At", "${pharmacy.name} · ${pharmacy.reference}")
             Note(DispensingPartner.told)
@@ -126,7 +129,8 @@ private val dispensingPrescribers = listOf("D-401", "D-402")
             pharmacyId = pharmacies.first { p -> p.name == chosen }.id; handed = emptySet()
         }
         /* Each chip is the register's answer for the doctor at that position, so the switch shows what
-           changes — whether anybody may stand behind the script — and nobody's name. Keyed by position
+           changes — whether anybody may stand behind the script — with a name only while the admin's
+           setting says so. Keyed by position
            rather than by its words, so two doctors with the same answer are still two chips. */
         Text("Prescriber", style = MaterialTheme.typography.titleMedium, color = Charcoal)
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

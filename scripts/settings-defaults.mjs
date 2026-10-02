@@ -109,3 +109,13 @@ export function settingBounds(source, contract, key) {
  }
  return { lowest: bounds.lowest.value, highest: bounds.highest.value };
 }
+
+/** A setting's label, and the label of the allowed choice a value is, for a phone that says which choice it draws —
+    the partner's prescriber line says whose setting it is and which way it is set. Asked here so an emitter still
+    reads no setting itself, and a value with no labelled choice is refused before two apps are told it. */
+export function settingChoice(source, contract, key, value) {
+ const setting = settingOf(source, contract, key);
+ const choice = (setting.allowed ?? []).find(entry => entry.value === value);
+ if (!choice?.label?.trim()) throw new Error(`${source} setting ${key} has no allowed choice labelled for ${JSON.stringify(value)}, so a phone cannot say which is in force.`);
+ return { label: setting.label, choice: choice.label };
+}

@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { goSection, openAdminConsole, openWorkspace } from './nav';
+import { chooseRole, goSection, openAdminConsole, openWorkspace } from './nav';
+import { editorLabel, openChangeForm, openConfiguration, say, timingItem } from './safety-settings';
 
 /* The dispatch map's field-safety overlay, on both viewports.
  *
@@ -38,8 +39,9 @@ const withZone = roster.nurses.filter(nurse => drawnZones.has(nurse.zone) && nur
 const [late, pressed] = [withZone[0], withZone[1] ?? withZone[0]];
 const rosteredIn = (zone: string) => roster.nurses.filter(nurse => nurse.zone === zone).length;
 /* Open items by suburb, as the overlay groups them: the overdue in one nurse's suburb and the open
-   panic in another's. Both are below the floor on this roster, which is the ordinary state of the panel
-   and the reason the suppressed sentence exists rather than a corner case. */
+   panic in another's. At the floor the founder decided on 2 October 2026 — the lowest bound, three —
+   the overdue's suburb, Soweto, holds enough nurses to draw its proportion and the panic's, Randburg,
+   does not, so the panel shows both sides of the floor at once. At the proposed five it showed neither. */
 const openByZone = new Map<string, { panics: number; overdues: number; open: number; holders: Set<string> }>();
 for (const [nurse, kind] of [[late, 'overdues'], [pressed, 'panics']] as [typeof late, 'overdues' | 'panics'][]) {
   const found = openByZone.get(nurse.zone) ?? { panics: 0, overdues: 0, open: 0, holders: new Set<string>() };
@@ -99,8 +101,8 @@ test('the overlay names each suburb with a count, in the contract\'s words, and 
 
 test('a suburb below the floor draws its counts whole and says why it draws no proportion', async ({ page }) => {
   await openBoard(page);
-  /* Both seeded suburbs hold fewer nurses than the floor on this roster, so this is the panel's ordinary
-     state rather than a corner of it. What is asserted is the whole of the floor's purpose: the
+  /* Most suburbs on this roster hold fewer nurses than any floor, so this is the panel's ordinary state
+     rather than a corner of it. What is asserted is the whole of the floor's purpose: the
      proportion is withheld, the count is not, and the sentence says what was withheld rather than
      leaving a gap a reader fills in with the number she feared. */
   const below = expectedZones.filter(zone => rosteredIn(zone) < floor);
@@ -121,10 +123,12 @@ test('a suburb below the floor draws its counts whole and says why it draws no p
     await expect(proportion).not.toContainText('{');
   }
 
-  /* A suburb at or above the floor draws two integers. Whether one exists on this roster is the
-     contract's business and not the test's, so the assertion is conditional on the roster rather than
-     on an expectation typed beside it. */
-  for (const zone of expectedZones.filter(z => rosteredIn(z) >= floor)) {
+  /* A suburb at or above the floor draws two integers. The founder set the default to the lowest bound so
+     that one does on this roster — at five, none did and the setting governed nothing an operator saw — so
+     at least one is asserted, from the roster and the contract rather than a suburb typed here. */
+  const atOrAbove = expectedZones.filter(z => rosteredIn(z) >= floor);
+  expect(atOrAbove.length, `at the default floor of ${floor} the seeded desk draws a proportion over at least one suburb`).toBeGreaterThan(0);
+  for (const zone of atOrAbove) {
     const counts = openByZone.get(zone)!;
     await expect(row(page, zone).locator('.zone-safety__proportion'))
       .toHaveText(fill(overlay.share.sentence, { zone, holders: String(counts.holders.size), rostered: String(rosteredIn(zone)), nursePlural: '' }));
@@ -192,4 +196,39 @@ test('a quiet board says so in the contract\'s words rather than drawing an empt
   await expect(panel(page)).toContainText(overlay.noZoneSentence);
   /* An empty board draws no suburb rows at all, rather than six suburbs each reading zero. */
   await expect(panel(page).locator('.zone-safety__row')).toHaveCount(0);
+});
+
+/* The founder decided on 2 October 2026, "Zone overlay floor — make it a parameter by the admin." So the floor is on
+   Configuration in its own plain words, at the default he chose, and an admin who raises it — here to one above the
+   largest suburb the seeded desk lands in — changes what the dispatch board draws on its next draw, in the same tab:
+   the suburb that drew its proportion now says why it draws none, and its count is still drawn whole. */
+test('the admin finds the floor on Configuration and raises it, and the board withholds the proportion it drew', async ({ page }) => {
+  await openAdminConsole(page);
+  await openConfiguration(page);
+  await page.locator('.cf-area').getByLabel(say.search, { exact: true }).fill(floorItem.label);
+  const settings = page.getByRole('region', { name: contract.settings.heading });
+  const item = timingItem(settings, floorItem);
+  await expect(item).toContainText(floorItem.help);
+  await expect(item.locator('.ss-in-force')).toContainText(fill(say.values.count, { value: String(floor), unit: floorItem.unit }));
+  await expect(item).toContainText(fill(say.decided, { who: 'Founder', on: '2 October 2026' }));
+  const drawn = expectedZones.filter(zone => rosteredIn(zone) >= floor);
+  const raised = Math.max(...drawn.map(rosteredIn)) + 1;
+  const form = await openChangeForm(settings, floorItem);
+  await form.getByLabel(editorLabel(floorItem), { exact: true }).fill(String(raised));
+  await form.getByLabel(say.reason, { exact: true }).fill('Operations would rather read counts alone until the roster is larger.');
+  await form.getByRole('button', { name: say.review }).click();
+  await form.getByRole('button', { name: say.confirm }).click();
+  await expect(item.locator('.ss-in-force')).toContainText(fill(say.values.count, { value: String(raised), unit: floorItem.unit }));
+
+  await chooseRole(page, 'Control Tower');
+  await goSection(page, 'Dispatch');
+  await expect(panel(page)).toBeVisible();
+  for (const zone of drawn) {
+    const counts = openByZone.get(zone)!;
+    const rostered = rosteredIn(zone);
+    await expect(row(page, zone).locator('.zone-safety__proportion')).toHaveText(fill(overlay.share.suppressedSentence, {
+      zone, open: String(counts.open), rostered: String(rostered), nursePlural: rostered === 1 ? '' : 's'
+    }));
+    await expect(row(page, zone).locator('.zone-safety__counts')).toContainText(`${counts.open} open`);
+  }
 });

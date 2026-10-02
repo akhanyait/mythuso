@@ -30,14 +30,15 @@ import SwiftUI
    fictional.
 
    WHO IS READING. This is the pharmacy's screen, reached from the partner's orders, and
-   packages/catalog/medicines.json#partnerQueue.neverCarries lists the patient and the prescriber: a
-   pharmacy is told what to dispense and never who for. So the prescription is drawn by its reference
-   and the day it was issued, and the prescriber as the vetting register's answer — whether a doctor
-   who may prescribe stands behind it — and never as a name or an HPCSA number. The demonstration
-   switch between a current and a lapsed doctor is keyed by position, and the subject id stays inside
-   `prescriberAt`. The web stopped naming either on 1 October 2026 and this screen went on doing it
-   until the 2nd; scripts/check-boundaries.mjs holds all three to it now. Whether a pharmacist should
-   read the prescriber's name off a real prescription is an open question in docs/FEATURE-MAP.md. */
+   packages/catalog/medicines.json#partnerQueue.neverCarries lists the patient: a pharmacy is told
+   what to dispense and never who for. So the prescription is drawn by its reference and the day it
+   was issued. The prescriber is drawn as the vetting register's answer — whether a doctor who may
+   prescribe stands behind it — and, in front of it, their name and registration only through
+   Dispensing.prescriberAsPartnerSees: the founder decided on 2 October 2026 that a pharmacist sees
+   the prescriber and made it the system admin's to change, and this phone, which has no admin
+   surface, draws the default and says so in Dispensing.Partner.settingPhone. The demonstration switch
+   between a current and a lapsed doctor is keyed by position, and the subject id stays inside
+   `prescriberAt`; scripts/check-boundaries.mjs holds all three platforms to it. */
 
 private let dispensingPharmacies = ["P-501", "P-502"]
 /* A doctor whose registration is current and one whose HPCSA registration lapsed. Switching between
@@ -56,14 +57,16 @@ struct DispensingView: View {
     private var pharmacies: [VettingSubject] { dispensingPharmacies.compactMap { vetting.subject($0) } }
     private var pharmacy: VettingSubject? { pharmacies.first { $0.id == pharmacyId } }
     private var mayDispense: VettingDecision? { pharmacy.map { can($0, "dispense") } }
-    /// The register's answer for the doctor at a position in the switch. Only the answer leaves here.
-    private func prescriberAt(_ key: Int) -> VettingDecision? {
-        vetting.subject(dispensingPrescribers[min(max(key, 0), dispensingPrescribers.count - 1)]).map { can($0, "prescribe") }
+    /// The doctor at a position in the switch. The subject goes only to the register's answer and to
+    /// Dispensing.prescriberAsPartnerSees, which names them only while the admin's setting says so.
+    private func prescriberAt(_ key: Int) -> VettingSubject? {
+        vetting.subject(dispensingPrescribers[min(max(key, 0), dispensingPrescribers.count - 1)])
     }
-    private var mayPrescribe: VettingDecision? { prescriberAt(prescriberKey) }
+    private var mayPrescribe: VettingDecision? { prescriberAt(prescriberKey).map { can($0, "prescribe") } }
     /// A doctor missing from the register is a refusal, said in the same words as any other.
-    private func standing(_ decision: VettingDecision?) -> String {
-        Dispensing.prescriberStanding(decision ?? .init(allowed: false, reason: nil, blockedBy: []))
+    private func standing(_ key: Int) -> String {
+        let subject = prescriberAt(key)
+        return Dispensing.prescriberAsPartnerSees(subject, subject.map { can($0, "prescribe") } ?? .init(allowed: false, reason: nil, blockedBy: []))
     }
     private var open: Bool { (mayDispense?.allowed ?? false) && (mayPrescribe?.allowed ?? false) }
     private var everyItemTold: Bool { Dispensing.prescription.items.allSatisfy { told.contains($0.id) } }
@@ -101,7 +104,9 @@ struct DispensingView: View {
             /* By its reference and the day it was issued, never by the patient's name and birth date. */
             Text("Issued \(Dispensing.prescription.issued.formatted(dispensingDay))")
                 .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
-            row("Prescriber", standing(mayPrescribe))
+            row("Prescriber", standing(prescriberKey))
+            Text(Dispensing.Partner.settingPhone).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
+                .fixedSize(horizontal: false, vertical: true)
             row("Dispensed by", "\(Dispensing.prescription.pharmacist.name) · \(Dispensing.prescription.pharmacist.registration)")
             row("At", pharmacy.map { p in "\(p.name) · \(p.reference)" } ?? "Not on the vetting register")
             Text(Dispensing.Partner.told).font(.thuso(.caption)).foregroundStyle(ThusoRole.mutedForeground)
@@ -118,10 +123,11 @@ struct DispensingView: View {
                 }
             }
             /* Each option is the register's answer for the doctor at that position, so the switch
-               shows what changes — whether anybody may stand behind the script — and nobody's name. */
+               shows what changes — whether anybody may stand behind the script — with a name only
+               while the admin's setting says so. */
             Picker("Prescriber", selection: $prescriberKey) {
                 ForEach(dispensingPrescribers.indices, id: \.self) { key in
-                    Text(standing(prescriberAt(key))).tag(key)
+                    Text(standing(key)).tag(key)
                 }
             }
             if let decision = mayDispense, !decision.allowed {

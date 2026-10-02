@@ -1874,6 +1874,7 @@ Added to a contract after this pack's generator was last taught about them. A re
 | `safety:zone-share-minimum-nurses` | How many nurses must be rostered to a suburb before the dispatch map may draw the proportion of them with something open. Below it the map draws the counts and says why it draws no proportion. |
 | `core:audit-export-max-days` | The longest period, in days, GET /v1/core/audit-exports@1 may export in one call. |
 | `access:ussd-session-timeout-seconds` | How many seconds a USSD booking session waits for the next reply before it ends with nothing booked. |
+| `medicines:partner-sees-prescriber-identity` | Whether a pharmacy or a laboratory reads the prescriber's name and registration on an order it fills, beside whether the vetting register lets that prescriber stand behind it. The patient is never shown to them either way. |
 | `movement:heartbeat-interval-seconds` | How often does a responder's phone send its position while a trip is under way? |
 | `movement:offline-after-missed-beats` | How many heartbeats may a responder's phone miss before the responder counts as offline and is offered nothing? |
 | `movement:offers-at-once` | How many verified, online responders is a trip offered to at the same time? |

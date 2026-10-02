@@ -32,7 +32,8 @@ import SwiftUI
    packages/catalog/medicines.json#partnerQueue.neverCarries lists the patient, a name, the prescriber
    and the collector, so both screens take `partner`, with no default so that no door can forget to
    say, and a partner is drawn what partnerQueue carries: the order by its reference, what to fill, how
-   far along it is, and the prescriber as the vetting register's answer rather than a person. The
+   far along it is, and the prescriber as the vetting register's answer — with their name and
+   registration in front of it while the system admin's setting says so (2 October 2026). The
    people are drawn by `whoFor` and nowhere else, so the one function a partner never reaches is the
    one place a person could come back through (scripts/check-boundaries.mjs holds it there).
 
@@ -49,11 +50,14 @@ private let orderPrescriber = "D-401"
         + [(prescriberAs, attributedTo(orderPrescriber))]
         + (collectedBy.map { [("Collected by", $0)] } ?? [])
 }
-/* What a partner is drawn where the prescriber's name was: whether the vetting register lets them
-   stand behind the order, in dispensing.json#partner's words. */
+/* What a partner is drawn for the prescriber: whether the vetting register lets them stand behind the
+   order, in dispensing.json#partner's words, and their name and registration in front of it only while
+   the system admin's setting says so — the founder decided on 2 October 2026 that it does by default,
+   and this phone draws that default (Dispensing.prescriberAsPartnerSees). */
 @MainActor private func standingFor(_ label: String) -> (String, String) {
-    let decision = VettingStore.shared.subject(orderPrescriber).map { can($0, "prescribe") }
-    return (label, Dispensing.prescriberStanding(decision ?? .init(allowed: false, reason: nil, blockedBy: [])))
+    let subject = VettingStore.shared.subject(orderPrescriber)
+    let decision = subject.map { can($0, "prescribe") } ?? .init(allowed: false, reason: nil, blockedBy: [])
+    return (label, Dispensing.prescriberAsPartnerSees(subject, decision))
 }
 /* A reference nothing here holds is said in words. Drawing another order under its heading was how
    one order's timeline came to stand for every order on the board. */
@@ -82,7 +86,7 @@ private struct OrderPeople: View {
     var body: some View {
         ForEach(facts, id: \.0) { fact in FactRow(label: fact.0, value: fact.1) }
         if partner {
-            Text(Dispensing.Partner.told)
+            Text("\(Dispensing.Partner.told) \(Dispensing.Partner.settingPhone)")
                 .font(.thuso(.footnote)).foregroundStyle(ThusoRole.mutedForeground)
                 .fixedSize(horizontal: false, vertical: true)
         }

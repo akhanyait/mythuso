@@ -190,6 +190,21 @@ object Dispensing {
             decision.blockedBy.joinToString(DispensingPartner.checksJoinedBy) { it.name }.ifEmpty { DispensingPartner.noCheckNamed }
         )
 
+    /* The prescriber as a partner reads them, through the system admin's setting and nowhere else. The founder
+       decided on 2 October 2026 that a pharmacist sees the prescriber and made it the admin's to change
+       (medicines.json's partner-sees-prescriber-identity; partnerQueue.carriesWhenSet). This phone has no admin
+       surface, so it reads the default scripts/emit-dispensing.mjs wrote into DispensingPartner.seesPrescriberIdentity,
+       and the screen says so in DispensingPartner.settingPhone. The name and registration are read here, off the
+       register's own subject, only while that says yes; the standing is drawn either way, because a name is not a
+       licence. It reads exactly as Dispensing.swift and apps/web/src/lib/dispensing.ts read it. */
+    fun prescriberAsPartnerSees(subject: VettingSubject?, decision: VettingDecision): String {
+        val standing = prescriberStanding(decision)
+        if (!DispensingPartner.seesPrescriberIdentity || subject == null) return standing
+        return DispensingPartner.prescriberNamed.replace("{name}", subject.name)
+            .replace("{registration}", subject.reference)
+            .replace("{standing}", standing)
+    }
+
     /* What the patient is owed, in words. Assembled here rather than in the composable so that
        Android, iOS and the web say the same three things: this is a substitution, this is what it
        replaces, this is what will look different. */

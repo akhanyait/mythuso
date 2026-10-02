@@ -62,6 +62,18 @@ test('the defaults are the contract’s, each inside its own bounds, and each se
     proportion can be drawn over without naming somebody. Asserted against the contract's bound rather
     than against a number typed here, so a bound moved down moves this with it and fails loudly. */
  assert.ok(bounds('zone-share-minimum-nurses').lowest.value >= 3, 'no bound may let a proportion be drawn over fewer than three nurses');
+ /* The founder decided on 2 October 2026 that the floor is the admin's parameter, with its default at the lowest
+    bound: at the Safety lead's proposed five the largest rostered suburb, Soweto with three, sat below it and the
+    proportion was drawn nowhere. So the default names the founder and the day, sits on the lowest bound, and is no
+    higher than the largest suburb on the roster — a floor above every suburb governs nothing an operator sees. The
+    bounds stay proposals, and an admin may still raise it to twenty. */
+ assert.equal(floorItem.default.decidedBy, 'Founder');
+ assert.equal((floorItem.default as { decidedOn?: string }).decidedOn, '2026-10-02');
+ assert.equal(floorItem.default.value, bounds('zone-share-minimum-nurses').lowest.value, 'the decided default is the lowest bound');
+ const roster = json('../../../../catalog/roster.json') as { nurses: { zone: string }[] };
+ const largest = Math.max(...Object.values(roster.nurses.reduce<Record<string, number>>((by, nurse) => ({ ...by, [nurse.zone]: (by[nurse.zone] ?? 0) + 1 }), {})));
+ assert.ok(zoneOverlay.minimumNurses <= largest, `at the default floor of ${zoneOverlay.minimumNurses} a proportion is drawn over the largest rostered suburb, of ${largest}`);
+ assert.deepEqual([bounds('zone-share-minimum-nurses').lowest.decidedBy, bounds('zone-share-minimum-nurses').highest.decidedBy], [null, null], 'the bounds are still proposals');
  /* Wave 5 added the two a Sentinel baseline is opened under. They wait on a clinical review, and are held to what
     sentinelSettingsOf reads rather than to a timing key. */
  const sentinel = sentinelSettingsOf([]);

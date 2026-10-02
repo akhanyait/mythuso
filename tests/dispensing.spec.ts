@@ -1,5 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
-import { goSection, openWorkspace } from './nav';
+import { readFileSync } from 'node:fs';
+import { chooseRole, goSection, openAdminConsole, openWorkspace } from './nav';
+import { fill, openConfiguration, openChangeForm, say, timingItem } from './safety-settings';
 /* Substitution and chronic authorisation.
  *
  * These journeys check the four things that make the screen a design rather than a list: that an
@@ -12,6 +14,21 @@ const openDispensing = async (page: Page) => {
   return page.locator('main');
 };
 const itemNamed = (d: ReturnType<Page['locator']>, name: string) => d.locator('.disp-item').filter({ hasText: name });
+/* Who prescribed is the system admin's setting since the founder's decision of 2 October 2026, on by default. The
+   words are the contracts': the template and the standing from dispensing.json#partner, the setting from
+   medicines.json. The two doctors are the vetting register's, as the journeys below have always named them. */
+const json = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
+const partnerWords = json('../packages/catalog/dispensing.json').partner as Record<string, string>;
+const medicinesSettings = json('../packages/catalog/medicines.json').settings as { heading: string; items: { key: string; label: string; appliesTo: string; default: { value: unknown }; allowed: { value: unknown; label: string }[] }[] };
+const whoPrescribed = medicinesSettings.items.find(item => item.key === 'partner-sees-prescriber-identity')!;
+const choiceOf = (value: boolean) => whoPrescribed.allowed.find(choice => choice.value === value)!.label;
+const lapsedStanding = partnerWords.prescriberMayNot.replace('{checks}', 'HPCSA registration');
+const doctors = [
+  { name: 'Dr Ayanda Dlamini', registration: 'HPCSA MP0483217', standing: partnerWords.prescriberMay },
+  { name: 'Dr Sanjay Naidoo', registration: 'HPCSA MP0559104', standing: lapsedStanding }
+];
+const named = (d: typeof doctors[number]) => fill(partnerWords.prescriberNamed, d);
+const settingSays = (value: boolean) => fill(partnerWords.settingWeb, { label: whoPrescribed.label, choice: choiceOf(value), heading: medicinesSettings.heading });
 
 test('a medicine that must not be substituted has no control, and says where the route is', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
@@ -89,16 +106,18 @@ test('a lapsed pharmacist or a lapsed prescriber closes the screen, in the regis
   await expect(d.getByRole('button', { name: 'Collect a repeat' })).toBeDisabled();
   await d.getByLabel('Dispensing pharmacy').selectOption('P-501');
   await expect(d.locator('.order-head').first().locator('.pill')).toHaveText('Awaiting handover');
-  /* The pharmacy is told the register's answer about the prescriber and never who it is: partnerQueue
-     in medicines.json lists prescriberRef among what a pharmacy's screen never carries. The switch is
-     keyed by position, so neither a name, an HPCSA number nor a subject id is in the options. */
+  /* The pharmacy is told the register's answer about the prescriber, and — by the founder's decision of
+     2 October 2026, which is the system admin's setting — who that is, by name and registration, as a real
+     prescription shows them. The switch is keyed by position, so the platform's own reference for either
+     doctor is nowhere in the page, and the screen says whose decision the names are. */
   const prescriber = d.getByLabel('Prescriber');
-  await expect(prescriber.locator('option')).toHaveText(['May prescribe · every check current on the vetting register', 'May not prescribe · HPCSA registration']);
+  await expect(prescriber.locator('option')).toHaveText(doctors.map(named));
+  await expect(d.getByText(settingSays(true))).toBeVisible();
   await prescriber.selectOption('1');
   await expect(d.getByText(/HPCSA registration lapsed/)).toBeVisible();
   const text = await d.innerText();
-  for (const who of ['Dr Ayanda Dlamini', 'Dr Sanjay Naidoo', 'MP0483217', 'MP0559104', 'D-401', 'D-402'])
-    expect(text, `the pharmacy's screen names the prescriber (${who})`).not.toContain(who);
+  for (const who of ['D-401', 'D-402', 'Lerato Molefe', '01/01/1980'])
+    expect(text, `the pharmacy's screen carries ${who}`).not.toContain(who);
   expect(await prescriber.locator('option').evaluateAll(options => options.map(o => (o as HTMLOptionElement).value))).toEqual(['0', '1']);
   await expect(d.getByRole('button', { name: 'Collect a repeat' })).toBeDisabled();
 });
@@ -112,4 +131,35 @@ test('the prescription detail points at this screen rather than saying it does n
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByText(/Substitution and chronic authorisation are modelled on the Substitution & repeats screen/)).toBeVisible();
   await expect(dialog.getByText(/are not modelled here/)).toHaveCount(0);
+});
+
+/* The founder decided on 2 October 2026, "Pharmacist sees the prescriber — yes, but make this a decision on the system
+   admin." So the admin finds it on Configuration in plain words, switches it to the standing alone with a reason, and
+   the pharmacy's screen — opened next, in the same tab — draws no prescriber's name or registration, and says so. */
+test('the admin switches who prescribed to the standing alone, and the pharmacy’s next screen names no prescriber', async ({ page }) => {
+  await openAdminConsole(page);
+  await openConfiguration(page);
+  const area = page.locator('.cf-area');
+  await area.getByLabel(say.search, { exact: true }).fill(whoPrescribed.label);
+  const panel = page.getByRole('region', { name: medicinesSettings.heading });
+  await expect(timingItem(panel, whoPrescribed).locator('.ss-in-force')).toContainText(choiceOf(true));
+  await expect(timingItem(panel, whoPrescribed)).toContainText(fill(say.decided, { who: 'Founder', on: '2 October 2026' }));
+  const form = await openChangeForm(panel, whoPrescribed);
+  await form.getByRole('radio', { name: choiceOf(false), exact: true }).check();
+  await form.getByLabel(say.reason, { exact: true }).fill('The pharmacies read the prescription itself until the identity service is connected.');
+  await form.getByRole('button', { name: say.review }).click();
+  const confirm = form.getByRole('group', { name: fill(say.confirmQuestion, { setting: whoPrescribed.label, from: choiceOf(true), to: choiceOf(false) }) });
+  await expect(confirm).toContainText(whoPrescribed.appliesTo);
+  await confirm.getByRole('button', { name: say.confirm }).click();
+  await expect(timingItem(panel, whoPrescribed).locator('.ss-in-force')).toContainText(choiceOf(false));
+
+  await chooseRole(page, 'Pharmacy partner');
+  await goSection(page, 'Substitution & repeats');
+  const d = page.locator('main');
+  const prescriber = d.getByLabel('Prescriber');
+  await expect(prescriber.locator('option')).toHaveText(doctors.map(doctor => doctor.standing));
+  await expect(d.getByText(settingSays(false))).toBeVisible();
+  const text = await d.innerText();
+  for (const who of [...doctors.flatMap(doctor => [doctor.name, doctor.registration]), 'D-401', 'D-402'])
+    expect(text, `the pharmacy's screen names the prescriber (${who}) after the admin switched it off`).not.toContain(who);
 });

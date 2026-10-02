@@ -207,6 +207,21 @@ enum Dispensing {
         return Partner.prescriberMayNot.replacingOccurrences(of: "{checks}", with: checks.isEmpty ? Partner.noCheckNamed : checks)
     }
 
+    /* The prescriber as a partner reads them, through the system admin's setting and nowhere else. The founder
+       decided on 2 October 2026 that a pharmacist sees the prescriber and made it the admin's to change
+       (medicines.json's partner-sees-prescriber-identity; partnerQueue.carriesWhenSet). This phone has no admin
+       surface, so it reads the default scripts/emit-dispensing.mjs wrote into Partner.seesPrescriberIdentity, and
+       the screen says so in Partner.settingPhone. The name and registration are read here, off the register's own
+       subject, only while that says yes; the standing is drawn either way, because a name is not a licence. It
+       reads exactly as Dispensing.kt and apps/web/src/lib/dispensing.ts read it. */
+    static func prescriberAsPartnerSees(_ subject: VettingSubject?, _ decision: VettingDecision) -> String {
+        let standing = prescriberStanding(decision)
+        guard Partner.seesPrescriberIdentity, let subject else { return standing }
+        return Partner.prescriberNamed.replacingOccurrences(of: "{name}", with: subject.name)
+            .replacingOccurrences(of: "{registration}", with: subject.reference)
+            .replacingOccurrences(of: "{standing}", with: standing)
+    }
+
     /* What the patient is owed, in words. Assembled here rather than in the view so that iOS,
        Android and the web say the same three things: this is a substitution, this is what it
        replaces, this is what will look different. */

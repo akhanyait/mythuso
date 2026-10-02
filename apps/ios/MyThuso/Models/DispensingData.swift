@@ -93,6 +93,10 @@ extension Dispensing {
         static let noCheckNamed = "held by the vetting register"
         static let releaseWithheld = "A result reaches a patient when a clinician sends it with an explanation, and this partner cannot do that for them."
         static let told = "A pharmacy is told what to dispense and never who for or why."
+        /// Decided by the Founder. A default an admin may change on the web; this app has no admin surface and uses it as written here.
+        static let seesPrescriberIdentity = true
+        static let prescriberNamed = "{name} · {registration} · {standing}"
+        static let settingPhone = "Who prescribed is the system admin's setting, “Pharmacies and laboratories see who prescribed”: Name and registration, beside their standing. Decided by the Founder. The admin changes it on the web; this phone has no admin surface and draws the default."
     }
     static let handover: [HandoverStep] = [
         .init(id: "checked", label: "Pharmacist check", detail: "Every item read against the prescription, the allergies and what the patient is already taking."),

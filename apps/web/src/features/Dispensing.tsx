@@ -6,10 +6,11 @@ import { NotConnected } from '../components/NotConnected';
 import {
  authorisation, authorisedOn, binds, classById, collectionAnswer, daysOfMedicineLeft, expiresInDays,
  expiresOn, formatDay, groundById, handover, isFinalRepeat, lastCollectedOn, mayChange, neverChanges,
- nextCollectionOn, pharmacist, prescriberStanding as standing, prescription, refusalById, refusals, repeatsRemaining, ruleById,
+ nextCollectionOn, pharmacist, prescriberAsPartnerSees, prescriberSettingSays, prescription, refusalById, refusals, repeatsRemaining, ruleById,
  statutoryGrounds, strandedRepeats, substituted, substitutionClasses, tellingFor, type PrescribedItem
 } from '../lib/dispensing';
 import { can } from '../lib/vetting';
+import { partnerSeesPrescriberNow, useSettingsHistories } from '../lib/settings';
 import { subjectById, subjectsByRole } from '../lib/vetting-fixtures';
 
 /* Substitution, and how long a repeat is allowed to live.
@@ -48,17 +49,17 @@ const pharmacies = subjectsByRole('pharmacy');
    ago. Switching between them changes who is behind the prescription and nothing else, which is the
    rule made visible rather than asserted.
 
-   This screen is the pharmacy's, and packages/catalog/medicines.json#partnerQueue.neverCarries lists
-   prescriberRef: a pharmacy is told whether the prescription has a prescriber who may stand behind it,
-   and not who that is. So the prescriber is drawn as the vetting register's answer — the outcome — and
-   never as a name or an HPCSA number, and the switch is keyed by position rather than by the subject's
-   id, which stays inside this lookup. The workbench beside it lost its prescriber for the same reason
-   on 30 September 2026 (features/ClinicalWorkbench.tsx). A real dispensing flow will need the
-   pharmacist to read the prescriber's name and registration off the prescription; that is a decision
-   to amend partnerQueue with a recorded reason, and docs/FEATURE-MAP.md carries it as an open question
-   rather than this screen taking it. */
+   This screen is the pharmacy's. A pharmacy is always told whether the prescription has a prescriber who
+   may stand behind it — the vetting register's answer — and whether it is also told who that is, by name
+   and registration, is the system admin's setting: the founder decided on 2 October 2026 that a pharmacist
+   sees the prescriber, as a real South African prescription shows them, and made it the admin's to change
+   (medicines.json#partnerQueue.carriesWhenSet). So the line and the switch are drawn by
+   prescriberAsPartnerSees with the answer partnerSeesPrescriberNow() gives on this draw, and this file reads
+   no name off a doctor itself. The switch is keyed by position rather than by the subject's id, which stays
+   inside this lookup and never reaches the page: prescriberRef is on partnerQueue.neverCarries whatever the
+   setting says. */
 const prescribers = ['D-401', 'D-402'];
-const prescriberAt = (key: string) => subjectById(prescribers[Number(key)] ?? prescribers[0])!;
+const prescriberAt = (key: string) => subjectById(prescribers[Number(key)] ?? prescribers[0]);
 
 function ClassPill({ id }: { id: string }) {
  const klass = classById(id);
@@ -138,7 +139,11 @@ export function Dispensing() {
 
  const pharmacy = pharmacies.find(p => p.id === pharmacyId)!;
  const mayDispense = can(pharmacy, 'dispense');
- const mayPrescribe = can(prescriberAt(prescriberKey), 'prescribe');
+ /* Subscribed, so an admin's change on Configuration in this tab reaches the next draw; asked on every draw, and kept nowhere. */
+ useSettingsHistories();
+ const sees = partnerSeesPrescriberNow();
+ const prescriberAs = (key: string) => { const subject = prescriberAt(key); return prescriberAsPartnerSees(subject, subject ? can(subject, 'prescribe') : { allowed: false, blockedBy: [] }, sees); };
+ const mayPrescribe = can(prescriberAt(prescriberKey)!, 'prescribe');
  const collection = collectionAnswer();
  const open = mayDispense.allowed && mayPrescribe.allowed;
  const everyItemTold = prescription.items.every(i => told.includes(i.id));
@@ -154,7 +159,8 @@ export function Dispensing() {
    <Pill tone={open ? 'plain' : 'danger'}>{open ? 'Awaiting handover' : 'Held'}</Pill>
   </div>
 
-  <div className="review-line"><span>Prescriber</span><strong>{standing(mayPrescribe)}</strong></div>
+  <div className="review-line"><span>Prescriber</span><strong>{prescriberAs(prescriberKey)}</strong></div>
+  <p className="helper disp-prescriber-setting">{prescriberSettingSays(sees)}</p>
   <div className="review-line"><span>Dispensed by</span><strong>{pharmacist.name} · {pharmacist.registration}</strong></div>
   <div className="review-line"><span>At</span><strong>{pharmacy.name} · {pharmacy.reference}</strong></div>
 
@@ -164,7 +170,7 @@ export function Dispensing() {
     {pharmacies.map(p => <option key={p.id} value={p.id}>{p.name} · {p.reference}</option>)}
    </select></label>
    <label>Prescriber<select value={prescriberKey} onChange={e => { setPrescriberKey(e.target.value); setHanded([]); }}>
-    {prescribers.map((_, at) => <option key={at} value={String(at)}>{standing(can(prescriberAt(String(at)), 'prescribe'))}</option>)}
+    {prescribers.map((_, at) => <option key={at} value={String(at)}>{prescriberAs(String(at))}</option>)}
    </select></label>
    <p className="helper">Both answers below come from the vetting register in its own words. A licence and a registration are not badges on a partner page; they are what decides whether anything on this screen does anything.</p>
   </fieldset>

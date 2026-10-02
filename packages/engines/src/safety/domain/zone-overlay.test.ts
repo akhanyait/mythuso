@@ -6,6 +6,7 @@
    thing the floor must never do, which is suppress a count. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { MINUTE, fieldSafety } from './rules.ts';
 import { defaultTimings, defaultsInForce, panicWindowOf } from './settings.ts';
 import { startTimer, tick, type Timer } from './checkins.ts';
@@ -59,6 +60,21 @@ test('a row with no suburb — a timer nobody has acted on yet — is dropped fr
  assert.equal(queue.length, 1);
  assert.equal(queue[0].suburb, '');
  assert.deepEqual(zoneOverlay(queue, rostered({})), []);
+});
+
+/* The default the founder decided on 2 October 2026 draws a proportion over a suburb the roster actually has. At the
+   proposed five, every suburb on the roster was below the floor and the proportion was drawn nowhere; the default is
+   the lowest bound now, so Soweto, the largest, draws its two integers while Randburg's two nurses are still too few. */
+test('at the default floor the largest rostered suburb draws a proportion, and a smaller one still does not', () => {
+ const roster = JSON.parse(readFileSync(new URL('../../../../catalog/roster.json', import.meta.url), 'utf8')) as { nurses: { zone: string }[] };
+ const inZone = (zone: string) => roster.nurses.filter(nurse => nurse.zone === zone).length;
+ const now = T0 + 6 * 60 * MINUTE;
+ const pressedIn = (nurse: string, zone: string) => deskQueue([], [panicAt(`PNC-${nurse}`, nurse, now - 4 * MINUTE)], now, who({ [nurse]: zone }));
+ const soweto = zoneOverlay(pressedIn('N-201', 'Soweto'), rostered({ Soweto: inZone('Soweto') }));
+ assert.deepEqual(proportionOf(soweto[0], floor), { drawn: true, sentence: `1 of ${inZone('Soweto')} nurses` });
+ const randburg = zoneOverlay(pressedIn('N-202', 'Randburg'), rostered({ Randburg: inZone('Randburg') }));
+ assert.equal(proportionOf(randburg[0], floor).drawn, false, 'two nurses are still too few');
+ assert.equal(randburg[0].open, 1, 'and its count is drawn whole');
 });
 
 test('the proportion is floored by roster size, and the floor is k-anonymity not a verdict', () => {

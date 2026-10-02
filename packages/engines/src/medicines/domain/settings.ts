@@ -6,6 +6,12 @@
  * of a collection's terms, and the one rule between two of them, that a PIN never works for longer than the
  * collection it opens, refused in the sentence POST /v1/medicines/setting-changes@1 declares.
  *
+ * And one that is not a collection's: whether a pharmacy or a laboratory reads the prescriber's name and
+ * registration. The founder answered it on 2 October 2026 — "Pharmacist sees the prescriber — yes, but make this a
+ * decision on the system admin" — so it is a setting whose default is that answer, and medicines.json#partnerQueue
+ * .carriesWhenSet says what it adds to a partner's screen. It is read every time a partner's screen draws an
+ * order rather than kept, because nothing a partner was shown is kept to keep it on.
+ *
  * WHATEVER STARTS KEEPS WHAT IT READ. A collection's terms are read when the patient authorises it and kept on the
  * authorisation; a result's rung is read when the result arrives and kept on the order. No screen and no handler
  * types a minute or a count: they are read from here, which reads the contract and the history.
@@ -18,8 +24,8 @@ import type { Terms } from './collections.ts';
 
 export const medicinesBlock = { engine: 'medicines', ...contract.settings } as unknown as SettingsBlock;
 
-const KEY = { pinLifetime: 'pin-lifetime', pinAttempts: 'pin-attempts', window: 'collection-window', rung: 'result-alert-rung' } as const;
-for (const key of Object.values(KEY)) if (!medicinesBlock.items.some(s => s.key === key)) throw new Error(`packages/catalog/medicines.json has no setting "${key}", which a collection or a result reads.`);
+const KEY = { pinLifetime: 'pin-lifetime', pinAttempts: 'pin-attempts', window: 'collection-window', rung: 'result-alert-rung', prescriber: 'partner-sees-prescriber-identity' } as const;
+for (const key of Object.values(KEY)) if (!medicinesBlock.items.some(s => s.key === key)) throw new Error(`packages/catalog/medicines.json has no setting "${key}", which a collection, a result or a partner's screen reads.`);
 
 const check: Check = next => (next[KEY.pinLifetime] as number) > (next[KEY.window] as number) ? 'pin-outlives-the-window' : null;
 const changeRoute = api.routes.find(route => route.method === 'POST' && route.path === '/v1/medicines/setting-changes' && route.version === 1);
@@ -41,3 +47,11 @@ export const termsOf = (snapshot: Snapshot): Terms => Object.freeze({
 /** The rung a result arriving now is raised on, and the version that set it. */
 export const resultRungOf = (snapshot: Snapshot): { readonly rung: number; readonly settingsVersion: number } =>
  Object.freeze({ rung: snapshot.values[KEY.rung] as number, settingsVersion: snapshot.settingsVersion });
+
+/** Whether a partner's screen draws the prescriber's name and registration beside their standing, and the version
+    that said so. Asked on every draw; the screen keeps nothing, so a change reaches the next draw. A value that is
+    not true is not true: the setting's type is the shared shape's to hold, and a partner is never shown the
+    prescriber because something other than the admin's yes arrived here. */
+export type PartnerPrescriber = { readonly sees: boolean; readonly settingsVersion: number };
+export const partnerSeesPrescriberOf = (snapshot: Snapshot): PartnerPrescriber =>
+ Object.freeze({ sees: snapshot.values[KEY.prescriber] === true, settingsVersion: snapshot.settingsVersion });

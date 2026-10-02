@@ -36,7 +36,8 @@ private val prescriber: String = seededSubjects.first { it.id == orderPrescriber
    packages/catalog/medicines.json#partnerQueue.neverCarries lists the patient, a name, the prescriber
    and the collector, so both screens take `partner`, with no default so that no route can forget to
    say, and a partner is drawn what partnerQueue carries: the order by its reference, what to fill, how
-   far along it is, and the prescriber as the vetting register's answer rather than a person. The
+   far along it is, and the prescriber as the vetting register's answer — with their name and
+   registration in front of it while the system admin's setting says so (2 October 2026). The
    people are drawn by `whoFor` and nowhere else, so the one function a partner never reaches is the
    one place a person could come back through (scripts/check-boundaries.mjs holds it there).
 
@@ -51,17 +52,21 @@ private fun whoFor(partner: Boolean, patient: String? = null, prescriberAs: Stri
     if (partner) return emptyList()
     return listOfNotNull(patient?.let { "Patient" to it }, prescriberAs to prescriber, collectedBy?.let { "Collected by" to it })
 }
-/* What a partner is drawn where the prescriber's name was: whether the vetting register lets them stand
-   behind the order, in dispensing.json#partner's words. */
-private fun standingFor(label: String): Pair<String, String> =
-    label to Dispensing.prescriberStanding(
-        seededSubjects.firstOrNull { it.id == orderPrescriber }?.let { can(it, "prescribe") } ?: VettingDecision(false, null, emptyList())
+/* What a partner is drawn for the prescriber: whether the vetting register lets them stand behind the
+   order, in dispensing.json#partner's words, and their name and registration in front of it only while
+   the system admin's setting says so — the founder decided on 2 October 2026 that it does by default, and
+   this phone draws that default (Dispensing.prescriberAsPartnerSees). */
+private fun standingFor(label: String): Pair<String, String> {
+    val subject = seededSubjects.firstOrNull { it.id == orderPrescriber }
+    return label to Dispensing.prescriberAsPartnerSees(
+        subject, subject?.let { can(it, "prescribe") } ?: VettingDecision(false, null, emptyList())
     )
+}
 /* The people behind an order, as a partner sees them (nobody, and the register's answer) or as anybody
    else does. One composable for both screens, so the branch is written once. */
 @Composable private fun OrderPeople(partner: Boolean, facts: List<Pair<String, String>>) {
     facts.forEach { (label, value) -> ReviewLine(label, value) }
-    if (partner) Note(DispensingPartner.told)
+    if (partner) Note("${DispensingPartner.told} ${DispensingPartner.settingPhone}")
 }
 /* A reference nothing here holds is said in words. Drawing another order under its heading was how one
    order's timeline came to stand for every order on the board. */

@@ -3623,7 +3623,9 @@ for (const { source, command, files } of generated) {
   /* The partner's other screen, Substitution & repeats (features/Dispensing.tsx, drawn for the Partner role
      by shells/StaffShell.tsx), went on naming the prescriber after the workbench stopped: a "Prescribed by"
      line with the doctor's name and HPCSA number, and a switch whose options were the two doctors. The
-     prescriber is drawn there as the vetting register's outcome now, and this holds it to that. The
+     prescriber is drawn there as the vetting register's outcome now, with a name in front of it only through
+     the system admin's setting (the block after the order screens holds that), and this holds the file to
+     reading no name itself. The
      neverCarries loop above cannot be pointed at this file as it stands — the screen rightly names the
      pharmacy and its own pharmacist, so a bare ".name" is not a finding here — and so what is asked instead
      is *whose* name: every ".name", ".reference" and ".registration" read in the file must be read off one
@@ -3700,6 +3702,70 @@ for (const { source, command, files } of generated) {
     console.log(`The partner's order screens · the people behind a prescription and a laboratory order drawn by whoFor alone, which returns nothing for a partner; ${doors.length} doors pass who is reading; each order found by its reference; and no release control for the partner.`);
   }
 
+  /* Who prescribed, through the system admin's setting and nowhere else (2 October 2026). The founder answered
+     the open question — "Pharmacist sees the prescriber — yes, but make this a decision on the system admin" —
+     so medicines.json holds partner-sees-prescriber-identity, on by default, and partnerQueue.carriesWhenSet says
+     what it adds. The checks above stop a partner's screen reading a person off a lookup; this stops the one
+     name a partner may now read from arriving any way but through the setting:
+       1. the contract: carriesWhenSet names a boolean setting of this engine, its fields are no field of the
+          queue route and not in carries, and prescriberRef, subjectRef and the patient stay on neverCarries;
+       2. lib/dispensing.ts's prescriberAsPartnerSees returns the standing before it reads a name whenever the
+          answer it is handed does not say yes, and prescriberNamed is read nowhere else;
+       3. the answer is the engine's partnerSeesPrescriberOf, which says yes only to a true, handed out by
+          lib/settings.ts's partnerSeesPrescriberNow from the medicines snapshot in force;
+       4. every partner screen that draws the prescriber — Dispensing.tsx and OrderDetails.tsx — calls
+          prescriberAsPartnerSees with an answer it asked partnerSeesPrescriberNow for on that draw, never one it
+          typed, calls prescriberStanding nowhere itself, and says whose decision it is in dispensing.json's
+          settingWeb. */
+  {
+    const mc = JSON.parse(read("packages/catalog/medicines.json"));
+    const pqs = mc.partnerQueue;
+    const idf = (file, message) => pw(`${file}: ${message}`);
+    const queueRoute = JSON.parse(read("packages/catalog/apis/medicines.json")).routes.find((r) => r.method === "GET" && r.path === "/v1/medicines/orders" && r.version === 2);
+    const queueFields = (queueRoute?.response ?? []).find((f) => f.field === "orders")?.fields?.map((f) => f.field) ?? [];
+    if (!Array.isArray(pqs.carriesWhenSet) || !pqs.carriesWhenSet.length)
+      idf("packages/catalog/medicines.json", "partnerQueue has lost carriesWhenSet, so the setting that lets a partner read the prescriber is no longer said in the contract that decides what a partner reads.");
+    for (const entry of pqs.carriesWhenSet ?? []) {
+      const setting = mc.settings.items.find((item) => item.key === entry.setting);
+      if (!setting || setting.type !== "boolean" || typeof entry.when !== "boolean")
+        idf("packages/catalog/medicines.json", `partnerQueue.carriesWhenSet names "${entry.setting}", which is not a boolean setting of this engine, so nothing an admin decides governs what it adds.`);
+      const widened = entry.fields.find((field) => queueFields.includes(field) || pqs.carries.includes(field));
+      if (widened)
+        idf("packages/catalog/medicines.json", `partnerQueue.carriesWhenSet's "${widened}" is carried on the queue too. A field a setting adds is drawn on a partner's screen, never carried on GET /v1/medicines/orders@2 — widening the route is a new version of it.`);
+    }
+    for (const kept of ["prescriberRef", "subjectRef", "patient"])
+      if (!pqs.neverCarries.includes(kept)) idf("packages/catalog/medicines.json", `partnerQueue.neverCarries has lost ${kept}. The founder's decision lets a partner read the prescriber's name and registration, and nothing else about anybody.`);
+    const lib = "apps/web/src/lib/dispensing.ts";
+    const libSrc = read(lib).replace(/\/\*[\s\S]*?\*\//g, " ");
+    const fnAt = libSrc.search(/\nexport function prescriberAsPartnerSees\(/);
+    const fnBody = fnAt < 0 ? "" : libSrc.slice(fnAt, libSrc.indexOf("\n}\n", fnAt) + 2);
+    if (!/\(subject: VettingSubject \| undefined, decision: Decision, setting: PartnerPrescriberNow\): string \{\s*const standing = prescriberStanding\(decision\);\s*if \(!setting\.sees \|\| !subject\) return standing;/.test(fnBody))
+      idf(lib, "prescriberAsPartnerSees no longer returns the standing alone before it reads a name whenever the admin's setting does not say yes.");
+    if ((libSrc.match(/partner\.prescriberNamed\b/g) ?? []).length !== 1 || !fnBody.includes("partner.prescriberNamed"))
+      idf(lib, "reads dispensing.json#partner.prescriberNamed outside prescriberAsPartnerSees, so a prescriber's name can be drawn without asking the setting.");
+    if (!/export const partnerSeesPrescriberOf = \(snapshot: Snapshot\): PartnerPrescriber =>\s*Object\.freeze\(\{ sees: snapshot\.values\[KEY\.prescriber\] === true,/.test(read("packages/engines/src/medicines/domain/settings.ts")))
+      idf("packages/engines/src/medicines/domain/settings.ts", "partnerSeesPrescriberOf no longer says yes only to a true in the medicines settings in force.");
+    if (!/export const partnerSeesPrescriberNow = \(\): PartnerPrescriberNow => \{\s*const answer = partnerSeesPrescriberOf\(snapshotNow\('medicines'\)\);/.test(read("apps/web/src/lib/settings.ts")))
+      idf("apps/web/src/lib/settings.ts", "partnerSeesPrescriberNow no longer reads the medicines settings in force, so the admin's change would not reach a partner's screen.");
+    const identityScreens = ["apps/web/src/features/Dispensing.tsx", "apps/web/src/features/OrderDetails.tsx"];
+    for (const file of identityScreens) {
+      const src = read(file).replace(/\{\s*\/\*(?:(?!\*\/)[\s\S])*\*\/\s*\}/g, " ").replace(/\/\*[\s\S]*?\*\//g, " ");
+      const calls = [...src.matchAll(/prescriberAsPartnerSees\(([^\n]*)\)/g)];
+      if (!calls.length) idf(file, "no longer draws the prescriber through prescriberAsPartnerSees, the one function that asks the admin's setting.");
+      for (const call of calls)
+        if (!/, sees\)/.test(call[0])) idf(file, `draws the prescriber as "${call[0]}", with an answer that is not the one it asked the setting for on this draw.`);
+      if (!/const sees = partnerSeesPrescriberNow\(\);/.test(src) || /\bsees\s*[:=]\s*(true|false|\{)|seesPrescriber|prescriberNamed|prescriberStanding\(/.test(src.replace(/const sees = partnerSeesPrescriberNow\(\);/g, " ")))
+        idf(file, "decides whether a partner reads the prescriber by something other than partnerSeesPrescriberNow() on this draw — a typed answer, the template itself or the standing drawn around the setting.");
+      /* Per drawing, not per file: OrderDetails.tsx draws two orders, and each asks, subscribes and says. */
+      const asks = (src.match(/const sees = partnerSeesPrescriberNow\(\);/g) ?? []).length;
+      if ((src.match(/useSettingsHistories\(\);\s*const sees = partnerSeesPrescriberNow\(\);/g) ?? []).length !== asks)
+        idf(file, "asks the setting without subscribing to the settings first, so an admin's change in this tab would not reach that screen's next draw.");
+      if ((src.match(/prescriberSettingSays\(sees\)/g) ?? []).length < asks)
+        idf(file, "draws the prescriber without saying on that screen that who prescribed is the system admin's setting, and where it is changed.");
+    }
+    console.log(`Who prescribed · a partner reads the prescriber's name and registration only through medicines.json's ${pqs.carriesWhenSet.map((e) => e.setting).join(", ")}, decided by the ${mc.settings.items.find((i) => i.key === pqs.carriesWhenSet[0].setting).default.decidedBy} and the admin's to change: never on the queue's ${queueFields.length} fields, through one function that returns the standing first, on ${identityScreens.length} web screens that ask the setting on every draw and say whose decision it is.`);
+  }
+
   /* The phones. The three screens above went on naming people on iOS and Android a day after the web
      stopped: Substitution & repeats drew the patient's name and birth date, "Prescribed by" with the
      doctor's name and HPCSA number, and a switch of doctors' names; the prescription and the laboratory
@@ -3737,7 +3803,8 @@ for (const { source, command, files } of generated) {
           nf(file, `reads "${m[0]}". The pharmacy's substitution screen draws its own names and the vetting register's answer for the prescriber, never a person behind a lookup.`);
       const person = src.match(/\.patient\b|patientBorn|attributedTo\(|\bprescriberId\b|ForEach\(dispensingPrescribers,/)?.[0];
       if (person) nf(file, `reaches "${person}", a person the pharmacy is not told about.`);
-      if (!/Dispensing\.prescriberStanding\b/.test(src)) nf(file, "no longer draws the prescriber as Dispensing.prescriberStanding, the vetting register's answer.");
+      if (!/Dispensing\.prescriberAsPartnerSees\(/.test(src) || /Dispensing\.prescriberStanding\b/.test(src))
+        nf(file, "no longer draws the prescriber through Dispensing.prescriberAsPartnerSees, the register's answer with a name only while the admin's setting says so.");
       if (!position.test(src)) nf(file, "no longer keys the prescriber switch by an integer position. The subject stays inside the lookup.");
     }
     for (const { path, content } of emitDispensing()) {
@@ -3757,7 +3824,7 @@ for (const { source, command, files } of generated) {
     };
     for (const [file, shape] of Object.entries(readers))
       if (!shape.test(read(file))) nf(file, "no longer builds the prescriber's standing from dispensing.json#partner.");
-    const words = [dc.partner.prescriberMay, dc.partner.prescriberMayNot.split("{checks}")[0], dc.partner.releaseWithheld];
+    const words = [dc.partner.prescriberMay, dc.partner.prescriberMayNot.split("{checks}")[0], dc.partner.releaseWithheld, dc.partner.settingWeb.split("{label}")[0]];
     const ownCopies = new Set(emitDispensing().map((f) => f.path));
     for (const f of [...files("apps/web/src"), ...files("apps/ios/MyThuso"), ...files("apps/android/app/src/main")].filter((f) => /\.(tsx?|swift|kt)$/.test(f) && !ownCopies.has(f))) {
       const typed = words.find((w) => read(f).includes(w));
@@ -3825,6 +3892,27 @@ for (const { source, command, files } of generated) {
     if (!/if \(partner\) Row\([^\n]*\{\s*Icon\([^\n]*\n\s*Text\(DispensingPartner\.releaseWithheld[^\n]*\n\s*\}\s*else if \(order\.returned\) StudioButton\(/.test(androidSrc)
       || androidSrc.split("Release with an explanation").length !== 2)
       nf(androidOrders, "draws a release control a partner can reach. A result reaches a patient when a clinician sends it with an explanation.");
+    /* Who prescribed, on the phones (2 October 2026). A phone has no admin surface, so the system admin's setting
+       reaches it as its default, generated into DispensingData by scripts/emit-dispensing.mjs; the name is read
+       off the phone's own register by the model's prescriberAsPartnerSees, which returns the standing before it
+       reads a name unless that default says yes. Neither the default nor the template is read anywhere else, so
+       no screen can name a prescriber around it, and every partner screen says whose decision it is. */
+    const models = [
+      ["apps/ios/MyThuso/Models/Dispensing.swift", /static func prescriberAsPartnerSees\(_ subject: VettingSubject\?, _ decision: VettingDecision\) -> String \{\s*let standing = prescriberStanding\(decision\)\s*guard Partner\.seesPrescriberIdentity, let subject else \{ return standing \}/],
+      ["apps/android/app/src/main/java/za/co/mythuso/model/Dispensing.kt", /fun prescriberAsPartnerSees\(subject: VettingSubject\?, decision: VettingDecision\): String \{\s*val standing = prescriberStanding\(decision\)\s*if \(!DispensingPartner\.seesPrescriberIdentity \|\| subject == null\) return standing/],
+    ];
+    for (const [model, shape] of models)
+      if (!shape.test(uncomment(read(model)))) nf(model, "prescriberAsPartnerSees no longer returns the standing alone before it reads a name whenever the admin's setting, as this phone holds it, does not say yes.");
+    const modelFiles = new Set([...models.map(([m]) => m), ...ownCopies]);
+    for (const f of [...files("apps/ios/MyThuso"), ...files("apps/android/app/src/main")].filter((f) => /\.(swift|kt)$/.test(f) && !modelFiles.has(f))) {
+      const around = uncomment(read(f)).match(/\bseesPrescriberIdentity\b|\bprescriberNamed\b/)?.[0];
+      if (around) nf(f, `reads ${around}, so a prescriber can be named without going through prescriberAsPartnerSees and the admin's setting.`);
+    }
+    for (const f of [iosDispensing, androidDispensing, iosOrders, androidOrders]) {
+      const src = uncomment(read(f));
+      if (!/Dispensing\.prescriberAsPartnerSees\(/.test(src)) nf(f, "no longer draws the prescriber through Dispensing.prescriberAsPartnerSees.");
+      if (!/(Dispensing\.Partner|DispensingPartner)\.settingPhone\b/.test(src)) nf(f, "no longer says on the screen that who prescribed is the system admin's setting, and that this phone draws its default.");
+    }
     console.log(`The partner's screens on the phones · Substitution & repeats draws the prescriber as dispensing.json#partner's answer behind a positional switch and no patient, which DispensingData no longer carries; the prescription and laboratory order take \`partner\`, draw people through whoFor alone, open ${listed.length} listed orders as themselves, and draw a partner no release control.`);
   }
 }
@@ -29776,6 +29864,19 @@ console.log(
   )
     zoneFail(
       `zone-share-minimum-nurses is ${JSON.stringify({ type: floorItem.type, unit: floorItem.unit, positive: floorItem.positive, lowest, highest, forbids: forbidden })}. It is a positive count of nurses whose lowest bound is three or more, and whose guardrail names ${lowest - 1} — one below that bound — beside 0 and one above the highest, so no setting can turn the overlay into a way of naming one nurse on a map and the bounds are each proved rather than asserted.`,
+    );
+
+  /* 5b. The default governs something an operator can see. Review found the proposed five above every
+         suburb on the roster — the largest, Soweto, holds three — so the proportion was drawn nowhere and the
+         setting decided nothing. The founder decided on 2 October 2026 that the floor is the admin's parameter
+         with its default at the lowest bound. So the default names who decided it, sits on the lowest bound, and
+         is no higher than the largest suburb the roster has; a roster or a default that drifts apart again
+         fails here rather than quietly suppressing every proportion on the board. */
+  const bySuburb = rosterDoc.nurses.reduce((by, n) => ({ ...by, [n.zone]: (by[n.zone] ?? 0) + 1 }), {});
+  const largestSuburb = Object.entries(bySuburb).sort((a, b) => b[1] - a[1])[0];
+  if (floorItem.default.decidedBy === null || !/^\d{4}-\d{2}-\d{2}$/.test(floorItem.default.decidedOn ?? "") || floor !== lowest || floor > largestSuburb[1])
+    zoneFail(
+      `zone-share-minimum-nurses defaults to ${floor}, ${floorItem.default.decidedBy ? `decided by the ${floorItem.default.decidedBy}` : "decided by nobody"}, with bounds ${lowest}–${highest}, and the largest rostered suburb, ${largestSuburb[0]}, holds ${largestSuburb[1]}. The founder made the floor the admin's parameter with its default at the lowest bound, so that the proportion is drawn where the roster can bear it; a default above every suburb governs nothing an operator sees.`,
     );
 
   /* 6. Nothing is kept. Every call recomputes from its arguments, so a figure cannot survive its render and

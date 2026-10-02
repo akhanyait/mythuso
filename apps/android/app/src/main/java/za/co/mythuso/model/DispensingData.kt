@@ -125,6 +125,10 @@ object DispensingPartner {
     const val noCheckNamed = "held by the vetting register"
     const val releaseWithheld = "A result reaches a patient when a clinician sends it with an explanation, and this partner cannot do that for them."
     const val told = "A pharmacy is told what to dispense and never who for or why."
+    /** Decided by the Founder. A default an admin may change on the web; this app has no admin surface and uses it as written here. */
+    const val seesPrescriberIdentity = true
+    const val prescriberNamed = "{name} · {registration} · {standing}"
+    const val settingPhone = "Who prescribed is the system admin's setting, “Pharmacies and laboratories see who prescribed”: Name and registration, beside their standing. Decided by the Founder. The admin changes it on the web; this phone has no admin surface and draws the default."
 }
 
 val dispensingHandover = listOf(

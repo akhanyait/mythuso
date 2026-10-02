@@ -27,10 +27,19 @@
    patient's own Passport on the web reads them; a copy the phones never draw is a copy that can only
    leak. In their place go dispensing.json#partner — what a partner reads where the people were — and
    the first sentence of medicines.json#partnerQueue.why, taken here exactly as the web takes it, so
-   the reason a partner is told for the gap is one sentence in one file. */
+   the reason a partner is told for the gap is one sentence in one file.
+
+   The fourth is the system admin's setting of 2 October 2026, partner-sees-prescriber-identity in
+   medicines.json: whether a partner reads the prescriber's name and registration beside their standing.
+   A phone has no admin surface and reaches no settings route, so it is handed the default through
+   scripts/settings-defaults.mjs, as every engine's settings reach the phones, with the sentence saying
+   whose decision it is and that the admin changes it on the web. The name itself is not written here: the
+   phone reads it off its own vetting register, through Dispensing.prescriberAsPartnerSees, only while this
+   default says yes. */
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { settingChoice, settingDefault } from './settings-defaults.mjs';
 
 const SOURCE = 'packages/catalog/dispensing.json';
 const MEDICINES = 'packages/catalog/medicines.json';
@@ -60,7 +69,13 @@ export function emitDispensing(root = '') {
  const contract = JSON.parse(readFileSync(root + SOURCE, 'utf8'));
  const { authorisation: auth, prescription: rx, partner } = contract;
  /* Split as apps/web/src/features/OrderDetails.tsx splits it, so both draw the same sentence. */
- const told = JSON.parse(readFileSync(root + MEDICINES, 'utf8')).partnerQueue.why.split('. ')[0] + '.';
+ const medicines = JSON.parse(readFileSync(root + MEDICINES, 'utf8'));
+ const told = medicines.partnerQueue.why.split('. ')[0] + '.';
+ /* The admin's setting, as a phone may know it: its default, who decided it, and the sentence a partner reads. */
+ const SETTING = 'partner-sees-prescriber-identity';
+ const sees = settingDefault(MEDICINES, medicines, SETTING);
+ const { label, choice } = settingChoice(MEDICINES, medicines, SETTING, sees.value);
+ const settingPhone = partner.settingPhone.replace('{label}', label).replace('{choice}', choice).replace('{whose}', sees.note.split('. ')[0] + '.');
 
  const swiftFile = `${banner()}
 
@@ -109,6 +124,10 @@ ${contract.refusals.map(r => `        .init(id: ${swift(r.id)}, sentence: ${swif
         static let noCheckNamed = ${swift(partner.noCheckNamed)}
         static let releaseWithheld = ${swift(partner.releaseWithheld)}
         static let told = ${swift(told)}
+        /// ${sees.note}
+        static let seesPrescriberIdentity = ${sees.value}
+        static let prescriberNamed = ${swift(partner.prescriberNamed)}
+        static let settingPhone = ${swift(settingPhone)}
     }
     static let handover: [HandoverStep] = [
 ${contract.handover.map(s => `        .init(id: ${swift(s.id)}, label: ${swift(s.label)}, detail: ${swift(s.detail)})`).join(',\n')}
@@ -195,6 +214,10 @@ object DispensingPartner {
     const val noCheckNamed = ${kotlin(partner.noCheckNamed)}
     const val releaseWithheld = ${kotlin(partner.releaseWithheld)}
     const val told = ${kotlin(told)}
+    /** ${sees.note} */
+    const val seesPrescriberIdentity = ${sees.value}
+    const val prescriberNamed = ${kotlin(partner.prescriberNamed)}
+    const val settingPhone = ${kotlin(settingPhone)}
 }
 
 val dispensingHandover = listOf(

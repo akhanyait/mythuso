@@ -10,7 +10,7 @@ import { claimConsentDaysOf, doctorFeeOf, groupMemberCapOf, groupMemberMonthlyLi
 import { auditExportMaxDaysOf, rotaOf } from '../../../../packages/engines/src/core/domain/settings.ts';
 import type { KeptRota } from '../../../../packages/engines/src/core/domain/loops.ts';
 import { accessInForce, accessInForceAt, type AccessSettingsInForce } from '../../../../packages/engines/src/access/domain/settings.ts';
-import { resultRungOf, termsOf } from '../../../../packages/engines/src/medicines/domain/settings.ts';
+import { partnerSeesPrescriberOf, resultRungOf, termsOf, type PartnerPrescriber } from '../../../../packages/engines/src/medicines/domain/settings.ts';
 import type { Terms as CollectionTerms } from '../../../../packages/engines/src/medicines/domain/collections.ts';
 import { trustInForce, type TrustInForce } from '../../../../packages/engines/src/trust/domain/settings.ts';
 import { sharingSettingsOf, type SharingInForce } from '../../../../packages/engines/src/record/domain/settings.ts';
@@ -134,6 +134,19 @@ export const accessSettingsAt = (at: number): AccessSettingsInForce => accessInF
    expiry, the window and the attempt limit it was given; a result asks resultRungNow() once when it arrives. */
 export const collectionTermsNow = (): CollectionTerms => termsOf(snapshotNow('medicines'));
 export const resultRungNow = (): { readonly rung: number; readonly settingsVersion: number } => resultRungOf(snapshotNow('medicines'));
+/* Whether a pharmacy or a laboratory reads the prescriber's name and registration: the founder's yes of 2 October 2026
+   as the default, and the system admin's to change. A partner's screen asks on every draw and keeps nothing, so the
+   admin's change reaches the next draw; lib/dispensing.ts is the one place the answer turns into a name. The words
+   beside it — the setting's label, which choice is in force, and the engine's heading the admin finds it under — are
+   handed out with the answer rather than read off the contract by the screen, so the screen says whose decision it is
+   in the words Configuration uses. */
+export type PartnerPrescriberNow = PartnerPrescriber & { readonly label: string; readonly choice: string; readonly heading: string };
+export const partnerSeesPrescriberNow = (): PartnerPrescriberNow => {
+ const answer = partnerSeesPrescriberOf(snapshotNow('medicines'));
+ const setting = settingOf('medicines', 'partner-sees-prescriber-identity');
+ const choice = setting.allowed?.find(entry => entry.value === answer.sees)?.label ?? String(answer.sees);
+ return Object.freeze({ ...answer, label: setting.label, choice, heading: engineOf('medicines').block.heading });
+};
 /* Verify's four, asked once when a shift starts, a door code is shown or a complaint arrives, and kept by that
    shift, code or complaint: a change in the back office reaches the next one and never one already under way. */
 export const trustSettingsNow = (): TrustInForce => trustInForce(historyOf('trust'));

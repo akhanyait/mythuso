@@ -3,7 +3,8 @@ import { ArrowRight, BadgeCheck, Check, CircleAlert, FlaskConical, Pill as PillI
 import { NotConnected } from '../components/NotConnected';
 import { Alert, Badge, Button, Card, CardDescription, CardHeader, Checkbox, Field, Select } from '../ui';
 import { OfficeFacts, OfficeNote } from '../surface/Office';
-import { crossReference, prescriberStanding, releaseWithheld } from '../lib/dispensing';
+import { crossReference, prescriberAsPartnerSees, prescriberSettingSays, releaseWithheld } from '../lib/dispensing';
+import { partnerSeesPrescriberNow, useSettingsHistories, type PartnerPrescriberNow } from '../lib/settings';
 import { can, scopeFor } from '../lib/vetting';
 import medicinesContract from '../../../../packages/catalog/medicines.json';
 import { subjectsByRole } from '../lib/vetting-fixtures';
@@ -23,7 +24,9 @@ import { subjectsByRole } from '../lib/vetting-fixtures';
    whoever opened them. packages/catalog/medicines.json#partnerQueue.neverCarries lists the patient, a
    name, the prescriber and the collector, so each screen takes `partner` — required, so no caller can
    forget to say — and a partner is drawn what partnerQueue carries: the order by its reference, what
-   to fill, its state, and the prescriber as the vetting register's answer rather than a person. The
+   to fill, its state, and the prescriber as the vetting register's answer — with their name and
+   registration in front of it while the system admin's setting says so, which the founder decided on
+   2 October 2026 it does by default (partnerQueue.carriesWhenSet; prescriberAsPartnerSees). The
    people are drawn by `whoFor`, and nowhere else, so the one function a partner never reaches is the
    one place a person could come back through (scripts/check-boundaries.mjs holds it there).
 
@@ -49,9 +52,9 @@ function whoFor(partner: boolean, people: { patient?: string; prescriberAs: stri
   ...(people.collectedBy ? [['Collected by', people.collectedBy] as Fact] : [])
  ];
 }
-/* What a partner is drawn where the prescriber's name was: whether the vetting register lets them stand
-   behind the order, in the register's words. */
-const standingFor = (label: string): Fact => [label, prescriberStanding(can(prescriber, 'prescribe'))];
+/* What a partner is drawn for the prescriber: whether the vetting register lets them stand behind the order, in
+   the register's words, and who they are only through the system admin's setting, answered on this draw. */
+const standingFor = (label: string, sees: PartnerPrescriberNow): Fact => [label, prescriberAsPartnerSees(prescriber, can(prescriber, 'prescribe'), sees)];
 /* A partner reads why the people are missing in the contract's own first sentence, rather than finding a gap. */
 const partnerTold = medicinesContract.partnerQueue.why.split('. ')[0] + '.';
 /* A reference nothing here holds is said in words. Drawing another order under its heading was how one
@@ -81,6 +84,9 @@ export function PrescriptionDetail({ reference = 'RX-0081', open, partner }: { r
 }
 function Prescription({ reference, script, open, partner }: { reference: string; script: typeof prescriptions[string]; open?: (m: string) => void; partner: boolean }) {
  const { medicines } = script;
+ /* Subscribed, so the admin's change in this tab reaches the next draw; nothing a partner was shown is kept. */
+ useSettingsHistories();
+ const sees = partnerSeesPrescriberNow();
  const [checked, setChecked] = useState<string[]>(script.dispensed ? medicines.map(m => m.name) : []);
  /* The script ended at "Pharmacist check · 0 of 2 items checked" and stopped. Checking both items
     left the timeline exactly where it was: dispensed, sealed and handed over all stayed grey, and
@@ -107,8 +113,8 @@ function Prescription({ reference, script, open, partner }: { reference: string;
    <Badge className="pill" variant={!mayDispense.allowed ? 'danger' : handover ? 'success' : 'neutral'}>{!mayDispense.allowed ? 'Held' : handover ? 'Handed over' : sealed ? 'Sealed' : allChecked ? 'Checked' : 'Awaiting pharmacist'}</Badge></div>
   {/* A partner is told whether the prescriber may stand behind the script and not who they are; everybody
       else reads the people too. */}
-  <OfficeFacts facts={partner ? [standingFor('Prescriber')] : whoFor(partner, { patient: script.patient, prescriberAs: 'Prescriber' })}/>
-  {partner && <p className="oi-help">{partnerTold}</p>}
+  <OfficeFacts facts={partner ? [standingFor('Prescriber', sees)] : whoFor(partner, { patient: script.patient, prescriberAs: 'Prescriber' })}/>
+  {partner && <p className="oi-help">{partnerTold} {prescriberSettingSays(sees)}</p>}
   <Field label="Dispensing pharmacy" htmlFor="order-pharmacy"><Select id="order-pharmacy" value={chosen} onChange={e => { setChosen(e.target.value); setChecked([]); setSealed(false); setHandover(''); }}>
    {pharmacies.map(p => <option key={p.id} value={p.id}>{p.name} · {p.reference}</option>)}
   </Select></Field>
@@ -190,6 +196,8 @@ export function LabOrderDetail({ reference = 'LAB-0023', partner }: { reference?
 }
 function LabOrder({ reference, order, partner }: { reference: string; order: typeof labOrders[string]; partner: boolean }) {
  const tests = menu.filter(test => order.asked.includes(test));
+ useSettingsHistories();
+ const sees = partnerSeesPrescriberNow();
  const [released, setReleased] = useState(order.reached > labSteps.length);
  const [chosen, setChosen] = useState(laboratories[0].id);
  const laboratory = laboratories.find(l => l.id === chosen)!;
@@ -204,8 +212,8 @@ function LabOrder({ reference, order, partner }: { reference: string; order: typ
  const mayAct = !partner && returned;
  return <div className="oi-screen oi-order">
   <div className="oi-card-head order-head"><div><p className="oi-eyebrow oi-with-icon"><FlaskConical aria-hidden="true"/>Laboratory order</p><h3 className="oi-section-title">{reference}</h3><p className="oi-help">{order.what}</p></div><Badge className="pill" variant={released ? 'success' : 'neutral'}>{released ? 'Released to patient' : returned ? 'Awaiting release' : medicinesContract.screen.results.notReturned}</Badge></div>
-  <OfficeFacts facts={[...(partner ? [standingFor('Requested by')] : whoFor(partner, { prescriberAs: 'Requested by', collectedBy: order.collectedBy })), ['Sample seal', order.seal]]}/>
-  {partner && <p className="oi-help">{partnerTold}</p>}
+  <OfficeFacts facts={[...(partner ? [standingFor('Requested by', sees)] : whoFor(partner, { prescriberAs: 'Requested by', collectedBy: order.collectedBy })), ['Sample seal', order.seal]]}/>
+  {partner && <p className="oi-help">{partnerTold} {prescriberSettingSays(sees)}</p>}
   <Field label="Testing laboratory" htmlFor="order-laboratory"><Select id="order-laboratory" value={chosen} onChange={e => { setChosen(e.target.value); setReleased(false); }}>
    {laboratories.map(l => <option key={l.id} value={l.id}>{l.name} · {l.reference}</option>)}
   </Select></Field>
