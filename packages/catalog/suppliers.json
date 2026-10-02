@@ -1,0 +1,4332 @@
+{
+ "_note": "The OEM and supplier register: who the fifty products in the founder's sourcing catalogue of 2 October 2026 are from, what each supplier and offer states about itself, what selling each in South Africa would need beyond what the catalogue lists, and where each would fit MyThuso — if anywhere. The founder's words: \"lets have this on the OEM/Supplier so that we know who these are from.\" It is a back-office record and nothing else: read by the Control Tower's Catalogue · Suppliers & OEMs screen behind a dynamic import, never by the shop, which is unbranded on purpose (shop.json, _brandNote). Every fact about a supplier or an offer is the catalogue's, and the catalogue was prepared by an AI; none of it is verified, and the register says what was tried.",
+ "version": 1,
+ "status": "built",
+ "_statusWhy": "In the tree, held by scripts/check-suppliers.mjs and tests/suppliers.spec.ts on both viewports. Built is not procured: nothing has been ordered, no sample requested and no supplier contacted.",
+ "decided": {
+  "by": "Founder",
+  "on": "2026-10-02",
+  "words": "lets have this on the OEM/Supplier so that we know who these are from."
+ },
+ "platforms": "web",
+ "_platformsWhy": "The register is read in the Control Tower, which is a web surface; neither phone has a back office. So there is no generator and no Swift or Kotlin copy — a copy nobody renders is a copy nobody would notice drifting.",
+ "source": {
+  "title": "Healthcare & Medical Products Master Catalogue — Verified B2B Procurement Edition: Connected Medical Equipment, Diagnostic Telehealth & Nutritional Supplements",
+  "suppliedBy": "Founder",
+  "suppliedOn": "2026-10-02",
+  "preparedBy": "\"AI Mode Sourcing Expert\" — an AI-prepared document",
+  "platform": "Alibaba.com",
+  "statedItems": 50,
+  "currency": "USD",
+  "itsOwnChecklist": "Medical equipment: FCC Part 15/22/24, PTCRB and CE-RED for the radio; CE MDR (EU) 2017/745, FDA 510(k) and ISO 13485 for the medical function. Supplements: cGMP (21 CFR Part 111), ISO 22000 and HACCP, a lot certificate of analysis for heavy metals, microbes and assay, and FDA or EFSA labelling. It recommends Alibaba Trade Assurance, binding specification sheets and Incoterms, and physical samples before production.",
+  "_itsOwnChecklistWhy": "Kept because it is the catalogue's own list, and because every item on it is American or European. None of them is a South African approval, which is what saFit below is for.",
+  "urlPattern": "https://www.alibaba.com/product-detail/_{productId}.html",
+  "_urlPatternWhy": "The catalogue's links were \"View Product Details & Inquire (ID: …)\". The address is built from the ID by this one pattern, so a link is never typed twice and never carries anything but a public product ID."
+ },
+ "notice": {
+  "heading": "Nothing here is verified, ordered or contacted",
+  "sentence": "This register is built from a sourcing catalogue an AI prepared and the founder supplied on 2 October 2026. Every supplier detail, price, minimum order and certification is as that catalogue states it, and none has been verified. Nothing has been ordered and no supplier has been contacted.",
+  "linkSentence": "An Alibaba link opens the supplier's public product page in a new tab, only when you press it. It sends no enquiry, and the page has an Inquire button this register never presses."
+ },
+ "words": {
+  "filtersHeading": "Show",
+  "categoryLabel": "Category",
+  "fitLabel": "South African fit",
+  "scopeLabel": "Fit to MyThuso",
+  "any": "All",
+  "showing": "{shown} of {total} offers from {suppliers} suppliers",
+  "noneShown": "No offer matches all three. Widen one of them.",
+  "suppliersHeading": "Suppliers and their offers",
+  "supplierFacts": "As the catalogue states",
+  "yearsOnPlatform": "{years} years on Alibaba.com",
+  "yearOnPlatform": "1 year on Alibaba.com",
+  "ratingAsStated": "{score} out of 5 from {reviews} reviews",
+  "soldAsStated": "{sold} sold",
+  "noRating": "No rating stated",
+  "place": "Where",
+  "placeUnknown": "Not stated",
+  "type": "Makes or trades",
+  "distinctFrom": "Kept apart from",
+  "listingTitle": "Listing title, as stated",
+  "specs": "Specification, as stated",
+  "wireless": "Radios",
+  "dosageForm": "Form",
+  "oemOdm": "Own-label terms",
+  "targetFunction": "Sold for",
+  "price": "Price, USD",
+  "moq": "Minimum order",
+  "certifications": "Certifications claimed",
+  "noCertifications": "None stated for this item",
+  "sahpraClass": "SAHPRA class, our reading",
+  "notADevice": "Not a medical device on its claims",
+  "checklist": "What South Africa needs, and what is missing",
+  "missing": "Missing",
+  "popiaHeading": "POPIA",
+  "claimsHeading": "Claims flagged",
+  "noClaims": "None flagged",
+  "fit": "South African fit",
+  "scope": "Fit to MyThuso",
+  "shopProduct": "Could supply",
+  "mismatch": "Differs from the listing",
+  "verification": "Verification",
+  "unverified": "Unverified",
+  "checked": "Checked {on}",
+  "notChecked": "Not checked beyond the catalogue",
+  "link": "Alibaba listing {id}",
+  "linkAria": "Alibaba listing {id} for offer {number}, opens in a new tab",
+  "beforeOrderHeading": "What must be in hand before any order",
+  "requirementsHeading": "The South African requirements, and where each stands",
+  "attemptsHeading": "What was tried, on {on}",
+  "refusalsHeading": "What the register refuses",
+  "offerNumber": "#{number}"
+ },
+ "categories": [
+  {
+   "id": "emergency-wearables",
+   "label": "Emergency response and wearables",
+   "catalogueCalls": "Emergency Response & Wearables"
+  },
+  {
+   "id": "telehealth-terminals",
+   "label": "Telehealth and clinical terminals",
+   "catalogueCalls": "Telehealth & Clinical Terminals"
+  },
+  {
+   "id": "medication-dispensing",
+   "label": "Medication dispensing",
+   "catalogueCalls": "Smart Medication & Dispensing"
+  },
+  {
+   "id": "pdas-scanners",
+   "label": "Handhelds and scanners",
+   "catalogueCalls": "Hospital Mobile PDAs & Scanners"
+  },
+  {
+   "id": "diagnostic-vitals",
+   "label": "Diagnostic and vital-sign devices",
+   "catalogueCalls": "Diagnostic & Vital Signs Monitoring"
+  },
+  {
+   "id": "supplements",
+   "label": "Vitamins and supplements",
+   "catalogueCalls": "Part II — Vitamins, Healthcare Supplements & Nutraceuticals"
+  }
+ ],
+ "scopes": [
+  {
+   "id": "shop",
+   "label": "Candidate for the shop",
+   "sentence": "It could supply a product type the shop already lists, once everything below is in place. The shop stays unbranded: the supplier's name never reaches it.",
+   "tone": "success"
+  },
+  {
+   "id": "nurse-kit",
+   "label": "Candidate for the nurse's kit or operations",
+   "sentence": "It would be the service's own equipment — in a nurse's bag or lent to a household — and never sold to a patient.",
+   "tone": "primary"
+  },
+  {
+   "id": "out-of-scope",
+   "label": "Out of scope for now",
+   "sentence": "MyThuso does not do what this product is for, or doing it would need a decision about care, consent or special personal information that nobody has made.",
+   "tone": "neutral"
+  },
+  {
+   "id": "supplements-not-stocked",
+   "label": "Not stocked — supplements",
+   "sentence": "The shop sells no supplement or vitamin. Whether it ever does is the founder's decision.",
+   "tone": "warning"
+  }
+ ],
+ "saFitLevels": [
+  {
+   "id": "paperwork",
+   "label": "Paperwork first",
+   "sentence": "Lawful to bring in once the licences and approvals it needs exist. Today none of them does.",
+   "tone": "neutral"
+  },
+  {
+   "id": "conditions",
+   "label": "Only with conditions met",
+   "sentence": "Possible only if its data can come into Thuso instead of its maker's cloud, or a flagged claim is cleared or dropped — on top of the paperwork.",
+   "tone": "warning"
+  },
+  {
+   "id": "not-as-offered",
+   "label": "Not as offered",
+   "sentence": "As the catalogue offers it, it carries a claim that is unlawful to repeat here. It could be sold only as a different product, relabelled and registered, if at all.",
+   "tone": "danger"
+  }
+ ],
+ "_saFitLevelsWhy": "The level is worked out, never typed: a claim whose severity blocks the offer makes it not as offered; otherwise readings that go to the supplier's cloud, or any flagged claim, make it conditional; otherwise it is paperwork first. apps/web/src/lib/suppliers.ts holds the rule and scripts/check-suppliers.mjs asks the same function, so the filter, the badge and the check cannot disagree.",
+ "claimSeverities": [
+  {
+   "id": "unlawful",
+   "label": "Unlawful to repeat",
+   "blocksAsOffered": true,
+   "sentence": "A claim to treat, prevent or reduce the risk of a disease, or to modify a bodily function, for a product not registered as a medicine. SAHPRA calls these high-risk claims, which an unregistered complementary medicine may not make, and a food label may make no medicinal claim at all. Repeating one to a patient would be MyThuso making it."
+  },
+  {
+   "id": "needs-clearance",
+   "label": "Needs its own clearance",
+   "blocksAsOffered": false,
+   "sentence": "A diagnostic or monitoring claim the device would have to be classified and licensed for, separately from what it does at its simplest."
+  },
+  {
+   "id": "unsafe-untested",
+   "label": "Unsafe to repeat untested",
+   "blocksAsOffered": false,
+   "sentence": "A safety promise a person would rely on — a fall noticed, a dose locked away, an alarm that wakes them — with no evidence offered that it works."
+  },
+  {
+   "id": "misleading",
+   "label": "Misleading here",
+   "blocksAsOffered": false,
+   "sentence": "A certification or compliance claim that does not mean, in South Africa, what a reader would take it to mean."
+  }
+ ],
+ "radios": [
+  {
+   "id": "cellular",
+   "label": "Cellular (GSM, 2G to 5G)",
+   "matches": [
+    "GSM",
+    "GPRS",
+    "LTE",
+    "2G",
+    "3G",
+    "4G",
+    "5G"
+   ],
+   "needs": [
+    "icasa-type-approval",
+    "rica"
+   ]
+  },
+  {
+   "id": "bluetooth",
+   "label": "Bluetooth",
+   "matches": [
+    "BT",
+    "Bluetooth"
+   ],
+   "needs": [
+    "icasa-type-approval"
+   ]
+  },
+  {
+   "id": "wifi",
+   "label": "Wi-Fi",
+   "matches": [
+    "Wi-Fi"
+   ],
+   "needs": [
+    "icasa-type-approval"
+   ]
+  },
+  {
+   "id": "lora",
+   "label": "LoRa",
+   "matches": [
+    "LoRa"
+   ],
+   "needs": [
+    "icasa-type-approval"
+   ]
+  },
+  {
+   "id": "nfc",
+   "label": "NFC",
+   "matches": [
+    "NFC"
+   ],
+   "needs": [
+    "icasa-type-approval"
+   ]
+  }
+ ],
+ "_radiosWhy": "Which requirements a radio brings is decided here once, from the words the catalogue uses for it. GPS is left out: a receiver that only listens to satellites transmits nothing to approve. Ethernet and USB are wires.",
+ "deviceClassesFrom": "packages/catalog/shop.json#regulatory.classes",
+ "_deviceClassesWhy": "One vocabulary of SAHPRA classes, the shop's, because an offer that could supply a listing must be read in the same words as the listing. scripts/check-suppliers.mjs fails an offer whose class the shop does not define, and a shop candidate whose class differs from the listing it would supply.",
+ "uploads": [
+  {
+   "id": "supplier-cloud",
+   "label": "To the supplier's own cloud",
+   "flag": true
+  },
+  {
+   "id": "unstated",
+   "label": "Destination not stated",
+   "flag": false
+  },
+  {
+   "id": "phone",
+   "label": "To the phone or tablet beside it",
+   "flag": false
+  },
+  {
+   "id": "none",
+   "label": "Runs our software; sends what that sends",
+   "flag": false
+  }
+ ],
+ "popia": {
+  "flagSentence": "Its readings go to the supplier's own cloud, outside South Africa. That is a cross-border transfer of health information under POPIA section 72, needing the Information Regulator's prior authorisation under section 57(1)(d) where the destination is not adequately protected.",
+  "acceptableOnlyIf": "Acceptable only if its readings can come into Thuso instead — the device talking to the person's phone or to MyThuso, and the supplier's cloud switched off — and that is confirmed in writing before any order.",
+  "unstatedSentence": "The catalogue does not say where its data goes. That is the first question to ask, before price."
+ },
+ "requirements": [
+  {
+   "id": "sahpra-establishment-licence",
+   "label": "SAHPRA medical device establishment licence",
+   "appliesWhen": "medical-device",
+   "authority": "SAHPRA",
+   "instrument": "Medicines and Related Substances Act 101 of 1965, section 22C(1)(b) and (6); guideline SAHPGL-MD-06 v3 (8 March 2023)",
+   "what": "Nobody may import, distribute or wholesale a medical device or IVD of class B, C or D without this licence, and each licence carries the list of products it covers. Only class A devices that are neither sterile nor measuring are exempt.",
+   "inPlace": false,
+   "missing": "MyThuso holds no establishment licence, and no importer has been named who does.",
+   "source": "https://www.sahpra.org.za/medical-devices/",
+   "confidence": "read on the page"
+  },
+  {
+   "id": "sahpra-classification",
+   "label": "The device's class, confirmed",
+   "appliesWhen": "medical-device",
+   "authority": "SAHPRA",
+   "instrument": "Regulations relating to Medical Devices and IVDs, GN R1515 of 9 December 2016; guideline SAHPGL-MD-04 v5 (27 February 2025)",
+   "what": "The class shown here is our reading of the classification guideline. The class of a particular model is the licence holder's to confirm, and individual registration waits on a call-up SAHPRA has not yet published.",
+   "inPlace": false,
+   "missing": "Nobody has confirmed a class for any of these models.",
+   "source": "https://www.sahpra.org.za/wp-content/uploads/2025/03/SAHPGL-MD-04_v5-Guideline-for-Classification-of-MD-and-IVDs.pdf",
+   "confidence": "read on the page"
+  },
+  {
+   "id": "icasa-type-approval",
+   "label": "ICASA type approval",
+   "appliesWhen": "radio",
+   "authority": "ICASA",
+   "instrument": "Electronic Communications Act 36 of 2005, section 35; Type Approval Regulations 2013",
+   "what": "No radio equipment may be supplied, sold or used in South Africa until ICASA has approved it, licence-exempt short-range radios included. A LoRa radio must use a South African short-range band (863–870 or 915–919.4 MHz), not a setting made for another country.",
+   "inPlace": false,
+   "missing": "No model here has an ICASA approval MyThuso has seen.",
+   "source": "https://www.icasa.org.za/pages/type-approval",
+   "confidence": "read on the page"
+  },
+  {
+   "id": "rica",
+   "label": "RICA registration of every SIM",
+   "appliesWhen": "radio",
+   "authority": "The mobile network operator",
+   "instrument": "Regulation of Interception of Communications and Provision of Communication-related Information Act 70 of 2002, sections 40 and 62C",
+   "what": "A SIM card is not activated until the person or company it is issued to is recorded and verified. A device with its own SIM needs a South African SIM registered to somebody — a foreign SIM roaming here permanently is a question for the operator.",
+   "inPlace": false,
+   "missing": "No SIM is registered for any device, and who would hold them has not been decided.",
+   "source": "https://www.justice.gov.za/legislation/acts/2002-070.pdf",
+   "confidence": "read on the page; applying it to an internal SIM is our reading"
+  },
+  {
+   "id": "nrcs-loa",
+   "label": "NRCS letter of authority, if the charger is in scope",
+   "appliesWhen": "device",
+   "authority": "NRCS",
+   "instrument": "Compulsory specification VC 8055 for electrical and electronic apparatus (GN R89 of 2009, amended by GN 835 of 2014)",
+   "what": "Battery chargers, adaptors and IT equipment in the specification's scope need a letter of authority before they are imported or sold. Whether a medical device's own charger is in scope could not be confirmed, so each product needs a scope ruling from NRCS.",
+   "inPlace": false,
+   "missing": "No scope ruling has been asked for and no letter of authority is held.",
+   "source": "https://www.gov.za/sites/default/files/gcis_document/201410/38128gon835.pdf",
+   "confidence": "not confirmed — the scope for medical equipment is the open question"
+  },
+  {
+   "id": "hsa-listed-electronic",
+   "label": "Listed electronic product under the Hazardous Substances Act",
+   "appliesWhen": "named",
+   "authority": "SAHPRA, Radiation Control",
+   "instrument": "Hazardous Substances Act 15 of 1973; Schedule of Listed Electronic Products, R1302 of 14 June 1991",
+   "what": "Diagnostic ultrasound, electrocardiographs, physiological monitors and non-invasive blood pressure monitors are listed Group III electronic products, whose importer needs a licence. Whether that licence is still issued alongside the establishment licence is a question for Radiation Control.",
+   "inPlace": false,
+   "missing": "Nobody has asked Radiation Control, and no licence is held.",
+   "source": "https://www.sahpra.org.za/wp-content/uploads/2022/10/Schedule-of-Listed-Electronic-Products-Regulation-R1302-14-June-1991-002.pdf",
+   "confidence": "the listing read on the page; whether a licence is still issued is not confirmed"
+  },
+  {
+   "id": "clinical-scope",
+   "label": "A clinical scope and the training for it",
+   "appliesWhen": "named",
+   "authority": "SANC and HPCSA",
+   "instrument": "The scope of practice of the person who would use it",
+   "what": "Diagnostic ultrasound is a sonographer's or a doctor's work, and fitting a hearing aid an audiologist's; in 2013 the HPCSA warned that selling hearing aids without its registration breaks the law. No instrument found lets a registered nurse do either.",
+   "inPlace": false,
+   "missing": "No scope decision has been made and nobody in MyThuso is trained or registered for it.",
+   "source": "https://www.sanews.gov.za/south-africa/warning-against-illegal-sale-hearing-aids",
+   "confidence": "the HPCSA warning read on the page; the nurse's scope is not confirmed"
+  },
+  {
+   "id": "popia-transfer",
+   "label": "POPIA: health information sent abroad",
+   "appliesWhen": "supplier-cloud",
+   "authority": "Information Regulator",
+   "instrument": "Protection of Personal Information Act 4 of 2013, sections 26, 57(1)(d) and 72",
+   "what": "Health information is special personal information. Sending it to a third party in another country is allowed only under section 72's conditions, and where that country's protection is not adequate the Regulator must authorise it first.",
+   "inPlace": false,
+   "missing": "No transfer has been assessed, no authorisation sought, and no DPIA exists.",
+   "source": "https://www.justice.gov.za/legislation/acts/2013-004.pdf",
+   "confidence": "read on the page"
+  },
+  {
+   "id": "popia-biometric",
+   "label": "POPIA: biometric information",
+   "appliesWhen": "named",
+   "authority": "Information Regulator",
+   "instrument": "Protection of Personal Information Act 4 of 2013, sections 1, 26 and 27",
+   "what": "A palm-vein template is biometric information, which is special personal information. It may be processed only on a section 27 ground such as consent, and never because it is convenient.",
+   "inPlace": false,
+   "missing": "MyThuso takes no biometrics and has no ground to start.",
+   "source": "https://www.justice.gov.za/legislation/acts/2013-004.pdf",
+   "confidence": "read on the page"
+  },
+  {
+   "id": "sahpra-complementary",
+   "label": "SAHPRA: complementary medicine (Category D)",
+   "appliesWhen": "supplement",
+   "authority": "SAHPRA",
+   "instrument": "General Regulations, GN R859 of 25 August 2017; guideline 7.02 and the health supplements guideline 7.04",
+   "what": "A health supplement is a Category D complementary medicine. Until it is called up for registration it may be sold only with the prescribed words on its label: \"This unregistered medicine has not been evaluated by the SAHPRA for its quality, safety or intended use.\" Each ingredient has its permitted claims and its maximum daily amount.",
+   "inPlace": false,
+   "missing": "No label, ingredient list or claim has been checked against the guideline, and nobody holds the product's dossier.",
+   "source": "https://www.sahpra.org.za/complementary-medicines/",
+   "confidence": "read on the page"
+  },
+  {
+   "id": "health-claims",
+   "label": "Only low-risk claims",
+   "appliesWhen": "supplement",
+   "authority": "SAHPRA and the Department of Health",
+   "instrument": "SAHPRA guideline 7.02 (December 2021); Foodstuffs, Cosmetics and Disinfectants Act 54 of 1972, labelling regulations R146 of 2010, regulation 13(g)",
+   "what": "An unregistered complementary medicine may make only low-risk claims — general health, health maintenance, relief of minor symptoms with no disease named. A claim to treat, prevent or reduce the risk of a disease is high-risk and may bring an individual call-up and an order to stop selling; on a food label any medicinal claim is prohibited outright.",
+   "inPlace": false,
+   "missing": "No claim on any of these products has been reviewed, and several are high-risk as offered.",
+   "source": "https://www.sahpra.org.za/wp-content/uploads/2021/12/7.02_Roadmap_for_CMs_Dec21_v2_3.pdf",
+   "confidence": "read on the page"
+  }
+ ],
+ "beforeAnyOrder": [
+  {
+   "id": "sample",
+   "label": "A physical sample",
+   "sentence": "In the hands of whoever would use it — a nurse for a handheld, a household for a pendant — tested against the listing it would supply, before any production order."
+  },
+  {
+   "id": "spec-sheet",
+   "label": "A binding specification sheet",
+   "sentence": "The exact model, firmware, radio bands and accessories, signed as part of the order, so the thing delivered is the thing tested."
+  },
+  {
+   "id": "documents",
+   "label": "The regulatory documents themselves",
+   "sentence": "Certificates for every claimed approval, checked against the issuer's public register — a CE certificate's notified body, an FDA listing, an ISO certificate's issuer — never accepted as a picture on a listing."
+  },
+  {
+   "id": "coa",
+   "label": "A certificate of analysis for each lot",
+   "sentence": "For anything taken by mouth: heavy metals, microbes and assay, from a laboratory that is not the supplier's, before the founder decides whether supplements are sold at all."
+  },
+  {
+   "id": "data-flow",
+   "label": "The data flow, in writing",
+   "sentence": "Where every reading, position and recording goes, who holds it, in which country, and whether it can come into Thuso instead. For a device with a radio this comes before price."
+  },
+  {
+   "id": "business-licence",
+   "label": "The business licence",
+   "sentence": "The supplier's business licence and registration number, so that two names that look alike are known to be one company or two, and a trading firm names the factory."
+  },
+  {
+   "id": "south-african-route",
+   "label": "Who imports and who holds the licence",
+   "sentence": "A South African importer or distributor holding the SAHPRA medical device establishment licence and the ICASA approvals, named before the order — MyThuso holds neither."
+  },
+  {
+   "id": "incoterms",
+   "label": "Incoterms and Trade Assurance",
+   "sentence": "Who pays freight, duty and VAT and when the goods become MyThuso's (FOB, CIF or DDP), written into the order. The catalogue recommends this too."
+  }
+ ],
+ "verification": {
+  "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+  "attempts": [
+   {
+    "id": "page-read",
+    "on": "2026-10-02",
+    "method": "An automated read of the product page at the catalogue's address, with a desktop browser's user agent.",
+    "result": "Alibaba answered all six with the same interstitial of about ninety kilobytes — its slider captcha (\"baxia\", \"punish\") — and no product content. Nothing on any of the six pages could be read, so nothing was confirmed or contradicted.",
+    "outcome": "blocked"
+   },
+   {
+    "id": "search-index",
+    "on": "2026-10-02",
+    "method": "A web search for the listing's ID or title, reading what a search engine had indexed rather than the page itself.",
+    "result": "Where it is recorded, the search engine's index held a listing at that ID under a title matching the catalogue's. An index entry can be weeks old; it says the listing existed, not what it says or costs today.",
+    "outcome": "indexed"
+   },
+   {
+    "id": "maker-search",
+    "on": "2026-10-02",
+    "method": "A web search for the company: its own website, trade directories and regulators' public listings.",
+    "result": "What was found is recorded on the supplier. A company's own website says what it says about itself; none of it is a business licence.",
+    "outcome": "maker-found"
+   }
+  ],
+  "outcomes": [
+   {
+    "id": "blocked",
+    "label": "Page refused an automated read"
+   },
+   {
+    "id": "indexed",
+    "label": "Listing seen in a search index"
+   },
+   {
+    "id": "not-found",
+    "label": "Not found in a search index"
+   },
+   {
+    "id": "discrepancy",
+    "label": "Disagrees with the catalogue"
+   },
+   {
+    "id": "maker-found",
+    "label": "Company found outside the catalogue"
+   }
+  ],
+  "_verdictWhy": "Every record's verdict is unverified, and the register has no word for anything else. Verified would mean the supplier's documents and a sample in hand, checked by a person; no web page read by a machine is that, and nothing here was more."
+ },
+ "refusals": [
+  {
+   "id": "register-is-back-office",
+   "statement": "No supplier's name reaches the shop.",
+   "why": "The shop is unbranded on purpose: a maker's name on a listing implies a reseller agreement, and MyThuso has none (shop.json, _brandNote). The register is read by the Control Tower alone, and scripts/check-suppliers.mjs fails the build if a supplier's name, short name or brand appears in any file that draws the shop."
+  },
+  {
+   "id": "nothing-verified-by-reading",
+   "statement": "Nothing is marked verified by reading a web page.",
+   "why": "The catalogue was prepared by an AI, and a product page is the supplier describing itself. Verified would need documents and a sample in a person's hands; until then every record says unverified, with what was tried and when."
+  },
+  {
+   "id": "no-contact",
+   "statement": "The register contacts no supplier and orders nothing.",
+   "why": "There is no enquiry, quotation or order anywhere in it, and the screen has no control that sends one. Its links open a public product page only when pressed."
+  },
+  {
+   "id": "flagged-claims-never-copy",
+   "statement": "A flagged claim is quoted only as a flag, never as a product's description.",
+   "why": "The specification each offer carries has had its flagged claims taken out and set beside it with the reason. scripts/check-suppliers.mjs fails the build if a flagged claim appears in an offer's specification or anywhere the shop draws."
+  },
+  {
+   "id": "catalogue-approvals-are-not-ours",
+   "statement": "A claimed CE mark, FDA listing or ISO certificate is not a South African approval.",
+   "why": "The catalogue's own checklist is American and European. What South Africa needs — SAHPRA, ICASA, RICA, NRCS, POPIA — is listed per offer with what is missing, and today it is all of it."
+  },
+  {
+   "id": "supplements-are-the-founders-call",
+   "statement": "No supplement is put forward for the shop.",
+   "why": "The shop sells no supplement or vitamin, and its build fails if one is listed. The twenty in the catalogue are recorded so the founder can decide; the register does not decide it."
+  }
+ ],
+ "suppliers": [
+  {
+   "id": "megastek",
+   "legalName": "Megastek Technologies Electronics (ShenZhen) Co., Ltd.",
+   "shortName": "Megastek",
+   "place": {
+    "city": "Shenzhen",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 17,
+   "badges": [
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 3.9,
+    "reviews": 8,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": "2026-10-02",
+    "checks": [
+     {
+      "attempt": "maker-search",
+      "outcome": "maker-found",
+      "found": "The company's own website, whose product range is titled \"Parolee tracker, Indoor positioning supplier\" beside its elderly and medical trackers.",
+      "source": "https://www.megastek.com/products.html"
+     }
+    ]
+   },
+   "offers": [
+    {
+     "number": 1,
+     "title": "Medical GPS Tracking Watch for Elderly with Temperature & Heart Rate",
+     "kind": "device",
+     "category": "emergency-wearables",
+     "specs": "PPG heart rate, body temperature and SpO2; 4G LTE two-way voice; GPS and Wi-Fi geofencing; an SOS button.",
+     "wireless": [
+      "GSM 4G/LTE",
+      "BT",
+      "Wi-Fi",
+      "GPS"
+     ],
+     "priceUsd": {
+      "low": 120,
+      "high": 120,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 2,
+      "unit": "pieces"
+     },
+     "certificationsClaimed": [],
+     "productId": "1600779842951",
+     "saFit": {
+      "sahpraClass": "B",
+      "classWhy": "A watch that claims to measure SpO2, temperature and heart rate is sold for monitoring physiological parameters, which the classification rules put in class B; without those claims it would be a tracker and no medical device at all.",
+      "uploads": "supplier-cloud",
+      "uploadsStated": "Location and readings go over its own 4G SIM to a server; the maker's own pages say health data is sent to its server in real time.",
+      "claims": [
+       {
+        "claim": "Medical-grade temperature, heart rate and SpO2 from a wrist watch",
+        "severity": "needs-clearance",
+        "why": "Calling a watch's readings medical is a monitoring claim. It needs the watch classified and licensed as a measuring device, and no accuracy study is offered for any of the three readings."
+       }
+      ],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "out-of-scope",
+      "why": "The shop's fall-detection pendant raises an alert through the phone it is paired with; this is a watch that measures three vital signs and reports them to its maker's server. It is neither the pendant nor a validated measuring device, and the shop sells no watch."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    },
+    {
+     "number": 6,
+     "title": "4G LTE Handheld Elderly SOS Personal GPS Tracker Bracelet Health Monitor",
+     "kind": "device",
+     "category": "emergency-wearables",
+     "specs": "Fall detection by a 3-axis accelerometer; one-press speed dial; GPS, BeiDou and Wi-Fi positioning; IP67.",
+     "wireless": [
+      "GSM 4G LTE",
+      "BT",
+      "Wi-Fi"
+     ],
+     "priceUsd": {
+      "low": 120,
+      "high": 120,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 2,
+      "unit": "pieces"
+     },
+     "certificationsClaimed": [],
+     "productId": "1601610613951",
+     "saFit": {
+      "sahpraClass": "none",
+      "classWhy": "A fall alarm that claims no measurement of the body is a safety product rather than a medical device, as the shop's own pendant is. The words \"Health Monitor\" in the title would change that if they were repeated.",
+      "uploads": "supplier-cloud",
+      "uploadsStated": "Position and alerts go over its own 4G SIM to a tracking platform; the maker's pages describe a server and its app.",
+      "claims": [
+       {
+        "claim": "Automatic fall detection",
+        "severity": "unsafe-untested",
+        "why": "Somebody who lives alone is told a fall will be noticed. No sensitivity, no false-alarm rate and no test is offered, and a missed fall is the whole risk the product exists for."
+       }
+      ],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "shop",
+      "shopProduct": "fall-pendant",
+      "mismatch": "A bracelet, not a pendant on a breakaway cord, and it alerts through its own SIM and its maker's platform rather than through the phone it is paired with."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    },
+    {
+     "number": 15,
+     "title": "Long Battery Tamper-Proof Health & Medical Tracking Wristband with GPS",
+     "kind": "device",
+     "category": "emergency-wearables",
+     "specs": "A tamper-evident patient-retention band; an optical skin sensor; an anti-cut strap; 4G LTE and GPS boundary monitoring; thirty days' standby.",
+     "wireless": [
+      "GSM 4G",
+      "BT",
+      "Wi-Fi",
+      "GPS"
+     ],
+     "priceUsd": {
+      "low": 189,
+      "high": 189,
+      "per": "set"
+     },
+     "moq": {
+      "quantity": 2,
+      "unit": "sets"
+     },
+     "certificationsClaimed": [],
+     "productId": "1601966837312",
+     "saFit": {
+      "sahpraClass": "none",
+      "classWhy": "A tracking band; the optical sensor is not offered as a measurement.",
+      "uploads": "supplier-cloud",
+      "uploadsStated": "Boundary alerts and position go over its own 4G SIM to a tracking platform.",
+      "claims": [],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "out-of-scope",
+      "why": "A band a person cannot take off, that reports when they cross a boundary, is a means of keeping somebody somewhere. Fitting one to a person who has not chosen it is a question of consent and dignity that no nurse visit answers, and the maker's own product range is listed beside parolee trackers."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "abeloe",
+   "legalName": "Shenzhen Abeloe Technology Co., Ltd.",
+   "shortName": "Abeloe",
+   "place": {
+    "city": "Shenzhen",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 14,
+   "badges": [
+    "Verified Manufacturer",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.9,
+    "reviews": 46,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "manufacturer",
+   "typeWhy": "The catalogue gives it Alibaba's Verified Manufacturer badge. A badge is the platform's own audit, paid for by the supplier, and not a factory visit by anybody MyThuso trusts.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 2,
+     "title": "10.1\" Medical Smart Call Android Tablet PC Touch Screen Quad-Core",
+     "kind": "device",
+     "category": "telehealth-terminals",
+     "specs": "10.1-inch 1280×800 IPS; Rockchip quad-core; nurse-call RJ45; 5MP front camera; wall or bed-rail mount; antibacterial casing.",
+     "wireless": [
+      "GSM",
+      "BT",
+      "Wi-Fi",
+      "Ethernet"
+     ],
+     "priceUsd": {
+      "low": 99,
+      "high": 130,
+      "per": "unit"
+     },
+     "moq": {
+      "quantity": 2,
+      "unit": "units"
+     },
+     "certificationsClaimed": [],
+     "productId": "1601960041618",
+     "saFit": {
+      "sahpraClass": "none",
+      "classWhy": "A general-purpose tablet with a nurse-call port measures nothing and claims no clinical function.",
+      "uploads": "none",
+      "uploadsStated": "A general-purpose Android tablet; it sends what the software installed on it sends.",
+      "claims": [],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "out-of-scope",
+      "why": "A bedside tablet with a nurse-call port and a bed-rail mount is ward equipment. MyThuso visits people at home and has no ward, no bed and no nurse-call system to plug it into."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "elecstar",
+   "legalName": "ShenZhen Elecstar Electronic Co., Ltd.",
+   "shortName": "Elecstar",
+   "place": {
+    "city": "Shenzhen",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 8,
+   "badges": [
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.9,
+    "reviews": 46,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 3,
+     "title": "New 10.1\" Healthcare Android Medical Station Tablet PC RK3568",
+     "kind": "device",
+     "category": "telehealth-terminals",
+     "specs": "RK3568 quad-core; dual-band Wi-Fi, a 4G SIM and Bluetooth; power over Ethernet; multi-protocol peripherals.",
+     "wireless": [
+      "GSM",
+      "BT",
+      "Wi-Fi"
+     ],
+     "priceUsd": {
+      "low": 104,
+      "high": 114,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 2,
+      "unit": "pieces"
+     },
+     "certificationsClaimed": [],
+     "productId": "1601956061109",
+     "saFit": {
+      "sahpraClass": "none",
+      "classWhy": "A general-purpose tablet; it measures nothing itself.",
+      "uploads": "none",
+      "uploadsStated": "A general-purpose Android tablet; it sends what the software installed on it sends.",
+      "claims": [],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "out-of-scope",
+      "why": "A wired, power-over-Ethernet station is fixed equipment for a facility. MyThuso has no site to fix it in."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "mrtrack",
+   "legalName": "Shenzhen Mrtrack Technology Co., Ltd.",
+   "shortName": "Mrtrack",
+   "place": {
+    "city": "Shenzhen",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 11,
+   "badges": [
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 5,
+    "reviews": 7,
+    "sold": 3
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 4,
+     "title": "Smart Automatic Pill Dispenser with Alarm & App Control (GSM & Wi-Fi)",
+     "kind": "device",
+     "category": "medication-dispensing",
+     "specs": "A motorised 28-compartment carousel; a dual GSM SIM and Wi-Fi; a chime and an LED; alerts through the maker's app.",
+     "wireless": [
+      "GSM",
+      "BT",
+      "Wi-Fi"
+     ],
+     "priceUsd": {
+      "low": 43,
+      "high": 80,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 2,
+      "unit": "pieces"
+     },
+     "certificationsClaimed": [],
+     "productId": "1600909439293",
+     "saFit": {
+      "sahpraClass": "none",
+      "classWhy": "A container with a timer stores what a person puts in it and measures nothing. Whether a dispenser that locks doses away is a medical device is SAHPRA's to say, and nobody has asked.",
+      "uploads": "supplier-cloud",
+      "uploadsStated": "App control and alerts run through the maker's app, over its own SIM or Wi-Fi.",
+      "claims": [
+       {
+        "claim": "A motorised lock prevents double-dosing",
+        "severity": "unsafe-untested",
+        "why": "A family would rely on that sentence to leave somebody alone with a month of tablets. Nothing in the catalogue says how the lock fails, what happens in a power cut, or who has tested it."
+       }
+      ],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "out-of-scope",
+      "why": "The shop's seven-day organiser is deliberately not a dispenser that locks anything away (shop.json, its own whatItIsNot). A locking, cellular dispenser is a different product with a safety claim, and the founder has not asked for one."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": "2026-10-02",
+      "checks": [
+       {
+        "attempt": "search-index",
+        "outcome": "discrepancy",
+        "found": "A search engine's summary gives 35–86 dollars for a Mrtrack 28-day dispenser, where the catalogue says 43–80. Neither figure was read from the page; the quotation decides."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "hongfeng",
+   "legalName": "Dongguan Hongfeng Smart Tech Co., Ltd.",
+   "shortName": "Hongfeng",
+   "place": {
+    "city": "Dongguan",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 7,
+   "badges": [
+    "Verified Manufacturer",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.9,
+    "reviews": 2,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "manufacturer",
+   "typeWhy": "The catalogue gives it Alibaba's Verified Manufacturer badge. A badge is the platform's own audit, paid for by the supplier, and not a factory visit by anybody MyThuso trusts.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 5,
+     "title": "GSM Alarm System Remote Elderly Care Solution with SOS Key & Medical Hub",
+     "kind": "device",
+     "category": "emergency-wearables",
+     "specs": "A GSM console for a home; wireless SOS panic buttons; a two-way speakerphone; a power-failure alert; battery backup.",
+     "wireless": [
+      "GSM",
+      "BT",
+      "Wi-Fi"
+     ],
+     "priceUsd": {
+      "low": 64.9,
+      "high": 65.9,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 1000,
+      "unit": "pieces"
+     },
+     "certificationsClaimed": [],
+     "productId": "1601326216471",
+     "saFit": {
+      "sahpraClass": "none",
+      "classWhy": "An alarm console that dials a number measures nothing about the body.",
+      "uploads": "unstated",
+      "uploadsStated": "It dials by GSM; the catalogue does not say whether alerts also pass through a server, or whose.",
+      "claims": [],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "out-of-scope",
+      "why": "A home alarm console with a speakerphone is not a product the shop lists, and a thousand of them is a call-centre business. The nearest listing, the fall-detection pendant, detects a fall; this console does not."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "weitai",
+   "legalName": "Shenzhen Weitai Synchronous Technology Co., Ltd.",
+   "shortName": "Weitai",
+   "place": {
+    "city": "Shenzhen",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 2,
+   "badges": [
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.6,
+    "reviews": 8,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "note": "Two years on the platform.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 7,
+     "title": "Factory SOS Tracking Waterproof Health Monitor with Fall Detection & GPS",
+     "kind": "device",
+     "category": "emergency-wearables",
+     "specs": "Fall detection by accelerometer; a GSM voice dialler to three caregivers; GPS coordinates sent by SMS.",
+     "wireless": [
+      "GSM 4G",
+      "BT",
+      "Wi-Fi"
+     ],
+     "priceUsd": {
+      "low": 32,
+      "high": 32,
+      "per": "unit"
+     },
+     "moq": {
+      "quantity": 2,
+      "unit": "units"
+     },
+     "certificationsClaimed": [],
+     "productId": "1601897099260",
+     "saFit": {
+      "sahpraClass": "none",
+      "classWhy": "A fall alarm that claims no measurement is a safety product, as the shop's pendant is.",
+      "uploads": "unstated",
+      "uploadsStated": "It dials three numbers and sends coordinates by SMS; the catalogue does not say whether anything passes through a server as well.",
+      "claims": [
+       {
+        "claim": "Automatic fall detection",
+        "severity": "unsafe-untested",
+        "why": "No sensitivity, no false-alarm rate and no test is offered, and a missed fall is the whole risk the product exists for."
+       }
+      ],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "shop",
+      "shopProduct": "fall-pendant",
+      "mismatch": "Dials caregivers' phones directly by GSM rather than raising the alert through the paired phone into Thuso SOS; two years on the platform."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "blovedream",
+   "legalName": "Shenzhen Blovedream Technology Co., Ltd.",
+   "shortName": "Blovedream",
+   "place": {
+    "city": "Shenzhen",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 12,
+   "badges": [
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.9,
+    "reviews": 28,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": "2026-10-02",
+    "checks": [
+     {
+      "attempt": "maker-search",
+      "outcome": "maker-found",
+      "found": "Several N60 listings under the Blovedream name are indexed on Alibaba and another trade platform; some are resellers', so who makes the N60 and who sells it may differ.",
+      "source": "https://www.alibaba.com/product-detail/BloveDream-N60-5g-network-mobile-nursing_1600226598327.html"
+     }
+    ]
+   },
+   "offers": [
+    {
+     "number": 8,
+     "title": "BloveDream N60 5G/4G Mobile Nursing Handheld Terminal Android PDA",
+     "brands": [
+      "BloveDream"
+     ],
+     "kind": "device",
+     "category": "pdas-scanners",
+     "specs": "5G and dual-band Wi-Fi; Android 11/13; a Zebra 1D/2D scanner; IP67; a 5000mAh hot-swap battery; a shell that takes disinfectant.",
+     "wireless": [
+      "GSM 5G/4G/3G/2G",
+      "BT",
+      "dual-band Wi-Fi"
+     ],
+     "priceUsd": {
+      "low": 380,
+      "high": 380,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 1,
+      "unit": "piece"
+     },
+     "certificationsClaimed": [],
+     "productId": "1600226598327",
+     "saFit": {
+      "sahpraClass": "none",
+      "classWhy": "A handheld computer with a scanner; it measures nothing.",
+      "uploads": "none",
+      "uploadsStated": "A general-purpose Android handheld; it sends what the nurse's app on it sends.",
+      "claims": [],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "nurse-kit",
+      "use": "The nurse's handheld: the visit app, scanning a kit's or a sample's barcode, and a shell that survives being wiped down between houses."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": "2026-10-02",
+      "checks": [
+       {
+        "attempt": "page-read",
+        "outcome": "blocked"
+       },
+       {
+        "attempt": "search-index",
+        "outcome": "indexed",
+        "found": "A listing at this ID is indexed as \"Blovedream N60 5g Network Mobile Nursing Nurse Handheld Terminal Android Pda Data Collector\".",
+        "source": "https://www.alibaba.com/product-detail/BloveDream-N60-5g-network-mobile-nursing_1600226598327.html"
+       },
+       {
+        "attempt": "search-index",
+        "outcome": "discrepancy",
+        "found": "A search engine's summary of N60 listings gives Android 10, where the catalogue says Android 11/13. The operating system shipped is a question for the supplier, in writing."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "imachine",
+   "legalName": "IMachine (Xiamen) Intelligent Devices Co., Ltd.",
+   "shortName": "IMachine",
+   "place": {
+    "city": "Xiamen",
+    "province": "Fujian",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 9,
+   "badges": [
+    "Verified Manufacturer",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.9,
+    "reviews": 12,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "manufacturer",
+   "typeWhy": "The catalogue gives it Alibaba's Verified Manufacturer badge. A badge is the platform's own audit, paid for by the supplier, and not a factory visit by anybody MyThuso trusts.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 9,
+     "title": "Hospital Portable Android Smart Data Collection 4G PDA Medical Scanner",
+     "kind": "device",
+     "category": "pdas-scanners",
+     "specs": "4G, Wi-Fi and Bluetooth; a 2D CMOS scanner; a 5.5-inch IPS screen under Gorilla Glass; NFC/RFID at 13.56MHz for nurse and patient badges; survives a 1.5m drop.",
+     "wireless": [
+      "GSM 4G LTE",
+      "BT",
+      "Wi-Fi",
+      "NFC"
+     ],
+     "priceUsd": {
+      "low": 189,
+      "high": 189,
+      "per": "unit"
+     },
+     "moq": {
+      "quantity": 1,
+      "unit": "unit"
+     },
+     "certificationsClaimed": [],
+     "productId": "1601629552140",
+     "saFit": {
+      "sahpraClass": "none",
+      "classWhy": "A handheld computer with a scanner; it measures nothing.",
+      "uploads": "none",
+      "uploadsStated": "A general-purpose Android handheld; it sends what the nurse's app on it sends.",
+      "claims": [],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "nurse-kit",
+      "use": "The nurse's handheld at the lowest stated price, with NFC that could read a badge at the door."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": "2026-10-02",
+      "checks": [
+       {
+        "attempt": "page-read",
+        "outcome": "blocked"
+       }
+      ]
+     }
+    },
+    {
+     "number": 13,
+     "title": "Medical-Grade Rugged Handheld Android PDA IP68 Barcode Scanner & Thermal Printer",
+     "kind": "device",
+     "category": "pdas-scanners",
+     "specs": "IP68; a 58mm thermal printer for receipts and labels; a Honeywell 1D/2D scanner; a magnetic-stripe and IC card reader; 4G, Bluetooth and Wi-Fi.",
+     "wireless": [
+      "GSM 4G",
+      "BT",
+      "Wi-Fi"
+     ],
+     "priceUsd": {
+      "low": 150,
+      "high": 220,
+      "per": "unit"
+     },
+     "moq": {
+      "quantity": 2,
+      "unit": "units"
+     },
+     "certificationsClaimed": [],
+     "productId": "1601244642148",
+     "saFit": {
+      "sahpraClass": "none",
+      "classWhy": "A handheld computer with a printer; it measures nothing.",
+      "uploads": "none",
+      "uploadsStated": "A general-purpose Android handheld; it sends what the nurse's app on it sends.",
+      "claims": [
+       {
+        "claim": "Medical-grade",
+        "severity": "misleading",
+        "why": "\"Medical-grade\" is not a classification anywhere. The device is a rugged handheld; the words would be read as an approval it does not have."
+       }
+      ],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "nurse-kit",
+      "use": "The nurse's handheld if a printed slip is wanted at the door. A card reader on a nurse's device is a payment terminal by another name, and MyThuso takes no payment at the door."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "sigan",
+   "legalName": "Shenzhen Sigan Technology Co., Ltd.",
+   "shortName": "Sigan",
+   "place": {
+    "city": "Shenzhen",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 7,
+   "badges": [
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.9,
+    "reviews": 15,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 10,
+     "title": "Free SDK Android 13 5G Medical PDA for SI/ISV Hospital Information Systems",
+     "kind": "device",
+     "category": "pdas-scanners",
+     "specs": "An open Android 13 SDK for record systems; 5G; Wi-Fi 6; IP68; a pistol-grip option; two cameras, one offered for wound photographs.",
+     "wireless": [
+      "GSM 5G/4G",
+      "BT 5.2",
+      "Wi-Fi 6"
+     ],
+     "priceUsd": {
+      "low": 315,
+      "high": 376,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 1,
+      "unit": "piece"
+     },
+     "certificationsClaimed": [],
+     "productId": "1601791450354",
+     "saFit": {
+      "sahpraClass": "none",
+      "classWhy": "A handheld computer; it measures nothing.",
+      "uploads": "none",
+      "uploadsStated": "A general-purpose Android handheld; it sends what the nurse's app on it sends.",
+      "claims": [],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "nurse-kit",
+      "use": "The nurse's handheld if wound photographs are taken on it; the camera is a capability, and a photograph of a wound is health information the Passport's controls would have to hold."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "xinlian",
+   "legalName": "Shenzhen Xinlian Intelligent Identification Technology Co., Ltd.",
+   "shortName": "Xinlian",
+   "place": {
+    "city": "Shenzhen",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 5,
+   "badges": [
+    "Verified Manufacturer",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.5,
+    "reviews": 6,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "manufacturer",
+   "typeWhy": "The catalogue gives it Alibaba's Verified Manufacturer badge. A badge is the platform's own audit, paid for by the supplier, and not a factory visit by anybody MyThuso trusts.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 11,
+     "title": "Portable Smart Hospital PDA Android 12 4G WIFI BT GPS Medical Scanner",
+     "kind": "device",
+     "category": "pdas-scanners",
+     "specs": "Android 12; 4G, Wi-Fi, Bluetooth, GPS and AGPS; a hands-free scanning holster; for bedside medication rounds and specimen tracking.",
+     "wireless": [
+      "GSM 4G",
+      "BT",
+      "Wi-Fi",
+      "GPS"
+     ],
+     "priceUsd": {
+      "low": 149,
+      "high": 159,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 1,
+      "unit": "piece"
+     },
+     "certificationsClaimed": [],
+     "productId": "1601522710257",
+     "saFit": {
+      "sahpraClass": "none",
+      "classWhy": "A handheld computer; it measures nothing.",
+      "uploads": "none",
+      "uploadsStated": "A general-purpose Android handheld; it sends what the nurse's app on it sends.",
+      "claims": [],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "nurse-kit",
+      "use": "The nurse's handheld, with a holster for specimen labels. It runs Android 12, the oldest of the six offered."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "viatom",
+   "legalName": "Shenzhen Viatom Technology Co., Ltd.",
+   "shortName": "Viatom",
+   "place": {
+    "city": "Shenzhen",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 9,
+   "badges": [
+    "Verified Manufacturer",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.6,
+    "reviews": 42,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "manufacturer",
+   "typeWhy": "The catalogue gives it Alibaba's Verified Manufacturer badge. A badge is the platform's own audit, paid for by the supplier, and not a factory visit by anybody MyThuso trusts.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": "2026-10-02",
+    "checks": [
+     {
+      "attempt": "maker-search",
+      "outcome": "maker-found",
+      "found": "A trade directory lists Shenzhen Viatom Technology Co., Ltd. as the maker of the Checkme O2 Max; Wellue and Checkme are its brands.",
+      "source": "https://www.medicalexpo.com/prod/shenzhen-viatom-technology-co-ltd/product-100940-1051141.html"
+     }
+    ]
+   },
+   "offers": [
+    {
+     "number": 12,
+     "title": "Sleep Apnea Monitoring & Treatment Solution with Wi-Fi, GPRS/4G & Bluetooth",
+     "kind": "device",
+     "category": "diagnostic-vitals",
+     "specs": "Home sleep-apnoea recording: nasal airflow pressure, pulse oximetry and a respiratory-effort band.",
+     "wireless": [
+      "GSM GPRS/4G",
+      "BT",
+      "Wi-Fi"
+     ],
+     "priceUsd": {
+      "low": 99,
+      "high": 99,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 1,
+      "unit": "piece"
+     },
+     "certificationsClaimed": [],
+     "productId": "1600906566010",
+     "saFit": {
+      "sahpraClass": "B",
+      "classWhy": "Our reading: an active device for diagnosing a condition from physiological signals, class B at the least, and higher if it is sold for treatment as the title says.",
+      "uploads": "supplier-cloud",
+      "uploadsStated": "Readings sync automatically to a \"physician diagnostic cloud\".",
+      "claims": [
+       {
+        "claim": "Sleep apnoea screening and treatment",
+        "severity": "needs-clearance",
+        "why": "Screening for and treating a disease is a diagnostic and therapeutic claim. It needs the device classified for that purpose, and a sleep study is read by a doctor trained to read one, whom MyThuso does not have."
+       }
+      ],
+      "alsoNeeds": [
+       "hsa-listed-electronic"
+      ]
+     },
+     "scope": {
+      "id": "out-of-scope",
+      "why": "Diagnosing sleep apnoea is a doctor's study, not a nurse's home visit, and the recordings go to the maker's cloud rather than to anybody MyThuso would answer for."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    },
+    {
+     "number": 14,
+     "title": "Medical Sleep & ECG Heart Monitor Connected Health Telemedicine Device",
+     "kind": "device",
+     "category": "diagnostic-vitals",
+     "specs": "A dual-lead ECG recorder and an SpO2 sleep monitor; reports by Bluetooth and Wi-Fi to a cloud.",
+     "wireless": [
+      "GSM",
+      "BT",
+      "Wi-Fi"
+     ],
+     "priceUsd": {
+      "low": 99,
+      "high": 99,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 1,
+      "unit": "piece"
+     },
+     "certificationsClaimed": [],
+     "productId": "1600906509133",
+     "saFit": {
+      "sahpraClass": "B",
+      "classWhy": "An ECG recorder is class B on the shop's own reading; software that names an arrhythmia raises it to whatever SAHPRA decides that software is.",
+      "uploads": "supplier-cloud",
+      "uploadsStated": "Reports go by Bluetooth and Wi-Fi to cloud reporting the maker runs.",
+      "claims": [
+       {
+        "claim": "AI-assisted detection of AFib, bradycardia and PVCs",
+        "severity": "needs-clearance",
+        "why": "Naming an arrhythmia is a diagnosis. Detection software is a medical device in its own right and needs its own clearance; the shop's recorder is sold as a trace for a doctor to read, and says it detects nothing."
+       }
+      ],
+      "alsoNeeds": [
+       "hsa-listed-electronic"
+      ]
+     },
+     "scope": {
+      "id": "shop",
+      "shopProduct": "ecg-single",
+      "mismatch": "Dual-lead with an oximeter and a detection algorithm, where the shop lists a single-lead trace from two fingertips that names nothing; and it reports to its maker's cloud rather than to the phone."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    },
+    {
+     "number": 23,
+     "title": "Wellue Checkme O2 Max CE Approved Medical Bluetooth Pulse Oximeter SpO2",
+     "brands": [
+      "Wellue",
+      "Checkme"
+     ],
+     "kind": "device",
+     "category": "diagnostic-vitals",
+     "specs": "A ring-sensor pulse oximeter on the wrist; continuous SpO2 and pulse; Bluetooth to iOS and Android.",
+     "wireless": [
+      "BT",
+      "app cloud sync"
+     ],
+     "priceUsd": {
+      "low": 55,
+      "high": 99,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 1,
+      "unit": "piece"
+     },
+     "certificationsClaimed": [
+      "CE (in the title)"
+     ],
+     "productId": "1600979355890",
+     "saFit": {
+      "sahpraClass": "B",
+      "classWhy": "A pulse oximeter is class B on the shop's own reading. An alarm meant to warn of a dangerous fall in oxygen is a monitoring function that may place it higher.",
+      "uploads": "supplier-cloud",
+      "uploadsStated": "Bluetooth to the maker's app, with cloud sync in the app.",
+      "claims": [
+       {
+        "claim": "A vibration alarm for low oxygen",
+        "severity": "unsafe-untested",
+        "why": "A person would sleep relying on it to wake them. Alarm accuracy on darker skin is exactly what the shop's own caveat warns about, and the catalogue says nothing about it."
+       }
+      ],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "shop",
+      "shopProduct": "oximeter",
+      "mismatch": "A ring sensor worn overnight on a wrist unit, not a fingertip clip; it syncs to its maker's app and cloud rather than to the Thuso app."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": "2026-10-02",
+      "checks": [
+       {
+        "attempt": "page-read",
+        "outcome": "blocked"
+       },
+       {
+        "attempt": "search-index",
+        "outcome": "indexed",
+        "found": "A listing at this ID is indexed as \"Wellue Checkme O2 Max Ce Approved Pulse Oximeters Bluetooth Blood Oxygen Saturation Monitor\".",
+        "source": "https://www.alibaba.com/product-detail/Wellue-Checkme-O2-Max-CE-Approved_1600979355890.html"
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "bioland",
+   "legalName": "Bioland Technology (Shenzhen) Ltd.",
+   "shortName": "Bioland",
+   "place": {
+    "city": "Shenzhen",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 8,
+   "badges": [
+    "Verified Manufacturer",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 5,
+    "reviews": 7,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "manufacturer",
+   "typeWhy": "The catalogue gives it Alibaba's Verified Manufacturer badge. A badge is the platform's own audit, paid for by the supplier, and not a factory visit by anybody MyThuso trusts.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": "2026-10-02",
+    "checks": [
+     {
+      "attempt": "maker-search",
+      "outcome": "maker-found",
+      "found": "The company has its own website, and a search lists an FCC filing for a Bioland 4G glucose meter, model G-427B. Whether that is the meter on offer here is a question for the supplier.",
+      "source": "https://www.biolandintl.com/"
+     }
+    ]
+   },
+   "offers": [
+    {
+     "number": 16,
+     "title": "Bioland Remote Digital Smart 4G/WiFi/Bluetooth Telehealth Vital Gateway",
+     "brands": [
+      "Bioland"
+     ],
+     "kind": "device",
+     "category": "telehealth-terminals",
+     "specs": "A hub that receives Bluetooth readings from blood pressure monitors, pulse oximeters and glucose meters, pictured with an upper-arm monitor and a phone app.",
+     "wireless": [
+      "GSM 4G",
+      "BT",
+      "Wi-Fi"
+     ],
+     "priceUsd": {
+      "low": 13,
+      "high": 15,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 1000,
+      "unit": "pieces"
+     },
+     "certificationsClaimed": [],
+     "productId": "1600836955195",
+     "saFit": {
+      "sahpraClass": "none",
+      "classWhy": "A relay measures nothing itself; whether a hub that forwards readings for clinical use is an accessory to a medical device is SAHPRA's to say.",
+      "uploads": "supplier-cloud",
+      "uploadsStated": "Forwards every reading automatically to a \"cloud hospital platform\" over 4G or Wi-Fi.",
+      "claims": [],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "out-of-scope",
+      "why": "A reading in MyThuso comes from a device into the person's own phone (live-vitals.json). A box that forwards every reading in the house to its maker's platform is the opposite path, and remote monitoring is not a service MyThuso runs."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    },
+    {
+     "number": 18,
+     "title": "Bioland Cellular Home Medical Blood Glucose Meter (BGM) 4G Remote Monitor",
+     "brands": [
+      "Bioland"
+     ],
+     "kind": "device",
+     "category": "diagnostic-vitals",
+     "specs": "A 4G glucose meter that uploads each reading through an internal SIM without a phone; for older people managing diabetes.",
+     "wireless": [
+      "GSM 4G",
+      "BT",
+      "Wi-Fi"
+     ],
+     "priceUsd": {
+      "low": 24,
+      "high": 25,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 5000,
+      "unit": "pieces"
+     },
+     "certificationsClaimed": [],
+     "productId": "1600833851657",
+     "saFit": {
+      "sahpraClass": "IVD-C",
+      "classWhy": "A glucose meter a person uses on their own blood is a self-testing IVD, class C — the class the shop gives its own meter.",
+      "uploads": "supplier-cloud",
+      "uploadsStated": "Auto-uploads each reading through its internal SIM, without a phone, to the maker's platform.",
+      "claims": [],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "shop",
+      "shopProduct": "glucometer",
+      "mismatch": "It uploads through its own SIM to its maker's platform; the shop's meter sends each reading to the Thuso app over Bluetooth. Five thousand is the minimum order — years of stock for a service that has not sold one."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": "2026-10-02",
+      "checks": [
+       {
+        "attempt": "page-read",
+        "outcome": "blocked"
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "eview",
+   "legalName": "Shenzhen Eview GPS Technology",
+   "shortName": "Eview",
+   "place": {
+    "city": "Shenzhen",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 8,
+   "badges": [
+    "Verified Manufacturer",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 5,
+    "reviews": 11,
+    "sold": 1
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "manufacturer",
+   "typeWhy": "The catalogue gives it Alibaba's Verified Manufacturer badge. A badge is the platform's own audit, paid for by the supplier, and not a factory visit by anybody MyThuso trusts.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": "2026-10-02",
+    "checks": [
+     {
+      "attempt": "maker-search",
+      "outcome": "maker-found",
+      "found": "A trade directory showroom for Shenzhen Eview GPS Technology, and an FCC ID record for its EV-04-LTE personal alarm; third-party listings of the EV04 describe a voice-monitor mode.",
+      "source": "https://fccid.io/2AUMJEV-04-LTE"
+     }
+    ]
+   },
+   "offers": [
+    {
+     "number": 17,
+     "title": "Smart Care Gateway Hub with LoRa SOS Bracelet & Blood Pressure Telemetry",
+     "kind": "device",
+     "category": "emergency-wearables",
+     "specs": "A gateway and a long-range LoRa SOS bracelet; collects blood pressure and heart rate; a 4G uplink; covers a care home to 500m.",
+     "wireless": [
+      "GSM 4G LTE",
+      "BT",
+      "Wi-Fi",
+      "LoRa"
+     ],
+     "priceUsd": {
+      "low": 135,
+      "high": 145,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 2,
+      "unit": "pieces"
+     },
+     "certificationsClaimed": [],
+     "productId": "1601819026199",
+     "saFit": {
+      "sahpraClass": "B",
+      "classWhy": "Our reading: telemetry that collects blood pressure for monitoring is in class B with the monitor it collects from.",
+      "uploads": "supplier-cloud",
+      "uploadsStated": "The gateway's 4G uplink reports to the maker's platform.",
+      "claims": [],
+      "alsoNeeds": [
+       "hsa-listed-electronic"
+      ]
+     },
+     "scope": {
+      "id": "out-of-scope",
+      "why": "Built for a care home's grounds, and MyThuso runs no care home. A LoRa radio also needs its frequency band checked against South Africa's before anything else."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    },
+    {
+     "number": 24,
+     "title": "Personal Emergency Response System (PERS) Senior Telecare Fall Detection GPS",
+     "kind": "device",
+     "category": "emergency-wearables",
+     "specs": "A pendant with 4G, Wi-Fi, Bluetooth and GPS; an SOS button with a two-way speakerphone; voice prompts; a caregiver portal.",
+     "wireless": [
+      "GSM 4G",
+      "BT",
+      "Wi-Fi",
+      "GPS"
+     ],
+     "priceUsd": {
+      "low": 75,
+      "high": 88,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 1,
+      "unit": "piece"
+     },
+     "certificationsClaimed": [],
+     "productId": "62448549899",
+     "saFit": {
+      "sahpraClass": "none",
+      "classWhy": "A fall alarm that claims no measurement is a safety product, as the shop's pendant is.",
+      "uploads": "supplier-cloud",
+      "uploadsStated": "Alerts, position and calls go through a caregiver portal on the maker's platform.",
+      "claims": [
+       {
+        "claim": "Automatic fall detection",
+        "severity": "unsafe-untested",
+        "why": "No sensitivity, no false-alarm rate and no test is offered, and a missed fall is the whole risk the product exists for."
+       }
+      ],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "shop",
+      "shopProduct": "fall-pendant",
+      "mismatch": "A pendant, as the shop lists, but it alerts through its own SIM and its maker's caregiver portal rather than through the paired phone into Thuso SOS; whether it can do the latter is the first question."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": "2026-10-02",
+      "checks": [
+       {
+        "attempt": "page-read",
+        "outcome": "blocked"
+       }
+      ]
+     }
+    },
+    {
+     "number": 30,
+     "title": "Eview EV04 Elderly Telecare Dementia SOS GPS Real-Time Health Tracker",
+     "brands": [
+      "Eview",
+      "EV04"
+     ],
+     "kind": "device",
+     "category": "emergency-wearables",
+     "specs": "A compact pendant for people living with dementia; geofence alerts; an SOS button; real-time position.",
+     "wireless": [
+      "GSM 4G/LTE",
+      "BT",
+      "Wi-Fi",
+      "GPS"
+     ],
+     "priceUsd": {
+      "low": 77,
+      "high": 88,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 1,
+      "unit": "piece"
+     },
+     "certificationsClaimed": [],
+     "productId": "1600414317377",
+     "saFit": {
+      "sahpraClass": "none",
+      "classWhy": "A tracker and fall alarm that claims no measurement is a safety product, as the shop's pendant is.",
+      "uploads": "supplier-cloud",
+      "uploadsStated": "Position, geofence alerts and SOS go over its own SIM to the maker's platform; third-party listings of the EV04 also describe a voice-monitor mode.",
+      "claims": [
+       {
+        "claim": "Automatic fall sensor",
+        "severity": "unsafe-untested",
+        "why": "No sensitivity, no false-alarm rate and no test is offered, and a missed fall is the whole risk the product exists for."
+       }
+      ],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "shop",
+      "shopProduct": "fall-pendant",
+      "mismatch": "Sold for tracking a person living with dementia, who may not be able to agree to it; it alerts through its own SIM and its maker's platform rather than through the paired phone into Thuso SOS."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "sunbright",
+   "legalName": "Shanghai Sunbright Industrial Co., Ltd.",
+   "shortName": "Sunbright",
+   "place": {
+    "city": "Shanghai",
+    "province": "Shanghai",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 13,
+   "badges": [
+    "Verified Manufacturer",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.8,
+    "reviews": 102,
+    "sold": 8
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "manufacturer",
+   "typeWhy": "The catalogue gives it Alibaba's Verified Manufacturer badge. A badge is the platform's own audit, paid for by the supplier, and not a factory visit by anybody MyThuso trusts.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 19,
+     "title": "Handheld Mobile Wireless Ultrasound 3-in-1 Color Doppler Wi-Fi Probe",
+     "kind": "device",
+     "category": "diagnostic-vitals",
+     "specs": "A pocket 3-in-1 colour Doppler probe (convex 3.5MHz, linear 7.5MHz, phased 3.0MHz); 128 elements; 5GHz Wi-Fi to an iPad or Android tablet; DICOM 3.0.",
+     "wireless": [
+      "Wi-Fi",
+      "BT"
+     ],
+     "priceUsd": {
+      "low": 199,
+      "high": 1199,
+      "per": "unit"
+     },
+     "moq": {
+      "quantity": 1,
+      "unit": "unit"
+     },
+     "certificationsClaimed": [],
+     "productId": "1601459880096",
+     "saFit": {
+      "sahpraClass": "B",
+      "classWhy": "Our reading: diagnostic ultrasound imaging is an active diagnostic device, class B under the classification rules, and it may be a listed electronic product as well.",
+      "uploads": "phone",
+      "uploadsStated": "Images go over Wi-Fi to the tablet beside it.",
+      "claims": [],
+      "alsoNeeds": [
+       "clinical-scope",
+       "hsa-listed-electronic"
+      ]
+     },
+     "scope": {
+      "id": "out-of-scope",
+      "why": "Ultrasound is a clinical scope and a training decision before it is a purchase. No nurse in MyThuso scans, nobody would read the images, and a price range from 199 to 1,199 dollars is several different products under one listing."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "tomore",
+   "legalName": "Tomore Medical (Shenzhen) Co., Ltd.",
+   "shortName": "Tomore",
+   "place": {
+    "city": "Shenzhen",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 6,
+   "badges": [
+    "Verified Manufacturer",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.8,
+    "reviews": 36,
+    "sold": 243
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "manufacturer",
+   "typeWhy": "The catalogue gives it Alibaba's Verified Manufacturer badge. A badge is the platform's own audit, paid for by the supplier, and not a factory visit by anybody MyThuso trusts.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 20,
+     "title": "Health Care Wireless Bluetooth OTC Medical Digital Hearing Aid Device",
+     "kind": "device",
+     "category": "diagnostic-vitals",
+     "specs": "A programmable hearing aid sold over the counter; Bluetooth 5.0 streaming; tuning by app; 16-channel compression.",
+     "wireless": [
+      "BT 5.0"
+     ],
+     "priceUsd": {
+      "low": 61,
+      "high": 72,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 10,
+      "unit": "pieces"
+     },
+     "certificationsClaimed": [],
+     "productId": "1601433332835",
+     "saFit": {
+      "sahpraClass": "B",
+      "classWhy": "Our reading: an active hearing aid is class B (it is class IIa in the EU).",
+      "uploads": "phone",
+      "uploadsStated": "Tuned through an app on the wearer's phone.",
+      "claims": [
+       {
+        "claim": "Over-the-counter hearing aid",
+        "severity": "misleading",
+        "why": "\"OTC\" is a United States category created by the FDA in 2022. No South African over-the-counter route was found, and in 2013 the HPCSA warned that selling hearing aids without its registration breaks the law; the words would be read as an approval that does not apply here."
+       }
+      ],
+      "alsoNeeds": [
+       "clinical-scope"
+      ]
+     },
+     "scope": {
+      "id": "out-of-scope",
+      "why": "Hearing is assessed and an aid fitted by an audiologist. MyThuso has none, and a self-fitted aid sold beside a nurse's visit would look like her recommendation."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "deyixin",
+   "legalName": "Dongguan Deyixin Electronic Technology Co., Ltd.",
+   "shortName": "Deyixin",
+   "place": {
+    "city": "Dongguan",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 2,
+   "badges": [
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.4,
+    "reviews": 3,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "note": "Two years on the platform, three reviews.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 21,
+     "title": "Clinic & Veterinary Handheld 3-in-1 Color Doppler Wireless Ultrasound Probe",
+     "kind": "device",
+     "category": "diagnostic-vitals",
+     "specs": "A clinical colour Doppler with a 3-in-1 transducer (vascular, abdominal, musculoskeletal); a Wi-Fi display; USB-C.",
+     "wireless": [
+      "Wi-Fi",
+      "USB"
+     ],
+     "priceUsd": {
+      "low": 1500,
+      "high": 1500,
+      "per": "set"
+     },
+     "moq": {
+      "quantity": 1,
+      "unit": "set"
+     },
+     "certificationsClaimed": [],
+     "productId": "1601842529785",
+     "saFit": {
+      "sahpraClass": "B",
+      "classWhy": "Our reading: diagnostic ultrasound imaging, class B; sold for animals and people alike, which is a reason to ask which it was made for.",
+      "uploads": "phone",
+      "uploadsStated": "Images go over Wi-Fi to the display beside it.",
+      "claims": [],
+      "alsoNeeds": [
+       "clinical-scope",
+       "hsa-listed-electronic"
+      ]
+     },
+     "scope": {
+      "id": "out-of-scope",
+      "why": "Ultrasound is a clinical scope and a training decision before it is a purchase, and one listing for clinics and veterinary practices does not say which it is built for. Two years on the platform and three reviews."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "sjnx",
+   "legalName": "Shenzhen Sjnx Technology Co., Ltd.",
+   "shortName": "Sjnx",
+   "place": {
+    "city": "Shenzhen",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 6,
+   "badges": [
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.6,
+    "reviews": 75,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 22,
+     "title": "9-in-1 Home Medical Telehealth Multi-Function Health Check Monitor",
+     "kind": "device",
+     "category": "diagnostic-vitals",
+     "specs": "ECG, non-invasive blood pressure, SpO2, blood glucose, uric acid, total cholesterol and infrared temperature in one unit; Bluetooth and Wi-Fi.",
+     "wireless": [
+      "BT",
+      "Wi-Fi"
+     ],
+     "priceUsd": {
+      "low": 200,
+      "high": 350,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 1,
+      "unit": "piece"
+     },
+     "certificationsClaimed": [],
+     "productId": "1601522431627",
+     "saFit": {
+      "sahpraClass": "IVD-C",
+      "classWhy": "The highest class among its functions decides: its glucose test is a self-testing IVD, class C, beside class B measuring functions and two more blood tests.",
+      "uploads": "unstated",
+      "uploadsStated": "Bluetooth and Wi-Fi; the catalogue does not say where readings go.",
+      "claims": [
+       {
+        "claim": "Uric acid and total cholesterol from one home unit",
+        "severity": "needs-clearance",
+        "why": "Each blood test is an IVD with its own accuracy to prove. Nine functions in one box are nine claims, and the catalogue offers evidence for none."
+       }
+      ],
+      "alsoNeeds": [
+       "hsa-listed-electronic"
+      ]
+     },
+     "scope": {
+      "id": "nurse-kit",
+      "use": "A nurse's bag with one unit instead of four, if every function were validated — which is the open question, not a detail."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "zcs-16",
+   "legalName": "Shenzhen ZCS Technology Co., Ltd.",
+   "shortName": "ZCS",
+   "place": {
+    "city": "Shenzhen",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 16,
+   "badges": [
+    "Verified Manufacturer",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.8,
+    "reviews": 164,
+    "sold": 10
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "manufacturer",
+   "typeWhy": "The catalogue gives it Alibaba's Verified Manufacturer badge. A badge is the platform's own audit, paid for by the supplier, and not a factory visit by anybody MyThuso trusts.",
+   "distinctFrom": {
+    "supplier": "zcs-8",
+    "why": "The catalogue lists \"Shenzhen ZCS Technology Co., Ltd.\" at sixteen years with a Verified Manufacturer badge, 164 reviews and a palm-vein terminal, and \"Shenzhen Zcs Technology Co., Ltd.\" at eight years with no such badge, 30 reviews and a POS handheld. The names differ only in capitals, and the histories, badges and ratings do not match, so they are kept as two suppliers until a business licence and registration number show they are one."
+   },
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": "2026-10-02",
+    "checks": [
+     {
+      "attempt": "maker-search",
+      "outcome": "maker-found",
+      "found": "Two Alibaba storefronts appear in a search index — zcs.en.alibaba.com and szzcs.en.alibaba.com — and the website szzcs.com says it has made POS terminals for seventeen years. Which storefront carries which history could not be read.",
+      "source": "https://zcs.en.alibaba.com/index.html"
+     }
+    ]
+   },
+   "offers": [
+    {
+     "number": 25,
+     "title": "Mobile Palm Vein Biometric Medical Terminal with 4G LTE, Bluetooth 5.0 & Wi-Fi",
+     "kind": "device",
+     "category": "pdas-scanners",
+     "specs": "Near-infrared contactless palm-vein identification.",
+     "wireless": [
+      "GSM 4G LTE",
+      "BT 5.0",
+      "Wi-Fi"
+     ],
+     "priceUsd": {
+      "low": 200,
+      "high": 260,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 1,
+      "unit": "piece"
+     },
+     "certificationsClaimed": [],
+     "productId": "1601733699077",
+     "saFit": {
+      "sahpraClass": "none",
+      "classWhy": "An identification terminal; it measures nothing clinical.",
+      "uploads": "unstated",
+      "uploadsStated": "The catalogue does not say where palm templates are kept or matched.",
+      "claims": [
+       {
+        "claim": "HIPAA and GDPR audit-trail compliance",
+        "severity": "misleading",
+        "why": "Neither law is South Africa's. A palm-vein template is biometric information, special personal information under POPIA section 26, and a claim about two foreign laws says nothing about it."
+       }
+      ],
+      "alsoNeeds": [
+       "popia-biometric"
+      ]
+     },
+     "scope": {
+      "id": "out-of-scope",
+      "why": "Identifying a patient by the veins in their palm collects special personal information to solve a problem a booking reference already solves. MyThuso does not take biometrics."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "qunsuo",
+   "legalName": "Shenzhen Qunsuo Technology Co., Ltd.",
+   "shortName": "Qunsuo",
+   "place": {
+    "city": "Shenzhen",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 10,
+   "badges": [
+    "Verified Manufacturer",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.7,
+    "reviews": 27,
+    "sold": 15
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "manufacturer",
+   "typeWhy": "The catalogue gives it Alibaba's Verified Manufacturer badge. A badge is the platform's own audit, paid for by the supplier, and not a factory visit by anybody MyThuso trusts.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 26,
+     "title": "6\" Android Medical Touch PDA with GSM 4G, Wi-Fi, BT & Built-in Thermal Printer",
+     "kind": "device",
+     "category": "pdas-scanners",
+     "specs": "A 6.0-inch touch screen; a 58mm thermal printer; for mobile-clinic triage and point-of-care receipts.",
+     "wireless": [
+      "GSM 4G",
+      "BT",
+      "Wi-Fi"
+     ],
+     "priceUsd": {
+      "low": 236,
+      "high": 249,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 1,
+      "unit": "piece"
+     },
+     "certificationsClaimed": [],
+     "productId": "1601539818275",
+     "saFit": {
+      "sahpraClass": "none",
+      "classWhy": "A handheld computer with a printer; it measures nothing.",
+      "uploads": "none",
+      "uploadsStated": "A general-purpose Android handheld; it sends what the nurse's app on it sends.",
+      "claims": [],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "nurse-kit",
+      "use": "The nurse's handheld with a printer, at the top of the six on price. \"Triage\" here is the maker's word for a workflow; MyThuso's triage waits on a ratified protocol, whatever device runs it."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "kaer",
+   "legalName": "Shandong Kaer Electric Co., Ltd.",
+   "shortName": "Kaer",
+   "place": {
+    "city": null,
+    "province": "Shandong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 17,
+   "badges": [
+    "Verified Manufacturer",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.3,
+    "reviews": 22,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "manufacturer",
+   "typeWhy": "The catalogue gives it Alibaba's Verified Manufacturer badge. A badge is the platform's own audit, paid for by the supplier, and not a factory visit by anybody MyThuso trusts.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 27,
+     "title": "Hospital & Home Cordless Telemedicine Station with 4G LTE, Wi-Fi & HD Video",
+     "kind": "device",
+     "category": "telehealth-terminals",
+     "specs": "A bedside station; 4G and Wi-Fi; an HD video-calling display; a physical keypad for older people; one-touch nurse alert.",
+     "wireless": [
+      "GSM 4G LTE",
+      "BT",
+      "Wi-Fi"
+     ],
+     "priceUsd": {
+      "low": 155,
+      "high": 155,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 99,
+      "unit": "pieces"
+     },
+     "certificationsClaimed": [],
+     "productId": "1600275795404",
+     "saFit": {
+      "sahpraClass": "none",
+      "classWhy": "A video-calling station; it measures nothing.",
+      "uploads": "unstated",
+      "uploadsStated": "The catalogue does not say whose video service the calls run over.",
+      "claims": [],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "nurse-kit",
+      "use": "A station a household without a smartphone could be lent for a teleconsult, with a keypad an older person can use. Ninety-nine is the minimum order, and whose servers carry the video is the first question."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "zcs-8",
+   "legalName": "Shenzhen Zcs Technology Co., Ltd.",
+   "shortName": "Zcs",
+   "place": {
+    "city": "Shenzhen",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 8,
+   "badges": [
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.9,
+    "reviews": 30,
+    "sold": 1
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "distinctFrom": {
+    "supplier": "zcs-16",
+    "why": "The catalogue lists \"Shenzhen Zcs Technology Co., Ltd.\" at eight years with no Verified Manufacturer badge, 30 reviews and a POS handheld, and \"Shenzhen ZCS Technology Co., Ltd.\" at sixteen years with the badge, 164 reviews and a palm-vein terminal. The names differ only in capitals, and the histories, badges and ratings do not match, so they are kept as two suppliers until a business licence and registration number show they are one."
+   },
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": "2026-10-02",
+    "checks": [
+     {
+      "attempt": "maker-search",
+      "outcome": "maker-found",
+      "found": "Two Alibaba storefronts appear in a search index — zcs.en.alibaba.com and szzcs.en.alibaba.com — and the website szzcs.com says it has made POS terminals for seventeen years. Which storefront carries which history could not be read.",
+      "source": "https://szzcs.en.alibaba.com/productgrouplist-812191384/Android_POS_Z91.html"
+     }
+    ]
+   },
+   "offers": [
+    {
+     "number": 28,
+     "title": "Handheld Barcode Scanner POS PDA with Thermal Printer, 4G, Wi-Fi & Bluetooth",
+     "kind": "device",
+     "category": "pdas-scanners",
+     "specs": "An Android point-of-sale and stock scanner; a laser barcode reader; a printer; for running a mobile dispensary.",
+     "wireless": [
+      "GSM 4G",
+      "BT",
+      "Wi-Fi"
+     ],
+     "priceUsd": {
+      "low": 120,
+      "high": 180,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 1,
+      "unit": "piece"
+     },
+     "certificationsClaimed": [],
+     "productId": "11000037280182",
+     "saFit": {
+      "sahpraClass": "none",
+      "classWhy": "A point-of-sale handheld; it measures nothing.",
+      "uploads": "none",
+      "uploadsStated": "A general-purpose Android handheld; it sends what the software on it sends.",
+      "claims": [],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "out-of-scope",
+      "why": "Built to run a dispensary, and MyThuso dispenses nothing: a medicine reaches a person through a partner pharmacy (dispensing.json). One sale recorded on the listing."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "monsview",
+   "legalName": "Shenzhen Monsview Industrial Co., Limited",
+   "shortName": "Monsview",
+   "place": {
+    "city": "Shenzhen",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 10,
+   "badges": [
+    "Gold Supplier"
+   ],
+   "rating": null,
+   "ratingNote": "The catalogue gives no rating (N/A).",
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "note": "No rating is published.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 29,
+     "title": "Wall-Mount 18.5\"/19\" FHD Healthcare Touch Terminal with Camera, Wi-Fi & PoE",
+     "kind": "device",
+     "category": "telehealth-terminals",
+     "specs": "A wall-mounted full-HD station; 10-point touch; a full-HD camera for specialist teleconsultations; power over Ethernet, Wi-Fi and Bluetooth; fanless.",
+     "wireless": [
+      "GSM module ready",
+      "BT",
+      "Wi-Fi",
+      "Ethernet PoE"
+     ],
+     "priceUsd": {
+      "low": 85,
+      "high": 158,
+      "per": "unit"
+     },
+     "moq": {
+      "quantity": 2,
+      "unit": "units"
+     },
+     "certificationsClaimed": [],
+     "productId": "1601001780890",
+     "saFit": {
+      "sahpraClass": "none",
+      "classWhy": "A wall-mounted computer with a camera; it measures nothing.",
+      "uploads": "none",
+      "uploadsStated": "A general-purpose terminal; it sends what the software on it sends.",
+      "claims": [],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "out-of-scope",
+      "why": "A wall-mounted station belongs to a building, and MyThuso has none. No rating is published for this supplier."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "wellvital",
+   "legalName": "Henan Wellvital Biotechnology Co., Ltd.",
+   "shortName": "Wellvital",
+   "place": {
+    "city": null,
+    "province": "Henan",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 1,
+   "badges": [
+    "Gold Supplier"
+   ],
+   "rating": null,
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 31,
+     "title": "High Bioavailability Methylated B-Complex Capsules (B1, B2, B6, B12, Folate)",
+     "kind": "supplement",
+     "category": "supplements",
+     "specs": "Methylcobalamin and L-5-MTHF with B1, B2 and B6.",
+     "dosageForm": "Vegetable capsules, 60 or 120",
+     "oemOdm": "Custom branding, bottle or blister, formula",
+     "targetFunction": "Energy and nervous system",
+     "priceUsd": {
+      "low": 1.6,
+      "high": 2.2,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 100,
+      "unit": "pieces"
+     },
+     "certificationsClaimed": [
+      "GMP",
+      "ISO 22000",
+      "HACCP",
+      "Halal"
+     ],
+     "productId": "1601938444979",
+     "saFit": {
+      "sahpraClass": null,
+      "uploads": null,
+      "claims": [
+       {
+        "claim": "Homocysteine regulation and neuro-protection",
+        "severity": "unlawful",
+        "why": "Regulating a blood marker and protecting nerves are claims to modify a bodily function against disease — high-risk claims an unregistered supplement may not make."
+       }
+      ],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "supplements-not-stocked",
+      "why": "The shop sells no supplement or vitamin (shop.json, neverSold and its no-medicine refusal). Whether MyThuso ever stocks one is the founder's decision, and nothing here makes it."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "runan",
+   "legalName": "Shandong Runan Biological Technology Co., Ltd.",
+   "shortName": "Runan",
+   "place": {
+    "city": null,
+    "province": "Shandong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 5,
+   "badges": [
+    "Verified",
+    "Gold Supplier"
+   ],
+   "rating": null,
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 32,
+     "title": "Dermatological L-Glutathione & Vitamin C Skin Radiance Tablets",
+     "kind": "supplement",
+     "category": "supplements",
+     "specs": "Reduced L-glutathione 500mg and vitamin C 200mg.",
+     "dosageForm": "Coated tablets or chewables",
+     "oemOdm": "Private label, bottle, blister",
+     "targetFunction": "Antioxidant and skin",
+     "priceUsd": {
+      "low": 0.05,
+      "high": 0.09,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 300000,
+      "unit": "pieces"
+     },
+     "certificationsClaimed": [
+      "GMP",
+      "ISO 9001",
+      "FDA facility registered"
+     ],
+     "productId": "1600932024982",
+     "saFit": {
+      "sahpraClass": null,
+      "uploads": null,
+      "claims": [
+       {
+        "claim": "Inhibits tyrosinase for an even skin tone",
+        "severity": "unlawful",
+        "why": "Inhibiting tyrosinase to even skin tone is a skin-lightening claim, a claim to modify a bodily function; oral glutathione's only permitted claim in SAHPRA's health supplements guideline is as a source of antioxidants. Selling skin lightening to South Africans carries a history no health service should repeat, whatever the law."
+       },
+       {
+        "claim": "FDA facility registered",
+        "severity": "misleading",
+        "why": "Registration of a facility with the FDA is a listing, not an approval of any product made in it."
+       }
+      ],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "supplements-not-stocked",
+      "why": "The shop sells no supplement or vitamin (shop.json, neverSold and its no-medicine refusal). Whether MyThuso ever stocks one is the founder's decision, and nothing here makes it."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "yibaokang",
+   "legalName": "Guangzhou Yibaokang Pharmaceutical Technology Co., Ltd.",
+   "shortName": "Yibaokang",
+   "place": {
+    "city": "Guangzhou",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 2,
+   "badges": [
+    "Verified",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.9,
+    "reviews": 52,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 33,
+     "title": "Lipid-Soluble Vitamin D3 & Glucosamine Joint & Immune Health Softgels",
+     "kind": "supplement",
+     "category": "supplements",
+     "specs": "Vitamin D3 2000–5000 IU with glucosamine sulfate and chondroitin.",
+     "dosageForm": "Oil-filled softgels",
+     "oemOdm": "Custom softgel colour, blister or bottle",
+     "targetFunction": "Joint and bone",
+     "priceUsd": {
+      "low": 3.2,
+      "high": 3.8,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 250,
+      "unit": "pieces"
+     },
+     "certificationsClaimed": [
+      "GMP",
+      "ISO 22000",
+      "Non-GMO"
+     ],
+     "productId": "1601520787012",
+     "saFit": {
+      "sahpraClass": null,
+      "uploads": null,
+      "claims": [
+       {
+        "claim": "T-cell mediated immune defence",
+        "severity": "unlawful",
+        "why": "A claim to direct the immune response is a high-risk claim an unregistered supplement may not make. At the higher of its two strengths, vitamin D is also a dose a person should not take unadvised."
+       }
+      ],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "supplements-not-stocked",
+      "why": "The shop sells no supplement or vitamin (shop.json, neverSold and its no-medicine refusal). Whether MyThuso ever stocks one is the founder's decision, and nothing here makes it."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "meiyuan",
+   "legalName": "Guangzhou Meiyuan Health Medicine Technology Co., Ltd.",
+   "shortName": "Meiyuan",
+   "place": {
+    "city": "Guangzhou",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 3,
+   "badges": [
+    "Verified",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.7,
+    "reviews": 136,
+    "sold": 90
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 34,
+     "title": "DUOZI Osteo-Complex: Calcium + Magnesium + Zinc + Vitamin D3 Tablets",
+     "brands": [
+      "DUOZI"
+     ],
+     "kind": "supplement",
+     "category": "supplements",
+     "specs": "Calcium carbonate 1000mg, magnesium oxide 400mg, zinc sulfate 15mg and vitamin D3 400 IU.",
+     "dosageForm": "Film-coated tablets",
+     "oemOdm": "Ready to ship, OEM packaging",
+     "targetFunction": "Mineral and bone density",
+     "priceUsd": {
+      "low": 2.8,
+      "high": 2.8,
+      "per": "box"
+     },
+     "moq": {
+      "quantity": 10,
+      "unit": "boxes"
+     },
+     "certificationsClaimed": [
+      "GMP",
+      "ISO",
+      "HACCP"
+     ],
+     "productId": "1601677473214",
+     "saFit": {
+      "sahpraClass": null,
+      "uploads": null,
+      "claims": [],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "supplements-not-stocked",
+      "why": "The shop sells no supplement or vitamin (shop.json, neverSold and its no-medicine refusal). Whether MyThuso ever stocks one is the founder's decision, and nothing here makes it."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "haosen",
+   "legalName": "Xi'an Haosen Biotech Co., Ltd.",
+   "shortName": "Haosen",
+   "place": {
+    "city": "Xi'an",
+    "province": "Shaanxi",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 5,
+   "badges": [
+    "Verified",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 3.9,
+    "reviews": 20,
+    "sold": 45
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 35,
+     "title": "All-in-One Complete Daily Multivitamin & Trace Mineral Softgels",
+     "kind": "supplement",
+     "category": "supplements",
+     "specs": "Twenty-four micronutrients: A, C, D3, E, K1, B1 to B12, iron, iodine, copper and selenium.",
+     "dosageForm": "Enteric softgels",
+     "oemOdm": "Private label, bottle labelling",
+     "targetFunction": "General wellness and immunity",
+     "priceUsd": {
+      "low": 3.5,
+      "high": 3.5,
+      "per": "box"
+     },
+     "moq": {
+      "quantity": 10,
+      "unit": "boxes"
+     },
+     "certificationsClaimed": [
+      "cGMP",
+      "ISO 9001",
+      "Halal"
+     ],
+     "productId": "1601075574050",
+     "saFit": {
+      "sahpraClass": null,
+      "uploads": null,
+      "claims": [],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "supplements-not-stocked",
+      "why": "The shop sells no supplement or vitamin (shop.json, neverSold and its no-medicine refusal). Whether MyThuso ever stocks one is the founder's decision, and nothing here makes it."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "fuhang",
+   "legalName": "Anhui Fuhang Biotechnology Development Co., Ltd.",
+   "shortName": "Fuhang",
+   "place": {
+    "city": null,
+    "province": "Anhui",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 1,
+   "badges": [
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.4,
+    "reviews": 2,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 36,
+     "title": "Bio-Cal 500mg Elemental Calcium with Vitamin D3 Liquid Softgels",
+     "brands": [
+      "Bio-Cal"
+     ],
+     "kind": "supplement",
+     "category": "supplements",
+     "specs": "500mg elemental calcium as carbonate with 250 IU vitamin D3.",
+     "dosageForm": "Liquid softgels",
+     "oemOdm": "Bulk, bottled OEM",
+     "targetFunction": "Mineral and bone density",
+     "priceUsd": {
+      "low": 0.8,
+      "high": 1,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 3000,
+      "unit": "pieces"
+     },
+     "certificationsClaimed": [
+      "GMP",
+      "ISO 22000"
+     ],
+     "productId": "1601777120908",
+     "saFit": {
+      "sahpraClass": null,
+      "uploads": null,
+      "claims": [
+       {
+        "claim": "Geriatric and osteoporotic care",
+        "severity": "unlawful",
+        "why": "Osteoporosis is a disease. A product offered for its care makes a high-risk claim an unregistered supplement may not make."
+       }
+      ],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "supplements-not-stocked",
+      "why": "The shop sells no supplement or vitamin (shop.json, neverSold and its no-medicine refusal). Whether MyThuso ever stocks one is the founder's decision, and nothing here makes it."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "jiaxuanyou",
+   "legalName": "Xi'an Jiaxuan You Biotech Co., Ltd.",
+   "shortName": "Jiaxuan You",
+   "place": {
+    "city": "Xi'an",
+    "province": "Shaanxi",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 2,
+   "badges": [
+    "Verified",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.3,
+    "reviews": 30,
+    "sold": 300
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 37,
+     "title": "Anti-Aging GHK-Cu Copper Tripeptide-1 Cellular Repair Capsules",
+     "kind": "supplement",
+     "category": "supplements",
+     "specs": "Copper peptide GHK-Cu 2mg.",
+     "dosageForm": "HPMC vegetarian capsules",
+     "oemOdm": "Custom dosing, bottle and seal",
+     "targetFunction": "Anti-ageing",
+     "priceUsd": {
+      "low": 2.41,
+      "high": 2.77,
+      "per": "unit"
+     },
+     "moq": {
+      "quantity": 100,
+      "unit": "units"
+     },
+     "certificationsClaimed": [
+      "HPLC 99%+ tested",
+      "ISO"
+     ],
+     "productId": "1601844535184",
+     "saFit": {
+      "sahpraClass": null,
+      "uploads": null,
+      "claims": [
+       {
+        "claim": "Upregulates collagen and elastin, promotes stem cell renewal",
+        "severity": "unlawful",
+        "why": "Changing how cells renew is a claim to modify a bodily function, high-risk and with no registered evidence for it taken by mouth; an anti-ageing promise is the kind of claim the advertising rules exist to stop."
+       }
+      ],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "supplements-not-stocked",
+      "why": "The shop sells no supplement or vitamin (shop.json, neverSold and its no-medicine refusal). Whether MyThuso ever stocks one is the founder's decision, and nothing here makes it."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "oazvita",
+   "legalName": "Oazvita Biotech Co., Ltd.",
+   "shortName": "Oazvita",
+   "place": {
+    "city": null,
+    "province": null,
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 2,
+   "badges": [
+    "Verified",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.2,
+    "reviews": 11,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 38,
+     "title": "NAD+ Cellular Mitochondrial Booster with Astaxanthin & Green Tea Polyphenols",
+     "kind": "supplement",
+     "category": "supplements",
+     "specs": "NAD+ with astaxanthin 4mg and EGCG.",
+     "dosageForm": "Delayed-release capsules",
+     "oemOdm": "Full OEM, custom blister",
+     "targetFunction": "Anti-ageing",
+     "priceUsd": {
+      "low": 5.7,
+      "high": 6.6,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 500,
+      "unit": "pieces"
+     },
+     "certificationsClaimed": [
+      "GMP",
+      "NSF-compliant facility",
+      "ISO 22000"
+     ],
+     "productId": "1601914257757",
+     "saFit": {
+      "sahpraClass": null,
+      "uploads": null,
+      "claims": [
+       {
+        "claim": "Stimulates sirtuins and DNA repair",
+        "severity": "unlawful",
+        "why": "Repairing DNA is a claim to modify a bodily function that no registered evidence supports — a high-risk claim an unregistered supplement may not make."
+       },
+       {
+        "claim": "NSF-compliant facility",
+        "severity": "misleading",
+        "why": "\"Compliant\" is not certified. NSF publishes the facilities and products it has certified, and this claim names neither."
+       }
+      ],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "supplements-not-stocked",
+      "why": "The shop sells no supplement or vitamin (shop.json, neverSold and its no-medicine refusal). Whether MyThuso ever stocks one is the founder's decision, and nothing here makes it."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "zhongshun",
+   "legalName": "Shandong Zhongshun Biotechnology Co., Ltd.",
+   "shortName": "Zhongshun",
+   "place": {
+    "city": null,
+    "province": "Shandong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 3,
+   "badges": [
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 5,
+    "reviews": 1,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 39,
+     "title": "Menaquinone-7 (Vitamin K2 MK-7) & Vitamin C Bone-Vascular Dual Action Tablets",
+     "kind": "supplement",
+     "category": "supplements",
+     "specs": "MK-7 100mcg with vitamin C 250mg.",
+     "dosageForm": "Chewable or swallow tablets",
+     "oemOdm": "Bulk powder, custom pressing, private label",
+     "targetFunction": "Cardiovascular and bone",
+     "priceUsd": {
+      "low": 0.2,
+      "high": 0.4,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 50000,
+      "unit": "pieces"
+     },
+     "certificationsClaimed": [
+      "GMP",
+      "ISO 9001"
+     ],
+     "productId": "1601600148560",
+     "saFit": {
+      "sahpraClass": null,
+      "uploads": null,
+      "claims": [
+       {
+        "claim": "Preventing arterial vascular calcification",
+        "severity": "unlawful",
+        "why": "Preventing a disease of the arteries is a prevention claim, high-risk under SAHPRA's guideline. Vitamin K also changes how warfarin works, so a person on it should not be sold this without a pharmacist's word."
+       }
+      ],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "supplements-not-stocked",
+      "why": "The shop sells no supplement or vitamin (shop.json, neverSold and its no-medicine refusal). Whether MyThuso ever stocks one is the founder's decision, and nothing here makes it."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "biocaro",
+   "legalName": "Biocaro Pharmaceutical Co., Ltd.",
+   "shortName": "Biocaro",
+   "place": {
+    "city": null,
+    "province": null,
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 17,
+   "badges": [
+    "Verified",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.5,
+    "reviews": 27,
+    "sold": 100
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 40,
+     "title": "High Potency Vitamin C 1000mg Effervescent Tablets (Orange / Berry)",
+     "kind": "supplement",
+     "category": "supplements",
+     "specs": "1000mg L-ascorbic acid buffered with sodium bicarbonate.",
+     "dosageForm": "Effervescent tablets, tube of 20",
+     "oemOdm": "Flavour, tube branding, blister",
+     "targetFunction": "Immunity",
+     "priceUsd": {
+      "low": 0.75,
+      "high": 0.95,
+      "per": "unit"
+     },
+     "moq": {
+      "quantity": 1000,
+      "unit": "units"
+     },
+     "certificationsClaimed": [
+      "GMP",
+      "ISO",
+      "Halal",
+      "Kosher"
+     ],
+     "productId": "1600230631049",
+     "saFit": {
+      "sahpraClass": null,
+      "uploads": null,
+      "claims": [],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "supplements-not-stocked",
+      "why": "The shop sells no supplement or vitamin (shop.json, neverSold and its no-medicine refusal). Whether MyThuso ever stocks one is the founder's decision, and nothing here makes it."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "shanwei",
+   "legalName": "Dongguan Nancheng Shanwei Trading Firm",
+   "shortName": "Shanwei",
+   "place": {
+    "city": "Dongguan",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 1,
+   "badges": [
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.7,
+    "reviews": 197,
+    "sold": 20
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "trading-firm",
+   "typeWhy": "Its legal name says it is a trading firm, and the catalogue says so. A trading firm buys from a factory it does not name; the maker, the batch and the certificates would all be somebody else's.",
+   "note": "197 reviews against 20 sold, in its first year on the platform. Reviews outnumbering sales is a reason to read them, not to count them.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 41,
+     "title": "Metabolic Glycemic Balance Herbal Extract Capsules (Berberine, Cinnamon, Gymnema)",
+     "kind": "supplement",
+     "category": "supplements",
+     "specs": "Berberine HCl 500mg, Ceylon cinnamon, gymnema and chromium picolinate.",
+     "dosageForm": "Gelatin or pullulan capsules",
+     "oemOdm": "Dropshipping, private label",
+     "targetFunction": "Metabolic and blood sugar",
+     "priceUsd": {
+      "low": 2,
+      "high": 2,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 1,
+      "unit": "piece"
+     },
+     "certificationsClaimed": [
+      "GMP",
+      "ISO tested"
+     ],
+     "productId": "1601893698712",
+     "saFit": {
+      "sahpraClass": null,
+      "uploads": null,
+      "claims": [
+       {
+        "claim": "Maintain fasting blood glucose",
+        "severity": "unlawful",
+        "why": "Maintaining blood glucose is a claim about managing diabetes, high-risk under SAHPRA's guideline. Berberine lowers blood glucose and interacts with diabetes medicines, so a person on them could go dangerously low — and the seller is a one-year trading firm offering dropshipping, so nobody would know who made it."
+       }
+      ],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "supplements-not-stocked",
+      "why": "The shop sells no supplement or vitamin (shop.json, neverSold and its no-medicine refusal). Whether MyThuso ever stocks one is the founder's decision, and nothing here makes it."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": "2026-10-02",
+      "checks": [
+       {
+        "attempt": "page-read",
+        "outcome": "blocked"
+       },
+       {
+        "attempt": "search-index",
+        "outcome": "not-found",
+        "found": "A search for the ID returned other sellers' berberine listings and not this one."
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "qishang",
+   "legalName": "Hebei Qishang Biotechnology Co., Ltd.",
+   "shortName": "Qishang",
+   "place": {
+    "city": null,
+    "province": "Hebei",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 6,
+   "badges": [
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.8,
+    "reviews": 68,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 42,
+     "title": "Pure Liposomal Vitamin C 1500mg High Absorption Lipid Matrix Capsules",
+     "kind": "supplement",
+     "category": "supplements",
+     "specs": "Liposomal ascorbic acid in sunflower lecithin.",
+     "dosageForm": "Liposomal powder capsules",
+     "oemOdm": "Private label, custom dose",
+     "targetFunction": "Immunity",
+     "priceUsd": {
+      "low": 6.2,
+      "high": 6.2,
+      "per": "box"
+     },
+     "moq": {
+      "quantity": 500,
+      "unit": "boxes"
+     },
+     "certificationsClaimed": [
+      "GMP",
+      "FDA registered",
+      "ISO 22000"
+     ],
+     "productId": "1600784523111",
+     "saFit": {
+      "sahpraClass": null,
+      "uploads": null,
+      "claims": [
+       {
+        "claim": "90%+ cellular uptake",
+        "severity": "misleading",
+        "why": "A figure for absorption with no study behind it is a claim that cannot be substantiated, and a health-supplement claim must be."
+       },
+       {
+        "claim": "FDA registered",
+        "severity": "misleading",
+        "why": "The FDA does not register or approve dietary supplements; a facility listing is not an approval of the product."
+       }
+      ],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "supplements-not-stocked",
+      "why": "The shop sells no supplement or vitamin (shop.json, neverSold and its no-medicine refusal). Whether MyThuso ever stocks one is the founder's decision, and nothing here makes it."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "elaimei",
+   "legalName": "Shenzhen Elaimei Biotechnology Co., Ltd.",
+   "shortName": "Elaimei",
+   "place": {
+    "city": "Shenzhen",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 5,
+   "badges": [
+    "Verified",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.8,
+    "reviews": 137,
+    "sold": 948
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 43,
+     "title": "SOLOTREE Ultra-Strength Coenzyme Q10 500mg Cardiovascular Softgels",
+     "brands": [
+      "SOLOTREE"
+     ],
+     "kind": "supplement",
+     "category": "supplements",
+     "specs": "Ubiquinone 500mg in MCT oil.",
+     "dosageForm": "MCT-oil softgels",
+     "oemOdm": "Pouches, amber bottles, custom label",
+     "targetFunction": "Cardiovascular",
+     "priceUsd": {
+      "low": 2.47,
+      "high": 2.47,
+      "per": "bag"
+     },
+     "moq": {
+      "quantity": 10,
+      "unit": "bags"
+     },
+     "certificationsClaimed": [
+      "GMP",
+      "ISO",
+      "Non-GMO"
+     ],
+     "productId": "1601890271451",
+     "saFit": {
+      "sahpraClass": null,
+      "uploads": null,
+      "claims": [],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "supplements-not-stocked",
+      "why": "The shop sells no supplement or vitamin (shop.json, neverSold and its no-medicine refusal). Whether MyThuso ever stocks one is the founder's decision, and nothing here makes it."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "vireo",
+   "legalName": "Shanxi Vireo Biotech Co., Ltd.",
+   "shortName": "Vireo",
+   "place": {
+    "city": null,
+    "province": "Shanxi",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 1,
+   "badges": [
+    "Verified",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.8,
+    "reviews": 21,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 44,
+     "title": "Fat-Soluble Benfotiamine 300mg (Vitamin B1 derivative)",
+     "kind": "supplement",
+     "category": "supplements",
+     "specs": "S-acyl thiamine, as bulk powder or encapsulated.",
+     "dosageForm": "Vegetarian capsules or bulk powder",
+     "oemOdm": "25kg drum or encapsulated bottles",
+     "targetFunction": "Nerve and microvascular",
+     "priceUsd": {
+      "low": 95,
+      "high": 95,
+      "per": "25kg drum, or private label"
+     },
+     "moq": {
+      "quantity": 25,
+      "unit": "kg"
+     },
+     "certificationsClaimed": [
+      "USP grade",
+      "HPLC",
+      "ISO"
+     ],
+     "productId": "1601827555674",
+     "saFit": {
+      "sahpraClass": null,
+      "uploads": null,
+      "claims": [
+       {
+        "claim": "Supports peripheral diabetic nerve health",
+        "severity": "unlawful",
+        "why": "Diabetic neuropathy is a disease. A product offered for it makes a high-risk claim an unregistered supplement may not make."
+       }
+      ],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "supplements-not-stocked",
+      "why": "The shop sells no supplement or vitamin (shop.json, neverSold and its no-medicine refusal). Whether MyThuso ever stocks one is the founder's decision, and nothing here makes it."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "nulite",
+   "legalName": "NULITE FORMULATION",
+   "shortName": "Nulite",
+   "place": {
+    "city": null,
+    "province": null,
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 1,
+   "badges": [
+    "Gold Supplier"
+   ],
+   "rating": null,
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 45,
+     "title": "Hydrolyzed Marine Collagen Peptides + Biotin 10,000mcg + Vitamin C Tablets",
+     "kind": "supplement",
+     "category": "supplements",
+     "specs": "Marine collagen under 2000 Da with biotin 10,000mcg and vitamin C.",
+     "dosageForm": "Compressed tablets",
+     "oemOdm": "Custom coating, private label",
+     "targetFunction": "Hair, skin and nails",
+     "priceUsd": {
+      "low": 1.01,
+      "high": 1.01,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 5000,
+      "unit": "pieces"
+     },
+     "certificationsClaimed": [
+      "WHO-GMP",
+      "ISO 9001",
+      "Halal"
+     ],
+     "productId": "1601774166013",
+     "saFit": {
+      "sahpraClass": null,
+      "uploads": null,
+      "claims": [],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "supplements-not-stocked",
+      "why": "The shop sells no supplement or vitamin (shop.json, neverSold and its no-medicine refusal). Whether MyThuso ever stocks one is the founder's decision, and nothing here makes it."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "zhongci",
+   "legalName": "Zhongci Health Products Technology Development Co., Ltd.",
+   "shortName": "Zhongci",
+   "place": {
+    "city": null,
+    "province": null,
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 4,
+   "badges": [
+    "Verified",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.9,
+    "reviews": 17,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 46,
+     "title": "Vegan Plant-Based Vitamin D3 (Lichen) & Vitamin K2 (MK-7 100mcg) Capsules",
+     "kind": "supplement",
+     "category": "supplements",
+     "specs": "Vitamin D3 5000 IU from lichen with MK-7 100mcg.",
+     "dosageForm": "Vegan pullulan capsules",
+     "oemOdm": "White label, amber glass or HDPE",
+     "targetFunction": "Bone and vascular",
+     "priceUsd": {
+      "low": 1.81,
+      "high": 2.1,
+      "per": "piece"
+     },
+     "moq": {
+      "quantity": 500,
+      "unit": "pieces"
+     },
+     "certificationsClaimed": [
+      "Vegan",
+      "Non-GMO",
+      "GMP",
+      "ISO 22000"
+     ],
+     "productId": "1601932996427",
+     "saFit": {
+      "sahpraClass": null,
+      "uploads": null,
+      "claims": [],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "supplements-not-stocked",
+      "why": "The shop sells no supplement or vitamin (shop.json, neverSold and its no-medicine refusal). Whether MyThuso ever stocks one is the founder's decision, and nothing here makes it."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "yihua",
+   "legalName": "Guangzhou Yihua Pharmaceutical Co., Ltd.",
+   "shortName": "Yihua",
+   "place": {
+    "city": "Guangzhou",
+    "province": "Guangdong",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 5,
+   "badges": [
+    "Verified",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.4,
+    "reviews": 488,
+    "sold": 130
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 47,
+     "title": "Neuro-Cognitive Nootropic Complex (Phosphatidylserine, B-Vitamins & Ginkgo Biloba)",
+     "kind": "supplement",
+     "category": "supplements",
+     "specs": "Ginkgo standardised to 24% flavone glycosides, phosphatidylserine 100mg, B6 and B12.",
+     "dosageForm": "Hard gelatin capsules",
+     "oemOdm": "Custom formulation, blister, carton",
+     "targetFunction": "Cognitive",
+     "priceUsd": {
+      "low": 2.5,
+      "high": 2.5,
+      "per": "box"
+     },
+     "moq": {
+      "quantity": 10,
+      "unit": "boxes"
+     },
+     "certificationsClaimed": [
+      "GMP",
+      "ISO 9001",
+      "HACCP"
+     ],
+     "productId": "1600678297279",
+     "saFit": {
+      "sahpraClass": null,
+      "uploads": null,
+      "claims": [
+       {
+        "claim": "Neuro-cognitive nootropic",
+        "severity": "unlawful",
+        "why": "A claim to improve how the brain works is a claim to modify a bodily function — high-risk, and with no registered evidence. Ginkgo also thins the blood and should not be sold beside an anticoagulant unadvised."
+       }
+      ],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "supplements-not-stocked",
+      "why": "The shop sells no supplement or vitamin (shop.json, neverSold and its no-medicine refusal). Whether MyThuso ever stocks one is the founder's decision, and nothing here makes it."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "realmus",
+   "legalName": "Shanghai Realmus Industrial Co., Ltd.",
+   "shortName": "Realmus",
+   "place": {
+    "city": "Shanghai",
+    "province": "Shanghai",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 17,
+   "badges": [
+    "Verified",
+    "Gold Supplier"
+   ],
+   "rating": null,
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 48,
+     "title": "Pectin-Based CoQ10 100mg Heart Support Dietary Supplement Gummies",
+     "kind": "supplement",
+     "category": "supplements",
+     "specs": "CoQ10 100mg a serving, in gelatin-free pectin.",
+     "dosageForm": "Pectin gummies",
+     "oemOdm": "Bulk by the 1000kg or custom PET bottles",
+     "targetFunction": "Cardiovascular and vitality",
+     "priceUsd": {
+      "low": 5,
+      "high": 5,
+      "per": "kg"
+     },
+     "moq": {
+      "quantity": 1000,
+      "unit": "kg"
+     },
+     "certificationsClaimed": [
+      "BRC",
+      "GMP",
+      "ISO 22000",
+      "Halal"
+     ],
+     "productId": "1600529056624",
+     "saFit": {
+      "sahpraClass": null,
+      "uploads": null,
+      "claims": [],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "supplements-not-stocked",
+      "why": "The shop sells no supplement or vitamin (shop.json, neverSold and its no-medicine refusal). Whether MyThuso ever stocks one is the founder's decision, and nothing here makes it."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "arborwoods",
+   "legalName": "Arborwoods Nexus Co., Ltd.",
+   "shortName": "Arborwoods",
+   "place": {
+    "city": null,
+    "province": null,
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 1,
+   "badges": [
+    "Gold Supplier"
+   ],
+   "rating": null,
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 49,
+     "title": "Fushifu Methylfolate (Active Folic Acid 400mcg) + Iron Prenatal Multivitamin",
+     "brands": [
+      "Fushifu"
+     ],
+     "kind": "supplement",
+     "category": "supplements",
+     "specs": "L-methylfolate 400mcg, ferrous fumarate and DHA.",
+     "dosageForm": "Coated bilayer tablets",
+     "oemOdm": "Spot supply or retail pharmacy branding",
+     "targetFunction": "Prenatal and maternal",
+     "priceUsd": {
+      "low": 38.89,
+      "high": 40.01,
+      "per": "dozen boxes"
+     },
+     "moq": {
+      "quantity": 30,
+      "unit": "dozens"
+     },
+     "certificationsClaimed": [
+      "cGMP",
+      "ISO 9001",
+      "lab tested"
+     ],
+     "productId": "1601612236632",
+     "saFit": {
+      "sahpraClass": null,
+      "uploads": null,
+      "claims": [
+       {
+        "claim": "Neural tube and retinal development",
+        "severity": "unlawful",
+        "why": "Preventing a birth defect is a prevention claim, high-risk under SAHPRA's guideline. Folate before and in early pregnancy matters, which is why a pregnant woman should get it from her clinic or a pharmacist on advice, not from a shop beside a nurse's visit."
+       }
+      ],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "supplements-not-stocked",
+      "why": "The shop sells no supplement or vitamin (shop.json, neverSold and its no-medicine refusal). Whether MyThuso ever stocks one is the founder's decision, and nothing here makes it."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  },
+  {
+   "id": "houde",
+   "legalName": "Hubei Houde Jining Technology Co., Ltd.",
+   "shortName": "Houde",
+   "place": {
+    "city": null,
+    "province": "Hubei",
+    "country": "China",
+    "from": "The legal name as the catalogue gives it; no address was given."
+   },
+   "platform": "Alibaba.com",
+   "yearsOnPlatform": 1,
+   "badges": [
+    "Verified",
+    "Gold Supplier"
+   ],
+   "rating": {
+    "score": 4.7,
+    "reviews": 6,
+    "sold": null
+   },
+   "statedIn": "catalogue",
+   "statedOn": "2026-10-02",
+   "type": "not-stated",
+   "typeWhy": "The catalogue gives no Verified Manufacturer badge, so whether it makes what it sells or buys it in is not stated.",
+   "verification": {
+    "verdict": "unverified",
+    "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+    "checkedOn": null,
+    "checks": []
+   },
+   "offers": [
+    {
+     "number": 50,
+     "title": "HODAF Premium Vitamin C & Bioflavonoid Longevity Immune Defense Tablets",
+     "brands": [
+      "HODAF"
+     ],
+     "kind": "supplement",
+     "category": "supplements",
+     "specs": "Slow-release ascorbic acid with citrus hesperidin and rutin.",
+     "dosageForm": "Timed-release caplets",
+     "oemOdm": "High-volume contract manufacturing",
+     "targetFunction": "Geriatric and longevity",
+     "priceUsd": {
+      "low": 0.03,
+      "high": 0.04,
+      "per": "set"
+     },
+     "moq": {
+      "quantity": 100000,
+      "unit": "sets"
+     },
+     "certificationsClaimed": [
+      "CE",
+      "ISO 13485",
+      "GMP factory"
+     ],
+     "productId": "1601687823107",
+     "saFit": {
+      "sahpraClass": null,
+      "uploads": null,
+      "claims": [
+       {
+        "claim": "CE and ISO 13485 on a food supplement",
+        "severity": "misleading",
+        "why": "CE marking does not apply to a food supplement, and ISO 13485 is the quality standard for making medical devices. Neither says anything about a vitamin tablet, which is a reason to ask what else on the listing is borrowed."
+       },
+       {
+        "claim": "Longevity",
+        "severity": "unlawful",
+        "why": "A promise of a longer life is a claim to modify a bodily function that no supplement can substantiate — high-risk under SAHPRA's guideline."
+       }
+      ],
+      "alsoNeeds": []
+     },
+     "scope": {
+      "id": "supplements-not-stocked",
+      "why": "The shop sells no supplement or vitamin (shop.json, neverSold and its no-medicine refusal). Whether MyThuso ever stocks one is the founder's decision, and nothing here makes it."
+     },
+     "verification": {
+      "verdict": "unverified",
+      "status": "As stated in the founder's catalogue, 2 October 2026 — not verified.",
+      "checkedOn": null,
+      "checks": []
+     }
+    }
+   ]
+  }
+ ]
+}

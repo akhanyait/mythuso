@@ -10,6 +10,9 @@ import { ClinicianReviewQueue } from './ReviewQueue';
 /* Governance's Knowledge sources (1 October 2026) arrives on a dynamic import of its own: it reads the
    whole federation contract, and nobody opening the review queue should download it. */
 const KnowledgeSourcesScreen = lazy(() => import('./KnowledgeSources').then(m => ({ default: m.KnowledgeSourcesScreen })));
+/* Catalogue's Suppliers & OEMs (2 October 2026) arrives on its own dynamic import too: it carries the whole
+   supplier register, and nobody opening the price catalogue should download it. */
+const SuppliersScreen = lazy(() => import('./Suppliers').then(m => ({ default: m.SuppliersScreen })));
 
 /* The back office's categories — Finance, Compliance, Governance, Clinical oversight, Catalogue and
  * Growth — with the console's own panels, unchanged, and the three things §6.2 adds: cost allocation
@@ -107,6 +110,8 @@ export function ClinicalCategory() {
  return <Frame blurb={adminTabBlurb.Clinical}><ClinicalOversight open={open} vetting={vetting}/></Frame>;
 }
 export function CatalogueCategory() {
+ const { place } = usePortal();
+ if (place.tab === 'suppliers') return <Frame><Suspense fallback={<Loading/>}><SuppliersScreen/></Suspense></Frame>;
  return <Frame blurb={adminTabBlurb.Catalogue}><Catalogue/></Frame>;
 }
 export function GrowthCategory() {

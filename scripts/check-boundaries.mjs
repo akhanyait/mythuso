@@ -45,6 +45,7 @@ import { checkSkinCheck } from "./check-skin-check.mjs";
 import { checkSickNote } from "./check-sick-note.mjs";
 import { checkLiveVitals } from "./check-live-vitals.mjs";
 import { checkConsultationToolkit } from "./check-consultation-toolkit.mjs";
+import { checkSuppliers } from "./check-suppliers.mjs";
 import { emitLocales } from "./emit-locales.mjs";
 import { emitDispensing } from "./emit-dispensing.mjs";
 import { emitProgrammes } from "./emit-programmes.mjs";
@@ -38216,6 +38217,9 @@ console.log(
     /* Governance · Knowledge sources (1 October 2026): behind the portal's dynamic import and a dynamic import of its own
        from BackOffice.tsx, so its Field, Input and Button join the ui.css the Control Tower already downloads. */
     "apps/web/src/features/portal/KnowledgeSources.tsx",
+    /* Catalogue · Suppliers & OEMs (2 October 2026): behind the portal's dynamic import and one of its own from
+       BackOffice.tsx, so its Badge and the button look on its links join the ui.css the Control Tower already downloads. */
+    "apps/web/src/features/portal/Suppliers.tsx",
     /* Wave 4b, the nurse's screens on the identity: every one behind the staff shell's dynamic import, or behind a
        dynamic import of its own (KitDeck and Devices from Thuso Kit, DeviceLab from the Control Tower, VerifyInService
        from the arrival and the day). Kit.tsx and KitCapture.tsx are on the patient's entry and import none of it. */
@@ -39662,6 +39666,13 @@ console.log(
    can be proven to fire in isolation (scripts/prove-live-vitals.mjs hands the module broken files). */
 console.log(checkLiveVitals({ read, files }));
 console.log(checkConsultationToolkit({ read, files, exists: existsSync }));
+
+/* The OEM and supplier register — 2 October 2026 */
+/* The founder's sourcing catalogue, as a back-office register: every record unverified and saying so, the South
+   African fit worked out rather than typed, every mapped shop id real, no supplier named on the shop and no flagged
+   claim as product copy. The checks live in scripts/check-suppliers.mjs so each can be proven to fire in isolation
+   (scripts/prove-suppliers.mjs hands the module broken files). */
+console.log(await checkSuppliers({ read, files, exists: existsSync }));
 
 /* The laboratory order draws only what a contract holds — 30 September 2026 */
 /* apps/web/src/features/OrderDetails.tsx carried a panel of four typed results, each with a unit, a

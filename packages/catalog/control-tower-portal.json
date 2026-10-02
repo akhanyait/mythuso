@@ -171,7 +171,10 @@
    "id": "catalogue",
    "label": "Catalogue",
    "from": ["back-office Catalogue (moved)"],
-   "tabs": [ { "id": "catalogue", "label": "Catalogue", "legacy": "back-office:Catalogue" } ]
+   "tabs": [
+    { "id": "catalogue", "label": "Catalogue", "legacy": "back-office:Catalogue" },
+    { "id": "suppliers", "label": "Suppliers & OEMs", "blurb": "Who the products in the founder's sourcing catalogue are from: each supplier as the catalogue states it, each offer's price, minimum order and claimed certifications, what South Africa would need and what is missing, and where it would fit MyThuso. Nothing here is verified, ordered or sent.", "new": true }
+   ]
   },
   {
    "id": "growth",
