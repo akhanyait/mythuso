@@ -12,6 +12,17 @@ import {
   type SkinAnswers,
   type SkinOutcome,
 } from "../../../../packages/gilbertone/src/skin-check.ts";
+import {
+  askRefusedLocally,
+  confirmReading,
+  lookGoes,
+  optionLabel,
+  photoReading as r,
+  whatItIsNotShown,
+  type Suggested,
+} from "../../../../packages/gilbertone/src/skin-photo-reading.ts";
+import { demonstrationDisclaimer } from "../lib/demonstration-override";
+import { askToLook, photoReadingOpen, type LookOpen } from "../lib/photo-reading";
 import { clipLengthProblem, notesText, takenAs } from "../lib/skin-check";
 import { skinSendRefusal } from "../lib/skin-check.generated";
 import { Button } from "../ui/Button";
@@ -25,9 +36,22 @@ import "./skin-check.css";
    offers its camera or its gallery. A photo and a clip may both be held, one of each. Each file is
    held in this component's state and nowhere else, shown back through an object URL made in one hook
    whose clean-up revokes it when the file is replaced, removed, the check ends or the screen closes,
-   so no path can leave one behind. Nothing reads their bytes and nothing sends them: no request, no
-   storage of any kind, no canvas. The contract's sentences under them say exactly that, and that
-   nothing looks at either.
+   so no path can leave one behind. This screen reads none of their bytes and sends nothing: no request,
+   no storage of any kind, no canvas. The contract's sentences under them say exactly that, and that
+   nothing looks at either — unless the reader below is offered and she asks.
+
+   THE PHOTO READER (2 October 2026, under the founder's demonstration override). The screen asks the
+   service once whether the reader is open here; only if it says so are "Ask GilbertOne to look", the
+   override's disclaimer word for word, who reads the picture and where, and the contract's "a picture is
+   not an examination" shown, and the sentences that would no longer be true swapped for the contract's
+   own. Pressing it is her agreement. Who the rash is on is asked first and where it is read, so a picture
+   of a young baby or a private area never leaves (askRefusedLocally); then lib/photo-reading.ts is handed
+   the element on the screen — the photo's img, or the clip's video at the frame she paused on — never
+   the file or the clip, and sends one smaller still. What comes back is shown only as the contract's own
+   labels for the ids, each pressed to keep or take off; only what she confirms becomes her answers
+   (confirmReading), and skinOutcome reads her answers exactly as it always did — the signs first, the
+   emergency rules before anything. If the reader is shut, refuses, fails or times out, the check is the
+   manual check it was, with the contract's sentence for why.
 
    A CLIP'S SOUND is never played or used (the founder's decision of 2 October 2026, inside the speech
    amendment of 21 September). The video element is muted before it has a source, carries no controls
@@ -90,6 +114,9 @@ function useHeldUrl(file: File | null): string {
   return url;
 }
 
+/* The reader's refusals whose sentence is the service's generic one. */
+const UNEXPLAINED = new Set(["internal-error", "invalid-request", "payload-too-large"]);
+
 /* Muted as a property and by volume, before the source arrives and again on any change to either. */
 const silence = (video: HTMLVideoElement | null) => {
   if (!video) return;
@@ -114,14 +141,43 @@ export default function SkinCheck({ onBack, onEmergency }: Props) {
   const [outcome, setOutcome] = useState<SkinOutcome | null>(null);
   const [ended, setEnded] = useState(false);
   const [copied, setCopied] = useState(false);
+  const photo = useRef<HTMLImageElement | null>(null);
+  const [look, setLook] = useState<LookOpen | null>(null);
+  const [asking, setAsking] = useState(false);
+  const [suggestion, setSuggestion] = useState<{ offered: Suggested; kept: Suggested } | null>(null);
+  const [lookNote, setLookNote] = useState("");
+  const looking = useRef<AbortController | null>(null);
+  const offered = look !== null;
 
   useEffect(() => heading.current?.focus(), []);
+  /* Whether the reader is open here, asked once; a closed, refusing or unreachable service leaves it null. */
+  useEffect(() => {
+    let live = true;
+    void photoReadingOpen().then((open) => live && setLook(open));
+    return () => {
+      live = false;
+      looking.current?.abort();
+    };
+  }, []);
 
+  /* A look in flight is abandoned, and a suggestion let go, whenever the picture it was about goes. */
+  const stopLooking = () => {
+    looking.current?.abort();
+    looking.current = null;
+    setAsking(false);
+    setSuggestion(null);
+    setLookNote("");
+  };
   const letGo = () => {
-    setFile(null);
+    holdPhoto(null);
     holdClip(null);
   };
+  const holdPhoto = (next: File | null) => {
+    stopLooking();
+    setFile(next);
+  };
   const holdClip = (next: File | null) => {
+    stopLooking();
     setClip(next);
     setClipReady(false);
     setPlaying(false);
@@ -132,7 +188,7 @@ export default function SkinCheck({ onBack, onEmergency }: Props) {
     if (!next) return;
     const taken = takenAs(next);
     setProblem(taken.as === "refused" ? taken.why : "");
-    if (taken.as === "photo") setFile(next);
+    if (taken.as === "photo") holdPhoto(next);
     if (taken.as === "clip") holdClip(next);
   };
   /* The clip's length, from the element's own metadata — the one thing read about it. */
@@ -185,6 +241,46 @@ export default function SkinCheck({ onBack, onEmergency }: Props) {
     setProblem("");
     setEnded(true);
   };
+  /* What is on the screen: the photo when one is held, otherwise the clip at the frame it shows. */
+  const shownElement = () => (file ? photo.current : video.current);
+  const lookAt = async () => {
+    const refused = askRefusedLocally(answers);
+    if (refused) {
+      setLookNote(refused);
+      return;
+    }
+    const element = shownElement();
+    if (!element) return;
+    stopLooking();
+    const controller = new AbortController();
+    looking.current = controller;
+    setAsking(true);
+    const answer = await askToLook(element, (answers.who ?? [])[0] ?? "", controller.signal);
+    if (controller.signal.aborted) return;
+    looking.current = null;
+    setAsking(false);
+    if (answer === "too-large") return setLookNote(r.local.tooLarge);
+    if (answer.ok) return setSuggestion({ offered: answer.suggested, kept: answer.suggested });
+    if (answer.refusalId === "photo-reading-not-open" || answer.refusalId === "photo-reading-has-no-model") setLook(null);
+    /* A refusal that explains itself is said in the contract's words; a fault, a timeout or nothing answering
+       is the contract's fallback sentence, because "could not be processed safely" tells her nothing to do. */
+    setLookNote(answer.message && answer.refusalId && !UNEXPLAINED.has(answer.refusalId) ? answer.message : r.words.fellBack);
+  };
+  const keep = (question: "looks" | "where", id: string) =>
+    setSuggestion((now) =>
+      now && {
+        ...now,
+        kept: { ...now.kept, [question]: now.kept[question].includes(id) ? now.kept[question].filter((x) => x !== id) : [...now.kept[question], id] },
+      },
+    );
+  /* Only what she kept becomes her answers; the rules read them as they read any press. */
+  const confirm = () => {
+    if (!suggestion) return;
+    setAnswers(confirmReading(answers, suggestion.kept));
+    setSuggestion(null);
+    setOutcome(null);
+    setLookNote(r.words.confirmed);
+  };
   const copy = () => {
     void navigator.clipboard?.writeText(notesText(answers, typed, file !== null, clip !== null && clipReady)).then(
       () => setCopied(true),
@@ -207,7 +303,7 @@ export default function SkinCheck({ onBack, onEmergency }: Props) {
       </h3>
       <p>{c.screen.lead}</p>
       <ul className="sk-not">
-        {c.whatItIsNot.map((sentence) => (
+        {whatItIsNotShown(offered).map((sentence) => (
           <li key={sentence}>{sentence}</li>
         ))}
       </ul>
@@ -234,8 +330,8 @@ export default function SkinCheck({ onBack, onEmergency }: Props) {
             {problem && <p role="alert">{problem}</p>}
             {url && (
               <figure className="sk-preview">
-                <img src={url} alt={c.photo.alt} />
-                <Button variant="ghost" size="sm" onClick={() => setFile(null)} leadingIcon={<X size={16} aria-hidden="true" />}>
+                <img ref={photo} src={url} alt={c.photo.alt} />
+                <Button variant="ghost" size="sm" onClick={() => holdPhoto(null)} leadingIcon={<X size={16} aria-hidden="true" />}>
                   {c.photo.removeLabel}
                 </Button>
               </figure>
@@ -278,9 +374,56 @@ export default function SkinCheck({ onBack, onEmergency }: Props) {
                 </div>
               </figure>
             )}
-            <p className="sk-quiet">{c.photo.held}</p>
-            <p className="sk-quiet">{c.photo.noReader}</p>
+            <p className="sk-quiet">{offered ? r.offered.held : c.photo.held}</p>
+            <p className="sk-quiet">{offered ? r.offered.noReader : c.photo.noReader}</p>
             <p className="sk-quiet">{c.clip.sound}</p>
+            {look && (file || (clip && clipReady)) && (
+              <div className="sk-look" role="region" aria-label={r.words.askLabel}>
+                {look.demonstration && <p className="sk-demo">{demonstrationDisclaimer}</p>}
+                <p>{r.words.askLead}</p>
+                <p className="sk-quiet">{lookGoes(look.processor, look.region)}</p>
+                {!file && <p className="sk-quiet">{r.words.clipGoes}</p>}
+                <p className="sk-only">{r.words.notAnExamination}</p>
+                {suggestion ? (
+                  <>
+                    <p className="sk-label">{r.words.thinks}</p>
+                    <div className="sk-chips" role="group" aria-label={r.words.thinks}>
+                      {(["looks", "where"] as const).flatMap((question) =>
+                        suggestion.offered[question].map((id) => (
+                          <Button
+                            key={`${question}:${id}`}
+                            variant="secondary"
+                            className="sk-chip"
+                            aria-pressed={suggestion.kept[question].includes(id)}
+                            onClick={() => keep(question, id)}
+                          >
+                            {optionLabel(question, id)}
+                          </Button>
+                        )),
+                      )}
+                    </div>
+                    <p className="sk-quiet">{r.words.isThatRight}</p>
+                    <div className="sk-actions">
+                      <Button variant="primary" onClick={confirm}>
+                        {r.words.confirmLabel}
+                      </Button>
+                      <Button variant="ghost" onClick={() => setSuggestion(null)}>
+                        {r.words.dismissLabel}
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <Button variant="primary" onClick={() => void lookAt()} disabled={asking} aria-busy={asking}>
+                    {asking ? r.words.looking : r.words.askLabel}
+                  </Button>
+                )}
+              </div>
+            )}
+            {lookNote && (
+              <p className="sk-look-note" role="status">
+                {lookNote}
+              </p>
+            )}
           </div>
 
           {!shown &&
@@ -431,7 +574,7 @@ export default function SkinCheck({ onBack, onEmergency }: Props) {
               {c.screen.endLabel}
             </Button>
           </div>
-          <p className="sk-quiet sk-reader">{c.photoReading.sentence}</p>
+          {!offered && <p className="sk-quiet sk-reader">{c.photoReading.sentence}</p>}
         </>
       )}
     </section>

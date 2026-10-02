@@ -86,6 +86,15 @@ const LONG_CLIP = Buffer.from(
   "base64",
 );
 
+/* The photo reader's routes (2 October 2026) are the assistant service's, which these journeys never reach:
+   every test starts with the reader shut, in its own refusal's words, and a test about the reader opens it
+   with a stub of its own. No request reaches Azure or any network. */
+const apis = json("../packages/catalog/apis/assistant.json");
+const override = json("../packages/catalog/demonstration-override.json");
+const reader = skin.photoReading;
+const refusalOf = (id: string) => apis.routes.find((x: { method: string; path: string }) => x.method === "POST" && x.path === "/v1/photo-reading").refusals.find((x: { id: string }) => x.id === id);
+const refusing = (id: string) => ({ status: refusalOf(id).status, body: { error: id.replace(/-/g, "_"), refusalId: id, message: refusalOf(id).statement } });
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     const synth = (window as unknown as { speechSynthesis?: { speak: () => void; cancel: () => void } }).speechSynthesis;
@@ -93,6 +102,10 @@ test.beforeEach(async ({ page }) => {
       synth.speak = () => {};
       synth.cancel = () => {};
     }
+  });
+  await page.route("**/assistant/v1/photo-reading", (route) => {
+    const shut = refusing("photo-reading-not-open");
+    return route.fulfill({ status: shut.status, contentType: "application/json", body: JSON.stringify(shut.body) });
   });
 });
 
@@ -272,4 +285,149 @@ test("a clip longer than the cap is refused in the contract's words, and removin
   await screen.getByRole("button", { name: skin.clip.removeLabel }).click();
   await expect(screen.getByLabel(skin.clip.label)).toHaveCount(0);
   expect(await page.evaluate((url) => fetch(url).then(() => "still there", () => "revoked"), src), "a removed clip's object URL is revoked").toBe("revoked");
+});
+
+/* ---- The photo reader, under the founder's demonstration override (2 October 2026) -------------------- */
+
+type Sent = { userConsent: boolean; who: string; imageBase64: string; imageType: string };
+/* The reader opened by a stub: the status route says who reads the picture where, and each look is
+   answered by `answer`. Every body the page sent is kept for the test to read. */
+const openReader = async (page: Page, answer: (sent: Sent, n: number) => { status: number; body: unknown }) => {
+  const sent: Sent[] = [];
+  await page.route("**/assistant/v1/photo-reading", (route) => {
+    if (route.request().method() === "GET")
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ processor: "Azure OpenAI", region: "South Africa North", demonstration: true, disclaimer: override.disclaimer.sentence }),
+      });
+    const body = route.request().postDataJSON() as Sent;
+    sent.push(body);
+    const reply = answer(body, sent.length);
+    return route.fulfill({ status: reply.status, contentType: "application/json", body: JSON.stringify(reply.body) });
+  });
+  return sent;
+};
+const lookRegion = (page: Page) => check(page).getByRole("region", { name: reader.words.askLabel });
+const askToLook = (page: Page) => lookRegion(page).getByRole("button", { name: reader.words.askLabel }).click();
+const chip = (page: Page, q: string, o: string) => check(page).getByRole("group", { name: question(q).ask }).getByRole("button", { name: label(q, o), exact: true });
+/* What left the page: one JPEG still, her agreement and who — and nothing else. */
+const heldToOneStill = (sent: Sent, who: string) => {
+  expect(Object.keys(sent).sort()).toEqual(["imageBase64", "imageType", "userConsent", "who"]);
+  expect(sent.userConsent).toBe(true);
+  expect(sent.who).toBe(who);
+  expect(sent.imageType).toBe("image/jpeg");
+  expect(sent.imageBase64.startsWith("/9j/"), "a JPEG, made on the page").toBe(true);
+  expect(sent.imageBase64).not.toContain("GkXfo");
+  expect(Buffer.from(sent.imageBase64, "base64").length).toBeLessThanOrEqual(reader.image.maxBytes);
+};
+
+test("GilbertOne looks only when asked, suggests the check's own words, and only what she confirms reaches the rules", async ({ page }) => {
+  const sent = await openReader(page, () => ({ status: 200, body: { looks: ["ring", "scaly"], where: ["arms"] } }));
+  await open(page);
+  const screen = check(page);
+  for (const sentence of [reader.offered.whatItIsNot, reader.offered.held, reader.offered.noReader]) await expect(screen).toContainText(sentence);
+  await expect(screen).not.toContainText(reader.sentence);
+  await expect(lookRegion(page), "nothing to look at before a picture is held").toHaveCount(0);
+
+  await screen.getByLabel(skin.photo.addLabel, { exact: true }).setInputFiles({ name: "rash.png", mimeType: "image/png", buffer: PNG });
+  /* Drawn, not merely laid out: the page's content policy lets it show its own object URL. */
+  await expect.poll(() => screen.getByRole("img", { name: skin.photo.alt }).evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
+  const look = lookRegion(page);
+  for (const sentence of [override.disclaimer.sentence, reader.words.notAnExamination, reader.words.askLead]) await expect(look).toContainText(sentence);
+  await expect(look).toContainText(reader.words.goes.replaceAll("{processor}", "Azure OpenAI").replaceAll("{region}", "South Africa North"));
+
+  await askToLook(page);
+  await expect(screen.getByRole("status")).toHaveText(reader.local.whoFirst);
+  expect(sent, "nothing leaves before she says who the rash is on").toEqual([]);
+
+  await press(page, "who", "self");
+  await askToLook(page);
+  const thinks = look.getByRole("group", { name: reader.words.thinks });
+  for (const [q, o] of [["looks", "ring"], ["looks", "scaly"], ["where", "arms"]])
+    await expect(thinks.getByRole("button", { name: label(q, o), exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(look).toContainText(reader.words.isThatRight);
+  expect(sent).toHaveLength(1);
+  heldToOneStill(sent[0], "self");
+
+  /* Nothing is in her answers until she confirms, and what she takes off never is. */
+  await expect(chip(page, "looks", "ring")).toHaveAttribute("aria-pressed", "false");
+  await thinks.getByRole("button", { name: label("where", "arms"), exact: true }).click();
+  await expect(thinks.getByRole("button", { name: label("where", "arms"), exact: true })).toHaveAttribute("aria-pressed", "false");
+  await look.getByRole("button", { name: reader.words.confirmLabel }).click();
+  await expect(screen.getByRole("status")).toHaveText(reader.words.confirmed);
+  await expect(chip(page, "looks", "ring")).toHaveAttribute("aria-pressed", "true");
+  await expect(chip(page, "looks", "scaly")).toHaveAttribute("aria-pressed", "true");
+  await expect(chip(page, "where", "arms")).toHaveAttribute("aria-pressed", "false");
+
+  /* The same rules decide, from her answers: the scaly ring's general information. */
+  await press(page, "signs", "none");
+  await see(page);
+  const outcome = screen.locator('[data-outcome="general-information"]');
+  const fixture = skin.fixtures.cases.find((f: { name: string }) => f.name === "scaly ring");
+  for (const id of fixture.conditions) await expect(outcome.getByRole("article", { name: titleOf(id) })).toBeVisible();
+  await expect(outcome).toContainText(skin.outcomes["general-information"].onlyAClinician);
+  expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
+});
+
+test("a reader that is shut, fails or refuses leaves the manual check as it was, and a young baby's picture is never sent", async ({ page }) => {
+  /* Shut: the beforeEach's own refusal. No look is offered and the closed sentences stay. */
+  await open(page);
+  await check(page).getByLabel(skin.photo.addLabel, { exact: true }).setInputFiles({ name: "rash.png", mimeType: "image/png", buffer: PNG });
+  await expect(check(page)).toContainText(reader.sentence);
+  await expect(check(page)).toContainText(skin.photo.noReader);
+  await expect(lookRegion(page)).toHaveCount(0);
+  expect(refusing("photo-reading-not-open").body.message, "the shut route says the skin check's own sentence").toBe(reader.sentence);
+
+  /* Open, then a fault, then a refusal with a reason, then a young baby. */
+  const sent = await openReader(page, (_, n) => (n === 1 ? refusing("internal-error") : refusing("photo-shows-a-face-or-private-area")));
+  await open(page);
+  const screen = check(page);
+  await screen.getByLabel(skin.photo.addLabel, { exact: true }).setInputFiles({ name: "rash.png", mimeType: "image/png", buffer: PNG });
+  await press(page, "who", "adult");
+  await askToLook(page);
+  await expect(screen.getByRole("status")).toHaveText(reader.words.fellBack);
+  await askToLook(page);
+  await expect(screen.getByRole("status")).toHaveText(refusalOf("photo-shows-a-face-or-private-area").statement);
+  expect(sent).toHaveLength(2);
+
+  await press(page, "who", "young-baby");
+  await askToLook(page);
+  await expect(screen.getByRole("status")).toHaveText(reader.local.youngBaby);
+  expect(sent, "a young baby's picture never leaves the phone").toHaveLength(2);
+
+  await press(page, "looks", "welts");
+  await press(page, "signs", "none");
+  await see(page);
+  await expect(screen.locator('[data-outcome="sister-today"]')).toContainText(skin.rules.find((x: { id: string }) => x.id === "young-baby").says);
+});
+
+test("a sign the emergency terms raise still outranks a confirmed reading", async ({ page }) => {
+  await openReader(page, () => ({ status: 200, body: { looks: ["welts"], where: [] } }));
+  await open(page);
+  await check(page).getByLabel(skin.photo.addLabel, { exact: true }).setInputFiles({ name: "rash.png", mimeType: "image/png", buffer: PNG });
+  await press(page, "who", "self");
+  await askToLook(page);
+  await lookRegion(page).getByRole("button", { name: reader.words.confirmLabel }).click();
+  await expect(chip(page, "looks", "welts")).toHaveAttribute("aria-pressed", "true");
+  await press(page, "signs", "airway");
+  await expect(check(page)).toHaveCount(0);
+  await expect(lastReply(page)).toHaveClass(/as-reply-emergency/);
+  await expect(lastReply(page)).toContainText(ambulance);
+});
+
+test("from a clip, one still frame is sent — never the clip and never its sound", async ({ page }) => {
+  const sent = await openReader(page, () => ({ status: 200, body: { looks: ["red-patches"], where: [] } }));
+  await open(page);
+  const screen = check(page);
+  await screen.getByLabel(skin.photo.addLabel, { exact: true }).setInputFiles({ name: "rash.webm", mimeType: "video/webm", buffer: CLIP });
+  await expect(screen.getByLabel(skin.clip.label)).toBeVisible();
+  await expect(lookRegion(page)).toContainText(reader.words.clipGoes);
+  await press(page, "who", "self");
+  await askToLook(page);
+  await expect(lookRegion(page).getByRole("group", { name: reader.words.thinks })).toBeVisible();
+  expect(sent).toHaveLength(1);
+  heldToOneStill(sent[0], "self");
+  expect(sent[0].imageBase64.length, "a still of a sixteen-pixel frame, not the clip").toBeLessThan(CLIP.toString("base64").length);
+  expect(await screen.getByLabel(skin.clip.label).evaluate((v: HTMLVideoElement) => v.muted)).toBe(true);
 });

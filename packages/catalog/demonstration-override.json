@@ -91,8 +91,11 @@
         "information-officer"
       ],
       "licenceMustPermit": false,
-      "renderedAt": [],
-      "why": "Built later, by its own change. Listed now so the builder wires one gate rather than inventing a second override."
+      "renderedAt": [
+        "apps/web/src/features/SkinCheck.tsx",
+        "apps/assistant-api/src/lib/photo-reading.ts"
+      ],
+      "why": "Photo reading, built on 2 October 2026 on the web by its own change, wired to this one gate rather than a second override. The skin check shows the disclaimer above the look whenever the service says the reader is open for demonstration, and the service's status route sends it with its answer. The phones are not opened: the override is not generated to them yet, and they keep saying GilbertOne does not read photos."
     }
   },
   "gates": [
@@ -150,7 +153,9 @@
     {
       "id": "photo-reading",
       "kind": "capability",
-      "state": "opened-when-built",
+      "state": "on",
+      "builtOn": "2026-10-02",
+      "platforms": ["web"],
       "opensWaitsOn": [
         "protocol",
         "dpia",

@@ -1,11 +1,12 @@
 {
   "_note": "Show GilbertOne a rash: a photo or a short clip the patient takes or chooses, held on her own phone and shown back to her — a clip without its sound — set questions about the skin, and one of three outcomes decided by the rules below and nothing else — the emergency answer the conversation already gives, a sign that public first-aid guidance says should be seen by a nurse or doctor today, or general information from the knowledge base about rashes that look like hers. Not triage and not a diagnosis: no model looks at the photo or the clip, no answer names what her rash is, and every outcome says only a nurse or doctor who sees it can. packages/gilbertone/src/skin-check.ts reads this file for the web; scripts/emit-skin-check.mjs writes it, with the knowledge entries it draws on, into Swift and Kotlin; scripts/check-skin-check.mjs holds it.",
-  "version": 2,
+  "version": 3,
   "decidedBy": "Founder",
   "on": "2026-10-01",
   "changelog": [
     { "version": 1, "on": "2026-10-01", "what": "The photo, nine set questions, five rules and the knowledge entries behind them; the photo reader declared and refused." },
-    { "version": 2, "on": "2026-10-02", "what": "A short clip beside the photo, on the founder's decision of 2 October 2026: no longer than the clip's maxSeconds, played without its sound and with no control to turn it on, held as the photo is, never read, stored or sent. The video refusal is withdrawn; the photo reader's refusal covers a clip unchanged." }
+    { "version": 2, "on": "2026-10-02", "what": "A short clip beside the photo, on the founder's decision of 2 October 2026: no longer than the clip's maxSeconds, played without its sound and with no control to turn it on, held as the photo is, never read, stored or sent. The video refusal is withdrawn; the photo reader's refusal covers a clip unchanged." },
+    { "version": 3, "on": "2026-10-02", "what": "Photo reading built on the web under the founder's demonstration override of 2 October 2026 (packages/catalog/demonstration-override.json, gate photo-reading). When she asks, one smaller still — the photo, or one frame of the clip and never the clip or its sound — goes to the configured Azure OpenAI deployment in a South African region, which may only describe it in this file's own looks and where options; she confirms or removes each, and only what she confirms becomes her answers, which the same rules read. The four things it waits on are still not in place, the phones still say the photo is never read, and inForce false closes it again." }
   ],
   "why": "The founder's ask of 1 October 2026: a module that can take a picture of a condition such as a skin rash and give information about what the issue might be — take a picture, GilbertOne gives information, and suggests whether it must be escalated to a sister or how to look after it. Built as intake plus general information, because GilbertOne does symptom intake and not triage (packages/catalog/symptom-intake.json), and because reading a photo of somebody's skin is a clinical act this build has no protocol, reviewer, impact assessment or processor for.",
   "whatItIsNot": [
@@ -298,18 +299,79 @@
     "reviewed": "This skin check was reviewed by {reviewedBy}. Your nurse will still look for herself."
   },
   "photoReading": {
-    "status": "refused",
-    "everywhere": true,
+    "status": "built-under-override",
+    "everywhere": false,
+    "decidedBy": "Founder",
+    "on": "2026-10-02",
+    "gate": "photo-reading",
+    "opensWhen": "signed || overrideOpens('photo-reading'), and the model tier allowed to run in the process: signed is every waitsOn entry in place, and the override is packages/catalog/demonstration-override.json in force and listing this gate. Never the override alone, so inForce false closes it and the signatures are still what opens it at go-live.",
+    "platforms": ["web"],
+    "platformsWhy": "Built on the web only. The demonstration override is not generated to the phones yet, so iOS and Android keep the sentence below — that GilbertOne does not read photos — which is still true of them, and name no route, no button and no processor.",
     "sentence": "GilbertOne does not read photos. Reading a photo of skin waits on four things that do not exist yet: a photo-reading protocol ratified with a named clinical reviewer, an impact assessment that covers images, an appointed Information Officer, and a decision on who would process the images and in which country.",
+    "sentenceWhy": "Shown wherever the reader is not open: on both phones, and on the web while the status route refuses. It is also the photo route's refusal when the gate is shut, word for word, so a closed reader says the same thing everywhere.",
     "waitsOn": [
       { "id": "protocol", "what": "A photo-reading protocol ratified by the clinical governance board, with a named clinical reviewer", "inPlace": false },
       { "id": "dpia", "what": "A data protection impact assessment that covers photographs of a person's body", "inPlace": false },
       { "id": "information-officer", "what": "An Information Officer appointed and registered", "inPlace": false },
       { "id": "processor", "what": "A decision on who would process the images, under what agreement, and in which country", "inPlace": false }
     ],
-    "route": null,
-    "routeWhy": "No address is declared in packages/catalog/apis/assistant.json. The check never sends a photo anywhere, so a route would be a production address on a live service with nothing behind it but this refusal. It is proposed there, with this sentence as its refusal, on the day the four things above exist and a reviewer has a protocol to put behind it.",
-    "why": "A photo of somebody's skin is health information and a picture of their body. Reading one is a clinical act, and sending one anywhere is a processing decision POPIA asks to be assessed first. None of the four exists, so no platform has a reader, no platform uploads, and every platform says so in this sentence."
+    "route": "POST /v1/photo-reading@1",
+    "statusRoute": "GET /v1/photo-reading@1",
+    "routeWhy": "Declared in packages/catalog/apis/assistant.json and built in apps/assistant-api, which is live in production. The status route says whether the reader is open and names the processor and its region, and the screen offers the look only when it says so; the reading route takes one still, describes it and keeps nothing. Both answer this file's sentence above as their refusal while the gate is shut.",
+    "processor": {
+      "provider": "azure-openai",
+      "from": "packages/catalog/model-providers.json#providers azure-openai",
+      "regions": { "southafricanorth": "South Africa North", "southafricawest": "South Africa West" },
+      "regionsWhy": "The builder's instruction in the override: name the processor and the country it reads in on the screen, and choose one with a South African region where one exists. The region is read from the provider's own record in model-providers.json, observed off the box, and a region not named here closes the reader rather than sending a picture of somebody's body abroad. It is a fact about where the resource is, not a residency decision; DATA-RESIDENCY-OPTIONS.md section seven is still blank.",
+      "imageDeployments": ["gpt-4.1", "gpt-4.1-mini", "gpt-4o", "gpt-4o-mini"],
+      "imageDeploymentsWhy": "The deployment names that take a picture as input. The service sends its configured deployment name (AZURE_OPENAI_MODEL, or the adapter's default) and closes the reader for any other rather than sending a picture to a model that cannot look at it and faking an answer."
+    },
+    "image": {
+      "type": "image/jpeg",
+      "maxEdge": 1024,
+      "quality": 0.8,
+      "maxBytes": 524288,
+      "why": "Made smaller in the browser before it leaves — its longer side no more than maxEdge pixels, as a JPEG — so less of her body leaves the device than her camera took, and nothing but a JPEG is ever taken: the service refuses any other type and anything over maxBytes once decoded. maxBytes in base64 fits inside the service's own body ceiling, and the build holds the two together."
+    },
+    "timeoutMs": 15000,
+    "timeoutWhy": "How long the service waits for the model before it gives up. The screen waits a little longer than this, and on either running out the check carries on exactly as it does without a reader.",
+    "vocabulary": {
+      "looks": { "question": "looks", "except": ["other"] },
+      "where": { "question": "where", "except": ["face", "groin", "nappy"] },
+      "maxLooks": 4,
+      "outcomes": ["described", "unclear", "not-skin", "private-or-face"],
+      "why": "The model describes and the rules decide. It may answer only with option ids this file already asks her about — what the skin looks like, and where on the body when it can tell — or one of four outcomes, as one JSON object the service checks against this list; anything else is thrown away and nothing is said. It never names a condition, never chooses an outcome and never sees the signs question, so the emergency rules and the rules for today are exactly as they are without it. The face, the groin and the nappy area are not in its list: a picture of them is refused, not described."
+    },
+    "instructions": "You look at one photograph for a skin check and describe only what is visible, using the ids given. You never name a condition, never suggest a cause, a treatment or a diagnosis, and never say how serious anything is. Reply with one JSON object and nothing else, with exactly three keys: outcome, looks and where. outcome is described when the picture shows an area of human skin clearly enough to describe; unclear when it is too blurred, too dark or too far away; not-skin when it does not show human skin; private-or-face when it shows a face, genitals, buttocks or a bare breast. looks lists, from these ids only, what you can see on the skin: {looks}. where lists, from these ids only, the part of the body shown if you can tell, or nothing: {where}. Unless outcome is described, looks and where are both empty lists. If you are unsure whether a look is there, leave it out.",
+    "instructionsWhy": "The model's whole brief, in this file so the accountable people can read in advance what it is asked and what it is told not to do. The service fills the two lists from the vocabulary above and adds nothing.",
+    "words": {
+      "askLabel": "Ask GilbertOne to look",
+      "askLead": "GilbertOne can look at the picture and suggest words from this check's own list, for you to confirm or take off. It does not say what your rash is.",
+      "goes": "If you press it, one smaller copy of the picture goes from this phone to {processor}, in the {region} region, to be described, and only words from this check's list come back. MyThuso keeps nothing of it. {processor} reads it under Microsoft's own terms, which let Microsoft hold a request for a while to look for abuse unless that has been switched off for MyThuso, and this build has no record that it has been.",
+      "clipGoes": "From a clip, only the picture on the screen when you press goes — never the clip and never its sound. Pause it where it shows the skin best first.",
+      "notAnExamination": "A picture is not an examination. Only a nurse or doctor who sees the skin can say what it is.",
+      "looking": "GilbertOne is looking at the picture",
+      "thinks": "GilbertOne thinks it can see:",
+      "isThatRight": "Is that right? Press any that are wrong to take them off, then confirm. Only what you confirm goes into your answers.",
+      "confirmLabel": "Yes, use these",
+      "dismissLabel": "No, I will answer myself",
+      "confirmed": "What you confirmed is now in your answers below. The same set rules decide what GilbertOne shows you.",
+      "fellBack": "GilbertOne could not look at the picture this time. Answer the questions yourself — the check works the same way."
+    },
+    "offered": {
+      "whatItIsNot": "GilbertOne looks at your photo or your clip only if you ask it to, and then only to suggest words from this check's own list for you to confirm. It will not say what your rash is.",
+      "held": "Your photo or clip stays on this phone, on this screen. It is not saved, and nothing is sent unless you ask GilbertOne to look — and then only one smaller picture, for that one look.",
+      "noReader": "Nothing looks at your photo or your clip unless you ask GilbertOne to, and no person at MyThuso looks at it at all.",
+      "why": "The sentences the web shows in place of whatItIsNot's first sentence, photo.held and photo.noReader while the status route says the reader is open. The ones they replace are still true wherever the reader is not offered, so they stay as they are, and the phones keep them."
+    },
+    "local": {
+      "whoFirst": "Answer who the rash is on first. GilbertOne does not look at a picture of a baby younger than three months.",
+      "youngBaby": "GilbertOne does not look at a picture of a baby younger than three months, and the picture stays on this phone. A rash on a baby that young is one to show a sister today.",
+      "privateArea": "GilbertOne does not look at a picture of the face, the groin, the bottom or the nappy area, and the picture stays on this phone. Show it to your sister at the visit instead.",
+      "tooLarge": "This picture could not be made small enough to send, so it stays on this phone. Answer the questions yourself.",
+      "why": "Refused on the phone, before anything leaves it: who the rash is on and where it is are her own answers, read before the look is offered, so a picture of a young baby or of a private area is never sent to be refused. The service refuses a young baby again, and the model's private-or-face outcome refuses what her answers did not say."
+    },
+    "why": "A photo of somebody's skin is health information and a picture of their body. Reading one is a clinical act, and sending one anywhere is a processing decision POPIA asks to be assessed first. None of the four things it waits on exists. The founder switched the reader on for demonstration on 2 October 2026, and it is built so that what it does is the smallest thing that answers the ask: it suggests words she already had to choose, she decides whether they are right, and the same rules as before read only what she decided. The model describes; it never decides."
   },
   "platforms": ["web", "ios", "android"],
   "fixtures": {

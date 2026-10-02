@@ -28,7 +28,7 @@
   "assistantPaths": {
    "engine": "assistant",
    "mount": "/assistant",
-   "paths": ["/health", "/turn", "/v1/turn", "/v1/listen", "/v1/speak", "/v1/triage/start", "/v1/triage/answer", "/v1/vitals", "/v1/handover/prepare", "/v1/handover/submit", "/v1/knowledge/search", "/v1/status", "/v1/founder/session", "/v1/founder/keys", "/v1/founder/reveal", "/v1/founder/settings", "/v1/founder/settings/changes", "/v1/founder/providers", "/v1/founder/providers/{card}/key", "/v1/founder/providers/{card}/enabled", "/v1/founder/providers/{card}/test", "/v1/founder/providers/{card}/logs"],
+   "paths": ["/health", "/turn", "/v1/turn", "/v1/listen", "/v1/speak", "/v1/triage/start", "/v1/triage/answer", "/v1/vitals", "/v1/handover/prepare", "/v1/handover/submit", "/v1/knowledge/search", "/v1/status", "/v1/founder/session", "/v1/founder/keys", "/v1/founder/reveal", "/v1/founder/settings", "/v1/founder/settings/changes", "/v1/founder/providers", "/v1/founder/providers/{card}/key", "/v1/founder/providers/{card}/enabled", "/v1/founder/providers/{card}/test", "/v1/founder/providers/{card}/logs", "/v1/photo-reading"],
    "why": "The conversation service answers its own paths: the health and turn routes it runs today, and the versioned /assistant/v1/* family the GilbertOne foundation plan declares for it. They keep their names and are mounted under /assistant by reference, so the address a client calls and the path this contract freezes are the same string, exactly as §26's Passport paths are."
   },
   "idempotency": {

@@ -2787,6 +2787,25 @@ export interface GetFounderProvidersByCardLogsResponse {
  readonly persisted: boolean;
 }
 
+export type GetPhotoReadingRequest = Record<string, never>;
+export interface GetPhotoReadingResponse {
+ readonly processor: string;
+ readonly region: string;
+ readonly demonstration: boolean;
+ readonly disclaimer?: string;
+}
+
+export interface PostPhotoReadingRequest {
+ readonly userConsent: boolean;
+ readonly who: string;
+ readonly imageBase64: string;
+ readonly imageType: string;
+}
+export interface PostPhotoReadingResponse {
+ readonly looks: readonly string[];
+ readonly where: readonly string[];
+}
+
 export const apiRoutes = {
  postCoreEvents: { name: "postCoreEvents", method: "POST", path: "/v1/core/events", mountedPath: "/v1/core/events", version: 1, engine: "core", callers: ["engine:access","engine:pulse","engine:care","engine:clinical","engine:safety","engine:movement","engine:trust","engine:record","engine:medicines","engine:devices","engine:money"], purpose: ["audit"], idempotent: false, status: "built" },
  postCoreLoops: { name: "postCoreLoops", method: "POST", path: "/v1/core/loops", mountedPath: "/v1/core/loops", version: 1, engine: "core", callers: ["engine:care","engine:safety","engine:medicines","engine:access","engine:movement"], purpose: ["treatment","dispatch","emergency"], idempotent: true, status: "built" },
@@ -3062,5 +3081,7 @@ export const apiRoutes = {
  deleteFounderProvidersByCardKey: { name: "deleteFounderProvidersByCardKey", method: "DELETE", path: "/v1/founder/providers/{card}/key", mountedPath: "/assistant/v1/founder/providers/{card}/key", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" },
  postFounderProvidersByCardEnabled: { name: "postFounderProvidersByCardEnabled", method: "POST", path: "/v1/founder/providers/{card}/enabled", mountedPath: "/assistant/v1/founder/providers/{card}/enabled", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" },
  postFounderProvidersByCardTest: { name: "postFounderProvidersByCardTest", method: "POST", path: "/v1/founder/providers/{card}/test", mountedPath: "/assistant/v1/founder/providers/{card}/test", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" },
- getFounderProvidersByCardLogs: { name: "getFounderProvidersByCardLogs", method: "GET", path: "/v1/founder/providers/{card}/logs", mountedPath: "/assistant/v1/founder/providers/{card}/logs", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" }
+ getFounderProvidersByCardLogs: { name: "getFounderProvidersByCardLogs", method: "GET", path: "/v1/founder/providers/{card}/logs", mountedPath: "/assistant/v1/founder/providers/{card}/logs", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built" },
+ getPhotoReading: { name: "getPhotoReading", method: "GET", path: "/v1/photo-reading", mountedPath: "/assistant/v1/photo-reading", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postPhotoReading: { name: "postPhotoReading", method: "POST", path: "/v1/photo-reading", mountedPath: "/assistant/v1/photo-reading", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" }
 } as const satisfies Record<string, ApiRoute>;

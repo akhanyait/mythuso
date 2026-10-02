@@ -297,6 +297,8 @@ enum ApisData {
     static let postFounderProvidersByCardEnabled = Route(id: "postFounderProvidersByCardEnabled", method: "POST", path: "/v1/founder/providers/{card}/enabled", mountedPath: "/assistant/v1/founder/providers/{card}/enabled", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built")
     static let postFounderProvidersByCardTest = Route(id: "postFounderProvidersByCardTest", method: "POST", path: "/v1/founder/providers/{card}/test", mountedPath: "/assistant/v1/founder/providers/{card}/test", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built")
     static let getFounderProvidersByCardLogs = Route(id: "getFounderProvidersByCardLogs", method: "GET", path: "/v1/founder/providers/{card}/logs", mountedPath: "/assistant/v1/founder/providers/{card}/logs", version: 1, engine: "assistant", callers: ["founder"], purpose: ["audit"], idempotent: false, status: "built")
+    static let getPhotoReading = Route(id: "getPhotoReading", method: "GET", path: "/v1/photo-reading", mountedPath: "/assistant/v1/photo-reading", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postPhotoReading = Route(id: "postPhotoReading", method: "POST", path: "/v1/photo-reading", mountedPath: "/assistant/v1/photo-reading", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
 
     static let routes: [Route] = [
         postCoreEvents,
@@ -573,7 +575,9 @@ enum ApisData {
         deleteFounderProvidersByCardKey,
         postFounderProvidersByCardEnabled,
         postFounderProvidersByCardTest,
-        getFounderProvidersByCardLogs
+        getFounderProvidersByCardLogs,
+        getPhotoReading,
+        postPhotoReading
     ]
 
     struct PostCoreEventsRequest {
@@ -3066,5 +3070,22 @@ enum ApisData {
         let card: String
         let lines: [[String: Any]]
         let persisted: Bool
+    }
+    struct GetPhotoReadingRequest {}
+    struct GetPhotoReadingResponse {
+        let processor: String
+        let region: String
+        let demonstration: Bool
+        let disclaimer: String?
+    }
+    struct PostPhotoReadingRequest {
+        let userConsent: Bool
+        let who: String
+        let imageBase64: String
+        let imageType: String
+    }
+    struct PostPhotoReadingResponse {
+        let looks: [String]
+        let `where`: [String]
     }
 }

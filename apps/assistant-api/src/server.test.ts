@@ -1098,8 +1098,9 @@ test('every address the contract declares is built, and none of them answers not
     the founder's eight settings and vault routes (28 September 2026), which a server started without
     its switch answers with the dark refusal — never a 404 and never not-yet-available — so the walk
     below holds them to the same rule. A path parameter is walked as a card the vault knows, since the
-    literal brace is an address nobody calls. */
- assert.equal(declared.length, 24, 'twenty-four addresses, and the test below walks every one');
+    literal brace is an address nobody calls. Since 2 October 2026 the photo reader's two methods at one
+    address, which a process with no model that may look answers with its own refusal. */
+ assert.equal(declared.length, 26, 'twenty-six addresses, and the test below walks every one');
  const errors = await withServer(
   async () => QUIET_ANSWER,
   async (base) => {

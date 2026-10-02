@@ -10244,6 +10244,15 @@ if (
       throw new Error(
         `packages/catalog/apis/assistant.json declares ${route.method} ${route.path}@${route.version} with its evidence on the engine runtime. Only the assistant's settings routes live there; every conversation route is apps/assistant-api's and is called by both native clients.`,
       );
+  /* The skin check's photo reader is the third exception, since 2 October 2026: built on the web only,
+     under the founder's demonstration override, which is not generated to the phones. Its routes are
+     exactly the two packages/catalog/skin-check.json#photoReading names while its platforms leave the
+     phones out, and a native client that names either fails below, as a founder route does — the phones
+     keep saying GilbertOne does not read photos. The day the contract lists a phone, both clients owe
+     the routes again. */
+  const photoReading = JSON.parse(read("packages/catalog/skin-check.json")).photoReading ?? {};
+  const webOnlyKeys = ["ios", "android"].some((p) => (photoReading.platforms ?? []).includes(p)) ? [] : [photoReading.route, photoReading.statusRoute];
+  const webOnly = (route) => webOnlyKeys.includes(`${route.method} ${route.path}@${route.version}`);
   /* A withdrawn version keeps its status — speak@3 was built when it was withdrawn in favour of @4 on
      28 September 2026 — and has no callers by the API rule, so a client is held to the live versions. */
   const built = contract.routes.filter(
@@ -10252,7 +10261,8 @@ if (
       !route.withdrawn &&
       route.path.startsWith("/v1/") &&
       !founderOnly(route) &&
-      !onEngineRuntime(route),
+      !onEngineRuntime(route) &&
+      !webOnly(route),
   );
   for (const file of clients) {
     const source = read(file);
@@ -10260,6 +10270,11 @@ if (
       if (source.includes(`/assistant${route.path}`))
         throw new Error(
           `${file} names /assistant${route.path}, a founder-access route. Founder access is the founder's, in the Control Tower, and a native app never carries a way to reveal a key.`,
+        );
+    for (const route of contract.routes.filter(webOnly))
+      if (source.includes(`/assistant${route.path}`))
+        throw new Error(
+          `${file} names /assistant${route.path}, the skin check's photo reader. It is built on the web only, under the founder's demonstration override, which is not generated to the phones.`,
         );
     for (const route of built) {
       const address = `${route.method} /assistant${route.path}@${route.version}`;

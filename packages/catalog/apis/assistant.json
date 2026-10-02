@@ -1,8 +1,8 @@
 {
  "engine": "assistant",
- "_note": "The assistant engine's routes. The service answers seven of them today, exactly as apps/assistant-api/src/server.ts registers them: GET /assistant/health and one turn at POST /assistant/turn, and at the plan's own versioned addresses POST /assistant/v1/turn, POST /assistant/v1/knowledge/search, GET /assistant/v1/status and push-to-talk's two — POST /assistant/v1/listen and POST /assistant/v1/speak, built on 22 September 2026 against Azure Speech. The rest of the /v1/* family — triage conducted over Clinical's rules, a reading written through the Passport gateway, handover prepare and submit — is declared and not built: the engine's not-yet-available refusal answers each of them with 501, so a caller meets a sentence it can read rather than a 404 it cannot tell from a typo, and packages/mock-api answers them on loopback with synthetic data until each is built. Those five routes were re-declared at version two because that refusal's answeredBy now names them, and adding a refusal is a change as much as rewording one: each version one is withdrawn in its favour, with no callers, its shape and its refusals unchanged. listen is at version three and speak at version four for the same kind of reason: the shape a built capture arrives in is audio rather than the captureMs window version two was frozen with, so their version two entries are withdrawn in version three's favour with no callers, and the engine's cloud-speech refusal, added with them, answers version three alone. speak's version three is withdrawn in version four's favour since 28 September 2026: version four names the register the words belong to, so the administrator's speech settings reach a presentation register and never a clinical one, and it refuses at the monthly ceiling. /v1/knowledge/search is at version two for the same reason, with the three refusals its handler actually answers and its sources now declared as objects rather than as text; its version one is withdrawn in the same way. The turn's declared shape is this contract's reading of the service it captures; the service's own request type also accepts an optional visitId, and this contract refuses that name — another engine's resource under an Id name, per packages/catalog/apis.json#_contractIdsNote — so it is not declared here. The two settings routes at the end — GET /v1/assistant/settings and POST /v1/assistant/setting-changes, added 27 September 2026 when the founder made the four presentation voice registers of packages/catalog/voice.json an admin setting — are not the service's: they are bound on the development engine runtime by packages/engines/src/assistant/engine.ts through the shared settings code, exactly as every other engine's settings routes are, so the assistant's settings history lives where every engine's does and the Configuration screen changes it there. apps/assistant-api does not read that history yet; the web preview reads the same rules from memory. Since 28 September 2026 — the founder's instruction that the owner controls every aspect — eight more founder routes are the service's, behind the same founder session: GET /v1/founder/settings and POST /v1/founder/settings/changes, the founder-signed settings history the speak route reads (packages/catalog/founder-access.json#settings), and six under /v1/founder/providers — the provider key vault, its enable switch, its test and its audit lines (#vault). A key set, a key deletion and an enable change ask for a fresh authenticator code, as a reveal does; nothing in any answer is ever a key.",
+ "_note": "The assistant engine's routes. The service answers seven of them today, exactly as apps/assistant-api/src/server.ts registers them: GET /assistant/health and one turn at POST /assistant/turn, and at the plan's own versioned addresses POST /assistant/v1/turn, POST /assistant/v1/knowledge/search, GET /assistant/v1/status and push-to-talk's two — POST /assistant/v1/listen and POST /assistant/v1/speak, built on 22 September 2026 against Azure Speech. The rest of the /v1/* family — triage conducted over Clinical's rules, a reading written through the Passport gateway, handover prepare and submit — is declared and not built: the engine's not-yet-available refusal answers each of them with 501, so a caller meets a sentence it can read rather than a 404 it cannot tell from a typo, and packages/mock-api answers them on loopback with synthetic data until each is built. Those five routes were re-declared at version two because that refusal's answeredBy now names them, and adding a refusal is a change as much as rewording one: each version one is withdrawn in its favour, with no callers, its shape and its refusals unchanged. listen is at version three and speak at version four for the same kind of reason: the shape a built capture arrives in is audio rather than the captureMs window version two was frozen with, so their version two entries are withdrawn in version three's favour with no callers, and the engine's cloud-speech refusal, added with them, answers version three alone. speak's version three is withdrawn in version four's favour since 28 September 2026: version four names the register the words belong to, so the administrator's speech settings reach a presentation register and never a clinical one, and it refuses at the monthly ceiling. /v1/knowledge/search is at version two for the same reason, with the three refusals its handler actually answers and its sources now declared as objects rather than as text; its version one is withdrawn in the same way. The turn's declared shape is this contract's reading of the service it captures; the service's own request type also accepts an optional visitId, and this contract refuses that name — another engine's resource under an Id name, per packages/catalog/apis.json#_contractIdsNote — so it is not declared here. The two settings routes at the end — GET /v1/assistant/settings and POST /v1/assistant/setting-changes, added 27 September 2026 when the founder made the four presentation voice registers of packages/catalog/voice.json an admin setting — are not the service's: they are bound on the development engine runtime by packages/engines/src/assistant/engine.ts through the shared settings code, exactly as every other engine's settings routes are, so the assistant's settings history lives where every engine's does and the Configuration screen changes it there. apps/assistant-api does not read that history yet; the web preview reads the same rules from memory. Since 28 September 2026 — the founder's instruction that the owner controls every aspect — eight more founder routes are the service's, behind the same founder session: GET /v1/founder/settings and POST /v1/founder/settings/changes, the founder-signed settings history the speak route reads (packages/catalog/founder-access.json#settings), and six under /v1/founder/providers — the provider key vault, its enable switch, its test and its audit lines (#vault). A key set, a key deletion and an enable change ask for a fresh authenticator code, as a reveal does; nothing in any answer is ever a key. Since 2 October 2026 two more are the service's, GET and POST /v1/photo-reading: the skin check's photo reader, built under the founder's demonstration override (packages/catalog/demonstration-override.json, gate photo-reading) beside the four things packages/catalog/skin-check.json#photoReading waits on. The status route says whether it is open and who reads the picture where; the reading route takes one smaller still, has the configured Azure OpenAI deployment describe it in the skin check's own option ids and nothing else, and keeps nothing. It decides no clinical question: the patient confirms each word, and the skin check's own rules read only what she confirmed.",
  "version": 1,
- "resources": ["health", "turn", "listen", "speak", "triage", "vitals", "handover", "knowledge", "status", "founder", "settings", "setting-changes"],
+ "resources": ["health", "turn", "listen", "speak", "triage", "vitals", "handover", "knowledge", "status", "founder", "settings", "setting-changes", "photo-reading"],
  "doors": [],
  "doorsToAdd": [],
  "refusals": [
@@ -2727,6 +2727,223 @@
   },
   "enforcedBy": {
    "mechanism": "founder-session"
+  }
+ },
+ {
+  "method": "GET",
+  "path": "/v1/photo-reading",
+  "version": 1,
+  "summary": "Whether GilbertOne may look at a picture of skin here, and who would read it and where — asked by the skin check before it offers the look.",
+  "callers": [
+   "anonymous"
+  ],
+  "purpose": [
+   "treatment"
+  ],
+  "request": [],
+  "response": [
+   {
+    "field": "processor",
+    "type": "string",
+    "required": true,
+    "why": "The provider that would read the picture, by its name in packages/catalog/model-providers.json, so the screen names it before anything is sent."
+   },
+   {
+    "field": "region",
+    "type": "string",
+    "required": true,
+    "why": "Where that provider reads it, by the name skin-check.json#photoReading.processor.regions gives the provider's recorded region — always a South African one, or this route refuses."
+   },
+   {
+    "field": "demonstration",
+    "type": "boolean",
+    "required": true,
+    "why": "True when the reader is open only because the founder's demonstration override is in force, and not because the four things it waits on are signed. Today it is always true."
+   },
+   {
+    "field": "disclaimer",
+    "type": "string",
+    "required": false,
+    "why": "The override's disclaimer sentence, word for word from packages/catalog/demonstration-override.json, sent when demonstration is true. The screen shows its own copy from the same file; this one says the service read the same switch."
+   }
+  ],
+  "refusals": [
+   {
+    "id": "origin-not-allowed",
+    "status": 403,
+    "statement": "This service answers its own site only.",
+    "why": "A browser origin this deployment does not answer is refused before any route reads the URL."
+   },
+   {
+    "id": "photo-reading-not-open",
+    "status": 503,
+    "statement": "GilbertOne does not read photos. Reading a photo of skin waits on four things that do not exist yet: a photo-reading protocol ratified with a named clinical reviewer, an impact assessment that covers images, an appointed Information Officer, and a decision on who would process the images and in which country.",
+    "why": "The demonstration override's gate photo-reading, asked beside the four things packages/catalog/skin-check.json#photoReading waits on and never instead of them: signed || overrideOpens('photo-reading'). With none of the four in place and the override switched off — inForce false, which is going live — the reader is shut and says so in the skin check's own sentence, before a body is read. apps/assistant-api/src/lib/photo-reading.ts asks it."
+   },
+   {
+    "id": "photo-reading-has-no-model",
+    "status": 503,
+    "statement": "No model that can look at a picture is configured here in a South African region, so the check carries on with your own answers.",
+    "why": "The reader is open only where the model tier may run (the production acknowledgement of apps/assistant-api/src/lib/activation.ts), Azure OpenAI is configured, its deployment is one skin-check.json#photoReading.processor.imageDeployments names as taking a picture, and the provider's recorded region is one of its South African regions. Any of those missing closes it rather than sending a picture to a model that cannot look at it, or abroad, and faking an answer."
+   }
+  ],
+  "emits": [],
+  "emitsNoneBecause": "Reading whether a gate is open changes nothing.",
+  "idempotent": false,
+  "endpointNamed": null,
+  "capabilityNamed": null,
+  "status": "built",
+  "evidence": {
+   "file": "apps/assistant-api/src/server.ts",
+   "handler": "req.method === 'GET' && req.url === '/assistant/v1/photo-reading'"
+  },
+  "enforcedBy": {
+   "mechanism": "anonymous"
+  }
+ },
+ {
+  "method": "POST",
+  "path": "/v1/photo-reading",
+  "version": 1,
+  "summary": "One smaller still of skin, described once by the configured model in the skin check's own looks and where options and nothing else, and kept nowhere — the words for the patient to confirm, never a decision.",
+  "callers": [
+   "anonymous"
+  ],
+  "purpose": [
+   "treatment"
+  ],
+  "request": [
+   {
+    "field": "userConsent",
+    "type": "boolean",
+    "required": true,
+    "why": "Her agreement, given by pressing Ask GilbertOne to look, after the screen has said where the picture goes. Only an explicit true is agreement, and nothing is looked at without it."
+   },
+   {
+    "field": "who",
+    "type": "string",
+    "required": true,
+    "why": "Her answer to the skin check's who question, by option id, so a picture of a baby younger than three months is refused before any model sees it. It names a kind of person, never a person."
+   },
+   {
+    "field": "imageBase64",
+    "type": "string",
+    "required": true,
+    "why": "One still, made smaller in the browser: a JPEG no longer than skin-check.json#photoReading.image.maxEdge pixels on its longer side, at most image.maxBytes once decoded. Never a clip and never sound — from a clip, the one frame on the screen. Held in this request only: not written to disk, not logged, not put in a session, and dropped when the answer is sent."
+   },
+   {
+    "field": "imageType",
+    "type": "string",
+    "required": true,
+    "why": "image/jpeg and nothing else, checked against the picture's own first bytes as well as this word."
+   }
+  ],
+  "response": [
+   {
+    "field": "looks",
+    "type": "list",
+    "required": true,
+    "why": "What the model could see, as option ids of the skin check's looks question — never a word of its own. At least one, and at most photoReading.vocabulary.maxLooks. The screen shows each by the contract's own label for her to confirm or take off."
+   },
+   {
+    "field": "where",
+    "type": "list",
+    "required": true,
+    "why": "Where on the body, as option ids of the skin check's where question without the face, the groin or the nappy area, or empty when it could not tell."
+   }
+  ],
+  "refusals": [
+   {
+    "id": "origin-not-allowed",
+    "status": 403,
+    "statement": "This service answers its own site only.",
+    "why": "A browser origin this deployment does not answer is refused before any route reads the URL."
+   },
+   {
+    "id": "photo-reading-not-open",
+    "status": 503,
+    "statement": "GilbertOne does not read photos. Reading a photo of skin waits on four things that do not exist yet: a photo-reading protocol ratified with a named clinical reviewer, an impact assessment that covers images, an appointed Information Officer, and a decision on who would process the images and in which country.",
+    "why": "The demonstration override's gate photo-reading, asked beside the four things packages/catalog/skin-check.json#photoReading waits on and never instead of them: signed || overrideOpens('photo-reading'). With none of the four in place and the override switched off — inForce false, which is going live — the reader is shut and says so in the skin check's own sentence, before a body is read. apps/assistant-api/src/lib/photo-reading.ts asks it."
+   },
+   {
+    "id": "photo-reading-has-no-model",
+    "status": 503,
+    "statement": "No model that can look at a picture is configured here in a South African region, so the check carries on with your own answers.",
+    "why": "The reader is open only where the model tier may run (the production acknowledgement of apps/assistant-api/src/lib/activation.ts), Azure OpenAI is configured, its deployment is one skin-check.json#photoReading.processor.imageDeployments names as taking a picture, and the provider's recorded region is one of its South African regions. Any of those missing closes it rather than sending a picture to a model that cannot look at it, or abroad, and faking an answer."
+   },
+   {
+    "id": "photo-reading-needs-consent",
+    "status": 403,
+    "statement": "Nothing looks at a picture unless the person asked for it.",
+    "why": "The button is the agreement, as push-to-talk's is. A picture that arrived without an explicit true is refused before it is decoded."
+   },
+   {
+    "id": "photo-of-a-young-baby",
+    "status": 422,
+    "statement": "A picture of a baby younger than three months is not looked at. A rash on a baby that young is one to show a sister today.",
+    "why": "The skin check's own rule sends a rash on a baby younger than three months to a sister today whatever it looks like, so a description could change nothing and the picture of a baby is not sent on. The screen refuses it before sending; this is the second time."
+   },
+   {
+    "id": "photo-not-a-jpeg",
+    "status": 415,
+    "statement": "Only a JPEG picture made smaller on the device is looked at here.",
+    "why": "The browser makes every picture a small JPEG before it leaves, so anything else — another type, a clip, sound, a file that only says it is a JPEG — was not made by the check and is refused before a model is asked."
+   },
+   {
+    "id": "payload-too-large",
+    "status": 413,
+    "statement": "The request could not be processed safely.",
+    "why": "A body over the service's ceiling is refused before it is parsed, and a picture over skin-check.json#photoReading.image.maxBytes once decoded is refused before a model is asked."
+   },
+   {
+    "id": "invalid-request",
+    "status": 400,
+    "statement": "The request could not be processed safely.",
+    "why": "A body that is not JSON, or that is missing the picture, its type or the who answer, or whose who is not one of the check's options, is refused with its own status."
+   },
+   {
+    "id": "photo-shows-a-face-or-private-area",
+    "status": 422,
+    "statement": "This picture shows a face or a private part of the body, so GilbertOne does not describe it. Show it to your sister at the visit instead.",
+    "why": "A face is a person, and a picture of genitals, buttocks or a bare breast is the most private thing a patient can hold up. The model's private-or-face outcome is answered with this refusal and nothing it saw is returned."
+   },
+   {
+    "id": "photo-is-not-skin",
+    "status": 422,
+    "statement": "This picture does not seem to show skin, so GilbertOne does not describe it. Try another, or answer the questions yourself.",
+    "why": "The model's not-skin outcome. A description of something that is not skin would be words fed into a skin check's rules about nothing."
+   },
+   {
+    "id": "photo-not-clear",
+    "status": 422,
+    "statement": "This picture is not clear enough to describe. Try another in good light, or answer the questions yourself.",
+    "why": "The model's unclear outcome. Guessing at a blurred picture is how a description becomes an invention."
+   },
+   {
+    "id": "photo-not-described",
+    "status": 422,
+    "statement": "GilbertOne could not describe this picture in the words this check allows, so it says nothing about it.",
+    "why": "The model's answer is one JSON object of the outcome, the looks and the where, every value an id the contract lists. Anything else — free text, a condition's name, an id the check does not ask about, an extra key, a described outcome with nothing seen — is thrown away whole rather than trimmed, because a model that left the vocabulary once has told us nothing we can trust."
+   },
+   {
+    "id": "internal-error",
+    "status": 500,
+    "statement": "The request could not be processed safely.",
+    "why": "A fault out of the model — a refusal, a timeout, a transport that hung — is this process's, never the caller's: one non-revealing sentence, and a log line carrying an error's type name and never the picture, its size beyond the route, or anything the model said."
+   }
+  ],
+  "emits": [],
+  "emitsNoneBecause": "The picture is described and let go; nothing is written to a store, a session, a record or the bus.",
+  "idempotent": false,
+  "endpointNamed": null,
+  "capabilityNamed": null,
+  "status": "built",
+  "evidence": {
+   "file": "apps/assistant-api/src/server.ts",
+   "handler": "req.method === 'POST' && req.url === '/assistant/v1/photo-reading'"
+  },
+  "enforcedBy": {
+   "mechanism": "anonymous"
   }
  }
  ]

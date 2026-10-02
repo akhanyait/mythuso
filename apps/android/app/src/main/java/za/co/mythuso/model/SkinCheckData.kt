@@ -8,7 +8,7 @@
 package za.co.mythuso.model
 
 object SkinCheckData {
-    const val version = 2
+    const val version = 3
     const val chipLabel = "Show GilbertOne a rash"
     val whatItIsNot = listOf("GilbertOne does not look at your photo or your clip. Nothing reads them in this build — they are there for you to compare later and to show your nurse.", "GilbertOne will not say what your rash is. Only a nurse or doctor who sees it can say what yours is.", "Nothing here is a prescription. The care steps are general first aid from public health sources.")
     val required = listOf("who", "signs")

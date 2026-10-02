@@ -509,3 +509,5 @@ GET /v1/founder/providers/{card}/logs@1 4ed9dfa8dbeedc06
 POST /v1/clinical/cases@1 ed0ff6eaff3f6768
 GET /v1/clinical/cases/{caseRef}@1 d636e564ef581354
 POST /v1/clinical/cases/{caseRef}/setting@1 145efbf9cbbc8a29
+GET /v1/photo-reading@1 5deabec87e76c998
+POST /v1/photo-reading@1 91d65db2d5a0d780

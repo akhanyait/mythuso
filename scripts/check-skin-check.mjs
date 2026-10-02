@@ -15,7 +15,9 @@
       never names a single entry; every entry named exists, and every new one says nobody has reviewed it.
    3. The photo is held and never read or sent: no capture attribute, no storage, no request, no reader of
       its bytes on the web; no save, no file, no camera permission on either phone; every object URL
-      revoked. The photo reader is declared and refused everywhere, with no route behind it.
+      revoked. Since 2 October 2026 the photo reader is built on the web under the founder's demonstration
+      override, and held by scripts/check-photo-reading.mjs, called below: one still she asks to send, read
+      only into the check's own option ids for her to confirm. The phones still have no reader.
    3a. A short clip, since the founder's decision of 2 October 2026 (this replaced the rule that took still
       photos only, "a video carries sound"): held as the photo is, no longer than the contract's cap —
       which no screen restates — and played muted with no control that could turn the sound on, and
@@ -41,6 +43,7 @@ const IOS_HELD = "private enum SkinClipFile {";
 const UNITS = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
 const TENS = ["", "", "twenty", "thirty", "forty", "fifty"];
 const inWords = (n) => (n < 20 ? UNITS[n] : `${TENS[Math.floor(n / 10)]}${n % 10 ? `-${UNITS[n % 10]}` : ""}`);
+import { checkPhotoReading } from "./check-photo-reading.mjs";
 const TELLS_HER = /\b(you have|you've got|you’ve got|you have got|your (rash|skin) is (a|an)\b|diagnos\w*)/i;
 
 export function checkSkinCheck({ read, stems, hasSequence, existsSync }) {
@@ -50,7 +53,6 @@ export function checkSkinCheck({ read, stems, hasSequence, existsSync }) {
   const firstAid = JSON.parse(read("packages/catalog/knowledge/first-aid.json"));
   const terms = JSON.parse(read("packages/catalog/gilbert-emergency-terms.json"));
   const assistant = JSON.parse(read("packages/catalog/assistant.json"));
-  const apis = JSON.parse(read("packages/catalog/apis/assistant.json"));
   const strip = (source) => source.replace(/\{\/\*[\s\S]*?\*\/\}/g, " ").replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
   const raises = (text) => {
     const said = stems(text);
@@ -68,7 +70,9 @@ export function checkSkinCheck({ read, stems, hasSequence, existsSync }) {
     fail(`${SKIN} says it renders on ${JSON.stringify(contract.platforms)}. It is built on all three platforms, and each is held below.`);
   /* Everything addressed to the patient, walked: no digit (a number lives in one other place), and nothing
      that tells her what she has. The reasoning, the ids and the references are not addressed to her. */
-  const NOT_SAID = new Set(["_note", "why", "rule", "exclusiveWhy", "requiredWhy", "rulesWhy", "maxShownWhy", "tooLargeWhy", "tooLargeFrom", "routeWhy", "sendFrom", "keptBecause", "accept", "platforms", "fixtures", "changelog", "id", "question", "anyOf", "oftenSeenIn", "checkFirst", "drawsOn", "outcome", "kind", "exclusive", "required", "status", "decidedBy", "on", "version", "route", "always", "forCondition", "everywhere", "inPlace", "reviewedBy", "emergencyHandsTo", "why", "maxSecondsWhy", "sizeWhy"]);
+  const NOT_SAID = new Set(["_note", "why", "rule", "exclusiveWhy", "requiredWhy", "rulesWhy", "maxShownWhy", "tooLargeWhy", "tooLargeFrom", "routeWhy", "sendFrom", "keptBecause", "accept", "platforms", "fixtures", "changelog", "id", "question", "anyOf", "oftenSeenIn", "checkFirst", "drawsOn", "outcome", "kind", "exclusive", "required", "status", "decidedBy", "on", "version", "route", "always", "forCondition", "everywhere", "inPlace", "reviewedBy", "emergencyHandsTo", "why", "maxSecondsWhy", "sizeWhy",
+    /* The photo reader's reasoning, ids and the model's brief, none of it addressed to the patient. */
+    "gate", "opensWhen", "platformsWhy", "sentenceWhy", "statusRoute", "provider", "from", "regionsWhy", "imageDeployments", "imageDeploymentsWhy", "type", "timeoutWhy", "except", "instructions", "instructionsWhy"]);
   const said = [];
   const walk = (node, path) => {
     if (typeof node === "string") said.push([path, node]);
@@ -153,8 +157,9 @@ export function checkSkinCheck({ read, stems, hasSequence, existsSync }) {
   if (!(contract.photo.accept ?? []).length || contract.photo.accept.some((t) => !/^image\//.test(t))) fail(`${SKIN} accepts ${contract.photo.accept.join(", ")} as a photo. A photo is an image; a clip is the clip's, held to its own rules below.`);
   if (!contract.photo.noReader || !contract.photo.held) fail(`${SKIN} has lost a sentence saying where the photo is or that nothing reads it.`);
   const reading = contract.photoReading;
-  if (reading?.status !== "refused" || reading.everywhere !== true || reading.route !== null || !reading.waitsOn?.length || reading.waitsOn.some((w) => w.inPlace !== false))
-    fail(`${SKIN}'s photo reader is not refused everywhere with nothing in place and no route. Reading a photo of skin waits on a ratified protocol with a named reviewer, an impact assessment that covers images, an Information Officer and a processor decision; none exists.`);
+  /* What the reader is now — built on the web under the override, its routes, its gate and its refusals —
+     is scripts/check-photo-reading.mjs's to hold. This keeps the sentence the phones and a shut reader say. */
+  const photoReadingHeld = checkPhotoReading({ read, existsSync });
   if (!/protocol/i.test(reading.sentence) || !/impact assessment/i.test(reading.sentence) || !/Information Officer/.test(reading.sentence) || !/process/i.test(reading.sentence))
     fail(`${SKIN}'s photo-reader sentence no longer names all four things it waits on.`);
   /* 3a. The clip, as the contract holds it. */
@@ -173,8 +178,6 @@ export function checkSkinCheck({ read, stems, hasSequence, existsSync }) {
   if (!contract.whatItIsNot.some((s) => /does not look at your photo or your clip/i.test(s)) || !/clip/i.test(contract.photo.noReader))
     fail(`${SKIN} no longer says that nothing looks at the clip as well as the photo.`);
   if (contract.photo.videoRefused !== undefined) fail(`${SKIN} still carries photo.videoRefused beside a clip it takes. The screen would say video is not taken while taking one.`);
-  const photoRoute = apis.routes.find((r) => /photo|image|vision|skin/i.test(r.path) && r.status !== "withdrawn");
-  if (photoRoute) fail(`packages/catalog/apis/assistant.json declares ${photoRoute.method} ${photoRoute.path}. The skin check sends no photo anywhere; a photo route is proposed only when the four things the reader waits on exist, and the contract's route field changes with it.`);
   const web = strip(read(WEB_SCREEN));
   const webLib = strip(read(WEB_LIB));
   const shared = strip(read(SHARED));
@@ -292,5 +295,5 @@ export function checkSkinCheck({ read, stems, hasSequence, existsSync }) {
     fail(`${journey} no longer chooses a clip, holds that it plays muted, and refuses one over the cap.`);
   if (!/skin-check\.json/.test(read("docs/FEATURE-MAP.md"))) fail("docs/FEATURE-MAP.md has no row for the skin check.");
 
-  return `Skin check · ${contract.questions.length} questions and ${contract.rules.length} rules from ${SKIN}, ${emergencyOptions.size} emergency rules each handing the conversation an option its own emergency terms raise and no other option raising them; ${named.size} knowledge entries named, every option that names entries naming at least two, every added entry awaiting clinical review; no digit and no you-have sentence addressed to the patient; the photo held in memory on all three platforms — one object URL revoked by its own clean-up, no capture attribute, no storage, no request and no reader on the web, PhotosPicker and no save on iOS, the picker and the in-memory preview and no file on Android — and a clip of at most ${clip.maxSeconds} seconds ("${inWords(clip.maxSeconds)} seconds" in its sentence) held the same way, muted with no audio control and no sound read anywhere: one muted video element through the same URL hook on the web, one temporary copy deleted on every way out and the picture track alone on iOS, the picker's address at zero volume and no file on Android; the photo reader refused everywhere with no route; the screens type no sentence, show the review state and decide nothing; the web screen behind the panel's dynamic import; generator, project, journey and map row in place.`;
+  return `Skin check · ${contract.questions.length} questions and ${contract.rules.length} rules from ${SKIN}, ${emergencyOptions.size} emergency rules each handing the conversation an option its own emergency terms raise and no other option raising them; ${named.size} knowledge entries named, every option that names entries naming at least two, every added entry awaiting clinical review; no digit and no you-have sentence addressed to the patient; the photo held in memory on all three platforms — one object URL revoked by its own clean-up, no capture attribute, no storage, no request and no reader on the web, PhotosPicker and no save on iOS, the picker and the in-memory preview and no file on Android — and a clip of at most ${clip.maxSeconds} seconds ("${inWords(clip.maxSeconds)} seconds" in its sentence) held the same way, muted with no audio control and no sound read anywhere: one muted video element through the same URL hook on the web, one temporary copy deleted on every way out and the picture track alone on iOS, the picker's address at zero volume and no file on Android; the photo reader shut on both phones and wherever its gate is shut; the screens type no sentence, show the review state and decide nothing; the web screen behind the panel's dynamic import; generator, project, journey and map row in place.\n${photoReadingHeld}`;
 }

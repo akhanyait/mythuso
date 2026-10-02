@@ -150,3 +150,22 @@
 .as-scroll[data-skin] ~ .as-compose {
   display: none;
 }
+/* The photo reader (2 October 2026, under the founder's demonstration override): one box under the
+   picture, on the panel's own colours, with the disclaimer drawn on the brand's warning edge so it is read
+   before the button. Its chips are the same 44-pixel chips as the questions'. */
+.sk-look {
+  display: grid;
+  gap: var(--space-8);
+  min-width: 0;
+  padding: var(--space-12);
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: var(--r-card);
+}
+.sk-demo {
+  padding-left: var(--space-8);
+  border-left: 3px solid var(--brand-orange);
+  font-weight: 600;
+}
+.sk-look-note {
+  font-weight: 600;
+}

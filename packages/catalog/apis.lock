@@ -385,3 +385,5 @@ GET /v1/founder/providers/{card}/logs@1 8b84f16cc66c0868
 POST /v1/clinical/cases@1 2224e73d18338a87
 GET /v1/clinical/cases/{caseRef}@1 5bb14f5a7f80d00c
 POST /v1/clinical/cases/{caseRef}/setting@1 b90f42108b94dbb7
+GET /v1/photo-reading@1 4085e1858380849e
+POST /v1/photo-reading@1 fabb8cd0da64d1d1

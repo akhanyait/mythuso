@@ -297,6 +297,8 @@ object ApisData {
     val POST_FOUNDER_PROVIDERS_BY_CARD_ENABLED = Route("postFounderProvidersByCardEnabled", "POST", "/v1/founder/providers/{card}/enabled", "/assistant/v1/founder/providers/{card}/enabled", 1, "assistant", listOf("founder"), listOf("audit"), false, "built")
     val POST_FOUNDER_PROVIDERS_BY_CARD_TEST = Route("postFounderProvidersByCardTest", "POST", "/v1/founder/providers/{card}/test", "/assistant/v1/founder/providers/{card}/test", 1, "assistant", listOf("founder"), listOf("audit"), false, "built")
     val GET_FOUNDER_PROVIDERS_BY_CARD_LOGS = Route("getFounderProvidersByCardLogs", "GET", "/v1/founder/providers/{card}/logs", "/assistant/v1/founder/providers/{card}/logs", 1, "assistant", listOf("founder"), listOf("audit"), false, "built")
+    val GET_PHOTO_READING = Route("getPhotoReading", "GET", "/v1/photo-reading", "/assistant/v1/photo-reading", 1, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
+    val POST_PHOTO_READING = Route("postPhotoReading", "POST", "/v1/photo-reading", "/assistant/v1/photo-reading", 1, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
 
     val routes = listOf(
         POST_CORE_EVENTS,
@@ -573,7 +575,9 @@ object ApisData {
         DELETE_FOUNDER_PROVIDERS_BY_CARD_KEY,
         POST_FOUNDER_PROVIDERS_BY_CARD_ENABLED,
         POST_FOUNDER_PROVIDERS_BY_CARD_TEST,
-        GET_FOUNDER_PROVIDERS_BY_CARD_LOGS
+        GET_FOUNDER_PROVIDERS_BY_CARD_LOGS,
+        GET_PHOTO_READING,
+        POST_PHOTO_READING
     )
 
     data class PostCoreEventsRequest(
@@ -3066,5 +3070,22 @@ object ApisData {
         val card: String,
         val lines: List<Map<String, Any?>>,
         val persisted: Boolean
+    )
+    class GetPhotoReadingRequest
+    data class GetPhotoReadingResponse(
+        val processor: String,
+        val region: String,
+        val demonstration: Boolean,
+        val disclaimer: String? = null
+    )
+    data class PostPhotoReadingRequest(
+        val userConsent: Boolean,
+        val who: String,
+        val imageBase64: String,
+        val imageType: String
+    )
+    data class PostPhotoReadingResponse(
+        val looks: List<String>,
+        val where: List<String>
     )
 }

@@ -37,6 +37,7 @@ import {
 } from "./lib/speech.ts";
 import { knownRegister, type CeilingStore } from "./lib/speech-settings.ts";
 import { triageGate } from "./lib/triage-gate.ts";
+import { checkPhotoRequest, livePhotoReader, type PhotoReaderSeam } from "./lib/photo-reading.ts";
 import { validateVital, type VitalInput } from "./lib/vitals.ts";
 import { handleTurn, handleTurnStream, PayloadTooLargeError, RequiredFieldMissingError } from "./routes/turn.ts";
 import assistantContract from "../../../packages/catalog/apis/assistant.json" with { type: "json" };
@@ -368,6 +369,10 @@ export function createAssistantServer(
   settings: SettingsHistory = openSettingsHistory(state),
   vault: ProviderVault = openVault(state),
   now: () => number = Date.now,
+  /* Since 2 October 2026: the skin check's photo reader (./lib/photo-reading.ts) — its gate and one look
+     through a model. A test hands in a gate it decided and a stubbed model; the real entry passes nothing
+     and gets the override, the environment and Azure OpenAI. */
+  photos: PhotoReaderSeam = livePhotoReader(),
 ): Server {
   /* Every credential the language-model tier reads goes through the vault's view from here on: the
      vault's value before the environment, nothing for a card the founder switched off. */
@@ -855,6 +860,46 @@ export function createAssistantServer(
           refusalId: "internal-error",
           message: "The request could not be processed safely.",
         });
+      }
+    }
+    if (req.method === "GET" && req.url === "/assistant/v1/photo-reading") {
+      /* Whether the skin check may offer "Ask GilbertOne to look", built 2 October 2026 under the founder's
+      demonstration override: the gate's own answer — signed or the override, and a model here that can
+      look at a picture in a South African region — and, when it is open, who would read the picture and
+      where, so the screen names them before anything is sent. No body is read. A shut gate is its
+      refusal, in the contract's words; nothing here could carry a key, an endpoint or a deployment. */
+      const gate = photos.gate();
+      if (!gate.open) return refuse(res, cors.headers, gate.refusalId);
+      return send(res, 200, cors.headers, {
+        processor: gate.processor,
+        region: gate.region,
+        demonstration: gate.demonstration,
+        ...(gate.disclaimer ? { disclaimer: gate.disclaimer } : {}),
+      });
+    }
+    if (req.method === "POST" && req.url === "/assistant/v1/photo-reading") {
+      /* One look at one smaller still of skin, built 2 October 2026 under the founder's demonstration
+      override. The gate comes before the body, so a shut reader reads nothing. Then the request, checked
+      by ./lib/photo-reading.ts before any model is asked: her agreement, who the rash is on (a baby
+      younger than three months is refused, as the screen already refused it), a JPEG within the
+      contract's size. Then the model, whose answer reaches the caller only as the skin check's own
+      option ids, held to the contract by the shared validator — and its refusing outcomes as the
+      route's own refusals. Nothing is kept: no store, no session, no file, and no log line but a
+      failure's type name; the picture's string is in this request alone and goes when it ends. */
+      const gate = photos.gate();
+      if (!gate.open) return refuse(res, cors.headers, gate.refusalId);
+      const body = await readJsonBody(req);
+      if (!body.ok)
+        return refuse(res, cors.headers, body.status === 413 ? "payload-too-large" : "invalid-request");
+      const checked = checkPhotoRequest(body.value);
+      if (!checked.ok) return refuse(res, cors.headers, checked.refusalId);
+      try {
+        const read = await photos.read(checked.imageBase64, gate.deployment);
+        if (!read.ok) return refuse(res, cors.headers, read.refusalId);
+        return send(res, 200, cors.headers, { looks: read.reading.looks, where: read.reading.where });
+      } catch (error) {
+        console.error(failureLine("assistant.photo-reading.failed", "/assistant/v1/photo-reading", error));
+        return refuse(res, cors.headers, "internal-error");
       }
     }
     if (req.method === "POST" && req.url === "/assistant/v1/triage/start") {

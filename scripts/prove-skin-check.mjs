@@ -73,8 +73,8 @@ const proofs = [
   ["Android holding a clip whatever its length", { [ANDROID]: text(ANDROID, "val why = SkinCheck.clipProblem(clipLength(context, uri))", "val why: String? = null") }, /no longer refuses a clip over/],
   ["Android keeping the clip after an emergency", { [ANDROID]: text(ANDROID, "fun handOver(words: String) { photo = null; holdClip(null); onEmergency(words) }", "fun handOver(words: String) { photo = null; onEmergency(words) }") }, /no longer refuses a clip over the contract's cap or of unknown length before holding it, or no longer lets it go/],
   ["the journey choosing no clip", { [JOURNEY]: readDisk(JOURNEY).replaceAll('mimeType: "video/webm"', 'mimeType: "image/png"') }, /no longer chooses a clip/],
-  ["the photo reader given a route", { [SKIN]: json(SKIN, (d) => { d.photoReading.route = "POST /v1/photo/read"; }) }, /not refused everywhere/],
-  ["a waited-on thing marked in place", { [SKIN]: json(SKIN, (d) => { d.photoReading.waitsOn[1].inPlace = true; }) }, /not refused everywhere/],
+  ["the photo reader given a route", { [SKIN]: json(SKIN, (d) => { d.photoReading.route = "POST /v1/photo/read"; }) }, /does not declare live/],
+  ["a waited-on thing marked in place", { [SKIN]: json(SKIN, (d) => { d.photoReading.waitsOn[1].inPlace = true; }) }, /marks "dpia" in place/],
   ["a photo route declared in the API contract", { "packages/catalog/apis/assistant.json": json("packages/catalog/apis/assistant.json", (d) => { d.routes.push({ method: "POST", path: "/v1/skin/photo", version: 1, status: "proposed" }); }) }, /declares POST \/v1\/skin\/photo/],
   ["an added knowledge entry claiming a review", { "packages/catalog/knowledge/conditions.json": json("packages/catalog/knowledge/conditions.json", (d) => { d.find((c) => c.id === "cond-066").review.reviewedBy = "Dr Somebody"; }) }, /names a reviewer or says it is reviewed/],
   ["an added knowledge entry nothing shows", { "packages/catalog/knowledge/conditions.json": json("packages/catalog/knowledge/conditions.json", (d) => { d.push({ ...d.find((c) => c.id === "cond-066"), id: "cond-998" }); }) }, /never shows it/],
@@ -100,7 +100,7 @@ const proofs = [
   ["a file left out of the Xcode project", { "apps/ios/MyThuso.xcodeproj/project.pbxproj": readDisk("apps/ios/MyThuso.xcodeproj/project.pbxproj").replace(",A11ACCE55B00000000000SK6", "") }, /SkinCheckView\.swift is not registered/],
   ["the generator unregistered", { "package.json": json("package.json", (d) => { delete d.scripts["skin-check"]; }) }, /no longer registers `npm run skin-check`/],
   ["the journey skipping a viewport", { "tests/skin-check.spec.ts": readDisk("tests/skin-check.spec.ts") + "\ntest.skip(true, 'mobile');\n" }, /skips a viewport/],
-  ["no map row", { "docs/FEATURE-MAP.md": readDisk("docs/FEATURE-MAP.md").replaceAll("skin-check.json", "skin.json") }, /no row for the skin check/],
+  ["no map row", { "docs/FEATURE-MAP.md": readDisk("docs/FEATURE-MAP.md").replaceAll("skin-check.json", "skin.json") }, /no row for the (skin check|photo reader)/],
 ];
 let failed = 0;
 for (const [name, patch, expected] of proofs) {

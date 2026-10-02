@@ -482,3 +482,5 @@ GET /v1/founder/providers/{card}/logs@1 callers=founder purpose=audit because=-
 POST /v1/clinical/cases@1 callers=patient purpose=treatment because=-
 GET /v1/clinical/cases/{caseRef}@1 callers=doctor,nurse,patient purpose=treatment because=-
 POST /v1/clinical/cases/{caseRef}/setting@1 callers=nurse purpose=treatment because=-
+GET /v1/photo-reading@1 callers=anonymous purpose=treatment because=-
+POST /v1/photo-reading@1 callers=anonymous purpose=treatment because=-
