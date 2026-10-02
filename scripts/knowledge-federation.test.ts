@@ -366,3 +366,58 @@ test("a host cannot be both admitted and turned away, and a turned-away source k
   assert.ok(findings.some((finding: string) => finding.includes("admitted or turned away")));
   assert.ok(findings.some((finding: string) => finding.includes("never activates")));
 });
+
+/* The founder's demonstration override of 2 October 2026 (packages/catalog/demonstration-override.json).
+   It opens sources beside their flags, never by moving one; the rules live in demonstration-override.mjs,
+   shared with the boundary check. The real file must pass whole; going live — inForce false — must close
+   every gate at once; and each thing it may never do is tried on a copy and must be named. */
+const override = readJson("../packages/catalog/demonstration-override.json");
+const overrideCopy = () => JSON.parse(JSON.stringify(override));
+const {
+  gateOpen,
+  sourceOn,
+  validateDemonstrationOverride,
+} = await import("./demonstration-override.mjs");
+const PERMITTED = ["icd11-who", "openfda", "pubmed-europepmc", "medlineplus-nlm", "snomed-ct-za", "loinc-regenstrief", "wikidata", "cdc-content-services"];
+
+test("the demonstration override validates whole, and opens exactly the sources whose licences permit", () => {
+  assert.deepEqual(validateDemonstrationOverride(override, federation), []);
+  assert.equal(override.inForce, true, "in force since the founder's decision of 2 October 2026");
+  const on = federation.sources.filter((source: { id: string }) => sourceOn(override, federation, source)).map((source: { id: string }) => source.id);
+  assert.deepEqual(on.sort(), [...PERMITTED].sort());
+  for (const source of federation.sources) {
+    assert.equal(source.active, false, `${source.id}: the override opens a gate beside the flag and never moves it`);
+    assert.deepEqual(source.signOff, { "clinical-reviewer": null, "information-officer": null }, `${source.id}: the override is not a signature`);
+  }
+});
+
+test("going live is inForce false, and nothing stays open", () => {
+  const live = { ...overrideCopy(), inForce: false };
+  for (const gate of override.gates) assert.equal(gateOpen(live, gate.id), false, gate.id);
+  for (const source of federation.sources) assert.equal(sourceOn(live, federation, source), false, source.id);
+  assert.equal(gateOpen(override, "photo-reading"), true, "photo reading is opened by the override when built");
+});
+
+test("the override cannot open what it does not list, what the licence forbids, or what it records as left closed", () => {
+  assert.equal(gateOpen(override, "health-passport"), false);
+  assert.equal(gateOpen(override, "knowledge-source:ndoh-stg-eml-phc"), false);
+  const permission = overrideCopy();
+  permission.gates.push({ id: "knowledge-source:ndoh-stg-eml-phc", kind: "knowledge-source", sourceId: "ndoh-stg-eml-phc", state: "on" });
+  assert.ok(validateDemonstrationOverride(permission, federation).some((f: string) => f.includes("never cures a licence")));
+  assert.equal(sourceOn(permission, federation, federation.sources.find((s: { id: string }) => s.id === "ndoh-stg-eml-phc")), false, "listed or not, the licence keeps it off");
+  const passport = overrideCopy();
+  passport.gates.push({ id: "health-passport", kind: "capability", state: "on", opensWaitsOn: ["dpia"], builderMust: ["x"] });
+  assert.ok(validateDemonstrationOverride(passport, federation).some((f: string) => f.includes("also recorded as not opened")));
+  const forgotten = overrideCopy();
+  forgotten.notOpened = forgotten.notOpened.filter((entry: { id: string }) => entry.id !== "triage");
+  assert.ok(validateDemonstrationOverride(forgotten, federation).some((f: string) => f.includes('"triage"')));
+  const turned = overrideCopy();
+  turned.gates.push({ id: "knowledge-source:nhs-website-content", kind: "knowledge-source", sourceId: "nhs-website-content", state: "on" });
+  assert.ok(validateDemonstrationOverride(turned, federation).some((f: string) => f.includes("does not list")));
+  const flagged = JSON.parse(JSON.stringify(federation));
+  flagged.sources.find((s: { id: string }) => s.id === "openfda").active = true;
+  assert.ok(validateDemonstrationOverride(override, flagged).some((f: string) => f.includes("never moves it")));
+  const silent = overrideCopy();
+  silent.disclaimer.sentence = "On for now.";
+  assert.ok(validateDemonstrationOverride(silent, federation).some((f: string) => f.includes("disclaimer")));
+});

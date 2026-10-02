@@ -1,0 +1,284 @@
+{
+  "_note": "The founder's demonstration override of 2 October 2026: one switch that stands in for the Information Officer's and the clinical reviewer's signatures on the gates listed below, so the capability can be shown before either person is appointed. It never deletes a gate. Each gate's code asks for its own signatures or this override — signed || overrideOpens(gate) — so going live is one value: inForce false. Read by apps/assistant-api/src/lib/demonstration-override.ts, apps/web/src/lib/demonstration-override.ts and scripts/demonstration-override.mjs, which holds the rules the boundary check and the catalogue's tests share. docs/governance/DEMONSTRATION-OVERRIDE.md is the record in prose.",
+  "version": 1,
+  "inForce": true,
+  "decided": {
+    "by": "founder",
+    "on": "2026-10-02",
+    "words": "yes we can put as many knowledge sources but they will be attached to the information officer, founder for approval for demonstration purposes switch them on to show capability. But make a note that indicates this. In fact everywhere where you have switched off because of officer switch on and put a disclaimer. So that when we fully go live we then put those strict rules in place.",
+    "recordedBy": "Governance lead (Claude), from the founder's message of 2 October 2026, verbatim"
+  },
+  "disclaimer": {
+    "label": "On for demonstration",
+    "sentence": "Switched on for demonstration by the founder on 2 October 2026. Not yet approved by an Information Officer or a clinical reviewer. Do not enter real personal or health information."
+  },
+  "goLive": "When MyThuso goes live this override is switched off — inForce becomes false in one reviewed commit — and every gate below closes again until its own signatures exist. Nothing else changes: each gate's code asks for its signatures or this override, never this override alone, so the strict rules are already written and only wait to be enforced.",
+  "standsInFor": [
+    {
+      "id": "information-officer",
+      "label": "Information Officer",
+      "for": "That a licence's conditions are met, that the POPIA section 72 position for where a source or a processor is hosted is recorded, and that no patient identifier rides a lookup.",
+      "notFor": "A decision only the officer can author — a retention period, a breach procedure, who may consent for somebody else, whether a face is biometric information. The override can switch a thing on; it cannot make up what the officer would have decided."
+    },
+    {
+      "id": "clinical-reviewer",
+      "label": "Clinical reviewer",
+      "for": "That a source is a named authority fit for the use recorded beside it, and that what it would tell a person reads true in South Africa.",
+      "notFor": "A ratified clinical protocol, a Medical Director's decision or the clinical governance board's. Those are not the officer's gates, and the founder did not open them."
+    }
+  ],
+  "words": {
+    "heading": "Demonstration override",
+    "decidedHeading": "Decided by the founder, 2 October 2026",
+    "goLiveHeading": "When MyThuso goes live",
+    "openedHeading": "What it opens",
+    "notOpenedHeading": "What it does not open, and why",
+    "signOffNote": "Demonstration override (founder, 2 October 2026) — awaiting the Information Officer and the clinical reviewer.",
+    "waitingForCredentials": "On for demonstration — waiting for credentials",
+    "openedWhenBuilt": "Opened by the override when built",
+    "licenceKeepsOff": "Off. Its licence, not the officer, keeps it off, and the override does not change a licence.",
+    "proposalStaysOff": "Not assessed, so the demonstration override does not open it. A proposal is switched on only after its licence is read and recorded in the contract with a verdict that permits a commercial service, and the override lists it.",
+    "calledBy": "Asked by GilbertOne's reference_sources tool under the demonstration override, with the topic words of a question and never a person."
+  },
+  "refusals": [
+    {
+      "id": "override-is-not-a-signature",
+      "statement": "The override is not a signature. It never writes into a signOff, and every gate it opens still reads Not signed.",
+      "why": "A signature is a named, accountable person's decision. The override is the founder's decision to show the capability before those people exist, and it is recorded as exactly that so nobody later mistakes a demonstration for an approval."
+    },
+    {
+      "id": "override-opens-only-what-it-lists",
+      "statement": "The override opens only the gates listed in it. Anything it does not name stays closed, however it is asked.",
+      "why": "One list is a list somebody can read before go-live and close in one commit. An override that opened whatever asked it would be a way round every gate in the product."
+    },
+    {
+      "id": "override-never-keeps-personal-information",
+      "statement": "The override never opens anything that would keep a person's information — a store, a record, a quarantine, the identity service in production or the Health Passport.",
+      "why": "A demonstration can be switched off afterwards; information kept during one cannot be un-kept. Health information is special personal information under POPIA, and the controls that would let MyThuso hold it do not exist."
+    },
+    {
+      "id": "override-never-cures-a-licence",
+      "statement": "The override never switches on a source whose licence does not cover a commercial service, or whose owner's written permission is not on file.",
+      "why": "Copyright is law, not an internal gate. The founder can stand in for MyThuso's own reviewers; nobody at MyThuso can stand in for a publisher."
+    },
+    {
+      "id": "override-says-so-everywhere",
+      "statement": "Every place the override opens shows the disclaimer above, word for word.",
+      "why": "A switched-on capability with no signatures behind it is honest only while it says so. A health service that overstates its readiness is not a marketing problem."
+    }
+  ],
+  "kinds": {
+    "knowledge-source": {
+      "contract": "packages/catalog/knowledge/federation.json#sources",
+      "standsInFor": [
+        "clinical-reviewer",
+        "information-officer"
+      ],
+      "licenceMustPermit": true,
+      "renderedAt": [
+        "apps/web/src/features/portal/KnowledgeSources.tsx",
+        "apps/web/src/features/portal/gilbertone/Knowledge.tsx",
+        "apps/web/src/features/portal/gilbertone/ApiRegistry.tsx",
+        "apps/assistant-api/src/lib/tools/reference-sources.ts",
+        "apps/assistant-api/src/lib/orchestrator.ts"
+      ],
+      "why": "The founder's first ask: as many knowledge sources as the licences allow, switched on to show what GilbertOne can draw on. A lookup carries the topic words of a question, run through the same redaction as every model call, and nothing about a person."
+    },
+    "capability": {
+      "contract": "packages/catalog/skin-check.json#photoReading",
+      "standsInFor": [
+        "clinical-reviewer",
+        "information-officer"
+      ],
+      "licenceMustPermit": false,
+      "renderedAt": [],
+      "why": "Built later, by its own change. Listed now so the builder wires one gate rather than inventing a second override."
+    }
+  },
+  "gates": [
+    {
+      "id": "knowledge-source:openfda",
+      "kind": "knowledge-source",
+      "sourceId": "openfda",
+      "state": "on"
+    },
+    {
+      "id": "knowledge-source:pubmed-europepmc",
+      "kind": "knowledge-source",
+      "sourceId": "pubmed-europepmc",
+      "state": "on"
+    },
+    {
+      "id": "knowledge-source:medlineplus-nlm",
+      "kind": "knowledge-source",
+      "sourceId": "medlineplus-nlm",
+      "state": "on"
+    },
+    {
+      "id": "knowledge-source:cdc-content-services",
+      "kind": "knowledge-source",
+      "sourceId": "cdc-content-services",
+      "state": "on"
+    },
+    {
+      "id": "knowledge-source:wikidata",
+      "kind": "knowledge-source",
+      "sourceId": "wikidata",
+      "state": "on"
+    },
+    {
+      "id": "knowledge-source:icd11-who",
+      "kind": "knowledge-source",
+      "sourceId": "icd11-who",
+      "state": "waiting-for-credentials",
+      "waitingFor": "An ICD API client registered with WHO (free, at icd.who.int/icdapi), its id and secret set on the box as ICD11_CLIENT_ID and ICD11_CLIENT_SECRET. The adapter is written; until the credentials exist it answers that they are missing and sends nothing."
+    },
+    {
+      "id": "knowledge-source:snomed-ct-za",
+      "kind": "knowledge-source",
+      "sourceId": "snomed-ct-za",
+      "state": "waiting-for-credentials",
+      "waitingFor": "MyThuso's use registered with the South African National Release Centre (coding@health.gov.za) under the SNOMED CT Affiliate Licence, and a release held inside the deployment. No adapter is written until there is a release to read."
+    },
+    {
+      "id": "knowledge-source:loinc-regenstrief",
+      "kind": "knowledge-source",
+      "sourceId": "loinc-regenstrief",
+      "state": "waiting-for-credentials",
+      "waitingFor": "A free LOINC account, its username and password set on the box as LOINC_USERNAME and LOINC_PASSWORD. No adapter is written until there is an account to test it against."
+    },
+    {
+      "id": "photo-reading",
+      "kind": "capability",
+      "state": "opened-when-built",
+      "opensWaitsOn": [
+        "protocol",
+        "dpia",
+        "information-officer",
+        "processor"
+      ],
+      "builderMust": [
+        "Ask overrideOpens('photo-reading') beside the four waitsOn conditions, never instead of them, so inForce false closes it again.",
+        "Show this file's disclaimer sentence word for word wherever a photo can be given, on every platform that offers it, and add each file to kinds.capability.renderedAt.",
+        "Hold the image in memory for the one reading and never store, log or train on it.",
+        "Answer with the skin check's own general information and its emergency rules first, never a diagnosis.",
+        "Name the processor and the country it reads in on the screen, and choose one with a South African region where one exists."
+      ]
+    }
+  ],
+  "notOpened": [
+    {
+      "id": "health-passport",
+      "name": "The Health Passport",
+      "where": "apps/passport, packages/catalog/passport-gateway.json, packages/catalog/hl7v2-inbound.json, Control Tower gate G14",
+      "class": "keeps-personal-information",
+      "why": "It holds health information. CLAUDE.md's founder amendment of 21 September 2026 keeps its gating unchanged, and the build fails if anything in deploy/ names it."
+    },
+    {
+      "id": "identity-service-in-production",
+      "name": "The identity service in production",
+      "where": "apps/api, which refuses to start in production without an Information Officer named in its environment",
+      "class": "keeps-personal-information",
+      "why": "Starting it in production stands up a store of real people's phone numbers and accounts. It is also switched off for DNS, TLS and an SMS provider, none of which the officer decides."
+    },
+    {
+      "id": "clinical-records",
+      "name": "Clinical records",
+      "where": "packages/catalog/capabilities.json capabilities[clinical-records]; packages/catalog/feeds.json noSeam",
+      "class": "keeps-personal-information",
+      "why": "A clinical record is health information kept. The boundary check that fails the build on a clinical table in the identity service is load-bearing."
+    },
+    {
+      "id": "offshore-speech-for-health-information",
+      "name": "Speech providers with no South African region",
+      "where": "packages/catalog/api-registry.json refusals[no-offshore-speech-for-health-information-without-a-residency-decision]; control-tower-portal.json gate G33; apps/assistant-api/src/lib/speech.ts; packages/catalog/voice.json lockedSettings.keysAndRegions",
+      "class": "founder-amendment",
+      "why": "Opening it would send a patient's voice to a provider with no South African region from production. The founder's speech amendment of 21 September 2026 keeps conversation audio on the device and names Azure Speech, which has a South African region, as the only server-side fallback; that amendment stands."
+    },
+    {
+      "id": "face-match-at-shift-start",
+      "name": "A face match at shift start",
+      "where": "packages/catalog/verify-in-service.json shiftStart; packages/catalog/trust.json; packages/catalog/apis/trust.json; packages/catalog/feeds.json feeds[face-match-result]",
+      "class": "the-decision-itself",
+      "why": "Whether a face match is biometric information is the officer's decision D-3, not a signature on a switch, and no identity provider is contracted. Opening it would process faces on a guess."
+    },
+    {
+      "id": "guardian-acting-for-somebody",
+      "name": "A guardian agreeing for somebody else",
+      "where": "packages/catalog/mom-essential.json agreement.guardian",
+      "class": "the-decision-itself",
+      "why": "Who may act for somebody else and what proves it is the officer's decision D-10. Opening it would accept one person's agreement on another's behalf with nothing to prove the right."
+    },
+    {
+      "id": "compliance-pack",
+      "name": "The hospital compliance pack",
+      "where": "packages/catalog/compliance-pack.json",
+      "class": "the-decision-itself",
+      "why": "The pack is the officer's decisions written down — retention periods (D-8), the breach procedure (D-4), the lawful basis (D-1). A pack produced without them would be a document a hospital relies on with invented answers in it."
+    },
+    {
+      "id": "offboarding-completion",
+      "name": "An offboarding marked complete",
+      "where": "packages/catalog/offboarding.json",
+      "class": "the-decision-itself",
+      "why": "Marking a party's information purged is a claim a regulator relies on, and it waits on a retention schedule and a DPA the officer decides. Opening it would let a record say purged when nothing was."
+    },
+    {
+      "id": "crime-statistics-layer",
+      "name": "A crime-statistics layer on the dispatch board",
+      "where": "packages/catalog/feeds.json feeds[crime-statistics]",
+      "class": "not-only-the-officers",
+      "why": "It waits on a signed source agreement, an owned station-to-zone mapping and a DPIA besides the officer, and no supplier exists, so there is nothing to switch on."
+    },
+    {
+      "id": "triage",
+      "name": "Triage",
+      "where": "apps/assistant-api/src/lib/triage-gate.ts",
+      "class": "not-only-the-officers",
+      "why": "Triage waits on a Medical Director and the clinical governance board, not on the Information Officer, and the founder's decision was about the officer's gates."
+    },
+    {
+      "id": "emergency-terms",
+      "name": "Gilbert's emergency terms",
+      "where": "packages/catalog/gilbert-emergency-terms.json",
+      "class": "not-only-the-officers",
+      "why": "Changed only by a versioned edit with a changelog entry, under CLAUDE.md's own rule; nothing about it waits on the officer."
+    },
+    {
+      "id": "knowledge-sources-needing-permission",
+      "name": "Six knowledge sources that need written permission",
+      "where": "packages/catalog/knowledge/federation.json — ndoh-stg-eml-phc, sahpra-medicines, westerncape-health, ifrc-first-aid-guidelines, sa-red-cross-first-aid, st-john-sa-first-aid",
+      "class": "licence",
+      "why": "Each licence needs its owner's written permission before a commercial service draws on it. The licence, not the officer, keeps them off."
+    },
+    {
+      "id": "knowledge-sources-turned-away",
+      "name": "The publishers assessed and turned away",
+      "where": "packages/catalog/knowledge/federation.json assessedNotAdmitted",
+      "class": "licence",
+      "why": "Non-commercial, all rights reserved or outside the licence's scope. The licence, not the officer, keeps them off."
+    },
+    {
+      "id": "proposals-not-yet-assessed",
+      "name": "A pasted link nobody has assessed",
+      "where": "Governance · Knowledge sources, a pasted link",
+      "class": "licence",
+      "why": "A pasted link has no licence verdict until somebody reads its terms and records one in federation.json. Not assessed never opens."
+    },
+    {
+      "id": "periods-on-proposed-defaults",
+      "name": "Periods running on a proposed default",
+      "where": "packages/catalog/consent.json grants; packages/catalog/programmes.json suppression floor; packages/catalog/passport-sharing.json settings",
+      "class": "nothing-switched-off",
+      "why": "These run today on a proposed default that says it awaits the officer. Nothing is switched off, so there is nothing for the override to open."
+    }
+  ],
+  "classes": {
+    "keeps-personal-information": "Opening it would keep a person's information or stand up a store of it.",
+    "founder-amendment": "A founder decision already on file keeps it closed, and this override does not amend it.",
+    "the-decision-itself": "What waits is the officer's decision, not the officer's signature on a switch; the override cannot author it.",
+    "not-only-the-officers": "It waits on somebody other than the Information Officer and the clinical reviewer.",
+    "licence": "The licence keeps it off. Copyright is law, not an internal gate.",
+    "nothing-switched-off": "It already runs on a proposed default; nothing is closed."
+  }
+}
