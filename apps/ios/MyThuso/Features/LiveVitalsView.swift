@@ -91,13 +91,24 @@ struct LiveVitalsPanel: View {
 
     private func restart() { tick = 0; startedAt = Date(); receivedAt = startedAt; now = startedAt }
 
+    /// Colour belongs to the organ, never to the reading: nothing here can be read as a severity.
+    private func organInk(_ id: String) -> Color {
+        switch id {
+        case "pulse", "watch-pulse": return ThusoRole.coral
+        case "oxygen": return ThusoRole.info
+        case "temperature": return ThusoRole.highlight
+        case "glucose": return ThusoRole.accent
+        default: return ThusoRole.primary
+        }
+    }
+
     @ViewBuilder private func row(_ index: Int, _ stream: LiveStreamSpec) -> some View {
         let history = LiveVitals.history(presetId, seed: seed, stream: index, tick: tick)
         VStack(alignment: .leading, spacing: ThusoSpacing.space4) {
             HStack(alignment: .top) {
                 Image(systemName: stream.id == "oxygen" ? "lungs.fill" : ["pulse", "watch-pulse"].contains(stream.id) ? "heart.fill" : stream.id == "temperature" ? "thermometer.medium" : stream.id == "glucose" ? "drop.fill" : "waveform.path.ecg")
-                    .font(.thuso(.title2)).foregroundStyle(ThusoRole.primary)
-                    .frame(width: 52, height: 52).background(ThusoRole.muted, in: RoundedRectangle(cornerRadius: 16))
+                    .font(.thuso(.title2)).foregroundStyle(organInk(stream.id))
+                    .frame(width: 52, height: 52).background(organInk(stream.id).opacity(0.12), in: RoundedRectangle(cornerRadius: 16))
                     .symbolEffect(.pulse, options: .repeating, isActive: running && live && !reduceMotion && !history.isEmpty)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {

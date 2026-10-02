@@ -104,6 +104,13 @@
 .lv-tiles.is-compact .lv-range { grid-row: 3; }
 .lv-tiles.is-compact .lv-spark { grid-row: 3 / span 2; }
 .lv-tiles.is-compact .lv-prov { grid-row: 4; }
+/* Colour belongs to the organ and never to the reading: a heart is always rose and lungs always blue, whatever the
+   value, so nothing here can be read as a severity. */
+.lv-organ[data-organ="heart"] { --organ: var(--color-coral); }
+.lv-organ[data-organ="oxygen"] { --organ: var(--color-info); }
+.lv-organ[data-organ="temperature"] { --organ: var(--color-highlight); }
+.lv-organ[data-organ="glucose"] { --organ: var(--color-accent); }
+.lv-organ[data-organ="heart"], .lv-organ[data-organ="oxygen"], .lv-organ[data-organ="temperature"], .lv-organ[data-organ="glucose"] { color: var(--organ); background: color-mix(in srgb, var(--organ) 14%, transparent); }
 @keyframes lv-heart { 0%, 45%, 100% { transform: scale(1); } 15%, 30% { transform: scale(1.1); } 22% { transform: scale(1.02); } }
 @keyframes lv-breathe { 0%, 100% { transform: scale(.94); } 50% { transform: scale(1.06); } }
 @media (prefers-reduced-motion: reduce) { .lv-organ.is-moving svg, .lv-organ[data-organ="heart"].is-moving svg { animation: none; } }

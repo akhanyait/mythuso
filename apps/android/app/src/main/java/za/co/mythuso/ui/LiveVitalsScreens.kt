@@ -188,7 +188,14 @@ import za.co.mythuso.ui.components.ThusoButtonVariant
         val value by transition.animateFloat(.94f, 1.06f, infiniteRepeatable(tween(1400), RepeatMode.Reverse), label = "breathing")
         value
     } else 1f
-    val ink = theme.primary
+    // Colour belongs to the organ, never to the reading: nothing here can be read as a severity.
+    val ink = when (id) {
+        "pulse", "watch-pulse" -> theme.coral
+        "oxygen" -> theme.info
+        "temperature" -> theme.highlight
+        "glucose" -> theme.accent
+        else -> theme.primary
+    }
     Canvas(Modifier.size(48.dp).graphicsLayer { scaleX = scale; scaleY = scale }.clearAndSetSemantics {}) {
         val path = Path()
         if (id == "oxygen") {
