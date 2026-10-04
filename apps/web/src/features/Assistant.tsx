@@ -28,14 +28,12 @@ import {
   Pill,
   FileText,
   MessageCircle,
-  Mic,
   NotebookPen,
+  Phone,
   Users,
   ShieldCheck,
-  Minus,
   ArrowRight,
-  Ban,
-  Cog,
+  Minus,
   Lock,
   RotateCcw,
   Send,
@@ -45,11 +43,8 @@ import {
 } from "lucide-react";
 import { NotConnected } from "../components/NotConnected";
 import { MotionPause } from "../components/MotionPause";
-import { AssistantAttachments } from "../components/AssistantAttachments";
-import { AssistantVoiceButton } from "../components/AssistantVoiceButton";
 import {
   GilbertAvatar,
-  GilbertOneLogo,
   GilbertStill,
   growFrom,
   useGilbertRig,
@@ -59,11 +54,7 @@ import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { IconButton } from "../ui/IconButton";
 import { crisisLines, showsCrisisLines } from "../lib/crisis-lines";
-import {
-  demoConnectorNames,
-  sourceOf,
-  sourcesCaption,
-} from "../lib/gilbertone-sources";
+import { referencesUsedFor } from "../lib/gilbertone-reference-scout";
 import { latestCaseFor, useCases } from "../lib/case";
 import { sendOnEnter, useGrowingField } from "../lib/composer";
 import {
@@ -91,6 +82,7 @@ import {
   handOver,
   identity,
   lines,
+  isOpeningStatus,
   opening,
   outcomeOf,
   postureOf,
@@ -100,7 +92,6 @@ import {
   refusalFor,
   refusals,
   say,
-  screens,
   silenceIsNotSafety,
   spokenLanguageOf,
   spokenOf,
@@ -123,6 +114,8 @@ import {
   refineWithAssistantService,
   sendWithGilbertEngine,
 } from "../lib/gilbertone-bridge";
+import { acknowledgePatient, patientAcknowledged } from "../lib/gilbertone-acknowledgement";
+import { guidanceFromRecord, prefersLocalConversation, signedInPatientContext } from "../lib/patient-context";
 import {
   emptyQueue,
   handOver as handToQueue,
@@ -131,10 +124,22 @@ import {
 } from "../../../../packages/engines/src/access/domain/handover.ts";
 import { useDecor, useReducedMotion } from "../lib/motion";
 import type { Visit } from "../lib/scheduling";
-import { useVoiceAdapter } from "../lib/voice";
+import { disclosureFor, useVoiceAdapter } from "../lib/voice";
 import "./assistant.css";
 import "./gilbertone-theme.css";
 import "./assistant-motion.css";
+import "./gilbertone-experience.css";
+import {
+  BeforeWeStart,
+  CallScreen,
+  DESIGN_CHIPS,
+  GilbertMark,
+  Opening,
+  PrivacyNote,
+  QuietChips,
+  QuietMenu,
+  useGilbertCall,
+} from "./gilbert-quiet";
 
 /* The connected-capability region arrives on its own dynamic import, so the status, retrieval,
    triage and handover routes it consumes — and the code that renders them — are a separate chunk of
@@ -229,6 +234,8 @@ export type PanelProps = {
   /* Who this panel serves, since the audience decision of 19 September 2026. The patient entry
      omits it and the patient is what it gets; the shells pass the audience the door chose. */
   audience?: AudienceId;
+  /* Patient pages that already exist. Absent on a staff preview, so a chip sends its words. */
+  navigate?: (page: string) => void;
 };
 
 const QUESTION_ICONS: Record<string, typeof Ambulance> = {
@@ -300,6 +307,7 @@ export default function Assistant({
   openModal,
   visit,
   audience: audienceId = "patient",
+  navigate,
 }: PanelProps) {
   const dialog = useRef<HTMLDialogElement>(null);
   const close = useRef<HTMLButtonElement>(null);
@@ -345,7 +353,10 @@ export default function Assistant({
   const [skin, setSkin] = useState(false);
   /* Closing the panel ends the check: a photo is not kept in a panel nobody is looking at. */
   useEffect(() => {
-    if (!open) setSkin(false);
+    if (!open) {
+      setSkin(false);
+      setPrivacyOpen(false);
+    }
   }, [open]);
   const [queue, setQueue] = useState<Queue>(emptyQueue);
   const [sent, setSent] = useState<Record<number, Sent>>({});
@@ -366,9 +377,11 @@ export default function Assistant({
      audience that never saw the gate. Whether this audience is shown the gate and whether it has
      read the prohibitions are the same fact, and writing it twice is how they come apart. */
   const gated = audienceId === "patient";
-  const [consented, setConsented] = useState(!gated);
-  const [doctorBox, setDoctorBox] = useState(false);
-  const [emergencyBox, setEmergencyBox] = useState(false);
+  const [consented, setConsented] = useState(() => !gated || patientAcknowledged());
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [callTurn, setCallTurn] = useState<number | null>(null);
+  const wordsRef = useRef<(text: string) => void>(() => {});
+  const callLive = useRef(false);
   /* The composer's field is drawn only once the gate is passed and only has a layout while the panel is
      open, so both are what it is measured again on, beside the words themselves. */
   useGrowingField(field, draft, open && consented);
@@ -393,6 +406,25 @@ export default function Assistant({
      presentation register a routine reply is read in — the patient's or the administrator's — and
      the adapter reads that register's setting at the moment of speaking, never here. */
   const voiceAdapter = useVoiceAdapter("assistant", audienceId);
+  const callHead = turns[turns.length - 1];
+  const callPending = callTurn !== null && pendingReplies.has(callTurn);
+  const callReady = callTurn !== null && callHead?.id === callTurn && !callPending;
+  const call = useGilbertCall({
+    supported: voiceAdapter.supported,
+    canSpeak: voiceAdapter.canSpeak,
+    state: voiceAdapter.state,
+    transcript: voiceAdapter.transcript,
+    pending: callPending,
+    reply: callReady ? spokenOf(callHead, audienceId) : "",
+    replyEpoch: callTurn ?? 0,
+    start: voiceAdapter.start,
+    cancelListen: voiceAdapter.cancelCapture,
+    cancelSpeech: voiceAdapter.cancel,
+    speak: voiceAdapter.speak,
+    voiceClass: callReady ? voiceClassOf(callHead.reply, callHead.unread) : "routine",
+    onWords: wordsRef,
+  });
+  callLive.current = call.mode === "on";
   const lastTurn = turns[turns.length - 1];
   const reply = lastTurn.reply;
   const waitingForReply = pendingReplies.has(lastTurn.id);
@@ -473,8 +505,9 @@ export default function Assistant({
       /* And a hands-free conversation ends with the panel: a microphone left open by a panel that
          has gone is a microphone nobody on the screen can turn off. */
       voiceAdapter.conversation.stop();
+      call.end();
     }
-  }, [open, voiceAdapter.cancel, voiceAdapter.conversation.stop]);
+  }, [open, voiceAdapter.cancel, voiceAdapter.conversation.stop, call.end]);
   /* The microphone half's pose, from the adapter's own state rather than from the button or the
      recogniser callbacks, so the face attends to a microphone that is genuinely open and to no
      other moment: A07's trigger is capture actually beginning. Nothing is dispatched on the way
@@ -503,7 +536,7 @@ export default function Assistant({
        Only the audience the founder gave a microphone is read aloud, the same entry that scopes
        the composer's button: the voice decisions have been about the patient's assistant, and a
        staff preview's words are on its screen already. */
-    if (audience.voice) {
+    if (audience.voice && !callLive.current) {
       const caption = spokenOf(last, audienceId).split(" ");
       /* A mouth closes only where one opened. The adapter reports the reading over on end, on
          cancel and on failure alike — §07's own rule, and the sentence the demo's caption needs —
@@ -578,21 +611,18 @@ export default function Assistant({
     voiceAdapter.speak,
   ]);
   useEffect(() => {
-    if (!asked) return;
-    /* Scroll only the transcript. scrollIntoView can also move the dialog itself, taking
-       the close control and emergency number out of view when an answer is taller than it. */
-    const entry = latest.current;
-    const viewport = entry?.closest<HTMLElement>(".as-scroll");
-    if (entry && viewport)
-      viewport.scrollTo({
-        top:
-          viewport.scrollTop +
-          entry.getBoundingClientRect().top -
-          viewport.getBoundingClientRect().top,
-        behavior: reduced ? "auto" : "smooth",
-      });
+    if (!open || !consented) return;
+    /* Latest message in view: the transcript scrolls to its foot on open and
+       after each turn. scrollIntoView can also move the dialog, so only this
+       scroller moves. */
+    const viewport = scroller.current;
+    if (!viewport) return;
+    viewport.scrollTo({
+      top: viewport.scrollHeight,
+      behavior: reduced ? "auto" : "smooth",
+    });
     requestAnimationFrame(measure);
-  }, [turns, asked, reduced]);
+  }, [open, consented, turns, reduced]);
   /* The conversation's room changes without a scroll — the composer growing with what is written, the
      voice's controls standing in it — and the way back is measured again when it does, or a field grown
      over the latest answer would hide it with no button to say so. */
@@ -648,12 +678,7 @@ export default function Assistant({
   };
   const put = (question: Question) =>
     moved(choose(turns, question, visit, everRaised));
-  const onVoiceTranscript = (text: string) => {
-    setDraft((current) => (current ? `${current} ${text}`.trim() : text));
-    field.current?.focus();
-  };
-  /* The composer's Send and the hands-free turn, above the path they share so the order reads top
-     down: both hand their words to sendText, which asks the intake first and the bridge last. */
+  /* The composer's Send and a captured call, above the path they share. */
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!draft.trim()) {
@@ -663,18 +688,12 @@ export default function Assistant({
     sendText(draft);
     setDraft("");
   };
-  /* A hands-free turn: the recogniser's words when the pause came, sent the way Send sends them and
-     never through the draft — the words were already spoken, and there is nothing to correct before
-     a send that has already happened. Whatever the draft held stays hers. */
-  const onUtterance = (text: string) => {
-    if (text.trim()) sendText(text);
-  };
   /* One send path for every way words arrive — Send, Enter, and since 28 September 2026 a hands-free
      turn the recogniser ended on a pause. The composer's submit hands its draft here and clears it;
      the conversation hands each utterance here and never touches the draft. Everything below is the
      same for both: the intake first, the patient's own questions, then the engine, and only an
      unmatched fallback waits for the service. */
-  const sendText = (message: string) => {
+  const sendText = (message: string): number | null => {
     /* An intake under way reads the message first, since 28 September 2026: the answer to the
        question on the screen, or yes or no to the offer. continueIntake asks the emergency words
        before anything else and hands back null for a message that is neither an answer nor a
@@ -690,13 +709,14 @@ export default function Assistant({
     );
     if (viaIntake) {
       moved(viaIntake);
-      return;
+      return viaIntake[viaIntake.length - 1]?.id ?? null;
     }
     const help =
       audienceId === "patient" ? patientQuestionFor(message) : undefined;
     if (help) {
-      moved(choosePatientHelp(turns, help, message));
-      return;
+      const next = choosePatientHelp(turns, help, message);
+      moved(next);
+      return next[next.length - 1]?.id ?? null;
     }
     /* Only an unmatched fallback waits for the service. Emergencies, refusals attached to
        matched answers and approved answers remain immediate. Each request replaces only its
@@ -710,8 +730,19 @@ export default function Assistant({
     );
     const candidate = local[local.length - 1];
     const text = message;
+    /* A health question the approved list cannot place still answers from the
+       signed-in record. Staff previews and the public page never take this path. */
+    if (prefersLocalConversation(text, candidate.reply.kind)) {
+      const earlier = turns.flatMap((turn) => (turn.asked ? [turn.asked] : []));
+      const recorded = {
+        ...candidate,
+        reply: { kind: "record" as const, ...guidanceFromRecord(text, earlier) },
+      };
+      moved([...local.slice(0, -1), recorded]);
+      return recorded.id;
+    }
     moved(local);
-    if (candidate.reply.kind !== "unmatched") return;
+    if (candidate.reply.kind !== "unmatched") return candidate.id;
     voiceAdapter.cancel();
     setPendingReplies((current) => new Set(current).add(candidate.id));
     const generation = refine.current;
@@ -720,6 +751,7 @@ export default function Assistant({
       text,
       audienceId,
       conversationRef.current,
+      audienceId === "patient" ? { patient: signedInPatientContext() } : undefined,
     ).then((refined) => {
       if (refine.current !== generation) return;
       const answer = refined?.[refined.length - 1] ?? candidate;
@@ -737,6 +769,11 @@ export default function Assistant({
          the waiting line held. */
       setArrived(candidate.id);
     });
+    return candidate.id;
+  };
+  wordsRef.current = (text: string) => {
+    const id = sendText(text);
+    if (id !== null) setCallTurn(id);
   };
   /* Start again is the one action that rests the face: it is the patient saying the conversation is
      over, and it is the only thing that releases a cue A16 is holding. */
@@ -753,6 +790,8 @@ export default function Assistant({
     rig.rest();
     voiceAdapter.cancel();
     voiceAdapter.conversation.stop();
+    call.end();
+    setCallTurn(null);
   };
   const nurse = () => moved(handOver(turns, everRaised));
   /* The skin check hands an emergency here — the words of the sign that raised it, or a sentence the
@@ -813,18 +852,6 @@ export default function Assistant({
   };
   const sos = () => openModal?.("Emergency & urgent care");
 
-  /* The welcome's "Tap to talk" line names the languages GilbertOne actually hears, read from the
-     contract's voice.languages rather than a sentence typed here — so it never claims English only
-     when the catalog lists isiZulu, isiXhosa, Afrikaans and Sesotho beside it. It is a line of text,
-     not a control: exactly one control on this screen offers to hear, and it is the microphone. */
-  const heardNames = voice.languages.map((language) => language.name);
-  const talkSubtitle = screens.welcome.talkSubtitle.replace(
-    "{languages}",
-    heardNames.length > 1
-      ? `${heardNames.slice(0, -1).join(", ")} and ${heardNames[heardNames.length - 1]}`
-      : (heardNames[0] ?? ""),
-  );
-
   const portrait = (
     <div
       className="as-rig"
@@ -849,8 +876,8 @@ export default function Assistant({
     <dialog
       ref={dialog}
       id="assistant-panel"
-      className="as-panel patient-surface"
-      aria-labelledby="as-title"
+      className="as-panel patient-surface go-experience"
+      aria-labelledby={consented ? "as-title" : "go-before-title"}
       data-audience={audienceId}
       data-gate={!consented || undefined}
       /* The safety face holds (affect.answers.emergency's cue, until Start again), and the panel's
@@ -861,6 +888,10 @@ export default function Assistant({
       }
       onCancel={(event) => {
         event.preventDefault();
+        if (privacyOpen) {
+          setPrivacyOpen(false);
+          return;
+        }
         dismiss();
       }}
       onClose={() => {
@@ -871,6 +902,17 @@ export default function Assistant({
         if (event.target === event.currentTarget) dismiss();
       }}
     >
+      {!consented ? (
+        <BeforeWeStart
+          closeRef={close}
+          onClose={dismiss}
+          onContinue={() => {
+            acknowledgePatient();
+            setConsented(true);
+            requestAnimationFrame(() => field.current?.focus());
+          }}
+        />
+      ) : (
       <div className="as-frame">
         <header
           className="as-head"
@@ -878,34 +920,21 @@ export default function Assistant({
           data-gate={!consented || undefined}
         >
           <div className="as-bar">
-            <div className="as-titles">
-              {/* The reversed lockup over the gate, whose sheet is the brand ink; the full-colour
-                  one over the conversation's light head. Same viewBox, so nothing moves. */}
-              <img
-                className="as-logo as-brand"
-                src={
-                  consented
-                    ? "/brand/mythuso-logo.svg"
-                    : "/brand/mythuso-logo-reversed.svg"
-                }
-                alt="MyThuso"
-              />
-              <h2 id="as-title" className="as-sr">
-                {identity.name}
-              </h2>
-              {/* In a conversation the descriptor sits under the name in the head; over the gate and on
-                  the welcome it sits beside the official logo instead, so it is on the screen once. */}
-              {asked && (
-                <p className="as-descriptor">{identity.descriptorLine}</p>
-              )}
-              {/* The simulated label is the contract's sentence for this audience, not a string
-                  typed onto the layout: what it says and whether it is here at all are decisions
-                  in the audiences section. */}
-              {audience.simulated && (
-                <p className="as-simulated">{audience.simulated}</p>
-              )}
+            <div className="as-titles go-lockup">
+              <GilbertMark size={44} />
+              <div className="go-lockup-words">
+                <h2 id="as-title">{identity.name}</h2>
+                <p className="go-not">Not a person, and not a doctor.</p>
+              </div>
             </div>
             <div className="as-controls">
+              <QuietMenu
+                onNew={() => {
+                  again();
+                  setPrivacyOpen(false);
+                }}
+                onPrivacy={() => setPrivacyOpen(true)}
+              />
               <MotionPause className="as-pause" />
               <button
                 type="button"
@@ -953,7 +982,49 @@ export default function Assistant({
             </div>
           )}
         </header>
+        {privacyOpen && (
+          <PrivacyNote
+            paragraphs={[
+              consent.privacyBody,
+              "What you type may be sent to the GilbertOne assistant for this site when an answer is not already on the page. GilbertOne does not decide what you are allowed to see.",
+              "New conversation clears this active conversation and ignores a late answer from the previous one. It does not delete stored history. No deletion route is defined here.",
+            ]}
+            onClose={() => setPrivacyOpen(false)}
+          />
+        )}
 
+        {call.mode !== "closed" ? (
+          <CallScreen
+            phase={call.phase}
+            disclosure={disclosureFor("assistant")}
+            muted={call.muted}
+            note={
+              voiceAdapter.transcript.trim() ||
+              !voiceAdapter.failureSentence ||
+              /not open/i.test(voiceAdapter.failureSentence)
+                ? null
+                : voiceAdapter.failureSentence
+            }
+            onStart={() => call.begin()}
+            onMute={() => call.mute()}
+            onEnd={() => {
+              call.end();
+              setCallTurn(null);
+            }}
+            onText={() => {
+              call.end();
+              setCallTurn(null);
+              requestAnimationFrame(() => field.current?.focus());
+            }}
+            emergency={
+              <p className="as-silence">
+                <TriangleAlert size={15} aria-hidden="true" />
+                <EmergencyLinks />
+              </p>
+            }
+          />
+        ) : (
+          <>
         {consented ? (
           <div
             className="as-scroll"
@@ -962,6 +1033,23 @@ export default function Assistant({
             ref={scroller}
             onScroll={measure}
           >
+            {!asked && (
+              <>
+                <Opening prompt="What can I help you with?" title="" />
+                <QuietChips
+                  chips={DESIGN_CHIPS}
+                  onPick={(label) => {
+                    const chip = DESIGN_CHIPS.find((item) => item.label === label);
+                    if (chip && "page" in chip && navigate) {
+                      dismiss();
+                      navigate(chip.page);
+                      return;
+                    }
+                    sendText(label);
+                  }}
+                />
+              </>
+            )}
             {/* The skin check, drawn first in the scroll while it is open; skin-check.css stands the
                 conversation and the composer aside under data-skin rather than unmounting them, so the
                 transcript is exactly where she left it when she comes back. */}
@@ -974,29 +1062,20 @@ export default function Assistant({
             )}
             {/* The welcome introduces GilbertOne by its official logo, with the descriptor that must
                 stand beside the name. A lockup, so it is centred on the logo's own clear space. */}
-            {!asked && (
-              <Card
-                className="as-welcome-hero"
-                role="region"
-                aria-label={identity.name}
-              >
-                <p className="as-hello">{ui.hello}</p>
-                <GilbertOneLogo
-                  className="as-wordmark"
-                  width={168}
-                  alt={identity.name}
-                />
-                <p className="as-hero-descriptor">{identity.descriptorLine}</p>
-              </Card>
-            )}
             <div
               className="as-log"
-              data-welcome={(!asked && gated) || undefined}
+              data-welcome={!asked || undefined}
               role="log"
               aria-label={conversation.logLabel}
             >
               <ol>
-                {turns.map((turn, index) => (
+                {turns.map((turn, index) => {
+                  /* "Nothing needs you…" is the settled situation, a status
+                     sentence. Before anyone has typed, the welcome line covers
+                     this turn. Once a real message exists, rendering it would
+                     leak that caption in as the first chat bubble. */
+                  if (isOpeningStatus(turn)) return null;
+                  return (
                   <li
                     key={turn.id}
                     className="as-turn"
@@ -1051,6 +1130,7 @@ export default function Assistant({
                           sent={sent[turn.id]}
                           onSend={() => handTo(turn)}
                           disclosure={turn.disclosure}
+                          navigate={navigate}
                           /* Only the latest turn's intake chips can be pressed: an earlier offer or
                              question has been answered, and its answer is the next turn's own words. */
                           onIntake={
@@ -1084,10 +1164,22 @@ export default function Assistant({
                     {/* What produced this answer, beneath it and outside it — the reply's words stay the
                         contract's alone — never on the welcome or while waiting. */}
                     {asked && turn.asked && !pendingReplies.has(turn.id) && (
-                      <Sources replyKind={turn.reply.kind} />
+                      <Sources
+                        replyKind={turn.reply.kind}
+                        references={
+                          turn.reply.kind === "record"
+                            ? referencesUsedFor(turn.asked ?? "").map((source) => ({
+                                name: source.name,
+                                url: source.url,
+                              }))
+                            : undefined
+                        }
+                        used={undefined}
+                      />
                     )}
                   </li>
-                ))}
+                  );
+                })}
               </ol>
             </div>
 
@@ -1204,19 +1296,6 @@ export default function Assistant({
                 );
               })}
             </div>
-            {!asked && audience.voice && voiceAdapter.supported && (
-              <p className="as-talkbar">
-                <span className="as-talkbar-icon" aria-hidden="true">
-                  <Mic size={18} />
-                </span>
-                <span className="as-talkbar-copy">
-                  <span className="as-talkbar-label">
-                    {voice.sentences.talkLabel}
-                  </span>
-                  <span className="as-talkbar-sub">{talkSubtitle}</span>
-                </span>
-              </p>
-            )}
             {asked && (
               <button type="button" className="as-again" onClick={again}>
                 <RotateCcw size={16} aria-hidden="true" />
@@ -1308,86 +1387,7 @@ export default function Assistant({
               </footer>
             )}
           </div>
-        ) : (
-          <div className="as-scroll as-gate">
-            {/* One paper card on the ink sheet — the founder's brief of 28 September 2026. What the
-                patient is agreeing to is the only light thing on the screen, so it is what is read
-                first; the disclosures inside it are sections of one document rather than cards
-                stacked inside a card, and nothing in it has an entrance of its own. */}
-            <div className="as-gate-paper">
-            {/* The official logo at the head of what she is agreeing to, with the descriptor beside
-                it: the name and its correction, read together before anything else. */}
-            <div className="as-gate-brand">
-              <GilbertOneLogo width={120} alt={identity.name} />
-              <p className="as-descriptor">{identity.descriptorLine}</p>
-            </div>
-            <div className="as-gate-intro">
-              <h3>{consent.heading}</h3>
-              <p>{ui.disclaimerIntro}</p>
-            </div>
-            <div className="as-emergency">
-              <p className="as-emergency-heading">
-                <TriangleAlert size={16} aria-hidden="true" />
-                {screens.consent.emergencyHeading}
-              </p>
-              <p className="as-gate-emergency">
-                <EmergencyLinks />
-              </p>
-            </div>
-            <section className="as-gate-card">
-              <div className="as-gate-card-head">
-                <span className="as-gate-icon">
-                  <Lock size={18} aria-hidden="true" />
-                </span>
-                <h3>{consent.privacyHeading}</h3>
-              </div>
-              <p>{consent.privacyBody}</p>
-            </section>
-            <section className="as-gate-card">
-              <div className="as-gate-card-head">
-                <span className="as-gate-icon">
-                  <Ban size={18} aria-hidden="true" />
-                </span>
-                <h3>{consent.willNotDoHeading}</h3>
-              </div>
-              <ul className="as-gate-list">
-                {consent.willNotDo.map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
-              </ul>
-            </section>
-            <section className="as-gate-card">
-              <div className="as-gate-card-head">
-                <span className="as-gate-icon">
-                  <Cog size={18} aria-hidden="true" />
-                </span>
-                <h3>{consent.poweredByHeading}</h3>
-              </div>
-              <p>{consent.poweredByBody}</p>
-            </section>
-            {/* The service disclosures, since the integration of 22 September 2026: where the voice is
-                processed, where answers come from, and what an assessment and a handover will and will
-                not do. They are the web catalogue's own words — web-only copy, not the frozen
-                three-platform consent contract — because the microphone, the knowledge federation and
-                the gated triage and handover routes are this panel's, and the native apps do not carry
-                them. Each is a disclosure, not a tick-box: the moment-of-use consent for the microphone
-                and for a handover is asked again by the control that uses it, and the guided assessment
-                is refused outright until a ratified protocol exists. */}
-            {ui.service.consent.map((entry) => (
-              <section className="as-gate-card" key={entry.id}>
-                <div className="as-gate-card-head">
-                  <span className="as-gate-icon">
-                    <ShieldCheck size={18} aria-hidden="true" />
-                  </span>
-                  <h3>{entry.heading}</h3>
-                </div>
-                <p>{entry.body}</p>
-              </section>
-            ))}
-            </div>
-          </div>
-        )}
-
+        ) : null}
         {/* The way back to the latest answer: a real button in the panel's own order, after the
             conversation and before the composer, so the focus trap counts it like any other stop. It
             stands over the foot of the transcript from a dock that takes no room. Only once something
@@ -1423,7 +1423,7 @@ export default function Assistant({
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={sendOnEnter}
-                placeholder={conversation.inputHint}
+                placeholder="Type in your own words."
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
@@ -1436,81 +1436,45 @@ export default function Assistant({
                   assistant — and an audience's entry says whether that is this one. Its second
                   line, "Speech becomes text before sending.", rides inside the control under
                   the written action: the sentence is about the button it sits on. */}
-              {audience.voice && (
-                <AssistantVoiceButton
-                  voice={voiceAdapter}
-                  onTranscript={onVoiceTranscript}
-                  onUtterance={onUtterance}
-                  typingNote={conversation.webKeyboardNote}
-                  pending={waitingForReply}
-                  onTypeInstead={() => field.current?.focus()}
-                />
-              )}
-              <AssistantAttachments />
               <button
                 type="submit"
                 className="as-send"
                 aria-label={conversation.sendLabel}
                 title={conversation.sendLabel}
               >
-                <Send size={17} aria-hidden="true" />
+                <Send size={16} aria-hidden="true" />
+                <span>{conversation.sendLabel}</span>
               </button>
             </div>
             {/* The mockup's warning strip, in the contract's own words. It carries what the
                 loose silence line carried — nobody is safe because nobody answered — in the
                 shape the mockup gives it, and both numbers still arrive through the same
                 token resolver every other sentence uses. */}
+            <div className="go-compose-actions">
+              {audience.voice && (
+                <button type="button" className="go-talk" onClick={() => call.show()}>
+                  <Phone size={16} aria-hidden="true" />
+                  Talk to GilbertOne
+                </button>
+              )}
+              {audience.actions.handover && (
+                <button type="button" className="go-nurse" onClick={nurse}>
+                  <UserRound size={16} aria-hidden="true" />
+                  {answers.unread.handoverLabel}
+                </button>
+              )}
+            </div>
             <p className="as-silence">
               <TriangleAlert size={15} aria-hidden="true" />
-              {say(consent.emergencyNotice)}
+              <EmergencyLinks />
             </p>
           </form>
-        ) : (
-          <div className="as-gate-foot">
-            <div className="as-gate-boxes">
-              <label className="as-gate-check">
-                <input
-                  type="checkbox"
-                  checked={doctorBox}
-                  onChange={(event) => setDoctorBox(event.target.checked)}
-                />
-                <span>{consent.checkboxDoctor}</span>
-              </label>
-              <label className="as-gate-check">
-                <input
-                  type="checkbox"
-                  checked={emergencyBox}
-                  onChange={(event) => setEmergencyBox(event.target.checked)}
-                />
-                <span>{consent.checkboxEmergency}</span>
-              </label>
-            </div>
-            {/* Accept opens only when both boxes are ticked, and Cancel is the same dismiss the
-                cross, the backdrop and Escape use — the gate has no fourth way out. */}
-            <div className="as-gate-actions">
-              <Button
-                variant="secondary"
-                className="as-gate-cancel"
-                onClick={dismiss}
-              >
-                {consent.cancel}
-              </Button>
-              <Button
-                variant="accent"
-                className="as-gate-accept"
-                disabled={!doctorBox || !emergencyBox}
-                onClick={() => {
-                  setConsented(true);
-                  requestAnimationFrame(() => field.current?.focus());
-                }}
-                trailingIcon={<ArrowRight size={16} aria-hidden="true" />}
-              >
-                {consent.accept}
-              </Button>
-            </div>
-          </div>
+        ) : null}
+          </>
         )}
+
       </div>
+      )}
     </dialog>
   );
 }
@@ -1535,25 +1499,34 @@ function stageOf(
   };
 }
 
-/* The sources caption under an answer: what produced it, read from the reply's kind, and — kept apart
-   and folded — the connectors switched on for the demo, each called simulated and not consulted. */
-function Sources({ replyKind }: { replyKind: string }) {
-  const source = sourceOf(replyKind);
+/* One quiet link under the bubble, only when a signed-in reply matched an approved public card.
+   The name is the link text and the card's own URL is the href. Nothing is drawn when nothing matched,
+   and the name is not written into the reply sentence. */
+function Sources({
+  references,
+}: {
+  replyKind: string;
+  used?: readonly string[];
+  references?: readonly { name: string; url: string }[];
+}) {
+  const links = (references ?? []).filter(
+    (source) => source.name && source.url.startsWith("https://"),
+  );
+  const link = links[0];
+  if (!link) return null;
   return (
-    <div className="as-sources" data-source={source}>
-      <p>
-        <span className="as-sources-label">{sourcesCaption.label}:</span>{" "}
-        {sourcesCaption[source]}
-      </p>
-      {demoConnectorNames.length > 0 && (
-        <details className="as-sources-demo">
-          <summary>
-            {sourcesCaption.demoSummary} ({demoConnectorNames.length})
-          </summary>
-          <p>{demoConnectorNames.join(" · ")}</p>
-          <p>{sourcesCaption.demoNotConsulted}</p>
-        </details>
-      )}
+    <div className="as-sources">
+      {[link].map((source) => (
+        <a
+          key={source.url}
+          className="as-source-link"
+          href={source.url}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {source.name}
+        </a>
+      ))}
     </div>
   );
 }
@@ -1704,6 +1677,8 @@ type ReplyProps = {
   onIntake?: (text: string) => void;
   copied?: boolean;
   onCopy?: () => void;
+  /* Opens Book a nurse from the notes ending. Absent on a preview that has no page to open. */
+  navigate?: (page: string) => void;
 };
 
 function ReplyBody({
@@ -1717,6 +1692,7 @@ function ReplyBody({
   onIntake,
   copied,
   onCopy,
+  navigate,
 }: ReplyProps) {
   const { sos: allowSos, handover: allowHandover } =
     audienceOf(audience).actions;
@@ -1783,6 +1759,16 @@ function ReplyBody({
               </button>
             </div>
           )}
+        </>
+      );
+    case "record":
+      /* The composer already offers Talk to a nurse. A record bubble does not repeat it.
+         Refusal, unmatched and a real emergency keep their own handover button. */
+      return (
+        <>
+          {reply.text.split("\n\n").map((paragraph) => (
+            <p key={paragraph}>{paragraph}</p>
+          ))}
         </>
       );
     case "unmatched":
@@ -2035,12 +2021,15 @@ function ReplyBody({
           <>
             <p className="as-headline">{reply.group.name}</p>
             <p>{w.answer.opening}</p>
-            <ul className="as-quiet as-intake-not">
-              {w.whatItIsNot.map((sentence) => (
-                <li key={sentence}>{sentence}</li>
-              ))}
-            </ul>
-            <p className="as-quiet">{w.answer.stop.sentence}</p>
+            <details className="as-intake-not">
+              <summary>What this does not do</summary>
+              <ul className="as-quiet">
+                {w.whatItIsNot.map((sentence) => (
+                  <li key={sentence}>{sentence}</li>
+                ))}
+              </ul>
+              <p className="as-quiet">{w.answer.stop.sentence}</p>
+            </details>
             {onIntake && (
               <div className="as-intake-chips">
                 <Button
@@ -2098,6 +2087,7 @@ function ReplyBody({
                 </div>
               ))}
             </dl>
+            <p className="as-quiet as-provenance">{intakeReview()}</p>
           </Card>
           {reply.reading && (
             <p className="as-case-reading">{readingLine(reply.reading)}</p>
@@ -2107,14 +2097,17 @@ function ReplyBody({
               <p className="as-quiet" key={mark}>{mark}</p>
             ))}
           <p>{reply.state?.stopped ? w.answer.stop.stopped : w.answer.closing}</p>
-          <p className="as-quiet as-provenance">{intakeReview()}</p>
-          <p>{w.answer.arrangeCare}</p>
+          {navigate && (
+            <div className="as-actions">
+              <Button variant="primary" className="as-go" onClick={() => navigate("Book a nurse")}>
+                Book a nurse
+              </Button>
+            </div>
+          )}
           {/* A group with a pathway offers a reading and a nurse; the chips press into onIntake by
               their contract labels, and only on the latest turn. */}
           {hasPathway(reply.group) && !reply.state?.stopped && onIntake && (
             <>
-              {!reply.reading && <p className="as-quiet">{caseScreens.readingLead}</p>}
-              <p>{caseScreens.askNurseLead}</p>
               <div className="as-intake-chips" role="group" aria-label={caseScreens.askNurseLead}>
                 {!reply.reading && (
                   <Button variant="secondary" className="as-option" onClick={() => onIntake(caseScreens.readingOffer)}>

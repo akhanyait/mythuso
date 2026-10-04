@@ -500,6 +500,10 @@ export type Reply =
      so the panel treats it like every other reply — face, pulse, speech, outcome — without knowing
      or caring where the sentence came from. */
   | { kind: "service"; text: string }
+  /* Signed-in health chat. A short reply to what was just said, plus at most
+     one or two record facts that change the advice, and the line that a
+     clinician decides. It is not a model sentence and not the chart. */
+  | { kind: "record"; text: string; sources: readonly string[] }
   /* The three answers of 27 September 2026, each read from a contract and never composed. A
      reading: the measure a person named or the pair of numbers she wrote, and records.json's own
      explanation for it, framed by packages/catalog/reading-questions.json — or, pressed as a chip
@@ -593,6 +597,8 @@ export function pulseOf(reply: Reply): PulseId {
       return answers.refusal.state as PulseId;
     case "service":
       return answers.service.state as PulseId;
+    case "record":
+      return "guiding";
     case "handover":
       return answers.handover.state as PulseId;
     /* A number past the far-outside bounds pulses as the emergency answer does — the words put the
@@ -623,8 +629,9 @@ export function pulseOf(reply: Reply): PulseId {
  * that same turn is itself a refusal — the rest was not read — and affect may never soften a refusal. */
 export const affect = contract.affect;
 export function cueOf(reply: Reply, unread = false): string {
-  const mapped = unread ? affect.answers.unread : affect.answers[reply.kind];
-  return mapped.cue;
+  if (unread) return affect.answers.unread.cue;
+  if (reply.kind === "record") return affect.answers.service.cue;
+  return affect.answers[reply.kind].cue;
 }
 /* The register an answer is read aloud in — the voice's map, the way `cueOf` is the face's, and
    decided the same way: from the answer kind alone, in the contract's spokenRegister section of
@@ -634,9 +641,9 @@ export function cueOf(reply: Reply, unread = false): string {
    refusal's face: the unread block in that turn is itself a refusal. */
 export const spokenRegister = contract.spokenRegister;
 export function voiceClassOf(reply: Reply, unread = false): string {
-  return unread
-    ? spokenRegister.answers.unread
-    : spokenRegister.answers[reply.kind];
+  if (unread) return spokenRegister.answers.unread;
+  if (reply.kind === "record") return spokenRegister.answers.service;
+  return spokenRegister.answers[reply.kind];
 }
 /* What the cue that owns the face means, for the readable surface the tests key on. Reversed from
    the affect mapping: the greeting cues are conversation rather than answers, so a face they own has
@@ -668,6 +675,13 @@ export const opening = (audience: AudienceId = "patient"): Turn[] => [
     unread: false,
   },
 ];
+
+/* The patient's first turn is the settled situation ("Nothing needs you…").
+   That sentence is a status, not something they asked. The panel may use it
+   before a conversation starts; it must not be painted as a chat bubble once
+   a real message exists. */
+export const isOpeningStatus = (turn: Turn): boolean =>
+  turn.asked == null && turn.reply.kind === "situation";
 
 const append = (turns: Turn[], make: (id: number) => Turn) =>
   [...turns, make((turns[turns.length - 1]?.id ?? 0) + 1)].slice(
@@ -1006,11 +1020,36 @@ export function activeIntake(turns: Turn[]): IntakeReply | null {
 
 /* A message while an intake is open, in the order the contract's `order` rule gives: the emergency
  * words first, on the person's own words, and a match is the emergency answer with the intake over;
- * then, for an offer, the contract's yes and no words — anything else falls through (null) to the
+ * then, for an offer, the contract's yes and no words, and a message that starts with a yes-word
+ * unless it names a different group or says but or except — anything else falls through (null) to the
  * ordinary matcher, because a question asked in the middle of an offer is a question; then, for a
  * question, the package's answerIntake, which reads the stop word, asks the engine's emergency
  * classifier and the escalation ruleset itself, and records the answer. Every sentence the reply
  * carries is the contract's. */
+
+/* A yes that is more than intakeConsent's whole message, and only for an offer already on screen.
+   The contract's yes-words are compared with stems(), longest first, at the start of the message.
+   "let's start" leads with the contraction and then the yes-word "start". "but" and "except" refuse
+   it, and so does a complaint that names a different intake group than the one offered. */
+function offerYesPrefix(text: string, groupId: string): boolean {
+  const said = stems(text);
+  if (said.includes("but") || said.includes("except")) return false;
+  const named = intakeGroupFor(text);
+  if (named && named.id !== groupId) return false;
+  const phrases = intakeContract.answer.consent.yesWords
+    .map((word) => stems(word))
+    .filter((phrase) => phrase.length > 0)
+    .sort((a, b) => b.length - a.length);
+  const startsAt = (from: number) =>
+    phrases.some(
+      (phrase) =>
+        from + phrase.length <= said.length &&
+        phrase.every((part, index) => said[from + index] === part),
+    );
+  if (startsAt(0)) return true;
+  return said[0] === stems("let")[0] && startsAt(1);
+}
+
 export function continueIntake(
   turns: Turn[],
   text: string,
@@ -1039,12 +1078,14 @@ export function continueIntake(
     }));
   if (active.phase === "offer") {
     const decision = intakeConsent(words);
-    if (decision === null) return null;
-    return turn(
-      decision === "yes"
-        ? intakeStep(active.group, beginIntake(active.group.id))
-        : { ...active, phase: "declined" },
-    );
+    /* Exact yes and no stay the package's whole-message rule. A longer message that only
+       starts with a yes-word — "Okay let's start", "let's start", "Yes I have a cold" when
+       that cold is the group already on screen — is a yes here and nowhere else. A different
+       complaint, or "but" / "except", is not, and falls through to the ordinary matcher. */
+    if (decision === "no") return turn({ ...active, phase: "declined" });
+    if (decision === "yes" || (decision === null && offerYesPrefix(words, active.group.id)))
+      return turn(intakeStep(active.group, beginIntake(active.group.id)));
+    return null;
   }
   if (!active.state) return null;
   /* The notes, on a group with a pathway: three chips, by their contract labels. A reading opens the
@@ -1203,6 +1244,16 @@ export function spokenOf(turn: Turn, audience: AudienceId): string {
          emergency words were asked before this reply existed. */
       add(turn.reply.sentence);
       break;
+    case "record": {
+      /* The screen shows the digits. Read them as telephone numbers, the way
+         the emergency answer does, not as quantities. */
+      let said = turn.reply.text;
+      for (const id of ["ambulance", "mobile"]) {
+        said = said.replaceAll(numberById(id).number, spokenNumber(id));
+      }
+      add(said);
+      break;
+    }
     case "service":
       /* The heading first, because it is what the screen says first: these words were written by a
          language model rather than read from an approved sentence, and the disclosure beside them
@@ -1252,8 +1303,7 @@ export function spokenOf(turn: Turn, audience: AudienceId): string {
       } else if (r.phase === "notes") {
         add(intakeContract.summary.title, ...r.rows.map((row) => `${row.line}.`));
         if (r.reading) add(readingLine(r.reading), ...readingMarks(r.reading));
-        add(r.state?.stopped ? w.stop.stopped : w.closing, intakeReviewSentence(), w.arrangeCare);
-        if (hasPathway(r.group) && !r.state?.stopped) add(caseScreens.readingLead, caseScreens.askNurseLead);
+        add(r.state?.stopped ? w.stop.stopped : w.closing, intakeReviewSentence());
       } else if (r.phase === "reading") {
         if (r.far) readingBody(r.far);
         add(r.note ?? caseScreens.readingAsk);

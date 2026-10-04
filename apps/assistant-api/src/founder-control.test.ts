@@ -449,32 +449,32 @@ test("a settings change is accepted or refused by the shared rule, read back aft
       assert.equal(read.settingsVersion, 1);
       assert.equal(read.persisted, true);
       assert.deepEqual(read.history, []);
-      assert.equal(read.settings.find((s) => s.setting === "presentation-voice-routine")!.inForce, "female");
+      assert.equal(read.settings.find((s) => s.setting === "presentation-voice-routine")!.inForce, "male");
       assert.deepEqual(Object.keys(read).sort(), ["expiresAt", "history", "persisted", "settings", "settingsVersion"]);
-      assert.equal(await voiceOf(await speak(base, "routine")), "en-ZA-LeahNeural", "before: the platform default");
+      assert.equal(await voiceOf(await speak(base, "routine")), "en-ZA-LukeNeural", "before: the male voice the presentation registers start on");
       /* Refused by the shared rules, in the shared words. */
       const change = (body: unknown) => fetch(`${base}/assistant/v1/founder/settings/changes`, { method: "POST", headers: withCookie, body: JSON.stringify(body) });
       await refused(await change({ setting: "presentation-voice-routine", from: "female", to: "male" }), "setting-change-without-reason");
-      await refused(await change({ setting: "presentation-voice-routine", from: "female", to: "neutral", reason: "why" }), "setting-out-of-range");
+      await refused(await change({ setting: "presentation-voice-routine", from: "male", to: "neutral", reason: "why" }), "setting-out-of-range");
       await refused(await change({ setting: "no-such-setting", from: "female", to: "male", reason: "why" }), "setting-not-known");
-      await refused(await change({ setting: "presentation-voice-routine", from: "male", to: "female", reason: "why" }), "settings-version-stale");
-      await refused(await change({ setting: "presentation-voice-routine", from: "female", to: "female", reason: "why" }), "setting-unchanged");
+      await refused(await change({ setting: "presentation-voice-routine", from: "female", to: "male", reason: "why" }), "settings-version-stale");
+      await refused(await change({ setting: "presentation-voice-routine", from: "male", to: "male", reason: "why" }), "setting-unchanged");
       const missing = await change({ setting: "presentation-voice-routine", to: "male", reason: "why" });
       assert.equal(missing.status, 400);
       /* Accepted: no code is asked for a setting — the session is the founder's signature. */
-      const accepted = await change({ setting: "presentation-voice-routine", from: "female", to: "male", reason: "I made everything male." });
+      const accepted = await change({ setting: "presentation-voice-routine", from: "male", to: "female", reason: "Switch this register to the female voice." });
       assert.equal(accepted.status, 200);
       const made = (await accepted.json()) as { settingsVersion: number; appliesFrom: string };
       assert.equal(made.settingsVersion, 2);
       assert.equal(made.appliesFrom, new Date(time.now()).toISOString());
       /* The voice test now hears the male voice on the presentation register, and the female one on an emergency. */
-      assert.equal(await voiceOf(await speak(base, "routine")), "en-ZA-LukeNeural", "the founder's male reaches the voice");
-      assert.match(calls.at(-1)!.body, /<voice name="en-ZA-LukeNeural">/);
+      assert.equal(await voiceOf(await speak(base, "routine")), "en-ZA-LeahNeural", "a saved change is what the next reading uses");
+      assert.match(calls.at(-1)!.body, /<voice name="en-ZA-LeahNeural">/);
       assert.equal(await voiceOf(await speak(base, "emergency")), "en-ZA-LeahNeural", "an emergency ignores the history");
       assert.equal(await voiceOf(await speak(base, "refusal")), "en-ZA-LeahNeural");
       assert.equal(await voiceOf(await speak(base, undefined)), "en-ZA-LeahNeural", "no register: the default");
-      assert.equal(await voiceOf(await speak(base, "navigation")), "en-ZA-LeahNeural", "a register nobody changed");
-      assert.equal(await voiceOf(await speak(base, "routine", "af")), "af-ZA-WillemNeural", "per language");
+      assert.equal(await voiceOf(await speak(base, "navigation")), "en-ZA-LukeNeural", "a register nobody changed");
+      assert.equal(await voiceOf(await speak(base, "routine", "af")), "af-ZA-AdriNeural", "per language");
       /* Read back: the history names the change against the administrator role, with the founder as the reference. */
       const after = (await (await fetch(`${base}/assistant/v1/founder/settings`, { headers: withCookie })).json()) as { settingsVersion: number; history: Record<string, unknown>[]; settings: Record<string, unknown>[] };
       assert.equal(after.settingsVersion, 2);
@@ -503,7 +503,7 @@ test("a settings change is accepted or refused by the shared rule, read back aft
       const cookie = await cookieFor();
       const read = (await (await fetch(`${base}/assistant/v1/founder/settings`, { headers: { ...HEADERS, cookie } })).json()) as { settingsVersion: number };
       assert.equal(read.settingsVersion, 3, "replayed from the file");
-      assert.equal(await voiceOf(await speak(base, "routine")), "en-ZA-LukeNeural", "after a restart the founder's voice still reads");
+      assert.equal(await voiceOf(await speak(base, "routine")), "en-ZA-LeahNeural", "after a restart the saved voice still reads");
       assert.equal(await voiceOf(await speak(base, "emergency")), "en-ZA-LeahNeural");
     });
   } finally {

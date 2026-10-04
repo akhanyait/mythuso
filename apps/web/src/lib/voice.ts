@@ -287,15 +287,44 @@ const VOICE_ORDER: readonly string[] = voicePolicy.voicePreference.order.map(
  *  of the four — in which case the utterance keeps its lang and the browser's own default speaks.
  *  That fallback is the contract's rule rather than a shortcoming: no South African voice is
  *  promised or implied to the person listening, and a preference is never a promise. */
+/* Apple ships joke voices (Albert, Eddy, Flo, Grandma) ahead of the real ones. The contract's
+ * order still decides the language. Inside a language, a joke voice is skipped so a South African
+ * voice such as Tessa is taken before a cartoon voice, and a plain English voice before that. */
+const NOVELTY_VOICES = new Set([
+  "albert", "bad news", "bahh", "bells", "boing", "bubbles", "cellos",
+  "wobble", "good news", "eddy", "flo", "grandma", "grandpa", "rocko",
+  "zarvox", "trinoids", "organ", "superstar", "jester", "whisper",
+]);
+const NATURAL_NAMES = ["tessa", "karen", "samantha", "moira", "serena", "daniel", "kate", "fiona"];
+
+function voiceLang(voice: SpeechSynthesisVoice): string {
+  return voice.lang.toLowerCase().replace(/_/g, "-");
+}
+
+function matchesTag(voice: SpeechSynthesisVoice, tag: string): boolean {
+  const lang = voiceLang(voice);
+  return lang === tag || lang.startsWith(`${tag}-`);
+}
+
+function pickNatural(found: readonly SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
+  if (!found.length) return null;
+  const spoken = found.filter(
+    (voice) => !NOVELTY_VOICES.has(voice.name.toLowerCase().split(" (")[0] ?? ""),
+  );
+  const pool = spoken.length ? spoken : found;
+  for (const name of NATURAL_NAMES) {
+    const hit = pool.find((voice) => voice.name.toLowerCase().startsWith(name));
+    if (hit) return hit;
+  }
+  return pool.find((voice) => voice.default) ?? pool[0];
+}
+
 function preferredVoice(
   voices: readonly SpeechSynthesisVoice[],
 ): SpeechSynthesisVoice | null {
   for (const tag of VOICE_ORDER) {
-    const found = voices.find((voice) => {
-      const lang = voice.lang.toLowerCase();
-      return lang === tag || lang.startsWith(`${tag}-`);
-    });
-    if (found) return found;
+    const chosen = pickNatural(voices.filter((voice) => matchesTag(voice, tag)));
+    if (chosen) return chosen;
   }
   return null;
 }
@@ -375,12 +404,9 @@ function preferredVoiceFor(
   voices: readonly SpeechSynthesisVoice[],
   language: readonly string[],
 ): SpeechSynthesisVoice | null {
-  for (const tag of language.map((tag) => tag.toLowerCase())) {
-    const found = voices.find((voice) => {
-      const lang = voice.lang.toLowerCase();
-      return lang === tag || lang.startsWith(`${tag}-`);
-    });
-    if (found) return found;
+  for (const tag of language.map((item) => item.toLowerCase().replace(/_/g, "-"))) {
+    const chosen = pickNatural(voices.filter((voice) => matchesTag(voice, tag)));
+    if (chosen) return chosen;
   }
   return preferredVoice(voices);
 }
@@ -451,6 +477,9 @@ export function useVoiceAdapter(
     itself has still reached for the API before anybody asked it to, and the journeys assert that it
     has not. */
   const everSpoke = useRef(false);
+  /* The first speak often runs before the browser has listed its voices. Waiting once, and only
+     after someone has asked to hear a reply, keeps that reply off the default cartoon voice. */
+  const waitedForVoices = useRef(false);
   /* The browser's voices, kept from the moment it first has any. Some browsers fill the list in only
     after firing `voiceschanged`, so an empty reading is not "this browser has none": the listener is
     armed on the first utterance, guarded because a stand-in synthesiser may have no listener at
@@ -552,6 +581,18 @@ export function useVoiceAdapter(
        that is already open — and the everSpoke guard inside `cancel` keeps a page that has never
        spoken from reaching for the synthesiser at all. */
     cancel();
+    /* A tap is the user gesture the cloud voice needs. Playing a silent clip here lets the
+       later server recording start; without it the browser blocks that audio and the cartoon
+       voice speaks instead. */
+    try {
+      const primer = new Audio(
+        "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=",
+      );
+      primer.volume = 0.01;
+      void primer.play().then(() => primer.pause()).catch(() => {});
+    } catch {
+      /* The cloud attempt still happens. This only covers browsers that block it. */
+    }
 
     setFailure(null);
     setTranscript("");
@@ -672,6 +713,29 @@ export function useVoiceAdapter(
           if (settled.length > 0) voices.current = settled;
         });
       }
+      /* Chrome often answers getVoices with an empty list until voiceschanged. Speaking then
+         uses the browser's default, which on this Mac is not the South African voice. Wait once. */
+      if (voices.current.length === 0 && !waitedForVoices.current) {
+        waitedForVoices.current = true;
+        let ran = false;
+        const go = () => {
+          if (ran) return;
+          ran = true;
+          window.clearTimeout(timer);
+          if (typeof synthesis.removeEventListener === "function") {
+            synthesis.removeEventListener("voiceschanged", go);
+          }
+          const settled = synthesis.getVoices();
+          if (settled.length > 0) voices.current = settled;
+          speakViaBrowser(text, options);
+        };
+        const timer = window.setTimeout(go, 400);
+        if (typeof synthesis.addEventListener === "function") {
+          synthesis.addEventListener("voiceschanged", go);
+        }
+        return;
+      }
+      waitedForVoices.current = false;
 
       const utterance = new SpeechSynthesisUtterance(text);
       /* The contract's order, then the browser's own default when it has none of the four. The
@@ -926,26 +990,19 @@ export function useVoiceAdapter(
       closeReading.current?.();
       if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 
-      /* The cloud voice first, but only once it is known to be there: a reply is never held up by the
-       status check, so until that check has answered the browser's own voice carries the words
-       synchronously exactly as it did before the cloud door existed, and the check warms in the
-       background for the next reply. When the cloud is known to be configured the reading is fetched
-       and played, and a cloud that refuses or fails mid-reply falls through to the browser's voice
-       rather than leaving the person with silence. */
-      if (cloudReady.current === true) {
-        void (async () => {
+      /* The server voice first. Wait for the status check when it has not answered yet, so the
+         browser's cartoon voice does not start the sentence and then get replaced. A cloud that
+         refuses or fails mid-reply still falls through to the browser. */
+      void (async () => {
+        if (cloudReady.current === null)
+          cloudReady.current = await isSpeechConfigured();
+        if (gen !== speakGen.current) return;
+        if (cloudReady.current === true) {
           const voiced = await speakViaCloud(text, options, gen, language);
-          /* Abandoned while the cloud was asked, so nothing plays and the browser's voice is not
-           started for a reply already moved past; otherwise, a cloud that could not voice falls
-           through to the browser's own — unless it said the language has no voice at all, which
-           answers true above and so never reaches this fall-through. */
           if (voiced || gen !== speakGen.current) return;
-          speakViaBrowser(text, options);
-        })();
-        return;
-      }
-      if (cloudReady.current === null) warmCloud();
-      speakViaBrowser(text, options);
+        }
+        speakViaBrowser(text, options);
+      })();
     },
     [speakViaBrowser, speakViaCloud, warmCloud],
   );

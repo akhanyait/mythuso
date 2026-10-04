@@ -134,7 +134,7 @@ test("a headache is offered notes for the nurse, never the waiting dots, and the
   }
   await expect(notes).toContainText(intake.answer.closing);
   await expect(notes).toContainText(intake.review.unreviewed);
-  await expect(notes).toContainText(intake.answer.arrangeCare);
+  await expect(notes.getByRole("button", { name: "Book a nurse", exact: true })).toBeVisible();
   /* The question chips are gone; what stays on a headache card since 29 September 2026 are the case
      pathway's three chips — a reading, a nurse, not now — by packages/catalog/case.json's own labels. */
   const caseChips = new Set<string>([caseContract.screens.patient.readingOffer, caseContract.screens.patient.askNurse, caseContract.screens.patient.notNow]);

@@ -1,0 +1,152 @@
+{
+  "fetchedOn": "2026-10-04",
+  "rule": "A patient reply may name a source only when status is approved and audience is public, and only when the patient's own words match a topic. Candidates and clinician-only entries are a shelf and are never cited. Notes are not page text.",
+  "sources": [
+    {
+      "id": "nicd",
+      "name": "NICD",
+      "publisher": "National Institute for Communicable Diseases",
+      "url": "https://www.nicd.ac.za/",
+      "topics": [
+        "communicable disease",
+        "symptoms",
+        "prevention",
+        "measles",
+        "diphtheria",
+        "rsv",
+        "mpox",
+        "tb",
+        "respiratory"
+      ],
+      "audience": "public",
+      "status": "approved",
+      "fetchedOn": "2026-10-04",
+      "note": "The NICD homepage is a public and clinician starting point for communicable-disease information, and this entry does not cite a separate disease A to Z page."
+    },
+    {
+      "id": "cochrane",
+      "name": "Cochrane",
+      "publisher": "Cochrane",
+      "url": "https://www.cochrane.org/",
+      "topics": [
+        "systematic reviews"
+      ],
+      "audience": "public",
+      "status": "approved",
+      "fetchedOn": "2026-10-04",
+      "note": "The Cochrane homepage is the public and professional entry to its systematic reviews, and this entry does not cite the Cochrane Library host."
+    },
+    {
+      "id": "medlineplus",
+      "name": "MedlinePlus",
+      "publisher": "National Library of Medicine",
+      "url": "https://medlineplus.gov/",
+      "topics": [
+        "health topics"
+      ],
+      "audience": "public",
+      "status": "approved",
+      "fetchedOn": "2026-10-04",
+      "note": "MedlinePlus is a US patient health-topic library and is not a South African dosing source; where it differs from a South African page, follow the National Department of Health."
+    },
+    {
+      "id": "nhs-conditions",
+      "name": "NHS Conditions",
+      "publisher": "National Health Service",
+      "url": "https://www.nhs.uk/conditions/",
+      "topics": [
+        "hiv",
+        "tuberculosis",
+        "blood pressure",
+        "diabetes",
+        "pregnancy",
+        "measles"
+      ],
+      "audience": "public",
+      "status": "approved",
+      "fetchedOn": "2026-10-04",
+      "note": "The NHS conditions index is a UK public page, not South African protocol; where it differs from a South African page, follow the National Department of Health."
+    },
+    {
+      "id": "cdc",
+      "name": "CDC",
+      "publisher": "Centers for Disease Control and Prevention",
+      "url": "https://www.cdc.gov/",
+      "topics": [
+        "flu",
+        "respiratory illness"
+      ],
+      "audience": "public",
+      "status": "candidate",
+      "fetchedOn": "2026-10-04",
+      "note": "The CDC homepage was not opened in this run, so it is not approved; it is a US page and not an authority for South African HIV, TB, medicines, or immunisation, and where it differs follow the National Department of Health."
+    },
+    {
+      "id": "ndoh-elibrary",
+      "name": "NDoH Knowledge Hub e-Library",
+      "publisher": "National Department of Health",
+      "url": "https://knowledgehub.health.gov.za/e-library",
+      "topics": [
+        "guidelines",
+        "library"
+      ],
+      "audience": "clinician",
+      "status": "candidate",
+      "fetchedOn": "2026-10-04",
+      "note": "The Knowledge Hub e-library is a National Department of Health shelf for clinicians and is never named in a patient reply."
+    },
+    {
+      "id": "ndoh-stg-eml",
+      "name": "STG and Essential Medicines List",
+      "publisher": "National Department of Health",
+      "url": "https://www.health.gov.za/nhi-edp-stgs-eml/",
+      "topics": [
+        "essential medicines",
+        "standard treatment"
+      ],
+      "audience": "clinician",
+      "status": "candidate",
+      "fetchedOn": "2026-10-04",
+      "note": "This National Department of Health page points at standard treatment guidelines and the essential medicines list, and it is clinician context only."
+    },
+    {
+      "id": "ndoh-hiv-guidelines-2026",
+      "name": "National Consolidated HIV Guidelines 2026",
+      "publisher": "National Department of Health",
+      "url": "https://knowledgehub.health.gov.za/elibrary/national-consolidated-guidelines-management-hiv-adults-adolescents-children-infants-and",
+      "topics": [
+        "hiv"
+      ],
+      "audience": "clinician",
+      "status": "candidate",
+      "fetchedOn": "2026-10-04",
+      "note": "The 2026 national consolidated HIV guidelines file was not opened in this run, so it stays a clinician candidate and is not cited."
+    },
+    {
+      "id": "samrc",
+      "name": "SAMRC",
+      "publisher": "South African Medical Research Council",
+      "url": "https://www.samrc.ac.za/",
+      "topics": [
+        "research"
+      ],
+      "audience": "clinician",
+      "status": "candidate",
+      "fetchedOn": "2026-10-04",
+      "note": "The SAMRC homepage is research-council context only and is not a patient-education source."
+    },
+    {
+      "id": "nice-guidance",
+      "name": "NICE guidance",
+      "publisher": "National Institute for Health and Care Excellence",
+      "url": "https://www.nice.org.uk/guidance",
+      "topics": [
+        "guidance"
+      ],
+      "audience": "clinician",
+      "status": "candidate",
+      "fetchedOn": "2026-10-04",
+      "note": "The NICE guidance index is UK clinician guidance, not a South African standard; where it differs from a South African page, follow the National Department of Health."
+    }
+  ]
+}

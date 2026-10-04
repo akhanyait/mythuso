@@ -1,0 +1,966 @@
+/* GilbertOne experience scope: a 56–64px launcher is styled with the shell.
+   This sheet is the compact chat, using the tokens already on the page. */
+
+.go-experience {
+  overflow-x: hidden;
+}
+
+@media (min-width: 600px) {
+  .as-panel.go-experience,
+  .public-assistant.go-experience {
+    inset: auto max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) auto;
+    width: min(380px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+    min-width: min(360px, calc(100vw - 32px));
+    max-width: min(420px, calc(100vw - 32px));
+    height: auto;
+    max-height: min(640px, calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
+    border-radius: 24px;
+  }
+}
+
+@media (max-width: 599px) {
+  .as-panel.go-experience,
+  .public-assistant.go-experience {
+    inset: calc(8px + env(safe-area-inset-top)) calc(8px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) calc(8px + env(safe-area-inset-left));
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    height: auto;
+    max-height: none;
+    border-radius: 24px;
+  }
+}
+
+.go-experience .as-frame,
+.go-experience .public-assistant-frame,
+.go-experience .go-frame {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  max-height: inherit;
+  overflow: hidden;
+}
+
+.go-experience .as-head {
+  display: block;
+  padding: 8px 8px 8px 14px;
+}
+
+.go-experience .as-bar {
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.go-experience #as-title,
+.go-experience .go-title {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip-path: none;
+  white-space: nowrap;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 650;
+  color: var(--brand-ink);
+}
+
+.go-experience .as-logo,
+.go-experience .as-rig,
+.go-experience .as-caption,
+.go-experience .as-pause,
+.go-experience .as-minimise,
+.go-experience .as-descriptor,
+.go-experience .as-simulated,
+.go-experience .as-welcome-hero,
+.go-experience .as-asks,
+.go-experience .as-talkbar,
+.go-experience .as-again,
+.go-experience .as-foot,
+.go-experience .as-rule,
+.go-experience .as-voice-details,
+.go-experience .gos-region,
+.go-experience .as-convo {
+  display: none;
+}
+
+.go-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-height: 52px;
+  padding: 6px 8px 6px 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--brand-ink) 12%, var(--surface));
+  background: var(--surface);
+  color: var(--brand-ink);
+}
+
+.go-head-actions,
+.go-experience .as-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.go-icon,
+.go-chip,
+.go-primary,
+.go-secondary,
+.go-menu-list button,
+.go-details summary {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.go-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--brand-ink);
+  cursor: pointer;
+}
+
+.go-menu { position: relative; }
+
+.go-menu-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  padding: 4px;
+  border: 1px solid color-mix(in srgb, var(--brand-ink) 14%, var(--surface));
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-raised);
+}
+
+.go-menu-list button {
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--brand-ink);
+  text-align: left;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.go-menu-list button:hover,
+.go-menu-list button:focus-visible {
+  background: color-mix(in srgb, var(--brand-mint) 18%, var(--surface));
+}
+
+.go-opening,
+.go-prompt,
+.go-context,
+.go-voice-disclosure,
+.go-privacy p {
+  margin: 0;
+  color: var(--brand-ink);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.go-opening { display: flex; flex-direction: column; gap: 8px; }
+
+.go-prompt { font-size: 18px; font-weight: 650; }
+
+.go-context,
+.go-voice-disclosure,
+.go-privacy p { color: color-mix(in srgb, var(--brand-ink) 78%, var(--surface)); }
+
+.go-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.go-chip,
+.go-primary,
+.go-secondary {
+  border-radius: 999px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.go-chip,
+.go-secondary {
+  border: 1px solid color-mix(in srgb, var(--brand-ink) 16%, var(--surface));
+  background: var(--surface);
+  color: var(--brand-ink);
+}
+
+.go-primary {
+  border: 0;
+  background: var(--brand-ink);
+  color: var(--surface);
+}
+
+.go-experience :focus-visible {
+  outline: 2px solid var(--brand-green);
+  outline-offset: 2px;
+}
+
+.go-privacy {
+  margin: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--brand-ink) 12%, var(--surface));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+}
+
+.go-privacy-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.go-privacy-bar h3 { margin: 0; font-size: 15px; }
+
+.go-voice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 24px 16px calc(16px + env(safe-area-inset-bottom));
+  text-align: center;
+  overflow: auto;
+}
+
+.go-voice-name { margin: 0; font-size: 18px; font-weight: 650; }
+
+.go-voice-state { margin: 0; font-size: 14px; }
+
+.go-voice-orb {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid var(--brand-mint);
+  background: color-mix(in srgb, var(--brand-mint) 22%, var(--surface));
+  animation: go-breathe 2.8s ease-in-out infinite;
+}
+
+@keyframes go-breathe {
+  50% { transform: scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .go-voice-orb { animation: none; }
+}
+
+.go-voice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.go-captions {
+  margin: 0;
+  max-width: 36ch;
+  font-size: 14px;
+}
+
+.go-details { margin-top: 8px; }
+
+.go-details summary {
+  cursor: pointer;
+  color: var(--brand-ink);
+}
+
+.go-source {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 13px;
+}
+
+.go-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+
+.go-chat,
+.go-experience .as-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.go-compose,
+.go-experience .as-compose {
+  flex: 0 0 auto;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+
+.go-frame {
+  background: var(--surface);
+  color: var(--brand-ink);
+}
+
+.go-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.go-compose {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px max(8px, env(safe-area-inset-bottom));
+  border-top: 1px solid color-mix(in srgb, var(--brand-ink) 12%, var(--surface));
+}
+
+.go-compose-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.go-compose textarea {
+  flex: 1 1 auto;
+  min-height: 44px;
+  max-height: 120px;
+  resize: none;
+  border: 1px solid color-mix(in srgb, var(--brand-ink) 16%, var(--surface));
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--brand-ink);
+  background: var(--surface);
+}
+
+.public-assistant-launcher {
+  width: 60px;
+  height: 60px;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  border-radius: 50%;
+}
+
+.public-assistant-launcher .al-orb {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--surface) url("/brand/gilbert-icon.webp") center / 116% no-repeat;
+  box-shadow: var(--shadow-raised);
+  border: 2px solid var(--brand-mint);
+}
+
+.public-assistant-launcher .al-tip,
+.as-launcher .al-tip {
+  position: absolute;
+  right: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--brand-ink);
+  color: var(--surface);
+  font-size: 13px;
+  line-height: 1.2;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.public-assistant-launcher:hover .al-tip,
+.public-assistant-launcher:focus-visible .al-tip,
+.as-launcher:hover .al-tip,
+.as-launcher:focus-visible .al-tip {
+  opacity: 1;
+}
+
+.go-turn { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.go-said { margin: 0; align-self: flex-end; max-width: 90%; padding: 8px 12px; border-radius: 12px; background: color-mix(in srgb, var(--brand-mint) 28%, var(--surface)); }
+.go-answer { margin: 0; max-width: 100%; }
+.go-log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+
+.go-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Quiet chat, October 2026. One soft card for the public sheet and the signed-in panel.
+   The composer is a single rounded row; Send sits inside it. No call surface, no second product. */
+
+.public-assistant.go-experience,
+.as-panel.go-experience,
+.as-panel.go-experience[data-gate] {
+  border: 1px solid #9ed4b8;
+  background: #fff;
+  color: #083848;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--surface) 80%, transparent),
+    0 18px 48px color-mix(in srgb, var(--brand-ink) 16%, transparent);
+}
+
+.go-experience .go-frame,
+.go-experience:not([data-gate]) .as-frame {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--brand-mint) 28%, var(--surface)) 0,
+      var(--surface) 108px
+    );
+}
+
+.go-experience .go-head,
+.go-experience:not([data-gate]) .as-head {
+  min-height: 60px;
+  padding: 12px 10px 8px 18px;
+  border-bottom: 0;
+  background: transparent;
+}
+
+.go-experience .go-title,
+.go-experience:not([data-gate]) #as-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #083848;
+}
+
+.go-experience:not([data-gate]) .as-close {
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  color: var(--brand-ink);
+}
+
+.go-experience .go-body,
+.go-experience:not([data-gate]) .as-scroll {
+  gap: 16px;
+  padding: 6px 18px 18px;
+}
+
+.go-experience .go-opening {
+  gap: 6px;
+  padding-top: 8px;
+  align-items: center;
+  text-align: center;
+}
+
+.go-experience .go-prompt {
+  font-size: 22px;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.go-experience .go-context {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.go-experience .go-chips {
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.go-experience .go-chip {
+  width: auto;
+  max-width: 100%;
+  align-self: flex-start;
+  border: 0;
+  background: #e7f6ee;
+  color: #083848;
+  box-shadow: none;
+  text-align: left;
+  line-height: 1.3;
+}
+
+.go-experience .go-chip:hover,
+.go-experience .go-chip:focus-visible {
+  background: color-mix(in srgb, var(--brand-mint) 70%, var(--surface));
+}
+
+.go-experience .go-said,
+.go-experience .as-said {
+  border-radius: 18px 18px 6px 18px;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--brand-mint) 36%, var(--surface));
+}
+
+.go-experience .go-answer,
+.go-experience .as-reply {
+  border-radius: 18px 18px 18px 6px;
+}
+
+.go-experience .go-compose,
+.go-experience:not([data-gate]) .as-compose {
+  position: relative;
+  gap: 12px;
+  padding: 4px 16px 16px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  border-top: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.go-experience:not([data-gate]) .as-compose > label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.go-experience .go-compose-row,
+.go-experience:not([data-gate]) .as-compose .as-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 6px;
+  margin: 0;
+  padding: 6px 6px 6px 16px;
+  border-radius: 28px;
+  border: 1px solid color-mix(in srgb, var(--brand-ink) 10%, var(--surface));
+  background: var(--surface);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--brand-ink) 6%, transparent);
+}
+
+.go-experience .go-compose-row:focus-within,
+.go-experience:not([data-gate]) .as-compose .as-field:focus-within {
+  border-color: color-mix(in srgb, var(--brand-green) 55%, var(--brand-ink));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-mint) 55%, transparent);
+}
+
+.go-experience .go-compose textarea,
+.go-experience:not([data-gate]) .as-compose .as-field textarea,
+.go-experience:not([data-gate]) .as-compose .as-field textarea:focus-visible {
+  flex: 1 1 120px;
+  order: 0;
+  grid-column: auto;
+  grid-row: auto;
+  min-width: 0;
+  min-height: 44px;
+  max-height: 120px;
+  margin: 0;
+  padding: 10px 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+}
+
+.go-experience:not([data-gate]) .as-compose .as-media {
+  order: 1;
+  grid-column: auto;
+  grid-row: auto;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--brand-ink);
+}
+
+.go-experience .go-compose .go-primary,
+.go-experience:not([data-gate]) .as-compose .as-send {
+  order: 2;
+  grid-column: auto;
+  grid-row: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #1f8a4c;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+.go-experience .go-compose .go-primary span,
+.go-experience:not([data-gate]) .as-compose .as-send span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.go-experience:not([data-gate]) .as-compose .as-send svg {
+  width: 16px;
+  height: 16px;
+}
+
+.go-experience:not([data-gate]) .as-compose .as-attachment-preview {
+  flex: 1 0 100%;
+  order: 3;
+}
+
+.go-experience .public-assistant-emergency,
+.go-experience:not([data-gate]) .as-silence {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.go-experience .public-assistant-emergency a,
+.go-experience:not([data-gate]) .as-silence a {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.go-experience:not([data-gate]) .as-silence svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--danger);
+}
+
+/* Speak to GilbertOne sits in the rounded composer. Speech-to-text uses the
+   existing microphone path. The extra lines stay hidden until consent or
+   listening, so the idle row stays one line. */
+.go-experience:not([data-gate]) .as-compose .as-field .as-voice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  order: 1;
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  min-height: 36px;
+  margin: 0 0 2px;
+  padding: 0 12px 0 8px;
+  gap: 6px;
+  border: 0;
+  border-radius: 999px;
+  background: #e7f6ee;
+  color: #083848;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1;
+}
+.go-experience:not([data-gate]) .as-compose .as-field .as-voice[disabled] {
+  opacity: 0.55;
+}
+.go-experience:not([data-gate]) .as-compose .as-field .as-mic-disc {
+  display: inline-flex;
+  width: auto;
+  height: auto;
+  background: transparent;
+  box-shadow: none;
+}
+.go-experience:not([data-gate]) .as-compose .as-field .as-voice-words {
+  display: inline;
+  font-size: 13px;
+  font-weight: 650;
+}
+.go-experience:not([data-gate]) .as-compose .as-field .as-voice-lines {
+  display: none;
+  flex: 1 0 100%;
+  order: 4;
+}
+.go-experience:not([data-gate]) .as-compose .as-field .as-voice-lines:has(.as-voice-consent),
+.go-experience:not([data-gate]) .as-compose .as-field .as-voice-lines:has(.as-mic-hot),
+.go-experience:not([data-gate]) .as-compose .as-field .as-voice-lines:has(.as-voice-heard) {
+  display: grid;
+}
+.go-experience:not([data-gate]) .as-compose .as-field .as-keyboard,
+.go-experience:not([data-gate]) .as-compose .as-field .as-voice-consent-line,
+.go-experience:not([data-gate]) .as-compose .as-field .as-voice-heard,
+.go-experience:not([data-gate]) .as-compose .as-field .as-mic-hot {
+  color: var(--brand-ink);
+}
+
+/* WhatsApp-style bubbles: yours on the right, GilbertOne on the left. */
+.go-experience:not([data-gate]) .as-log ol,
+.go-experience .go-log {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.go-experience:not([data-gate]) .as-turn,
+.go-experience .go-turn {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.go-experience:not([data-gate]) .as-said,
+.go-experience .go-said {
+  align-self: flex-end;
+  max-width: min(85%, 36rem);
+  margin: 0 0 0 auto;
+  border-radius: 16px 16px 4px 16px;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--brand-mint) 55%, var(--surface));
+  color: var(--brand-ink);
+}
+.go-experience:not([data-gate]) .as-reply,
+.go-experience .go-answer {
+  align-self: flex-start;
+  max-width: min(85%, 36rem);
+  margin: 0;
+  border-radius: 16px 16px 16px 4px;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--brand-ink) 6%, var(--surface));
+  color: var(--brand-ink);
+}
+
+/* Designer's card, October 2026. Deep teal #083848, white card, thin green edge. */
+
+.as-panel.go-experience[data-gate] {
+  background: #fff;
+  color: #083848;
+}
+.go-experience .as-titles,
+.go-lockup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.go-lockup-words { min-width: 0; }
+.go-not {
+  margin: 2px 0 0;
+  color: #1c7a4a;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+.go-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #f3fbf7;
+  overflow: hidden;
+}
+.go-mark .go-rig { width: 44px; height: 44px; }
+.go-mark img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.go-before { display: flex; flex-direction: column; min-height: 280px; background: #fff; color: #083848; }
+.go-before-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 12px 16px 16px;
+  background: #083848;
+  color: #fff;
+}
+.go-before-head h2 {
+  margin: 0;
+  flex: 1 1 auto;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.go-before-head .go-mark { background: #fff; }
+.go-before-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+.go-before-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px 18px 18px;
+}
+.go-before-body p {
+  margin: 0;
+  color: #083848;
+  font-size: 18px;
+  line-height: 1.45;
+}
+.go-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #083848;
+  font-size: 16px;
+}
+.go-check input { width: 18px; height: 18px; accent-color: #083848; }
+.go-continue {
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: #083848;
+  color: #fff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.go-continue:disabled {
+  background: #c5e6da;
+  color: #5f7d74;
+  cursor: not-allowed;
+}
+
+.go-compose-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.go-talk,
+.go-nurse {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid #b7e0cc;
+  border-radius: 999px;
+  background: #e7f6ee;
+  color: #083848;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.go-experience:not([data-gate]) .as-compose .as-field {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+.go-experience:not([data-gate]) .as-compose .as-media,
+.go-experience:not([data-gate]) .as-compose .as-attachment-preview,
+.go-experience:not([data-gate]) .as-compose .as-voice,
+.go-experience:not([data-gate]) .as-compose .as-voice-lines {
+  display: none;
+}
+
+.go-call {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex: 1 1 auto;
+  min-height: 280px;
+  padding: 12px 18px 18px;
+  text-align: center;
+}
+.go-call-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 148px;
+  height: 148px;
+  border-radius: 50%;
+  border: 2px solid #b7e4cf;
+}
+.go-call-copy {
+  margin: 0;
+  max-width: 36ch;
+  color: #083848;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.go-call-state {
+  margin: 0;
+  color: #3e4c57;
+  font-size: 22px;
+  font-weight: 650;
+}
+.go-call-actions { display: flex; justify-content: center; gap: 22px; }
+.go-call-actions button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 64px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #083848;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.go-disc {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #083848;
+  color: #fff;
+}
+.go-disc-end { background: #ef6f64; }
+.go-call-note { margin: 0; color: #1c7a4a; font-size: 14px; font-weight: 650; }
+.go-call .as-silence,
+.go-call .public-assistant-emergency { align-self: stretch; text-align: left; }
+
+.public-assistant-launcher .al-tip,
+.as-launcher .al-tip { display: none; }

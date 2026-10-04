@@ -440,8 +440,10 @@ export async function speakText(
     post({
       text,
       language,
-      voice: cloudVoiceName(voice, language),
-      ...(register ? { register } : {}),
+      /* Naming a voice here hides the Control Tower setting. With a register and no
+         voice, the service uses that setting for a routine reply and the platform
+         voice for an emergency or a refusal. */
+      ...(register ? { register } : { voice: cloudVoiceName(voice, language) }),
       userConsent: true,
     }),
     (body) => {

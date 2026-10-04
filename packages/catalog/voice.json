@@ -357,7 +357,7 @@
  },
 
  "settings": {
-  "_note": "The founder decided on 27 September 2026 that the four presentation registers above — routine, navigation, signed-out visitor and admin — are an admin setting, under the standing rule that an open policy question becomes an admin setting with a proposed default: which of the two voice labels every language with a voice carries in packages/catalog/assistant.json#voice.languages[].ttsVoices reads that register, with the language's female voice as the default. A value is a label and never a voice name; whoever speaks resolves it per language, and a language with ttsAvailable false stays text whatever the label says. The clinical-delivery classes and clinical assist are not here and cannot be added here: their register is pinned by hash above. In this preview a change is kept in this tab's memory for the session, and the shipped default is this contract's.",
+  "_note": "The founder decided on 27 September 2026 that the four presentation registers above — routine, navigation, signed-out visitor and admin — are an admin setting, under the standing rule that an open policy question becomes an admin setting with a proposed default: which of the two voice labels every language with a voice carries in packages/catalog/assistant.json#voice.languages[].ttsVoices reads that register, with the language's male voice as the default since 4 October 2026. A value is a label and never a voice name; whoever speaks resolves it per language, and a language with ttsAvailable false stays text whatever the label says. The clinical-delivery classes and clinical assist are not here and cannot be added here: their register is pinned by hash above. In this preview a change is kept in this tab's memory for the session, and the shipped default is this contract's.",
   "heading": "GilbertOne voice and speech settings",
   "intro": "Which of a language's two voices reads each presentation register, which provider reads it and how — speed, pitch, encoding, ElevenLabs' own knobs — the ceilings on what the cloud voice may spend, and the administrator's own voice. Emergency, refusal and escalation answers are not here, because how they sound is not a setting.",
   "items": [
@@ -368,7 +368,7 @@
     "owner": "assistant",
     "type": "enum",
     "unit": null,
-    "default": { "value": "female", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "The founder's decision of 27 September 2026: every presentation register starts on the language's female voice, and an administrator changes it from there rather than the platform guessing per register." },
+    "default": { "value": "male", "decidedBy": "Founder", "decidedOn": "2026-10-04", "why": "The founder's decision of 4 October 2026: every presentation register starts on the language's male South African voice. Control Tower can change a register back. Emergency, refusal and escalation are not these registers, and they stay on the platform voice." },
     "allowed": [
      { "value": "female", "label": "The language's female voice", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "One of the two labels every language with a voice carries in packages/catalog/assistant.json; the voice itself is read from there, per language, when the answer is spoken." },
      { "value": "male", "label": "The language's male voice", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "The other of the two. No third label exists in assistant.json, so no third choice exists here." }
@@ -387,7 +387,7 @@
     "owner": "assistant",
     "type": "enum",
     "unit": null,
-    "default": { "value": "female", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "The founder's decision of 27 September 2026: every presentation register starts on the language's female voice, and an administrator changes it from there rather than the platform guessing per register." },
+    "default": { "value": "male", "decidedBy": "Founder", "decidedOn": "2026-10-04", "why": "The founder's decision of 4 October 2026: every presentation register starts on the language's male South African voice. Control Tower can change a register back. Emergency, refusal and escalation are not these registers, and they stay on the platform voice." },
     "allowed": [
      { "value": "female", "label": "The language's female voice", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "One of the two labels every language with a voice carries in packages/catalog/assistant.json; the voice itself is read from there, per language, when the answer is spoken." },
      { "value": "male", "label": "The language's male voice", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "The other of the two. No third label exists in assistant.json, so no third choice exists here." }
@@ -406,7 +406,7 @@
     "owner": "assistant",
     "type": "enum",
     "unit": null,
-    "default": { "value": "female", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "The founder's decision of 27 September 2026: every presentation register starts on the language's female voice, and an administrator changes it from there rather than the platform guessing per register." },
+    "default": { "value": "male", "decidedBy": "Founder", "decidedOn": "2026-10-04", "why": "The founder's decision of 4 October 2026: every presentation register starts on the language's male South African voice. Control Tower can change a register back. Emergency, refusal and escalation are not these registers, and they stay on the platform voice." },
     "allowed": [
      { "value": "female", "label": "The language's female voice", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "One of the two labels every language with a voice carries in packages/catalog/assistant.json; the voice itself is read from there, per language, when the answer is spoken." },
      { "value": "male", "label": "The language's male voice", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "The other of the two. No third label exists in assistant.json, so no third choice exists here." }
@@ -425,7 +425,7 @@
     "owner": "assistant",
     "type": "enum",
     "unit": null,
-    "default": { "value": "female", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "The founder's decision of 27 September 2026: every presentation register starts on the language's female voice, and an administrator changes it from there rather than the platform guessing per register." },
+    "default": { "value": "male", "decidedBy": "Founder", "decidedOn": "2026-10-04", "why": "The founder's decision of 4 October 2026: every presentation register starts on the language's male South African voice. Control Tower can change a register back. Emergency, refusal and escalation are not these registers, and they stay on the platform voice." },
     "allowed": [
      { "value": "female", "label": "The language's female voice", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "One of the two labels every language with a voice carries in packages/catalog/assistant.json; the voice itself is read from there, per language, when the answer is spoken." },
      { "value": "male", "label": "The language's male voice", "decidedBy": "Founder", "decidedOn": "2026-09-27", "why": "The other of the two. No third label exists in assistant.json, so no third choice exists here." }

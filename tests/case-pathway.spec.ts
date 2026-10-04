@@ -44,7 +44,7 @@ const settingLabel = (code: string): string => caseContract.settings.kinds.find(
 
 /* The demo's answers, in the intake's order: the common five, then the headache group's ten. */
 const answers: Record<string, string> = {
-  since: 'A few days', 'how-bad': 'Uncomfortable', 'better-worse': 'Worse in the afternoon', used: 'Nothing', conditions: 'None that I know of',
+  since: 'A few days', 'how-bad': 'Mild', 'better-worse': 'Worse in the afternoon', used: 'Nothing', conditions: 'None that I know of',
   where: 'One side', 'light-noise': 'Light bothers me', sick: 'Neither', sight: 'No', dizzy: 'Yes', nosebleeds: 'Yes, in the last week',
   'fever-chills': 'None of these', 'malaria-area': 'No', knock: 'No', 'blood-pressure': 'I am on pills for blood pressure'
 };
@@ -252,7 +252,7 @@ test('a very-high reading with a warning feature is the emergency answer for the
   const sos = json('../packages/catalog/sos.json');
   /* The demo's answers with a severe headache — a red-flag feature in case.json — and a pair at or above the
      very-high line the knowledge base gives, so the pathway's suggestion is the emergency setting. */
-  const severe: Record<string, string> = { ...answers, 'how-bad': 'Severe' };
+  const severe: Record<string, string> = { ...answers, 'how-bad': 'Bad enough to stay in bed' };
   await page.goto('/app/?open=assistant');
   await consent(page);
   await ask(page, 'I have a headache');

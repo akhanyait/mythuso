@@ -185,6 +185,7 @@ export async function refineWithAssistantService(
   text: string,
   audience: Audience = 'patient',
   sessionId?: string,
+  context?: Record<string, unknown>,
 ): Promise<Turn[] | null> {
   const last = turns[turns.length - 1];
   /* Only a message the matcher itself could not place is ever refined. A matched answer, an
@@ -206,6 +207,9 @@ export async function refineWithAssistantService(
              request carries is the person's own message, typed and sent from this panel — pressing
              Send is the confirmation. Nothing runs here without it. */
           userConsent: true,
+          /* Present only for the signed-in patient, and only facts the app already holds.
+             The public page does not call this with a record. */
+          ...(context ? { context } : {}),
         }),
         signal: controller.signal,
       });
@@ -236,8 +240,18 @@ export async function refineWithAssistantService(
        live names are here, and that a third one has to be added here on purpose rather than
        discovered in production. 'classifier' stays refused for its own reason: those words are
        the local contract's, and they are already on the screen. */
-    if (body.source !== 'model' && body.source !== 'orchestrator') return null;
     if (typeof body.reply !== 'string' || !body.reply.trim()) return null;
+    /* The live assistant often answers with no source field. Dropping that
+       sentence put "I can't assess that" back on the screen. A classifier
+       echo is still refused, because those words are already the local answer. */
+    if (body.source === 'classifier') return null;
+    if (
+      body.source !== undefined &&
+      body.source !== 'model' &&
+      body.source !== 'orchestrator'
+    ) {
+      return null;
+    }
     /* The language the service answered in, read off the turn response's own detectedLanguage and
        defaulted to English when a deployment predates the field. The panel hands it to the voice so a
        isiZulu answer is never read aloud in an English voice, and shows the contract's

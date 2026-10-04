@@ -262,7 +262,7 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
       doctor could ask it. It sits inside the shell, ahead of the dialogs below, so when the SOS
       handover closes the panel and opens Thuso SOS, focus returns to the orb first and the SOS
       dialog then takes it. */
-   assistant={<AssistantLauncher openModal={setModal} visit={booked[0]?.visit ?? null}/>}>
+   assistant={<AssistantLauncher openModal={setModal} visit={booked[0]?.visit ?? null} navigate={navigate}/>}>
    {page === 'Overview' ? <Dashboard navigate={navigate} book={setBooking} open={setModal} query={query} setQuery={setQuery} visits={booked.map(row => row.visit)} location={location} viewVisit={() => setViewing(booked[0]?.id ?? null)} reschedule={() => { if (booked[0]) manage(booked[0].id, 'reschedule'); }}/>
     : page === 'Book a nurse' ? <Services book={setBooking} open={setModal} navigate={navigate} query={query} forPerson={forPerson} clearPerson={() => setForPerson(null)}/>
      : page === 'My visits' ? <Visits rows={rows} open={setModal} book={() => navigate('Book a nurse')} manage={manage} view={setViewing} track={track}/>

@@ -17,7 +17,7 @@ object GilbertData {
     const val disclosure = "not a person, and not a doctor"
     const val descriptorLine = "Your Thuso AI Doctor · not a person, and not a doctor"
     const val pulseName = "GilbertOne Pulse"
-    const val callToAction = "Ask GilbertOne"
+    const val callToAction = "Open GilbertOne"
     const val poweredBy = "Powered by ThusoIQ"
     const val whatItIs = "GilbertOne is a short list of approved answers with a name. It matches what you type, or say on a phone, against that list and replies in sentences people at MyThuso wrote down in advance."
     const val whatItIsNot = "GilbertOne is not a doctor, not a nurse and not a person. “Your Thuso AI Doctor” is the product's name, not a qualification: GilbertOne cannot examine you, cannot tell you what you have and cannot prescribe anything, and no language model is behind it."

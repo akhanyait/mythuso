@@ -117,16 +117,17 @@ export function AssistantVoiceButton({
      slot still carries the screen's note, because the field's description points at it. */
   if (!voice.supported) {
     return (
-      <div className="as-voice-lines">
-        <p className="as-voice-state">{voice.unavailable}</p>
-        <details className="as-mic-details">
-          <summary>{ui.microphoneDetails}</summary>
-          <p className="as-voice-browser">{voicePolicy.browserNotice}</p>
-          <p id="as-keyboard" className="as-keyboard">
-            {typingNote}
-          </p>
-        </details>
-      </div>
+      <>
+        <button type="button" className="as-voice" disabled aria-label="Speak to GilbertOne">
+          <span className="as-mic-disc" aria-hidden="true">
+            <Mic size={18} aria-hidden="true" />
+          </span>
+          <span className="as-voice-words">Speak to GilbertOne</span>
+        </button>
+        <p id="as-keyboard" className="as-keyboard">
+          {typingNote}
+        </p>
+      </>
     );
   }
 
@@ -153,7 +154,7 @@ export function AssistantVoiceButton({
     ? chat.stopLabel
     : capturing
       ? voicePolicy.sentences.stopLabel
-      : voicePolicy.sentences.talkLabel;
+      : "Speak to GilbertOne";
   /* Where the conversation is, in the contract's sentence: the pause is over and the turn is being
      answered, the microphone is open again for the next turn, the voice is reading and will stop the
      moment she speaks, or the microphone closed on its own and why. Null when no conversation runs
@@ -251,7 +252,7 @@ export function AssistantVoiceButton({
               : chat.stopLabel
             : capturing
               ? label
-              : ui.talkLabel}
+              : "Speak to GilbertOne"}
         </span>
       </button>
       <div className="as-voice-lines">

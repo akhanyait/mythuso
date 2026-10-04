@@ -167,6 +167,7 @@ const ELEVEN = {
   ELEVENLABS_API_KEY: "fixture-elevenlabs-key-0123456789",
   ELEVENLABS_REGION: "united-states",
   ELEVENLABS_VOICE_FEMALE: "fixtureFemaleVoice01",
+  ELEVENLABS_VOICE_MALE: "fixtureMaleVoice01",
 } as const;
 const withRoutineOn = (provider: string, more: Partial<SpeechSettingsInForce> = {}): SpeechSettingsInForce =>
   ({ ...speechSettingsByDefault, providerByClass: { ...speechSettingsByDefault.providerByClass, routine: provider }, ...more });
@@ -184,7 +185,7 @@ test("a register's setting picks the provider in development, a clinical registe
   const speech = selectedSpeech(impl, { ...AZURE, ...ELEVEN }, () => withRoutineOn("elevenlabs"));
   assert.equal(speech.configured("tts"), true, "the default door is what health reports");
   const routine = await speech.synthesize({ text: "Hello", language: "en-ZA", register: "routine" });
-  assert.ok(routine.ok && routine.voice === "en-ZA-LeahNeural");
+  assert.ok(routine.ok && routine.voice === "en-ZA-LukeNeural");
   assert.ok(/elevenlabs\.io$/.test(calls[0].host), "routine went to ElevenLabs");
   assert.ok(calls[0].body.includes('"voice_settings"'), "with the presentation knobs");
   await speech.synthesize({ text: "Call an ambulance.", language: "en-ZA", register: "emergency" });

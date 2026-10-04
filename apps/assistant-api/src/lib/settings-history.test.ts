@@ -43,12 +43,12 @@ test("a fresh history is the contract's defaults, and describes every setting in
     assert.equal(described.settings.length, assistantSettings.block.items.length);
     assert.deepEqual(described.history, []);
     const routine = described.settings.find((s) => s.setting === "presentation-voice-routine")!;
-    assert.equal(routine.inForce, "female");
-    assert.equal(routine.default, "female");
+    assert.equal(routine.inForce, "male");
+    assert.equal(routine.default, "male");
     assert.equal(routine.setAtVersion, 1);
     assert.deepEqual(routine.changedBy, ["admin"]);
     assert.equal(routine.reviewRequired, null);
-    assert.equal(history.presentationVoice().byClass.routine, "female");
+    assert.equal(history.presentationVoice().byClass.routine, "male");
     /* The read shape's fields, exactly the shared read route's rows. */
     const sharedRows = (settingsContract.routes.read.response.find((f) => f.field === "settings") as { fields: { field: string }[] }).fields.map((f) => f.field).sort();
     assert.deepEqual(Object.keys(routine).sort(), sharedRows);
@@ -64,10 +64,10 @@ test("a change obeys the shared rules — refused by the shared id — and an ac
     const refusals = [
       [{ setting: "no-such-setting", from: "female", to: "male", reason: "why", expectedVersion: undefined }, "setting-not-known"],
       [{ setting: "presentation-voice-routine", from: "female", to: "male", reason: "", expectedVersion: undefined }, "setting-change-without-reason"],
-      [{ setting: "presentation-voice-routine", from: "female", to: "neutral", reason: "why", expectedVersion: undefined }, "setting-out-of-range"],
-      [{ setting: "presentation-voice-routine", from: "female", to: 3, reason: "why", expectedVersion: undefined }, "setting-value-wrong-type"],
-      [{ setting: "presentation-voice-routine", from: "female", to: "female", reason: "why", expectedVersion: undefined }, "setting-unchanged"],
-      [{ setting: "presentation-voice-routine", from: "male", to: "female", reason: "why", expectedVersion: undefined }, "settings-version-stale"],
+      [{ setting: "presentation-voice-routine", from: "male", to: "neutral", reason: "why", expectedVersion: undefined }, "setting-out-of-range"],
+      [{ setting: "presentation-voice-routine", from: "male", to: 3, reason: "why", expectedVersion: undefined }, "setting-value-wrong-type"],
+      [{ setting: "presentation-voice-routine", from: "male", to: "male", reason: "why", expectedVersion: undefined }, "setting-unchanged"],
+      [{ setting: "presentation-voice-routine", from: "female", to: "male", reason: "why", expectedVersion: undefined }, "settings-version-stale"],
       [{ setting: "presentation-voice-routine", from: "female", to: "male", reason: "why", expectedVersion: 7 }, "settings-version-stale"],
       [{ setting: "spoken-answer-monthly-ceiling-characters", from: 2000000, to: 0, reason: "why", expectedVersion: undefined }, "setting-not-above-zero"],
     ] as const;
@@ -77,14 +77,14 @@ test("a change obeys the shared rules — refused by the shared id — and an ac
       assert.ok(sharedStatus(id) >= 400, `${id} is a shared change refusal`);
     }
     assert.equal(existsSync(join(box.dir, SETTINGS_FILE)), false, "a refused change writes nothing — not even the file");
-    const accepted = history.propose({ setting: "presentation-voice-routine", from: "female", to: "male", reason: "The founder prefers the male voice for routine answers.", expectedVersion: undefined }, T0);
+    const accepted = history.propose({ setting: "presentation-voice-routine", from: "male", to: "female", reason: "The founder prefers the female voice for routine answers.", expectedVersion: undefined }, T0);
     assert.ok(accepted.ok);
     assert.equal(accepted.change.settingsVersion, 2);
     assert.equal(accepted.change.byRole, "admin");
     assert.equal(accepted.change.byRef, "founder");
     assert.equal(accepted.change.at, T0);
-    assert.equal(history.presentationVoice().byClass.routine, "male");
-    assert.equal(history.presentationVoice().byClass.navigation, "female", "one register changed, not four");
+    assert.equal(history.presentationVoice().byClass.routine, "female");
+    assert.equal(history.presentationVoice().byClass.navigation, "male", "one register changed, not four");
     const lines = readFileSync(join(box.dir, SETTINGS_FILE), "utf8").trim().split("\n");
     assert.equal(lines.length, 1);
     assert.equal(JSON.parse(lines[0]!).setting, "presentation-voice-routine");
@@ -94,7 +94,7 @@ test("a change obeys the shared rules — refused by the shared id — and an ac
     assert.ok(second.ok);
     const restarted = openSettingsHistory(box.state);
     assert.equal(restarted.snapshot().settingsVersion, 3);
-    assert.equal(restarted.presentationVoice().byClass.routine, "male");
+    assert.equal(restarted.presentationVoice().byClass.routine, "female");
     assert.equal(restarted.speech().azure.speedPercent, 110);
     assert.equal(restarted.describe().history.length, 2);
     assert.equal(restarted.describe().history[0]!.at, new Date(T0).toISOString());
@@ -123,7 +123,7 @@ test("a history with a gap, a repeat or a line that is not a change stops the se
 test("without a state directory the history is the defaults and every change is refused as unavailable, before the shared rules", () => {
   const history = openSettingsHistory(null);
   assert.equal(history.persisted, false);
-  assert.equal(history.presentationVoice().byClass.admin, "female");
+  assert.equal(history.presentationVoice().byClass.admin, "male");
   assert.deepEqual(history.propose({ setting: "presentation-voice-routine", from: "female", to: "male", reason: "why", expectedVersion: undefined }, T0), { ok: false, refusalId: "founder-state-unavailable" });
   assert.deepEqual(history.propose({ setting: "nonsense", from: 1, to: 2, reason: "", expectedVersion: undefined }, T0), { ok: false, refusalId: "founder-state-unavailable" });
 });
@@ -132,33 +132,33 @@ test("the speak seam reads the history: a saved male voice reads a presentation 
   const box = sandbox();
   try {
     const history = openSettingsHistory(box.state);
-    assert.ok(history.propose({ setting: "presentation-voice-routine", from: "female", to: "male", reason: "The founder's voice test.", expectedVersion: undefined }, T0).ok);
-    assert.ok(history.propose({ setting: "presentation-voice-admin", from: "female", to: "male", reason: "And in the Control Tower.", expectedVersion: 2 }, T0).ok);
+    assert.ok(history.propose({ setting: "presentation-voice-routine", from: "male", to: "female", reason: "The founder's voice test.", expectedVersion: undefined }, T0).ok);
+    assert.ok(history.propose({ setting: "presentation-voice-admin", from: "male", to: "female", reason: "And in the Control Tower.", expectedVersion: 2 }, T0).ok);
     const { bodies, impl } = recording();
     const speech = selectedSpeech(impl, AZURE, history.speech, () => T0, () => AZURE, history.presentationVoice);
     const routine = await speech.synthesize({ text: "A visit costs from R399.", language: "en-ZA", register: "routine" });
-    assert.ok(routine.ok && routine.voice === "en-ZA-LukeNeural", "the routine register reads in the male voice the founder saved");
-    assert.match(bodies[0]!, /<voice name="en-ZA-LukeNeural">/);
+    assert.ok(routine.ok && routine.voice === "en-ZA-LeahNeural", "a saved change off the male default is what the next reading uses");
+    assert.match(bodies[0]!, /<voice name="en-ZA-LeahNeural">/);
     const admin = await speech.synthesize({ text: "Settings saved.", language: "af", register: "admin" });
-    assert.ok(admin.ok && admin.voice === "af-ZA-WillemNeural", "per language: the label resolves to that language's male voice");
+    assert.ok(admin.ok && admin.voice === "af-ZA-AdriNeural", "per language: the label resolves to that language's female voice");
     const navigation = await speech.synthesize({ text: "Bookings are on the left.", language: "en-ZA", register: "navigation" });
-    assert.ok(navigation.ok && navigation.voice === "en-ZA-LeahNeural", "a register the founder did not change keeps the default");
+    assert.ok(navigation.ok && navigation.voice === "en-ZA-LukeNeural", "a register the founder did not change keeps the male default");
     const emergency = await speech.synthesize({ text: "Call 10177 now.", language: "en-ZA", register: "emergency" });
     assert.ok(emergency.ok && emergency.voice === "en-ZA-LeahNeural", "an emergency answer ignores the history");
     const refusal = await speech.synthesize({ text: "GilbertOne cannot answer that.", language: "en-ZA", register: "refusal" });
     assert.ok(refusal.ok && refusal.voice === "en-ZA-LeahNeural");
     const none = await speech.synthesize({ text: "Hello.", language: "en-ZA" });
     assert.ok(none.ok && none.voice === "en-ZA-LeahNeural", "no register: the platform default");
-    const named = await speech.synthesize({ text: "Hello.", language: "en-ZA", voice: "en-ZA-LeahNeural", register: "routine" });
-    assert.ok(named.ok && named.voice === "en-ZA-LeahNeural", "a caller that names a voice is honoured over the setting");
+    const named = await speech.synthesize({ text: "Hello.", language: "en-ZA", voice: "en-ZA-LukeNeural", register: "routine" });
+    assert.ok(named.ok && named.voice === "en-ZA-LukeNeural", "a caller that names a voice is honoured over the setting");
     /* A change made after the seam was built is read at the next answer: the source is a function. */
-    assert.ok(history.propose({ setting: "presentation-voice-routine", from: "male", to: "female", reason: "Back again.", expectedVersion: 3 }, T0).ok);
+    assert.ok(history.propose({ setting: "presentation-voice-routine", from: "female", to: "male", reason: "Back again.", expectedVersion: 3 }, T0).ok);
     const back = await speech.synthesize({ text: "A visit costs from R399.", language: "en-ZA", register: "routine" });
-    assert.ok(back.ok && back.voice === "en-ZA-LeahNeural");
+    assert.ok(back.ok && back.voice === "en-ZA-LukeNeural");
     /* And the contract's defaults, handed nothing, read exactly as before the history existed. */
     const defaults = selectedSpeech(impl, AZURE);
     const before = await defaults.synthesize({ text: "Hello.", language: "en-ZA", register: "routine" });
-    assert.ok(before.ok && before.voice === "en-ZA-LeahNeural");
+    assert.ok(before.ok && before.voice === "en-ZA-LukeNeural");
   } finally {
     box.done();
   }

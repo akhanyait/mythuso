@@ -76,7 +76,7 @@
  "features": {
   "why": "What an answer means to the pathway, by the option the patient chose. Each feature names the question and the options that set it, the words the reasons and findings use for it, and its kinds: blood-pressure and pattern feed the suggestion, red-flag is what turns a very-high reading into the emergency answer (cond-008's own list: severe headache, vision changes), at-the-door and fever are what a nurse looks at in person. A typed answer to a chips question sets no feature.",
   "list": [
-   { "id": "severe", "questionId": "how-bad", "options": ["Severe"], "label": "a severe headache", "kinds": ["red-flag"] },
+   { "id": "severe", "questionId": "how-bad", "options": ["Bad enough to stay in bed"], "label": "a severe headache", "kinds": ["red-flag"] },
    { "id": "mild", "questionId": "how-bad", "options": ["Mild"], "label": "a mild headache", "kinds": [] },
    { "id": "short", "questionId": "since", "options": ["Today", "A few days"], "label": "started recently", "kinds": [] },
    { "id": "one-side", "questionId": "where", "options": ["One side"], "label": "pain on one side", "kinds": ["pattern"] },

@@ -111,8 +111,17 @@ for (const f of native)
     throw new Error(`Embedded web runtime is forbidden: ${f}`);
 for (const f of files("apps/web/src").filter((f) => /\.(tsx?|css)$/.test(f))) {
   const source = read(f);
-  if (/\b(localStorage|sessionStorage|indexedDB)\b/.test(source))
-    throw new Error(`Preview must not persist patient data: ${f}`);
+  const acknowledgement = f.endsWith("lib/gilbertone-acknowledgement.ts");
+  if (/\b(localStorage|sessionStorage|indexedDB)\b/.test(source)) {
+    /* One file may remember that the opening disclaimers were accepted.
+       It may store the character "1" and nothing else. */
+    if (
+      !acknowledgement ||
+      /sessionStorage|indexedDB/.test(source) ||
+      !/setItem\(\s*key\s*,\s*"1"\s*\)/.test(source)
+    )
+      throw new Error(`Preview must not persist patient data: ${f}`);
+  }
   if (/dangerouslySetInnerHTML|\beval\(/.test(source))
     throw new Error(`Unsafe dynamic content in ${f}`);
 }

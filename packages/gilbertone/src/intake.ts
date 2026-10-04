@@ -122,7 +122,9 @@ const stopStem = stems(contract.answer.stop.word).join(" ");
    object, unadvanced, so a caller can tell nothing was recorded and read answer.unmatchedInside. A
    message that is only the stop word ends the intake with stopped set. An emergency ends it with no
    state at all. A chips question records the option's own text when the answer is one of them, so
-   the nurse reads the contract's word and not a spelling of it; anything else is kept as typed. */
+   the nurse reads the contract's word and not a spelling of it; anything else is kept as typed,
+   except "How bad is it right now?", which keeps only one of its own answers. Any other wording
+   for that question is not stored, and the same state comes back so it is asked again. */
 export function answerIntake(
   state: IntakeState,
   text: string,
@@ -138,6 +140,8 @@ export function answerIntake(
   const option = question.options?.find(
     (o) => stems(o).join(" ") === stems(typed).join(" "),
   );
+  /* Severity is one of the two answers, never a sentence that happens to be typed there. */
+  if (question.id === "how-bad" && !option) return state;
   const answers = [
     ...state.answers,
     { questionId: question.id, ask: question.ask, answer: option ?? typed },

@@ -3,7 +3,7 @@
  * visitor hears and what an administrator hears.
  *
  * The founder decided on 27 September 2026 that the presentation registers are an admin setting, with the
- * language's female voice as the default. The clinical-delivery classes — emergency, refusal, escalation — and
+ * language's male voice as the default, since 4 October 2026. The clinical-delivery classes — emergency, refusal, escalation — and
  * clinical assist have no setting here, and no change to this file can give them one: voice.json pins the
  * clinical register by hash, and scripts/check-boundaries.mjs fails the build if the pin moves without a
  * ratified Clinician Review Queue entry. Every rule a change obeys is packages/engines/src/settings/shape.ts's;

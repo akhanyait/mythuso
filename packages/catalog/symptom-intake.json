@@ -31,7 +31,7 @@
         "id": "how-bad",
         "ask": "How bad is it right now?",
         "kind": "chips",
-        "options": ["Mild", "Uncomfortable", "Severe"]
+        "options": ["Mild", "Bad enough to stay in bed"]
       },
       {
         "id": "better-worse",
@@ -168,11 +168,6 @@
           "ask": "What else is there with the fever?",
           "kind": "chips",
           "options": ["A cough", "A sore throat", "A rash", "Pain somewhere", "Nothing else"]
-        },
-        {
-          "id": "other",
-          "ask": "Anything else you have noticed with it?",
-          "kind": "text"
         }
       ]
     },
@@ -383,7 +378,7 @@
       "sentence": "Say stop at any point and the questions end there. Whatever you have answered so far stays below for you to show your nurse.",
       "stopped": "Stopped. The notes so far are below, and nothing has been sent anywhere."
     },
-    "closing": "That is everything I have to ask. Your notes are below. Nothing has been sent anywhere: they stay on this screen until you close it, and showing or reading them to your nurse at the visit is how they travel today.",
+    "closing": "Nothing has been sent anywhere. Showing or reading them to your nurse at the visit is how they travel today.",
     "arrangeCare": "If you have not booked a nurse yet, Book a nurse is where you arrange one.",
     "unmatchedInside": "I did not catch an answer. Type a few words, choose one of the options, or say stop to end here."
   },
@@ -430,7 +425,7 @@
     ],
     "flow": {
       "group": "headache",
-      "answers": ["A few days", "Uncomfortable", "Worse in the afternoon", "Nothing", "None that I know of", "One side", "Light bothers me", "Neither", "No", "Yes", "Yes, in the last week", "None of these", "No", "No", "I am on pills for blood pressure"],
+      "answers": ["A few days", "Mild", "Worse in the afternoon", "Nothing", "None that I know of", "One side", "Light bothers me", "Neither", "No", "Yes", "Yes, in the last week", "None of these", "No", "No", "I am on pills for blood pressure"],
       "rows": 15
     }
   }

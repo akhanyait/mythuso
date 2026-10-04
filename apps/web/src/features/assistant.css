@@ -2524,6 +2524,12 @@
 .as-sources p {
   margin: 0;
 }
+.as-source-link {
+  display: block;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .as-sources-label {
   font-weight: 600;
 }
@@ -2535,4 +2541,7 @@
 .as-sources-demo p + p {
   margin-top: var(--space-4);
   font-style: italic;
+}
+.as-sources-used {
+  margin-top: var(--space-4);
 }

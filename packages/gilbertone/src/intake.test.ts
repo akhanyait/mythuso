@@ -97,12 +97,16 @@ test("the stop word ends the intake where it is and keeps what was answered; an 
   assert.equal(currentQuestion(stopped), null);
   /* Answering after the end changes nothing. */
   assert.equal(answerIntake(stopped, "more"), stopped);
-  /* "it does not stop" is an answer, not the stop word. */
-  const carriesOn = answerIntake(afterOne, "it does not stop");
+  /* "it does not stop" is an answer, not the stop word. It lands on the next
+     text question, because how-bad keeps only its own two answers. */
+  const bad = answerIntake(afterOne, "Mild");
+  assert.equal(bad.kind, "intake");
+  if (bad.kind !== "intake") return;
+  const carriesOn = answerIntake(bad, "it does not stop");
   assert.equal(carriesOn.kind, "intake");
   if (carriesOn.kind !== "intake") return;
   assert.equal(carriesOn.stopped, false);
-  assert.equal(carriesOn.answers[1].answer, "it does not stop");
+  assert.equal(carriesOn.answers[2].answer, "it does not stop");
 });
 
 test("an emergency typed as an answer ends the intake with the emergency answer, whatever the question was", () => {
@@ -152,6 +156,24 @@ test("a chips answer is recorded in the option's own words; anything else as typ
   assert.equal(typed.kind, "intake");
   if (typed.kind !== "intake") return;
   assert.equal(typed.answers[0].answer, "since Tuesday");
+});
+
+test("how bad keeps only its two answers, so a vague sentence is not stored as the severity", () => {
+  const state = beginIntake("fever");
+  const since = answerIntake(state, "Today");
+  assert.equal(since.kind, "intake");
+  if (since.kind !== "intake") return;
+  const vague = answerIntake(since, "I think it's mine");
+  assert.equal(vague, since);
+  const mild = answerIntake(since, "mild");
+  assert.equal(mild.kind, "intake");
+  if (mild.kind !== "intake") return;
+  assert.equal(mild.answers.at(-1)?.answer, "Mild");
+  const bed = answerIntake(since, "Bad enough to stay in bed");
+  assert.equal(bed.kind, "intake");
+  if (bed.kind !== "intake") return;
+  assert.equal(bed.answers.at(-1)?.answer, "Bad enough to stay in bed");
+  assert.equal(featuresFor(bed).some((f) => f.id === "severe"), true);
 });
 
 test("consent is the contract's own words, whole message; a group nothing declares is refused loudly", () => {
