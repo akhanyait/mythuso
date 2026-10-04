@@ -27,10 +27,15 @@ export const requestDigest = (fields: Readonly<Record<string, unknown>>): string
  createHash('sha256').update(JSON.stringify(Object.keys(fields).sort().map(name => [name, fields[name]]))).digest('hex');
 
 export function openDatabase(directory: string, name: string): DatabaseSync {
- if (directory === MEMORY) return new DatabaseSync(MEMORY);
- if (!/^[a-z][a-z0-9-]*$/.test(name)) throw new Error(`"${name}" is not a store name.`);
- mkdirSync(directory, { recursive: true });
- return new DatabaseSync(join(directory, `${name}.sqlite`));
+ let db: DatabaseSync;
+ if (directory === MEMORY) db = new DatabaseSync(MEMORY);
+ else {
+  if (!/^[a-z][a-z0-9-]*$/.test(name)) throw new Error(`"${name}" is not a store name.`);
+  mkdirSync(directory, { recursive: true });
+  db = new DatabaseSync(join(directory, `${name}.sqlite`));
+ }
+ db.exec('PRAGMA busy_timeout = 5000');
+ return db;
 }
 
 export function openEngineStore(directory: string, engine: string, schema: string): DatabaseSync {

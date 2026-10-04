@@ -186,11 +186,10 @@ test('a tool call is dispatched, its result fed back, and its sources become the
  }
 });
 
-test('an answer that drew on the reference sources ends with the demonstration disclaimer, word for word, inside the cap', async () => {
- /* The founder's demonstration override of 2 October 2026: the sources it opens are asked from
-    production, so the answer says so mechanically rather than trusting the model to. The external
-    sources are answered by a stub here — every request that is not the scripted model's is caught —
-    and the model's answer is long enough to need the room the disclaimer keeps. */
+test('with the demonstration override off, reference sources are not asked and the answer carries no disclaimer', async () => {
+ /* Going live set inForce false. A model that still calls reference_sources gets the switched-off
+    tool result, and nothing is appended: the disclaimer belongs only to sources opened for
+    demonstration. The stub fetch would record any host that was asked. */
  const provider = await scriptedProvider([
   nerEmpty,
   assistantToolCall('reference_sources', { query: 'sunburn' }),
@@ -210,9 +209,9 @@ test('an answer that drew on the reference sources ends with the demonstration d
    assert.equal(result.degraded, false);
    assert.deepEqual(result.toolsUsed, ['reference_sources']);
    assert.ok(result.answer.startsWith('MedlinePlus, from the US National Library of Medicine'));
-   assert.ok(result.answer.endsWith(demonstrationDisclaimer()), 'the disclaimer closes the answer');
+   assert.equal(result.answer.includes(demonstrationDisclaimer()), false, 'a closed override adds no disclaimer');
    assert.ok(result.answer.length <= LLM_REPLY_LIMIT, 'and the answer still fits the cap');
-   assert.ok(asked.length > 0, 'the opened sources were asked (here, of a stub)');
+   assert.equal(asked.length, 0, 'a closed override asks no external host');
   });
  } finally {
   globalThis.fetch = originalFetch;

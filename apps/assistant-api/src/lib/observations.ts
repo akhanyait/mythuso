@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { redactPHI } from "../../../../packages/gilbertone/src/phi.ts";
+import { SESSION_LIMIT } from "./session-store.ts";
 import type { StoredReading } from "./vitals.ts";
 
 /* The session context for GilbertOne's observation and handover flows, added 22 September 2026.
@@ -35,7 +36,22 @@ export interface ObservationStore {
   handover(handoverRef: string): HandoverPack | undefined;
 }
 
-export function createObservationStore(): ObservationStore {
+/* The same ceiling the conversation store uses (session-store.ts SESSION_LIMIT). Oldest first out
+   once a write would leave the map over that ceiling. The session cap itself is not changed here. */
+const evictOver = (map: Map<string, unknown>, keep: string, limit: number): void => {
+  while (map.size > limit) {
+    let dropped = false;
+    for (const id of map.keys()) {
+      if (id === keep) continue;
+      map.delete(id);
+      dropped = true;
+      break;
+    }
+    if (!dropped) return;
+  }
+};
+
+export function createObservationStore(limit = SESSION_LIMIT): ObservationStore {
   const readings = new Map<string, StoredReading[]>();
   const handovers = new Map<string, HandoverPack>();
   return {
@@ -45,10 +61,15 @@ export function createObservationStore(): ObservationStore {
     addReading(sessionId, reading) {
       const held = readings.get(sessionId) ?? [];
       held.push(reading);
+      /* Refresh moves this session to the newest end, the way a session write refreshes lastActive. */
+      readings.delete(sessionId);
       readings.set(sessionId, held);
+      evictOver(readings, sessionId, limit);
     },
     addHandover(sessionId, pack) {
+      handovers.delete(pack.handoverRef);
       handovers.set(pack.handoverRef, pack);
+      evictOver(handovers, pack.handoverRef, limit);
       /* The session's own list is kept so a caller could be shown what it prepared; the ref map is what
          a submission would look up, and both hold the same immutable pack. */
       void sessionId;

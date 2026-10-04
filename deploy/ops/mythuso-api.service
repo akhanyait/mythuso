@@ -18,6 +18,13 @@ Type=simple
 User=mythuso
 Group=mythuso
 WorkingDirectory=/opt/mythuso/api
+# Installed but not enabled (the comment at the top of this unit). MYTHUSO_ENV is named
+# here so a start is not an unset environment, and not development. not-enabled is not the
+# production configuration either: systemd lets EnvironmentFile override Environment=, so
+# /etc/mythuso/api.env's MYTHUSO_ENV=production wins when deploy/README.md turns the service
+# on. Until that file says so, the process refuses to start rather than handing out codes.
+# No secret belongs in this unit.
+Environment=MYTHUSO_ENV=not-enabled
 EnvironmentFile=/etc/mythuso/api.env
 ExecStart=/usr/bin/node src/server.ts
 Restart=on-failure

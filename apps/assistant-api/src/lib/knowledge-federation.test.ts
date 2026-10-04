@@ -179,7 +179,7 @@ test('with the demonstration override in force, exactly the licence-permitted so
  const hosts: string[] = [];
  const answer = await federatedSearch('sunburn', {
   localSearch: async () => [],
-  adapterDeps: { fetchImpl: recordingFetch(hosts), env: {} },
+  adapterDeps: { fetchImpl: recordingFetch(hosts), env: {}, override: { ...demonstrationOverride(), inForce: true } },
  });
  const statusOf = Object.fromEntries(answer.notes.map((note) => [note.sourceId, note]));
  for (const id of ['openfda', 'pubmed-europepmc', 'medlineplus-nlm', 'cdc-content-services', 'wikidata'])
@@ -194,7 +194,8 @@ test('with the demonstration override in force, exactly the licence-permitted so
 });
 
 test("the posture says which sources are on only for demonstration, which wait for credentials, and that closing the override darkens all", () => {
- const open = Object.fromEntries(referencePosture().map((source) => [source.id, source]));
+ const shown = { ...demonstrationOverride(), inForce: true };
+ const open = Object.fromEntries(referencePosture(shown).map((source) => [source.id, source]));
  for (const id of ['openfda', 'pubmed-europepmc', 'medlineplus-nlm', 'cdc-content-services', 'wikidata', 'icd11-who', 'snomed-ct-za', 'loinc-regenstrief']) {
   assert.equal(open[id].on, true, `${id} is opened by the override`);
   assert.equal(open[id].demonstration, true, `${id} is on only because of the override`);
@@ -204,7 +205,7 @@ test("the posture says which sources are on only for demonstration, which wait f
   assert.equal(open[id].on, false, `${id} waits on its owner's written permission, which the override cannot give`);
  for (const source of referencePosture(overrideClosed)) assert.equal(source.on, false, `${source.id} is dark once the override is switched off`);
  /* The override can never open what it does not list, nor what the licence forbids, even if listed. */
- const listedPermission = { ...demonstrationOverride(), gates: [{ id: 'knowledge-source:ndoh-stg-eml-phc' }] };
+ const listedPermission = { ...demonstrationOverride(), inForce: true, gates: [{ id: 'knowledge-source:ndoh-stg-eml-phc' }] };
  assert.equal(referencePosture(listedPermission).find((source) => source.id === 'ndoh-stg-eml-phc')!.on, false);
  assert.equal(referencePosture(listedPermission).find((source) => source.id === 'openfda')!.on, false, 'unlisted is closed');
 });

@@ -560,7 +560,8 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   const openCount = federation.sources.filter((s: { id: string }) => opened(s.id)).length;
   const sources = panel(page).getByRole('list', { name: `${federation.sources.length} external sources, ${openCount} on for demonstration` });
   await expect(sources.locator('li')).toHaveCount(federation.sources.length);
-  await expect(panel(page)).toContainText(demonstration.disclaimer.sentence);
+  if (demonstration.inForce) await expect(panel(page)).toContainText(demonstration.disclaimer.sentence);
+  else await expect(panel(page)).not.toContainText(demonstration.disclaimer.sentence);
   for (const s of federation.sources) {
    expect(s.active).toBe(false);
    if (!opened(s.id)) await expect(sources.getByRole('article', { name: s.name })).toContainText(g1.knowledge.inactiveWord);

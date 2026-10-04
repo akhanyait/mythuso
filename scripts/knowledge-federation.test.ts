@@ -382,8 +382,11 @@ const PERMITTED = ["icd11-who", "openfda", "pubmed-europepmc", "medlineplus-nlm"
 
 test("the demonstration override validates whole, and opens exactly the sources whose licences permit", () => {
   assert.deepEqual(validateDemonstrationOverride(override, federation), []);
-  assert.equal(override.inForce, true, "in force since the founder's decision of 2 October 2026");
-  const on = federation.sources.filter((source: { id: string }) => sourceOn(override, federation, source)).map((source: { id: string }) => source.id);
+  assert.equal(override.inForce, false, "the founder's override is switched off");
+  for (const source of federation.sources) assert.equal(sourceOn(override, federation, source), false, `${source.id} is dark while inForce is false`);
+  const shown = overrideCopy();
+  shown.inForce = true;
+  const on = federation.sources.filter((source: { id: string }) => sourceOn(shown, federation, source)).map((source: { id: string }) => source.id);
   assert.deepEqual(on.sort(), [...PERMITTED].sort());
   for (const source of federation.sources) {
     assert.equal(source.active, false, `${source.id}: the override opens a gate beside the flag and never moves it`);
@@ -395,7 +398,8 @@ test("going live is inForce false, and nothing stays open", () => {
   const live = { ...overrideCopy(), inForce: false };
   for (const gate of override.gates) assert.equal(gateOpen(live, gate.id), false, gate.id);
   for (const source of federation.sources) assert.equal(sourceOn(live, federation, source), false, source.id);
-  assert.equal(gateOpen(override, "photo-reading"), true, "photo reading is opened by the override when built");
+  assert.equal(gateOpen(override, "photo-reading"), false, "the file's inForce false closes photo reading");
+  assert.equal(gateOpen({ ...overrideCopy(), inForce: true }, "photo-reading"), true, "photo reading opens only while the override is in force");
 });
 
 test("the override cannot open what it does not list, what the licence forbids, or what it records as left closed", () => {

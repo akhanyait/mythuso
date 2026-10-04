@@ -260,6 +260,7 @@ export class PassportStore {
 
  constructor(path: string) {
   this.#db = new DatabaseSync(path);
+  this.#db.exec('PRAGMA busy_timeout = 5000');
   this.#db.exec(SCHEMA);
  }
 

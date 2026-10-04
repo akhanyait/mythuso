@@ -231,8 +231,17 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
 
   /* Every route below this line is about somebody's own account, so each one starts by resolving
      the cookie rather than trusting an id in the body. */
+  /* identity.resolve slides the database session's idle window. The cookie's Max-Age is the same
+     window, and it only moves if this response sets it again. Logout passes its own Set-Cookie,
+     and writeHead gives that one precedence, so a clear is never overwritten by a slide. */
+  const resolveSession = (req: IncomingMessage, res: ServerResponse) => {
+    const token = readCookie(req.headers.cookie, COOKIE);
+    const resolved = identity.resolve(token);
+    if (resolved && token) res.setHeader('set-cookie', sessionCookie(token, config));
+    return resolved;
+  };
   const signedIn = (req: IncomingMessage, res: ServerResponse): PublicPerson | null => {
-    const resolved = identity.resolve(readCookie(req.headers.cookie, COOKIE));
+    const resolved = resolveSession(req, res);
     if (!resolved) { send(res, 401, { error: 'no-session' }); return null; }
     return resolved.person;
   };
@@ -318,7 +327,7 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
   });
 
   routes.set('GET /auth/session', (req, res) => {
-    const resolved = identity.resolve(readCookie(req.headers.cookie, COOKIE));
+    const resolved = resolveSession(req, res);
     if (!resolved) return send(res, 401, { error: 'no-session' });
     const pending = erasure.pending(resolved.person.id);
     send(res, 200, {
@@ -1269,7 +1278,7 @@ export function createApp(config: Config, store: Store, now = () => Date.now()) 
        reasoning, and says plainly that the number is a proposal. */
     const limited = req.method !== 'GET' ? !SELF_LIMITED.has(route) : route.startsWith('GET /health');
     if (limited) {
-      const subject = identity.resolve(readCookie(req.headers.cookie, COOKIE))?.person.id ?? `address:${caller.address}`;
+      const subject = resolveSession(req, res)?.person.id ?? `address:${caller.address}`;
       const at = now();
       if (store.countWrites(subject, at - limits.rateWindowSeconds * 1000) >= limits.writesPerCallerPerWindow) {
         /* Counted into the window summary, not against the caller. A refusal recorded in
@@ -1342,8 +1351,8 @@ export function start(config = loadConfig()) {
   server.headersTimeout = serverTimeouts.headersMs;
   server.keepAliveTimeout = serverTimeouts.keepAliveMs;
   server.maxHeadersCount = serverTimeouts.maxHeaders;
-  server.listen(config.port, () => {
-    console.log(`MyThuso identity and vetting service on :${config.port} (${config.environment}) — holds no health information`);
+  server.listen(config.port, config.host, () => {
+    console.log(`MyThuso identity and vetting service on ${config.host}:${config.port} (${config.environment}) — holds no health information`);
     if (config.returnCodesInResponse) console.log('Development mode: one-time codes are returned in the response. This is refused in production.');
   });
   return { server, store };

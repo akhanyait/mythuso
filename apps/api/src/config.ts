@@ -37,6 +37,7 @@ import { parseKey } from './sensitive.ts';
 export type Config = {
   environment: 'development' | 'production';
   port: number;
+  host: string;
   pepper: string;
   allowedOrigins: string[];
   databasePath: string;
@@ -54,8 +55,8 @@ export type Config = {
   identityApiKey: string;
   identitySandbox: boolean;
   identityCallbackUrl: string;
-  /* True only where MYTHUSO_ENV says development in so many words. Unset is development for most
-     purposes and never for this one: see identityProvider.ts. */
+  /* True only where MYTHUSO_ENV says development in so many words. Unset is not development:
+     loadConfig refuses to start. See identityProvider.ts. */
   explicitDevelopment: boolean;
   /* Who is accountable for the consents this service records. POPIA makes the responsible party's
      Information Officer the person a data subject complains to and the Regulator writes to; a
@@ -74,11 +75,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   /* Normalised the way the Passport's check is: case and surrounding space do not change what an
      environment is, so `Production` is production. An environment that is named and is not
      development is treated as production — failing closed, because a mistyped `prodution` that ran
-     as development would hand out one-time codes. Unset is still development, for the developer who
-     has set nothing at all; `explicitDevelopment` records the difference, because the one thing that
-     may only happen in development somebody chose on purpose is an unsigned identity callback. */
+     as development would hand out one-time codes. Unset or empty is not development either: that
+     used to be the laptop default, and it is the fail-open this service will not start with.
+     `MYTHUSO_ENV=development` is the explicit local path. `explicitDevelopment` is that same word,
+     because the one thing that may only happen in development somebody chose on purpose is an
+     unsigned identity callback. */
   const declaredEnvironment = (env.MYTHUSO_ENV ?? '').trim().toLowerCase();
-  const environment = declaredEnvironment === '' || declaredEnvironment === 'development' ? 'development' : 'production';
+  if (!declaredEnvironment) {
+    throw new ConfigError('MYTHUSO_ENV is not set. An unset or empty environment is not development: set MYTHUSO_ENV=development on a local laptop, or name production. This service will not start, rather than returning one-time codes or skipping the pepper, SMS and https checks.');
+  }
+  const environment = declaredEnvironment === 'development' ? 'development' : 'production';
   const explicitDevelopment = declaredEnvironment === 'development';
   const production = environment === 'production';
   const pepper = env.MYTHUSO_AUTH_PEPPER ?? '';
@@ -138,12 +144,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (production && identitySandbox) {
     throw new ConfigError('MYTHUSO_IDENTITY_SANDBOX cannot be enabled in production: a sandbox session answers whatever it is told to, and the answer it records is indistinguishable afterwards from one Home Affairs gave');
   }
-  /* A provider named with no environment named is not development by default. It is the one
-     configuration in which a missing line would decide whether identity callbacks need a signature,
-     so it refuses to start and makes somebody say which it is. */
-  if (identityProvider && !declaredEnvironment) {
-    throw new ConfigError(`MYTHUSO_IDENTITY_PROVIDER names "${identityProvider}" and MYTHUSO_ENV is not set. With an identity provider configured the environment has to be stated — development or production — rather than assumed, because it decides whether an identity callback may arrive unsigned.`);
-  }
   const allowedOrigins = (env.MYTHUSO_ALLOWED_ORIGINS ?? 'http://localhost:5173,http://127.0.0.1:5173')
     .split(',').map(o => o.trim()).filter(Boolean);
   if (production && allowedOrigins.some(o => o.startsWith('http://'))) {
@@ -182,6 +182,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     environment,
     explicitDevelopment,
     port: Number(env.MYTHUSO_PORT ?? 8787),
+    /* Bind loopback unless MYTHUSO_HOST names another host. This app had no listen host of its own;
+       the public site name in deploy is not a bind address, so the default stays 127.0.0.1. */
+    host: (env.MYTHUSO_HOST ?? '').trim() || '127.0.0.1',
     pepper: pepper || `development-only-${process.pid}`,
     allowedOrigins,
     databasePath: env.MYTHUSO_DB ?? ':memory:',

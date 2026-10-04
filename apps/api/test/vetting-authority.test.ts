@@ -613,7 +613,8 @@ describe('B: the identity callback fails closed', () => {
  test('a provider named with no environment named refuses to start, and any spelling of production is production', () => {
   assert.throws(() => loadConfig({ MYTHUSO_IDENTITY_PROVIDER: 'accredited-provider' } as NodeJS.ProcessEnv), /MYTHUSO_ENV is not set/);
   assert.equal(loadConfig({ MYTHUSO_ENV: ' Development ', MYTHUSO_IDENTITY_PROVIDER: 'accredited-provider' } as NodeJS.ProcessEnv).explicitDevelopment, true);
-  assert.equal(loadConfig({} as NodeJS.ProcessEnv).explicitDevelopment, false);
+  assert.throws(() => loadConfig({} as NodeJS.ProcessEnv), /MYTHUSO_ENV is not set/);
+  assert.throws(() => loadConfig({ MYTHUSO_ENV: '  ' } as NodeJS.ProcessEnv), /MYTHUSO_ENV is not set/);
   const production = { MYTHUSO_AUTH_PEPPER: 'x'.repeat(40), MYTHUSO_SMS_PROVIDER: 'test', MYTHUSO_ALLOWED_ORIGINS: 'https://mythuso.co.za', MYTHUSO_IDENTITY_SANDBOX: 'true' };
   for (const spelling of ['Production', ' PRODUCTION ', 'prod']) {
    assert.throws(() => loadConfig({ ...production, MYTHUSO_ENV: spelling } as NodeJS.ProcessEnv), /cannot be enabled in production/, spelling);

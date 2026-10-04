@@ -8,7 +8,7 @@ import { searchPubMed } from './pubmed-adapter.ts';
 import { searchMedlinePlus } from './medlineplus-adapter.ts';
 import { searchCdc } from './cdc-adapter.ts';
 import { searchWikidata, wikidataQuery } from './wikidata-adapter.ts';
-import { overrideClosed } from '../demonstration-override.ts';
+import { demonstrationOverride, overrideClosed } from '../demonstration-override.ts';
 
 /* The three external-source adapters' own tests, added on 22 September 2026 with the governed
    federation work. Every adapter is dark by default, and the first test block holds all three to
@@ -316,8 +316,11 @@ test('every adapter sends only the redacted topic words, never a person', async 
   return new Response('{}', { status: 503 });
  }) as unknown as typeof fetch;
  const typed = 'rash on Thandi call 082 555 1234 thandi@example.com 8001015009087';
+ /* The live file is off. This case still has to prove redaction on the open path, so it injects
+    an in-force copy rather than depending on the catalogue. */
+ const overrideOn = { ...demonstrationOverride(), inForce: true as const };
  for (const search of [searchOpenFda, searchPubMed, searchMedlinePlus, searchCdc, searchWikidata])
-  await search(typed, { fetchImpl, gate: new RateGate(10), env: {} });
+  await search(typed, { fetchImpl, gate: new RateGate(10), env: {}, override: overrideOn });
  assert.equal(urls.length, 5);
  for (const url of urls) {
   assert.equal(url.includes('082 555 1234'), false, url);

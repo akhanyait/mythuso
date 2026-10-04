@@ -18,7 +18,6 @@ import {
  MyThusoDashboardIcon, MyThusoFamilyIcon, MyThusoHealthIcon, MyThusoMedicationIcon, MyThusoMindIcon, MyThusoQuickIcon,
  MyThusoSettingsIcon, MyThusoVisitIcon, MyThusoMessagesIcon, MyThusoResultsIcon
 } from '../ui/icons/MyThusoIcons.generated';
-import { DemoBar } from '../features/DemoLogin';
 import { locales, signLanguage, useT, type LocaleCode } from '../lib/i18n';
 /* The module list the Explore page draws, so the row that opens it counts what it opens. Already on the
    patient's first load — App.tsx and the Dashboard import it statically — so this costs a few bytes. */
@@ -274,12 +273,11 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
        the wordmark and two controls — at 390px the profile button was drawn ten pixels off the
        right edge, and the first thing a squeezed top bar loses is the sentence saying none of this
        is real. It becomes a full-width band under the bar instead, which also survives the six
-       locales where "Design preview" is three words long.
-
-       Beside it now, in the same band, is the way into the other five workspaces. The band was the
-       right home for it: it is already the strip that says this is a preview, and the switcher is
-       the one control in the product that is only there because it is one. */}
-   <DemoBar note={t('shell.previewBadge')} surface={PATIENT_SURFACE}/>
+       locales where "Design preview" is three words long. The demo login does not sit in this band:
+       a role switch inside patient care read as an account. One notice, and no switcher. */}
+   <div className="demo-bar">
+    <p className="demo-pill" role="note"><span className="status-dot"/>{t('shell.previewBadge')}</p>
+   </div>
    <main id="main" tabIndex={-1}>{children}</main>
    <footer className="app-footer">
     <span>© 2026 MyThuso. {t('shell.tagline')}</span>

@@ -39,7 +39,7 @@ test('the tool is registered by the name the orchestrator dispatches on', () => 
 });
 
 test("an answer carries the source's words, its attribution, the disclaimer word for word, and what waits for credentials", async () => {
- const text = await searchReferenceSources('sunburn', { adapters: [medlinePlus] });
+ const text = await searchReferenceSources('sunburn', { adapters: [medlinePlus], override: { ...override, inForce: true } });
  assert.ok(text.includes('Sun Exposure'));
  assert.ok(text.includes('Page: https://medlineplus.gov/sunexposure.html'));
  assert.ok(text.includes(attributionOf('medlineplus-nlm')), 'the attribution MedlinePlus asks for');
@@ -52,7 +52,9 @@ test("an answer carries the source's words, its attribution, the disclaimer word
 test('a request for a diagnosis or a dose is refused before any source is asked', async () => {
  let asked = 0;
  const spy: FederationAdapter = { id: 'openfda', search: async () => { asked += 1; return { status: 'ok', sourceId: 'openfda', results: [] }; } };
- const text = await searchReferenceSources('should I double my dose of insulin', { adapters: [spy] });
+ /* Scope refusal is what the tool says when a source could otherwise be asked. The live
+    override is off, so this injects an in-force copy; the switched-off answer is the next test. */
+ const text = await searchReferenceSources('should I double my dose of insulin', { adapters: [spy], override: { ...override, inForce: true } });
  assert.ok(text.includes(federation.abstention['outside-approved-scope']));
  assert.equal(asked, 0);
 });

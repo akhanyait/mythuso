@@ -52,4 +52,4 @@ const baseURL = `http://127.0.0.1:${port}`;
    is in that timezone; a suite that passes only on a machine that happens to be is not a suite. */
 const timezoneId = 'Africa/Johannesburg';
 
-export default defineConfig({ testDir: './tests', fullyParallel: true, workers: 2, use: { baseURL, timezoneId, trace: 'retain-on-failure' }, webServer: { command: `npm run dev -- --port ${port}`, url: baseURL, reuseExistingServer: false }, projects: [{ name: 'desktop', use: { browserName: 'chromium', viewport: { width: 1440, height: 1100 } } }, { name: 'mobile', use: { browserName: 'chromium', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } }] });
+export default defineConfig({ testDir: './tests', fullyParallel: true, workers: 2, use: { baseURL, timezoneId, trace: 'retain-on-failure' }, webServer: { command: `VITE_MYTHUSO_STAFF_PREVIEW=true npm run dev -- --port ${port}`, url: baseURL, reuseExistingServer: false }, projects: [{ name: 'desktop', use: { browserName: 'chromium', viewport: { width: 1440, height: 1100 } } }, { name: 'mobile', use: { browserName: 'chromium', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } }] });

@@ -46,7 +46,7 @@ describe('the envelope', () => {
   });
   test('another key does not open it', () => {
     const sealed = seal('Nomsa Dlamini', withKey);
-    const other = loadConfig({ ...base, MYTHUSO_ENCRYPTION_KEY: randomBytes(32).toString('hex') } as NodeJS.ProcessEnv);
+    const other = loadConfig({ ...base, MYTHUSO_ENV: 'development', MYTHUSO_ENCRYPTION_KEY: randomBytes(32).toString('hex') } as NodeJS.ProcessEnv);
     assert.throws(() => open(sealed, other), DecryptionFailed);
   });
 });
@@ -95,12 +95,12 @@ describe('the key itself', () => {
   test('hex and base64 are both accepted', () => {
     const raw = randomBytes(32);
     for (const encoded of [raw.toString('hex'), raw.toString('base64')]) {
-      const config = loadConfig({ ...base, MYTHUSO_ENCRYPTION_KEY: encoded } as NodeJS.ProcessEnv);
+      const config = loadConfig({ ...base, MYTHUSO_ENV: 'development', MYTHUSO_ENCRYPTION_KEY: encoded } as NodeJS.ProcessEnv);
       assert.equal(open(seal('Nomsa', config), config), 'Nomsa');
     }
   });
   test('a key of the wrong size is a service that will not start', () => {
-    assert.throws(() => loadConfig({ ...base, MYTHUSO_ENCRYPTION_KEY: 'abcd' } as NodeJS.ProcessEnv), ConfigError);
+    assert.throws(() => loadConfig({ ...base, MYTHUSO_ENV: 'development', MYTHUSO_ENCRYPTION_KEY: 'abcd' } as NodeJS.ProcessEnv), ConfigError);
   });
 });
 

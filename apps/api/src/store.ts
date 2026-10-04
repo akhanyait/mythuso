@@ -122,9 +122,13 @@ CREATE TABLE IF NOT EXISTS audit (
   at INTEGER NOT NULL, event TEXT NOT NULL, person_id TEXT, phone TEXT,
   address TEXT, agent_hash TEXT, detail TEXT);
 CREATE INDEX IF NOT EXISTS audit_at ON audit (at);
+CREATE INDEX IF NOT EXISTS audit_person_at ON audit (person_id, at);
+CREATE INDEX IF NOT EXISTS audit_phone_at ON audit (phone, at);
 CREATE TABLE IF NOT EXISTS starts (
   at INTEGER NOT NULL, phone TEXT NOT NULL, address TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS starts_at ON starts (at);
+CREATE INDEX IF NOT EXISTS starts_phone_at ON starts (phone, at);
+CREATE INDEX IF NOT EXISTS starts_address_at ON starts (address, at);
 -- The shared secret an authenticator app holds, sealed by sensitive.ts. One per person: a second
 -- factor somebody could quietly add a second of is not a second factor.
 CREATE TABLE IF NOT EXISTS second_factors (
@@ -173,7 +177,7 @@ const SWEEPS: Record<SweepableTable, string> = {
 };
 export function openStore(path: string): Store {
   const db = new DatabaseSync(path);
-  db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
+  db.exec('PRAGMA busy_timeout = 5000; PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
   db.exec(SCHEMA);
   const one = <T>(row: unknown): T | null => (row ?? null) as T | null;
   return {

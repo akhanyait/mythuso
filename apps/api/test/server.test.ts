@@ -90,6 +90,11 @@ describe('the session cookie', () => {
     assert.equal(response.status, 200);
     const body = await response.json() as { person: { phone: string } };
     assert.equal(body.person.phone, '+27821112222');
+    const slid = response.headers.get('set-cookie') ?? '';
+    assert.match(slid, /HttpOnly/);
+    assert.match(slid, /SameSite=Strict/);
+    assert.match(slid, new RegExp(`Max-Age=${30 * 60}`));
+    assert.doesNotMatch(slid, /Secure/);
   });
   test('without a cookie there is no session', async () => {
     assert.equal((await call('/auth/session')).status, 401);

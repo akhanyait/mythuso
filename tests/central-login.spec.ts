@@ -29,11 +29,13 @@ for (const [id, label, heading] of roles) {
 test('role changes clear patient deep links and browser history restores the correct role', async ({ page }) => {
  await page.goto('/?role=patient&open=my-family');
  await expect(page.getByRole('heading', { name: 'Care for your whole circle.', exact: true, level: 1 })).toBeVisible();
+ await expect(page.locator('.demo-login')).toHaveCount(0);
  async function choose(label: string) {
   await page.locator('.demo-login-all').click();
   await page.getByRole('dialog').locator('.record-row').filter({ has: page.locator('strong', { hasText: new RegExp(`^${label}$`) }) }).click();
  }
- await choose('Doctor');
+ /* The patient band keeps the preview notice and not the demo login, so the first role change is the address. */
+ await page.goto('/?role=doctor');
  await expect(page.getByRole('heading', { name: 'Review queue', exact: true, level: 1 })).toBeVisible();
  await expect(page).toHaveURL('/?role=doctor');
  await choose('Patient');

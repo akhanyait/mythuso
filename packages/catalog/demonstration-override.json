@@ -1,7 +1,7 @@
 {
   "_note": "The founder's demonstration override of 2 October 2026: one switch that stands in for the Information Officer's and the clinical reviewer's signatures on the gates listed below, so the capability can be shown before either person is appointed. It never deletes a gate. Each gate's code asks for its own signatures or this override — signed || overrideOpens(gate) — so going live is one value: inForce false. Read by apps/assistant-api/src/lib/demonstration-override.ts, apps/web/src/lib/demonstration-override.ts and scripts/demonstration-override.mjs, which holds the rules the boundary check and the catalogue's tests share. docs/governance/DEMONSTRATION-OVERRIDE.md is the record in prose.",
   "version": 1,
-  "inForce": true,
+  "inForce": false,
   "decided": {
     "by": "founder",
     "on": "2026-10-02",

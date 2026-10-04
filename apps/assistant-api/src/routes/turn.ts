@@ -408,11 +408,40 @@ async function* runTurn(
       language,
     });
     if (!orchestrated.degraded && orchestrated.answer) {
-      /* The model's words pass the same redactor the audit line does. The refusal policies are
-         deliberately not re-applied to the output: their patterns are question-shaped ("do I
-         have", "should I take"), and an answer that correctly says "this is not a diagnosis"
-         trips one — the input side already gated the model, and the answers.service heading the
-         panel draws around these words carries the disclosure on the output side. */
+      /* Input gating already ran. The same refusal check runs on the model's words: a pattern
+         match refuses the answer even when the pattern is question-shaped. The redactor still
+         runs on an answer that the policies let through. */
+      const outputRefusal = evaluateRefusals(
+        orchestrated.answer,
+        audience,
+        req.userConsent === true,
+        context,
+      );
+      if (outputRefusal.refused) {
+        if (!outputRefusal.sentence)
+          throw new Error(
+            `refusal "${outputRefusal.refusalId}" carries no sentence`,
+          );
+        sessions.write(sessionId, state, now);
+        audit(sessionId, outputRefusal.refusalId ?? "refused", req.text);
+        const refused = response(
+          {
+            classification: "unknown",
+            route: "unknown",
+            reply: outputRefusal.sentence,
+            style: "neutral",
+            confidence: 1,
+            requiresConfirmation: outputRefusal.refusalId === "consent-required",
+            suggestedActions: outputRefusal.refusalId
+              ? (refusalActions[outputRefusal.refusalId] ?? [])
+              : [],
+          },
+          sessionId,
+          language,
+          outputRefusal.refusalId,
+        );
+        return { response: refused, toolsUsed: [], sources: [] };
+      }
       reply = redactPHI(orchestrated.answer);
       service = { cue: serviceCue, source: "orchestrator" };
       /* Carried for the streaming path's response event, which surfaces what grounded the answer;

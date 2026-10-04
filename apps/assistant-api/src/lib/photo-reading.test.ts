@@ -10,7 +10,7 @@ import { openFounderState } from "./founder-state.ts";
 import { openSettingsHistory } from "./settings-history.ts";
 import { openVault } from "./provider-vault.ts";
 import { createFounderAccess } from "./founder-access.ts";
-import { overrideClosed, demonstrationOverride } from "./demonstration-override.ts";
+import { overrideClosed } from "./demonstration-override.ts";
 import {
   checkPhotoRequest,
   photoReadingGate,
@@ -78,8 +78,9 @@ const answering = (text: string, seen: { calls: number; image?: string; instruct
     seen.deployment = deployment;
     return text;
   };
+const overrideOn = { ...override, inForce: true as const };
 const openSeam = (model: PhotoModel, gateOptions = {}): PhotoReaderSeam => ({
-  gate: () => photoReadingGate({ env: ENV, processEnv: DEV, ...gateOptions }),
+  gate: () => photoReadingGate({ override: overrideOn, env: ENV, processEnv: DEV, ...gateOptions }),
   read: (image, deployment) => readPhoto(image, deployment, model),
 });
 
@@ -169,8 +170,9 @@ test("only confirmed ids reach her answers, beside what she had already chosen",
 /* ---- The gate ---------------------------------------------------------------------------------------- */
 
 test("the gate opens on the signatures or the override, never with the override off, and only with a model that can look in South Africa", () => {
-  const open = photoReadingGate({ env: ENV, processEnv: DEV });
-  assert.equal(override.inForce, true, "the founder's override is in force today");
+  assert.equal(override.inForce, false, "the founder's override is switched off");
+  assert.deepEqual(photoReadingGate({ env: ENV, processEnv: DEV }), { open: false, refusalId: "photo-reading-not-open" }, "the file's inForce false closes it");
+  const open = photoReadingGate({ override: overrideOn, env: ENV, processEnv: DEV });
   assert.ok(open.open);
   if (open.open) {
     assert.equal(open.demonstration, true);
@@ -183,11 +185,11 @@ test("the gate opens on the signatures or the override, never with the override 
   const signed = photoReadingGate({ override: overrideClosed, signed: true, env: ENV, processEnv: DEV });
   assert.ok(signed.open && signed.demonstration === false && signed.disclaimer === null, "the signatures are still what opens it at go-live");
   const noModel = { open: false, refusalId: "photo-reading-has-no-model" };
-  assert.deepEqual(photoReadingGate({ env: ENV, processEnv: { NODE_ENV: "production" } }), noModel, "production without the acknowledgement");
-  assert.ok(photoReadingGate({ env: ENV, processEnv: { NODE_ENV: "production", MYTHUSO_ASSISTANT_PRODUCTION: "acknowledged" } }).open, "production with it");
-  assert.deepEqual(photoReadingGate({ env: {}, processEnv: DEV }), noModel, "no Azure configured");
-  assert.deepEqual(photoReadingGate({ env: { ...ENV, AZURE_OPENAI_MODEL: "text-embedding-3-small" }, processEnv: DEV }), noModel, "a deployment that cannot look at a picture");
-  assert.ok(photoReadingGate({ override: demonstrationOverride(), env: { ...ENV, AZURE_OPENAI_MODEL: "" }, processEnv: DEV }).open, "the adapter's default deployment takes a picture");
+  assert.deepEqual(photoReadingGate({ override: overrideOn, env: ENV, processEnv: { NODE_ENV: "production" } }), noModel, "production without the acknowledgement");
+  assert.ok(photoReadingGate({ override: overrideOn, env: ENV, processEnv: { NODE_ENV: "production", MYTHUSO_ASSISTANT_PRODUCTION: "acknowledged" } }).open, "production with it");
+  assert.deepEqual(photoReadingGate({ override: overrideOn, env: {}, processEnv: DEV }), noModel, "no Azure configured");
+  assert.deepEqual(photoReadingGate({ override: overrideOn, env: { ...ENV, AZURE_OPENAI_MODEL: "text-embedding-3-small" }, processEnv: DEV }), noModel, "a deployment that cannot look at a picture");
+  assert.ok(photoReadingGate({ override: overrideOn, env: { ...ENV, AZURE_OPENAI_MODEL: "" }, processEnv: DEV }).open, "the adapter's default deployment takes a picture");
 });
 
 /* ---- The request ------------------------------------------------------------------------------------- */
