@@ -1171,3 +1171,86 @@ Android `assembleDebug`/`lintDebug`, and the live-vitals boundary proofs passed.
 run passed every Node suite and finished its browser run with 1,494 passed, 27 skipped and three
 failures. The reduced-motion specificity and duplicate media notice were corrected; all three
 failed browser tests passed on recheck, including the unrelated Control Tower navigation timeout.
+
+
+## Founder-requested — Jitsi for a two-way call with GilbertOne, assessed 4 October 2026
+
+The founder asked for Jitsi on GilbertOne, "for a two way call with gilbertone bot similar to what
+chatgpt dot bot works". The ask is a hands-free spoken conversation with the assistant: you talk, it
+answers by voice, you interrupt, it stops and listens. That is the right thing to want, and it is
+already built — so this section records what was assessed, what was found, and why adding Jitsi to
+GilbertOne would take a working thing away rather than give something new.
+
+**The two-way voice call with GilbertOne exists.** It is `packages/catalog/conversation-mode.json`,
+driven by `packages/gilbertone/src/speech-state.ts` and `apps/web/src/lib/voice.ts`, and decided by
+the founder on 21 September 2026 (amended, numbers moved into the contract on 28 September). One tap
+starts it; from there it is hands-free. The person speaks, pauses, GilbertOne answers, and the
+microphone reopens on its own for the next turn. Barge-in works: GilbertOne stops speaking the moment
+the person starts talking and never talks over them. The per-utterance cap is 45 seconds, after which
+GilbertOne prompts the person to continue. Verified on this tree at `8aaeedc9`:
+`tests/conversation-mode.spec.ts` **24 passed (43.3s)** on both viewports, including "speak, pause, and
+GilbertOne answers by itself", "starting to talk while GilbertOne reads stops the voice", and "an
+emergency answer closes the microphone, and the numbers still show"; and
+`packages/gilbertone/src/speech-state.test.ts` **37 passed, 0 failed**.
+
+**Jitsi is not a licence or a maintenance problem.** Checked against the primary source on 4 October
+2026: `jitsi/jitsi-meet` is Apache-2.0, not archived, 30,041 stars, last pushed 3 October 2026;
+`jitsi/jitsi-videobridge` is Apache-2.0. Both would pass the licence gate outright. That is not where
+this stops.
+
+**Five enforced invariants block it, and the first four are load-bearing.**
+
+1. **A Jitsi call would put the microphone where the contract says it is not.** The amendment keeps
+   all audio processing on the device: wake word, VAD, transcription and voice synthesis, with no
+   audio or transcript ever leaving the machine and no retention. Jitsi is a media server —
+   jitsi-videobridge receives, mixes and forwards RTP streams. Putting GilbertOne behind one means a
+   patient's voice leaves the device and is handled by a server, which is exactly what
+   `conversation-mode.json`'s `whatItIsNot` refuses: "It is not a recording. No audio is captured,
+   buffered or kept, and no cloud speech service hears the person for the on-device conversation."
+2. **The web microphone exists on exactly two surfaces, by name.** The build asserts this in its
+   summary sentence: "on the web a microphone exists on exactly two surfaces — the live assistant's
+   button and the labelled demonstrator — each under its own dated founder decision, each behind a
+   disclosure shown before the first tap, and nowhere else in the build". A Jitsi widget is a third
+   surface. Adding it is a founder decision with its own dated disclosure, not a wiring change.
+3. **The camera is refused in production, and Jitsi's default room wants both.**
+   `deploy/nginx/mythuso.conf` sends `Permissions-Policy "camera=(), microphone=(self), geolocation=()"`
+   at server level and again on `/assistant/`, and `check-boundaries.mjs` fails the build if either
+   declaration stops carrying `microphone=(self)` or if `camera=()` goes. A video-capable conference
+   client cannot use a camera the browser is told it may not have.
+4. **Jitsi's standard integration is an external script, and `script-src` is `'self'` alone.** The
+   usual embed loads `external_api.js` from the Jitsi origin. The build asserts
+   "apps/web/index.html's script-src is no longer 'self' alone" as a failure. Only `connect-src` and
+   `img-src` may name a provider origin, and the reason is written in the check: script and worker
+   stay self. Self-hosting Jitsi to satisfy this would still leave the media flow, the camera and the
+   third microphone surface standing.
+5. **Teleconsultation deliberately connects nothing, and the contract says so on its own face.**
+   `teleconsult.json` carries `media.declared: false`, `media.state: "never-asked"`, and "Nothing in
+   this file opens a camera, a microphone or a connection." The build fails if
+   "The teleconsultation contract offers recording in a build that declares no microphone", and its
+   summary asserts "No teleconsultation screen touches a camera or a microphone". `Teleconsult.tsx`
+   and `lib/teleconsult.ts` both state: "no WebRTC, no camera, no microphone, no permission requested
+   and none needed". Jitsi is precisely the thing these screens are written to not be. Turning that
+   on is the real media milestone — it needs the DPIA, the Information Officer, the residency
+   determination and the consent the Passport does not have yet, and it belongs to the clinical
+   consultation, not to the assistant.
+
+**Where Jitsi would actually fit, when the controls exist.** Not GilbertOne. The clinical
+teleconsultation — a patient, a nurse and a doctor in one room, which `teleconsult.json` already
+designs in full across four connection fidelities, a waiting room, recording consent and encounter
+outcomes — is the surface a conference bridge serves. That is a separate, larger decision gated on
+the same missing controls as `apps/passport`, and it is not started here.
+
+**Nothing was changed in this assessment.** No contract, no code, no dependency, no deploy. Jitsi was
+not recorded as a component in `packages/catalog/open-source.json` either: that register is
+`verifiedOn 2026-09-14` and its `DECLINED` entries are declines *by the specification* (§45), which
+has not ruled on video conferencing. Inventing a specification decline for Jitsi would put a sentence
+in the register that its source document does not contain. If the founder wants this parked in the
+register rather than only here, the honest entry is a new `PROPOSED`-style component with its own
+`verifiedOn`, and that is a decision for him.
+
+**What to do instead, if the ask is a better spoken conversation.** Improve the thing that already
+runs. The candidates, none of which touch a media server or widen a microphone surface: a fuller
+South African English acoustic path on-device; lowering first-token latency in
+`apps/assistant-api`; or making conversation mode reachable from more of the product's surfaces than
+the two it has today — each of which needs its own dated founder disclosure, because the build counts
+them.
