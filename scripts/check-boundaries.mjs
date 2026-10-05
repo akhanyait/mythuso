@@ -3250,8 +3250,8 @@ for (const { source, command, files } of generated) {
       throw new Error(
         `${file.path} has not been generated from ${source}. Run: ${command}`,
       );
-    if (statSync(file.path).mtimeMs < statSync(source).mtimeMs)
-      throw new Error(`${file.path} is older than ${source}. Run: ${command}`);
+    /* Content is the authority for generated files. Git/filesystem mtimes fail on
+       fresh clones and when tokens.json moved without changing emit output. */
     if (read(file.path) !== file.content)
       throw new Error(
         `${file.path} is not what ${source} generates. Either it was edited by hand — it says at the top not to be — or the generator changed. Run: ${command}`,
@@ -18240,7 +18240,7 @@ console.log(
       "packages/catalog/business-model.json",
       "packages/catalog/money.json",
     ]) {
-      if (statSync(file.path).mtimeMs < statSync(source).mtimeMs)
+      if (isOlderThanSource(file.path, source))
         throw new Error(
           `${file.path} is older than ${source}. Run: npm run plans`,
         );
@@ -20928,7 +20928,7 @@ console.log(
       "packages/catalog/money.json",
       "packages/catalog/apis/money.json",
     ]) {
-      if (statSync(file.path).mtimeMs < statSync(source).mtimeMs)
+      if (isOlderThanSource(file.path, source))
         throw new Error(
           `${file.path} is older than ${source}. Run: npm run money`,
         );
