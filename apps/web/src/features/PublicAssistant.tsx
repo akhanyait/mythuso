@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Send, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Send, X } from "lucide-react";
+import { latestLabel } from "../../../../packages/catalog/assistant-chat-ui.json";
 import { emergencyAnswer, identity, lines, silenceIsNotSafety } from "../lib/assistant";
 import { GilbertOneLogo } from "./GilbertAvatar";
 import { crisisLines, showsCrisisLines } from "../lib/crisis-lines";
@@ -52,6 +53,26 @@ export default function PublicAssistant({ request = null }: { request?: { questi
   const [accepted, setAccepted] = useState(publicAcknowledged);
   const dialog = useRef<HTMLDialogElement>(null);
   const body = useRef<HTMLDivElement>(null);
+  const latest = useRef<HTMLLIElement>(null);
+  /* Whether the conversation is scrolled away from its latest answer (handoff scroll button). */
+  const [away, setAway] = useState<"up" | "down" | null>(null);
+  const measure = () => {
+    const box = body.current?.getBoundingClientRect();
+    const last = latest.current?.getBoundingClientRect();
+    setAway(
+      !box || !last
+        ? null
+        : last.bottom < box.top + 24
+          ? "up"
+          : last.top > box.bottom - 24
+            ? "down"
+            : null,
+    );
+  };
+  const toLatest = () => {
+    latest.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    requestAnimationFrame(measure);
+  };
   const launcher = useRef<HTMLButtonElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const field = useRef<HTMLTextAreaElement>(null);
@@ -83,9 +104,8 @@ export default function PublicAssistant({ request = null }: { request?: { questi
 
   useEffect(() => {
     if (!open || !accepted) return;
-    const viewport = body.current;
-    if (!viewport) return;
-    viewport.scrollTo({ top: viewport.scrollHeight });
+    latest.current?.scrollIntoView({ block: "nearest" });
+    requestAnimationFrame(measure);
   }, [open, accepted, turns]);
 
   const ask = (asked: string) => {
@@ -187,13 +207,13 @@ export default function PublicAssistant({ request = null }: { request?: { questi
             />
           )}
           <>
-              <div className="go-body" ref={body}>
+              <div className="go-body" ref={body} onScroll={measure}>
                 {!started && <Opening prompt="What can I help you with?" title="" />}
                 {!started && <QuietChips chips={DESIGN_CHIPS} onPick={pick} />}
                 <div role="log" aria-label="MyThuso website conversation" aria-live="polite">
                   <ol className="go-log">
                     {turns.map((turn, index) => (
-                      <li key={index} className="go-turn">
+                      <li key={index} className="go-turn" ref={index === turns.length - 1 ? latest : undefined}>
                         <p className="go-said">
                           <span className="go-sr">You: </span>
                           {turn.asked}
@@ -206,6 +226,17 @@ export default function PublicAssistant({ request = null }: { request?: { questi
                   </ol>
                 </div>
               </div>
+              {away && (
+                <button
+                  type="button"
+                  className="go-latest"
+                  aria-label={latestLabel}
+                  onClick={toLatest}
+                >
+                  {away === "up" ? <ArrowUp aria-hidden="true" size={18} /> : <ArrowDown aria-hidden="true" size={18} />}
+                  <span>{latestLabel}</span>
+                </button>
+              )}
               <form className="go-compose" onSubmit={submit}>
                 <label className="go-sr" htmlFor="public-assistant-input">{copy.inputLabel}</label>
                 <div className="go-compose-row">

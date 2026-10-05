@@ -988,3 +988,26 @@
 
 .public-assistant-launcher .al-tip,
 .as-launcher .al-tip { display: none; }
+
+/* Public sheet: way back to the latest answer while it is out of view (handoff scroll button). */
+.go-latest {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--space-16) + 4.5rem);
+  transform: translateX(-50%);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: 44px;
+  padding: var(--space-8) var(--space-16);
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-1, 0 4px 16px rgb(0 0 0 / 0.08));
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+}
+.go-frame { position: relative; }

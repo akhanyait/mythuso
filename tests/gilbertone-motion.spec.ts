@@ -23,16 +23,22 @@ test.beforeEach(async ({ page }) => {
 });
 
 const panel = (page: Page) => page.getByRole('dialog', { name: gilbert.identity.name });
-/* Patient and public sheets both open on BeforeWeStart (gilbert-quiet.tsx) since the quiet-chrome
-   redesign: one I-understand checkbox and Continue, not the older two-box consent. */
+/* Patient panel (/app/?open=assistant) keeps the contract's dual-checkbox gate. Public sheets use
+   quiet BeforeWeStart. Clear whichever is showing so the composer is reachable. */
 const consent = async (page: Page) => {
  const gate = page.getByRole('dialog', { name: 'Before we start' });
- await expect(gate.or(panel(page))).toBeVisible();
+ const sheet = panel(page);
+ await expect(gate.or(sheet)).toBeVisible({ timeout: 15_000 });
  if (await gate.isVisible()) {
   await gate.getByRole('checkbox', { name: 'I understand' }).check();
   await gate.getByRole('button', { name: 'Continue', exact: true }).click();
+ } else {
+  await sheet.getByRole('checkbox', { name: gilbert.consent.checkboxDoctor }).check();
+  await sheet.getByRole('checkbox', { name: gilbert.consent.checkboxEmergency }).check();
+  await sheet.getByRole('button', { name: gilbert.consent.accept }).click();
  }
- await expect(panel(page)).toBeVisible();
+ await expect(sheet).toBeVisible();
+ await expect(sheet.getByLabel(gilbert.conversation.inputLabel)).toBeVisible();
 };
 const ask = async (page: Page, words: string) => {
  await panel(page).getByLabel(gilbert.conversation.inputLabel).fill(words);
