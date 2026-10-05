@@ -715,7 +715,13 @@ export function useVoiceAdapter(
       }
       /* Chrome often answers getVoices with an empty list until voiceschanged. Speaking then
          uses the browser's default, which on this Mac is not the South African voice. Wait once. */
-      if (voices.current.length === 0 && !waitedForVoices.current) {
+      /* Only a synthesiser that can announce its voices is waited for: one with no listener (a stand-in,
+         an old engine) would announce nothing, so it reads at once with what it has (5 October 2026). */
+      if (
+        voices.current.length === 0 &&
+        !waitedForVoices.current &&
+        typeof synthesis.addEventListener === "function"
+      ) {
         waitedForVoices.current = true;
         let ran = false;
         const go = () => {
