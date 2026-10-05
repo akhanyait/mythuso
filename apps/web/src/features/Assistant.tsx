@@ -131,15 +131,14 @@ import "./assistant-motion.css";
 import "./gilbertone-experience.css";
 import {
   BeforeWeStart,
-  CallScreen,
   DESIGN_CHIPS,
   GilbertMark,
   Opening,
   PrivacyNote,
   QuietChips,
   QuietMenu,
-  useGilbertCall,
 } from "./gilbert-quiet";
+import { CallScreen, useGilbertCall } from "../components/AssistantVoiceButton";
 
 /* The connected-capability region arrives on its own dynamic import, so the status, retrieval,
    triage and handover routes it consumes — and the code that renders them — are a separate chunk of

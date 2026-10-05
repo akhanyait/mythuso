@@ -629,9 +629,9 @@ export function pulseOf(reply: Reply): PulseId {
  * that same turn is itself a refusal — the rest was not read — and affect may never soften a refusal. */
 export const affect = contract.affect;
 export function cueOf(reply: Reply, unread = false): string {
-  if (unread) return affect.answers.unread.cue;
-  if (reply.kind === "record") return affect.answers.service.cue;
-  return affect.answers[reply.kind].cue;
+  const kind = reply.kind === "record" ? "service" : reply.kind;
+  const mapped = unread ? affect.answers.unread : affect.answers[kind];
+  return mapped.cue;
 }
 /* The register an answer is read aloud in — the voice's map, the way `cueOf` is the face's, and
    decided the same way: from the answer kind alone, in the contract's spokenRegister section of
@@ -641,9 +641,10 @@ export function cueOf(reply: Reply, unread = false): string {
    refusal's face: the unread block in that turn is itself a refusal. */
 export const spokenRegister = contract.spokenRegister;
 export function voiceClassOf(reply: Reply, unread = false): string {
-  if (unread) return spokenRegister.answers.unread;
-  if (reply.kind === "record") return spokenRegister.answers.service;
-  return spokenRegister.answers[reply.kind];
+  const kind = reply.kind === "record" ? "service" : reply.kind;
+  return unread
+    ? spokenRegister.answers.unread
+    : spokenRegister.answers[kind];
 }
 /* What the cue that owns the face means, for the readable surface the tests key on. Reversed from
    the affect mapping: the greeting cues are conversation rather than answers, so a face they own has

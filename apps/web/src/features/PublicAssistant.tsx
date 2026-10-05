@@ -8,7 +8,6 @@ import { acknowledgePublic, publicAcknowledged } from "../lib/gilbertone-acknowl
 import { disclosureFor, useVoiceAdapter } from "../lib/voice";
 import {
   BeforeWeStart,
-  CallScreen,
   DESIGN_CHIPS,
   GilbertMark,
   Opening,
@@ -17,8 +16,8 @@ import {
   QuietMenu,
   ShowDetails,
   leadAndRest,
-  useGilbertCall,
 } from "./gilbert-quiet";
+import { CallScreen, useGilbertCall } from "../components/AssistantVoiceButton";
 import "./public-assistant.css";
 import "./gilbertone-experience.css";
 
