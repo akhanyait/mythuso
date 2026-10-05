@@ -17,10 +17,7 @@ import {
   onRecord,
   readingSets,
 } from "./passport";
-import { numberById } from "./sos";
 import { formatReading, markedFor, readingsFor } from "./triage-markers";
-import { connectorsUsedFor } from "./gilbertone-sources";
-import { referencesUsedFor } from "./gilbertone-reference-scout";
 
 const PATIENT_ID = "demo-lerato";
 
@@ -110,84 +107,25 @@ export function signedInPatientContext(): ContextPacket {
 }
 
 const CLINICAL = /\b(pain|ache|hurt|heartburn|burn|reflux|indigestion|nausea|fever|cough|dizzy|dizziness|sick|symptom|blood|pressure|glucose|sugar|result|test|lab|laboratory|unwell|headache|vomit|diarrhoea|diarrhea|rash|breath|chest|stomach|belly|sore|swelling|bleed|reading|vital|record|history|allerg|medicine|medication|feel)\b/i;
-const HEARTBURN = /\b(heartburn|heart burn|reflux|indigestion)\b/i;
 const BARE_GREETING = /^(hi|hello|hey|howzit|sawubona|good morning|good afternoon|good evening)[.!\s]*$/i;
 
 export const messageUsesRecord = (text: string) => CLINICAL.test(text) && !BARE_GREETING.test(text.trim());
 
-/* Greetings and anything the approved list cannot place are answered here, for the
-   signed-in patient. Emergencies and refusals stay on the deterministic path.
-   Passport, results, notes, and vitals are not read until a one-fact tool exists. */
+/* Only a bare greeting is answered here, for the signed-in patient. Anything the approved
+   list cannot place goes to the reviewed unmatched answer and the safety-checked service, so
+   no unreviewed health advice is written into this file. Emergencies and refusals stay on the
+   deterministic path. Passport, results, notes, and vitals are not read until a one-fact tool exists. */
 export function prefersLocalConversation(text: string, replyKind: string): boolean {
   if (replyKind === "emergency" || replyKind === "refusal") return false;
-  if (BARE_GREETING.test(text.trim())) return true;
-  return replyKind === "unmatched";
+  return BARE_GREETING.test(text.trim());
 }
 
 const SCOPE = "I can share general health information, or help you decide when to speak to a nurse. I can't diagnose, prescribe, or explain what a result means.";
-const NOT_A_DIAGNOSIS = "A nurse or a doctor makes those decisions.";
 
-const urgentLine = () => {
-  const ambulance = numberById("ambulance").number;
-  const mobile = numberById("mobile").number;
-  return `If it might be urgent — chest pain or tightness, pain into the arm or jaw, trouble breathing, vomiting blood, or black stools — call ${ambulance} or ${mobile}. Do not wait on this chat.`;
-};
-
-function earlierLine(earlier: readonly string[]): string | null {
-  const prior = earlier.map((line) => line.trim()).filter(Boolean);
-  if (!prior.length) return null;
-  const last = prior[prior.length - 1].replace(/\s+/g, " ");
-  const clip = last.length > 120 ? `${last.slice(0, 117)}…` : last;
-  return `Earlier you said “${clip}”.`;
-}
-
-function heartburnReply(earlier: readonly string[]): string {
-  const parts = [
-    "I am sorry you have heartburn. Smaller meals, staying upright after you eat, and not lying flat are common things people try while they arrange care. I will not name a dose or a cause.",
-    "Get care the same day if it keeps coming back, swallowing is painful, or you are worried.",
-  ];
-  const prior = earlierLine(earlier);
-  if (prior) parts.push(prior);
-  parts.push(urgentLine(), NOT_A_DIAGNOSIS);
-  return parts.join("\n\n");
-}
-
-function conversationalReply(message: string, earlier: readonly string[]): string {
-  const said = message.trim().replace(/\s+/g, " ");
-  const clip = said.length > 160 ? `${said.slice(0, 157)}…` : said;
-  const prior = earlierLine(earlier);
-  if (!CLINICAL.test(said)) {
-    const parts = [`I'm here. ${SCOPE}`];
-    if (prior) parts.push(prior);
-    return parts.join("\n\n");
-  }
-  const parts = [
-    `I hear you: “${clip}”. I can talk that through with you. I cannot tell you what it is from here.`,
-    "If it is mild, note when it started and what makes it better or worse, and rest. If it is severe, sudden, or you are frightened by it, do not wait on this chat.",
-  ];
-  if (prior) parts.push(prior);
-  parts.push(urgentLine(), NOT_A_DIAGNOSIS);
-  return parts.join("\n\n");
-}
-
+/* The greeting reply. It names no source, because a greeting matched none. */
 export function guidanceFromRecord(
-  message: string,
-  earlier: readonly string[],
+  _message: string,
+  _earlier: readonly string[],
 ): { text: string; sources: readonly string[] } {
-  const trimmed = message.trim();
-  const body = BARE_GREETING.test(trimmed)
-    ? `Hello. Tell me what you need, in your own words. ${SCOPE}`
-    : HEARTBURN.test(trimmed)
-      ? heartburnReply(earlier)
-      : conversationalReply(trimmed, earlier);
-  /* Names only. Approved public references whose topics are in this message,
-     then any connector whose card shares a word with it. No connector sentence
-     and no page text is added to the reply. A greeting names nothing. */
-  if (BARE_GREETING.test(trimmed)) return { text: body, sources: [] };
-  const references = referencesUsedFor(trimmed).map((source) => source.name);
-  const used = connectorsUsedFor(trimmed);
-  return {
-    text: body,
-    sources: [...references, ...used.map((card) => card.name)],
-  };
+  return { text: `Hello. Tell me what you need, in your own words. ${SCOPE}`, sources: [] };
 }

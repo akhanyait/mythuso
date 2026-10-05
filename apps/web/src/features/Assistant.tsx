@@ -29,7 +29,6 @@ import {
   FileText,
   MessageCircle,
   NotebookPen,
-  Phone,
   Users,
   ShieldCheck,
   ArrowRight,
@@ -138,7 +137,7 @@ import {
   QuietChips,
   QuietMenu,
 } from "./gilbert-quiet";
-import { CallScreen, useGilbertCall } from "../components/AssistantVoiceButton";
+import { AssistantVoiceButton, CallScreen, useGilbertCall } from "../components/AssistantVoiceButton";
 
 /* The connected-capability region arrives on its own dynamic import, so the status, retrieval,
    triage and handover routes it consumes — and the code that renders them — are a separate chunk of
@@ -678,6 +677,14 @@ export default function Assistant({
   const put = (question: Question) =>
     moved(choose(turns, question, visit, everRaised));
   /* The composer's Send and a captured call, above the path they share. */
+  const onVoiceTranscript = (text: string) => {
+    setDraft((current) => (current ? `${current} ${text}`.trim() : text));
+    field.current?.focus();
+  };
+  /* A hands-free turn goes through the same send path as Send, never through the draft. */
+  const onUtterance = (text: string) => {
+    if (text.trim()) sendText(text);
+  };
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!draft.trim()) {
@@ -1450,11 +1457,17 @@ export default function Assistant({
                 shape the mockup gives it, and both numbers still arrive through the same
                 token resolver every other sentence uses. */}
             <div className="go-compose-actions">
+              {/* The reviewed microphone control: its disclosure before the first tap, its
+                  hands-free conversation, and its stop label, all from the contract. */}
               {audience.voice && (
-                <button type="button" className="go-talk" onClick={() => call.show()}>
-                  <Phone size={16} aria-hidden="true" />
-                  Talk to GilbertOne
-                </button>
+                <AssistantVoiceButton
+                  voice={voiceAdapter}
+                  onTranscript={onVoiceTranscript}
+                  onUtterance={onUtterance}
+                  typingNote={conversation.webKeyboardNote}
+                  pending={waitingForReply}
+                  onTypeInstead={() => field.current?.focus()}
+                />
               )}
               {audience.actions.handover && (
                 <button type="button" className="go-nurse" onClick={nurse}>

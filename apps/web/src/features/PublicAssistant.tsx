@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Phone, Send, X } from "lucide-react";
+import { Send, X } from "lucide-react";
 import { emergencyAnswer, lines, silenceIsNotSafety } from "../lib/assistant";
 import { crisisLines, showsCrisisLines } from "../lib/crisis-lines";
 import { publicAnswer, publicAssistant as copy, type PublicAnswer } from "../lib/public-assistant";
 import { sendOnEnter } from "../lib/composer";
 import { acknowledgePublic, publicAcknowledged } from "../lib/gilbertone-acknowledgement";
-import { disclosureFor, useVoiceAdapter } from "../lib/voice";
 import {
   BeforeWeStart,
   DESIGN_CHIPS,
@@ -17,7 +16,6 @@ import {
   ShowDetails,
   leadAndRest,
 } from "./gilbert-quiet";
-import { CallScreen, useGilbertCall } from "../components/AssistantVoiceButton";
 import "./public-assistant.css";
 import "./gilbertone-experience.css";
 
@@ -44,71 +42,6 @@ const telOf = (number: string) => `tel:${number.replace(/\s+/g, "")}`;
 
 type Turn = { asked: string; answer: PublicAnswer };
 
-function speechOf(answer: PublicAnswer) {
-  if (answer.kind === "emergency") return emergencyAnswer.headline;
-  if (answer.kind === "refusal") return copy.refusal;
-  return leadAndRest(answer.question.answer).lead;
-}
-
-function PublicVoice({
-  ask,
-  onClose,
-}: {
-  ask: (text: string) => void;
-  onClose: () => void;
-}) {
-  const voice = useVoiceAdapter("assistant");
-  const askRef = useRef(ask);
-  askRef.current = ask;
-  const words = useRef<(text: string) => void>(() => {});
-  const [epoch, setEpoch] = useState(0);
-  const [spoken, setSpoken] = useState("");
-  words.current = (text: string) => {
-    askRef.current(text);
-    setSpoken(speechOf(publicAnswer(text)));
-    setEpoch((value) => value + 1);
-  };
-  const call = useGilbertCall({
-    initial: "disclose",
-    supported: voice.supported,
-    canSpeak: voice.canSpeak,
-    state: voice.state,
-    transcript: voice.transcript,
-    pending: false,
-    reply: spoken,
-    replyEpoch: epoch,
-    start: voice.start,
-    cancelListen: voice.cancelCapture,
-    cancelSpeech: voice.cancel,
-    speak: voice.speak,
-    voiceClass: "routine",
-    onWords: words,
-  });
-  const leave = () => {
-    call.end();
-    onClose();
-  };
-  return (
-    <CallScreen
-      phase={call.phase}
-      disclosure={disclosureFor("assistant")}
-      muted={call.muted}
-      note={
-        voice.transcript.trim() ||
-        !voice.failureSentence ||
-        /not open/i.test(voice.failureSentence)
-          ? null
-          : voice.failureSentence
-      }
-      onStart={() => call.begin()}
-      onMute={() => call.mute()}
-      onEnd={leave}
-      onText={leave}
-      emergency={<EmergencyFooter />}
-    />
-  );
-}
-
 /* Signed-out website guide. Answers stay on the approved public questions.
    Nothing here is given the private patient record. */
 export default function PublicAssistant({ request = null }: { request?: { question?: string; n: number } | null }) {
@@ -117,7 +50,6 @@ export default function PublicAssistant({ request = null }: { request?: { questi
   const [turns, setTurns] = useState<Turn[]>([]);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [accepted, setAccepted] = useState(publicAcknowledged);
-  const [calling, setCalling] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const body = useRef<HTMLDivElement>(null);
   const launcher = useRef<HTMLButtonElement>(null);
@@ -150,11 +82,11 @@ export default function PublicAssistant({ request = null }: { request?: { questi
   }, [request?.n]);
 
   useEffect(() => {
-    if (!open || !accepted || calling) return;
+    if (!open || !accepted) return;
     const viewport = body.current;
     if (!viewport) return;
     viewport.scrollTo({ top: viewport.scrollHeight });
-  }, [open, accepted, calling, turns]);
+  }, [open, accepted, turns]);
 
   const ask = (asked: string) => {
     const text = asked.trim();
@@ -170,7 +102,6 @@ export default function PublicAssistant({ request = null }: { request?: { questi
     setTurns([]);
     setDraft("");
     setPrivacyOpen(false);
-    setCalling(false);
   };
   const pick = (label: string) => {
     if (label === "How MyThuso works") {
@@ -206,7 +137,6 @@ export default function PublicAssistant({ request = null }: { request?: { questi
             setPrivacyOpen(false);
             return;
           }
-          setCalling(false);
           setOpen(false);
         }}
         onClose={() => setOpen(false)}
@@ -256,9 +186,6 @@ export default function PublicAssistant({ request = null }: { request?: { questi
               onClose={() => setPrivacyOpen(false)}
             />
           )}
-          {calling ? (
-            <PublicVoice ask={ask} onClose={() => setCalling(false)} />
-          ) : (
           <>
               <div className="go-body" ref={body}>
                 {!started && <Opening prompt="What can I help you with?" title="" />}
@@ -298,16 +225,9 @@ export default function PublicAssistant({ request = null }: { request?: { questi
                     <span>Send</span>
                   </button>
                 </div>
-                <div className="go-compose-actions">
-                  <button type="button" className="go-talk" onClick={() => setCalling(true)}>
-                    <Phone size={16} aria-hidden="true" />
-                    Talk to GilbertOne.
-                  </button>
-                </div>
                 <EmergencyFooter />
               </form>
           </>
-          )}
         </div>
         )}
       </dialog>
