@@ -1275,7 +1275,7 @@
   
   ],
   "defaults": {
-   "version": 2,
+   "version": 3,
    "changelog": [
     {
      "version": 1,
@@ -1406,6 +1406,18 @@
       }
      ],
      "why": "The founder approved the speech-settings scope of 28 September 2026: ElevenLabs built beside Azure Speech and Alibaba Qwen-TTS, every knob either provider exposes that is not a key, a region or a clinical register made an administrator's setting with a proposed default, and the own-voice feature an administrator's alone. Every default below is a proposal until the founder has listened at the edges, except own-voice, which the founder decided."
+    },
+    {
+     "version": 3,
+     "on": "2026-10-04",
+     "by": "Founder",
+     "changed": [
+      { "setting": "presentation-voice-routine", "from": "female", "to": "male" },
+      { "setting": "presentation-voice-navigation", "from": "female", "to": "male" },
+      { "setting": "presentation-voice-signed-out-visitor", "from": "female", "to": "male" },
+      { "setting": "presentation-voice-admin", "from": "female", "to": "male" }
+     ],
+     "why": "The founder's decision of 4 October 2026: every presentation register starts on the language's male South African voice. Emergency, refusal and escalation are not these registers, and they stay on the platform voice."
     }
    ]
   }

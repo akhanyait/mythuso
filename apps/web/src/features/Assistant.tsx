@@ -912,6 +912,11 @@ export default function Assistant({
         <BeforeWeStart
           closeRef={close}
           onClose={dismiss}
+          /* The contract's prohibitions stay on the gate. The last one, that missing an emergency does
+             not mean there is none, is the first half of silenceIsNotSafety. */
+          willNotDo={consent.willNotDo.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
           onContinue={() => {
             acknowledgePatient();
             setConsented(true);
@@ -992,6 +997,7 @@ export default function Assistant({
           <PrivacyNote
             paragraphs={[
               consent.privacyBody,
+              conversation.webKeyboardNote,
               "What you type may be sent to the GilbertOne assistant for this site when an answer is not already on the page. GilbertOne does not decide what you are allowed to see.",
               "New conversation clears this active conversation and ignores a late answer from the previous one. It does not delete stored history. No deletion route is defined here.",
             ]}

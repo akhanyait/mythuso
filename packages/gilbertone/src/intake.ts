@@ -123,7 +123,7 @@ const stopStem = stems(contract.answer.stop.word).join(" ");
    message that is only the stop word ends the intake with stopped set. An emergency ends it with no
    state at all. A chips question records the option's own text when the answer is one of them, so
    the nurse reads the contract's word and not a spelling of it; anything else is kept as typed,
-   except "How bad is it right now?", which keeps only one of its own answers. Any other wording
+   except the how-bad question, which keeps only one of its own answers. Any other wording
    for that question is not stored, and the same state comes back so it is asked again. */
 export function answerIntake(
   state: IntakeState,

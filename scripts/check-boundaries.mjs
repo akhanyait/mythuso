@@ -5401,7 +5401,7 @@ for (const { source, command, files } of generated) {
       return { mechanism: "vetting-register" };
     }
     if (
-      /signedIn\(req, res\)|identity\.resolve\(readCookie\(req\.headers\.cookie, COOKIE\)\)/.test(
+      /signedIn\(req, res\)|resolveSession\(req, res\)|identity\.resolve\(readCookie\(req\.headers\.cookie, COOKIE\)\)/.test(
         handler,
       )
     )
@@ -17411,7 +17411,12 @@ if (
   );
 if (
   !/consent\.willNotDo\.map/.test(assistantPanel) ||
-  !/say\(consent\.emergencyNotice\)/.test(assistantPanel) ||
+  /* Or the founder-approved EmergencyLinks of 23 September 2026: the same catalog sentence, split on its placeholders. */
+  !(
+    /say\(consent\.emergencyNotice\)/.test(assistantPanel) ||
+    (/<EmergencyLinks \/>/.test(assistantPanel) &&
+      /\{consent\.emergencyNotice\s*\.split/.test(assistantPanel))
+  ) ||
   !/<NotConnected of="voice"\s*\/>/.test(assistantPanel)
 )
   throw new Error(
@@ -34729,7 +34734,8 @@ const p3Files = [
    own. tests/states.spec.ts holds the bytes; this holds the shape that keeps them. */
 {
   const door = read("apps/web/src/Doorway.tsx");
-  if (!/const ControlTower = lazy\(\(\) => import\('\.\/shells\/PortalShell'\)\)/.test(door))
+  /* Since 4 October 2026 the import is also behind VITE_MYTHUSO_STAFF_PREVIEW, so a patient build never downloads it. */
+  if (!/const ControlTower = (?:staffPreview \? )?lazy\(\(\) => import\('\.\/shells\/PortalShell'\)\)/.test(door))
     throw new Error("apps/web/src/Doorway.tsx no longer reaches the merged Control Tower through a dynamic import.");
   const firstLoad = [
     "apps/web/src/main.tsx",
@@ -35400,7 +35406,8 @@ const p4Code = (f) => uncommented(read(f)).replace(/^\s*import\s[^;]*;\s*$/gm, "
   if (!/useVoiceAdapter\("assistant", audienceId\)/.test(panel) || !/voiceClass: voiceClassOf\(last\.reply, last\.unread\),/.test(panel))
     throw new Error("apps/web/src/features/Assistant.tsx no longer opens its voice adapter for its audience and hands every reading its class from voiceClassOf(last.reply, last.unread). A reading with no class is read as the surface's own presentation register, which an emergency must never be.");
   const model = uncommented(read("apps/web/src/lib/assistant.ts"));
-  if (!/export function voiceClassOf\(reply: Reply, unread = false\): string \{\s*return unread\s*\? spokenRegister\.answers\.unread\s*: spokenRegister\.answers\[reply\.kind\];\s*\}/.test(model))
+  /* A "record" reply reads in the service answer's register (4 October 2026): same map, one kind folded into another. */
+  if (!/export function voiceClassOf\(reply: Reply, unread = false\): string \{\s*(?:const kind = reply\.kind === "record" \? "service" : reply\.kind;\s*)?return unread\s*\? spokenRegister\.answers\.unread\s*: spokenRegister\.answers\[(?:reply\.)?kind\];\s*\}/.test(model))
     throw new Error("apps/web/src/lib/assistant.ts's voiceClassOf no longer reads the contract's spokenRegister map from the reply kind alone, with the unread turn in the refusal's register. The register is the contract's, never a ternary in a component.");
 }
 
@@ -36770,7 +36777,7 @@ console.log(
 
   /* 3. The panel: it waits on the service by the reply's kind alone, and the composer hands an open
         intake its answer before the bridge is asked. */
-  if (!/candidate\.reply\.kind !== "unmatched"\) return;/.test(panel))
+  if (!/candidate\.reply\.kind !== "unmatched"\) return(?: candidate\.id)?;/.test(panel))
     throw new Error(`${panelFile} no longer gates the waiting dots on the reply being unmatched. The dots exist only while the service is asked, and it is asked only for the unmatched reply.`);
   const submitAt = panel.indexOf("const submit = ");
   const intakeAt = panel.indexOf("continueIntake(", submitAt);
@@ -36984,7 +36991,8 @@ console.log(
   const waits = [...panel.matchAll(/setPendingReplies\(\(current\) => new Set\(current\)\.add\(/g)];
   if (waits.length !== 1)
     ctFail(`${panelFile} marks a reply as waiting in ${waits.length} places. There is one: the submit that has already been answered "unmatched" by the deterministic tier.`);
-  const guard = panel.indexOf('if (candidate.reply.kind !== "unmatched") return;');
+  /* The guard may hand back the turn id (sendText, since 28 September 2026); it still returns before any wait. */
+  const guard = panel.search(/if \(candidate\.reply\.kind !== "unmatched"\) return(?: candidate\.id)?;/);
   const local = panel.indexOf("const local = sendWithGilbertEngine(");
   if (local < 0 || guard < local || guard > waits[0].index || panel.slice(guard, waits[0].index).includes("candidate ="))
     ctFail(`${panelFile} can mark a reply as waiting without the deterministic tier having answered it "unmatched" first. An emergency, a refusal or an offline answer must land on the frame it is sent, with no bubble in front of it.`);

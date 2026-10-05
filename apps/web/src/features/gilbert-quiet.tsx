@@ -196,10 +196,12 @@ export function BeforeWeStart({
   onContinue,
   onClose,
   closeRef,
+  willNotDo,
 }: {
   onContinue: () => void;
   onClose: () => void;
   closeRef?: Ref<HTMLButtonElement>;
+  willNotDo?: ReactNode;
 }) {
   const [understood, setUnderstood] = useState(false);
   return (
@@ -219,6 +221,7 @@ export function BeforeWeStart({
       </header>
       <div className="go-before-body">
         <p>{BEFORE_COPY}</p>
+        {willNotDo ? <ul className="go-before-list">{willNotDo}</ul> : null}
         <label className="go-check">
           <input
             type="checkbox"

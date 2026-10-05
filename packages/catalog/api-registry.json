@@ -535,7 +535,7 @@
    "name": "External knowledge sources",
    "detailsFrom": "packages/catalog/knowledge/federation.json#sources",
    "buildStatus": "dark",
-   "statusToday": "demonstration",
+   "statusToday": "dark",
    "adapter": { "file": "apps/assistant-api/src/lib/sources/config.ts", "symbol": "isSourceActive" },
    "environment": ["OPENFDA_ENABLED", "OPENFDA_API_KEY"],
    "productionConfigured": null,
