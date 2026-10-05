@@ -132,9 +132,8 @@ test('the device permission cards are under the notice rather than behind a butt
 
 test('the medications tab explains what happens to a prescription rather than opening the roadmap', async ({ page }) => {
   await page.goto('/app/');
-  await goPatient(page, 'Health Passport');
-  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Medications' }).click();
-  await page.getByRole('button', { name: /What happens after a doctor signs one/ }).click();
+  /* Medications stays Preview-empty; the journey is still a My Health row (Explore on phone). */
+  await goSection(page, 'What happens to a prescription');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'What happens to a prescription.' })).toBeVisible();
   /* The five steps are the dispensing contract's handover, and the refusals are its own sentences. */

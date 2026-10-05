@@ -1,181 +1,284 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowDown, ArrowUp, X } from 'lucide-react';
-import { latestLabel } from '../../../../packages/catalog/assistant-chat-ui.json';
-import { GilbertAvatar, GilbertOneLogo, growFrom, useGilbertRig } from './GilbertAvatar';
-import { AssistantGreeting } from '../components/AssistantGreeting';
-import { MotionPause } from '../components/MotionPause';
-import { Button } from '../ui/Button';
-import { IconButton } from '../ui/IconButton';
-import { useDecor } from '../lib/motion';
-import { affect, conversation, emergencyAnswer, identity, lines, screens, silenceIsNotSafety } from '../lib/assistant';
-import { crisisLines, showsCrisisLines } from '../lib/crisis-lines';
-import { publicAnswer, publicAssistant as copy, type PublicAnswer } from '../lib/public-assistant';
-import { sendOnEnter, useGrowingField } from '../lib/composer';
-import './public-assistant.css';
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Send, X } from "lucide-react";
+import { emergencyAnswer, identity, lines, silenceIsNotSafety } from "../lib/assistant";
+import { GilbertOneLogo } from "./GilbertAvatar";
+import { crisisLines, showsCrisisLines } from "../lib/crisis-lines";
+import { publicAnswer, publicAssistant as copy, type PublicAnswer } from "../lib/public-assistant";
+import { sendOnEnter } from "../lib/composer";
+import { acknowledgePublic, publicAcknowledged } from "../lib/gilbertone-acknowledgement";
+import {
+  BeforeWeStart,
+  DESIGN_CHIPS,
+  Opening,
+  PrivacyNote,
+  QuietChips,
+  QuietMenu,
+  ShowDetails,
+  leadAndRest,
+} from "./gilbert-quiet";
+import "./public-assistant.css";
+import "./gilbertone-experience.css";
 
-/* The signed-out sheet's emergency footer, with its numbers as tap-to-call links. The sentence is the
-   contract's silenceIsNotSafety and the numbers come from sos.json by id through lines() — never typed
-   here — so the strip says exactly what the panel says, and a thumb can dial straight from it. */
 function EmergencyFooter() {
- const numbers = lines(['ambulance', 'mobile']);
- const pattern = new RegExp(`(${numbers.map((entry) => entry.number).join('|')})`, 'g');
- return <p className="public-assistant-emergency">
-  {silenceIsNotSafety.split(pattern).map((part, index) => {
-   const match = numbers.find((entry) => entry.number === part);
-   return match ? <a key={index} href={`tel:${match.number}`}>{match.number}</a> : part;
-  })}
- </p>;
+  const numbers = lines(["ambulance", "mobile"]);
+  const pattern = new RegExp(`(${numbers.map((entry) => entry.number).join("|")})`, "g");
+  return (
+    <p className="public-assistant-emergency">
+      {silenceIsNotSafety.split(pattern).map((part, index) => {
+        const match = numbers.find((entry) => entry.number === part);
+        return match ? (
+          <a key={index} href={`tel:${match.number}`}>
+            {match.number}
+          </a>
+        ) : (
+          part
+        );
+      })}
+    </p>
+  );
 }
 
-/* A number as a dialler reads it: a helpline is written with spaces for a reader and dialled without them.
-   The emergency answer's numbers were bold text while the footer under them was tap-to-call, so the one
-   moment a thumb most needs to dial straight from the page was the one place it could not. */
-const telOf = (number: string) => `tel:${number.replace(/\s+/g, '')}`;
+const telOf = (number: string) => `tel:${number.replace(/\s+/g, "")}`;
 
 type Turn = { asked: string; answer: PublicAnswer };
 
-/* The face each public answer wears is the contract's, read from affect.answers and never chosen
-   here: the emergency holds the safety cue, a refusal wears the refusal's. A website answer has no
-   entry in affect.answers — the face section maps the panel's answer kinds, and nobody has decided
-   one for the guide's — so it plays no cue at all rather than a gesture picked by this component.
-   Until 28 September 2026 it played A09, the nod the contract's notWired list refuses for every
-   answer because a nod can read as agreement. */
-const cueFor = (answer: PublicAnswer) =>
- answer.kind === 'emergency' ? affect.answers.emergency.cue
-  : answer.kind === 'refusal' ? affect.answers.refusal.cue
-  : null;
-/* Website-only surface: no role parameter, patient visit, microphone, network or persistence.
-   The native dialog supplies focus containment and Escape; closing preserves this page's chat.
-
-   The landing page holds its motion to a budget (tests/motion.spec.ts: the carousel's clock and the
-   two hero drifts, nothing else at rest), so the robot on the launcher is still while the sheet is
-   closed — no blink, no idle drift, no transition waiting to fire — and moves only once somebody has
-   opened him. The sheet grows out of him and shrinks back into him, as the patient's panel does. */
+/* Signed-out website guide. Answers stay on the approved public questions.
+   Nothing here is given the private patient record. */
 export default function PublicAssistant({ request = null }: { request?: { question?: string; n: number } | null }) {
- const [open, setOpen] = useState(false);
- const [draft, setDraft] = useState('');
- const [turns, setTurns] = useState<Turn[]>([]);
- const dialog = useRef<HTMLDialogElement>(null);
- const launcher = useRef<HTMLButtonElement>(null);
- const latest = useRef<HTMLLIElement>(null);
- const scroller = useRef<HTMLDivElement>(null);
- const field = useRef<HTMLTextAreaElement>(null);
- /* The field grows with what is written, as the patient's panel's does, and has a layout only while
-    the sheet is open. */
- useGrowingField(field, draft, open);
- /* The control that opened the sheet from the page rather than from the round button — a question on
-    the hero's card, the guide card's action — so closing hands focus back to where the reader was. */
- const opener = useRef<HTMLElement | null>(null);
- /* Whether the conversation is scrolled away from its latest answer — above it, reading an older one, or
-    below it among the questions. Only then is the way back drawn: a button that takes you where you
-    already are is a control that does nothing. */
- const [away, setAway] = useState<'up' | 'down' | null>(null);
- const measure = () => {
-  const box = scroller.current?.getBoundingClientRect(), last = latest.current?.getBoundingClientRect();
-  setAway(!box || !last ? null : last.bottom < box.top + 24 ? 'up' : last.top > box.bottom - 24 ? 'down' : null);
- };
- /* Only the transcript scrolls: scrollIntoView would also move the frame and take the close control
-    out of view, which is the reason the patient's panel scrolls this way too. */
- const toLatest = () => {
-  const box = scroller.current, last = latest.current;
-  if (!box || !last) return;
-  box.scrollTo({ top: box.scrollTop + last.getBoundingClientRect().top - box.getBoundingClientRect().top - 12, behavior: reduced ? 'auto' : 'smooth' });
- };
- const { reduced, playing } = useDecor();
- const rig = useGilbertRig({ reduced, paused: !playing || !open });
- const entrance = useRef<Animation | null>(null);
- /* The one answer that has just landed, and the only one that rises. */
- const [arrived, setArrived] = useState<number | null>(null);
- useEffect(() => {
-  const sheet = dialog.current;
-  if (!sheet) return;
-  if (open && !sheet.open) { sheet.showModal(); entrance.current = growFrom(launcher.current, sheet, reduced); requestAnimationFrame(measure); }
-  else if (!open && sheet.open) {
-   entrance.current?.cancel(); sheet.close();
-   const back = opener.current?.isConnected ? opener.current : launcher.current;
-   opener.current = null; back?.focus(); setArrived(null);
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [accepted, setAccepted] = useState(publicAcknowledged);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const body = useRef<HTMLDivElement>(null);
+  const launcher = useRef<HTMLButtonElement>(null);
+  const close = useRef<HTMLButtonElement>(null);
+  const field = useRef<HTMLTextAreaElement>(null);
+  const opener = useRef<HTMLElement | null>(null);
+  const started = turns.length > 0;
+
+  useEffect(() => {
+    const sheet = dialog.current;
+    if (!sheet) return;
+    if (open && !sheet.open) {
+      sheet.showModal();
+      close.current?.focus();
+    } else if (!open && sheet.open) {
+      sheet.close();
+      const back = opener.current?.isConnected ? opener.current : launcher.current;
+      opener.current = null;
+      back?.focus();
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!request) return;
+    opener.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body
+      ? document.activeElement
+      : null;
+    setOpen(true);
+    if (request.question) ask(request.question);
+  }, [request?.n]);
+
+  useEffect(() => {
+    if (!open || !accepted) return;
+    const viewport = body.current;
+    if (!viewport) return;
+    viewport.scrollTo({ top: viewport.scrollHeight });
+  }, [open, accepted, turns]);
+
+  const ask = (asked: string) => {
+    const text = asked.trim();
+    if (!text) return;
+    setTurns((previous) => [...previous, { asked: text, answer: publicAnswer(text) }]);
+    setDraft("");
+  };
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    ask(draft);
+  };
+  const reset = () => {
+    setTurns([]);
+    setDraft("");
+    setPrivacyOpen(false);
+  };
+  const pick = (label: string) => {
+    if (label === "How MyThuso works") {
+      const about = copy.questions.find((question) => question.id === "about");
+      if (about?.href) {
+        window.location.assign(about.href);
+        setOpen(false);
+        return;
+      }
+    }
+    ask(label);
+  };
+
+  return (
+    <>
+      <button
+        ref={launcher}
+        className="public-assistant-launcher"
+        aria-label={identity.callToAction}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => setOpen(true)}
+      >
+        <span className="al-orb" aria-hidden="true" />
+      </button>
+      <dialog
+        ref={dialog}
+        className="public-assistant go-experience"
+        aria-labelledby={accepted ? "public-assistant-title" : "go-before-title"}
+        onCancel={(event) => {
+          event.preventDefault();
+          if (privacyOpen) {
+            setPrivacyOpen(false);
+            return;
+          }
+          setOpen(false);
+        }}
+        onClose={() => setOpen(false)}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) setOpen(false);
+        }}
+      >
+        {!accepted ? (
+          <BeforeWeStart
+            closeRef={close}
+            onClose={() => setOpen(false)}
+            onContinue={() => {
+              acknowledgePublic();
+              setAccepted(true);
+            }}
+          />
+        ) : (
+        <div className="go-frame">
+          <header className="go-head">
+            <div className="go-lockup">
+              <GilbertOneLogo width={56} alt="" className="go-head-logo" />
+              <div className="go-lockup-words">
+                <h2 id="public-assistant-title" className="go-title">{identity.name}</h2>
+                <p className="go-not">{identity.descriptorLine}</p>
+              </div>
+            </div>
+            <div className="go-head-actions">
+              <QuietMenu onNew={reset} onPrivacy={() => setPrivacyOpen(true)} />
+              <button
+                ref={close}
+                type="button"
+                className="go-icon"
+                aria-label="Close GilbertOne"
+                onClick={() => setOpen(false)}
+              >
+                <X size={18} aria-hidden="true" />
+              </button>
+            </div>
+          </header>
+          {privacyOpen && (
+            <PrivacyNote
+              paragraphs={[
+                copy.privacy,
+                "GilbertOne on this page answers approved questions about the public website. It does not decide access to an account, a tender or a record.",
+                "New conversation clears this page’s chat. It does not delete stored history, because this page does not keep one.",
+              ]}
+              onClose={() => setPrivacyOpen(false)}
+            />
+          )}
+          <>
+              <div className="go-body" ref={body}>
+                {!started && <Opening prompt="What can I help you with?" title="" />}
+                {!started && <QuietChips chips={DESIGN_CHIPS} onPick={pick} />}
+                <div role="log" aria-label="MyThuso website conversation" aria-live="polite">
+                  <ol className="go-log">
+                    {turns.map((turn, index) => (
+                      <li key={index} className="go-turn">
+                        <p className="go-said">
+                          <span className="go-sr">You: </span>
+                          {turn.asked}
+                        </p>
+                        <div className="go-answer">
+                          <PublicReply answer={turn.answer} onNavigate={() => setOpen(false)} />
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              </div>
+              <form className="go-compose" onSubmit={submit}>
+                <label className="go-sr" htmlFor="public-assistant-input">{copy.inputLabel}</label>
+                <div className="go-compose-row">
+                  <textarea
+                    ref={field}
+                    id="public-assistant-input"
+                    rows={1}
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    onKeyDown={sendOnEnter}
+                    placeholder="Type in your own words."
+                    maxLength={500}
+                    autoComplete="off"
+                  />
+                  <button type="submit" className="go-primary" aria-label="Send">
+                    <Send size={16} aria-hidden="true" />
+                    <span>Send</span>
+                  </button>
+                </div>
+                <EmergencyFooter />
+              </form>
+          </>
+        </div>
+        )}
+      </dialog>
+    </>
+  );
+}
+
+function PublicReply({ answer, onNavigate }: { answer: PublicAnswer; onNavigate: () => void }) {
+  if (answer.kind === "refusal") return <p>{copy.refusal}</p>;
+  if (answer.kind === "emergency") {
+    return (
+      <>
+        <p>{emergencyAnswer.headline}</p>
+        <p>{emergencyAnswer.lead}</p>
+        <ul>
+          {lines(emergencyAnswer.numbers).map((n) => (
+            <li key={n.number}>
+              <a href={telOf(n.number)}><strong>{n.number}</strong></a> — {n.name}
+            </li>
+          ))}
+        </ul>
+        <p>{emergencyAnswer.notAnAmbulance}</p>
+        {showsCrisisLines(answer.groups) && (
+          <div>
+            <p>{crisisLines.heading}</p>
+            <ul>
+              {crisisLines.lines.map((line) => (
+                <li key={line.id}>
+                  <a href={telOf(line.number)}><strong>{line.number}</strong></a> — {line.name}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </>
+    );
   }
- }, [open]);
- useEffect(() => { latest.current?.scrollIntoView({ block: 'nearest' }); requestAnimationFrame(measure); }, [turns]);
- /* The conversation's room shrinks without a scroll when the field grows, and the way back is measured
-    again when it does. */
- useEffect(() => {
-  const box = scroller.current;
-  if (!box || typeof ResizeObserver !== 'function') return;
-  const watch = new ResizeObserver(() => measure());
-  watch.observe(box);
-  return () => watch.disconnect();
- }, []);
- /* A request from the page: open, and when it carries one of the guide's questions, ask it — the same
-    ask a press on the sheet's own question would make, so the answer is the contract's and nothing else. */
- useEffect(() => {
-  if (!request) return;
-  opener.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
-  setOpen(true);
-  if (request.question) ask(request.question);
- }, [request?.n]);
- const ask = (asked: string) => {
-  if (!asked.trim()) return;
-  const answer = publicAnswer(asked);
-  setTurns(previous => [...previous, { asked, answer }]);
-  setArrived(turns.length);
-  setDraft('');
-  // The rig holds its safety cue until the visitor explicitly starts again.
-  const cue = cueFor(answer);
-  if (cue) rig.play(cue);
- };
- const submit = (event: FormEvent) => { event.preventDefault(); ask(draft); };
- return <>
-  <AssistantGreeting open={open} onOpen={() => setOpen(true)}/>
-  <button ref={launcher} className="public-assistant-launcher" aria-label={identity.callToAction} aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
-   <GilbertAvatar pose={rig.pose} size={104} blend={rig.blend} friendly={turns.length === 0}/>
-  </button>
-  <dialog ref={dialog} className="public-assistant" aria-labelledby="public-assistant-title" onCancel={() => setOpen(false)} onClose={() => setOpen(false)} onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}>
-   <div className="public-assistant-frame">
-    {/* The head is the patient panel's arrangement: the official logo as the heading — its alt is the
-        dialog's name — level with the controls, and beneath it the rig beside the guide's label and the
-        descriptor, which must stand wherever the name does. */}
-    <header>
-     <div className="public-assistant-bar">
-      <h2 id="public-assistant-title"><GilbertOneLogo width={112} alt={identity.name}/></h2>
-      <div className="public-assistant-controls">
-       <MotionPause/>
-       <Button variant="secondary" size="icon" className="public-assistant-close" aria-label="Close GilbertOne" onClick={() => setOpen(false)}><X aria-hidden="true"/></Button>
-      </div>
-     </div>
-     <div className="public-assistant-caption">
-      <GilbertAvatar pose={rig.pose} size={56} blend={rig.blend} friendly={turns.length === 0}/>
-      <div className="public-assistant-titles"><p>{copy.label}</p><p>{identity.descriptorLine}</p></div>
-     </div>
-    </header>
-    <div className="public-assistant-body">
-    <div className="public-assistant-scroll" ref={scroller} onScroll={measure}>
-     <div className="public-assistant-greeting"><p>{copy.welcome}</p><p className="public-assistant-note">{copy.privacy}</p></div>
-     <div role="log" aria-label="MyThuso website conversation" aria-live="polite"><ol>
-      {turns.map((turn, index) => <li key={index} ref={index === turns.length - 1 ? latest : undefined} data-outcome={turn.answer.kind} data-arrived={index === arrived || undefined}>
-       <p className="public-assistant-question"><strong>You:</strong> {turn.asked}</p>
-       <div className="public-assistant-answer"><strong>{identity.name}</strong>
-        {turn.answer.kind === 'faq' ? <><p>{turn.answer.question.answer}</p><a href={turn.answer.question.href} onClick={() => setOpen(false)}>{turn.answer.question.linkLabel}</a></>
-         : turn.answer.kind === 'refusal' ? <p>{copy.refusal}</p>
-         : <><p>{emergencyAnswer.headline}</p><p>{emergencyAnswer.lead}</p><ul>{lines(emergencyAnswer.numbers).map(n => <li key={n.number}><a href={telOf(n.number)}><strong>{n.number}</strong></a> — {n.name}</li>)}</ul><p>{emergencyAnswer.notAnAmbulance}</p>{showsCrisisLines(turn.answer.groups) && <div className="public-assistant-crisis"><p>{crisisLines.heading}</p><ul>{crisisLines.lines.map(l => <li key={l.id}><a href={telOf(l.number)}><strong>{l.number}</strong></a> — {l.name}</li>)}</ul></div>}</>}
-       </div>
-      </li>)}
-     </ol></div>
-     <p className="public-assistant-quick">{screens.publicSheet.quickHeading}</p>
-     <nav aria-label="MyThuso questions">{copy.questions.map(q => <Button variant="secondary" key={q.id} onClick={() => ask(q.question)}>{q.question}</Button>)}</nav>
-     {turns.length > 0 && <Button variant="ghost" className="public-assistant-again" onClick={() => { setTurns([]); setDraft(''); setArrived(null); rig.rest(); }}>{conversation.startAgainLabel}</Button>}
-    </div>
-    {/* The way back to the latest answer, drawn only while it is out of view (the handoff's scroll button).
-        A real button in the sheet's own order, after the conversation and before the composer. */}
-    {away && <IconButton label={latestLabel} variant="secondary" className="public-assistant-latest"
-     onClick={toLatest}>{away === 'up' ? <ArrowUp aria-hidden="true"/> : <ArrowDown aria-hidden="true"/>}</IconButton>}
-    </div>
-    <form onSubmit={submit}>
-     <label htmlFor="public-assistant-input">{copy.inputLabel}</label>
-     <div><textarea ref={field} id="public-assistant-input" rows={1} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={sendOnEnter} placeholder={copy.inputHint} maxLength={500} autoComplete="off"/><Button type="submit" className="public-assistant-send">{conversation.sendLabel}</Button></div>
-     <EmergencyFooter/>
-    </form>
-   </div>
-  </dialog>
- </>;
+  const { lead, rest } = leadAndRest(answer.question.answer);
+  return (
+    <>
+      <p>
+        {lead}
+        <a className="go-source" href={answer.question.href} onClick={onNavigate}>
+          {answer.question.linkLabel}
+        </a>
+      </p>
+      {rest && (
+        <ShowDetails>
+          <p>{rest}</p>
+        </ShowDetails>
+      )}
+    </>
+  );
 }
