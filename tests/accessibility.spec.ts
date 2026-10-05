@@ -50,7 +50,17 @@ const openPatientSurface = async (page: Page, name: string) => {
   }
   if (name === 'Health Passport') { await page.locator('.tabbar button').nth(3).click(); return; }
   await page.locator('.tabbar button').nth(4).click();
-  await page.locator('.menu-row').filter({ hasText: name }).first().click();
+  const row = page.locator('.menu-row').filter({ hasText: name });
+  /* My Health, Wellness and Devices fold into Explore MyThuso since 5 October 2026 — those
+     rows live on the Explore page, not on the More hub. */
+  if (await row.count()) { await row.first().click(); return; }
+  const explore = page.locator('.menu-row').filter({ hasText: 'Explore MyThuso' });
+  if (await explore.count()) {
+    await explore.first().click();
+    await page.locator('.menu-row').filter({ hasText: name }).first().click();
+    return;
+  }
+  throw new Error(`No More-hub or Explore row for ${name}`);
 };
 
 /* The sidebar on a desktop, the More tab on a phone. Both reach the same page. */
@@ -58,9 +68,8 @@ const openLanguageAndAccess = async (page: Page) => {
   const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
   if (!(await sidebar.isVisible())) await page.locator('.tabbar button').nth(4).click();
   await page.getByRole('button', { name: /^Language & access/ }).click();
-  // by name, not "the h1": the shell renders a decorative empty h1 on some routes, and asserting
-  // about whichever heading is first made this fail intermittently with an empty string
-  await expect(page.getByRole('heading', { name: /Twelve official languages/ })).toBeVisible();
+  /* AccessPage is lazy — wait for OfficeHead, not the Suspense fallback. */
+  await expect(page.getByRole('heading', { name: /Twelve official languages/ })).toBeVisible({ timeout: 15_000 });
 };
 
 /* The way in, on both sides of the door. The patient sign-in, the one-time code, sign-up and
@@ -142,17 +151,17 @@ test.describe('at a 320px viewport', () => {
 
     await page.locator('.tabbar button').nth(3).click();
     await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'History' }).click();
-    await page.locator('.explain-row').filter({ hasText: 'Nurse home visit' }).first().click();
-    await audit(page, 'Care timeline, a visit open, at 320px');
+    /* History stays on the Preview empty state (nothing stored yet); Share links live under Records. */
+    await expect(page.getByText(/nothing stored yet/i).first()).toBeVisible();
+    await audit(page, 'Care timeline, empty Preview, at 320px');
 
     await page.locator('.tabbar button').nth(3).click();
     await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Records' }).click();
     await page.locator('.shortcut-row').filter({ hasText: 'Doctors' }).click();
     await audit(page, 'Your care team at 320px');
 
-    await page.locator('.tabbar button').nth(3).click();
-    await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Medications' }).click();
-    await page.getByRole('button', { name: /What happens after a doctor signs one/ }).click();
+    /* Medications stays on Preview empty; the prescription journey is under Explore → My Health. */
+    await openPatientSurface(page, 'What happens to a prescription');
     await audit(page, 'What happens to a prescription at 320px');
   });
 

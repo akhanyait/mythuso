@@ -27,20 +27,16 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: 'Health Passport' })).toBeVisible();
 });
 
-test('the passport is seven tabs on the shared component, and the overview figures are the record’s', async ({ page }) => {
+test('the passport is seven tabs on the shared component, and clinical tabs stay on Preview empty', async ({ page }) => {
   await expect(tabList(page).getByRole('tab')).toHaveText(tabs);
   await expect(tabList(page).getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('.underline-tabs')).toHaveCount(0);
-  /* One tile per headline measure, each carrying the last visit's value out of passport.json. */
-  const tiles = panel(page).locator('.hp-stat');
-  await expect(tiles).toHaveCount(passport.headline.measures.length);
-  for (const [i, id] of (passport.headline.measures as string[]).entries())
-    await expect(tiles.nth(i).locator('.hp-stat__value')).toContainText(String(latest[id]));
-  /* Nothing is booked from this account yet, so the next-visit card says so in scheduling.json's words. */
-  await expect(panel(page).getByRole('heading', { name: read('scheduling.json').labels.noUpcoming })).toBeVisible();
-  /* The jump buttons choose a tab rather than leaving the page. */
-  await panel(page).getByRole('button', { name: 'Review your vitals' }).click();
+  /* Designer Preview (5 October 2026): clinical tabs name the empty state; nothing stored yet. */
+  await expect(panel(page).getByText(/Overview: nothing stored yet/)).toBeVisible();
+  await expect(page.getByText(/Nothing here is a stored record yet/).first()).toBeVisible();
+  await openTab(page, 'Vitals');
   await expect(tabList(page).getByRole('tab', { name: 'Vitals' })).toHaveAttribute('aria-selected', 'true');
+  await expect(panel(page).getByText(/Vitals: nothing stored yet/)).toBeVisible();
 });
 
 test('the arrow keys move between the passport’s tabs', async ({ page }) => {
@@ -60,47 +56,32 @@ test('no tab draws what the export invents: no weight, no progress bar, no verdi
   }
 });
 
-test('goals are the wellbeing contract’s refusal, with a door to care plans', async ({ page }) => {
+test('goals stay on Preview empty until a record exists', async ({ page }) => {
   await openTab(page, 'Goals');
-  const refuse = (id: string) => wellbeing.refusals.find((r: { id: string }) => r.id === id).sentence;
-  await expect(panel(page).getByText(refuse('no-target'))).toBeVisible();
-  await expect(panel(page).getByText(refuse('no-cheerfulness-about-illness'))).toBeVisible();
-  await panel(page).getByRole('button', { name: 'Open Care plans' }).click();
-  await expect(page.getByRole('heading', { level: 1, name: 'A healthier rhythm.' })).toBeVisible();
+  await expect(panel(page).getByText(/Goals: nothing stored yet/)).toBeVisible();
 });
 
-test('medications are the dispensing contract’s one account, and results are documents with their review', async ({ page }) => {
+test('medications and results stay on Preview empty until a record exists', async ({ page }) => {
   await openTab(page, 'Medications');
-  await expect(panel(page).getByText(`${dispensing.authorisation.reference} · authorised`)).toBeVisible();
-  const repeatsLeft = dispensing.authorisation.repeatsAuthorised - dispensing.authorisation.repeatsUsed;
-  await expect(panel(page).locator('.lead')).toContainText(String(repeatsLeft));
-  await expect(panel(page).locator('.hp-row')).toHaveCount(dispensing.prescription.items.length);
-  await expect(panel(page)).not.toContainText('No active prescriptions');
-
+  await expect(panel(page).getByText(/Medications: nothing stored yet/)).toBeVisible();
   await openTab(page, 'Results');
-  const results = passport.documents.filter((d: { kind: string }) => /report/i.test(d.kind));
-  await expect(panel(page).locator('.hp-row')).toHaveCount(results.length);
-  for (const doc of results) await expect(panel(page).locator('.hp-row').filter({ hasText: doc.name })).toContainText(doc.reviewed ? 'Doctor reviewed' : 'Awaiting review');
-  await expect(panel(page)).not.toContainText('Normal');
+  await expect(panel(page).getByText(/Results: nothing stored yet/)).toBeVisible();
 });
 
-test('history is a rail of every event the record and the dispensing contract hold', async ({ page }) => {
+test('history stays on Preview empty until a record exists', async ({ page }) => {
   await openTab(page, 'History');
-  const rail = panel(page).locator('.hp-rail__item');
-  await expect(rail).toHaveCount(passport.readingSets.length + 1 + passport.documents.length + 2);
-  await expect(panel(page).locator('.hp-rail__node')).toHaveCount(await rail.count());
-  await expect(rail.filter({ hasText: dispensing.authorisation.reference })).toHaveCount(1);
-  /* Each card still opens on what the act produced. */
-  await rail.filter({ hasText: 'Doctor review completed' }).getByRole('button').first().click();
-  await expect(panel(page).getByText(passport.lastReview.assessment)).toBeVisible();
+  await expect(panel(page).getByText(/History: nothing stored yet/)).toBeVisible();
 });
 
 /* The prescription's page as the export's Prescriptions: Current, Past and Requests. Current is the same one
    account the Medications tab draws; Past and Requests are empty in the dispensing contract's own words, and
    nothing on the page asks for, refills or delivers a medicine. */
 test('prescriptions are three tabs: the current authorisation, and two empty states in the contract’s words', async ({ page }) => {
-  await openTab(page, 'Medications');
-  await page.getByRole('button', { name: /What happens after a doctor signs one/ }).click();
+  /* Medications is Preview-empty; reach the journey from Records is gone — open via More → Explore. */
+  await page.locator('.tabbar button').nth(4).click();
+  const explore = page.locator('.menu-row').filter({ hasText: 'Explore MyThuso' });
+  if (await explore.count()) await explore.first().click();
+  await page.locator('.menu-row').filter({ hasText: 'What happens to a prescription' }).first().click();
   await expect(page.getByRole('heading', { name: 'What happens to a prescription.' })).toBeVisible();
   const rx = page.getByRole('tablist', { name: 'Prescriptions' });
   await expect(rx.getByRole('tab')).toHaveText(['Current', 'Past', 'Requests']);
@@ -118,4 +99,10 @@ test('prescriptions are three tabs: the current authorisation, and two empty sta
   await expect(page.locator('.timeline li')).toHaveCount(dispensing.handover.length);
   const overflow = await page.evaluate(() => [document.documentElement, ...document.querySelectorAll('main')].filter(el => el.scrollWidth > el.clientWidth + 1).length);
   expect(overflow).toBe(0);
+});
+
+test('Records keeps Share links on Preview Passport', async ({ page }) => {
+  await openTab(page, 'Records');
+  await expect(panel(page).getByRole('button').filter({ hasText: 'Share links' })).toBeVisible();
+  await expect(panel(page).getByRole('button').filter({ hasText: 'Share record' })).toBeVisible();
 });

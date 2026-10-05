@@ -75,9 +75,9 @@
    88px until 21 September and the reservation was a separate 104, so growing him to 104 put him on
    top of nine CTAs at 390px — in the workspaces, which never had a reservation at all. A number
    typed twice drifts; this one is typed once. */
-:root { --al-footprint:60px; }
+:root { --al-footprint:104px; }
 .al-dock { position:relative; z-index:40; height:0; }
-.as-launcher { position:absolute; right:max(16px, env(safe-area-inset-right)); bottom:max(16px, env(safe-area-inset-bottom)); width:var(--al-footprint); height:var(--al-footprint); padding:0; border:0; border-radius:50%; background:transparent; box-shadow:none; cursor:pointer; }
+.as-launcher { position:absolute; right:max(16px, env(safe-area-inset-right)); bottom:max(16px, env(safe-area-inset-bottom)); width:var(--al-footprint); height:var(--al-footprint); padding:0; border:0; border-radius:18px; background:transparent; box-shadow:none; cursor:pointer; }
 .as-launcher[aria-expanded=true] { opacity:0; }
 .as-launcher span { position:absolute; }
 .as-launcher .al-orb { inset:0; background:url('/brand/gilbert-icon.webp') center / contain no-repeat; }
@@ -100,7 +100,6 @@
 
 .al-smile { display:none; }
 @keyframes al-float { to { transform:translateY(-2px); } }
-/* No repeating attention animation on the launcher. */
-:root[data-decor=on] .al-orb { animation:none; }
+:root[data-decor=on] .al-orb { animation:al-float 3s ease-in-out infinite alternate; }
 .as-launcher .al-tip { position:absolute; right:calc(100% + 8px); top:50%; width:auto; height:auto; inset:auto; transform:translateY(-50%); padding:6px 10px; border-radius:8px; background:var(--brand-ink); color:var(--surface); font-size:13px; line-height:1.2; white-space:nowrap; opacity:0; pointer-events:none; }
 .as-launcher:hover .al-tip, .as-launcher:focus-visible .al-tip { opacity:1; }
