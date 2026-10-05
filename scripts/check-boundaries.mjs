@@ -94,6 +94,27 @@ const read = (f) => readFileSync(f, "utf8");
 /* The tree git tracks, and the text files in it. Declared once at the top for the two scans that
    need them — the door-count scan beside the feed checks and the Mapbox token scan at the foot of
    this file — because two copies of what counts as a text file are two copies that can disagree. */
+
+/* Derived PNGs/WebPs must not be older than their SVG/PNG masters in *git* history.
+   Filesystem mtimes are unreliable on a fresh clone (checkout order can make
+   nurse@3x.png appear older than nurse.svg even when both were committed together). */
+const gitCommitMs = (file) => {
+  try {
+    const out = execFileSync("git", ["log", "-1", "--format=%ct", "--", file], {
+      encoding: "utf8",
+    }).trim();
+    return out ? Number(out) * 1000 : null;
+  } catch {
+    return null;
+  }
+};
+const isOlderThanSource = (derived, source) => {
+  const derivedAt = gitCommitMs(derived);
+  const sourceAt = gitCommitMs(source);
+  if (derivedAt != null && sourceAt != null) return derivedAt < sourceAt;
+  return statSync(derived).mtimeMs < statSync(source).mtimeMs;
+};
+
 const trackedFiles = execFileSync("git", ["ls-files", "-z"], {
   encoding: "utf8",
 })
@@ -800,7 +821,7 @@ for (const name of illustrations) {
       throw new Error(
         `Illustration ${name} has not been rendered for ${f}. Run: node scripts/render-illustrations.mjs`,
       );
-    if (statSync(f).mtimeMs < statSync(source).mtimeMs)
+    if (isOlderThanSource(f, source))
       throw new Error(
         `${f} is older than ${source}. Run: node scripts/render-illustrations.mjs`,
       );
@@ -886,7 +907,7 @@ for (const name of heroCutouts) {
       throw new Error(
         `Hero cut-out ${name} has not been distributed to ${f}. Run: node scripts/render-illustrations.mjs`,
       );
-    if (statSync(f).mtimeMs < statSync(source).mtimeMs)
+    if (isOlderThanSource(f, source))
       throw new Error(
         `${f} is older than ${source}. Run: node scripts/render-illustrations.mjs`,
       );
