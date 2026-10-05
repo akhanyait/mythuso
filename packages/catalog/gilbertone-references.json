@@ -147,6 +147,80 @@
       "status": "candidate",
       "fetchedOn": "2026-10-04",
       "note": "The NICE guidance index is UK clinician guidance, not a South African standard; where it differs from a South African page, follow the National Department of Health."
+    },
+    {
+      "id": "who-fact-sheets",
+      "name": "WHO Fact sheets",
+      "publisher": "World Health Organization",
+      "url": "https://www.who.int/news-room/fact-sheets",
+      "topics": [
+        "tb",
+        "tuberculosis",
+        "hiv",
+        "malaria",
+        "hypertension",
+        "high blood pressure",
+        "diabetes",
+        "measles",
+        "mpox",
+        "asthma",
+        "depression",
+        "anaemia",
+        "anemia"
+      ],
+      "audience": "public",
+      "status": "approved",
+      "fetchedOn": "2026-10-05",
+      "note": "The WHO's official plain-language fact sheets, about 240 public topics. Approved by Gilbert on 5 October 2026 from the weekday source scout. Where it differs from the National Department of Health, follow the Department."
+    },
+    {
+      "id": "nicd-diseases-a-z",
+      "name": "NICD Diseases A-Z",
+      "publisher": "National Institute for Communicable Diseases",
+      "url": "https://www.nicd.ac.za/diseases-a-z-index/",
+      "topics": [
+        "communicable disease",
+        "infectious disease",
+        "outbreak"
+      ],
+      "audience": "public",
+      "status": "approved",
+      "fetchedOn": "2026-10-05",
+      "note": "South Africa's communicable-disease topic index. Approved by Gilbert on 5 October 2026 from the weekday source scout. When the scout opened it only the page title came through, so its topics here are kept general until its contents are read."
+    },
+    {
+      "id": "medlineplus-heartburn",
+      "name": "MedlinePlus Heartburn",
+      "publisher": "National Library of Medicine",
+      "url": "https://medlineplus.gov/heartburn.html",
+      "topics": [
+        "heartburn",
+        "heart burn",
+        "reflux",
+        "acid reflux",
+        "gerd",
+        "indigestion"
+      ],
+      "audience": "public",
+      "status": "approved",
+      "fetchedOn": "2026-10-05",
+      "note": "The US patient page on heartburn, acid reflux and GERD. Approved by Gilbert on 5 October 2026 from the weekday source scout. It is not a South African dosing source; where it differs from the National Department of Health, follow the Department."
+    },
+    {
+      "id": "cochrane-evidence",
+      "name": "Cochrane plain language summaries",
+      "publisher": "Cochrane",
+      "url": "https://www.cochrane.org/evidence",
+      "topics": [
+        "evidence",
+        "does it work",
+        "systematic review",
+        "clinical trial"
+      ],
+      "audience": "public",
+      "status": "approved",
+      "fetchedOn": "2026-10-05",
+      "note": "Plain-language summaries of Cochrane systematic reviews, searchable by condition, treatment or medicine. Approved by Gilbert on 5 October 2026 from the weekday source scout."
     }
   ]
 }
