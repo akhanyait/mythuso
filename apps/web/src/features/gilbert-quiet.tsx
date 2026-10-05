@@ -197,17 +197,21 @@ export function BeforeWeStart({
   onClose,
   closeRef,
   willNotDo,
+  brand,
 }: {
   onContinue: () => void;
   onClose: () => void;
   closeRef?: Ref<HTMLButtonElement>;
   willNotDo?: ReactNode;
+  /* The official logo with identity.descriptorLine beside it, passed in by a panel that holds the
+     identity contract, so the name and its correction are read together on the consent card. */
+  brand?: ReactNode;
 }) {
   const [understood, setUnderstood] = useState(false);
   return (
     <div className="go-before">
       <header className="go-before-head">
-        <GilbertMark size={40} />
+        {brand ?? <GilbertMark size={40} />}
         <h2 id="go-before-title">Before we start</h2>
         <button
           ref={closeRef}

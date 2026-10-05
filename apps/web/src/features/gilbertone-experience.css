@@ -809,6 +809,20 @@
   background: #083848;
   color: #fff;
 }
+/* The official logo stands in the head lockups with identity.descriptorLine beside it. */
+.go-head-logo {
+  flex: none;
+  width: 56px;
+  height: auto;
+}
+.go-before-brand {
+  flex: none;
+  max-width: 45%;
+}
+.go-before-brand .go-not {
+  color: var(--mist, #e6f2f4);
+  font-size: 12px;
+}
 .go-before-head h2 {
   margin: 0;
   flex: 1 1 auto;

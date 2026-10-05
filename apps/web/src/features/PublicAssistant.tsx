@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Send, X } from "lucide-react";
-import { emergencyAnswer, lines, silenceIsNotSafety } from "../lib/assistant";
+import { emergencyAnswer, identity, lines, silenceIsNotSafety } from "../lib/assistant";
+import { GilbertOneLogo } from "./GilbertAvatar";
 import { crisisLines, showsCrisisLines } from "../lib/crisis-lines";
 import { publicAnswer, publicAssistant as copy, type PublicAnswer } from "../lib/public-assistant";
 import { sendOnEnter } from "../lib/composer";
@@ -8,7 +9,6 @@ import { acknowledgePublic, publicAcknowledged } from "../lib/gilbertone-acknowl
 import {
   BeforeWeStart,
   DESIGN_CHIPS,
-  GilbertMark,
   Opening,
   PrivacyNote,
   QuietChips,
@@ -157,10 +157,10 @@ export default function PublicAssistant({ request = null }: { request?: { questi
         <div className="go-frame">
           <header className="go-head">
             <div className="go-lockup">
-              <GilbertMark size={44} />
+              <GilbertOneLogo width={56} alt="" className="go-head-logo" />
               <div className="go-lockup-words">
-                <h2 id="public-assistant-title" className="go-title">GilbertOne</h2>
-                <p className="go-not">Not a person, and not a doctor.</p>
+                <h2 id="public-assistant-title" className="go-title">{identity.name}</h2>
+                <p className="go-not">{identity.descriptorLine}</p>
               </div>
             </div>
             <div className="go-head-actions">

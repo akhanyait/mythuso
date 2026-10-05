@@ -44,6 +44,7 @@ import { NotConnected } from "../components/NotConnected";
 import { MotionPause } from "../components/MotionPause";
 import {
   GilbertAvatar,
+  GilbertOneLogo,
   GilbertStill,
   growFrom,
   useGilbertRig,
@@ -131,7 +132,6 @@ import "./gilbertone-experience.css";
 import {
   BeforeWeStart,
   DESIGN_CHIPS,
-  GilbertMark,
   Opening,
   PrivacyNote,
   QuietChips,
@@ -910,6 +910,12 @@ export default function Assistant({
     >
       {!consented ? (
         <BeforeWeStart
+          brand={
+            <div className="go-lockup go-before-brand">
+              <GilbertOneLogo width={56} alt={identity.name} className="go-head-logo" />
+              <p className="go-not">{identity.descriptorLine}</p>
+            </div>
+          }
           closeRef={close}
           onClose={dismiss}
           /* The contract's prohibitions stay on the gate. The last one, that missing an emergency does
@@ -932,10 +938,10 @@ export default function Assistant({
         >
           <div className="as-bar">
             <div className="as-titles go-lockup">
-              <GilbertMark size={44} />
+              <GilbertOneLogo width={56} alt="" className="go-head-logo" />
               <div className="go-lockup-words">
                 <h2 id="as-title">{identity.name}</h2>
-                <p className="go-not">Not a person, and not a doctor.</p>
+                <p className="go-not">{identity.descriptorLine}</p>
               </div>
             </div>
             <div className="as-controls">

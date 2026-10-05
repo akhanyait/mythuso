@@ -80,8 +80,8 @@ The master is `packages/brand/lovable-handoff/handoff/src/assets/logos/gilbert-o
 
 | File | Pixels | Size | Where |
 | --- | --- | --- | --- |
-| `apps/web/public/lovable/gilbertone/gilbertone-logo-320.webp` | 320×240 | 18 kB | `GilbertOneLogo` in the product: the consent card, the welcome, the signed-out sheet, the services region — drawn at 96 px wide |
-| `apps/web/public/lovable/gilbertone/gilbertone-logo-640.webp` | 640×480 | 41 kB | `GilbertOneLogo` in the product: the consent card, the welcome, the signed-out sheet, the services region — drawn at 96 px wide |
+| `apps/web/public/lovable/gilbertone/gilbertone-logo-320.webp` | 320×240 | 18 kB | `GilbertOneLogo` in the product: the consent card, the welcome, the signed-out sheet, the services region — drawn at 56, 96 px wide |
+| `apps/web/public/lovable/gilbertone/gilbertone-logo-640.webp` | 640×480 | 41 kB | `GilbertOneLogo` in the product: the consent card, the welcome, the signed-out sheet, the services region — drawn at 56, 96 px wide |
 | `apps/web/public/lovable/gilbertone-logo-360.webp` | 360×270 | 19 kB | The public page, beside the questions, at 180 px |
 | `apps/web/public/lovable/gilbertone-logo-720.webp` | 720×540 | 44 kB | The public page, beside the questions, at 180 px |
 
