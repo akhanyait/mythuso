@@ -1,3 +1,4 @@
+import { identity } from '../lib/assistant';
 import { Component, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { CircleSlash, Minus, RotateCcw, Send, Square, Trash2, X } from 'lucide-react';
 import { NotConnected } from '../components/NotConnected';
@@ -169,7 +170,7 @@ export function GilbertWidget({ rig, open, setOpen, unavailable, onTyping, failR
  if (!open) {
   /* §02's collapsed launcher: 56–64 px, lower-right, and it neither speaks nor solicits. */
   return <div className="go-widget go-collapsed">
-   <button ref={launcher} type="button" className="go-launcher" aria-label="Open GilbertOne" aria-expanded={false} onClick={() => setOpen(true)}>
+   <button ref={launcher} type="button" className="go-launcher" aria-label={identity.callToAction} aria-expanded={false} onClick={() => setOpen(true)}>
     <RigBoundary size={44}><GilbertAvatar pose={rig.pose} size={44} blend={rig.blend} fail={failRig}/></RigBoundary>
    </button>
   </div>;
