@@ -38658,9 +38658,14 @@ console.log(
   const w4aHome = w4aUncomment(read("apps/web/src/features/Dashboard.tsx"));
 
   /* 1. */
-  for (const reads of ["readingSets", "lastReview", "latestSet", "seriesFor"])
-    if (!new RegExp(`import \\{[^}]*\\b${reads}\\b[^}]*\\} from '\\.\\./lib/passport'`).test(w4aHome))
-      w4aFail(`apps/web/src/features/Dashboard.tsx no longer reads ${reads} from lib/passport. The home's figures are the record's, not the screen's.`);
+  /* Since 5 October 2026 (Designer's Home fix, 6deb4a0f) the home draws no readings at all: the sample home
+     readings are not a stored record, so they are not the first thing a patient sees. The review it still shows
+     is the record's, read from lib/passport; the reading sets do not come back onto the home. */
+  if (!/import \{[^}]*\blastReview\b[^}]*\} from '\.\.\/lib\/passport'/.test(w4aHome))
+    w4aFail("apps/web/src/features/Dashboard.tsx no longer reads lastReview from lib/passport. The home's review is the record's, not the screen's.");
+  for (const reads of ["readingSets", "latestSet", "seriesFor"])
+    if (new RegExp(`\\b${reads}\\b`).test(w4aHome))
+      w4aFail(`apps/web/src/features/Dashboard.tsx reads ${reads} again. The home shows the next visit first and no sample readings; the readings live on the Passport, marked Preview.`);
   if (/goal/i.test(w4aHome))
     w4aFail("apps/web/src/features/Dashboard.tsx draws a goal. No contract in packages/catalog defines a health goal, so a goal on the home is a number invented to fill a card.");
   if (/(?:value|trend)=\{?['"`][^'"`]*\d[^'"`]*['"`]/.test(w4aHome))
@@ -39855,7 +39860,10 @@ console.log(await checkSuppliers({ read, files, exists: existsSync }));
     ["apps/android/app/src/main/java/za/co/mythuso/ui/CareScreens.kt", androidCare, /PassportData\.onRecord\(/],
   ]) {
     if (/home visits on record|Sample readings/.test(code)) homeFail(`${file} types the on-record sentence. It is passport.json#onRecord's, read through the platform's passport module.`);
-    if (!reads.test(code)) homeFail(`${file} no longer draws passport.json#onRecord under the home's readings, so a sample reading there carries no date and no marker.`);
+    /* Since 5 October 2026 the web home draws no readings (6deb4a0f), so it owes no line under them; if a
+       reading comes back onto it, the line comes back with it. The phones still draw readings and still owe it. */
+    const drawsReadings = file !== "apps/web/src/features/Dashboard.tsx" || /\b(?:readingSets|latestSet|seriesFor)\b/.test(code);
+    if (drawsReadings && !reads.test(code)) homeFail(`${file} no longer draws passport.json#onRecord under the home's readings, so a sample reading there carries no date and no marker.`);
   }
 
   /* 2. */
