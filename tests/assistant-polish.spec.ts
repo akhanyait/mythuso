@@ -62,6 +62,13 @@ test('the signed-out greeting opens the website guide and the robot background i
  const hello = page.locator('.assistant-greeting button').first();
  await expect(hello).toBeVisible({ timeout: 7000 });
  await hello.click();
+ /* Quiet public sheet opens on BeforeWeStart; clear it to reach the named GilbertOne dialog. */
+ const gate = page.getByRole('dialog', { name: 'Before we start' });
+ await expect(gate.or(page.getByRole('dialog', { name: 'GilbertOne' }))).toBeVisible();
+ if (await gate.isVisible()) {
+  await gate.getByRole('checkbox', { name: 'I understand' }).check();
+  await gate.getByRole('button', { name: 'Continue', exact: true }).click();
+ }
  await expect(page.getByRole('dialog', { name: 'GilbertOne' })).toBeVisible();
  await expect(page.locator('.assistant-greeting')).toHaveCount(0);
 });
