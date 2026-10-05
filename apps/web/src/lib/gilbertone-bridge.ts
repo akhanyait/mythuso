@@ -221,6 +221,7 @@ export async function refineWithAssistantService(
     if (!response.ok) return null;
     const body = (await response.json()) as {
       source?: string;
+      refusalId?: string;
       reply?: string;
       detectedLanguage?: string;
     };
@@ -245,6 +246,9 @@ export async function refineWithAssistantService(
        sentence put "I can't assess that" back on the screen. A classifier
        echo is still refused, because those words are already the local answer. */
     if (body.source === 'classifier') return null;
+    /* A refusal is the contract's sentence, never a model's, whatever its source field says: it is
+       never shown under the language-model label (5 October 2026). */
+    if (typeof body.refusalId === 'string' && body.refusalId) return null;
     if (
       body.source !== undefined &&
       body.source !== 'model' &&

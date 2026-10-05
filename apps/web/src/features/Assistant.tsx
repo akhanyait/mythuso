@@ -1170,12 +1170,14 @@ export default function Assistant({
                           Only the reply just spoken can carry it: the adapter's flag describes the
                           reading on the screen now, and it is a language other than English that has
                           no voice — an English reply is never noted. */}
+                      {/* An English reply whose cloud voice failed says that instead, from the
+                          contract, so silence after a spoken question is never left unexplained. */}
                       {index === turns.length - 1 &&
-                        voiceAdapter.voiceUnavailable &&
-                        turn.detectedLanguage &&
-                        turn.detectedLanguage !== "en" && (
+                        voiceAdapter.voiceUnavailable && (
                           <p className="as-quiet as-voice-note">
-                            {voice.voiceUnavailableNotice}
+                            {turn.detectedLanguage && turn.detectedLanguage !== "en"
+                              ? voice.voiceUnavailableNotice
+                              : voice.voiceFailedNotice}
                           </p>
                         )}
                     </div>

@@ -167,7 +167,10 @@ const response = (
   requiresConfirmation: turn.requiresConfirmation,
   suggestedActions: turn.suggestedActions,
   refusalId,
-  source: service?.source,
+  /* Always named since 5 October 2026: a reply with no source was read by the web bridge as a
+     model's and labelled as one, so a refusal or a classifier answer said "written by a language
+     model". The classifier's replies now say whose they are. */
+  source: service?.source ?? "classifier",
   cue: service?.cue,
   detectedLanguage,
 });
@@ -297,6 +300,7 @@ async function* runTurn(
       confidence: 1,
       requiresConfirmation: false,
       suggestedActions: ["clarify_message"],
+      source: "classifier",
       detectedLanguage: language,
     };
     yield {

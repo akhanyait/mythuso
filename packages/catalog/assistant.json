@@ -984,6 +984,7 @@
       }
     ],
     "voiceUnavailableNotice": "Voice output is not available in this language yet. The response is displayed as text.",
+    "voiceFailedNotice": "The voice could not be reached just now. The response is displayed as text.",
     "voicePreference": {
       "order": ["en-ZA", "en-GB", "en-AU", "en"],
       "decidedBy": "Founder",

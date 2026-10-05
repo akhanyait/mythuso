@@ -859,6 +859,9 @@ export function useVoiceAdapter(
           setVoiceUnavailable(true);
           setResponding(false);
           setSpeaking(false);
+          /* The reading is over even though nothing was played: tell the caller, so a hands-free
+             conversation stands down from speaking and listens again (5 October 2026). */
+          if (alive.current) options.onEnd?.();
           return true;
         }
         /* Refused, unreachable, or not configured: the browser's own voice carries the same words,
@@ -1001,7 +1004,16 @@ export function useVoiceAdapter(
         if (gen !== speakGen.current) return;
         if (cloudReady.current === true) {
           const voiced = await speakViaCloud(text, options, gen, language);
-          if (!voiced && gen === speakGen.current) setVoiceUnavailable(true);
+          /* A configured cloud voice that failed — refused, unreachable, a decode or a play that would
+             not start — stays silent and says so. It also has to end the reading: until 5 October 2026
+             it did not, so the panel stayed on "responding" and a hands-free conversation never
+             listened again, because nothing ever told it the reply was over. */
+          if (!voiced && gen === speakGen.current) {
+            setVoiceUnavailable(true);
+            setResponding(false);
+            setSpeaking(false);
+            if (alive.current) options.onEnd?.();
+          }
           return;
         }
         speakViaBrowser(text, options);

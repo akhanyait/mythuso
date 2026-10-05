@@ -373,7 +373,7 @@ test("a failed orchestrator leaves the classifier’s own reply standing, unmark
       userConsent: true,
       sessionId: "session-orchestrator-failed",
     });
-    assert.equal(result.source, undefined);
+    assert.equal(result.source, "classifier");
     assert.equal(result.cue, undefined);
     assert.equal(
       result.reply,
@@ -500,9 +500,9 @@ test("the classifier’s own territory never reaches a model, however available 
         sessionId: "session-instant-3",
       });
       assert.equal(care.classification, "care");
-      assert.equal(emergency.source, undefined);
-      assert.equal(identity.source, undefined);
-      assert.equal(care.source, undefined);
+      assert.equal(emergency.source, "classifier");
+      assert.equal(identity.source, "classifier");
+      assert.equal(care.source, "classifier");
       assert.equal(
         provider.bodies.length,
         0,
@@ -542,7 +542,7 @@ test("an emergency never touches the network, configured or not", async () => {
         checkEscalation("chest pain, get me a nurse")?.rule.message,
         "the escalation rule’s own emergency sentence, word for word",
       );
-      assert.equal(emergency.source, undefined);
+      assert.equal(emergency.source, "classifier");
     });
     assert.equal(
       calls,
@@ -598,10 +598,7 @@ test("the streaming door sends classification, then response, then done — in t
     sources: string[];
   };
   assert.equal(response.route, "emergency");
-  assert.equal(
-    response.source,
-    undefined,
-    "a classifier reply names no model tier",
+  assert.equal(response.source, "classifier", "a classifier reply names the classifier, never a model tier",
   );
   assert.deepEqual(response.toolsUsed, []);
   assert.deepEqual(response.sources, []);
@@ -731,7 +728,7 @@ for (const text of escalatedPhrases)
         assert.equal(answer.reply, rule?.message);
         assert.ok(answer.reply.includes("10177"), "the ambulance number is in the sentence");
         assert.equal(answer.refusalId, undefined);
-        assert.equal(answer.source, undefined, "no model tier wrote it");
+        assert.equal(answer.source, "classifier", "no model tier wrote it");
         assert.equal(answer.requiresConfirmation, false);
         assert.deepEqual(answer.suggestedActions, ["call_emergency_services", "seek_urgent_help"]);
       }
@@ -756,7 +753,7 @@ test("a model provider that is down cannot take the ambulance number out of an e
   );
   assert.equal(answer.route, "emergency");
   assert.ok(answer.reply.includes("10177"));
-  assert.equal(answer.source, undefined);
+  assert.equal(answer.source, "classifier");
 });
 
 test("the streaming door reads an escalated emergency as one, from its first frame", async () => {
