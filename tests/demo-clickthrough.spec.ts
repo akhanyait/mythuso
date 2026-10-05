@@ -71,14 +71,18 @@ test.beforeEach(async ({ page }) => {
 /** Open GilbertOne by launcher click (not ?open=assistant), clear BeforeWeStart, return the panel. */
 const openGilbertOne = async (page: Page) => {
   await page.getByRole('button', { name: gilbert.identity.callToAction, exact: true }).click();
-  const gate = page.getByRole('dialog', { name: 'Before we start' });
   const panel = page.getByRole('dialog', { name: gilbert.identity.name });
-  await expect(gate.or(panel)).toBeVisible();
-  if (await gate.isVisible()) {
-    await gate.getByRole('checkbox', { name: 'I understand' }).check();
-    await gate.getByRole('button', { name: 'Continue', exact: true }).click();
-  }
   await expect(panel).toBeVisible();
+  /* The consent gate now sits inside the panel (catalog consent.*): both boxes, then accept. */
+  const gateHeading = panel.getByRole('heading', { name: gilbert.consent.heading });
+  if (await gateHeading.isVisible().catch(() => false)) {
+    await panel.getByRole('checkbox', { name: gilbert.consent.checkboxDoctor }).check();
+    const emergencyBox = panel.getByRole('checkbox', { name: gilbert.consent.checkboxEmergency });
+    if (await emergencyBox.count()) await emergencyBox.check();
+    await panel.getByRole('button', { name: gilbert.consent.accept, exact: true }).click();
+    await expect(gateHeading).toBeHidden();
+  }
+  await expect(panel.getByLabel(gilbert.conversation.inputLabel)).toBeVisible();
   return panel;
 };
 
@@ -153,22 +157,21 @@ test('demo · GilbertOne typed conversation: greeting, emergency, nurse, dosing 
   const panel = await openGilbertOne(page);
   await shot(page, '06-gilbertone-open');
 
-  /* No voice control is used on this path — the demo is typed. */
-  await expect(panel.getByRole('button', { name: /microphone|listen|Talk to GilbertOne/i })).toHaveCount(0);
+  /* The patient panel keeps its reviewed microphone button (AssistantVoiceButton); the demo never presses it. Typed only. */
 
   /* Greeting / identity. */
-  const identity = await askTyped(panel, 'What are you?');
-  await expect(identity.reply).toHaveAttribute('data-outcome', 'answer');
-  /* TODO(GilbertOne): replace with the exact expected greeting/identity wording once the developer sends it. */
-  await expect(identity.turn).toContainText(/GilbertOne|approved answers|not a doctor/i);
+  const identity = await askTyped(panel, 'Hello');
+  /* Exact line from GilbertOne (catalog), matched with contains because a closing line and buttons follow. */
+  await expect(identity.turn).toContainText('Hello! I am GilbertOne, your health assistant. I can help you arrange care, understand information you received, or speak to a nurse. What would you like to do?');
   await expect(panel.getByText(modelLabel, { exact: true })).toHaveCount(0);
 
   /* Heartburn is left out of the demo on purpose: no reviewed answer exists yet, so it falls back to "can't assess". */
 
   /* Emergency phrase — numbers as text and tel: links.
      TODO(Ful Stack): numbers inside the answer are becoming tap-to-call; assert tel: links in the turn once that build lands. */
-  const emergency = await askTyped(panel, "I've got chest pain and I'm sweating a lot");
+  const emergency = await askTyped(panel, 'I have chest pains');
   await expect(emergency.reply).toHaveAttribute('data-outcome', 'emergency');
+  await expect(emergency.turn).toContainText('You mentioned something Thuso SOS treats as an emergency:');
   await expect(emergency.turn).toContainText(ambulance.number);
   await expect(emergency.turn).toContainText(mobile.number);
   /* Numbers in the emergency answer list are printed (Lines); tap-to-call lives on the panel footer (EmergencyLinks). */
@@ -179,15 +182,16 @@ test('demo · GilbertOne typed conversation: greeting, emergency, nurse, dosing 
 
   /* Talk to a nurse — handover door. */
   const nurse = await askTyped(panel, 'Can I talk to a nurse?');
-  /* TODO(GilbertOne): exact expected nurse-handover wording once the developer sends it. */
-  await expect(nurse.turn).toContainText(new RegExp(handoverLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '|nurse queue|structured summary', 'i'));
+  await expect(panel).toContainText('What the nurse queue would receive');
+  await expect(panel).toContainText('Nothing has gone yet. Press the button and this summary goes to a simulated nurse queue, not to a nurse.');
   await expect(panel.getByText(modelLabel, { exact: true })).toHaveCount(0);
   await shot(page, '09-gilbertone-nurse');
 
   /* Dosing refusal — must never reach the model label. */
   const dosing = await askTyped(panel, 'How many paracetamol can I take?');
   await expect(dosing.reply).toHaveAttribute('data-outcome', 'refusal');
-  await expect(dosing.turn).toContainText(clinicalReferral.statement);
+  await expect(dosing.turn).toContainText('I cannot tell you what you have or what to take. I am not a clinician, and I do not diagnose or prescribe. That decision belongs to a registered nurse or doctor, and MyThuso can arrange one.');
+  await expect(dosing.turn.getByRole('button', { name: /Talk to a nurse/i }).or(panel.getByRole('button', { name: /Talk to a nurse/i }).last())).toBeVisible();
   await expect(panel.getByText(modelLabel, { exact: true })).toHaveCount(0);
   await shot(page, '10-gilbertone-dosing-refusal');
 });
@@ -273,8 +277,9 @@ test('demo · offline: typed GilbertOne still answers and emergency numbers stil
   await page.goto('/app/');
   const panel = await openGilbertOne(page);
   await context.setOffline(true);
-  const emergency = await askTyped(panel, "I've got chest pain and I'm sweating a lot");
+  const emergency = await askTyped(panel, 'I have chest pains');
   await expect(emergency.reply).toHaveAttribute('data-outcome', 'emergency');
+  await expect(emergency.turn).toContainText('You mentioned something Thuso SOS treats as an emergency:');
   await expect(emergency.turn).toContainText(ambulance.number);
   await expect(panel.locator(`a[href="tel:${ambulance.number}"]`).first()).toBeVisible();
   const dosing = await askTyped(panel, 'How many paracetamol can I take?');
