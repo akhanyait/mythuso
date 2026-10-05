@@ -991,15 +991,18 @@ export function useVoiceAdapter(
       if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 
       /* The server voice first. Wait for the status check when it has not answered yet, so the
-         browser's cartoon voice does not start the sentence and then get replaced. A cloud that
-         refuses or fails mid-reply still falls through to the browser. */
+         browser's cartoon voice does not start the sentence and then get replaced. When the server
+         voice is configured, a refusal or failure stays silent and says so, rather than switching to
+         the browser's robotic voice mid-conversation. The browser voice is only for a service with
+         no speech configured at all. */
       void (async () => {
         if (cloudReady.current === null)
           cloudReady.current = await isSpeechConfigured();
         if (gen !== speakGen.current) return;
         if (cloudReady.current === true) {
           const voiced = await speakViaCloud(text, options, gen, language);
-          if (voiced || gen !== speakGen.current) return;
+          if (!voiced && gen === speakGen.current) setVoiceUnavailable(true);
+          return;
         }
         speakViaBrowser(text, options);
       })();

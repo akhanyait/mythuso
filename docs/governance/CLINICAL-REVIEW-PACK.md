@@ -1501,7 +1501,7 @@ Asked of every symptom group first:
 | Question | Kind | Options |
 |---|---|---|
 | Since when? (`since`) | chips | Today; A few days; About a week; Longer than a week |
-| How bad is it right now? (`how-bad`) | chips | Mild; Uncomfortable; Severe |
+| How bad is it right now? (`how-bad`) | chips | Mild; Bad enough to stay in bed |
 | Does anything make it better or worse? (`better-worse`) | text |  |
 | What, if anything, have you already used for it? Give the name on the box, or say nothing. (`used`) | text |  |
 | Are there any long-term conditions, allergies or pregnancy the nurse should know about? (`conditions`) | text |  |
@@ -1550,7 +1550,6 @@ Never questions, because an answer naming one is answered by the emergency words
 |---|---|---|
 | Have you measured it with a thermometer? If so, what did it read? (`measured`) | text |  |
 | What else is there with the fever? (`with-it`) | chips | A cough; A sore throat; A rash; Pain somewhere; Nothing else |
-| Anything else you have noticed with it? (`other`) | text |  |
 
 **Cough or cold** (`cough-cold`) — opened by: `cough`, `coughing`, `cold`, `flu`, `runny nose`, `blocked nose`, `sore throat`, `sneezing`, `phlegm`
 
