@@ -18235,16 +18235,7 @@ console.log(
       throw new Error(
         `${file.path} has not been generated. Run: npm run plans`,
       );
-    for (const source of [
-      "packages/catalog/mom-plans.json",
-      "packages/catalog/business-model.json",
-      "packages/catalog/money.json",
-    ]) {
-      if (isOlderThanSource(file.path, source))
-        throw new Error(
-          `${file.path} is older than ${source}. Run: npm run plans`,
-        );
-    }
+    /* Freshness for these emits is content equality below — git/mtime ordering flakes on clones. */
     if (read(file.path) !== file.content)
       throw new Error(
         `${file.path} is not what packages/catalog/mom-plans.json, packages/catalog/business-model.json and Money's settings generate. Either it was edited by hand — it says at the top not to be — or the generator changed. Run: npm run plans`,
@@ -20924,15 +20915,7 @@ console.log(
       throw new Error(
         `${file.path} has not been generated from packages/catalog/money.json. Run: npm run money`,
       );
-    for (const source of [
-      "packages/catalog/money.json",
-      "packages/catalog/apis/money.json",
-    ]) {
-      if (isOlderThanSource(file.path, source))
-        throw new Error(
-          `${file.path} is older than ${source}. Run: npm run money`,
-        );
-    }
+    /* Freshness for these emits is content equality below — git/mtime ordering flakes on clones. */
     if (read(file.path) !== file.content)
       throw new Error(
         `${file.path} is not what packages/catalog/money.json generates. Either it was edited by hand — it says at the top not to be — or the generator changed. Run: npm run money`,
