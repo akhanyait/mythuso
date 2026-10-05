@@ -77,11 +77,8 @@ test('history stays on Preview empty until a record exists', async ({ page }) =>
    account the Medications tab draws; Past and Requests are empty in the dispensing contract's own words, and
    nothing on the page asks for, refills or delivers a medicine. */
 test('prescriptions are three tabs: the current authorisation, and two empty states in the contract’s words', async ({ page }) => {
-  /* Medications is Preview-empty; reach the journey from Records is gone — open via More → Explore. */
-  await page.locator('.tabbar button').nth(4).click();
-  const explore = page.locator('.menu-row').filter({ hasText: 'Explore MyThuso' });
-  if (await explore.count()) await explore.first().click();
-  await page.locator('.menu-row').filter({ hasText: 'What happens to a prescription' }).first().click();
+  /* Medications is Preview-empty; reach the journey via the shell (sidebar or More → Explore). */
+  await goSection(page, 'What happens to a prescription');
   await expect(page.getByRole('heading', { name: 'What happens to a prescription.' })).toBeVisible();
   const rx = page.getByRole('tablist', { name: 'Prescriptions' });
   await expect(rx.getByRole('tab')).toHaveText(['Current', 'Past', 'Requests']);
