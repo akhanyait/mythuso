@@ -998,6 +998,12 @@ export function useVoiceAdapter(
          voice is configured, a refusal or failure stays silent and says so, rather than switching to
          the browser's robotic voice mid-conversation. The browser voice is only for a service with
          no speech configured at all. */
+      /* The character demonstrator is a design preview connected to nothing, and says so: it reads in
+         the browser's own voice, at once, and never asks the service (5 October 2026). */
+      if (surface === "demonstrator") {
+        speakViaBrowser(text, options);
+        return;
+      }
       void (async () => {
         if (cloudReady.current === null)
           cloudReady.current = await isSpeechConfigured();
@@ -1019,7 +1025,7 @@ export function useVoiceAdapter(
         speakViaBrowser(text, options);
       })();
     },
-    [speakViaBrowser, speakViaCloud, warmCloud],
+    [speakViaBrowser, speakViaCloud, warmCloud, surface],
   );
 
   /* ---- Hands-free conversation: the machine's host --------------------------------------------- */
@@ -1421,7 +1427,7 @@ export function useVoiceAdapter(
      API is named — and it is the same question the capability block asks, answered once for the
      session. A surface the contract does not let speak does not ask it at all. */
   useEffect(() => {
-    if (SPEAKS[surface]) warmCloud();
+    if (SPEAKS[surface] && surface !== "demonstrator") warmCloud();
   }, [warmCloud, surface]);
 
   /* Everything the page opened, closed on the way out. A recogniser left running by a component that

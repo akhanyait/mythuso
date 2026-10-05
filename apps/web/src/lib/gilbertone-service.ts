@@ -24,6 +24,8 @@
  * in lib/voice.ts, the one file allowed to reach for them. */
 
 import { voice as voicePolicy } from "../../../../packages/catalog/assistant.json";
+import voiceMap from "../../../../packages/catalog/voice.json";
+import { historyOf } from "./settings";
 
 declare const __ASSISTANT_API_URL__: string;
 
@@ -424,6 +426,14 @@ function cloudVoiceName(voice: "female" | "male", language: string): string {
  *  back the audio itself rather than a reference to it. An unreachable service, a refusal and a voice
  *  the service does not have are all one shape back — a ServiceRefusal — so the caller falls through
  *  to the browser's own voice without a try/catch of its own. */
+const tenantZones = new Set(
+  voiceMap.zones.filter((z) => z.configurable === "tenant").map((z) => z.id),
+);
+const namesVoice = (register: string | null): boolean =>
+  !register ||
+  !tenantZones.has(voiceMap.queryClasses.find((c) => c.id === register)?.zone ?? "") ||
+  historyOf("assistant").length > 0;
+
 export async function speakText(
   text: string,
   voice: "female" | "male",
@@ -440,10 +450,14 @@ export async function speakText(
     post({
       text,
       language,
-      /* Naming a voice here hides the Control Tower setting. With a register and no
-         voice, the service uses that setting for a routine reply and the platform
-         voice for an emergency or a refusal. */
-      ...(register ? { register } : { voice: cloudVoiceName(voice, language) }),
+      /* The register travels whenever there is one, and the voice is named beside it except in one
+         case: a register a tenant may configure, read in a tab where nobody changed the assistant's
+         settings. There the service's own settings history, the Control Tower's, decides, and naming
+         the tab's untouched default would hide it. A locked register (an emergency, a refusal) always
+         names the platform voice it is read in, and a setting changed in this tab is the voice the
+         administrator just chose, so both are named (5 October 2026). */
+      ...(register ? { register } : {}),
+      ...(namesVoice(register) ? { voice: cloudVoiceName(voice, language) } : {}),
       userConsent: true,
     }),
     (body) => {
