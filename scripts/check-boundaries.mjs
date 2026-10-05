@@ -108,7 +108,23 @@ const gitCommitMs = (file) => {
     return null;
   }
 };
+const isDirtyInGit = (file) => {
+  try {
+    return (
+      execFileSync("git", ["status", "--porcelain", "--", file], {
+        encoding: "utf8",
+      }).trim() !== ""
+    );
+  } catch {
+    return true;
+  }
+};
 const isOlderThanSource = (derived, source) => {
+  /* Uncommitted edits: use filesystem mtimes so a local SVG change still
+     flags a stale PNG before commit (GilbertOne follow-up). Otherwise use
+     git commit times so fresh clones don't fail on checkout order. */
+  if (isDirtyInGit(derived) || isDirtyInGit(source))
+    return statSync(derived).mtimeMs < statSync(source).mtimeMs;
   const derivedAt = gitCommitMs(derived);
   const sourceAt = gitCommitMs(source);
   if (derivedAt != null && sourceAt != null) return derivedAt < sourceAt;
@@ -872,7 +888,7 @@ for (const [file, ios, android] of [
       throw new Error(
         `The brand cut ${file} has not been rendered for ${f}. Run: node scripts/render-illustrations.mjs`,
       );
-    if (statSync(f).mtimeMs < statSync(source).mtimeMs)
+    if (isOlderThanSource(f, source))
       throw new Error(
         `${f} is older than ${source}, so a native app is drawing a mark the brand no longer is. Run: node scripts/render-illustrations.mjs`,
       );
@@ -958,10 +974,7 @@ for (const f of [`${appicon}/AppIcon-1024.png`, `${appicon}/Contents.json`]) {
       `${f} is missing, so the iOS app ships with a blank home-screen tile. Run: python3 scripts/emit-appicon.py`,
     );
 }
-if (
-  statSync(`${appicon}/AppIcon-1024.png`).mtimeMs <
-  statSync("packages/illustrations/app-icon.svg").mtimeMs
-)
+if (isOlderThanSource(`${appicon}/AppIcon-1024.png`, "packages/illustrations/app-icon.svg"))
   throw new Error(
     "The iOS app icon is older than the drawing it comes from. Run: python3 scripts/emit-appicon.py",
   );
@@ -1153,7 +1166,7 @@ if (
         throw new Error(
           `Hero slide "${slide.id}" has no ${published}, so its half of the banner is a blank frame. Run: node scripts/render-illustrations.mjs`,
         );
-      if (statSync(published).mtimeMs < statSync(source).mtimeMs)
+      if (isOlderThanSource(published, source))
         throw new Error(
           `${published} is older than ${source}. Run: node scripts/render-illustrations.mjs`,
         );
