@@ -259,11 +259,13 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
   const coming = nurseOfVisit(done);
   return <div className="success">
    <div className="success-icon"><Check size={30}/></div>
-   <h3>Your visit is booked.</h3>
+   {/* Designer (5 October 2026): lead with simulated confirmation, never "Your visit is booked" / Paid first. */}
+   <h3>Visit confirmed (simulated)</h3>
    <p>{service.name} for {person.split(' ')[0]}</p>
    <p className="success-when">{done.kind === 'scheduled' ? <>{longDateOf(done.date!)}<br/>{done.start} – {endTime(done.start!, service.duration)}</> : labels.asapPending}</p>
    {done.interpreter?.name && <p className="helper">Interpreting: {done.interpreter.name}. {cost.sentence}</p>}
    <p className="helper">{kinds.find(k => k.id === done.kind)!.confirmation}</p>
+   <NotConnected of="payments"/>
    {/* What the ledger answered, as a record rather than as a tick: the payment's state in the contract's
        words, and then either the provider's receipt — which begins SIM-, because the simulator refuses
        to produce one that does not say it is simulated — or the cash code the nurse will ask for. */}
@@ -286,7 +288,6 @@ export function Booking({ service, person: forPerson, onComplete, held = [], pre
     <p className="helper pay-words">{voucherWords.covered}</p>
     <div className="review-line"><span>Visit reference</span><strong>{reference}</strong></div>
    </>}
-   <NotConnected of="payments"/>
    {/* A visit asked for as soon as possible from whoever is nearest names nobody. The status beneath says
        nobody is looking for a nurse, and a name above that sentence was the suburb's roster answer
        presented as somebody on the way. A nurse asked for by name, or an hour the roster accepted, is named. */}

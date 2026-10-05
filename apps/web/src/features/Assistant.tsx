@@ -1699,7 +1699,9 @@ function Lines({ ids }: { ids: string[] }) {
     <ul className="as-numbers">
       {lines(ids).map((n) => (
         <li key={n.number}>
-          <strong>{n.number}</strong>
+          <a className="as-tel" href={`tel:${n.number.replace(/\s+/g, "")}`}>
+            <strong>{n.number}</strong>
+          </a>
           <span>{n.name}</span>
         </li>
       ))}
@@ -1775,7 +1777,9 @@ function CrisisLines() {
       <ul className="as-numbers">
         {crisisLines.lines.map((line) => (
           <li key={line.id}>
-            <strong>{line.number}</strong>
+            <a className="as-tel" href={`tel:${line.number.replace(/\s+/g, "")}`}>
+              <strong>{line.number}</strong>
+            </a>
             <span>{line.name}</span>
           </li>
         ))}

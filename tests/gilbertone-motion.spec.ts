@@ -74,7 +74,8 @@ test('the emergency answer arrives with nothing in front of the ambulance number
  await expect.poll(async () => (await movingIn(page, '.as-rig svg')).filter(name => name === 'go-float')).toEqual([]);
  /* A later, calmer answer lowers nothing: it too arrives without an entrance while the face holds. */
  await ask(page, 'Are my results back?');
- await expect(panel(page).locator('.as-turn')).toHaveCount(4);
+ /* Opening situation is a status, not a chat bubble (isOpeningStatus), so three asks → three turns. */
+ await expect(panel(page).locator('.as-turn')).toHaveCount(3);
  expect((await movingIn(page, '.as-turn:last-child')).filter(name => name.startsWith('as-'))).toEqual([]);
  /* Start again, the patient's own reset, releases it. */
  await panel(page).getByRole('button', { name: gilbert.conversation.startAgainLabel }).click();

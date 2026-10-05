@@ -227,14 +227,9 @@ export default function PublicAssistant({ request = null }: { request?: { questi
                 </div>
               </div>
               {away && (
-                <button
-                  type="button"
-                  className="go-latest"
-                  aria-label={latestLabel}
-                  onClick={toLatest}
-                >
+                <button type="button" className="go-latest" onClick={toLatest}>
                   {away === "up" ? <ArrowUp aria-hidden="true" size={18} /> : <ArrowDown aria-hidden="true" size={18} />}
-                  <span>{latestLabel}</span>
+                  {latestLabel}
                 </button>
               )}
               <form className="go-compose" onSubmit={submit}>

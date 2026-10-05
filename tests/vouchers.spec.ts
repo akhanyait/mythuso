@@ -44,7 +44,7 @@ test('a voucher is redeemed at checkout: a wrong code is refused, the right one 
 
   await d.getByRole('checkbox').check();
   await d.getByRole('button', { name: 'Confirm & book' }).click();
-  await expect(d.getByText('Your visit is booked.')).toBeVisible();
+  await expect(d.getByText('Visit confirmed (simulated)')).toBeVisible();
   await expect(d.locator('.pay-words')).toHaveText(words.covered);
   /* Nothing was authorised on a card, because nothing was owed. */
   await expect(d.locator('.review-line').filter({ hasText: 'Authorised' })).toHaveCount(0);

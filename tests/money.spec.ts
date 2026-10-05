@@ -65,7 +65,7 @@ test('cash is booked as money owed, with a code for the nurse and the contractâ€
   await d.getByRole('checkbox').check();
   await d.getByRole('button', { name: 'Confirm & book' }).click();
 
-  await expect(d.getByText('Your visit is booked.')).toBeVisible();
+  await expect(d.getByText('Visit confirmed (simulated)')).toBeVisible();
   await expect(d.getByText('What is owed')).toBeVisible();
   await expect(d.locator('.pay-status')).toContainText(state('pending').name);
   await expect(d.locator('.pay-words')).toHaveText(money.cash.pendingWords);

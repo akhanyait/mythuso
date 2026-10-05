@@ -105,7 +105,7 @@ test('paying for a visit answers with a receipt that says it is simulated, or a 
   await d.getByRole('checkbox').check();
   await confirmBooking(d);
 
-  await expect(d.getByText('Your visit is booked.')).toBeVisible();
+  await expect(d.getByText('Visit confirmed (simulated)')).toBeVisible();
   await expect(d.getByText('What was paid')).toBeVisible();
   /* R249 is the catalogue's price for a vitals check, and the amount came from there rather than
      from the screen. The receipt begins SIM- because the provider refuses to produce one that does
@@ -170,7 +170,7 @@ test('a declined payment books nothing, and says so in the register a person rea
     await expect(d.locator('.pay-declined')).toContainText(/Nothing has been taken\./);
     await expect(d.locator('.pay-declined')).toContainText(/Nothing is booked\./);
     /* Nothing was booked: the confirmation screen is not on the other side of this. */
-    await expect(d.getByText('Your visit is booked.')).toHaveCount(0);
+    await expect(d.getByText('Visit confirmed (simulated)')).toHaveCount(0);
     await expect(d.getByRole('button', { name: 'Try the payment again' })).toBeVisible();
     refused = true;
     break;
