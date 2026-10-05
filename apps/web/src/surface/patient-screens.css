@@ -499,3 +499,6 @@
 .settings-profile .ui-card__title{margin-bottom:var(--space-12)}
 /* My family's note under the guardians, the shared Alert, set off from the list above it. */
 .family-note{margin-top:var(--space-16)}
+
+/* The Passport is a preview until a record exists (5 October 2026). */
+.pd.hp .passport-preview-note{margin:var(--space-4,4px) 0 0;color:var(--text-muted,inherit);font-size:15px}

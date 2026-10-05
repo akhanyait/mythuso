@@ -57,7 +57,9 @@ test('a group folds and unfolds by keyboard, and the page you are on opens its g
  /* Folded, then arrived at from somewhere else: the group holding the page opens itself. */
  await health.click();
  await expect(trends).toBeHidden();
- await page.getByRole('region', { name: 'Your health over time' }).getByRole('button', { name: 'Every reading, as charts and tables' }).click();
+ /* From the Explore page since 5 October 2026: the home no longer draws the trend tabs that linked here. */
+ await goSection(page, 'Explore MyThuso');
+ await page.locator('main .menu-row').filter({ hasText: 'Health trends' }).first().click();
  await expect(page).toHaveTitle('Health trends · MyThuso');
  await expect(health).toHaveAttribute('aria-expanded', 'true');
  await expect(trends).toHaveAttribute('aria-current', 'page');
@@ -151,9 +153,13 @@ test('the More hub on a phone is the sidebar\'s groups and rows, less the tabs',
   label: group.querySelector('.psb-group__toggle span')?.textContent ?? null,
   rows: [...group.querySelectorAll('.ui-nav-item__label')].map(label => label.textContent ?? '')
  })));
- const expected = sidebarMap.map(group => ({ ...group, rows: group.rows.filter(row => !tabbed.includes(row)) })).filter(group => group.rows.length);
+ /* Since 5 October 2026 the phone's More hub folds My Health, Wellness and Devices into Explore MyThuso. */
+ const folded = new Set(['My Health', 'Wellness', 'Devices']);
+ const expected = sidebarMap
+  .map(group => ({ ...group, rows: group.rows.filter(row => !tabbed.includes(row)) }))
+  .filter(group => group.rows.length && !(group.label && folded.has(group.label)));
  /* A sidebar that rendered nothing would make the comparison vacuous. */
- expect(expected.length).toBeGreaterThan(5);
+ expect(expected.length).toBeGreaterThan(2);
 
  await page.locator('.tabbar button').last().click();
  await expect(page.getByRole('heading', { level: 1, name: 'More' })).toBeVisible();

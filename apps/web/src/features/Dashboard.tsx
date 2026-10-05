@@ -1,18 +1,18 @@
 import '../surface/approved-care.css';
 import '../surface/patient-identity.css';
-import { Suspense, lazy, useId, useState } from 'react';
+import { Suspense, lazy } from 'react';
 import { ArrowRight, BadgeCheck, ChevronDown, ChevronRight, Clock3, Handshake, Library, MapPin, NotebookPen, Plus, Salad, Search, ShieldCheck, Siren, Zap } from 'lucide-react';
 import { ServiceIcon } from '../components/UI';
 import {
- Badge, Button, Card, Input, MetricCard, Tab, TabsList, MyThusoFamilyIcon, MyThusoHealthIcon, MyThusoMedicationIcon, MyThusoMessagesIcon,
+ Badge, Button, Card, Input, MyThusoFamilyIcon, MyThusoHealthIcon, MyThusoMedicationIcon, MyThusoMessagesIcon,
  MyThusoResultsIcon, MyThusoVisitIcon
 } from '../ui';
 import { liveServices, money, type Service } from '../lib/catalog';
-import { labels as scheduling, shortDateOf, shortWhenText, visitEnds, weekdayOf } from '../lib/scheduling';
+import { labels as scheduling, shortDateOf, visitEnds, weekdayOf } from '../lib/scheduling';
 import type { DemoVisit } from './Booking';
 import { useT } from '../lib/i18n';
 import { assignedNurse, nurseOfVisit } from '../lib/arrival';
-import { formatValue, headlineMeasures, isInRange, labelOf, lastReview, latestSet, measureSpec, onRecord, readingSets, reviewer, seriesFor, type MeasureId } from '../lib/passport';
+import { labelOf, lastReview, reviewer } from '../lib/passport';
 import { patientPageRoutes } from '../lib/patient-pages-routes.generated';
 import { patientScreenRoutes } from '../lib/patient-screens-routes';
 /* The medicine panel and the tips row read two contracts the entry does not carry; see HomeReads.tsx. */
@@ -44,114 +44,6 @@ type Props = {
    nowhere else, so the figure at the top of the screen and the row half a column below it could not
    have disagreed — because only one of them existed. Now both read this. */
 const planDueInDays = 9;
-/* The trends a person watches, as peer views of one record. Systolic and diastolic are one reading taken
-   once, so they are one tab with two lines; the tab's name is the part of the contract's label the two
-   share ("Blood pressure — systolic" → "Blood pressure"), so nothing is typed that records.json says. */
-const trendTabs: { id: string; measures: MeasureId[] }[] = [
- { id: 'pressure', measures: headlineMeasures.filter(m => m === 'systolic' || m === 'diastolic') },
- ...headlineMeasures.filter(m => m !== 'systolic' && m !== 'diastolic').map(m => ({ id: m, measures: [m] }))
-];
-const tabName = (measures: MeasureId[]) => measureSpec(measures[0]).label.split(' — ')[0];
-const pressure = `${formatValue('systolic', latestSet.values.systolic!)}/${formatValue('diastolic', latestSet.values.diastolic!)}`;
-const pressureInRange = isInRange('systolic', latestSet.values.systolic!) && isInRange('diastolic', latestSet.values.diastolic!);
-const glucoseInRange = isInRange('glucose', latestSet.values.glucose!);
-
-/* A reading's shape over the four visits, small enough to sit beside its figure. Decorative: the figure and
-   its word beside it are what is read, so the drawing is hidden from assistive technology. */
-function Sparkline({ id }: { id: MeasureId }) {
- const values = seriesFor(id).map(r => r.value);
- const low = Math.min(...values), high = Math.max(...values), span = high - low || 1;
- const points = values.map((v, i) => `${(i / Math.max(values.length - 1, 1)) * 100},${26 - ((v - low) / span) * 22}`).join(' ');
- return <svg className="pd-spark" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true">
-  <polyline className="pd-draw" points={points}/>
- </svg>;
-}
-
-/* One tab's trend, drawn once when the tab is shown. The window is the readings' own with a little
-   headroom, and a range edge is let in only where the readings cross it — the reasoning ClinicalChart in
-   components/Chart.tsx writes out at length, kept here in its short form so a reading one point outside its
-   range still draws above the band rather than inside it. The drawing has a sentence for a screen reader
-   and every value is also printed underneath as text, so the picture is never the only way to read it. */
-function Trend({ measures }: { measures: MeasureId[] }) {
- const series = measures.map(id => ({ id, spec: measureSpec(id), readings: seriesFor(id) }));
- const all = series.flatMap(s => s.readings.map(r => r.value));
- const spread = Math.max(...all) - Math.min(...all) || 1;
- let low = Math.min(...all) - spread * 0.3, high = Math.max(...all) + spread * 0.3;
- for (const { spec } of series) {
-  if (Math.min(...all) < spec.low) low = Math.min(low, spec.low - spread * 0.15);
-  if (Math.max(...all) > spec.high) high = Math.max(high, spec.high + spread * 0.15);
- }
- const W = 320, H = 120;
- const x = (i: number, n: number) => (n < 2 ? W / 2 : (i / (n - 1)) * (W - 24) + 12);
- const y = (v: number) => H - 8 - ((v - low) / (high - low)) * (H - 16);
- const clampY = (v: number) => Math.min(Math.max(y(v), 0), H);
- const first = series[0];
- const labels = first.readings.map(r => r.label);
- const summary = series.map(({ spec, readings }) => {
-  const latest = readings[readings.length - 1];
-  return `${spec.label}: ${readings.map(r => `${formatValue(spec.id, r.value)} on ${r.label}`).join(', ')}. The latest, ${formatValue(spec.id, latest.value)} ${spec.unit}, is ${isInRange(spec.id, latest.value) ? 'inside' : 'outside'} the indicative range of ${spec.low} to ${spec.high}.`;
- }).join(' ');
- return <figure className="pd-trend">
-  <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={summary}>
-   {[0.25, 0.5, 0.75].map(f => <line key={f} className="pd-trend__grid" x1="0" x2={W} y1={H * f} y2={H * f}/>)}
-   {/* One measure: its range as a lane. Two measures' lanes overlap and flood the plot, so each is drawn as
-       its upper limit instead — the edge a blood pressure reading is actually watched against. */}
-   {series.length === 1
-    ? <rect className="pd-trend__band" x="0" width={W} y={clampY(first.spec.high)} height={Math.max(clampY(first.spec.low) - clampY(first.spec.high), 0)}/>
-    : series.map(({ id, spec }, s) => <line key={`limit-${id}`} className={s ? 'pd-trend__limit pd-trend__limit--second' : 'pd-trend__limit'} x1="0" x2={W} y1={clampY(spec.high)} y2={clampY(spec.high)}/>)}
-   {series.map(({ id, readings }, s) => {
-    const d = readings.map((r, i) => `${i ? 'L' : 'M'}${x(i, readings.length).toFixed(1)} ${y(r.value).toFixed(1)}`).join(' ');
-    return <g key={id} className={s ? 'pd-draw pd-trend__series pd-trend__series--second' : 'pd-draw pd-trend__series'}>
-     {series.length === 1 && <path className="pd-trend__area" d={`${d} L${x(readings.length - 1, readings.length)} ${H} L${x(0, readings.length)} ${H} Z`}/>}
-     <path className="pd-trend__line" d={d}/>
-     {readings.map((r, i) => {
-      const outside = !isInRange(id, r.value);
-      const at = { x1: x(i, readings.length), x2: x(i, readings.length), y1: y(r.value), y2: y(r.value) };
-      return <g key={r.label} className={outside ? 'pd-trend__point is-outside' : 'pd-trend__point'}><line {...at}/><line {...at} className="pd-trend__hole"/></g>;
-     })}
-    </g>;
-   })}
-  </svg>
-  <figcaption className="pd-trend__axis"><span>{labels[0]}</span><span>{labels[labels.length - 1]}</span></figcaption>
- </figure>;
-}
-
-function HealthTabs({ navigate }: { navigate: (s: string) => void }) {
- const [tab, setTab] = useState(trendTabs[0].id);
- const base = useId();
- const current = trendTabs.find(t => t.id === tab) ?? trendTabs[0];
- return <Card className="pd-health" padding="md" aria-labelledby={`${base}-title`} role="region">
-  <div className="pd-card-head">
-   <div>
-    <h2 id={`${base}-title`} className="pd-card-title">Your health over time</h2>
-    <p className="pd-card-lead">{onRecord}</p>
-   </div>
-   <TabsList aria-label="Readings to show">
-    {trendTabs.map(t => <Tab key={t.id} id={`${base}-${t.id}`} aria-controls={`${base}-panel`} active={t.id === tab} onClick={() => setTab(t.id)}>{tabName(t.measures)}</Tab>)}
-   </TabsList>
-  </div>
-  {/* Keyed on the tab, so the panel is mounted afresh and its line draws once each time it is shown. */}
-  <div key={current.id} id={`${base}-panel`} role="tabpanel" aria-labelledby={`${base}-${current.id}`} className="pd-health__panel">
-   <dl className="pd-health__latest">
-    {current.measures.map(id => {
-     const value = latestSet.values[id]!;
-     const spec = measureSpec(id);
-     return <div key={id}>
-      <dt>{spec.label}</dt>
-      <dd><strong>{formatValue(id, value)}</strong> <span>{spec.unit}</span></dd>
-      <dd><Badge size="sm" variant={isInRange(id, value) ? 'success' : 'warning'} dot>{isInRange(id, value) ? 'In range' : 'Outside range'}</Badge></dd>
-      <dd className="pd-muted">Indicative range {spec.low}–{spec.high} {spec.unit}</dd>
-     </div>;
-    })}
-   </dl>
-   <Trend measures={current.measures}/>
-  </div>
-  <div className="pd-card-foot">
-   <Button variant="ghost" size="sm" trailingIcon={<ArrowRight aria-hidden="true"/>} onClick={() => navigate('Health trends')}>Every reading, as charts and tables</Button>
-  </div>
- </Card>;
-}
-
 /* The quick actions, as the export lists them, pointed at the screens this build has: every row opens a page,
    none opens a promise. The export's "Find a doctor or clinic" and "Talk to someone" have no directory and no
    counsellor behind them here, so they are not rows. */
@@ -177,17 +69,7 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
  /* `visits` arrives soonest first (App.tsx orders it with lib/scheduling's nextFirst), so the first is next. */
  const next = visits[0];
  const nurse = next ? nurseOfVisit(next) : null;
- const [nextDay, nextHour] = next && next.kind !== 'asap' ? shortWhenText(next).split(' · ') : [null, null];
  const [dayNumber, monthName] = next?.date ? shortDateOf(next.date).split(' ') : [null, null];
- /* What happened lately, newest first: each visit that took readings, and the doctor's review of the last
-    one on the day it was written. Read from the Passport's contract rather than composed here. */
- const history = [
-  { key: 'review', day: lastReview.reviewedDayOffset, title: `${reviewer.name} reviewed your readings`, detail: lastReview.next, badge: 'Reviewed' as const },
-  ...readingSets.map(set => ({ key: String(set.dayOffset), day: set.dayOffset, title: 'Home visit · readings taken',
-   detail: `Blood pressure ${formatValue('systolic', set.values.systolic!)}/${formatValue('diastolic', set.values.diastolic!)} mmHg${set.note ? ` · ${set.note}` : ''}`,
-   badge: isInRange('systolic', set.values.systolic!) && isInRange('diastolic', set.values.diastolic!) ? null : 'Outside range' as const }))
- ].sort((a, b) => b.day - a.day);
-
  /* `m-stagger` is motion.css's: the home's children arrive in three steps on the entrance token, once, and
     not at all for a reader who asked for stillness. It was `pd-stagger`, a class no rule matched, so the
     home was the one patient screen that arrived without its entrance. */
@@ -216,24 +98,6 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
        the page. Decoration, so it is hidden from assistive technology and from a phone. */}
    <p className="pd-welcome__quote" aria-hidden="true">{t('shell.tagline')}</p>
   </header>
-
-  {/* The figures, from the record. Two of them are readings and open the record they came from; the other
-      two are facts about the account and are not buttons, because nothing is behind them to open. */}
-  <section className="pd-metrics" aria-label="Your care at a glance">
-   <MetricCard label="Next visit" value={next ? nextHour ?? 'Soon' : 'None'} icon={<MyThusoVisitIcon/>}
-    trend={next ? nextDay ?? next.service.name : undefined} className="pd-metric"/>
-   <button type="button" className="ui-card ui-card--default ui-card--pad-md ui-metric pd-metric pd-metric--action" onClick={() => navigate('Health Passport')}>
-    <span className="ui-metric__head"><span className="ui-metric__label">Blood pressure</span><MyThusoHealthIcon/></span>
-    <span className="ui-metric__value">{pressure}<small> mmHg</small></span>
-    <span className="pd-metric__foot"><Badge size="sm" variant={pressureInRange ? 'success' : 'warning'} dot>{pressureInRange ? 'In range' : 'Outside range'}</Badge><Sparkline id="systolic"/></span>
-   </button>
-   <button type="button" className="ui-card ui-card--default ui-card--pad-md ui-metric pd-metric pd-metric--action" onClick={() => navigate('Health Passport')}>
-    <span className="ui-metric__head"><span className="ui-metric__label">Blood glucose</span><MyThusoResultsIcon/></span>
-    <span className="ui-metric__value">{formatValue('glucose', latestSet.values.glucose!)}<small> {measureSpec('glucose').unit}</small></span>
-    <span className="pd-metric__foot"><Badge size="sm" variant={glucoseInRange ? 'success' : 'warning'} dot>{glucoseInRange ? 'In range' : 'Outside range'}</Badge><Sparkline id="glucose"/></span>
-   </button>
-   <MetricCard label="Doctor's review" value={labelOf(lastReview.reviewedDayOffset)} icon={<MyThusoHealthIcon/>} trend={reviewer.name} className="pd-metric"/>
-  </section>
 
   {/* The export's appointment hero in the primary colour, and the one thing a person opened the home for:
       what is arranged next. Its facts are the booked visit's own; the nurse is the one lib/arrival.ts assigns
@@ -325,24 +189,6 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
       </button>)}
      </div>
     </section>
-
-    <HealthTabs navigate={navigate}/>
-
-    <Card className="pd-history" padding="md" role="region" aria-labelledby="pd-history-title">
-     <div className="pd-card-head">
-      <div><h2 id="pd-history-title" className="pd-card-title">Recent care</h2><p className="pd-card-lead">What your nurse recorded, and what the doctor said about it.</p></div>
-      <Button variant="ghost" size="sm" trailingIcon={<ArrowRight aria-hidden="true"/>} onClick={() => navigate('Care timeline')}>Care timeline</Button>
-     </div>
-     <ol className="pd-history__list">
-      {history.map(item => <li key={item.key} className="pd-history__item">
-       <button type="button" onClick={() => navigate('Health Passport')}>
-        <time>{labelOf(item.day)}</time>
-        <span><strong>{item.title}</strong><small>{item.detail}</small></span>
-        {item.badge && <Badge size="sm" variant={item.badge === 'Reviewed' ? 'primary' : 'warning'}>{item.badge}</Badge>}
-       </button>
-      </li>)}
-     </ol>
-    </Card>
 
     {/* The export's four wellbeing tiles. Each opens a screen that exists; none of them is a session with
         somebody, because there is nobody here to book one with. */}

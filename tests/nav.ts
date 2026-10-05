@@ -60,7 +60,14 @@ export async function goSection(page: Page, name: string) {
      the rest as rows under their group labels, so this fallback reaches every one of them unchanged. */
   await page.locator('.tabbar button').last().click();
   const row = page.locator('.menu-row').filter({ hasText: name });
-  await expect(row.first()).toBeVisible();
+  /* Since 5 October the patient's More hub folds My Health, Wellness and Devices into its one Explore
+     MyThuso row, whose page lists those rows first. A row that is not in the hub is one step further. */
+  const explore = page.locator('.menu-row').filter({ hasText: 'Explore MyThuso' });
+  await expect(row.or(explore).first()).toBeVisible();
+  if (!(await row.count()) && (await explore.count())) {
+    await explore.first().click();
+    await expect(row.first()).toBeVisible();
+  }
   await row.first().click();
 }
 

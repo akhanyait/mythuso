@@ -15,9 +15,8 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('clinical marks animate without moving the reference range or changing readings', async ({ page }) => {
- await goSection(page, 'Health Passport');
- /* The charts are the Passport's Vitals tab since 30 September 2026. */
- await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Vitals' }).click();
+ /* Charts live on Health trends since 5 October 2026: the Passport tabs are empty until a record exists. */
+ await goSection(page, 'Health trends');
  const chart = page.locator('.chart-card').first();
  await chart.scrollIntoViewIfNeeded();
  const line = chart.locator('.chart-line');
@@ -36,25 +35,10 @@ test('clinical marks animate without moving the reference range or changing read
  expect(await chart.locator('.chart-value').innerText()).toBe(text);
 });
 
-test('dashboard trends animate and settle when reduced motion is enabled', async ({ page }) => {
- /* The home's mini bars became the trend tabs of the identity restyle (28 September 2026): a line drawn once
-    on reveal from the readings on record. The promise is the same — it moves once, the figures never do, and
-    a reader who asked for stillness gets the finished line. */
- const chart = page.locator('.pd-trend').first();
- await chart.scrollIntoViewIfNeeded();
- await expect.poll(() => chart.evaluate(el => el.getAnimations({ subtree: true }).length)).toBeGreaterThan(0);
- const values = await page.locator('.pd-metric').allInnerTexts();
- await page.emulateMedia({ reducedMotion: 'reduce' });
- await expect.poll(() => chart.evaluate(el => el.getAnimations({ subtree: true }).length)).toBe(0);
- expect(await page.locator('.pd-metric').allInnerTexts()).toEqual(values);
- await expect(chart.locator('.pd-trend__line').first()).toHaveCSS('stroke-dashoffset', '0px');
-});
-
 test('charts added after navigation stay complete under reduced motion', async ({ page }) => {
  await page.emulateMedia({ reducedMotion: 'reduce' });
- await goSection(page, 'Health Passport');
- /* The charts are the Passport's Vitals tab since 30 September 2026. */
- await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Vitals' }).click();
+ /* Charts live on Health trends since 5 October 2026: the Passport tabs are empty until a record exists. */
+ await goSection(page, 'Health trends');
  const chart = page.locator('.chart-card').first();
  await chart.scrollIntoViewIfNeeded();
  await expect(chart.locator('.chart-line')).toBeVisible();
@@ -126,9 +110,8 @@ test("the nurse's week counts up to the figure it was counted at, and starts the
    Whitespace is stripped because the browser may normalise the token's cubic-bezier when it hands it
    back off the animation's timing. */
 test('the charts spend the token curve rather than typing their own', async ({ page }) => {
- await goSection(page, 'Health Passport');
- /* The charts are the Passport's Vitals tab since 30 September 2026. */
- await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Vitals' }).click();
+ /* Charts live on Health trends since 5 October 2026: the Passport tabs are empty until a record exists. */
+ await goSection(page, 'Health trends');
  const chart = page.locator('.chart-card').first();
  await chart.scrollIntoViewIfNeeded();
  const line = chart.locator('.chart-line');

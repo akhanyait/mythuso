@@ -8,7 +8,7 @@ import { BroughtToTheVisit } from './Wellbeing';
 import type { Entry as WellbeingEntry } from '../lib/wellbeing';
 import { Metric, Metrics } from '../surface/Surface';
 import { HeroCarousel } from '../components/HeroCarousel';
-import { FamilyScene, PatientPortrait } from '../components/Portraits';
+import { PatientPortrait } from '../components/Portraits';
 import { modules, services, money, type Service } from '../lib/catalog';
 import type { DemoVisit } from './Booking';
 import { endTime, isoIn, labels as schedulingLabels, longDateOf, shortDateOf, slots, visitEnds, weekdayOf } from '../lib/scheduling';
@@ -23,7 +23,7 @@ import { ClinicianProfile } from '../components/ClinicianProfile';
 import { Alert, Badge, Button, Card, CardContent, CardDescription, CardHeader, Checkbox, Tab, TabsList } from '../ui';
 import { Access } from './Access';
 import { capability } from '../lib/capabilities';
-import { HealthPanel, type PassportTab } from './Passport';
+import type { PassportTab } from './Passport';
 import businessModel from '../../../../packages/catalog/business-model.json';
 import { OPEN_PARAM, slugOfSection } from '../lib/roles';
 /* The sidebar's table, which the More hub draws on a phone; both modules are on the patient's first load. */
@@ -185,11 +185,13 @@ export function Visits({rows:all,book,manage,view,track}:{rows:VisitRow[];open:(
          fortnight away is "nobody is on the way yet, and here is why you cannot watch her before
          the day" — which is an answer, and hiding the control until the morning would leave a
          person hunting for it on the one day they are in a hurry. */}
+     {/* One main action per row (5 October 2026): View details. Reschedule, Cancel and Where is my
+         nurse? stay on every upcoming row, as quiet buttons beside it. */}
      <div className="visit-actions">
-      <Button variant="secondary" onClick={()=>manage(id,'reschedule')}>Reschedule</Button>
-      <Button variant="secondary" onClick={()=>manage(id,'cancel')}>Cancel</Button>
-      <Button variant="secondary" onClick={()=>track(id)}>Where is my nurse?</Button>
       <Button onClick={()=>view(id)}>View details</Button>
+      <Button variant="ghost" size="sm" onClick={()=>manage(id,'reschedule')}>Reschedule</Button>
+      <Button variant="ghost" size="sm" onClick={()=>manage(id,'cancel')}>Cancel</Button>
+      <Button variant="ghost" size="sm" onClick={()=>track(id)}>Where is my nurse?</Button>
      </div>
     </>}
     {group==='past'&&<div className="visit-actions">
@@ -204,15 +206,8 @@ export function Visits({rows:all,book,manage,view,track}:{rows:VisitRow[];open:(
    :<EmptyState title={`No ${tab.toLowerCase()} visits`} body={tab==='Cancelled'?'A visit you cancel stays here with the reason you gave, rather than disappearing.':'When you book a visit it appears here, with the nurse’s name and what to have ready.'} action="Book a nurse" onAction={book}/>}
   </StateBlock>
   </div>
-  {/* Not under a failure. A banner selling another visit, directly beneath "we couldn't load this
-      just now", is the app talking over the person it has just let down. It belongs to the state
-      where the list actually loaded. */}
-  {state==='ready'&&<section className="promo-dark">
-   <h2>Care that fits your life.</h2>
-   <p>Easy booking. Trusted professionals. Better health, at home.</p>
-   <button onClick={book}>Book another visit<ArrowRight size={16}/></button>
-   <div className="promo-art"><FamilyScene/></div>
-  </section>}
+  {/* The dark "Care that fits your life" banner was removed on 5 October 2026: Book new in the heading
+      is the page's one booking action. */}
  </>}
 /* The patient's page heading. The icon tile and the "Back to {parent}" link the export adds live once, in
    PatientHeader.tsx, which the sub-pages behind a dynamic import use; this one is on the first load, so it
@@ -280,7 +275,7 @@ export function VisitDetail({row,manage,navigate,rebook,track,notes=[],thread,on
    choice are here; the panel arrives with the Passport's own screens on a dynamic import (Passport.tsx), so
    none of its charts, figures or the dispensing contract are on a patient's first load. */
 const passportTabs:PassportTab[]=['Overview','Vitals','Results','Medications','History','Goals','Records'];
-export function Passport({open,navigate,next,view,manage}:{open:(s:string)=>void;navigate:(s:string)=>void;next?:VisitRow;view?:(id:string)=>void;manage?:(id:string,action:VisitAction)=>void}) {
+export function Passport(_props:{open:(s:string)=>void;navigate:(s:string)=>void;next?:VisitRow;view?:(id:string)=>void;manage?:(id:string,action:VisitAction)=>void}) {
  const [tab,setTab]=useState<PassportTab>('Overview');
  return <div className="pd hp">
   <header className="pd-welcome">
@@ -294,13 +289,17 @@ export function Passport({open,navigate,next,view,manage}:{open:(s:string)=>void
   <section className="passport-hero">
    <span className="passport-portrait" aria-hidden="true">LM</span>
    <div className="passport-identity">
-    <Pill tone="light">Thuso Pass</Pill>
+    <Pill tone="light">Preview</Pill>
     <h2>Lerato Molefe</h2>
+    <p className="passport-preview-note">Nothing here is a stored record yet.</p>
     <dl><div><dt>Passport ID</dt><dd>TH-2048-3920</dd></div><div><dt>Issued</dt><dd>Akhanya IT Innovations</dd></div></dl>
    </div>
   </section>
   <TabsList className="hp-tabs" aria-label="Passport sections">{passportTabs.map(t=><Tab key={t} id={`hp-tab-${t}`} aria-controls="hp-panel" active={tab===t} onClick={()=>setTab(t)}>{t}</Tab>)}</TabsList>
-  <HealthPanel tab={tab} go={setTab} navigate={navigate} open={open} panelId="hp-panel" labelledBy={`hp-tab-${tab}`} next={next} view={view} manage={manage}/>
+  {/* No record exists behind the Passport yet, so no tab draws readings, results or notes (5 October 2026). */}
+  <div id="hp-panel" role="tabpanel" aria-labelledby={`hp-tab-${tab}`} className="hp-panel hp-panel--empty">
+   <EmptyState title={`${tab}: nothing stored yet`} body="Nothing here is a stored record yet."/>
+  </div>
  </div>}
 /* What a person may see of somebody else is a status, not a paragraph.
  *
@@ -698,8 +697,12 @@ export function FamilyProfile({name,relation,navigate,open,visits,invitations,on
   <div className="privacy-note"><LockKeyhole size={19}/>Booking for somebody opens their booking, never their record. Sponsoring their care does not change that.</div>
  </div>;
 }
-export function Explore({open,onOnboarding,navigate}:{open:(s:string)=>void;onOnboarding:()=>void;navigate:(s:string)=>void}){return <>
+export function Explore({open,onOnboarding,navigate}:{open:(s:string)=>void;onOnboarding:()=>void;navigate:(s:string)=>void}){const t=useT();return <>
  <div className="page-intro"><div className="eyebrow">The MyThuso family</div><h1>More ways to be cared for.</h1><p>Explore the complete vision. Availability follows the proposal’s phased roadmap.</p></div>
+ {navGroups.filter(group=>EXPLORE_FOLDED.includes(group.id)).map(group=><section className="more-group explore-group" key={group.id} aria-labelledby={`explore-${group.id}`}>
+  <h2 className="nav-label" id={`explore-${group.id}`}>{t(`nav.${group.label}`)}</h2>
+  <div className="menu-list">{group.rows.filter(([name])=>!patientTabSections.includes(name)).map(([name,Icon,sub])=><button className="menu-row" key={name} onClick={()=>navigate(name)}><span className="tile-icon"><Icon/></span><span><strong>{t(`nav.${name}`)}</strong>{sub&&<small>{sub}</small>}</span><ChevronRight size={17} aria-hidden="true"/></button>)}</div>
+ </section>)}
  {/* The highlights carousel lives here rather than on the home. Rotating promotion is what this
      page is for; on a returning patient's home it stood between them and the thing they came to do,
      and WCAG 2.2.2 is satisfied either way by the pause control it carries. */}
@@ -720,6 +723,9 @@ export function Explore({open,onOnboarding,navigate}:{open:(s:string)=>void;onOn
    the one pathway where a person cannot afford to hunt. And the shortcuts at the end are the controls a wide
    screen draws in its top bar and its foot — the care area, the bell, the language and the demo login —
    which a 390px bar has no room for. */
+/* The groups the phone's More hub folds into the one Explore MyThuso row (5 October 2026). They are drawn
+   on the Explore page instead, so every screen is still one row away. The sidebar keeps its own groups. */
+export const EXPLORE_FOLDED:readonly string[]=['health','wellness','devices'];
 const hubShortcuts=[['Care area','Rosebank, Johannesburg',MapPin,'Your location'],['Notifications','Visit updates and messages',Bell,'Notifications'],['Language','Read MyThuso your way',Globe,'Language'],['Demo login','Open MyThuso as a nurse, a doctor, a partner or the back office',Stethoscope,'Switch workspace']] as const;
 export function MoreHub({navigate,open,onSignOut}:{navigate:(s:string)=>void;open:(s:string)=>void;onSignOut:()=>void}){
  const t=useT();
@@ -729,7 +735,7 @@ export function MoreHub({navigate,open,onSignOut}:{navigate:(s:string)=>void;ope
   <div className="page-intro"><h1>More</h1></div>
   <button className="profile-row" onClick={()=>open('Your profile')}><span className="avatar"><PatientPortrait/></span><span><strong>Lerato Molefe</strong><small>View and edit your profile</small></span><ChevronRight size={18}/></button>
   <div className="menu-list more-emergency">{row('emergency','Emergency & urgent care','The ambulance number first, then what MyThuso can do',<Ambulance size={19}/>,()=>open('Emergency & urgent care'))}</div>
-  {navGroups.map(group=>{const rows=group.rows.filter(([name])=>!patientTabSections.includes(name));
+  {navGroups.filter(group=>!EXPLORE_FOLDED.includes(group.id)).map(group=>{const rows=group.rows.filter(([name])=>!patientTabSections.includes(name));
    if(!rows.length)return null;
    const list=<div className="menu-list">{rows.map(([name,Icon,sub])=>row(name,t(`nav.${name}`),sub,<Icon/>,()=>navigate(name)))}</div>;
    return group.label?<section className="more-group" key={group.id} aria-labelledby={`more-${group.id}`}><h2 className="nav-label" id={`more-${group.id}`}>{t(`nav.${group.label}`)}</h2>{list}</section>:<div className="more-group" key={group.id}>{list}</div>;})}
