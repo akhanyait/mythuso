@@ -180,10 +180,10 @@ test('AT01 · the character is transparent on every ground, and says it is a pre
  }
  /* The page's own controls are still reachable with the widget open — it is a floating panel, not a
     modal, and the way out of it is a button rather than a reload. */
- await page.getByRole('button', { name: 'Open GilbertOne' }).click();
+ await page.getByRole('button', { name: gilbert.identity.callToAction, exact: true }).click();
  await expect(page.getByRole('button', { name: 'Close GilbertOne' })).toBeVisible();
  await page.getByRole('button', { name: 'Close the widget' }).click();
- await expect(page.getByRole('button', { name: 'Open GilbertOne' })).toBeVisible();
+ await expect(page.getByRole('button', { name: gilbert.identity.callToAction, exact: true })).toBeVisible();
 });
 
 test('AT02 · blink, gaze, nod, the supportive pose and the yawn are each demonstrable, and each says so in words', async ({ page }) => {
@@ -241,7 +241,7 @@ test('AT03 · nothing is reached by loading the page or pressing anything else, 
 
  /* Neither does pressing things that have nothing to do with the microphone. */
  await press(page, 'A08 Process');
- await page.getByRole('button', { name: 'Open GilbertOne' }).click();
+ await page.getByRole('button', { name: gilbert.identity.callToAction, exact: true }).click();
  await page.getByRole('textbox').fill('Can you hear me?');
  await page.getByRole('button', { name: /^Send this message/ }).click();
  await expect(page.locator('.go-shell-turn').last()).toContainText('No answering engine is connected');
@@ -304,7 +304,7 @@ test('AT07 · the yawn is suppressed while the microphone is open, which is §04
 });
 
 test('AT05/AT07 · Stop and the safety override each cancel the voice as well as the face', async ({ page }) => {
- await page.getByRole('button', { name: 'Open GilbertOne' }).click();
+ await page.getByRole('button', { name: gilbert.identity.callToAction, exact: true }).click();
  for (const [control, why] of [
   ['Stop', '§04: a stop event cancels current speech and stale cues'],
   ['A16 Urgent support', '§04: a safety override stops decorative motion and surfaces the action immediately']
@@ -329,7 +329,7 @@ test('AT12 · the page is keyboard operable, the spoken answer is captioned, and
  /* AT04's half that exists: the mouth follows actual playback, and the caption is on the screen at
     the same time. The widget is opened first, because the caption lives in it and comes down when
     the utterance ends rather than on a timer of its own. */
- await page.getByRole('button', { name: 'Open GilbertOne' }).click();
+ await page.getByRole('button', { name: gilbert.identity.callToAction, exact: true }).click();
  await press(page, 'A10 Speak');
  /* Visible, not merely present: the caption lives outside the widget's scrolling body precisely so
     that a long transcript or an open review step cannot push it off the screen while a voice talks. */
@@ -466,7 +466,7 @@ test('§07 · a browser with no recogniser says so and offers nothing, rather th
 });
 
 test('§07 · the answer is really spoken, the caption is up while it is, and switching it off stops both', async ({ page }) => {
- await page.getByRole('button', { name: 'Open GilbertOne' }).click();
+ await page.getByRole('button', { name: gilbert.identity.callToAction, exact: true }).click();
  await page.getByRole('button', { name: /^Replay the spoken answer/ }).click();
  const caption = page.locator('.go-caption');
  await expect(caption).toBeVisible();
@@ -503,7 +503,7 @@ test('§07 · the answer is really spoken, the caption is up while it is, and sw
 
 test('§07 · a browser that reports no word boundaries falls back to the caption\'s own timing, and says which', async ({ page }) => {
  await drive(page, voice => { voice.boundaries = false; });
- await page.getByRole('button', { name: 'Open GilbertOne' }).click();
+ await page.getByRole('button', { name: gilbert.identity.callToAction, exact: true }).click();
  await page.getByRole('button', { name: /^Replay the spoken answer/ }).click();
  const caption = page.locator('.go-caption');
  await expect(caption).toBeVisible();
@@ -520,7 +520,7 @@ test('the demonstrator never claims to be the live assistant, a service, or conn
  expect(words).not.toMatch(/\bConnected\b/);
  /* Nothing is written to storage of any kind, on a page that holds what somebody types and what a
     recogniser sent back. */
- await page.getByRole('button', { name: 'Open GilbertOne' }).click();
+ await page.getByRole('button', { name: gilbert.identity.callToAction, exact: true }).click();
  await page.getByRole('textbox').fill('Something private.');
  await page.getByRole('button', { name: /^Send this message/ }).click();
  await mic(page).click();
@@ -531,7 +531,7 @@ test('the demonstrator never claims to be the live assistant, a service, or conn
 
 test('the page has no horizontal overflow at 320px, inside its scrolling regions as well as at the page level', async ({ page }) => {
  await page.setViewportSize({ width: 320, height: 720 });
- await page.getByRole('button', { name: 'Open GilbertOne' }).click();
+ await page.getByRole('button', { name: gilbert.identity.callToAction, exact: true }).click();
  const overflow = await page.evaluate(() => {
   const page = document.documentElement.scrollWidth - document.documentElement.clientWidth;
   const inside = [...document.querySelectorAll<HTMLElement>('main, .go-body, .go-panel, .go-cue-list, .go-mic')]
