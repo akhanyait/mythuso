@@ -57,11 +57,16 @@ const cards = registry.cards as Card[];
 const classes = voice.queryClasses as QueryClass[];
 const languages = assistant.voice.languages as Language[];
 const english = languages[0]!;
-/* The platform's default label and the other one, from the contract; the voice NAMES are read from the
-   language's own list and never typed here — scripts/check-boundaries.mjs sweeps this file for one. */
+/* The platform's default label (assistant.voice.cloud.defaultVoice — female) is still what every
+   emergency, refusal and escalation answer is read in, and what a locked preview chip shows.
+   Presentation registers ship a different default since the founder's decision of 4 October 2026:
+   voice.json's presentation-voice-* defaults (male). The "other" label is the one that is not that
+   register default. Voice NAMES are read from the language's own list and never typed here —
+   scripts/check-boundaries.mjs sweeps this file for one. */
 const platformLabel = assistant.voice.cloud.defaultVoice as string;
-const otherLabel = Object.keys(assistant.voice.cloud.voices).find(label => label !== platformLabel)!;
-const voiceSettings = (voice.settings.items as { key: string; label: string; allowed: { value: string; label: string }[] }[]);
+const voiceSettings = (voice.settings.items as { key: string; label: string; allowed: { value: string; label: string }[]; default: { value: string } }[]);
+const registerDefaultLabel = voiceSettings.find(s => s.key === 'presentation-voice-routine')!.default.value;
+const registerOtherLabel = Object.keys(assistant.voice.cloud.voices).find(label => label !== registerDefaultLabel)!;
 const liveActions = (g1.actions as Action[]).filter(a => a.live);
 
 const panel = (page: Page) => page.locator('#pt-subpanel');
@@ -260,7 +265,7 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
    const setting = voiceSettings.find(s => s.key === c.setting)!;
    await expect(voices.getByRole('radio')).toHaveCount(setting.allowed.length);
    for (const radio of await voices.getByRole('radio').all()) await expect(radio).toBeEnabled();
-   await expect(voices.getByRole('radio', { name: setting.allowed.find(a => a.value === platformLabel)!.label, exact: true })).toBeChecked();
+   await expect(voices.getByRole('radio', { name: setting.allowed.find(a => a.value === registerDefaultLabel)!.label, exact: true })).toBeChecked();
    const save = card.getByRole('button', { name: fill(speech.saveRegister!, { register: c.label }) });
    await expect(save).toBeDisabled();
    await expect(save).toHaveClass(/g1-live/);
@@ -288,7 +293,7 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   const routineVoices = routineCard.getByRole('group', { name: fill(speech.voiceLabel!, { register: routine.label }) });
   const routineChip = (value: string) => routineVoices.getByRole('radio', { name: routineSetting.allowed.find(a => a.value === value)!.label, exact: true });
   const routineSave = routineCard.getByRole('button', { name: fill(speech.saveRegister!, { register: routine.label }) });
-  await routineChip(otherLabel).check();
+  await routineChip(registerOtherLabel).check();
   await expect(routineSave).toBeEnabled();
   await routineSave.click();
   await expect(change.getByRole('alert')).toHaveText((settingsContract.refusals as { id: string; statement: string }[]).find(r => r.id === 'setting-change-without-reason')!.statement);
@@ -297,12 +302,12 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   await routineSave.click();
   await expect(change.getByRole('status')).toContainText(fill(say.applied.split('{at}')[0]!, { version: '2' }).trim());
   await expect(routineSave).toBeDisabled();
-  await expect(routineCard).toContainText(fill(words.inForceSentence, { label: `${cards.find(c => c.id === providerSettings.find(s => s.key === `presentation-provider-${routine.id}`)!.allowed![0]!.value)!.name}, ${routineSetting.allowed.find(a => a.value === otherLabel)!.label}` }));
+  await expect(routineCard).toContainText(fill(words.inForceSentence, { label: `${cards.find(c => c.id === providerSettings.find(s => s.key === `presentation-provider-${routine.id}`)!.allowed![0]!.value)!.name}, ${routineSetting.allowed.find(a => a.value === registerOtherLabel)!.label}` }));
   await expect(panel(page)).toContainText(fill(speech.sourceTab!, { version: '2' }));
   /* The other cards are untouched: one setting per class. */
   for (const c of classes.filter(x => x.previewMaySaveAsDefault && x.id !== routine.id)) {
    const setting = voiceSettings.find(s => s.key === c.setting)!;
-   await expect(change.getByRole('article', { name: c.label, exact: true }).getByRole('radio', { name: setting.allowed.find(a => a.value === platformLabel)!.label, exact: true })).toBeChecked();
+   await expect(change.getByRole('article', { name: c.label, exact: true }).getByRole('radio', { name: setting.allowed.find(a => a.value === registerDefaultLabel)!.label, exact: true })).toBeChecked();
   }
 
   for (const q of voice.previewPanel.questions) await expect(preview).toContainText(q);
@@ -337,13 +342,13 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   const voiceChooser = preview.getByRole('group', { name: words.previewVoiceLabel, exact: true });
   const voiceChip = (value: string) => voiceChooser.getByRole('radio', { name: routineSetting.allowed.find(a => a.value === value)!.label, exact: true });
   for (const radio of await voiceChooser.getByRole('radio').all()) await expect(radio).toBeEnabled();
-  await expect(voiceChip(otherLabel)).toBeChecked();
-  await expect(preview).toContainText(english.ttsVoices![otherLabel]!);
+  await expect(voiceChip(registerOtherLabel)).toBeChecked();
+  await expect(preview).toContainText(english.ttsVoices![registerOtherLabel]!);
   await expect(play).toBeEnabled();
   await play.click();
   await expect.poll(() => spoken.length).toBe(1);
   expect(spoken[0]!.url).toMatch(new RegExp(`${g1.overview.prefix}${words.previewRoute.path}$`));
-  expect(spoken[0]!.voice).toBe(english.ttsVoices![otherLabel]);
+  expect(spoken[0]!.voice).toBe(english.ttsVoices![registerOtherLabel]);
   expect(spoken[0]!.text).toBe(text);
   await expect(preview).toContainText(fill(words.previewTotalSentence.split('{cost}')[0]!, { plays: '1' }).trim());
   /* On a locked register the chooser is disabled on the platform's default alone, no Save is offered, and Play
@@ -364,12 +369,12 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   await register.selectOption(routine.id);
   const previewSave = preview.getByRole('button', { name: action('voice-save-as-default').label, exact: true });
   await expect(previewSave).toBeDisabled();
-  await voiceChip(platformLabel).check();
+  await voiceChip(registerDefaultLabel).check();
   await expect(previewSave).toBeEnabled();
-  await preview.getByLabel(say.reason).fill('Back to the platform voice: the other one read the booking steps too fast.');
+  await preview.getByLabel(say.reason).fill('Back to the register default: the other one read the booking steps too fast.');
   await previewSave.click();
   await expect(preview.getByRole('status').last()).toContainText(fill(say.applied.split('{at}')[0]!, { version: '3' }).trim());
-  await expect(routineChip(platformLabel)).toBeChecked();
+  await expect(routineChip(registerDefaultLabel)).toBeChecked();
   await holdsNothingOpen(page, 'Speech settings');
   expect(spoken.filter(s => !new RegExp(`${words.previewRoute.path}$`).test(s.url)), 'the Speech settings screen asked something other than the preview route to speak').toEqual([]);
   expect(spoken.every(s => classes.some(c => c.id === s.register)), `every preview reading named one of the contract's registers: ${spoken.map(s => s.register).join(', ')}`).toBe(true);
@@ -407,7 +412,7 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   const routineSetting = voiceSettings.find(s => s.key === routine.setting)!;
   const change = panel(page).getByRole('region', { name: new RegExp(`^${speech.changeHeading}`) });
   const card = change.getByRole('article', { name: routine.label, exact: true });
-  await card.getByRole('group', { name: fill(speech.voiceLabel!, { register: routine.label }) }).getByRole('radio', { name: routineSetting.allowed.find(a => a.value === otherLabel)!.label, exact: true }).check();
+  await card.getByRole('group', { name: fill(speech.voiceLabel!, { register: routine.label }) }).getByRole('radio', { name: routineSetting.allowed.find(a => a.value === registerOtherLabel)!.label, exact: true }).check();
   await change.getByLabel(say.reason).fill('Hearing the other voice on the patient panel before deciding.');
   await card.getByRole('button', { name: fill(speech.saveRegister!, { register: routine.label }) }).click();
   await expect(change.getByRole('status')).toBeVisible();
@@ -416,11 +421,14 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   await chooseRole(page, 'Patient');
   const gilbert = assistant;
   await page.getByRole('button', { name: gilbert.identity.callToAction, exact: true }).click();
+  const gate = page.getByRole('dialog', { name: 'Before we start' });
+  await expect(gate.or(page.getByRole('dialog', { name: gilbert.identity.name }))).toBeVisible();
+  if (await gate.isVisible()) {
+   await gate.getByRole('checkbox', { name: 'I understand' }).check();
+   await gate.getByRole('button', { name: 'Continue', exact: true }).click();
+  }
   const sheet = page.getByRole('dialog', { name: gilbert.identity.name });
   await expect(sheet).toBeVisible();
-  await sheet.getByRole('checkbox', { name: gilbert.consent.checkboxDoctor }).check();
-  await sheet.getByRole('checkbox', { name: gilbert.consent.checkboxEmergency }).check();
-  await sheet.getByRole('button', { name: gilbert.consent.accept }).click();
   const ask = async (words: string) => {
    await sheet.getByLabel(gilbert.conversation.inputLabel).fill(words);
    await sheet.getByRole('button', { name: gilbert.conversation.sendLabel, exact: true }).click();
@@ -429,7 +437,7 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   /* A routine answer — a situation — is asked for in the voice the administrator chose. */
   await ask('Are my results back?');
   await expect.poll(() => spoken.filter(s => /\/speak\b/.test(s.url)).length).toBe(1);
-  expect(spoken.filter(s => /\/speak\b/.test(s.url))[0]!.voice).toBe(english.ttsVoices![otherLabel]);
+  expect(spoken.filter(s => /\/speak\b/.test(s.url))[0]!.voice).toBe(english.ttsVoices![registerOtherLabel]);
   expect(zoneOf(spoken.filter(s => /\/speak\b/.test(s.url))[0]!.register), 'a routine answer names a presentation register, so the administrator\'s speech settings reach it').toBe('presentation');
   /* The emergency answer is asked for in the platform's default, whatever was saved. */
   await ask('What if it cannot wait?');
@@ -446,7 +454,7 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   const ttsCards = (voice.providers.tts as string[]).map(id => cards.find(c => c.id === id)!).filter(c => c.buildStatus === 'built');
   const azure = ttsCards[0]!;
   const settings = voice.settings.items as { key: string; label: string; help: string; type: string; unit: string | null; appliesTo: string; allowed?: { value: string | boolean; label: string }[]; default: { value: unknown } }[];
-  const female = voiceSettings[0]!.allowed.find(a => a.value === platformLabel)!.label;
+  const registerDefaultWord = voiceSettings[0]!.allowed.find(a => a.value === registerDefaultLabel)!.label;
   const knobKeys = (card: Card) => settings.filter(x => x.key.startsWith(`${card.id.split('-')[0]}-`));
   const shared = settings.filter(x => !x.key.startsWith('presentation-') && !ttsCards.some(c => x.key.startsWith(`${c.id.split('-')[0]}-`)));
   /* Every built speaking card with knobs is a group of its own, and the rest are every provider's. */
@@ -484,7 +492,7 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   await expect(fold).toContainText(words.serviceReadsDefaults!);
   const inForce = fold.getByRole('region', { name: new RegExp(`^${words.inForceHeading}`) });
   for (const c of classes.filter(x => x.zone === 'presentation'))
-   await expect(inForce).toContainText(fill(words.registerSentence!, { register: c.label, provider: azure.name, voice: female }));
+   await expect(inForce).toContainText(fill(words.registerSentence!, { register: c.label, provider: azure.name, voice: registerDefaultWord }));
   await expect(inForce).not.toContainText(words.ownVoiceOnWord!);
   await expect(inForce).toContainText((voice.refusals as { id: string; statement: string }[]).find(r => r.id === 'no-provider-setting-on-a-clinical-register')!.statement);
   const providers = fold.getByRole('region', { name: new RegExp(`^${words.providersHeading}`) });

@@ -12,6 +12,7 @@ import { readFileSync } from 'node:fs';
  * Every journey stands the browser's own voice down before the app runs: a reply is read aloud, and in
  * headless Chromium a cancel on a live utterance stalls input delivery (see assistant-polish.spec.ts). */
 const gilbert = JSON.parse(readFileSync(new URL('../packages/catalog/assistant.json', import.meta.url), 'utf8'));
+const publicCopy = JSON.parse(readFileSync(new URL('../packages/catalog/assistant-public.json', import.meta.url), 'utf8'));
 const safetyCue: string = gilbert.affect.answers.emergency.cue;
 
 test.beforeEach(async ({ page }) => {
@@ -22,11 +23,16 @@ test.beforeEach(async ({ page }) => {
 });
 
 const panel = (page: Page) => page.getByRole('dialog', { name: gilbert.identity.name });
+/* Patient and public sheets both open on BeforeWeStart (gilbert-quiet.tsx) since the quiet-chrome
+   redesign: one I-understand checkbox and Continue, not the older two-box consent. */
 const consent = async (page: Page) => {
- const sheet = panel(page);
- await sheet.getByRole('checkbox', { name: gilbert.consent.checkboxDoctor }).check();
- await sheet.getByRole('checkbox', { name: gilbert.consent.checkboxEmergency }).check();
- await sheet.getByRole('button', { name: gilbert.consent.accept }).click();
+ const gate = page.getByRole('dialog', { name: 'Before we start' });
+ await expect(gate.or(panel(page))).toBeVisible();
+ if (await gate.isVisible()) {
+  await gate.getByRole('checkbox', { name: 'I understand' }).check();
+  await gate.getByRole('button', { name: 'Continue', exact: true }).click();
+ }
+ await expect(panel(page)).toBeVisible();
 };
 const ask = async (page: Page, words: string) => {
  await panel(page).getByLabel(gilbert.conversation.inputLabel).fill(words);
@@ -105,31 +111,35 @@ test('the panel grows out of the launcher, and a reader who asked for stillness 
  expect(growth.scale).toBeGreaterThan(0);
  expect(growth.scale).toBeLessThan(1);
  /* The close hands focus straight back while the sheet shrinks into him. */
- await panel(page).getByRole('button', { name: 'Close GilbertOne', exact: true }).click();
+ await page.getByRole('dialog').getByRole('button', { name: 'Close GilbertOne', exact: true }).click();
  await expect(launcher).toBeFocused();
- await expect(panel(page)).toBeHidden();
+ await expect(page.getByRole('dialog')).toBeHidden();
 
  await page.emulateMedia({ reducedMotion: 'reduce' });
  await launcher.click();
  await page.waitForFunction(() => (document.querySelector('#assistant-panel') as HTMLDialogElement | null)?.open);
  expect(await movingIn(page, '#assistant-panel')).toEqual([]);
- expect(await panel(page).evaluate(el => getComputedStyle(el).opacity)).toBe('1');
+ /* Before consent the sheet is named Before we start; opacity is on #assistant-panel either way. */
+ expect(await page.locator('#assistant-panel').evaluate(el => getComputedStyle(el).opacity)).toBe('1');
 });
 
 test('the robot on the landing page is still at rest, and the public emergency answer has no entrance', async ({ page }) => {
  await page.goto('/landing.html');
- const launcher = page.getByRole('button', { name: 'Ask GilbertOne about MyThuso' });
+ const launcher = page.getByRole('button', { name: gilbert.identity.callToAction, exact: true });
  await expect(launcher).toBeVisible();
  /* Longer than the rig's idle drift (3 s) and its shortest blink spacing (4 s): nothing fires. */
  await page.waitForTimeout(4500);
  expect(await movingIn(page, '.public-assistant-launcher')).toEqual([]);
  await launcher.click();
+ const gate = page.getByRole('dialog', { name: 'Before we start' });
+ await gate.getByRole('checkbox', { name: 'I understand' }).check();
+ await gate.getByRole('button', { name: 'Continue', exact: true }).click();
  const sheet = page.getByRole('dialog', { name: gilbert.identity.name });
- await sheet.getByLabel('Ask about MyThuso', { exact: true }).fill('I have chest pain');
+ await sheet.getByLabel(publicCopy.inputLabel, { exact: true }).fill('I have chest pain');
  await sheet.getByRole('button', { name: gilbert.conversation.sendLabel, exact: true }).click();
- const last = sheet.locator('ol > li').last();
- await expect(last).toHaveAttribute('data-outcome', 'emergency');
- expect(await movingIn(page, '.public-assistant ol > li:last-child')).toEqual([]);
+ const last = sheet.locator('.go-turn').last();
+ await expect(last).toContainText('10177');
+ expect(await movingIn(page, '.public-assistant .go-turn:last-child')).toEqual([]);
  await expect(last.locator('li strong').first()).toHaveText('10177');
 });
 
