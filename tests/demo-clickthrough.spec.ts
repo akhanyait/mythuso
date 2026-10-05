@@ -148,7 +148,7 @@ test('demo · Book care catalogue page says the preview does not book a real vis
 /* -------------------------------------------------------------------------- */
 /* (c) GilbertOne — typed only, never voice                                   */
 /* -------------------------------------------------------------------------- */
-test('demo · GilbertOne typed conversation: greeting, heartburn, emergency, nurse, dosing refusal', async ({ page }) => {
+test('demo · GilbertOne typed conversation: greeting, emergency, nurse, dosing refusal', async ({ page }) => {
   await page.goto('/app/');
   const panel = await openGilbertOne(page);
   await shot(page, '06-gilbertone-open');
@@ -163,14 +163,10 @@ test('demo · GilbertOne typed conversation: greeting, heartburn, emergency, nur
   await expect(identity.turn).toContainText(/GilbertOne|approved answers|not a doctor/i);
   await expect(panel.getByText(modelLabel, { exact: true })).toHaveCount(0);
 
-  /* Heartburn — currently unmatched; exact wording TBD. */
-  const heartburn = await askTyped(panel, 'I have heartburn');
-  /* TODO(GilbertOne): exact expected heartburn reply once the developer sends it. */
-  await expect(heartburn.turn).toBeVisible();
-  await expect(panel.getByText(modelLabel, { exact: true })).toHaveCount(0);
-  await shot(page, '07-gilbertone-heartburn');
+  /* Heartburn is left out of the demo on purpose: no reviewed answer exists yet, so it falls back to "can't assess". */
 
-  /* Emergency phrase — numbers as text and tel: links. */
+  /* Emergency phrase — numbers as text and tel: links.
+     TODO(Ful Stack): numbers inside the answer are becoming tap-to-call; assert tel: links in the turn once that build lands. */
   const emergency = await askTyped(panel, "I've got chest pain and I'm sweating a lot");
   await expect(emergency.reply).toHaveAttribute('data-outcome', 'emergency');
   await expect(emergency.turn).toContainText(ambulance.number);

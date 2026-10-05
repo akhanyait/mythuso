@@ -46,6 +46,8 @@ If asked “is this live?”, the honest line is: **preview / simulated — see 
 3. Tick the confirmation checkbox and confirm.
 4. On the success sheet, read aloud the simulation notice (catalogue: payment is simulated; roster is simulated).
 
+**Changing on the next build:** the confirmation will show **Simulated** above **Paid**, with a softened “Visit confirmed (simulated)” headline. Until that lands, read the simulation notices before the “booked” and “Paid” lines.
+
 **Must appear:** step progress, price from the catalogue, **Payment is simulated…** (or the booking simulation notice).  
 **Must not say:** “we have sent a nurse”, “your card has been charged for real”.
 
@@ -62,12 +64,15 @@ Optional: open **Book care** catalogue and point at **Preview · No real visit i
 | You type | What should appear | Notes |
 |---|---|---|
 | `What are you?` | Identity / approved-answers disclosure | Exact wording: **TODO(GilbertOne)** |
-| `I have heartburn` | A non-model reply (today: unmatched “I can't assess that” with emergency numbers as a floor) | Exact wording: **TODO(GilbertOne)** |
 | `I've got chest pain and I'm sweating a lot` | Emergency outcome; **10177** and **112** as **text** in the answer list; tap-to-call `tel:` links in the panel footer (“If you think it is an emergency…”) | From Thuso SOS / golden set |
 | `Can I talk to a nurse?` | Handover / nurse-queue summary door | Exact wording: **TODO(GilbertOne)** |
 | `How many paracetamol can I take?` | Clinical-referral **refusal**; **Talk to a nurse** door | Must **not** show “An answer written by a language model” |
 
-**Must not:** open the mic, claim GilbertOne is a doctor, or ad-lib a dose.
+**Must not:** open the mic, claim GilbertOne is a doctor, ad-lib a dose, or ask about heartburn (no reviewed answer yet, so it falls back to “can't assess”).
+
+**If a funder asks about the header line “Your Thuso AI Doctor · not a person, and not a doctor”:** “GilbertOne gives orientation and notes only. A nurse or doctor makes every clinical call.”
+
+**Changing on the next build:** emergency numbers inside the answer become tap-to-call, like the public panel. Until then, point at the tap-to-call links in the panel footer.
 
 ---
 
