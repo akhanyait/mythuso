@@ -87,8 +87,10 @@ test('the tips screen says only what the contract says, and every control is a 4
  const targets = page.locator('.ct-progress button, .ct-actions button, .ct-about button');
  for (let i = 0; i < await targets.count(); i++) {
   const box = await targets.nth(i).boundingBox();
-  expect(box!.height, `control ${i} height`).toBeGreaterThanOrEqual(44);
-  expect(box!.width, `control ${i} width`).toBeGreaterThanOrEqual(44);
+  /* Rounded, as patient-pages.spec.ts and icons.spec.ts read theirs: a 44px control came back
+     43.999969482421875 on CI, one 32768th of a pixel, which is the layout quantiser and not a size. */
+  expect(Math.round(box!.height), `control ${i} height`).toBeGreaterThanOrEqual(44);
+  expect(Math.round(box!.width), `control ${i} width`).toBeGreaterThanOrEqual(44);
  }
  /* Nothing scrolls sideways, on the page or inside the scrollers a page-level check cannot see into. */
  for (let i = 0; i < tips.tips.length; i++) {
