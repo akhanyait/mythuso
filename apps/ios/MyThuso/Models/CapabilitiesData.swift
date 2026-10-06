@@ -23,7 +23,7 @@ extension Capabilities {
     /// In the contract's own order, which is roughly the order a person meets them.
     static let all: [Capability] = [
         Capability(id: "accounts", name: "Accounts and sign-in", connected: false,
-                   evidence: "apps/api/src/identity",
+                   evidence: "apps/api/src/identity.ts",
                    blockedBy: [
                        "An SMS provider for one-time codes.",
                        "An answer to what a one-time code costs somebody who has none. DNS and TLS were the second blocker here until 10 September and are done — mythuso.co.za serves https on both names, and the identity service is still switched off, because a certificate makes the endpoint safe to reach and does not make it safe to run."

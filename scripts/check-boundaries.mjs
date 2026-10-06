@@ -8718,6 +8718,62 @@ if (
   );
 }
 
+/* The patient's price is held to the catalogue too, and it was not before 6 October 2026.
+
+   The guard above reads Landing.tsx, and every price check in this file reads Landing.tsx: the
+   nurse's share, the percentage, the range. What none of them read is the two places that state
+   the price a *patient* pays, because neither is a React component. apps/web/landing.html writes
+   "from R249" into its own meta description and Open Graph description as static text — so a
+   crawler pasting the link into WhatsApp reads a price that no check derives — and
+   packages/catalog/locales.json writes "Visits from R249" in four strings. Both were correct on
+   the day this was added, and that is exactly the problem: a number that is right and unguarded is
+   a number that goes stale the next time the catalogue moves, quietly, on the one page a stranger
+   reads first.
+
+   These are the patient's price and not the nurse's share, so they are compared with the cheapest
+   phase-one service rather than with `shares` above. Phase one because the page advertises what
+   launches, and the cheapest because the sentence says "from": R150 exists in the catalogue but is
+   phase three, and a price that will not exist at launch is not a price the page may lead with.
+
+   The two are checked in the same rule because they are the same number, and a fix that guards one
+   and not the other is a fix that moves the drift rather than removing it. */
+{
+  const cheapestLaunch = Math.min(
+    ...catalogue.filter((s) => s.phase === 1 && typeof s.price === "number").map((s) => s.price),
+  );
+  /* Every "from R<price>" in the static entry, and every "from R<price>" / "ku-R<price>" in the
+     locale strings, including the translations: a price corrected in English and left in isiZulu is
+     a price that is wrong for the person who reads isiZulu. */
+  const stated = new Map();
+  for (const [file, pattern] of [
+    ["apps/web/landing.html", /\bfrom R(\d{3,4})\b/g],
+    ["packages/catalog/locales.json", /\b(?:from|ku-)R(\d{3,4})\b/g],
+  ]) {
+    const source = read(file);
+    for (const match of source.matchAll(pattern)) {
+      const price = Number(match[1]);
+      if (!stated.has(file)) stated.set(file, new Set());
+      stated.get(file).add(price);
+    }
+  }
+  for (const [file, prices] of stated) {
+    for (const price of prices) {
+      if (price !== cheapestLaunch)
+        throw new Error(
+          `${file} tells a patient a visit is from R${price}. The cheapest service that launches is R${cheapestLaunch}, in packages/catalog/services.json. Either the catalogue is wrong or this sentence is — and a price typed into a page is the one that outlives the change.`,
+        );
+    }
+  }
+  /* Neither file may stop stating it. A guard that only fires when a number is present is a guard
+     that passes the day the sentence is deleted, which is how a page ends up advertising nothing
+     while the price it meant is still being charged. */
+  for (const file of ["apps/web/landing.html", "packages/catalog/locales.json"])
+    if (!stated.has(file))
+      throw new Error(
+        `${file} no longer states a price in a form this check can read. The patient's first view says what a visit costs; a page that stopped saying so has not become honest, it has become silent — and this check cannot hold a number that is not written down.`,
+      );
+}
+
 /* Thuso SOS is the one screen in this repository where being wrong is dangerous rather than
    inconvenient, so it is checked harder than anything else here.
 

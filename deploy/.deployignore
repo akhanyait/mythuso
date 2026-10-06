@@ -33,6 +33,19 @@ id_rsa*
 *.db-wal
 *.db-shm
 
+# Four editorial photographs that no page asks for, published anyway. Vite copies apps/web/public
+# verbatim into dist, so a file sitting there reaches the web root whether or not anything names it —
+# and check-boundaries.mjs forbids Landing.tsx from naming an editorial PNG at all, precisely because
+# they are 2.1 to 2.6 MB each and the first view of the one page a stranger reads is on a metered
+# South African connection. That check stops a page from asking for them; nothing stopped them from
+# shipping, so all four answered 200 at https://mythuso.co.za/editorial/*.png — 9.0 MB publicly
+# fetchable and never fetched by the site. The page uses /banners/*.webp instead.
+#
+# The pattern is *.png and not the whole directory: /editorial/step-{patient,nurse,doctor}.jpg are
+# asked for by Landing.tsx and by packages/catalog/hero.json, and must keep shipping. Only the PNGs
+# are dead weight. The files stay in git — this stops publication, not authorship.
+editorial/*.png
+
 # Build and tool state. dist/ is what we publish, so it is not excluded here — the exclusions are
 # relative to whatever directory is being synced, and we sync dist/ itself.
 node_modules/

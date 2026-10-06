@@ -135,7 +135,15 @@ running the steps by hand is how it gets skipped.
 
 ---
 
-## 3. Look at all five entries yourself
+## 3. Look at all four entries yourself
+
+<!-- It said "all five" until 6 October 2026, which was already wrong when this heading was
+     corrected elsewhere: the loop below walks seven paths and its own text expects 200 for four
+     of them — `/`, `/app/`, `/shop/` and `/status/` — with three answering 301. Five counted the
+     entries before `shop.html` arrived and before `/staff/` and `/admin/` became redirects. A
+     heading that disagrees with the commands under it is how a reader stops trusting the commands,
+     and this runbook is read by hand at the moment a deploy has gone wrong. -->
+
 
 The deploy checked these from the server. Check them from outside, because that is a different
 question — it involves DNS, the public internet and, later, TLS.

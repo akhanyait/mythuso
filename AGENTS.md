@@ -40,7 +40,7 @@ raising the ceiling is a decision to bring to the founder rather than to make �
 whole point of the number and does not change because today's build happens to sit under it.
 
 > **Open item, 6 October 2026 — the measured entry and the entry a patient is sent to are not the
-> same file, and this pass did not measure the difference.** `check-bundle-budget.mjs` measures
+> same file.** `check-bundle-budget.mjs` measures
 > `apps/web/dist/index.html`, which nginx serves at `/app/` and which loads `/src/main.tsx`. But the
 > public page's own call to action sends a patient to `/?role=patient`
 > (`apps/web/src/features/Landing.tsx:85`), and `/` serves `landing.html`, which loads
@@ -50,14 +50,34 @@ whole point of the number and does not change because today's build happens to s
 > point entirely. Neither `landing.html` nor the Workspace chunk is what the ceiling holds. Two
 > independent reviews read the heavier path as the one nothing measures.
 >
-> **No new number is written here and none should be quoted from this note.** Working out what that
-> path costs needs a fresh build of both entries measured the same way, and this pass ran no build —
-> the mechanism above was read from source, not measured. The next session must verify the figure
-> against the entry that is actually served to a patient rather than trust either number, including
-> the one the script prints, which answers a question about `/app/` and not about `/`. Which of the
-> two is the patient's real first view — and therefore which one the ceiling should hold — is a
-> question to bring to the founder along with any figure derived from it, not to settle by pointing
-> the script at a different file.
+> **Measured, 6 October 2026, and the premise of that worry did not survive the measurement.** One
+> build of the tree, both entries measured the way the script measures — same reference regex over
+> `src=`/`href=` for `.js|.mjs|.css`, each gzipped at level 9, summed in binary kB, against the same
+> 282.16 ceiling:
+>
+> - `index.html` (the entry the ceiling holds, served at `/app/`): **241.88 kB** across 15 files.
+> - `landing.html` (served at `/`, what a patient actually arrives at): **121.41 kB** across 16 files
+>   — **120 kB lighter**, not heavier. It contains zero references to a Workspace chunk; `index.html`
+>   contains two.
+> - The worst path, `/?role=patient` with the lazily fetched Workspace chunk added to the entry that
+>   loads it: 121.41 + 86.47 = **207.89 kB**, leaving 74.27 kB of headroom.
+>
+> So the unmeasured path is the cheaper one, and the mechanism is the one `landing.tsx:11-13` states:
+> `const Workspace = lazy(() => import('./Workspace'))`, so reading the public site never downloads a
+> clinical screen and a `role` parameter pays for one chunk on demand rather than statically. The
+> note's claim that "two independent reviews read the heavier path as the one nothing measures" was
+> reading source and inferring weight; the built tree says otherwise. This build did not set
+> `VITE_MYTHUSO_STAFF_PREVIEW`, which is why `index.html` reads 241.88 rather than the deployed
+> 254.06 — compare figures only against builds of the same flag, and `deploy/deploy.sh` and
+> `apps/web/src/Doorway.tsx` both carry the +12.18 kB the flag costs.
+>
+> **Still a founder question, and this measurement does not settle it.** Which entry the ceiling
+> should hold is not answered by pointing the script at a different file. It now rests on a real
+> figure rather than a guess: holding `index.html` at 282.16 governs the heavier of the two by
+> 120 kB and leaves the patient's own address ungoverned, while governing `landing.html` would hold a
+> file that currently has 160 kB of room. Both entries are worth a ceiling, and neither figure here is
+> a recommendation.
+
 
 ## What is decided and where the decision is written down
 

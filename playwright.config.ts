@@ -51,5 +51,31 @@ const baseURL = `http://127.0.0.1:${port}`;
    and the nurse had already arrived before the journey looked for her. Every person this is built for
    is in that timezone; a suite that passes only on a machine that happens to be is not a suite. */
 const timezoneId = 'Africa/Johannesburg';
+/* The artifacts directory is port-suffixed for the same reason the port is configurable, and the
+   reason is a failure that looks like a broken test and is not. Playwright clears outputDir when a
+   run starts. Two runs in one checkout — a second agent session, a review of one branch while
+   another is being tested — therefore share `test-results/`, and the second run's startup deletes
+   the first run's artifacts while it is still writing them. What the first run reports is
 
-export default defineConfig({ testDir: './tests', fullyParallel: true, workers: 2, use: { baseURL, timezoneId, trace: 'retain-on-failure' }, webServer: { command: `VITE_MYTHUSO_STAFF_PREVIEW=true npm run dev -- --port ${port}`, url: baseURL, reuseExistingServer: false }, projects: [{ name: 'desktop', use: { browserName: 'chromium', viewport: { width: 1440, height: 1100 } } }, { name: 'mobile', use: { browserName: 'chromium', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } }] });
+     browserContext.close: ENOENT: no such file or directory, open
+       'test-results/.playwright-artifacts-0/<hash>/trace...'
+
+   after the test itself has finished, so the red names a test that passed and the trace that would
+   have shown why is gone. Measured on 6 October 2026: three mobile failures in a full baseline, two
+   of them `dispensing.spec.ts`, all three passing on their own; the one that did not pass on its own
+   was run while a second suite was live in the same checkout, and its error was this ENOENT and not
+   an assertion. A red that is somebody else's deletion cannot be debugged, because there is nothing
+   in it about the code.
+
+   So the directory follows MYTHUSO_PORT exactly as baseURL does: unset keeps the default name and
+   the default behaviour, and a run that sets its port gets its own artifacts too. .gitignore already
+   covers the suffix — its own line is the glob for that folder with a trailing star, commented "the
+   default and the per-agent ones" — and scripts/check-boundaries.mjs skips the prefix when it walks
+   for manifests.
+
+   Written without the literal glob in this comment on purpose. It ends in the two characters that
+   close a block comment, and spelling it out here closed this one early and left the remainder of
+   the sentence to be parsed as code: "Missing semicolon" three lines below the line that broke. */
+const outputDir = process.env.MYTHUSO_PORT ? `test-results-${process.env.MYTHUSO_PORT}` : 'test-results';
+
+export default defineConfig({ testDir: './tests', fullyParallel: true, workers: 2, outputDir, use: { baseURL, timezoneId, trace: 'retain-on-failure' }, webServer: { command: `VITE_MYTHUSO_STAFF_PREVIEW=true npm run dev -- --port ${port}`, url: baseURL, reuseExistingServer: false }, projects: [{ name: 'desktop', use: { browserName: 'chromium', viewport: { width: 1440, height: 1100 } } }, { name: 'mobile', use: { browserName: 'chromium', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } }] });
