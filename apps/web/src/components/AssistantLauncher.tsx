@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
+import { Suspense, lazy, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType } from 'react';
 import { AssistantGreeting } from './AssistantGreeting';
 import { OPEN_PARAM } from '../lib/roles';
 import type { PanelProps } from '../features/Assistant';
@@ -32,9 +32,17 @@ const load = () => import('../features/Assistant');
 let pending: ReturnType<typeof load> | null = null;
 const prefetch = () => (pending ??= load());
 
+/* The simulated consult sets this while the gate or the call is on screen, and dispatches
+   `mythuso:consult-live` in the same layout effect. The orb floats over the bottom of the page,
+   and on a phone that is the Leave button — a tap in its centre opened GilbertOne instead of
+   ending the call. Call ended takes the attribute down, so the orb returns. `?open=assistant`
+   never sets it: that address is the home, and this only reads the attribute. */
+const CONSULT_LIVE = 'data-consult-live';
+
 export function AssistantLauncher({ openModal, visit, audience, navigate }: { openModal?: (modal: string) => void; visit: Visit | null; audience?: PanelProps['audience']; navigate?: (page: string) => void }) {
  /* `/app/?open=assistant` opens the panel over the home. Read once, like every `open=` link. */
  const [open, setOpen] = useState(() => new URLSearchParams(window.location.search).get(OPEN_PARAM) === 'assistant');
+ const [stoodDown, setStoodDown] = useState(() => document.documentElement.hasAttribute(CONSULT_LIVE));
  const [opened, setOpened] = useState(open);
  const [attempt, setAttempt] = useState(0);
  const button = useRef<HTMLButtonElement>(null);
@@ -55,11 +63,26 @@ export function AssistantLauncher({ openModal, visit, audience, navigate }: { op
    action dispatches this event and the orb opens exactly as a press would. Additive — the launcher
    is the only listener, and nothing that does not dispatch it is affected. */
  useEffect(() => {
-  const ask = () => { setOpened(true); setOpen(true); };
+  const ask = () => {
+   if (document.documentElement.hasAttribute(CONSULT_LIVE)) return;
+   setOpened(true); setOpen(true);
+  };
   window.addEventListener('mythuso:ask-assistant', ask);
   return () => window.removeEventListener('mythuso:ask-assistant', ask);
  }, []);
+ /* The consult dispatches this from its layout effect, in the same turn it changes the
+    attribute. Reading it here — not in a passive effect — is what gets the orb out before paint. */
+ useLayoutEffect(() => {
+  const read = () => setStoodDown(document.documentElement.hasAttribute(CONSULT_LIVE));
+  read();
+  document.documentElement.addEventListener('mythuso:consult-live', read);
+  return () => document.documentElement.removeEventListener('mythuso:consult-live', read);
+ }, []);
+ /* Standing down closes a panel that was already open, so it cannot keep covering the call
+    after the orb itself has gone. Coming back does not reopen it. */
+ useEffect(() => { if (stoodDown) setOpen(false); }, [stoodDown]);
 
+ if (stoodDown) return null;
  return <div className="al-dock">
   <AssistantGreeting open={open} onOpen={() => { setOpened(true); setOpen(true); }}/>
   <button ref={button} type="button" className="as-launcher" aria-label="Ask GilbertOne" aria-haspopup="dialog"

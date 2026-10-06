@@ -146,6 +146,12 @@
 .bc-hint svg { color: var(--teal-ink); }
 .bc-done { padding-top: 28px; }
 
+/* The tab bar already pads the home indicator. Next, Confirm and Back to home are the last
+   controls on a short step, so the column keeps that inset rather than ending in it. */
+@media (max-width: 720px) {
+ .bc { padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px)); }
+}
+
 @media (min-width: 1000px) {
  .bc-title, .bc-kicker { text-align: center; }
  .bc-kicker__rule { margin-inline: auto; }

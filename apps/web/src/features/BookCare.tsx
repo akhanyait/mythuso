@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties, type ComponentType } from 'react';
+import { useLayoutEffect, useMemo, useState, type CSSProperties, type ComponentType } from 'react';
 import { ArrowLeft, ArrowRight, Calendar, Check, ChevronRight, HeartHandshake, Home, Info, MapPin, User, Video } from 'lucide-react';
 import { NotConnected } from '../components/NotConnected';
 import { Badge, Textarea } from '../ui';
@@ -91,6 +91,24 @@ const caredFor = previewHousehold().members
 
 const HOME_ADDRESS = `Home visit · ${HOME_SUBURB}`;
 
+/* While this screen is mounted the floating assistant stands down. AssistantLauncher reads
+   data-consult-live — the same attribute the simulated consult sets — so the two screens share
+   one flag. The confirmation is still this screen, so the orb stays down until the flow is left. */
+function useStandDownAssistant() {
+ useLayoutEffect(() => {
+  const root = document.documentElement;
+  const mark = (live: boolean) => {
+   if (live) root.setAttribute('data-consult-live', '');
+   else root.removeAttribute('data-consult-live');
+   /* Synchronous, so the launcher's listener runs inside this layout effect and React
+      paints the step without the orb. A mutation observer would arrive a frame later. */
+   root.dispatchEvent(new Event('mythuso:consult-live'));
+  };
+  mark(true);
+  return () => mark(false);
+ }, []);
+}
+
 type OptionProps = {
  name: string;
  value: string;
@@ -116,6 +134,7 @@ function Option({ name, value, checked, onSelect, icon: Icon, title, detail, bad
 }
 
 export function BookCare({ navigate }: { navigate: (page: string) => void }) {
+ useStandDownAssistant();
  const windows = useMemo(() => offeredWindows(new Date()), []);
  const [step, setStep] = useState(0);
  const [confirmed, setConfirmed] = useState(false);
