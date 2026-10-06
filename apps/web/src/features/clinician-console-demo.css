@@ -1,0 +1,124 @@
+/* Clinician console demo (Wednesday funder demo). White cards on the shell's own ground, 16px
+   between them. Teal is the closest tokens to the mock's #0D9488: --brand-green for the chart
+   line, --teal-ink for filled controls so the white label still clears. Danger red is Leave only.
+   Rose on Priority High is not a token, and it is not --danger. */
+
+.ccd { display: grid; gap: var(--space-16); width: 100%; min-width: 0; color: var(--color-foreground); }
+.ccd h1, .ccd h2, .ccd h3, .ccd h4, .ccd p { margin: 0; }
+.ccd h1 { font-family: var(--font-display); font-size: 22px; font-weight: 650; letter-spacing: -0.4px; line-height: 1.2; color: var(--charcoal); }
+.ccd h2 { font-family: var(--font-display); font-size: 18px; font-weight: 650; letter-spacing: -0.3px; line-height: 1.3; color: var(--charcoal); }
+.ccd h3 { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); font-size: 15px; font-weight: 650; color: var(--charcoal); }
+.ccd h3 svg { color: var(--teal-ink); flex: none; }
+.ccd h4 { font-size: 13px; font-weight: 600; color: var(--color-muted-foreground); }
+
+.ccd-bar { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-12) var(--space-16); }
+.ccd-title { display: flex; align-items: flex-start; gap: var(--space-12); min-width: 0; }
+.ccd-mark { display: grid; place-items: center; width: 48px; height: 48px; flex: none; border-radius: 14px; background: var(--teal-soft); color: var(--teal-ink); }
+.ccd-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8) var(--space-12); }
+.ccd-sub { margin-top: 2px; font-size: 13px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.ccd-live, .ccd-stream, .ccd-status, .ccd-tile-label span { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--brand-green); }
+.ccd-dot { width: 8px; height: 8px; border-radius: var(--r-pill); background: var(--brand-green); display: inline-block; }
+.ccd-bar-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
+.ccd-secure { display: inline-flex; align-items: center; gap: var(--space-8); margin: 0; font-size: 14px; font-weight: 600; color: var(--charcoal); }
+.ccd-secure svg { color: var(--teal-ink); }
+
+.ccd-iconbtn { position: relative; display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 12px; background: transparent; color: var(--charcoal); cursor: pointer; }
+.ccd-iconbtn:hover { background: var(--teal-soft); }
+.ccd-more { border: 1px solid var(--color-border); background: var(--color-surface); }
+.ccd-bell-dot { position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border-radius: var(--r-pill); background: var(--teal-ink); }
+.ccd-toast { margin: 0; padding: var(--space-8) var(--space-12); border-radius: var(--r-md); background: var(--teal-soft); color: var(--teal-ink); font-size: 13px; }
+
+.ccd-columns { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-16); align-items: start; min-width: 0; }
+.ccd-card { display: grid; gap: var(--space-12); min-width: 0; padding: var(--space-16); border: 1px solid var(--color-border); border-radius: 16px; background: var(--color-surface); box-shadow: var(--shadow); }
+.ccd-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
+.ccd-card-head h2 { margin-right: auto; }
+.ccd-led { color: var(--teal-ink); font-weight: 650; }
+
+.ccd-demo { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: var(--r-pill); background: var(--teal-soft); color: var(--teal-ink); font-size: 12px; font-weight: 650; line-height: 1.4; }
+.ccd-demo--outline { background: var(--color-surface); border: 1px solid var(--teal-ink); }
+@media (prefers-reduced-motion: no-preference) {
+ .ccd-demo { animation: ccd-fade 200ms var(--ease-soft) both; }
+}
+@keyframes ccd-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.ccd-tile { position: relative; aspect-ratio: 16 / 10; border-radius: 12px; overflow: hidden; background: #d5ebe4; }
+.ccd-tile img { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; display: block; }
+.ccd-tile--nurse { background: #d5e3f0; }
+.ccd-nurse-tag { position: absolute; z-index: 1; top: 10px; left: 10px; padding: 2px 8px; border-radius: 6px; background: rgba(15, 23, 42, .72); color: #fff; font-size: 12px; font-weight: 650; }
+.ccd-tile-label { position: absolute; z-index: 1; left: 10px; bottom: 10px; display: grid; gap: 2px; margin: 0; padding: 6px 10px; border-radius: 10px; background: rgba(15, 23, 42, .72); color: #fff; }
+.ccd-tile-label strong { font-size: 13px; font-weight: 650; }
+.ccd-tile-label span { color: #b6f0d8; font-size: 12px; }
+.ccd-tile-expand { position: absolute; z-index: 1; right: 10px; bottom: 10px; display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: rgba(15, 23, 42, .55); color: #fff; cursor: pointer; }
+.ccd-cam-off { display: grid; place-items: center; align-content: center; gap: var(--space-8); width: 100%; height: 100%; background: var(--slate); color: #fff; font-size: 14px; font-weight: 650; }
+
+.ccd-controls { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.ccd-ctrl { flex: 1 1 80px; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 1px solid transparent; border-radius: 12px; font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; transition: transform 100ms linear; }
+.ccd-ctrl--teal { background: var(--teal-ink); color: #fff; }
+.ccd-ctrl--leave { background: var(--color-surface); border-color: var(--color-border); color: var(--danger); }
+.ccd-ctrl:active { transform: scale(0.96); }
+
+.ccd-block { display: grid; gap: var(--space-12); min-width: 0; }
+.ccd-block + .ccd-block { padding-top: var(--space-4); }
+.ccd-chips { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.ccd-chip { flex: 1 1 140px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: var(--space-8); padding: 8px 12px; border-radius: 10px; border: 1px solid transparent; font: inherit; font-size: 14px; font-weight: 650; cursor: pointer; }
+.ccd-chip--low { background: var(--teal-soft); color: var(--teal-ink); border-color: color-mix(in srgb, var(--teal-ink) 28%, transparent); }
+.ccd-chip--low[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--teal-ink); }
+.ccd-chip--mid { background: var(--mango-soft); color: var(--mango-ink); border-color: color-mix(in srgb, var(--mango-ink) 28%, transparent); }
+.ccd-chip--mid[aria-pressed="true"] { background: color-mix(in srgb, var(--mango) 32%, white); border-color: var(--mango-ink); }
+/* Rose, not danger. Leave is the only red on the screen. */
+.ccd-chip--high { background: #fdecef; color: #9a3d56; border-color: #f0c2cf; }
+.ccd-chip--high[aria-pressed="true"] { background: #f8d5e0; border-color: #c45b78; }
+@media (prefers-reduced-motion: no-preference) {
+ .ccd-chip[aria-pressed="true"] { animation: ccd-chip-in 300ms var(--ease-soft), ccd-pulse 1.2s ease-out 300ms 1; }
+}
+@keyframes ccd-chip-in { from { opacity: 0.4; } to { opacity: 1; } }
+@keyframes ccd-pulse {
+ 0% { box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 40%, transparent); }
+ 100% { box-shadow: 0 0 0 12px transparent; }
+}
+
+.ccd-stream { margin-left: var(--space-4); font-size: 12px; font-weight: 600; color: var(--faint); }
+.ccd-stream .ccd-dot { background: var(--brand-green); }
+.ccd-vitals { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-12); }
+.ccd-vital { display: grid; gap: 6px; min-width: 0; padding: var(--space-12); border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); }
+.ccd-value { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-8); }
+.ccd-value strong { font-family: var(--font-display); font-size: 28px; font-weight: 650; letter-spacing: -0.6px; font-variant-numeric: tabular-nums; color: var(--charcoal); white-space: nowrap; }
+.ccd-plot { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 4px; align-items: stretch; min-width: 0; }
+.ccd-yaxis { display: flex; flex-direction: column; justify-content: space-between; font-size: 10px; line-height: 1; color: var(--faint); font-variant-numeric: tabular-nums; }
+.ccd-svg { width: 100%; height: 72px; display: block; }
+.ccd-grid { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.ccd-area { fill: color-mix(in srgb, var(--brand-green) 16%, transparent); stroke: none; }
+.ccd-line { fill: none; stroke: var(--brand-green); stroke-width: 2px; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+@media (prefers-reduced-motion: no-preference) {
+ .ccd-area { animation: ccd-fade 800ms var(--ease-soft); }
+}
+.ccd-xaxis { display: flex; justify-content: space-between; margin-left: 32px; font-size: 10px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.ccd-caption, .ccd-help { font-size: 13px; line-height: 1.45; color: var(--faint); }
+
+.ccd-notes { position: relative; }
+.ccd-notes textarea { width: 100%; min-height: 96px; box-sizing: border-box; padding: var(--space-12) var(--space-12) 36px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); color: var(--color-foreground); font: inherit; font-size: 14px; line-height: 1.45; resize: vertical; }
+.ccd-notes textarea::placeholder { color: var(--faint); }
+.ccd-save { position: absolute; right: 12px; bottom: 10px; display: inline-flex; align-items: center; gap: 4px; margin: 0; font-size: 13px; font-weight: 650; color: var(--teal-ink); pointer-events: none; }
+
+.ccd button:focus-visible, .ccd textarea:focus-visible { outline: 2px solid var(--focus-edge); outline-offset: 2px; }
+
+.ccd-ended { align-content: start; padding: var(--space-24); border: 1px solid var(--color-border); border-radius: 16px; background: var(--color-surface); }
+.ccd-ended-lead { margin-top: var(--space-12); font-family: var(--font-display); font-size: 22px; font-weight: 650; color: var(--charcoal); }
+.ccd-ended-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); margin-top: var(--space-16); }
+.ccd-textbtn { min-height: 44px; padding: 10px 16px; border-radius: 12px; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--charcoal); font: inherit; font-size: 14px; font-weight: 650; cursor: pointer; }
+.ccd-textbtn--primary { background: var(--teal-ink); border-color: var(--teal-ink); color: #fff; }
+
+@media (max-width: 480px) {
+ .ccd-chip { flex-basis: 100%; }
+}
+@media (min-width: 720px) {
+ .ccd-vitals { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 1100px) {
+ .ccd h1 { font-size: 24px; }
+ .ccd-columns { grid-template-columns: minmax(260px, 32%) minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+ .ccd-ctrl:active { transform: none; }
+ .ccd-demo, .ccd-area, .ccd-chip[aria-pressed="true"] { animation: none; }
+}
