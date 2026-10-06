@@ -12,8 +12,19 @@ import { roleFromSearch, roleOf, searchForRole, type RoleId } from './lib/roles'
    so they share a chunk; the Control Tower and the back office are a different audience and a
    different set of screens, and since Phase 3 one portal.
    Named imports would defeat the split, so these are the whole modules.
-   They are not in the production patient bundle unless a preview build sets
-   VITE_MYTHUSO_STAFF_PREVIEW=true. Unset is off, so ?role= does not download staff or the portal. */
+   They are not in the bundle unless the build sets VITE_MYTHUSO_STAFF_PREVIEW=true. Unset is off —
+   which is what tree-shakes the whole subtree out, so ?role= then resolves to the patient app and
+   the switcher's setRole is a no-op rather than an error.
+
+   The deployed build sets it, since 6 October 2026: deploy/deploy.sh names it on the build command
+   and the reason is written there. It was set in exactly one place before then, in
+   playwright.config.ts's webServer, so the suite exercised a build no deploy ever produced. Setting
+   it does not change what a patient downloads at her own address — the shells stay behind these
+   dynamic imports and arrive only when a role is opened — but the staff and portal code is in the
+   published tree now, so ?role=nurse, =doctor and =partner open a workspace with nothing in front of
+   them. The other two roles do not: shells/FounderGate.tsx holds on import.meta.env.PROD and draws
+   the founder's two-factor sign-in before the portal, failing closed when the service is dark or
+   silent. deploy/deploy.sh says the same, and what is exposed is his decision to weigh there. */
 const staffPreview = import.meta.env.VITE_MYTHUSO_STAFF_PREVIEW === 'true';
 const ClinicalWorkspace = staffPreview ? lazy(() => import('./shells/StaffShell')) : null;
 /* The back office's door is the merged Control Tower's now (Phase 3): ?role=control-tower and
