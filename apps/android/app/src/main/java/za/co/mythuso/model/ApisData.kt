@@ -272,8 +272,8 @@ object ApisData {
     val GET_MONEY_CLAIMS = Route("getMoneyClaims", "GET", "/v1/money/claims", "/v1/money/claims", 1, "money", listOf("patient", "doctor"), listOf("billing"), false, "built")
     val GET_MONEY_HELD_CASH_PAYMENTS = Route("getMoneyHeldCashPayments", "GET", "/v1/money/held-cash-payments", "/v1/money/held-cash-payments", 1, "money", listOf("ops-desk"), listOf("billing"), false, "built")
     val GET_ASSISTANT_HEALTH_V2 = Route("getAssistantHealthV2", "GET", "/health", "/assistant/health", 2, "assistant", listOf("anonymous"), listOf("audit"), false, "built")
-    val POST_ASSISTANT_TURN = Route("postAssistantTurn", "POST", "/turn", "/assistant/turn", 1, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
-    val POST_TURN = Route("postTurn", "POST", "/v1/turn", "/assistant/v1/turn", 1, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
+    val POST_ASSISTANT_TURN_V2 = Route("postAssistantTurnV2", "POST", "/turn", "/assistant/turn", 2, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
+    val POST_TURN_V2 = Route("postTurnV2", "POST", "/v1/turn", "/assistant/v1/turn", 2, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
     val POST_LISTEN_V3 = Route("postListenV3", "POST", "/v1/listen", "/assistant/v1/listen", 3, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
     val POST_SPEAK_V4 = Route("postSpeakV4", "POST", "/v1/speak", "/assistant/v1/speak", 4, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
     val POST_TRIAGE_START_V3 = Route("postTriageStartV3", "POST", "/v1/triage/start", "/assistant/v1/triage/start", 3, "assistant", listOf("anonymous"), listOf("treatment"), false, "built")
@@ -551,8 +551,8 @@ object ApisData {
         GET_MONEY_CLAIMS,
         GET_MONEY_HELD_CASH_PAYMENTS,
         GET_ASSISTANT_HEALTH_V2,
-        POST_ASSISTANT_TURN,
-        POST_TURN,
+        POST_ASSISTANT_TURN_V2,
+        POST_TURN_V2,
         POST_LISTEN_V3,
         POST_SPEAK_V4,
         POST_TRIAGE_START_V3,
@@ -2792,14 +2792,15 @@ object ApisData {
         val activated: Boolean,
         val speech: Boolean
     )
-    data class PostAssistantTurnRequest(
+    data class PostAssistantTurnV2Request(
         val sessionId: String? = null,
         val parentTurnId: String? = null,
         val text: String,
         val audience: String? = null,
+        val language: String? = null,
         val userConsent: Boolean
     )
-    data class PostAssistantTurnResponse(
+    data class PostAssistantTurnV2Response(
         val turnId: String,
         val sessionId: String,
         val route: String,
@@ -2810,17 +2811,20 @@ object ApisData {
         val requiresConfirmation: Boolean,
         val suggestedActions: List<String>,
         val refusalId: String? = null,
-        val source: String? = null,
-        val cue: String? = null
+        val source: String,
+        val cue: String? = null,
+        val detectedLanguage: String
     )
-    data class PostTurnRequest(
+    data class PostTurnV2Request(
         val sessionId: String? = null,
         val parentTurnId: String? = null,
         val text: String,
         val audience: String? = null,
+        val language: String? = null,
+        val stream: Boolean? = null,
         val userConsent: Boolean
     )
-    data class PostTurnResponse(
+    data class PostTurnV2Response(
         val turnId: String,
         val sessionId: String,
         val route: String,
@@ -2831,8 +2835,11 @@ object ApisData {
         val requiresConfirmation: Boolean,
         val suggestedActions: List<String>,
         val refusalId: String? = null,
-        val source: String? = null,
-        val cue: String? = null
+        val source: String,
+        val cue: String? = null,
+        val detectedLanguage: String,
+        val toolsUsed: List<String>? = null,
+        val sources: List<String>? = null
     )
     data class PostListenV3Request(
         val userConsent: Boolean,

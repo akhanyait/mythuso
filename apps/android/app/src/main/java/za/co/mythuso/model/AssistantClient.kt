@@ -36,7 +36,7 @@ object AssistantApi {
 
     /** Each built route at the catalog's own version, for readers and for
      *  scripts/check-boundaries.mjs. The paths below are the same routes minus method and version. */
-    const val turnAddress = "POST /assistant/v1/turn@1"
+    const val turnAddress = "POST /assistant/v1/turn@2"
     const val knowledgeSearchAddress = "POST /assistant/v1/knowledge/search@2"
     const val statusAddress = "GET /assistant/v1/status@2"
     /** Push-to-talk's two built addresses travel even though no phone calls them yet: the voice
@@ -65,7 +65,7 @@ object AssistantApi {
     const val speakPath = "/assistant/v1/speak"
 }
 
-/** POST /v1/turn@1's request. Optional fields are omitted from the JSON when null — the service
+/** POST /v1/turn@2's request. Optional fields are omitted from the JSON when null — the service
  *  reads an absent sessionId as "mint one", exactly as the contract says. */
 data class AssistantTurnRequest(
     val sessionId: String?,
@@ -91,7 +91,7 @@ data class AssistantKnowledgeRequest(val query: String, val language: String) {
     }
 }
 
-/** POST /v1/turn@1's response, field for field. */
+/** POST /v1/turn@2's response, field for field. */
 data class AssistantTurnReply(
     val turnId: String,
     val sessionId: String,
