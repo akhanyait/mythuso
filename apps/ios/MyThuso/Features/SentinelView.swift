@@ -82,14 +82,8 @@ struct SentinelSection: View {
         Text(Sentinel.SentinelText.raiseHeading).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
         Text(Sentinel.SentinelText.raiseIntro).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
             .fixedSize(horizontal: false, vertical: true)
-        Picker(Sentinel.SentinelText.entry, selection: $entryId) {
-            Text("Choose…").tag(String?.none)
-            ForEach(store.entries) { entry in
-                Text("\(Devices.measureLabel(entry.metric)) · \(captureStamp(entry.heardAt))").tag(String?.some(entry.id))
-            }
-        }
-        .pickerStyle(.menu)
-        .frame(minHeight: 44)
+        SentinelChoice(title: Sentinel.SentinelText.entry, selection: $entryId,
+                       options: store.entries.map { (id: $0.id, label: "\(Devices.measureLabel($0.metric)) · \(captureStamp($0.heardAt))") })
         ForEach(Sentinel.rungs) { option in
             Button {
                 rung = option.rung
@@ -172,18 +166,10 @@ struct SafeguardingReportView: View {
                         .fixedSize(horizontal: false, vertical: true)
                     Text(Sentinel.fill(Sentinel.ReportText.patient, ["patient": patient]))
                         .font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
-                    Picker(Sentinel.ReportText.group, selection: $groupCode) {
-                        Text("Choose…").tag(String?.none)
-                        ForEach(Sentinel.groups) { group in Text(group.label).tag(String?.some(group.id)) }
-                    }
-                    .pickerStyle(.menu)
-                    .frame(minHeight: 44)
-                    Picker(Sentinel.ReportText.category, selection: $categoryCode) {
-                        Text("Choose…").tag(String?.none)
-                        ForEach(Sentinel.categories) { category in Text(category.label).tag(String?.some(category.id)) }
-                    }
-                    .pickerStyle(.menu)
-                    .frame(minHeight: 44)
+                    SentinelChoice(title: Sentinel.ReportText.group, selection: $groupCode,
+                                   options: Sentinel.groups.map { (id: $0.id, label: $0.label) })
+                    SentinelChoice(title: Sentinel.ReportText.category, selection: $categoryCode,
+                                   options: Sentinel.categories.map { (id: $0.id, label: $0.label) })
                     Text(Sentinel.RuleText.categoryIsProtected).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(Sentinel.RuleText.noNarrative).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
@@ -229,5 +215,43 @@ struct SafeguardingReportView: View {
         }
         .thusoGround()
         .navigationTitle(Sentinel.ReportText.heading).navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/* A menu whose label is the target, rather than a menu-style Picker.
+ *
+ * MyThusoUITests measured the Picker at 112x34 on iOS 26 with .frame(minHeight: 44) on it: the frame
+ * makes the row taller, but the button iOS draws inside it keeps its own height, and that button is
+ * what a thumb lands on and what the accessibility tree reports. A Menu's label is a view this file
+ * owns, so the 44 points go on the thing that is tapped — the same shape AssessmentView's origin menu
+ * already uses. The Picker inside keeps the checkmark beside the current choice. */
+private struct SentinelChoice: View {
+    let title: String
+    @Binding var selection: String?
+    let options: [(id: String, label: String)]
+
+    private var chosen: String { options.first { $0.id == selection }?.label ?? "Choose…" }
+
+    var body: some View {
+        Menu {
+            Picker(title, selection: $selection) {
+                Text("Choose…").tag(String?.none)
+                ForEach(options, id: \.id) { option in Text(option.label).tag(String?.some(option.id)) }
+            }
+        } label: {
+            HStack(spacing: ThusoSpacing.space8) {
+                Text(title).font(.thuso(.footnote, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
+                Spacer(minLength: 0)
+                Text(chosen).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
+                    .multilineTextAlignment(.trailing)
+                    .fixedSize(horizontal: false, vertical: true)
+                Image(systemName: "chevron.up.chevron.down").font(.thuso(.footnote))
+                    .foregroundStyle(DeckInk.sheetQuiet).accessibilityHidden(true)
+            }
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .accessibilityLabel(title)
+        .accessibilityValue(chosen)
     }
 }
