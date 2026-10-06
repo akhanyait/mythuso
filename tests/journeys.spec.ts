@@ -92,7 +92,7 @@ const staffSections: Record<string, string[]> = {
   Nurse: ['Schedule', 'Safety & alerts', 'Assessments', 'Cases', 'Appointments', medicinesScreen.handover.heading, 'Route map',
           'Thuso Kit', 'Locum shifts', 'Team', 'Earnings & payouts', 'Clinical resources', 'Academy', 'Reports', 'Messages',
           'Vetting', 'Settings'],
-  Doctor: ['Review queue', 'Triage', 'Schedule', 'Teleconsultation', 'Patient context', 'Consultation records',
+  Doctor: ['Review queue', 'Triage', 'Schedule', 'Teleconsultation', 'Video consult', 'Patient context', 'Consultation records',
            medicinesScreen.prescribe.heading, medicinesScreen.results.heading, 'Referral pathway', 'Protocols', 'Reports',
            'Per-case fees', 'Claim draft', 'Messages', 'Resources', 'Credentials'],
   Partner: ['Orders', 'Substitution & repeats', 'Collections', 'Results']

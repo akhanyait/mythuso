@@ -172,7 +172,10 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
   <div className="pd-columns">
    <div className="pd-main">
     <section className="pd-book" aria-labelledby="pd-book-title">
-     <div className="pd-section-head"><h2 id="pd-book-title">Care you can book today</h2></div>
+     <div className="pd-section-head pd-card-head">
+      <h2 id="pd-book-title">Care you can book today</h2>
+      <Button variant="secondary" size="sm" onClick={() => navigate(patientScreenRoutes.bookCare.opens)}>Book care</Button>
+     </div>
      <form className="pd-search" role="search" onSubmit={e => { e.preventDefault(); navigate('Book a nurse'); }}>
       <Search aria-hidden="true" className="pd-search__icon"/>
       <Input aria-label="Search for care" placeholder="What care do you need today?" value={query} onChange={e => setQuery(e.target.value)}/>

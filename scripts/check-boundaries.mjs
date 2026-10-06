@@ -38740,6 +38740,13 @@ console.log(
        ui.css through Dashboard.tsx, so their Buttons, Cards and Tabs add no stylesheet to it. */
     "apps/web/src/features/PatientDevices.tsx", "apps/web/src/features/PatientMessages.tsx", "apps/web/src/features/PatientResults.tsx",
     "apps/web/src/features/PatientConsultation.tsx",
+    /* The Wednesday demo's simulated consult: behind its own dynamic import from App.tsx, so the
+       patient's first view does not download it. Its checkbox is the shared one. */
+    "apps/web/src/features/VideoConsultDemo.tsx",
+    /* Book care (6 October 2026): six questions behind their own dynamic import from App.tsx. The
+       patient's entry already carries ui.css through Dashboard.tsx, so the Badge and Textarea add
+       no stylesheet to the first load. */
+    "apps/web/src/features/BookCare.tsx",
     /* Show GilbertOne a rash (1 October 2026): behind its own dynamic import inside the already-lazy GilbertOne
        panel, so it is off the patient's entry; its Buttons join the ui.css the patient's entry already carries. */
     "apps/web/src/features/SkinCheck.tsx"];

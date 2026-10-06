@@ -4,6 +4,7 @@ import { ArrowRight, CameraOff, Clock3, Video } from 'lucide-react';
 import { NotConnected } from '../components/NotConnected';
 import { Button, Card } from '../ui';
 import { maximumWaitMinutes, media, participants, recording, waitingRoom } from '../lib/teleconsult';
+import { patientScreenRoutes } from '../lib/patient-screens-routes';
 import { PatientHeader } from './PatientHeader';
 
 const LiveVitalsPanel = lazy(() => import('./LiveVitals').then(m => ({ default: m.LiveVitalsPanel })));
@@ -20,8 +21,9 @@ const LiveVitalsPanel = lazy(() => import('./LiveVitals').then(m => ({ default: 
  * Everything else is teleconsult.json's words for the patient, which it already held: who would be on the
  * call and the question each of them is asked about, what the wait says at each step and that the wait has
  * an end, and that there is no recording to switch on. A consultation is asked for by the nurse at a visit,
- * never booked from here, so the page's only actions are the Health Passport, where a finished consultation
- * would be read, and the visits it would happen during. */
+ * never booked from here. The Health Passport is where a finished consultation would be read. The
+ * one other door is the Wednesday demo's simulated consult, which is a separate screen and a
+ * separate consent — this waiting room still has no call. */
 
 /* A state's words for the patient carry the doctor's name as a token, filled from the vetting record on the
    day; with no doctor on the call there is no name to fill, so that state says why the name matters instead. */
@@ -33,7 +35,8 @@ export function PatientConsultation({ navigate }: { navigate: (page: string) => 
  return <div className="ps-screen">
   <PatientHeader icon={<Video size={22} strokeWidth={1.8}/>} eyebrow="Your care" title="Online consultation"
    lead="When your nurse asks a doctor to join a visit, this is where you would wait, and what you would be asked first. There is no call in this preview."
-   back={{ label: 'Back to your visits', go: () => navigate('My visits') }}/>
+   back={{ label: 'Back to your visits', go: () => navigate('My visits') }}
+   action={<Button variant="primary" onClick={() => navigate(patientScreenRoutes.videoConsult.opens)}>Start video consult</Button>}/>
   <NotConnected of="teleconsultation"/>
 
   <div className="ps-consult">

@@ -215,9 +215,12 @@ test('online consultation: a waiting room in the contract’s words, the stage a
  await expect(page.getByText(teleconsult.recording.decision)).toBeVisible();
 
  /* What stays refused: no call controls, no recording switch, no claim of a secure line, no live figure. Held
-    to the page rather than the whole window, because the shell around it has a "Share part of your record". */
+    to the page rather than the whole window, because the shell around it has a "Share part of your record".
+    The one button the pattern matches is the door to the simulated consult, which opens on its own screen. */
  const screen = page.locator('.ps-screen');
- await expect(screen.getByRole('button', { name: /join|start|camera|microphone|mute|end call|share screen|record/i })).toHaveCount(0);
+ const callish = screen.getByRole('button', { name: /join|start|camera|microphone|mute|end call|share screen|record/i });
+ await expect(callish).toHaveCount(1);
+ await expect(callish).toHaveAccessibleName('Start video consult');
  await expect(screen.getByRole('checkbox').or(screen.getByRole('switch'))).toHaveCount(0);
  await expect(screen.getByText(/encrypted connection|\d{1,2}:\d{2}/i)).toHaveCount(0);
  expect(await nothingSideways(page)).toEqual([]);

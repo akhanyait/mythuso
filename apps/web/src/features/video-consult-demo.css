@@ -1,0 +1,307 @@
+/* The Wednesday demo's simulated consult. Two screens, one stylesheet, loaded with the screen.
+ *
+ * Motion is the designer's list, and only transform and opacity move: the consent card rises
+ * 8px over the settle duration (280ms), Join's padlock leaves over 200ms, the stage fades over
+ * 300ms, a control presses to 0.96 over 100ms, and the Demo data label fades in over 200ms.
+ * Entrances are gated on the shell's [data-motion] flag, so a reader who asked for stillness,
+ * or a page whose script never ran, sees the screen already there. The stage's blobs drift
+ * only while decorative motion is on. Red is --danger, and only Leave spends it.
+ *
+ * #0D9488 is the designer's primary. White text needs the darker token that already carries
+ * it, --teal-ink, so the unlocked Join button uses that rather than a second teal. */
+
+.vcd { color: var(--color-foreground); min-width: 0; }
+.vcd h1, .vcd h2 { font-family: var(--font-display); font-weight: 700; color: var(--teal-ink); letter-spacing: -0.01em; }
+.vcd-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); flex: none; }
+
+.vcd-pill {
+ display: inline-flex; align-items: center; gap: 6px;
+ padding: 4px 10px; border-radius: var(--r-pill);
+ background: var(--teal-soft); color: var(--teal-ink);
+ font-size: 12px; font-weight: 600; line-height: 1.3; white-space: nowrap;
+}
+.vcd-pill-live { border: 1px solid color-mix(in srgb, var(--teal) 55%, var(--teal-soft)); background: var(--surface); }
+
+/* ---- Consent ----------------------------------------------------------------------------------- */
+.vcd-gate { max-width: 440px; margin: 0 auto; padding: var(--space-8) 0 var(--space-24); }
+
+.vcd-bar {
+ display: grid; grid-template-columns: 44px minmax(0, 1fr) auto;
+ align-items: center; gap: var(--space-8);
+ min-height: 52px; margin-bottom: var(--space-16);
+ border-bottom: 1px solid var(--line);
+}
+.vcd-bar h1 { margin: 0; text-align: center; font-size: 18px; }
+.vcd-back {
+ width: 44px; height: 44px; display: grid; place-items: center;
+ color: var(--teal-ink); border-radius: var(--r-pill);
+}
+
+.vcd-card {
+ background: var(--surface);
+ border: 1px solid var(--line);
+ border-radius: var(--space-16);
+ box-shadow: var(--shadow-raised);
+ padding: var(--space-20) var(--space-16);
+ display: grid; gap: var(--space-16);
+}
+.vcd-card-head { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: var(--space-12); align-items: center; }
+.vcd-shield {
+ width: 52px; height: 52px; border-radius: 50%;
+ display: grid; place-items: center;
+ background: var(--teal-soft); color: var(--teal-ink);
+}
+.vcd-card-head h2 { margin: 0; font-size: 22px; line-height: 1.2; }
+.vcd-kicker { margin: 2px 0 0; color: var(--slate); font-size: 14px; font-weight: 600; }
+.vcd-please { margin: 2px 0 0; color: var(--body); font-size: 13px; }
+.vcd-card-people { color: var(--teal-ink); }
+
+.vcd-list {
+ list-style: none; margin: 0; padding: 2px var(--space-12);
+ background: var(--teal-soft); border-radius: var(--r-lg);
+}
+.vcd-list li {
+ display: grid; grid-template-columns: 32px minmax(0, 1fr);
+ gap: var(--space-12); align-items: center;
+ padding: var(--space-12) 0; color: var(--teal-ink);
+}
+.vcd-list li + li { border-top: 1px solid color-mix(in srgb, var(--teal-ink) 16%, transparent); }
+.vcd-list strong { display: block; color: var(--ink); font-size: 15px; font-weight: 700; }
+.vcd-list p { margin: 2px 0 0; color: var(--body); font-size: 13px; line-height: 1.4; }
+.vcd-icon-circle {
+ width: 32px; height: 32px; border-radius: 50%;
+ display: grid; place-items: center;
+ border: 1.5px solid var(--teal-ink);
+}
+
+.vcd-gate .ui-checkbox { align-items: flex-start; width: 100%; gap: var(--space-12); padding: var(--space-4) 0; }
+.vcd-gate .ui-checkbox__box { margin-top: 2px; }
+.vcd-gate .ui-checkbox__input {
+ width: 28px; height: 28px; border-radius: var(--r-sm);
+ border-color: var(--sage-slate);
+}
+.vcd-gate .ui-checkbox__check { width: 28px; height: 28px; padding: 5px; }
+.vcd-understand { display: grid; gap: 2px; }
+.vcd-understand-title { font-size: 16px; font-weight: 700; color: var(--ink); }
+.vcd-asterisk { margin-left: 2px; color: var(--teal-ink); }
+.vcd-understand-hint { font-size: 13px; font-weight: 400; color: var(--body); }
+
+.vcd-join {
+ position: relative;
+ display: flex; align-items: center; justify-content: center;
+ width: 100%; min-height: 48px; padding: 0 44px;
+ border-radius: var(--r-lg);
+ background: var(--teal-soft); color: var(--teal-ink);
+ font-size: 16px; font-weight: 700;
+ transition: background-color 200ms var(--ease-soft), color 200ms var(--ease-soft);
+}
+.vcd-join:disabled { opacity: 1; }
+.vcd-join.is-open { background: var(--teal-ink); color: var(--surface); }
+.vcd-lock {
+ position: absolute; right: var(--space-16);
+ transition: opacity 200ms var(--ease-soft), transform 200ms var(--ease-soft);
+}
+.vcd-join.is-open .vcd-lock { opacity: 0; transform: translateX(8px); }
+
+.vcd-comfort {
+ display: flex; justify-content: center; align-items: center; gap: 6px;
+ margin: var(--space-16) 0 0; color: var(--body); font-size: 13px;
+}
+
+/* ---- Call -------------------------------------------------------------------------------------- */
+.vcd-call { display: grid; gap: var(--space-16); padding-bottom: var(--space-24); }
+.vcd-call-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-12); min-width: 0; }
+.vcd-call-bar .wordmark { display: inline-flex; }
+.vcd-call-bar .wordmark img { height: 36px; width: auto; }
+
+.vcd-stage {
+ position: relative;
+ display: flex; flex-direction: column; align-items: center; justify-content: center;
+ gap: var(--space-8);
+ min-height: 460px;
+ padding: var(--space-40) var(--space-24) 128px;
+  border-radius: var(--space-20);
+ overflow: visible;
+ background:
+  radial-gradient(180px 140px at 12% 28%, color-mix(in srgb, var(--surface) 80%, transparent), transparent 70%),
+  radial-gradient(220px 160px at 88% 72%, color-mix(in srgb, var(--surface) 70%, transparent), transparent 72%),
+  linear-gradient(165deg, var(--teal-soft), color-mix(in srgb, var(--teal-soft) 45%, var(--surface)));
+}
+.vcd-blobs { position: absolute; inset: 0; pointer-events: none; }
+.vcd-blobs span {
+ position: absolute; border-radius: 50%;
+ background: color-mix(in srgb, var(--surface) 72%, transparent);
+}
+.vcd-blobs span:first-child { width: 220px; height: 160px; left: -20px; top: 36px; }
+.vcd-blobs span:last-child { width: 260px; height: 180px; right: -30px; bottom: 20px; }
+.vcd-remote {
+ position: relative;
+ width: 150px; height: 150px; border-radius: 50%;
+ display: grid; place-items: center;
+ background: var(--surface); color: var(--teal);
+ box-shadow: var(--shadow);
+}
+.vcd-stage h1 { position: relative; margin: var(--space-8) 0 0; font-size: 28px; text-align: center; }
+.vcd-sim {
+ position: relative;
+ display: inline-flex; align-items: center; gap: 6px;
+ margin: 0; padding: 4px 12px; border-radius: var(--r-pill);
+ background: var(--surface); color: var(--teal-ink);
+ font-size: 13px; font-weight: 600;
+}
+
+.vcd-vitals {
+ position: absolute; left: var(--space-20); bottom: var(--space-20); z-index: 1;
+ display: flex; align-items: center; gap: var(--space-12);
+ max-width: calc(100% - 250px);
+ padding: 10px 14px; border-radius: var(--space-16);
+ background: var(--surface); box-shadow: var(--shadow);
+}
+.vcd-demo-data { color: var(--body); font-size: 12px; font-weight: 600; }
+.vcd-vital { display: inline-flex; align-items: center; gap: 6px; color: var(--teal-ink); }
+.vcd-vital strong { display: block; font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); line-height: 1.1; }
+.vcd-vital small { display: block; font-size: 11px; font-weight: 500; color: var(--body); }
+.vcd-vrule { width: 1px; align-self: stretch; background: var(--line); }
+
+.vcd-pip {
+ position: absolute; right: var(--space-24); bottom: -28px; z-index: 2;
+ width: 210px; height: 145px;
+ border-radius: var(--space-16); overflow: hidden;
+ background: var(--teal-soft); box-shadow: var(--shadow-raised);
+}
+.vcd-pip img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.vcd-pip.is-off {
+ display: grid; place-items: center; align-content: center; gap: 6px;
+ background: var(--surface); color: var(--teal-ink); font-size: 13px; font-weight: 600;
+}
+
+.vcd-timer {
+ display: flex; justify-content: center; align-items: center; gap: 8px;
+ margin: calc(var(--space-32) + var(--space-16)) 0 0;
+ color: var(--teal-ink); font-weight: 700; font-variant-numeric: tabular-nums; font-size: 16px;
+}
+.vcd-controls { display: flex; justify-content: center; align-items: flex-start; gap: 40px; margin-top: var(--space-8); }
+.vcd-control {
+ display: flex; flex-direction: column; align-items: center; gap: 8px;
+ min-width: 68px; min-height: 44px; color: var(--teal-ink);
+}
+.vcd-control-face {
+ width: 68px; height: 68px; border-radius: 50%;
+ display: grid; place-items: center;
+ background: var(--teal-soft); color: var(--teal-ink);
+ transition: transform 100ms var(--ease-soft);
+}
+.vcd-control:active .vcd-control-face { transform: scale(0.96); }
+.vcd-control-label { font-size: 14px; font-weight: 600; }
+.vcd-control-leave .vcd-control-face { background: var(--danger); color: var(--surface); }
+.vcd-control-leave .vcd-control-label { color: var(--danger); }
+
+/* ---- Ended ------------------------------------------------------------------------------------- */
+.vcd-ended {
+ max-width: 440px; margin: var(--space-32) auto; padding: var(--space-32) var(--space-20);
+ text-align: center;
+ background: var(--surface); border: 1px solid var(--line); border-radius: var(--space-16);
+ box-shadow: var(--shadow);
+}
+.vcd-ended h1 { margin: 0 0 var(--space-12); font-size: 28px; }
+.vcd-ended p { margin: 0 auto; max-width: 36ch; color: var(--body); }
+.vcd-ended-time {
+ display: flex; justify-content: center; align-items: center; gap: 8px;
+ margin-top: var(--space-16); color: var(--teal-ink); font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.vcd-return {
+ margin-top: var(--space-24); min-height: 48px; padding: 0 var(--space-24);
+ border-radius: var(--r-lg); background: var(--teal-ink); color: var(--surface);
+ font-size: 16px; font-weight: 700;
+}
+
+/* ---- Motion ------------------------------------------------------------------------------------ */
+[data-motion='on'] .vcd-card { animation: vcd-rise var(--t-settle) var(--ease-soft) both; }
+[data-motion='on'] .vcd-stage { animation: vcd-fade 300ms var(--ease-soft) both; }
+[data-motion='on'] .vcd-demo-data { animation: vcd-fade 200ms var(--ease-soft) both; }
+[data-decor='on'] .vcd-blobs span { animation: vcd-drift 18s var(--ease-soft) infinite alternate; }
+[data-decor='on'] .vcd-blobs span:last-child { animation-duration: 22s; }
+
+@keyframes vcd-rise {
+ from { opacity: 0; transform: translateY(8px); }
+ to { opacity: 1; transform: none; }
+}
+@keyframes vcd-fade {
+ from { opacity: 0; }
+ to { opacity: 1; }
+}
+@keyframes vcd-drift {
+ from { transform: translate3d(0, 0, 0); }
+ to { transform: translate3d(14px, -10px, 0); }
+}
+
+@media (max-width: 720px) {
+ .vcd-call-bar { flex-wrap: wrap; }
+ .vcd-call-bar .wordmark img { height: 28px; }
+ .vcd-pill-live { white-space: normal; }
+ .vcd-stage { min-height: 0; padding: 96px var(--space-16) var(--space-16); overflow: hidden; }
+ .vcd-timer { margin-top: var(--space-16); }
+ .vcd-stage h1 { font-size: 22px; }
+ .vcd-remote { width: 120px; height: 120px; }
+ .vcd-remote svg { width: 68px; height: 68px; }
+ .vcd-vitals {
+  position: static; max-width: none; width: 100%;
+  margin-top: var(--space-12); flex-wrap: nowrap; justify-content: space-between;
+  gap: var(--space-8); padding: 8px 10px;
+ }
+ .vcd-demo-data { font-size: 11px; }
+ .vcd-vital strong { font-size: 14px; }
+ .vcd-pip { top: 12px; right: 12px; bottom: auto; width: 110px; height: 80px; }
+ /* The tab bar already pads the home indicator. The controls are the last thing in the call,
+    so they keep the same inset rather than sitting in it when a phone draws one. */
+ .vcd-controls { padding-bottom: env(safe-area-inset-bottom, 0px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+ .vcd-card, .vcd-stage, .vcd-demo-data, .vcd-blobs span { animation: none !important; }
+ .vcd-control:active .vcd-control-face { transform: none; }
+ .vcd-join, .vcd-lock { transition: none; }
+}
+
+/* --teal-ink, --ink and --body are light-ground inks and do not change with the theme.
+   On a dark ground those words would sit dark-on-dark, so the screen spends the accent and the
+   foreground instead. The light mock is unchanged. */
+[data-theme="dark"] .vcd h1,
+[data-theme="dark"] .vcd h2,
+[data-theme="dark"] .vcd-back,
+[data-theme="dark"] .vcd-pill,
+[data-theme="dark"] .vcd-shield,
+[data-theme="dark"] .vcd-card-people,
+[data-theme="dark"] .vcd-list,
+[data-theme="dark"] .vcd-icon-circle,
+[data-theme="dark"] .vcd-asterisk,
+[data-theme="dark"] .vcd-join:not(.is-open),
+[data-theme="dark"] .vcd-sim,
+[data-theme="dark"] .vcd-timer,
+[data-theme="dark"] .vcd-ended-time,
+[data-theme="dark"] .vcd-control,
+[data-theme="dark"] .vcd-vital,
+[data-theme="dark"] .vcd-pip.is-off,
+[data-theme="dark"] .vcd-remote,
+[data-theme="dark"] .vcd-comfort { color: var(--color-accent); }
+[data-theme="dark"] .vcd-list strong,
+[data-theme="dark"] .vcd-understand-title,
+[data-theme="dark"] .vcd-vital strong,
+[data-theme="dark"] .vcd-kicker { color: var(--color-foreground); }
+[data-theme="dark"] .vcd-please,
+[data-theme="dark"] .vcd-list p,
+[data-theme="dark"] .vcd-understand-hint,
+[data-theme="dark"] .vcd-demo-data,
+[data-theme="dark"] .vcd-vital small,
+[data-theme="dark"] .vcd-ended p { color: var(--color-muted-foreground); }
+[data-theme="dark"] .vcd-list,
+[data-theme="dark"] .vcd-shield,
+[data-theme="dark"] .vcd-control-face,
+[data-theme="dark"] .vcd-pill,
+[data-theme="dark"] .vcd-join:not(.is-open) { background: color-mix(in srgb, var(--color-accent) 18%, var(--color-surface)); }
+[data-theme="dark"] .vcd-join.is-open,
+[data-theme="dark"] .vcd-return { background: var(--color-accent); color: var(--color-accent-foreground); }
+[data-theme="dark"] .vcd-control-leave .vcd-control-label { color: var(--color-danger); }
+[data-theme="dark"] .vcd-stage {
+ background: linear-gradient(165deg, color-mix(in srgb, var(--color-accent) 24%, var(--color-surface)), var(--color-surface));
+}
