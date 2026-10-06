@@ -82,7 +82,7 @@ struct SentinelSection: View {
         Text(Sentinel.SentinelText.raiseHeading).font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
         Text(Sentinel.SentinelText.raiseIntro).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
             .fixedSize(horizontal: false, vertical: true)
-        SentinelChoice(title: Sentinel.SentinelText.entry, selection: $entryId,
+        SentinelMenuPicker(title: Sentinel.SentinelText.entry, selection: $entryId,
                        options: store.entries.map { (id: $0.id, label: "\(Devices.measureLabel($0.metric)) · \(captureStamp($0.heardAt))") })
         ForEach(Sentinel.rungs) { option in
             Button {
@@ -166,9 +166,9 @@ struct SafeguardingReportView: View {
                         .fixedSize(horizontal: false, vertical: true)
                     Text(Sentinel.fill(Sentinel.ReportText.patient, ["patient": patient]))
                         .font(.thuso(.subheadline, weight: .semibold)).foregroundStyle(DeckInk.sheetInk)
-                    SentinelChoice(title: Sentinel.ReportText.group, selection: $groupCode,
+                    SentinelMenuPicker(title: Sentinel.ReportText.group, selection: $groupCode,
                                    options: Sentinel.groups.map { (id: $0.id, label: $0.label) })
-                    SentinelChoice(title: Sentinel.ReportText.category, selection: $categoryCode,
+                    SentinelMenuPicker(title: Sentinel.ReportText.category, selection: $categoryCode,
                                    options: Sentinel.categories.map { (id: $0.id, label: $0.label) })
                     Text(Sentinel.RuleText.categoryIsProtected).font(.thuso(.footnote)).foregroundStyle(DeckInk.sheetQuiet)
                         .fixedSize(horizontal: false, vertical: true)
@@ -225,7 +225,7 @@ struct SafeguardingReportView: View {
  * what a thumb lands on and what the accessibility tree reports. A Menu's label is a view this file
  * owns, so the 44 points go on the thing that is tapped — the same shape AssessmentView's origin menu
  * already uses. The Picker inside keeps the checkmark beside the current choice. */
-private struct SentinelChoice: View {
+private struct SentinelMenuPicker: View {
     let title: String
     @Binding var selection: String?
     let options: [(id: String, label: String)]
@@ -236,7 +236,7 @@ private struct SentinelChoice: View {
         Menu {
             Picker(title, selection: $selection) {
                 Text("Choose…").tag(String?.none)
-                ForEach(options, id: \.id) { option in Text(option.label).tag(String?.some(option.id)) }
+                ForEach(options.indices, id: \.self) { index in Text(options[index].label).tag(String?.some(options[index].id)) }
             }
         } label: {
             HStack(spacing: ThusoSpacing.space8) {
