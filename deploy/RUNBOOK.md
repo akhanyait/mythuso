@@ -221,17 +221,19 @@ already heard it. Turning it on before https is confirmed working is a way to ma
 that you cannot undo by editing anything — and turning it on at two years is a way to make any
 mistake in it last two years.
 
-Step 5 passed, so the line in `deploy/nginx/mythuso.conf` is now uncommented — at **five minutes**,
-not at two years:
+Step 5 passed, so the line in `deploy/nginx/mythuso.conf` is uncommented. It first shipped at five
+minutes. The value live now, and the value the template writes, is **one year**, with subdomains
+included:
 
 ```nginx
-add_header Strict-Transport-Security "max-age=300; includeSubDomains" always;
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 ```
 
 Two years was the wrong first value and the reason is the same one this whole step exists for: the
-header cannot be taken back from a browser that already heard it. A five-minute max-age is the same
-header with the irreversibility removed — if it lands in the wrong block, or a subdomain turns out
-not to serve https, the damage expires while you are still looking at it.
+header cannot be taken back from a browser that already heard it. A five-minute max-age was the same
+header with the irreversibility removed — if it landed in the wrong block, or a subdomain turned out
+not to serve https, the damage expired while you were still looking at it. The header has been seen
+on https, so the template matches the live value: `max-age=31536000; includeSubDomains`.
 
 `includeSubDomains` binds every subdomain, so both were checked before the line was written:
 
@@ -254,10 +256,9 @@ curl -sI http://mythuso.co.za/  | head -1                    # plain http still 
 If the header does not appear, look at where certbot put the `listen 443` line — the header has to
 be inside the same `server` block. Comment it out again rather than leaving it half-applied.
 
-**Then, and only then, raise it.** Once the header has been seen on https and every subdomain above
-still answers, change `max-age=300` to `max-age=63072000` and redeploy again. That second edit is the
-one that cannot be undone, and it is deliberately a separate decision taken with evidence in hand
-rather than a value typed in hope.
+A further raise from `max-age=31536000` to `max-age=63072000` (two years) has not been taken. That
+edit cannot be undone, and it stays a separate decision taken with evidence in hand rather than a
+value typed in hope.
 
 No `preload`. A preload entry is a submission to a list this project cannot withdraw itself from,
 which is the same mistake as a two-year max-age with the ink still wet.
@@ -432,7 +433,7 @@ curl -sI https://mythuso.co.za/assistant/health | grep -iE 'x-frame|content-secu
 
 Expected from the second: the same headers every page of the site carries — an
 `X-Frame-Options: DENY`, a `Content-Security-Policy: frame-ancestors 'none'` and a
-`Strict-Transport-Security` at `max-age=300`. And the service's own account of itself, which is
+`Strict-Transport-Security` at `max-age=31536000; includeSubDomains`. And the service's own account of itself, which is
 safe to read and safe to paste:
 
 ```sh
