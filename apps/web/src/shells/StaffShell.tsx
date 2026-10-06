@@ -94,6 +94,9 @@ const NurseProfile = lazy(() => import('../features/NurseDesk').then(m => ({ def
 const DeviceLab = lazy(() => import('../features/DeviceLab').then(m => ({ default: m.DeviceLab })));
 /* The consultation record with every tool beside it (2 October 2026), fetched when Consultation records opens. */
 const RecordWithTools = lazy(() => import('../features/ConsultationToolkit').then(m => ({ default: m.RecordWithTools })));
+/* Wednesday funder demo: a simulated consult beside a nurse-led toolkit. Its own chunk, so the doctor's
+   workspace does not download the charts until Video consult is opened, and a patient never does. */
+const ClinicianConsoleDemo = lazy(() => import('../features/ClinicianConsoleDemo').then(m => ({ default: m.ClinicianConsoleDemo })));
 /* The parallel run's notice, fetched only at ?legacy=1: it reads the portal's contract, which nobody
    opening a nurse's schedule needs to download. */
 const LegacyNotice = lazy(() => import('../features/portal/LegacyNotice'));
@@ -206,7 +209,8 @@ const workspaces = {
    { id: 'Review queue', short: 'Queue', icon: FileText, tab: true },
    { id: 'Triage', short: 'Triage', icon: HeartPulse },
    { id: 'Schedule', short: 'Schedule', icon: CalendarDays },
-   { id: 'Teleconsultation', short: 'Consult', icon: Video, tab: true }
+   { id: 'Teleconsultation', short: 'Consult', icon: Video, tab: true },
+   { id: 'Video consult', short: 'Video', icon: Video }
   ] },
   { label: 'Patient care', items: [
    { id: 'Patient context', short: 'Patient', icon: Activity, tab: true },
@@ -499,6 +503,8 @@ function renderSection(role: StaffRole, section: string, open: (m: string) => vo
      registry and the ranges, and the triage and guidance answers are on the page that is about them. */
   if (section === 'Protocols') return <OnDeck role={role}><ClinicalProtocols/></OnDeck>;
   if (section === 'Teleconsultation') return <>{head}<Teleconsult/></>;
+  /* The screen names itself. The shell's page heading would put a second "Video consult" above the call bar. */
+  if (section === 'Video consult') return <Suspense fallback={null}><ClinicianConsoleDemo onOpenTeleconsult={() => go('Teleconsultation')}/></Suspense>;
   /* The patient list beside the file replaces the file's own select (features/DoctorPages.tsx). */
   if (section === 'Patient context') return <OnDeck role={role}><DoctorPatients open={open}/><PromSchedule/><Suspense fallback={null}><SentinelState workspace="doctor"/><SafeguardingReport workspace="doctor"/></Suspense>{ride('doctor')}</OnDeck>;
   /* The list heads the page, so the composer's deck steps down a level under it. */
