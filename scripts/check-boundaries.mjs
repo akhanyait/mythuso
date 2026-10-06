@@ -94,6 +94,43 @@ const read = (f) => readFileSync(f, "utf8");
 /* The tree git tracks, and the text files in it. Declared once at the top for the two scans that
    need them — the door-count scan beside the feed checks and the Mapbox token scan at the foot of
    this file — because two copies of what counts as a text file are two copies that can disagree. */
+
+/* Derived PNGs/WebPs must not be older than their SVG/PNG masters in *git* history.
+   Filesystem mtimes are unreliable on a fresh clone (checkout order can make
+   nurse@3x.png appear older than nurse.svg even when both were committed together). */
+const gitCommitMs = (file) => {
+  try {
+    const out = execFileSync("git", ["log", "-1", "--format=%ct", "--", file], {
+      encoding: "utf8",
+    }).trim();
+    return out ? Number(out) * 1000 : null;
+  } catch {
+    return null;
+  }
+};
+const isDirtyInGit = (file) => {
+  try {
+    return (
+      execFileSync("git", ["status", "--porcelain", "--", file], {
+        encoding: "utf8",
+      }).trim() !== ""
+    );
+  } catch {
+    return true;
+  }
+};
+const isOlderThanSource = (derived, source) => {
+  /* Uncommitted edits: use filesystem mtimes so a local SVG change still
+     flags a stale PNG before commit (GilbertOne follow-up). Otherwise use
+     git commit times so fresh clones don't fail on checkout order. */
+  if (isDirtyInGit(derived) || isDirtyInGit(source))
+    return statSync(derived).mtimeMs < statSync(source).mtimeMs;
+  const derivedAt = gitCommitMs(derived);
+  const sourceAt = gitCommitMs(source);
+  if (derivedAt != null && sourceAt != null) return derivedAt < sourceAt;
+  return statSync(derived).mtimeMs < statSync(source).mtimeMs;
+};
+
 const trackedFiles = execFileSync("git", ["ls-files", "-z"], {
   encoding: "utf8",
 })
@@ -800,7 +837,7 @@ for (const name of illustrations) {
       throw new Error(
         `Illustration ${name} has not been rendered for ${f}. Run: node scripts/render-illustrations.mjs`,
       );
-    if (statSync(f).mtimeMs < statSync(source).mtimeMs)
+    if (isOlderThanSource(f, source))
       throw new Error(
         `${f} is older than ${source}. Run: node scripts/render-illustrations.mjs`,
       );
@@ -851,7 +888,7 @@ for (const [file, ios, android] of [
       throw new Error(
         `The brand cut ${file} has not been rendered for ${f}. Run: node scripts/render-illustrations.mjs`,
       );
-    if (statSync(f).mtimeMs < statSync(source).mtimeMs)
+    if (isOlderThanSource(f, source))
       throw new Error(
         `${f} is older than ${source}, so a native app is drawing a mark the brand no longer is. Run: node scripts/render-illustrations.mjs`,
       );
@@ -886,7 +923,7 @@ for (const name of heroCutouts) {
       throw new Error(
         `Hero cut-out ${name} has not been distributed to ${f}. Run: node scripts/render-illustrations.mjs`,
       );
-    if (statSync(f).mtimeMs < statSync(source).mtimeMs)
+    if (isOlderThanSource(f, source))
       throw new Error(
         `${f} is older than ${source}. Run: node scripts/render-illustrations.mjs`,
       );
@@ -937,10 +974,7 @@ for (const f of [`${appicon}/AppIcon-1024.png`, `${appicon}/Contents.json`]) {
       `${f} is missing, so the iOS app ships with a blank home-screen tile. Run: python3 scripts/emit-appicon.py`,
     );
 }
-if (
-  statSync(`${appicon}/AppIcon-1024.png`).mtimeMs <
-  statSync("packages/illustrations/app-icon.svg").mtimeMs
-)
+if (isOlderThanSource(`${appicon}/AppIcon-1024.png`, "packages/illustrations/app-icon.svg"))
   throw new Error(
     "The iOS app icon is older than the drawing it comes from. Run: python3 scripts/emit-appicon.py",
   );
@@ -1132,7 +1166,7 @@ if (
         throw new Error(
           `Hero slide "${slide.id}" has no ${published}, so its half of the banner is a blank frame. Run: node scripts/render-illustrations.mjs`,
         );
-      if (statSync(published).mtimeMs < statSync(source).mtimeMs)
+      if (isOlderThanSource(published, source))
         throw new Error(
           `${published} is older than ${source}. Run: node scripts/render-illustrations.mjs`,
         );
@@ -3216,8 +3250,8 @@ for (const { source, command, files } of generated) {
       throw new Error(
         `${file.path} has not been generated from ${source}. Run: ${command}`,
       );
-    if (statSync(file.path).mtimeMs < statSync(source).mtimeMs)
-      throw new Error(`${file.path} is older than ${source}. Run: ${command}`);
+    /* Content is the authority for generated files. Git/filesystem mtimes fail on
+       fresh clones and when tokens.json moved without changing emit output. */
     if (read(file.path) !== file.content)
       throw new Error(
         `${file.path} is not what ${source} generates. Either it was edited by hand — it says at the top not to be — or the generator changed. Run: ${command}`,
@@ -18201,16 +18235,7 @@ console.log(
       throw new Error(
         `${file.path} has not been generated. Run: npm run plans`,
       );
-    for (const source of [
-      "packages/catalog/mom-plans.json",
-      "packages/catalog/business-model.json",
-      "packages/catalog/money.json",
-    ]) {
-      if (statSync(file.path).mtimeMs < statSync(source).mtimeMs)
-        throw new Error(
-          `${file.path} is older than ${source}. Run: npm run plans`,
-        );
-    }
+    /* Freshness for these emits is content equality below — git/mtime ordering flakes on clones. */
     if (read(file.path) !== file.content)
       throw new Error(
         `${file.path} is not what packages/catalog/mom-plans.json, packages/catalog/business-model.json and Money's settings generate. Either it was edited by hand — it says at the top not to be — or the generator changed. Run: npm run plans`,
@@ -20890,15 +20915,7 @@ console.log(
       throw new Error(
         `${file.path} has not been generated from packages/catalog/money.json. Run: npm run money`,
       );
-    for (const source of [
-      "packages/catalog/money.json",
-      "packages/catalog/apis/money.json",
-    ]) {
-      if (statSync(file.path).mtimeMs < statSync(source).mtimeMs)
-        throw new Error(
-          `${file.path} is older than ${source}. Run: npm run money`,
-        );
-    }
+    /* Freshness for these emits is content equality below — git/mtime ordering flakes on clones. */
     if (read(file.path) !== file.content)
       throw new Error(
         `${file.path} is not what packages/catalog/money.json generates. Either it was edited by hand — it says at the top not to be — or the generator changed. Run: npm run money`,

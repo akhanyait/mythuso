@@ -30,7 +30,7 @@ test('booking requires acknowledgement and creates a demo visit', async ({page})
   await expect(dialog.locator('.review-line').first()).toContainText('2026');
   await dialog.getByRole('checkbox').check();
   await confirmBooking(dialog);
-  await expect(dialog.getByText('Your visit is booked.')).toBeVisible();
+  await expect(dialog.getByText('Visit confirmed (simulated)')).toBeVisible();
   await dialog.getByRole('button',{name:'View my visits'}).click();
   // 14:30, not 15:00: a vitals check is thirty minutes in the catalogue, and the visit now ends
   // its own duration after it starts rather than a flat hour later

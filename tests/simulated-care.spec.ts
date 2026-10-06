@@ -87,7 +87,7 @@ test('a visit is booked against somebody the roster would actually offer, and sa
   await d.locator('label.checkbox input').check();
   // The simulated payment may decline; use the shared journey helper to retry explicitly.
   await confirmBooking(d);
-  await expect(d.getByRole('heading', { name: 'Your visit is booked.' })).toBeVisible();
+  await expect(d.getByRole('heading', { name: 'Visit confirmed (simulated)' })).toBeVisible();
   await expect(d.locator('.nurse-row strong')).toHaveText(offeredName);
   await expect(d.getByText(simulation('booking').notice)).toBeVisible();
 });

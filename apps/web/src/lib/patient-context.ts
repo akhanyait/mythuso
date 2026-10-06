@@ -116,8 +116,11 @@ export const messageUsesRecord = (text: string) => CLINICAL.test(text) && !BARE_
    no unreviewed health advice is written into this file. Emergencies and refusals stay on the
    deterministic path. Passport, results, notes, and vitals are not read until a one-fact tool exists. */
 export function prefersLocalConversation(text: string, replyKind: string): boolean {
-  if (replyKind === "emergency" || replyKind === "refusal") return false;
-  return BARE_GREETING.test(text.trim());
+  /* Bare greetings stay on answers.greeting in the contract. The quiet-panel local sentence
+     was replacing that path and failing the greeting journey. Emergencies and refusals never
+     come through here either. */
+  if (replyKind === "emergency" || replyKind === "refusal" || replyKind === "greeting") return false;
+  return false;
 }
 
 const SCOPE = "I can share general health information, or help you decide when to speak to a nurse. I can't diagnose, prescribe, or explain what a result means.";

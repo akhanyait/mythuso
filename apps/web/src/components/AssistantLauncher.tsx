@@ -1,4 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
+import { AssistantGreeting } from './AssistantGreeting';
+import { OPEN_PARAM } from '../lib/roles';
 import type { PanelProps } from '../features/Assistant';
 import type { Visit } from '../lib/scheduling';
 
@@ -31,8 +33,8 @@ let pending: ReturnType<typeof load> | null = null;
 const prefetch = () => (pending ??= load());
 
 export function AssistantLauncher({ openModal, visit, audience, navigate }: { openModal?: (modal: string) => void; visit: Visit | null; audience?: PanelProps['audience']; navigate?: (page: string) => void }) {
- /* A press opens the panel. Nothing opens it on load. */
- const [open, setOpen] = useState(false);
+ /* `/app/?open=assistant` opens the panel over the home. Read once, like every `open=` link. */
+ const [open, setOpen] = useState(() => new URLSearchParams(window.location.search).get(OPEN_PARAM) === 'assistant');
  const [opened, setOpened] = useState(open);
  const [attempt, setAttempt] = useState(0);
  const button = useRef<HTMLButtonElement>(null);
@@ -59,10 +61,17 @@ export function AssistantLauncher({ openModal, visit, audience, navigate }: { op
  }, []);
 
  return <div className="al-dock">
-  <button ref={button} type="button" className="as-launcher" aria-label="Open GilbertOne" aria-haspopup="dialog"
+  <AssistantGreeting open={open} onOpen={() => { setOpened(true); setOpen(true); }}/>
+  <button ref={button} type="button" className="as-launcher" aria-label="Ask GilbertOne" aria-haspopup="dialog"
    aria-expanded={open} aria-controls={opened ? 'assistant-panel' : undefined}
    onPointerEnter={() => void prefetch()} onFocus={() => void prefetch()}
    onClick={() => { setOpened(true); setOpen(!open); }}>
+   {/* His name is not printed on his chest here. It fitted at 5.2px, which is not a name — it is a
+       smudge, four sizes below the smallest the type scale declares, and the accessibility sweep
+       was right to fail it. There is nowhere on a 104px robot for 13px of text that does not cover
+       the artwork this launcher exists to show. The name is said where it can be read: in the
+       button's accessible name, in the greeting bubble beside him, and on the chest of the larger
+       avatar inside the panel, which is an SVG and scales. */}
    <span className="al-orb" aria-hidden="true"/>
   </button>
   {opened && <Suspense fallback={open ? <p className="al-note" role="status">Opening GilbertOne.</p> : null}>

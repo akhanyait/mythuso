@@ -23,7 +23,7 @@ import { ClinicianProfile } from '../components/ClinicianProfile';
 import { Alert, Badge, Button, Card, CardContent, CardDescription, CardHeader, Checkbox, Tab, TabsList } from '../ui';
 import { Access } from './Access';
 import { capability } from '../lib/capabilities';
-import type { PassportTab } from './Passport';
+import { HealthPanel, type PassportTab } from './Passport';
 import businessModel from '../../../../packages/catalog/business-model.json';
 import { OPEN_PARAM, slugOfSection } from '../lib/roles';
 /* The sidebar's table, which the More hub draws on a phone; both modules are on the patient's first load. */
@@ -275,7 +275,7 @@ export function VisitDetail({row,manage,navigate,rebook,track,notes=[],thread,on
    choice are here; the panel arrives with the Passport's own screens on a dynamic import (Passport.tsx), so
    none of its charts, figures or the dispensing contract are on a patient's first load. */
 const passportTabs:PassportTab[]=['Overview','Vitals','Results','Medications','History','Goals','Records'];
-export function Passport(_props:{open:(s:string)=>void;navigate:(s:string)=>void;next?:VisitRow;view?:(id:string)=>void;manage?:(id:string,action:VisitAction)=>void}) {
+export function Passport({open,navigate,next,view,manage}:{open:(s:string)=>void;navigate:(s:string)=>void;next?:VisitRow;view?:(id:string)=>void;manage?:(id:string,action:VisitAction)=>void}) {
  const [tab,setTab]=useState<PassportTab>('Overview');
  return <div className="pd hp">
   <header className="pd-welcome">
@@ -296,10 +296,13 @@ export function Passport(_props:{open:(s:string)=>void;navigate:(s:string)=>void
    </div>
   </section>
   <TabsList className="hp-tabs" aria-label="Passport sections">{passportTabs.map(t=><Tab key={t} id={`hp-tab-${t}`} aria-controls="hp-panel" active={tab===t} onClick={()=>setTab(t)}>{t}</Tab>)}</TabsList>
-  {/* No record exists behind the Passport yet, so no tab draws readings, results or notes (5 October 2026). */}
-  <div id="hp-panel" role="tabpanel" aria-labelledby={`hp-tab-${tab}`} className="hp-panel hp-panel--empty">
-   <EmptyState title={`${tab}: nothing stored yet`} body="Nothing here is a stored record yet."/>
-  </div>
+  {/* Clinical tabs stay empty (nothing stored yet). Records keeps Share links and the other doors
+      that do not depend on a stored clinical record (architect, 5 October 2026). */}
+  {tab==='Records'
+    ? <HealthPanel tab={tab} go={setTab} navigate={navigate} open={open} panelId="hp-panel" labelledBy={`hp-tab-${tab}`} next={next} view={view} manage={manage}/>
+    : <div id="hp-panel" role="tabpanel" aria-labelledby={`hp-tab-${tab}`} className="hp-panel hp-panel--empty">
+       <EmptyState title={`${tab}: nothing stored yet`} body="Nothing here is a stored record yet."/>
+      </div>}
  </div>}
 /* What a person may see of somebody else is a status, not a paragraph.
  *

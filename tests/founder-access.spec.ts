@@ -389,7 +389,7 @@ test.describe('the founder’s controls', () => {
  };
  const sub = (page: Page) => page.locator('#pt-subpanel');
 
- test('Speech settings: signed in, the value in force is the service’s; saving "male" writes through the service, the chip reads it back from the service, and Play asks for the male voice', async ({ page }) => {
+ test('Speech settings: signed in, the value in force is the service’s; saving the other voice writes through the service, the chip reads it back from the service, and Play asks for that voice', async ({ page }) => {
   const mock: Mock = { requests: [] };
   await mockService(page, mock);
   await answering(page);
@@ -399,10 +399,13 @@ test.describe('the founder’s controls', () => {
   const speech = g1.speech as Record<string, string>;
   const classes = voice.queryClasses as { id: string; label: string; previewMaySaveAsDefault: boolean; setting?: string }[];
   const routine = classes.find(c => c.previewMaySaveAsDefault)!;
-  const setting = (voice.settings.items as { key: string; allowed: { value: string; label: string }[] }[]).find(s => s.key === routine.setting)!;
+  const setting = (voice.settings.items as { key: string; allowed: { value: string; label: string }[]; default: { value: string } }[]).find(s => s.key === routine.setting)!;
   const english = (assistantContract.voice.languages as { id: string; ttsVoices?: Record<string, string> }[])[0]!;
-  const platformLabel = assistantContract.voice.cloud.defaultVoice as string;
-  const otherLabel = Object.keys(assistantContract.voice.cloud.voices).find(l => l !== platformLabel)!;
+  /* Presentation registers ship male since 4 October 2026 (voice.json defaults). The cloud platform
+     default (female) is a different thing — emergency/refusal/escalation — and is not what the
+     service returns as in-force for a presentation register. */
+  const registerDefaultLabel = setting.default.value;
+  const registerOtherLabel = Object.keys(assistantContract.voice.cloud.voices).find(l => l !== registerDefaultLabel)!;
   /* The gate's sign-in sits where the change fields are; signing in there opens them and reads the service. */
   const gatePanel = sub(page).getByRole('region', { name: founder.gate.words.lockedHeading });
   await gatePanel.getByLabel(words.passwordLabel, { exact: true }).fill(PASSWORD);
@@ -414,9 +417,9 @@ test.describe('the founder’s controls', () => {
   const card = change.getByRole('article', { name: routine.label, exact: true });
   const chips = card.getByRole('group', { name: fill(speech.voiceLabel!, { register: routine.label }) });
   const chip = (value: string) => chips.getByRole('radio', { name: setting.allowed.find(a => a.value === value)!.label, exact: true });
-  await expect(chip(platformLabel)).toBeChecked();
-  await chip(otherLabel).check();
-  const reason = 'The founder wants every presentation register read in the male voice, starting with routine answers.';
+  await expect(chip(registerDefaultLabel)).toBeChecked();
+  await chip(registerOtherLabel).check();
+  const reason = `The founder wants every presentation register read in the ${registerOtherLabel} voice, starting with routine answers.`;
   await change.getByLabel(say.reason).fill(reason);
   await card.getByRole('button', { name: fill(speech.saveRegister!, { register: routine.label }) }).click();
   await expect(change.getByRole('status')).toContainText(fill(say.applied.split('{at}')[0]!, { version: '2' }).trim());
@@ -424,21 +427,21 @@ test.describe('the founder’s controls', () => {
      against — and nothing in any address. */
   const post = mock.requests.find(r => r.method() === 'POST' && new URL(r.url()).pathname.endsWith(founder.routes.settingsChanges))!;
   expect(post).toBeTruthy();
-  expect(post.postDataJSON()).toEqual({ setting: routine.setting, from: platformLabel, to: otherLabel, reason, expectedVersion: 1 });
-  for (const r of mock.requests) expect(r.url()).not.toContain(otherLabel);
-  /* The chip reads male back from the mocked GET, and the source sentence says version two. */
-  await expect(chip(otherLabel)).toBeChecked();
+  expect(post.postDataJSON()).toEqual({ setting: routine.setting, from: registerDefaultLabel, to: registerOtherLabel, reason, expectedVersion: 1 });
+  for (const r of mock.requests) expect(r.url()).not.toContain(registerOtherLabel);
+  /* The chip reads the saved voice back from the mocked GET, and the source sentence says version two. */
+  await expect(chip(registerOtherLabel)).toBeChecked();
   await expect(sub(page)).toContainText(fill(speech.sourceService!, { version: 2 }));
-  await expect(card).toContainText(setting.allowed.find(a => a.value === otherLabel)!.label);
-  /* The preview follows: on the routine register the male chip is checked and Play sends the male voice's name. */
+  await expect(card).toContainText(setting.allowed.find(a => a.value === registerOtherLabel)!.label);
+  /* The preview follows: on the routine register the saved chip is checked and Play sends that voice's name. */
   const preview = sub(page).getByRole('region', { name: new RegExp(voice.previewPanel.placements[0]) });
   await preview.getByRole('combobox', { name: g1.voice.previewClassLabel, exact: true }).selectOption(routine.id);
   const previewChips = preview.getByRole('group', { name: g1.voice.previewVoiceLabel, exact: true });
-  await expect(previewChips.getByRole('radio', { name: setting.allowed.find(a => a.value === otherLabel)!.label, exact: true })).toBeChecked();
+  await expect(previewChips.getByRole('radio', { name: setting.allowed.find(a => a.value === registerOtherLabel)!.label, exact: true })).toBeChecked();
   await preview.getByLabel(g1.voice.previewTextLabel).fill('Your nurse is on the way.');
   await preview.getByRole('button', { name: 'Play', exact: true }).click();
   await expect.poll(() => spoken.length).toBe(1);
-  expect(spoken[0]!.voice).toBe(english.ttsVoices![otherLabel]);
+  expect(spoken[0]!.voice).toBe(english.ttsVoices![registerOtherLabel]);
   expect(spoken[0]!.register).toBe(routine.id);
   await audit(page, 'Speech settings, the founder signed in');
   mkdirSync(SHOTS, { recursive: true });

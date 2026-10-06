@@ -119,11 +119,9 @@ export function AssistantVoiceButton({
   if (!voice.supported) {
     return (
       <>
-        <button type="button" className="as-voice" disabled aria-label="Speak to GilbertOne">
-          <span className="as-mic-disc" aria-hidden="true">
-            <Mic size={18} aria-hidden="true" />
-          </span>
-          <span className="as-voice-words">Speak to GilbertOne</span>
+        <button type="button" className="as-voice" disabled aria-label={ui.talkLabel}>
+          <span className="as-mic-disc" aria-hidden="true" />
+          <span className="as-voice-words">{ui.talkLabel}</span>
         </button>
         <div className="as-voice-lines">
           <p className="as-voice-state">{voice.unavailable}</p>
@@ -162,7 +160,7 @@ export function AssistantVoiceButton({
     ? chat.stopLabel
     : capturing
       ? voicePolicy.sentences.stopLabel
-      : "Speak to GilbertOne";
+      : voicePolicy.sentences.talkLabel;
   /* Where the conversation is, in the contract's sentence: the pause is over and the turn is being
      answered, the microphone is open again for the next turn, the voice is reading and will stop the
      moment she speaks, or the microphone closed on its own and why. Null when no conversation runs
@@ -260,7 +258,7 @@ export function AssistantVoiceButton({
               : chat.stopLabel
             : capturing
               ? label
-              : "Speak to GilbertOne"}
+              : ui.talkLabel}
         </span>
       </button>
       <div className="as-voice-lines">

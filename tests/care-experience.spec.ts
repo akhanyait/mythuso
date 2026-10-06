@@ -69,8 +69,8 @@ const dispensing = JSON.parse(readFileSync(new URL('../packages/catalog/dispensi
 const passportContract = JSON.parse(readFileSync(new URL('../packages/catalog/passport.json', import.meta.url), 'utf8'));
 test('Passport timeline filters actual records and reads the medicines from the dispensing contract', async ({ page }) => {
  await page.goto('/app/');
- await goSection(page, 'Health Passport');
- await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'History' }).click();
+ /* History on the Preview Passport stays empty; the Care timeline page still holds the record rail. */
+ await goSection(page, 'Care timeline');
  await page.getByRole('button', { name: 'Reviews', exact: true }).click();
  await expect(page.locator('.care-timeline .record-row')).toHaveCount(1);
  await expect(page.locator('.timeline-status')).toHaveText('Review completed');

@@ -33,7 +33,10 @@ import {
   ShieldCheck,
   ArrowRight,
   Minus,
+  Ban,
+  Cog,
   Lock,
+  Mic,
   RotateCcw,
   Send,
   TriangleAlert,
@@ -92,6 +95,7 @@ import {
   refusalFor,
   refusals,
   say,
+  screens,
   silenceIsNotSafety,
   spokenLanguageOf,
   spokenOf,
@@ -114,7 +118,6 @@ import {
   refineWithAssistantService,
   sendWithGilbertEngine,
 } from "../lib/gilbertone-bridge";
-import { acknowledgePatient, patientAcknowledged } from "../lib/gilbertone-acknowledgement";
 import { guidanceFromRecord, prefersLocalConversation, signedInPatientContext } from "../lib/patient-context";
 import {
   emptyQueue,
@@ -129,14 +132,7 @@ import "./assistant.css";
 import "./gilbertone-theme.css";
 import "./assistant-motion.css";
 import "./gilbertone-experience.css";
-import {
-  BeforeWeStart,
-  DESIGN_CHIPS,
-  Opening,
-  PrivacyNote,
-  QuietChips,
-  QuietMenu,
-} from "./gilbert-quiet";
+import { AssistantAttachments } from "../components/AssistantAttachments";
 import { AssistantVoiceButton, CallScreen, useGilbertCall } from "../components/AssistantVoiceButton";
 
 /* The connected-capability region arrives on its own dynamic import, so the status, retrieval,
@@ -353,7 +349,6 @@ export default function Assistant({
   useEffect(() => {
     if (!open) {
       setSkin(false);
-      setPrivacyOpen(false);
     }
   }, [open]);
   const [queue, setQueue] = useState<Queue>(emptyQueue);
@@ -375,14 +370,21 @@ export default function Assistant({
      audience that never saw the gate. Whether this audience is shown the gate and whether it has
      read the prohibitions are the same fact, and writing it twice is how they come apart. */
   const gated = audienceId === "patient";
-  const [consented, setConsented] = useState(() => !gated || patientAcknowledged());
-  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [consented, setConsented] = useState(!gated);
+  const [doctorBox, setDoctorBox] = useState(false);
+  const [emergencyBox, setEmergencyBox] = useState(false);
   const [callTurn, setCallTurn] = useState<number | null>(null);
   const wordsRef = useRef<(text: string) => void>(() => {});
   const callLive = useRef(false);
   /* The composer's field is drawn only once the gate is passed and only has a layout while the panel is
      open, so both are what it is measured again on, beside the words themselves. */
   useGrowingField(field, draft, open && consented);
+  /* After Accept the field mounts with consented; focus it once so the welcome's first tap is typing. */
+  useEffect(() => {
+    if (!open || !consented) return;
+    const id = window.requestAnimationFrame(() => field.current?.focus());
+    return () => window.cancelAnimationFrame(id);
+  }, [open, consented]);
   const conversationRef = useRef(crypto.randomUUID());
   /* Guards the panel's one asynchronous refinement: a counter, bumped on every submit, so a
      service answer that arrives after the conversation has moved on — a second message, a chosen
@@ -610,15 +612,24 @@ export default function Assistant({
   ]);
   useEffect(() => {
     if (!open || !consented) return;
-    /* Latest message in view: the transcript scrolls to its foot on open and
-       after each turn. scrollIntoView can also move the dialog, so only this
-       scroller moves. */
+    /* Keep the latest turn in view — not the scroller's foot. Chips, services and the
+       voice disclosure sit below the log, so scrollHeight would hide the answer and leave
+       the way-back button up. Only this scroller moves; never the dialog. */
     const viewport = scroller.current;
+    const entry = latest.current;
     if (!viewport) return;
-    viewport.scrollTo({
-      top: viewport.scrollHeight,
-      behavior: reduced ? "auto" : "smooth",
-    });
+    if (entry) {
+      viewport.scrollTo({
+        top:
+          viewport.scrollTop +
+          entry.getBoundingClientRect().top -
+          viewport.getBoundingClientRect().top -
+          12,
+        behavior: "auto",
+      });
+    } else {
+      viewport.scrollTo({ top: viewport.scrollHeight, behavior: "auto" });
+    }
     requestAnimationFrame(measure);
   }, [open, consented, turns, reduced]);
   /* The conversation's room changes without a scroll — the composer growing with what is written, the
@@ -857,6 +868,10 @@ export default function Assistant({
     );
   };
   const sos = () => openModal?.("Emergency & urgent care");
+  const talkSubtitle = screens.welcome.talkSubtitle.replace(
+    "{languages}",
+    voice.languages.join(", "),
+  );
 
   const portrait = (
     <div
@@ -882,8 +897,8 @@ export default function Assistant({
     <dialog
       ref={dialog}
       id="assistant-panel"
-      className="as-panel patient-surface go-experience"
-      aria-labelledby={consented ? "as-title" : "go-before-title"}
+      className="as-panel patient-surface"
+      aria-labelledby="as-title"
       data-audience={audienceId}
       data-gate={!consented || undefined}
       /* The safety face holds (affect.answers.emergency's cue, until Start again), and the panel's
@@ -894,10 +909,6 @@ export default function Assistant({
       }
       onCancel={(event) => {
         event.preventDefault();
-        if (privacyOpen) {
-          setPrivacyOpen(false);
-          return;
-        }
         dismiss();
       }}
       onClose={() => {
@@ -908,28 +919,6 @@ export default function Assistant({
         if (event.target === event.currentTarget) dismiss();
       }}
     >
-      {!consented ? (
-        <BeforeWeStart
-          brand={
-            <div className="go-lockup go-before-brand">
-              <GilbertOneLogo width={56} alt={identity.name} className="go-head-logo" />
-              <p className="go-not">{identity.descriptorLine}</p>
-            </div>
-          }
-          closeRef={close}
-          onClose={dismiss}
-          /* The contract's prohibitions stay on the gate. The last one, that missing an emergency does
-             not mean there is none, is the first half of silenceIsNotSafety. */
-          willNotDo={consent.willNotDo.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-          onContinue={() => {
-            acknowledgePatient();
-            setConsented(true);
-            requestAnimationFrame(() => field.current?.focus());
-          }}
-        />
-      ) : (
       <div className="as-frame">
         <header
           className="as-head"
@@ -937,21 +926,29 @@ export default function Assistant({
           data-gate={!consented || undefined}
         >
           <div className="as-bar">
-            <div className="as-titles go-lockup">
-              <GilbertOneLogo width={56} alt="" className="go-head-logo" />
-              <div className="go-lockup-words">
-                <h2 id="as-title">{identity.name}</h2>
-                <p className="go-not">{identity.descriptorLine}</p>
-              </div>
+            <div className="as-titles">
+              {/* Brand mark in the head for the layout journey; the official GilbertOne logo stands on
+                  the consent card and the welcome, with the descriptor beside it. */}
+              <img
+                className="as-logo as-brand"
+                src={
+                  consented
+                    ? "/brand/mythuso-logo.svg"
+                    : "/brand/mythuso-logo-reversed.svg"
+                }
+                alt="MyThuso"
+              />
+              <h2 id="as-title" className="as-sr">
+                {identity.name}
+              </h2>
+              {asked && (
+                <p className="as-descriptor">{identity.descriptorLine}</p>
+              )}
+              {audience.simulated && (
+                <p className="as-simulated">{audience.simulated}</p>
+              )}
             </div>
             <div className="as-controls">
-              <QuietMenu
-                onNew={() => {
-                  again();
-                  setPrivacyOpen(false);
-                }}
-                onPrivacy={() => setPrivacyOpen(true)}
-              />
               <MotionPause className="as-pause" />
               <button
                 type="button"
@@ -999,19 +996,7 @@ export default function Assistant({
             </div>
           )}
         </header>
-        {privacyOpen && (
-          <PrivacyNote
-            paragraphs={[
-              consent.privacyBody,
-              conversation.webKeyboardNote,
-              "What you type may be sent to the GilbertOne assistant for this site when an answer is not already on the page. GilbertOne does not decide what you are allowed to see.",
-              "New conversation clears this active conversation and ignores a late answer from the previous one. It does not delete stored history. No deletion route is defined here.",
-            ]}
-            onClose={() => setPrivacyOpen(false)}
-          />
-        )}
-
-        {call.mode !== "closed" ? (
+{call.mode !== "closed" ? (
           <CallScreen
             phase={call.phase}
             disclosure={disclosureFor("assistant")}
@@ -1051,23 +1036,6 @@ export default function Assistant({
             ref={scroller}
             onScroll={measure}
           >
-            {!asked && (
-              <>
-                <Opening prompt="What can I help you with?" title="" />
-                <QuietChips
-                  chips={DESIGN_CHIPS}
-                  onPick={(label) => {
-                    const chip = DESIGN_CHIPS.find((item) => item.label === label);
-                    if (chip && "page" in chip && navigate) {
-                      dismiss();
-                      navigate(chip.page);
-                      return;
-                    }
-                    sendText(label);
-                  }}
-                />
-              </>
-            )}
             {/* The skin check, drawn first in the scroll while it is open; skin-check.css stands the
                 conversation and the composer aside under data-skin rather than unmounting them, so the
                 transcript is exactly where she left it when she comes back. */}
@@ -1080,9 +1048,24 @@ export default function Assistant({
             )}
             {/* The welcome introduces GilbertOne by its official logo, with the descriptor that must
                 stand beside the name. A lockup, so it is centred on the logo's own clear space. */}
+            {!asked && (
+              <Card
+                className="as-welcome-hero"
+                role="region"
+                aria-label={identity.name}
+              >
+                <p className="as-hello">{ui.hello}</p>
+                <GilbertOneLogo
+                  className="as-wordmark"
+                  width={168}
+                  alt={identity.name}
+                />
+                <p className="as-hero-descriptor">{identity.descriptorLine}</p>
+              </Card>
+            )}
             <div
               className="as-log"
-              data-welcome={!asked || undefined}
+              data-welcome={(!asked && gated) || undefined}
               role="log"
               aria-label={conversation.logLabel}
             >
@@ -1316,6 +1299,19 @@ export default function Assistant({
                 );
               })}
             </div>
+            {!asked && audience.voice && voiceAdapter.supported && (
+              <p className="as-talkbar">
+                <span className="as-talkbar-icon" aria-hidden="true">
+                  <Mic size={18} />
+                </span>
+                <span className="as-talkbar-copy">
+                  <span className="as-talkbar-label">
+                    {voice.sentences.talkLabel}
+                  </span>
+                  <span className="as-talkbar-sub">{talkSubtitle}</span>
+                </span>
+              </p>
+            )}
             {asked && (
               <button type="button" className="as-again" onClick={again}>
                 <RotateCcw size={16} aria-hidden="true" />
@@ -1407,7 +1403,77 @@ export default function Assistant({
               </footer>
             )}
           </div>
-        ) : null}
+        ) : (
+          <div className="as-scroll as-gate">
+            {/* One paper card on the ink sheet — the founder's brief of 28 September 2026. What the
+                patient is agreeing to is the only light thing on the screen, so it is what is read
+                first; the disclosures inside it are sections of one document rather than cards
+                stacked inside a card, and nothing in it has an entrance of its own. */}
+            <div className="as-gate-paper">
+            {/* The official logo at the head of what she is agreeing to, with the descriptor beside
+                it: the name and its correction, read together before anything else. */}
+            <div className="as-gate-brand">
+              <GilbertOneLogo width={120} alt={identity.name} />
+              <p className="as-descriptor">{identity.descriptorLine}</p>
+            </div>
+            <div className="as-gate-intro">
+              <h3>{consent.heading}</h3>
+              <p>{ui.disclaimerIntro}</p>
+            </div>
+            <div className="as-emergency">
+              <p className="as-emergency-heading">
+                <TriangleAlert size={16} aria-hidden="true" />
+                {screens.consent.emergencyHeading}
+              </p>
+              <p className="as-gate-emergency">
+                <EmergencyLinks />
+              </p>
+            </div>
+            <section className="as-gate-card">
+              <div className="as-gate-card-head">
+                <span className="as-gate-icon">
+                  <Lock size={18} aria-hidden="true" />
+                </span>
+                <h3>{consent.privacyHeading}</h3>
+              </div>
+              <p>{consent.privacyBody}</p>
+            </section>
+            <section className="as-gate-card">
+              <div className="as-gate-card-head">
+                <span className="as-gate-icon">
+                  <Ban size={18} aria-hidden="true" />
+                </span>
+                <h3>{consent.willNotDoHeading}</h3>
+              </div>
+              <ul className="as-gate-list">
+                {consent.willNotDo.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </section>
+            <section className="as-gate-card">
+              <div className="as-gate-card-head">
+                <span className="as-gate-icon">
+                  <Cog size={18} aria-hidden="true" />
+                </span>
+                <h3>{consent.poweredByHeading}</h3>
+              </div>
+              <p>{consent.poweredByBody}</p>
+            </section>
+            {ui.service.consent.map((entry) => (
+              <section className="as-gate-card" key={entry.id}>
+                <div className="as-gate-card-head">
+                  <span className="as-gate-icon">
+                    <ShieldCheck size={18} aria-hidden="true" />
+                  </span>
+                  <h3>{entry.heading}</h3>
+                </div>
+                <p>{entry.body}</p>
+              </section>
+            ))}
+            </div>
+          </div>
+        )}
         {/* The way back to the latest answer: a real button in the panel's own order, after the
             conversation and before the composer, so the focus trap counts it like any other stop. It
             stands over the foot of the transcript from a dock that takes no room. Only once something
@@ -1443,7 +1509,7 @@ export default function Assistant({
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={sendOnEnter}
-                placeholder="Type in your own words."
+                placeholder={conversation.inputHint}
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
@@ -1456,23 +1522,6 @@ export default function Assistant({
                   assistant — and an audience's entry says whether that is this one. Its second
                   line, "Speech becomes text before sending.", rides inside the control under
                   the written action: the sentence is about the button it sits on. */}
-              <button
-                type="submit"
-                className="as-send"
-                aria-label={conversation.sendLabel}
-                title={conversation.sendLabel}
-              >
-                <Send size={16} aria-hidden="true" />
-                <span>{conversation.sendLabel}</span>
-              </button>
-            </div>
-            {/* The mockup's warning strip, in the contract's own words. It carries what the
-                loose silence line carried — nobody is safe because nobody answered — in the
-                shape the mockup gives it, and both numbers still arrive through the same
-                token resolver every other sentence uses. */}
-            <div className="go-compose-actions">
-              {/* The reviewed microphone control: its disclosure before the first tap, its
-                  hands-free conversation, and its stop label, all from the contract. */}
               {audience.voice && (
                 <AssistantVoiceButton
                   voice={voiceAdapter}
@@ -1483,24 +1532,73 @@ export default function Assistant({
                   onTypeInstead={() => field.current?.focus()}
                 />
               )}
-              {audience.actions.handover && (
-                <button type="button" className="go-nurse" onClick={nurse}>
-                  <UserRound size={16} aria-hidden="true" />
-                  {answers.unread.handoverLabel}
-                </button>
-              )}
+              <AssistantAttachments />
+              <button
+                type="submit"
+                className="as-send"
+                aria-label={conversation.sendLabel}
+                title={conversation.sendLabel}
+              >
+                <Send size={17} aria-hidden="true" />
+              </button>
             </div>
             <p className="as-silence">
               <TriangleAlert size={15} aria-hidden="true" />
               <EmergencyLinks />
             </p>
           </form>
-        ) : null}
+        ) : (
+          <div className="as-gate-foot">
+            <div className="as-gate-boxes">
+              <label className="as-gate-check">
+                <input
+                  type="checkbox"
+                  checked={doctorBox}
+                  onChange={(event) => setDoctorBox(event.target.checked)}
+                />
+                <span>{consent.checkboxDoctor}</span>
+              </label>
+              <label className="as-gate-check">
+                <input
+                  type="checkbox"
+                  checked={emergencyBox}
+                  onChange={(event) => setEmergencyBox(event.target.checked)}
+                />
+                <span>{consent.checkboxEmergency}</span>
+              </label>
+            </div>
+            {/* Accept opens only when both boxes are ticked, and Cancel is the same dismiss the
+                cross, the backdrop and Escape use — the gate has no fourth way out. */}
+            <div className="as-gate-actions">
+              <Button
+                variant="secondary"
+                className="as-gate-cancel"
+                onClick={dismiss}
+              >
+                {consent.cancel}
+              </Button>
+              <Button
+                variant="accent"
+                className="as-gate-accept"
+                disabled={!doctorBox || !emergencyBox}
+                onClick={() => {
+                  setConsented(true);
+                  /* Field mounts with consented; wait a frame so the ref exists before focus. */
+                  requestAnimationFrame(() =>
+                    requestAnimationFrame(() => field.current?.focus()),
+                  );
+                }}
+                trailingIcon={<ArrowRight size={16} aria-hidden="true" />}
+              >
+                {consent.accept}
+              </Button>
+            </div>
+          </div>
+        )}
           </>
         )}
 
       </div>
-      )}
     </dialog>
   );
 }
@@ -1601,7 +1699,9 @@ function Lines({ ids }: { ids: string[] }) {
     <ul className="as-numbers">
       {lines(ids).map((n) => (
         <li key={n.number}>
-          <strong>{n.number}</strong>
+          <a className="as-tel" href={`tel:${n.number.replace(/\s+/g, "")}`}>
+            <strong>{n.number}</strong>
+          </a>
           <span>{n.name}</span>
         </li>
       ))}
@@ -1677,7 +1777,9 @@ function CrisisLines() {
       <ul className="as-numbers">
         {crisisLines.lines.map((line) => (
           <li key={line.id}>
-            <strong>{line.number}</strong>
+            <a className="as-tel" href={`tel:${line.number.replace(/\s+/g, "")}`}>
+              <strong>{line.number}</strong>
+            </a>
             <span>{line.name}</span>
           </li>
         ))}
