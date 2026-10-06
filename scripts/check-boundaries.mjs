@@ -32562,6 +32562,14 @@ console.log(
      the decision the check exists to make explicit. */
   const adapterAllowlist = new Set([
     "apps/assistant-api/src/lib/tools/drug-check.ts",
+    /* The literature-search tool was wired to the pubmed adapter on 2026-10-06, ending the defect
+       this check's egress table (4b below) also names: it used to make its own fetch() to the exact
+       endpoint pubmed-adapter.ts governs, so two roads reached one source and only the adapter's
+       respected its dark guard, its outgoingTerm redaction and its 30-per-minute rate limit. It
+       imports the adapter rather than calling fetch() now, which is precisely why it belongs on this
+       allowlist — a road TO an adapter is the governed road, and the sweep exists to make any other
+       wiring a decision rather than an accident. */
+    "apps/assistant-api/src/lib/tools/literature-search.ts",
   ]);
   /* The reference_sources tool was wired to the federation on 2026-10-02, with the founder's
      demonstration override: it is the one road from the model tier to an external source, and the
@@ -32587,6 +32595,131 @@ console.log(
     throw new Error(
       `scripts/check-boundaries.mjs swept ${federationSwept} files in apps/assistant-api/src for federation reachability, so the check that only knowledge-federation.ts may import the adapters is reading almost nothing.`,
     );
+
+  /* 4b. Every outgoing request this service can make is enumerated, and each one is classified.
+     ADDED BY THE KNOWLEDGE-GOVERNANCE WORK, 6 OCTOBER 2026.
+
+     WHY THIS CHECK EXISTS. apps/assistant-api is live in production, and until today nothing in the
+     build counted the ways it can leave the box. The federation's guards are asserted per adapter
+     just above — but an adapter is only one road. literature-search.ts carried a second: a bare
+     fetch() to the very endpoint pubmed-adapter.ts governs, with no isSourceActive, no outgoingTerm
+     and no rateGateFor, so two paths reached one governed source and only one respected its
+     30-per-minute ceiling. An unenumerated egress is invisible to a check that reads only the
+     adapters it already knows about, which is what the per-adapter assertions are.
+
+     HOW IT WORKS. Every non-test .ts file is swept and every `fetch(` in it is read with the
+     comments lifted out — so llm-adapter.ts:28's prose about "the platform's own fetch()" is a
+     sentence and is not counted as a call. Each call site must be claimed by exactly one row of
+     EGRESS below, matched by the URL expression it builds, and every row must claim a real site. The
+     match is on the call site rather than the file so a file carrying two calls of different kinds
+     (llm-adapter.ts: a model provider and a local probe) is classified per call, and so reordering
+     two functions does not silently swap their classifications.
+
+     THE CLASSIFICATIONS. "local" reaches a host this deployment runs and sends no topic and no
+     person to anybody else's jurisdiction. "model-provider" is the language tier's own call,
+     governed by api-registry.json's cards and the provider vault rather than by federation.json.
+     "governed-adapter" is one of the six adapters, each of which reads its federation.json row and
+     refuses while it is dark — asserted separately above, and reached through deps.fetchImpl rather
+     than a bare fetch(), so an adapter that ever called fetch() directly would arrive here
+     unenumerated and fail: that call would bypass the injection seam its own tests use.
+
+     NOTHING ELSE IS CLASSIFIED, BECAUSE NOTHING ELSE IS PERMITTED. A new external call is a row in
+     this table — a decision somebody wrote down — and not a line in a file. */
+  {
+    const EGRESS = [
+      {
+        file: "apps/assistant-api/src/lib/knowledge.ts",
+        kind: "local",
+        at: "`${url}/collections/",
+        what: "qdrantSearch, against the vector index this deployment runs on QDRANT_URL. It searches MyThuso's own copy of its own catalogue, so no topic and no person crosses a border it does not already cross.",
+      },
+      {
+        file: "apps/assistant-api/src/lib/llm-adapter.ts",
+        kind: "model-provider",
+        at: "`${creds.endpoint}/openai/deployments/",
+        what: "embedWithAzure, the language tier's own embeddings call. Governed by api-registry.json's azure-openai card and the provider vault — the founder can switch that card off — and not by federation.json, which allowlists knowledge sources rather than models.",
+      },
+      {
+        file: "apps/assistant-api/src/lib/llm-adapter.ts",
+        kind: "local",
+        at: "`${OLLAMA_DEFAULT_URL}/api/version",
+        what: "probeOllama, a version probe against Ollama's default localhost URL. It asks whether a provider exists rather than looking anything up, and it carries no query.",
+      },
+    ];
+    const EGRESS_KINDS = new Set(["local", "model-provider", "governed-adapter"]);
+    const egressTree = "apps/assistant-api/src";
+    let egressSwept = 0;
+    const sites = new Map();
+    for (const file of files(egressTree).filter(
+      (f) => f.endsWith(".ts") && !f.includes(".test."),
+    )) {
+      egressSwept += 1;
+      const code = uncommented(read(file));
+      /* 220 characters is enough to hold the URL expression every call site builds, and short
+         enough that a neighbouring statement cannot be mistaken for this call's. */
+      const found = [...code.matchAll(/\bfetch\s*\(/g)].map((m) =>
+        code.slice(m.index, m.index + 220),
+      );
+      if (found.length) sites.set(file, found);
+    }
+    /* A kind outside the three is a classification nobody decided on. */
+    for (const row of EGRESS)
+      if (!EGRESS_KINDS.has(row.kind))
+        throw new Error(
+          `scripts/check-boundaries.mjs's egress table classifies ${row.file} as "${row.kind}", which is not one of ${[...EGRESS_KINDS].join(", ")}. A classification is what a reviewer reads to know whether a call is governed; an invented one is a call nobody can place.`,
+        );
+    /* Every row claims exactly one real call site. */
+    const claimed = new Set();
+    for (const row of EGRESS) {
+      const found = sites.get(row.file);
+      if (!found)
+        throw new Error(
+          `scripts/check-boundaries.mjs's egress table names ${row.file}, which makes no fetch() call. A row that claims nothing is a row that stops being read, and the table is what makes an unenumerated call fail.`,
+        );
+      const at = found.findIndex((site) => site.includes(row.at));
+      if (at < 0)
+        throw new Error(
+          `scripts/check-boundaries.mjs's egress table matches ${row.file} on ${row.at}, and no fetch() call there builds that URL. The call moved or changed shape; re-read it and re-classify it rather than loosening the match.`,
+        );
+      const key = `${row.file}#${at}`;
+      if (claimed.has(key))
+        throw new Error(
+          `scripts/check-boundaries.mjs's egress table classifies the same fetch() call in ${row.file} twice. One call, one classification.`,
+        );
+      claimed.add(key);
+    }
+    /* literature-search.ts at zero, named BEFORE the general sweep rather than after it: the defect
+       this table exists because of, so a fetch() that returns here is met by the sentence that
+       explains it — two roads to one governed source — and not by the table's general one. Ordering
+       this after the sweep would report the same file as merely unenumerated, which is true and is
+       not the thing a reader most needs to know. */
+    const literatureTool = `${egressTree}/lib/tools/literature-search.ts`;
+    if (sites.has(literatureTool))
+      throw new Error(
+        `${literatureTool} calls fetch() again. It reached Europe PMC directly while pubmed-adapter.ts governs that same endpoint — two roads to one governed source, and only the adapter's respected its 30-per-minute ceiling, its isSourceActive guard and its outgoingTerm redaction. It goes through the adapter now, and federation.json's "active": false for pubmed-europepmc is what decides whether it answers at all.`,
+      );
+    /* And every call site is claimed: this is the assertion that fails on a new ungoverned call. */
+    for (const [file, found] of sites)
+      found.forEach((site, index) => {
+        if (claimed.has(`${file}#${index}`)) return;
+        throw new Error(
+          `${file} makes an outgoing fetch() call that scripts/check-boundaries.mjs's egress table does not enumerate (it builds ${JSON.stringify(site.slice(0, 90).trim())}…). Every way this service can leave the box is classified as local, model-provider or governed-adapter, and a call that is in no row is a call nobody reviewed — which is how literature-search.ts reached Europe PMC around the dark guard, the redaction and the rate limit that pubmed-adapter.ts holds for the same endpoint.`,
+        );
+      });
+    if (egressSwept < 25)
+      throw new Error(
+        `scripts/check-boundaries.mjs swept ${egressSwept} files in ${egressTree} for outgoing calls, so the egress table is enumerating almost nothing.`,
+      );
+    const kinds = EGRESS.reduce((counts, row) => {
+      counts[row.kind] = (counts[row.kind] ?? 0) + 1;
+      return counts;
+    }, {});
+    console.log(
+      `Egress · of ${egressSwept} non-test files swept in ${egressTree}, ${claimed.size} outgoing fetch() calls are enumerated and classified (${Object.entries(kinds)
+        .map(([kind, count]) => `${count} ${kind}`)
+        .join(", ")}), a bare fetch() in any other file fails the build, and ${literatureTool} carries none — it goes through the governed adapter instead. A comment naming fetch() is not counted: the sweep reads code with its comments lifted out.`,
+    );
+  }
   {
     const orchestrator = uncommented(
       read("apps/assistant-api/src/lib/orchestrator.ts"),

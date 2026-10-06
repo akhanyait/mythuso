@@ -110,7 +110,11 @@ test('a headache becomes a case the nurse decides and the doctor closes, and the
   }
   const notes = lastReply(page);
   await expect(notes).toContainText(intake.summary.title);
-  await expect(notes).toContainText(patientWords.askNurseLead);
+  /* The lead-in to the chips is the group's accessible name rather than a line of text: the quiet
+     panel's redesign moved it out of the bubble so the card does not say twice what its buttons
+     already offer. It is still case.json's own sentence, word for word, so it is asserted where it
+     now lives — and a screen reader still hears it before the three choices. */
+  await expect(notes.getByRole('group', { name: patientWords.askNurseLead })).toBeVisible();
   /* The reading: a pair a home cuff shows, then where it came from. A home cuff carries no weight, and
      the card says so in devices.json's own sentence. */
   await press(page, patientWords.readingOffer);

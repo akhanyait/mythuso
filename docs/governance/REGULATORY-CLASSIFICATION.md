@@ -106,9 +106,16 @@ every platform". That was wrong, and it is struck rather than softened.
 **4. Clinical knowledge retrieval — built, layered, and today functionally local-only.**
 `apps/assistant-api/src/lib/knowledge-federation.ts` is a governed layer above a local knowledge base:
 it checks a deny-list of out-of-scope questions (diagnosis, prescribing, dose changes, anything
-needing a licence) before searching at all, answers from the local base first, and would ask three
-external sources (ICD-11, OpenFDA, PubMed adapters exist in `src/lib/sources/`) only when each
-source's `federation.json` row is `"active": true`. All three ship `"active": false` today. The
+needing a licence) before searching at all, answers from the local base first, and would ask the
+external sources allowlisted in `federation.json` — fourteen of them counted on 6 October 2026,
+three when this paragraph was written, and six of the fourteen with an adapter in `src/lib/sources/`
+today (ICD-11, OpenFDA, PubMed, MedlinePlus, CDC and Wikidata) — only when each source's
+`federation.json` row is `"active": true`. All fourteen ship `"active": false` today. <!-- Only the
+counts were re-derived here, from `packages/catalog/knowledge/federation.json` and from the adapter
+files beside it; eight of the fourteen have no adapter at all, which is a gap in the opposite
+direction from the one this sentence was written about. The wider claim that the module is
+unreachable from a request — restated in the next sentence from the module's own comment — is under
+review in a separate change and was not verified by this pass. --> The
 module is also, by its own comment, "not imported by any route yet" — built, wired to nothing that a
 request can reach, and its abstention discipline (no-evidence, expired-evidence, conflicting-evidence)
 is itself a clinical-safety design already present in code, whether or not the module is switched on.

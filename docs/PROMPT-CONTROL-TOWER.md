@@ -62,7 +62,7 @@ Do not re-discover these. They are real.
 - packages/catalog/field-safety.json, sentinel.json, sos.json, sos-press.json — exist. The field-safety engine.
 - packages/catalog/scheduling.json, booking.json — exist.
 - packages/gilbertone/src/escalation.ts — exists. The deterministic pre-model escalation ruleset.
-- packages/catalog/apis/assistant.json — exists. The thirteenth engine file; twelve addresses built over twenty-six route versions.
+- packages/catalog/apis/assistant.json — exists. The thirteenth engine file; twelve addresses built over twenty-six route versions. <!-- Annotation, 6 October 2026, added outside the supplied text rather than into it: counted from packages/catalog/apis/assistant.json today, the contract holds 46 route objects — 28 live (every one status "built") over 28 distinct method+path addresses and 25 distinct URL paths, with 18 carrying a withdrawn record. The next line's "assistant 12" is the same figure from scripts/api-locks.mjs at the time it was written. Neither number is corrected in place, because this is the text the founder supplied; a session executing from this file must count the contract rather than trust the figure. -->
 - scripts/api-locks.mjs — exists. Reports 350 route versions over thirteen engine files; assistant 12.
 - apps/web/src/features/Admin.tsx, apps/web/src/shells/StaffShell.tsx — exist. The two surfaces §9 consolidates.
 - packages/catalog/feeds.json — exists. Eleven feed seams, one per supplier.

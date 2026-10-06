@@ -169,7 +169,25 @@ These are in `docs/` already and are listed here so they are not lost:
 
 Ordered by what I would build first.
 
-### 1. Arrival tracking, for the patient
+> **Annotated 6 October 2026 — all seven of the recommendations below have since been built.** Two
+> of them (2 and 5) were already struck through by whoever built them; the other five are annotated
+> here, each with what was checked and where. Nothing is deleted, because a recommendation list that
+> quietly loses the ones somebody took is a list nobody can audit — that is the reason item 5 gives
+> for keeping itself struck through, and the same reason applies to the five. Where a thing is built
+> on some platforms and not others the annotation says so rather than rounding it up to "built": item
+> 3 is the clearest case, and its web queue is genuinely weaker than the two phones'. What is *not*
+> annotated is whether any of it is accepted — gate G15 and the rest of the open gates are recorded in
+> their own sections, and a screen existing is not a control being signed off.
+
+### 1. ~~Arrival tracking, for the patient~~ — built
+
+> **Built, and checked on 6 October 2026.** `apps/web/src/features/Arrival.tsx` opens with the same
+> sentence this recommendation was written around — *"Where is she now"* — and says what it refuses:
+> the figure is labelled "Straight line" before the reader reaches it, the map draws the same dashed
+> line rather than a road, and the arithmetic comes from `apps/web/src/lib/arrival.ts` with its own
+> `arrivalRefusals()` and precision sentence. The reason it is honest rather than merely built is
+> that it is mostly a screen with nothing to show: on most days there is no arrival to track, and
+> that state was designed for rather than fallen into.
 
 The one thing a person waiting at home actually wants, and the product currently cannot answer:
 _where is she now._ `dispatch` already carries real coordinates and arrival estimates; the map
@@ -182,13 +200,43 @@ friend.
 What was measured, what was in range, what the doctor said, and one button that rebooks with the
 same patient chosen. `tests/patient-screens.spec.ts` holds it.
 
-### 3. Offline capture for the nurse
+### 3. ~~Offline capture for the nurse~~ — built on both phones; the web queue is memory-only, and that is a rule, not an omission
+
+> **Checked on 6 October 2026, and the honest answer is three answers rather than one.** The
+> readings always had a queue; what was missing was the rest of the visit, and that is what was
+> built. `apps/ios/MyThuso/Features/VisitQueueView.swift` holds the whole visit — the code checked at
+> the door, the consent read aloud, what she found, her signature — in a JSON file in Application
+> Support, and `apps/android/.../model/VisitQueue.kt` holds the same in the app's own private
+> storage, its header naming the case this recommendation was written for: a nurse in a house in
+> Ivory Park with one bar, whose assessment lived in `remember {}` and therefore nowhere.
+> `packages/catalog/capture.json`'s `durability.stores` is where the three platforms are finally
+> compared against each other rather than described three times in prose, and `rules.queuedIsNotLost`
+> is the promise it holds them to.
+>
+> **The web queue is genuinely weaker and must not be counted as built.** Its store is
+> `web-in-memory`: a module-level array in the open tab, which survives navigation and is lost to a
+> reload, a crash, a sign-out and everything after. That is not a gap somebody missed —
+> `scripts/check-boundaries.mjs` forbids `localStorage`, `sessionStorage` and IndexedDB across
+> `apps/web/src`, because a preview must not leave a patient's readings on a borrowed machine. The
+> contract holds both the behaviour and what the screen says about it, so the limit is on the screen
+> rather than discovered by the nurse. **The recommendation as written — a nurse in Soweto with one
+> bar cannot lose an assessment — is met by the two phones, which is what the nurse carries.**
 
 A nurse in a house in Soweto with one bar cannot lose an assessment. The kit capture flow already
 has an offline queue; the rest of the clinical capture does not. This is a working-conditions
 feature and it is the kind of thing that decides whether nurses stay.
 
-### 4. A sponsor's view
+### 4. ~~A sponsor's view~~ — built
+
+> **Built, and checked on 6 October 2026.** `apps/web/src/features/Sponsor.tsx` exists, and the
+> part of it worth noting is that it did not simply render the sponsor's statement: it puts what you
+> see and what you never see in two columns of equal weight, because a screen that lists four things
+> a sponsor is shown and then mentions in grey that the clinical record is off limits has ordered
+> those two facts by how comfortable they are. The recipient's switch on whether the statement names
+> the service appears as a fact and not as a control — it is hers to set from her own account, and a
+> disabled toggle would have been worse than none, since it says she can change something she cannot.
+> `apps/web/src/features/Programmes.tsx` carries the sponsor's statement beside it. The second
+> revenue line in the proposal has a screen.
 
 `business-model.json` already has sponsored care and the family screens already show "Sponsored
 care" as a state. Nobody can see what they are paying for. This is the second revenue line in the
@@ -200,14 +248,38 @@ _If you take a shift_ sits above the nurse's weeks and answers what one is worth
 to it. Kept here struck through rather than deleted, because a recommendation list that quietly
 loses the ones somebody took is a list nobody can audit.
 
-### 6. An "explain this to me" layer on the Health Passport
+### 6. ~~An "explain this to me" layer on the Health Passport~~ — built, as prose, and reviewed by nobody yet
+
+> **Built, and checked on 6 October 2026 — including the part that must not be overstated.** The
+> seven explanations (systolic, diastolic, pulse, respiratory, temperature, oxygen, glucose) live in
+> `packages/catalog/records.json` under `explanations`, generated into `RecordsData.swift` and
+> `RecordsData.kt`, and `scripts/check-boundaries.mjs` refuses any of those sentences as a literal in
+> hand-written source on any of the three platforms — the three typed copies this recommendation
+> predate were the reason the words moved into the contract. `apps/web/src/lib/explain.ts` keeps only
+> the reasoning, and its own header says why the layer is prose and not a model: a written
+> explanation cannot see your record, cannot personalise itself, cannot be confidently wrong in a new
+> way for each reader, and can be read in full by a clinician before it ships. **That last clause is
+> the gap.** The header says the words are "reviewed by nobody yet", and nothing here changes that:
+> the layer exists, is sourced, is non-AI exactly as recommended, and is awaiting the clinical review
+> that would let anybody say it is safe rather than merely written.
 
 Reference ranges are already rendered — and, since the move into `packages/catalog/records.json`,
 rendered from one place on all three platforms. What a reading _means_ is not. This is where `screening`
 will eventually live, and a written, sourced, non-AI version of it could exist now — and would be
 more defensible than the model that replaces it.
 
-### 7. A public status page
+### 7. ~~A public status page~~ — built, and it says none of them are running
+
+> **Built, and checked on 6 October 2026.** `apps/web/status.html` is its own entry, served at
+> `/status/`, drawing `packages/catalog/capabilities.json` through `src/status.ts` with no framework
+> behind it at all — which was the point of keeping it separate, since it is the page somebody opens
+> when they suspect nothing works, as likely on a metered connection in a car park as at a desk. The
+> recommendation's condition was "when the identity service, payments and dispatch do come up"; the
+> page did not wait for them and instead answers the question in the negative today: **23
+> capabilities, and `connected: true` on none of them**, each with what stands in its way and the
+> sentence a person is shown while it is not. That is the honest reading of this recommendation being
+> struck through — the page exists, and what it says is that there is nothing yet to report as
+> running.
 
 When the identity service, payments and dispatch do come up, something should say which are
 running. The capability contract is already exactly this data.
@@ -444,6 +516,46 @@ Verification: `npm run check` passes end to end and `node scripts/check-boundari
 
 **This pass changed documents and nothing else.** No deploy ran, no service was switched on, no provider was configured, no clinical gate moved, no contract sentence was reworded, no lock line was touched and no generated file was regenerated. The GilbertOne look and feel is fixed and was not restyled in any way. What was corrected is that the authoritative documents still described GilbertOne as the web app's assistant — as a feature, or as "the second tier" of one — rather than as what it is: a **separate API engine with three clients**.
 
+> **Annotation, 6 October 2026 — two figures and one statement in this record are stale here.**
+> This is a dated record of the 22 September pass and has not been rewritten; the numbers it states
+> were true of the tree that day. Two of them no longer describe the contract, and the convention
+> this section itself sets out — _dated records were annotated rather than rewritten, so a reader can
+> still see what was true when it was written_ — is what this note follows.
+>
+> - **The route count.** _One engine, three clients_ says "twelve addresses over twenty-six route
+>   versions, every one of them built", and the Verification paragraph reports "assistant **12**".
+>   Counted from `packages/catalog/apis/assistant.json` on 6 October 2026: **46 route objects**, of
+>   which **28 are live** — every live one `status: built` — and **18 carry a `withdrawn` record**
+>   (10 proposed and superseded, 7 frozen and withdrawn, and `POST /v1/speak@3` built and then
+>   superseded by version four on 28 September). The 28 live versions occupy **28 distinct
+>   method-and-path addresses** and **25 distinct URL paths**; no live address carries two versions.
+>   The engine has grown since the 22nd — the founder's settings and provider routes, the photo
+>   reading, `listen@3` and `speak@4` — and withdrawn versions keep their lock lines, so the object
+>   count rises faster than the live one.
+> - **The external-source count.** _Nothing external is reachable_ says "**3** allowlisted external
+>   knowledge sources", as does the Verification paragraph. That was right on 22 September:
+>   `packages/catalog/knowledge/federation.json` held three sources — icd11-who, openfda,
+>   pubmed-europepmc — until 2 October 2026 (`7cec153d`), when eleven more were recorded dark.
+>   Counted today: **14 entries in `sources`**, with a further 12 under `assessedNotAdmitted` that
+>   are not allowlisted at all, and `scripts/check-boundaries.mjs` holds the floor — _the allowlist
+>   may not shrink below fourteen_. All 14 still ship `"active": false`; that part of the sentence
+>   holds and is unchanged.
+> - **One statement of fact, not a figure.** _Which documents were aligned_ ends by saying that
+>   `docs/governance/DPIA-DRAFT.md` "was left exactly as it was … which pins itself to the commit
+>   it was written against". That was true on 22 September and is not true now: on 6 October 2026
+>   the draft was re-scoped to bring the founder's 21 September speech-conversation amendment into
+>   scope, which is what that amendment's own caution asks for. Its section 1.1 is new, its pin
+>   names `d91bea10` beside the original `3294e1a`, and its status is unchanged — still a draft,
+>   still unsigned, with the section 12 blanks still blank. Recorded here because this bullet
+>   tells a reader which documents to trust as untouched, and one of them has been touched.
+>
+> **The surrounding claim was not checked in this pass, and must not be read as though it had been.**
+> Only the count was re-derived. The assertion that _nothing external is reachable_ — and with it the
+> dark guards, the single importing file and the imported-by-nothing property that sentence rests on
+> — is under review, and its correction is owned by a separate change that lands together with the
+> code fix that makes it true. Two independent reads of the tree have disagreed with it. It is
+> recorded here as unresolved, not as verified.
+
 - **One engine, three clients.** GilbertOne is `apps/assistant-api`: its own process, bound to `127.0.0.1:8791` and reachable from outside the box only through the nginx `location /assistant/`, with its address family authored in `packages/catalog/apis/assistant.json` — the thirteenth engine file, twelve addresses over twenty-six route versions, every one of them built. The web reaches it through its own proxy; iOS and Android each carry a typed client generated from that same contract. **Neither phone asks it anything yet**: `capabilities.json`'s `unifiedApi` flag is `enabled: false`, generated as `false` into Swift and Kotlin, so a phone answers on-device with no network at all and flipping the flag is a decision nobody has taken.
 - **What stays on the device is not a compromise.** `packages/gilbertone` — no dependencies, no network, no environment variable — is compiled into all three platforms and answers the emergency from the message and the contract alone. The build fails if anything under it calls `fetch()`, imports a network or model module, or reads an environment variable, and a behavioural test proves an emergency never touches the network whether a provider is configured or not. The engine being separate is what lets that promise hold: the deterministic half does not depend on the half that can be dark.
 - **Built is not the same as live, and five of the twelve are gated on a contract rather than a flag.** Triage's two steps wait on a protocol register that designates **0 of 12** protocols as triage protocols, under a board that is not-formed and a Medical Director who is not-appointed, with a second lock in the source that is `false`; the vital-sign reading waits on a data protection impact assessment, so the real-device allowlist holds **0 devices** against an assessment reading "not-done"; the handover prepares and stores a pack and reaches no network, while its submission is **one unconditional 503** that reads no body, touches no store and answers no 200, because the identity, roster and destination contracts it would need do not exist. The boundary check reads all five from their branches and fails if any of them is ungated.
@@ -611,7 +723,7 @@ The founder has named the two data sources that gate Phase 4 (Dispatch & Inciden
 - REST API with JSON responses; free tier available via Gumroad, Business API (esp.info/business-api) for commercial use.
 - Endpoints: `/business/3.1/reports` (area-level outage intelligence), loadshedding schedules, area lookup, GPS coordinate lookup.
 - Real-time electricity, water, internet signals from community reports.
-- **Integration path**: straightforward REST client; the free tier is sufficient for internal Control Tower use.
+- **Integration path**: straightforward REST client; the free tier is sufficient for internal Control Tower use. *(6 October 2026: this clause is contradicted by `packages/catalog/feeds.json`, which holds the free tier to be a licence breach for a service rather than a sufficiency. See the flagged contradiction under "Consequence for Phase 4" below — it is unresolved and is the founder's to decide.)*
 
 **2. SAPS crime statistics — no public REST API; quarterly downloads or DataFirst research data**
 - Official portal: saps.gov.za/services/crimestats.php (quarterly PDF/Excel downloads, detailed stats available).
@@ -621,6 +733,44 @@ The founder has named the two data sources that gate Phase 4 (Dispatch & Inciden
 - **Integration path**: batch import from DataFirst CSV (cleanest) or manual quarterly update from SAPS portal; no real-time API.
 
 **Consequence for Phase 4**: the deployment intelligence screen can now be scoped against real sources. The Eskom feed is a straightforward REST integration; the SAPS feed is a batch import (quarterly refresh from DataFirst or manual SAPS portal download). Both are internal Control Tower use, so the Eskom free tier suffices.
+
+> **UNRESOLVED CONTRADICTION, flagged 6 October 2026 — this sentence and the contract disagree, and
+> the contract is the later word.** The line above says the Eskom free tier suffices for internal
+> Control Tower use. `packages/catalog/feeds.json` says the opposite, in the `load-shedding-stage`
+> feed's own `supplier` field (line 2956): *"The free tier is licensed per person for non-commercial
+> use, so a health service polling it is a breach rather than a bargain, and no key has been bought."*
+> The same feed carries that as a gate rather than a comment — `beforeSwitchOn` holds
+> `a-key-is-licensed-for-a-health-service`, whose `must` is *"A paid EskomSePush key, or a written
+> agreement with Eskom, covers commercial use by a health service, and the rate limit it comes with
+> is recorded beside it"*, with `met: false` and `evidence: null`, and whose `why` names the failure
+> mode: *"Polling it from a service is a licence breach dressed as a free integration, and the day it
+> matters is the day the supplier notices — which is also the day a dispatch board loses the figure it
+> was built around."* Line 3000 and line 3109 of the same file carry the POPIA section 72 position as
+> not determined.
+>
+> **These cannot both be true, and the difference is not a wording one.** "Internal Control Tower use"
+> is the reasoning the sentence rests on, and it is exactly what the contract rejects: the licence is
+> per person for non-commercial use, and a health service polling an API from a server is a
+> commercial use by a service, not a person reading a page. One of the two documents is wrong about
+> the licence, and which one is a question about EskomSePush's own terms rather than about this
+> repository.
+>
+> **Dates, because they are the only thing here that is not a judgement.** This roadmap line was
+> written on 25 September 2026 (`e6cae0b9`). The feed that contradicts it was authored on 1 October
+> 2026 (`f741f87f`, *the twenty-second door*), six days later, as part of a pass that wrote down what
+> each supplier door needs before it may be switched on. The later document is not thereby the
+> correct one, but it is the one that asked the question deliberately, and it is the one the build
+> reads.
+>
+> **Nothing has been resolved here, and nothing should be built on either reading.** `packages/catalog/`
+> is out of scope for the pass that wrote this note, so the contract was left exactly as it is; and
+> picking a side is a licence question for the founder and counsel, not a documentation edit. Until
+> it is answered: the free tier is not to be treated as available, the feed's gate stays unmet, and
+> the dispatch board keeps doing what the contract's `whileAbsent` already says it does — dispatching
+> on roster, position and distance and saying nothing about power, with a dispatcher who needs to
+> know whether a zone is dark opening EskomSePush on her own phone, which is what she does today.
+> **The decision needed from the founder is which licence MyThuso would be operating under, and it is
+> needed before any Phase 4 work touches the Eskom feed.**
 
 ### What remains unnamed — the data sources Phases 3 and 7 still wait on
 

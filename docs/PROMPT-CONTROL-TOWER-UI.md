@@ -325,7 +325,7 @@ What the screen shows.
 
 - **Clinical corpus.** Size, last refresh, last review, the review queue entries that touched it.
 - **Non-clinical corpus.** Size, last refresh, the last autonomous update.
-- **Federation sources.** Every source — the three allowlisted external sources, all currently "active": false — with: name, endpoint, licence, rate limit, residency, use boundaries, active status.
+- **Federation sources.** Every source — the three allowlisted external sources, all currently "active": false — with: name, endpoint, licence, rate limit, residency, use boundaries, active status. <!-- Annotation, 6 October 2026, added outside the supplied text rather than into it: the allowlist in `packages/catalog/knowledge/federation.json` holds 14 sources today, not three — it grew on 2 October — and every one is still `"active": false`. The requirement is unchanged by the number, because it says "every source": the screen must render all fourteen, and the build holds the floor at fourteen. The darkness claim around it is under review in a separate change and was not re-verified here. -->
 - **Refresh history.** When the corpus was last refreshed, what changed, whether the change was clinical (goes through the queue) or non-clinical (autonomous).
 - **The clinical-corpus lock.** Shown as a locked setting. A refresh of the clinical corpus only happens through a ratified Clinician Review Queue entry.
 

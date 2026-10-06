@@ -127,7 +127,13 @@ scattered across three applications cannot be upgraded, reviewed or certified as
 and one bounded API can be. So the applications are **consumers** of GilbertOne. They render it;
 they do not carry it, and no medical logic lives in a client.
 
-Twelve addresses are built, and every one is declared in the contract with its callers, its request
+Twenty-eight route versions on twenty-five paths are live in the contract today, and the table below
+enumerates only the twelve that existed when it was written — the founder-access, assistant-settings
+and photo-reading routes added since are not described here, and a route this document does not
+describe is not thereby ungated: what gates each is read from the contract and enforced in the
+handler, never from this prose. Counted from `packages/catalog/apis/assistant.json` on 6 October
+2026: 46 route objects, 28 live (every one `status: built`), 18 carrying a `withdrawn` record and
+keeping their lock lines. Every live route is declared in the contract with its callers, its request
 and response shapes and its refusals. What gates each is written down here because a built route is
 not the same thing as a live clinical one:
 
@@ -135,7 +141,7 @@ not the same thing as a live clinical one:
 |---|---|---|
 | `GET /assistant/health` and `GET /assistant/v1/status` | The same truthful reading at two addresses — provider presence, production and activation, all booleans, nothing that could carry a secret | Nothing. It is the address a deploy verifies and the runbook's activation sequence reads |
 | `POST /assistant/turn` and `POST /assistant/v1/turn` | One conversation turn | The model tier, which stays dark until an operator has configured a provider **and** written the production acknowledgement by hand |
-| `POST /assistant/v1/knowledge/search` | The sources an answer may stand on | The 250-entry local catalogue always answers. The three allowlisted external sources in `packages/catalog/knowledge/federation.json` all ship `"active": false`, and the federation module above them is imported by no route |
+| `POST /assistant/v1/knowledge/search` | The sources an answer may stand on | The 250-entry local catalogue always answers. The fourteen allowlisted external sources in `packages/catalog/knowledge/federation.json` all ship `"active": false`, and the federation module above them is imported by no route. <!-- Count re-derived on 6 October 2026: `sources` holds 14, every one `active: false`; it said three until the allowlist grew on 2 October. Only the count was checked here. The claim in this cell that nothing external is reachable — and the imported-by-no-route property beside it — is under review in a separate change and is not verified by this pass. --> |
 | `POST /assistant/v1/listen` and `POST /assistant/v1/speak` | Push-to-talk's two halves | Azure Speech, and only where its key and region are set. Where they are not, the contract's own speech-not-configured refusal answers and the browser's voice carries on |
 | `POST /assistant/v1/triage/start` and `/triage/answer` | A guided assessment | Two locks, both shut: no protocol on the register is designated a triage protocol and none is ratified, and `TRIAGE_SEAM_WIRED` is `false` in the source. Opening the first is a catalog act; opening the second is a code change |
 | `POST /assistant/v1/vitals` | One validated reading | The real-device allowlist is empty because no data protection impact assessment covers a device, a HealthKit source or a Health Connect one, so a process that has not said out loud it is synthetic is refused |

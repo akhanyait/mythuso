@@ -408,6 +408,17 @@ a priority"*.
 
 The three allowlisted external knowledge sources are all dark:
 
+> **Annotation, 6 October 2026 — this audit is pinned to `ba37ee5b` and its count was right there.**
+> `federation.json` at that commit held three sources, and the command below reproduces what the
+> auditor read. On 2 October 2026 (`7cec153d`) eleven more were recorded dark, so the allowlist now
+> holds **14**, every one still `"active": false`, with a further 12 entries under
+> `assessedNotAdmitted` that are not allowlisted at all and a build check holding the floor at
+> fourteen. Row 4 of the table in Section 12 carries the same stale three. Neither is corrected in
+> place, because this is a dated record of what an auditor found on a named tree.
+> **The darkness itself was not re-tested in this pass.** The count was re-derived and that is all:
+> the claim that these sources are unreachable from a request is under review in a separate change
+> and must not be read as re-verified here.
+
 Command: `node -e` against `packages/catalog/knowledge/federation.json`
 → `icd11-who active=false`, `openfda active=false`, `pubmed-europepmc active=false`.
 
@@ -595,7 +606,7 @@ the gaps in Sections 5 and 12 is the failure mode this audit exists to avoid.
 | 1 | **`apps/api` identity service** — 47 built routes, switched off; `location /api/` commented out in nginx | No SMS provider, no DNS/TLS decision. *"a one-time-code endpoint over plain http hands out accounts"* | Standing, restated | `deploy/nginx/mythuso.conf:204`; `deploy/RUNBOOK.md:686`; `CLAUDE.md` *Deployment*; `docs/PRIVACY-AND-SECURITY.md:19` |
 | 2 | **`apps/passport`** — 19 built routes, development only | Refuses to start without `MYTHUSO_PASSPORT_DEVELOPMENT=synthetic-data-only`; binds loopback; nothing in `deploy/` may name it. The controls it needs — a signed DPIA, a registered Information Officer, a data-residency decision, KMS/HSM custody — do not exist | Standing | `apps/passport/src/config.ts:7–12`; `apps/passport/src/server.ts:7–24`; `CLAUDE.md`; `docs/governance/DPIA-DRAFT.md`, `INFORMATION-OFFICER.md`, `DATA-RESIDENCY-OPTIONS.md`, `KEY-CUSTODY-OPTIONS.md` all present as drafts |
 | 3 | **Clinical intelligence** — triage routes refuse | No formed Clinical Governance Board, no appointed Medical Director, no ratified triage protocol. The gate reads the register, not a flag, so it cannot be switched on by an edit here | Gate added 22 September 2026 | `apps/assistant-api/src/lib/triage-gate.ts:4,26`; `packages/catalog/protocols.json`; `packages/catalog/clinical.json` |
-| 4 | **External knowledge federation** — three sources allowlisted, all `active: false` | icd11-who, openfda, pubmed-europepmc are dark | Standing | `packages/catalog/knowledge/federation.json` |
+| 4 | **External knowledge federation** — three sources allowlisted, all `active: false` *(annotation, 6 October 2026: the allowlist held **14** as of 2 October, every one still `"active": false` — see the annotation in Section 6.2; this row is a dated record of the tree at `ba37ee5b` and the darkness claim is under review, not re-verified)* | icd11-who, openfda, pubmed-europepmc are dark | Standing | `packages/catalog/knowledge/federation.json` |
 | 5 | **`unifiedApi`** — the phones' generated clients are not called | *"a phone in somebody's hand cannot reach that"* — the service answers on loopback only. Switching it on is a **founder decision, not a tidy-up** | Flag authored with the 20 September two-tier upgrade | `packages/catalog/capabilities.json` `flags[].unifiedApi`; `AGENTS.md` |
 | 6 | **The engine runtime and the mock** — not deployed | Both refuse to start without their synthetic-data flags, bind loopback, check the `Host` header as well as the address, and **nothing in `deploy/` may name them**. Verified: the only `engines` hits in `deploy/` are `package.json`'s Node version floor | Standing | `packages/engines/src/server.ts:1–11`; `packages/mock-api/src/server.ts:1–12`; `scripts/check-boundaries.mjs:19066` |
 | 7 | **`packages/gilbertone`** — no network, no dependency, no env var | By design. It is what answers when the engine is dark, and it answers first on every message either way. The build fails if `src/` calls `fetch()` | Standing | `CLAUDE.md`; `AGENTS.md` |

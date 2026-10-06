@@ -12,14 +12,15 @@ import { rateGateFor } from "./rate-gate.ts";
 /* The PubMed / Europe PMC adapter — dark by default, like every external source (packages/catalog/
    knowledge/federation.json).
 
-   WHAT IT WOULD DO WHEN ACTIVE. Search Europe PMC's index of PubMed and PMC literature for a topic
-   and return only records with a checkable identifier — a PMID, a PMCID or a DOI — each with its
-   title, journal, year and the opening of its own indexed abstract, never a rewritten summary and
-   never a conclusion drawn from it. This is the same discipline the live literature_search tool
-   already practises with the same endpoint; what the adapter adds is the federation's structure: a
-   per-source config, a rate gate, provenance on every result, and an outcome the merge layer can
-   report instead of an exception. (The tool keeps its own call path unchanged — this adapter is the
-   federation's road, and it stays dark until someone deliberately opens it.)
+   WHAT IT DOES. Search Europe PMC's index of PubMed and PMC literature for a topic and return only
+   records with a checkable identifier — a PMID, a PMCID or a DOI — each with its title, journal,
+   year and the opening of its own indexed abstract, never a rewritten summary and never a conclusion
+   drawn from it. It has TWO callers over ONE governed source, which is the reason this file exists:
+     - searchPubMed() serves the federation merge layer (provenance-carrying FederatedResult).
+     - literatureCitations() serves the live literature_search tool.
+   They share askEuropePmc, so they share the dark guard, the rate gate and the PHI redaction. That
+   sharing is the whole point: before it, the tool kept its own fetch() to the same endpoint, so two
+   paths reached one source and only one respected the 30-per-minute ceiling.
 
    DARK MEANS DARK. searchPubMed() reads its config and refuses when the source is not explicitly
    active — before the rate gate, before the URL, before any request. No credentials exist for this
@@ -47,6 +48,7 @@ type EuropePmcRecord = {
   pmcid?: string;
   doi?: string;
   title?: string;
+  authorString?: string;
   pubYear?: string;
   journalTitle?: string;
   abstractText?: string;
@@ -87,38 +89,64 @@ const identifierOf = (
   return null;
 };
 
-export async function searchPubMed(
+/* One ask of Europe PMC, with every guard in one place. Added 6 October 2026 when the
+   literature_search tool was routed through this adapter: until then the tool made its own fetch() to
+   this same endpoint, so two roads reached one governed source and only this one respected its
+   30-per-minute ceiling, ran the query through outgoingTerm, or asked whether the source was dark at
+   all. Both of this file's exported searches now come through here, which is what makes "the guard
+   sits before the fetch" true of every road rather than of one.
+
+   The order below is the order the boundary check asserts: config, dark, redaction, endpoint, rate
+   gate, and only then a request. An outcome is a fact, never an exception — the caller decides what
+   to say about it. */
+type AskOutcome =
+  | { ok: true; config: SourceConfig; records: EuropePmcRecord[] }
+  | { ok: false; outcome: Omit<AdapterOutcome, { status: "ok" }> };
+
+async function askEuropePmc(
   query: string,
   deps: AdapterDeps = {},
-): Promise<AdapterOutcome> {
+): Promise<AskOutcome> {
   const config = deps.config ?? federationSource(SOURCE_ID);
   if (!config)
     return {
-      status: "unavailable",
-      sourceId: SOURCE_ID,
-      detail: "no config for this source in federation.json",
+      ok: false,
+      outcome: {
+        status: "unavailable",
+        sourceId: SOURCE_ID,
+        detail: "no config for this source in federation.json",
+      },
     };
   if (!isSourceActive(config, deps.override))
     return {
-      status: "dark",
-      sourceId: config.id,
-      detail: `${config.id} is dark (active: false, and the demonstration override does not open it) — activation requires the recorded licence and POPIA review, then a deliberate edit of federation.json`,
+      ok: false,
+      outcome: {
+        status: "dark",
+        sourceId: config.id,
+        detail: `${config.id} is dark (active: false, and the demonstration override does not open it) — activation requires the recorded licence and POPIA review, then a deliberate edit of federation.json`,
+      },
     };
 
   const trimmed = outgoingTerm(query, MAX_QUERY_LENGTH);
   if (!trimmed)
     return {
-      status: "unavailable",
-      sourceId: config.id,
-      detail: "no query was given; nothing left the process",
+      ok: false,
+      outcome: {
+        status: "unavailable",
+        sourceId: config.id,
+        detail: "no query was given; nothing left the process",
+      },
     };
 
   const endpoint = config.endpoint ?? "";
   if (!endpoint)
     return {
-      status: "unavailable",
-      sourceId: config.id,
-      detail: "the config records no endpoint",
+      ok: false,
+      outcome: {
+        status: "unavailable",
+        sourceId: config.id,
+        detail: "the config records no endpoint",
+      },
     };
 
   const fetchImpl = deps.fetchImpl ?? fetch;
@@ -133,11 +161,14 @@ export async function searchPubMed(
   const nowMs = now().getTime();
   if (!gate.take(nowMs))
     return {
-      status: "rate-limited",
-      sourceId: config.id,
-      retryAfterMs: gate.waitMsUntilAllowed(nowMs),
-      detail:
-        "the configured rate limit for this source is reached; nothing was sent",
+      ok: false,
+      outcome: {
+        status: "rate-limited",
+        sourceId: config.id,
+        retryAfterMs: gate.waitMsUntilAllowed(nowMs),
+        detail:
+          "the configured rate limit for this source is reached; nothing was sent",
+      },
     };
 
   let body: EuropePmcBody;
@@ -149,22 +180,42 @@ export async function searchPubMed(
     });
     if (!response.ok)
       return {
-        status: "unavailable",
-        sourceId: config.id,
-        detail: `the search answered ${response.status}`,
+        ok: false,
+        outcome: {
+          status: "unavailable",
+          sourceId: config.id,
+          detail: `the search answered ${response.status}`,
+        },
       };
     body = (await response.json()) as EuropePmcBody;
   } catch (error) {
     return {
-      status: "unavailable",
-      sourceId: config.id,
-      detail: `the search call failed (${error instanceof Error ? error.name : "unknown"})`,
+      ok: false,
+      outcome: {
+        status: "unavailable",
+        sourceId: config.id,
+        detail: `the search call failed (${error instanceof Error ? error.name : "unknown"})`,
+      },
     };
   }
 
-  const records = Array.isArray(body.resultList?.result)
-    ? (body.resultList?.result ?? [])
-    : [];
+  return {
+    ok: true,
+    config,
+    records: Array.isArray(body.resultList?.result)
+      ? (body.resultList?.result ?? [])
+      : [],
+  };
+}
+
+export async function searchPubMed(
+  query: string,
+  deps: AdapterDeps = {},
+): Promise<AdapterOutcome> {
+  const asked = await askEuropePmc(query, deps);
+  if (!asked.ok) return asked.outcome;
+  const { config, records } = asked;
+
   const results: FederatedResult[] = [];
   records.slice(0, MAX_RESULTS).forEach((record, index) => {
     const identifier = identifierOf(record);
@@ -199,4 +250,74 @@ export async function searchPubMed(
     });
   });
   return { status: "ok", sourceId: config.id, results };
+}
+
+/* ── The citation query the literature_search tool asks ────────────────────────────────────────
+
+   Added 6 October 2026 with that tool's move onto this adapter. searchPubMed above answers the
+   federation, which merges hits with local catalogue entries and so carries one flattened `snippet`;
+   the tool answers a person asking what the literature says, and its whole promise is a citation you
+   can go and check — title, authors, year, journal, identifier, and the page the identifier resolves
+   to. Flattening those into a snippet to reuse searchPubMed would have cost the tool its authors, so
+   this is the same ask, mapped to the fields a citation is made of.
+
+   WHAT IT ADDS THAT THE TOOL DID NOT HAVE. The licence condition. The tool used to print any abstract
+   opening Europe PMC indexed; federation.json records that each article keeps its own licence and that
+   only CC BY and CC0 text may be shown or reworded by a commercial service, and textReusable() below
+   is the one place that asks. A record under any other licence is handed over by its title, authors
+   and identifier alone — still a real, checkable citation, and no longer text MyThuso had no licence
+   to reproduce.
+
+   DARK MEANS DARK HERE TOO, AND THAT IS THE POINT. This shares askEuropePmc, so while
+   federation.json says "active": false and the demonstration override is not in force, the tool
+   answers that the source is dark and sends nothing. It used to answer whatever Europe PMC answered,
+   because nothing asked. That is the defect this function exists to end, not a regression. */
+
+export type LiteratureCitation = {
+  identifier: string;
+  url: string;
+  title: string;
+  authors: string;
+  year: string;
+  journal: string;
+  /* The abstract's own opening, and only when the record's licence permits showing it. Empty
+     otherwise — never a placeholder that reads like the paper said nothing. */
+  abstractOpening: string;
+  licence: string;
+};
+
+export type LiteratureOutcome =
+  | { status: "ok"; sourceId: string; citations: LiteratureCitation[] }
+  | { status: "dark"; sourceId: string; detail: string }
+  | { status: "rate-limited"; sourceId: string; retryAfterMs: number; detail: string }
+  | { status: "unavailable"; sourceId: string; detail: string };
+
+export async function literatureCitations(
+  query: string,
+  deps: AdapterDeps = {},
+): Promise<LiteratureOutcome> {
+  const asked = await askEuropePmc(query, deps);
+  if (!asked.ok) return asked.outcome;
+  const { config, records } = asked;
+
+  const citations: LiteratureCitation[] = [];
+  for (const record of records.slice(0, MAX_RESULTS)) {
+    const identifier = identifierOf(record);
+    /* A citation with nothing to check it against is not a citation this adapter hands over. */
+    if (!identifier) continue;
+    citations.push({
+      identifier: identifier.id,
+      url: identifier.url,
+      title: (record.title ?? "").trim() || "(title not indexed)",
+      authors: truncate((record.authorString ?? "").trim(), MAX_AUTHOR_LENGTH) ||
+        "authors not indexed",
+      year: (record.pubYear ?? "").trim() || "year not indexed",
+      journal: (record.journalTitle ?? "").trim(),
+      abstractOpening: textReusable(record.license)
+        ? truncate((record.abstractText ?? "").trim(), ABSTRACT_SNIPPET_LENGTH)
+        : "",
+      licence: (record.license ?? "").trim() || "licence not indexed",
+    });
+  }
+  return { status: "ok", sourceId: config.id, citations };
 }

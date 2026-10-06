@@ -20,6 +20,12 @@ const intake = json("../packages/catalog/symptom-intake.json");
 const caseContract = json("../packages/catalog/case.json");
 const devices = json("../packages/catalog/devices.json");
 const sos = json("../packages/catalog/sos.json");
+/* The notes card ends on a door into the booking page, and that door wears the navigation's own label
+   for the section it opens. Read out of locales.json's English dictionary — the locale lib/i18n.ts
+   renders in by default, and the one a key a locale does not carry falls back to — rather than typed
+   here, so a reworded section name changes this expectation instead of breaking it. */
+const locales = json("../packages/catalog/locales.json");
+const bookANurse: string = locales.strings["en-ZA"]["nav.Book a nurse"];
 const ambulance: string = sos.emergency.numbers.find(
   (n: { id: string }) => n.id === "ambulance",
 ).number;
@@ -165,6 +171,7 @@ test("a headache is offered notes for the nurse, never the waiting dots, and the
   const allowed = new Set<string>([
     gilbert.identity.name,
     gilbert.answers.unmatched.handoverLabel,
+    bookANurse,
     ...intake.whatItIsNot,
     intake.review.unreviewed,
     intake.summary.title,

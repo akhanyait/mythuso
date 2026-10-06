@@ -8,10 +8,34 @@
 > Information Officer and South African counsel. Every factual statement about the system cites
 > the file it comes from. Likelihood and impact are left blank for the assessor. Where the answer
 > is a legal judgement, this draft asks the question and leaves the answer blank.
+>
+> **Re-scoped on 6 October 2026 against commit `d91bea10`, and still a draft.** The scope was
+> widened, not the status. On 21 September 2026 the founder amended the speech rules — `CLAUDE.md`,
+> *Speech conversation mode — founder amendment, 21 September 2026* — and that amendment carries its
+> own caution: *"the mic is now capable of always listening. When the DPIA for passport gets
+> written, this amendment must be in scope."* This draft was written six days earlier and did not
+> mention the amendment at all, so it assessed a posture the product no longer describes. Section
+> 1.1 is what has been added to answer it, and the inventory, third-party, retention and risk
+> sections carry the rows it needs. **Nothing has been signed, and no control the amendment names
+> has been verified to exist** — section 1.1 says, item by item, which parts of the amendment are
+> code today and which parts are prose and contract only. The blanks in section 12 are still blank.
+>
+> **The commit named here moved while this section was being written, which is worth recording
+> rather than hiding.** The pass began against `16a64a11` and the tree advanced to `d91bea10`
+> underneath it, other sessions committing as it went. What section 1.1 asserts was re-checked
+> against `d91bea10` and is unchanged: `packages/catalog/assistant.json`'s `voice` section did not
+> change in that range (`git diff 16a64a11..d91bea10 -- packages/catalog/assistant.json` shows no
+> voice, cap, listening, audio or microphone line touched), `voice.perUtteranceCapSeconds` is still
+> 45, and no `package.json` in the repository names Porcupine, Silero, faster-whisper or Piper. **A
+> DPIA pinned to a tree that is moving is a DPIA that has to be re-read before it is signed**, and
+> whoever completes this one should re-derive section 1.1 against the commit they assess rather than
+> trust this pin.
 
 **How to use it.** Read `DATA-RESIDENCY-OPTIONS.md` and `KEY-CUSTODY-OPTIONS.md` first: several
-risks below cannot be rated until those are decided. Then complete the blanks, rate each risk, and
-sign section 12. The Information Officer's own decisions are in `INFORMATION-OFFICER.md`.
+risks below cannot be rated until those are decided. Read section 1.1 before either, because it
+records which of the controls the assessment would otherwise assume are in fact absent. Then
+complete the blanks, rate each risk, and sign section 12. The Information Officer's own decisions
+are in `INFORMATION-OFFICER.md`.
 
 ## 1. Scope and context
 
@@ -23,10 +47,21 @@ an assistant called GilbertOne, devices, rewards and family care (`CLAUDE.md`; `
 
 ### What is live today
 
-**Nothing.** `packages/catalog/capabilities.json` lists every capability, and none is connected:
-each is `simulated`, `absent` or, for voice, `on-device`. No visit is booked, no payment taken, no
-clinical decision issued, no device contacted and nobody can sign in (`deploy/RUNBOOK.md`, "What the
-site does, and what it does not, on day one").
+**No capability is connected.** `packages/catalog/capabilities.json` lists twenty-three, and every
+one is `simulated`, `absent` or, for voice, `on-device`; `connected` is `false` throughout. No visit
+is booked, no payment taken, no clinical decision issued, no device contacted and nobody can sign in
+(`deploy/RUNBOOK.md`, "What the site does, and what it does not, on day one").
+
+**Corrected 6 October 2026 — "no capability is connected" is not the same as "nothing is live", and
+this section used to say the second.** One service answers real requests in production: the
+GilbertOne assistant was switched on at `liqzar-server` on 21 September 2026, three days before the
+record of it was written, with the model tier's production acknowledgement present, Azure OpenAI's
+`gpt-4.1-mini` in **South Africa North**, and Azure Speech configured in `southafricanorth`
+(`docs/governance/ASSISTANT-ACTIVATION.md`; `CLAUDE.md` on `apps/assistant-api`). Section 5's
+"Clinical AI model" and "Speech provider" rows carry the same correction from 24 September. It is
+recorded here because an assessment that opens by saying nothing is live is an assessment that
+cannot rate the one processing that is — and because the microphone posture in section 1.1 is a
+posture a member of the public can reach today, not a future design.
 
 | Component | State | Evidence |
 |---|---|---|
@@ -36,6 +71,41 @@ site does, and what it does not, on day one").
 | Health Passport P0 (`apps/passport`) | Built and tested; development only, synthetic data only, loopback only, may not be deployed | `apps/passport/src/config.ts`; `packages/catalog/passport-gateway.json` |
 | Engines runtime and contract mock | Loopback development services | `packages/engines/`, `packages/mock-api/` |
 | Native apps | Preview apps with generated fixtures | `apps/ios/`, `apps/android/` |
+
+### 1.1 The speech conversation amendment, and what of it actually exists
+
+**Added 6 October 2026.** This section did not exist when the draft was prepared on 15 September.
+On 21 September the founder replaced the push-to-talk rule with a hands-free conversation mode
+(`CLAUDE.md`, *Speech conversation mode — founder amendment, 21 September 2026*; the numbers now live
+as data in `packages/catalog/conversation-mode.json`, decided 28 September, and
+`packages/catalog/assistant.json#voice`). The amendment's own DPIA caution is the reason this
+section is here: the microphone posture in front of a regulator changes when a microphone can be
+open without a hand on it, and that is true whether or not any audio leaves the device.
+
+The amendment says things are true that this repository does not contain. An assessor who took the
+amendment's text as a description of the system would assess controls that do not exist. Each item
+below is stated with the evidence for it and, where there is none, that too:
+
+| The amendment says | What is actually in the tree | Evidence |
+|---|---|---|
+| All audio processing is on-device: wake word (Porcupine), VAD (Silero), STT (faster-whisper), TTS (Piper) | **None of the four is a dependency, on any platform.** No manifest in this repository names Porcupine, Silero, faster-whisper or Piper; they appear only in prose and in contract text. `packages/gilbertone/src/speech-state.ts` says so in its own header: "None of that lives here." **Nor are the four registered.** The open-source register names Whisper alone, recorded as *not adopted* because no consented South African speech corpus exists to fine-tune it on — and faster-whisper is a runtime for those weights rather than an entry in its own right — so Porcupine, Silero and Piper have been surveyed and not registered at all. The survey records each one's caveat: Porcupine's Apache-2.0 runtime will not start without a vendor `AccessKey`, Silero's README badge contradicts its MIT licence file, and Piper's own upstream is archived with its maintained successor under GPL-3.0 | `packages/catalog/open-source.json` (Whisper only); `docs/OPEN-SOURCE.md`; `docs/governance/OPEN-SOURCE-INTEGRATION-SURVEY.md` §2 for Piper and §4's findings table for Porcupine and Silero; `packages/gilbertone/src/speech-state.ts` |
+| A wake word opens the microphone | **No application listens for a wake word, and the build fails if one does.** `voice.json#lockedSettings.wakeWordQuestion` records the state as `open`, its owner as the founder, and a discrepancy: the 21 September amendment says wake word, while `docs/PROMPT-CONTROL-TOWER-UI.md` §7.3 says "no wake word, no passive recording, no background listening" and cites a 22 September direction that no record in the tree holds. `scripts/check-boundaries.mjs` refuses any file that wires wake-word detection while that question is open. What a patient reaches today is a tap, then hands-free turns | `packages/catalog/voice.json#wakeWordQuestion`; `scripts/check-boundaries.mjs` (the wake-word sweep); `packages/catalog/conversation-mode.json#whatItIsNot` |
+| No retention: the audio buffer is a ring buffer, overwritten continuously | **There is no audio buffer in this repository.** Nothing opens `getUserMedia`; `conversation-mode.json#web.getUserMedia` is `false` and a boundary check refuses it in every web file. On the web the browser's own recogniser hears and the page never holds a sample; on the phones the platform recogniser is used. A ring buffer is a property of an on-device stack that is not installed, so there is no buffer to overwrite and no evidence about one to assess | `packages/catalog/conversation-mode.json#web`; `apps/web/src/lib/voice.ts`; `scripts/check-boundaries.mjs` |
+| The session transcript exists only in memory and is destroyed when the conversation ends | **True as written, and it is the strongest control in this list.** `retention.audioKept` is `false`, `retention.transcript` is `"memory"`, nothing is written to browser storage of any kind, and the web's store is deliberately the weakest of the three platforms because a preview on a borrowed machine must not keep a patient's words | `packages/catalog/conversation-mode.json#retention`; `packages/catalog/assistant.json#voice.transcriptLifetime`; `packages/catalog/capture.json#durability` (`web-in-memory`) |
+| A 45-second per-utterance cap, after which GilbertOne prompts the person to continue | **True, and held equal in two contracts by a check.** `conversation-mode.json#utteranceCapSeconds` is 45 and `assistant.json#voice.perUtteranceCapSeconds` is 45; `scripts/check-boundaries.mjs` fails if they differ. On the web the founder's 30-second listening cap stands in front of it, and the same check holds that the 30 is never the longer of the two. Five utterances close an exchange, so a microphone cannot extend itself without limit | `packages/catalog/conversation-mode.json`; `packages/catalog/assistant.json#voice.maxListeningSeconds` and `#voice.listeningDecision`; `packages/gilbertone/src/speech-state.ts` (`PER_UTTERANCE_CAP_MS`) |
+| A visible mic indicator whenever the mic is hot | **True as a rule, and drawn on the web.** `conversation-mode.json#indicator` requires it while listening, while waiting through an idle round and while reading aloud with the recogniser open for a barge-in — "never hidden while anything can hear" — and the web button carries the hot state as an attribute the check holds | `packages/catalog/conversation-mode.json#indicator`; `apps/web/src/components/AssistantVoiceButton.tsx` |
+| A physical or software kill switch that hard-disables the audio pipeline | **No such switch exists.** What the tree has is the opposite of one: a *per-tenant* kill switch is a section of the compliance pack that renders as a disabled button with the sentence that neither a tenant nor a kill switch exists, gated on an Information Officer and on key custody. The microphone does close on its own — on Stop, when the panel closes, after the idle rounds run out and after an emergency answer — and none of those is a kill switch: they are the conversation's own endings | `packages/catalog/compliance-pack.json` (`per-tenant-kill-switch`); `apps/web/src/features/portal/gilbertone/Compliance.tsx`; `packages/catalog/conversation-mode.json#endsOn` |
+| Cloud voice APIs remain prohibited for the on-device conversation mode; Azure Speech REST stays available as the server-side fallback | **True, and there is a second fact the amendment does not state:** the fallback is not merely available, it is built and the web panel calls it. `POST /assistant/v1/listen@3` and `POST /assistant/v1/speak@4` are built routes, and `apps/web/src/lib/voice.ts` asks `/assistant/v1/speak` for a reading. `listenAudio()` is exported and has no caller in the tree today, so the hearing half is reached by nothing | `packages/catalog/apis/assistant.json`; `apps/web/src/lib/gilbertone-service.ts`; `apps/web/src/lib/voice.ts` |
+
+**What an assessor should take from this.** The posture that makes the amendment a DPIA question —
+a microphone that can be open without a hand on it — is **not** what the amendment's own words
+describe, because the on-device stack that would make it so is not installed and the wake word is
+refused by the build while the founder settles two conflicting records. What *is* live is narrower
+and still needs assessing: a tap starts a hands-free conversation that reopens the microphone on its
+own between turns, the browser's recogniser hears it (which may carry what is said to the company
+that makes the browser, disclosed before the first tap), a cloud speech route in South Africa North
+reads replies aloud where it is configured, and nothing is kept beyond the conversation. Assess
+that, and record the amendment's own controls as **not built** rather than as mitigations.
 
 ### What this assessment covers
 
@@ -50,7 +120,7 @@ Master v3.5, §27), and because `apps/passport` will not deploy without one.
 | Information Officer | |
 | Assessor(s) | |
 | Version of this assessment | |
-| Commit of the repository assessed | `3294e1a` |
+| Commit of the repository assessed | `3294e1a` for sections 1 to 12 as prepared on 15 September 2026; `d91bea10` for section 1.1 and the amendment rows added on 6 October 2026 — the pass began against `16a64a11` and the tree moved underneath it, with nothing in `assistant.json`'s voice section changing in the range. The two commits are recorded rather than one, because the older sections were written against the older tree and have not been re-read line by line against this one, and because the newer pin is one a signing assessor must re-derive rather than trust |
 | Review trigger (the ThusoIQ Master v3.5, §25, expects a DPIA per major change) | |
 
 ## 2. Data inventory
@@ -84,6 +154,7 @@ it is marked **Question**.
 | I-22 | **Safeguarding reports** | A category code and the reporter's role; never the narrative on the bus | **Yes**, likely | Designed only | `packages/catalog/events.json` `safeguarding.reported@1` |
 | I-23 | **Security incident register** | Counts of people reached; never names | No | `apps/api` `incidents` | `apps/api/src/incidents.ts` |
 | I-24 | **Rate-limit measurement** | Five integers per window with nothing to join to anybody | No | `apps/api` `write_windows` | `docs/PRIVACY-AND-SECURITY.md` "What is rate-limited" |
+| I-25 | **Hands-free conversation turns** *(added 6 October 2026, with section 1.1)* | The same words as I-14, arrived differently: a tap starts a conversation that then reopens the microphone on its own between turns, so a turn is captured with no hand on the control for the turns after the first. A barge-in may cut the voice while it is reading. Nothing of it is kept — no audio, and the transcript in memory for the conversation only — and the microphone closes on Stop, on the panel closing, after the idle rounds and after an emergency answer | **Yes, while it exists**, for the reason I-14 gives | Memory during the conversation; nothing written to any store | `packages/catalog/conversation-mode.json` (`starts`, `bargeIn`, `endsOn`, `retention`, `indicator`); `packages/catalog/assistant.json#voice` |
 
 ## 3. Purposes and lawful basis
 
@@ -179,7 +250,7 @@ subscriber that logs it — the reason the field-safety desk refuses to show the
 | WhatsApp (visit reports to a family) | Not connected. The Money setting's proposed default sends nothing; its only other allowed value sends a message that a report is ready, and its guardrail refuses any report, photo or reading | A third party nobody has assessed, and even a "report ready" message tells somebody's contacts that a parent is being nursed; not determined | `packages/catalog/money.json` setting `visit-reports-whatsapp` |
 | Map tiles (OpenFreeMap) | Off by default; when turned on, sees the map square, the internet address and the time | Where the tile server is hosted is not recorded | `packages/catalog/geography.json` `rendering.tiles` |
 | Apple Health, Health Connect | Not connected; asked on the phone | Data stays on the phone until connected | `packages/catalog/passport.json` `devices` |
-| Open-source modules and models | Nothing adopted | None | `packages/catalog/open-source.json` |
+| Open-source modules and models | Nothing adopted. **Named here because the speech amendment names them:** Porcupine, Silero VAD, faster-whisper and Piper are the four the 21 September amendment puts on the device, and none is a dependency on any platform. Three of the four are not even in the register — the closest entry is OpenAI Whisper, recorded as *Not adopted* because no consented South African speech corpus exists to fine-tune it on, and faster-whisper is a runtime for those weights rather than something registered in its own right — so Porcupine, Silero and Piper have been surveyed and not registered. The survey's own caveats matter to an assessor: Porcupine's Apache-2.0 runtime will not start without a vendor `AccessKey`, Silero's README badge contradicts its MIT licence file, and Piper's upstream is archived with its maintained successor under GPL-3.0 | Each would run on the phone, so no transfer while it does; Porcupine's key check has not been established as on-device, and a model download or an update channel would change the answer | `packages/catalog/open-source.json`; `docs/OPEN-SOURCE.md`; `docs/governance/OPEN-SOURCE-INTEGRATION-SURVEY.md` §2 for Piper, §4's findings table for Porcupine and Silero |
 | Pharmacy, laboratory, interpreter, ambulance partners | None signed | Each partner's software location; not determined | `packages/catalog/feeds.json` |
 
 **Questions:** for each supplier chosen, is it an operator under section 21, is there a transfer
@@ -195,7 +266,7 @@ require prior authorisation under section 57(1)(d)? Answers: ______
 | Record access log | Period stated as MyThuso's own setting; **nothing carries it out** | `packages/catalog/consent.json` `accessLog.retention`; `docs/PRIVACY-AND-SECURITY.md` |
 | Proof of consent, proof a request was handled, vetting evidence, capture receipts | Periods stated as MyThuso's own setting | `apps/api/src/personalData.ts` |
 | Backups | Archives are kept for a stated period, so an erased person remains in the oldest archive until it expires | `deploy/README.md` "The backups, and what they are not" |
-| GilbertOne | No audio kept; transcript for the conversation only | `packages/catalog/assistant.json` `voice` |
+| GilbertOne | No audio kept; transcript for the conversation only. **Widened 6 October 2026 to cover the hands-free mode:** the same two rules hold with the microphone reopening on its own between turns, and `conversation-mode.json` restates them as the amendment's own, "unchanged by hands-free operation" — `retention.audioKept` false, `retention.transcript` `"memory"`, destroyed when the conversation ends, nothing written to browser storage of any kind. The one thing a longer-lived microphone changes is exposure rather than retention: more turns are heard per tap | `packages/catalog/assistant.json` `voice`; `packages/catalog/conversation-mode.json` `retention` |
 | Nurse position during a panic | Gone when sharing stops | `packages/catalog/field-safety.json` refusal `location-retained` |
 | Visit thread | Kept with the visit; open for a set time after it | `packages/catalog/booking.json` `thread`, setting `visit-thread-open-hours-after-visit` |
 | Passport P0 | No retention or disposal is built | `apps/passport/src/store.ts` |
@@ -266,6 +337,9 @@ P0, and why it does not deploy") and `docs/DATA-PROTECTION.md` ("What is not bui
 | A penetration test | Unknown weaknesses | Before deployment |
 | Access log retention carried out | The log is kept indefinitely in practice | A disposal the seal can be told about |
 | Server-side enforcement of visit codes, assessment attribution, held laboratory results and doctor sign-off | Today enforced by the interface alone | Clinical records on a server |
+| **The on-device speech stack the amendment names** *(added 6 October 2026, with section 1.1)* | Porcupine, Silero VAD, faster-whisper and Piper are what would keep audio and transcript on the device. None is installed, so the amendment's central privacy claim rests on a stack that does not exist, and what actually hears a web patient is the browser's own recogniser | Adoption decisions for each, with their licence caveats resolved — Porcupine's vendor key above all (`OPEN-SOURCE-INTEGRATION-SURVEY.md` §4's findings table, and its open-questions list) |
+| **A settled record of which wake-word direction stands** *(added 6 October 2026)* | Two founder records disagree: the 21 September amendment says wake word, `PROMPT-CONTROL-TOWER-UI.md` §7.3 says no wake word and cites a 22 September direction the tree does not hold. `voice.json#wakeWordQuestion` is `open` and the build refuses to wire either reading until the founder records which stands | The founder's decision (`packages/catalog/voice.json#lockedSettings.wakeWordQuestion`) |
+| **A kill switch that hard-disables the audio pipeline** *(added 6 October 2026)* | The amendment requires a physical or software one. None exists. The only kill switch in the tree is the compliance pack's per-tenant one, which renders disabled with the sentence that neither a tenant nor a kill switch exists | A tenant boundary, an Information Officer and key custody — the same three that gate that section |
 
 ## 10. Risk register
 
@@ -296,6 +370,9 @@ Likelihood and impact are for the assessor. The evidence column says why each ri
 | R-21 | A compromised key keeps opening old data, because rotation re-wraps and does not re-encrypt | `docs/DATA-PROTECTION.md` "What is not built" | | | |
 | R-22 | Clinical defaults nobody has reviewed cause harm (a clinical safety risk rather than a privacy one, recorded so it is not lost) | `CLINICAL-REVIEW-PACK.md` | | | |
 | R-23 | Switching WhatsApp visit notices on tells a family's contacts, and a third party, that somebody is being nursed | `packages/catalog/money.json` setting `visit-reports-whatsapp` (its proposal says a DPIA must come first) | | | |
+| R-24 | **A hands-free conversation is heard after the person has stopped choosing to be heard.** One tap reopens the microphone for the next turn, so the turns after the first are captured with no hand on any control; a person who walks away from an open panel leaves a microphone open in a room, and a barge-in listens while GilbertOne is still reading aloud. The indicator, the idle rounds, the panel-close cancel and the emergency close are what stand between this and an unattended microphone, and none of them is a kill switch *(added 6 October 2026)* | `packages/catalog/conversation-mode.json` (`starts`, `bargeIn`, `endsOn`, `indicator`); `apps/web/src/components/AssistantVoiceButton.tsx`; `CLAUDE.md`, *Speech conversation mode* | | | |
+| R-25 | **The amendment's privacy claim is assessed against controls that do not exist.** An assessor who reads "all audio processing is on-device" as a fact rather than an intention rates the risks against Porcupine, Silero, faster-whisper and Piper, a ring buffer and a kill switch — and none of the six is in the tree. Meanwhile a web patient's voice is heard by her browser's own recogniser, which may carry it to the company that made the browser, and a cloud route in South Africa North reads replies aloud *(added 6 October 2026)* | Section 1.1's table, item by item; `packages/gilbertone/src/speech-state.ts` ("None of that lives here"); `packages/catalog/open-source.json`; `docs/governance/ASSISTANT-ACTIVATION.md` | | | |
+| R-26 | **Two founder records disagree about whether a wake word exists, so the posture itself is unsettled.** One says the microphone can be woken by a name; the other says no wake word and no background listening. The build refuses to wire either until the founder records which stands, which means this assessment cannot state, even as design, whether MyThuso intends a microphone that listens for a word or one that never opens without a tap *(added 6 October 2026)* | `packages/catalog/voice.json#lockedSettings.wakeWordQuestion` (`state: open`, owner: founder, and the discrepancy it records); `scripts/check-boundaries.mjs` (the wake-word sweep) | | | |
 
 ## 11. Measures to reduce each risk
 
@@ -313,7 +390,7 @@ Likelihood and impact are for the assessor. The evidence column says why each ri
 | R-8 | Fixed window; the desk cannot stretch it; positions are not kept | Confirm the window with the Clinical Governance Lead (`CLINICAL-REVIEW-PACK.md`) | | | |
 | R-9 | Address never on the bus or a map; suburb only | Confirm the address release rule for the nurse going to the house | | | |
 | R-10 | Words only; photos off until reviewed; the thread route refuses attachments | A proper store for any photo before the setting is switched on | | | |
-| R-11 | On-device recognition; no audio; events never carry a transcript | A section 72 determination before any speech provider | | | |
+| R-11 | No audio kept; the transcript lives for the conversation only; events never carry a transcript; on the phones recognition is on-device. **Corrected 6 October 2026:** "on-device recognition" is not true of the web, where the browser's own recogniser hears and may carry what is said to the company that made the browser — disclosed before the first tap rather than removed — nor of the two built cloud speech routes, which the panel calls for the reading of a reply | A section 72 determination before any speech provider; the same determination for the browser's recognition route, which nobody has made and which section 5 already records as not determined | | | |
 | R-12 | Service withheld from the field-safety desk | Review whether `serviceId` needs to travel beside a zone or a time, or be replaced by a category code | | | |
 | R-13 | Documents sealed; reads through the gate | Information Officer decides (`INFORMATION-OFFICER.md`, D-2, D-3) | | | |
 | R-14 | Retention bases and a dry-run sweep for identity tables | A retention schedule; disposal for the access log; per-person keys | | | |
@@ -326,8 +403,20 @@ Likelihood and impact are for the assessor. The evidence column says why each ri
 | R-21 | Rotation that re-wraps | Re-encryption plan after a compromise (`KEY-CUSTODY-OPTIONS.md`, K9) | | | |
 | R-22 | Unreviewed settings shown as not clinically reviewed | Clinical review (`CLINICAL-REVIEW-PACK.md`) | | | |
 | R-23 | Off by default; guardrail refuses any report, photo or reading; no WhatsApp channel is connected | Keep off until this assessment, an operator agreement and a section 72 determination cover it | | | |
+| R-24 | The microphone never opens without a tap having started the conversation; it closes on Stop, on the panel closing, after the idle rounds run out and after an emergency answer; the indicator is visible whenever anything can hear; five utterances close an exchange; the browser's own recogniser is the detector, since `getUserMedia` is `false` and refused in every web file; nothing is written to any store | A kill switch the amendment asks for and nobody has built; a hardware or OS-level indicator rather than one this page draws; an idle-round count reviewed against what a person in a shared room actually needs; the disclosure that hands-free operation exists, in the same place the push-to-talk disclosure already is | | | |
+| R-25 | The state machine carries the amendment's numbers as contract data rather than as typed constants, and a check holds the two contracts' caps equal; the browser's recognition route is disclosed before the first tap; no audio is kept and events never carry a transcript; the deterministic half answers the emergency with no network | Adopt the four on-device modules only after each licence caveat is resolved, and re-assess on adoption — Porcupine's vendor key is the first question; or record plainly that the amendment's stack is not being built and restate the amendment. Do not rate any risk against a control in the amendment's text without checking section 1.1 first | | | |
+| R-26 | `voice.json` records the question as open rather than picking a side, names the founder as owner, and a check fails the build if any application wires wake-word detection while it is open; `conversation-mode.json#whatItIsNot` states there is no wake word on the web and that a conversation starts with one tap | The founder's recorded decision on which direction stands, written into the contract that holds the question. Until then, assess the microphone as one that never opens without a tap, because that is the only posture the build permits | | | |
 
 ## 12. Sign-off
+
+**Nothing below has been filled in, and the re-scoping of 6 October 2026 does not change that.**
+Widening what this draft assesses is not progress towards signing it. Three things it would rely on
+are recorded elsewhere in this file as absent rather than pending: no Information Officer is
+registered (`INFORMATION-OFFICER.md`), no residency decision is made (`DATA-RESIDENCY-OPTIONS.md` §7
+is blank) and no key custody is chosen (`KEY-CUSTODY-OPTIONS.md` §5). One more is new and is not
+anybody's to fill in but the founder's: the wake-word question in `voice.json` is open, and until he
+records which of the two conflicting directions stands, an assessor cannot write down what the
+microphone is meant to do, only what the build currently permits.
 
 | Field | Entry |
 |---|---|

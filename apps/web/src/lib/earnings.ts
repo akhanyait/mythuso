@@ -1,7 +1,7 @@
 import contract from '../../../../packages/catalog/earnings.json' with { type: 'json' };
 import { businessModel, services, type Service } from './catalog';
 import { inDays, isoDate } from './vetting';
-import { lineCents, linesFromEarningsWeek } from '../../../../packages/engines/src/money/domain/payouts.ts';
+import { lineCents, linesFromEarningsWeek, paysOnFor, periodEndFor } from '../../../../packages/engines/src/money/domain/payouts.ts';
 /* What a nurse is owed, worked out rather than written down.
  *
  * Not one visit amount lives in earnings.json. A line names a service; the money comes from
@@ -23,23 +23,19 @@ type RawWeek = { id: string; state: string; weeksAgo: number; paidDaysAfterPayDa
 /* The two dates of a pay week, worked out from the cycle rather than read off a fixed offset.
    A day offset cannot say "the Sunday this week ends on" — it lands on the intended weekday one day
    in seven, so the contract used to be right on Mondays and wrong for the rest of the week, and on
-   9 September every week ended on a Friday while the cycle above it said Sunday. */
-const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-const onOrAfter = (from: Date, weekday: string) => {
- const target = DAYS.indexOf(weekday);
- const out = new Date(from);
- out.setDate(out.getDate() + ((target - out.getDay() + 7) % 7));
- return out;
-};
+   9 September every week ended on a Friday while the cycle above it said Sunday.
+
+   The arithmetic is Thuso Money's own, imported rather than kept beside it — these are the same two
+   questions the ledger asks of a payout, so the week a nurse is shown and the week the engine
+   schedules are one calculation rather than two that happen to agree. The copy this replaced read
+   the device's calendar where the ledger reads Johannesburg's, which put a week's end on a Saturday
+   and its pay date on a Tuesday for anyone whose laptop was not on South African time — the same
+   defect the paragraph above describes, arrived at by a different route. A week back is seven days
+   back: whole weeks, so "the next weekEndsOn on or after" moves with them. */
 const weekDates = (weeksAgo: number) => {
- const today = new Date();
- /* The week this one is: the current week's end is the next weekEndsOn, and each earlier week is
-    seven days before that. */
- const ends = onOrAfter(today, cycle.weekEndsOn);
- ends.setDate(ends.getDate() - 7 * weeksAgo);
+ const ends = periodEndFor(new Date(Date.now() - 7 * weeksAgo * 86_400_000));
  /* It pays on the first paysOn strictly after it ends — Sunday to Wednesday, not Sunday to Sunday. */
- const pays = onOrAfter(new Date(ends.getTime() + 86_400_000), cycle.paysOn);
- return { ends: isoDate(ends), pays: isoDate(pays) };
+ return { ends, pays: paysOnFor(ends) };
 };
 
 export const cycle = contract.cycle;

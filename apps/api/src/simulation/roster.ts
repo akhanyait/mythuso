@@ -163,8 +163,13 @@ function recordsFor(nurse: RosterNurse): CheckRecord[] {
   const exception = nurse.checks?.[check.id];
   const record: CheckRecord = { checkId: check.id, state: (exception?.state as CheckState | undefined) ?? 'verified' };
   if (exception?.expiresInDays !== undefined) {
-   const on = new Date(Date.now() + exception.expiresInDays * 86_400_000);
-   record.expiresOn = on.toISOString().slice(0, 10);
+   /* The contract says "expires in N days", which is a statement about calendar days in Johannesburg
+      rather than about UTC days — the same file's isoIn, not a second way of naming today. Reading
+      the UTC date here put the fixture and the gate on two calendars: `expiresInDays: 0` is "valid
+      through today", but between midnight and two in the morning the UTC date is still yesterday,
+      which the gate counts as lapsed and withdraws her from dispatch. The nurse the contract kept
+      dispatchable is the one a board would most want to be right about. */
+   record.expiresOn = isoIn(new Date(Date.now() + exception.expiresInDays * 86_400_000));
   }
   /* A high-risk check is not verified on one person's say-so. `secondedBy: null` in the contract is
      how a party is left waiting for the second reviewer; everything else gets one. */

@@ -3,7 +3,7 @@ import { EARTH_RADIUS_KM, URBAN_SPEED_KMH, distanceKm, type LatLng } from '../..
 import { simulationRefusal } from './capabilities';
 import { blur, refusalById as geographyRefusal, zoneByName, type Zone } from './geography';
 import { initialsOf } from './names';
-import { can, type Decision, type VettingSubject } from './vetting';
+import { can, resolveState, type Decision, type VettingSubject } from './vetting';
 import { seededSubjects } from './vetting-fixtures';
 
 /* The simulated roster, on the web's side of the boundary.
@@ -116,7 +116,13 @@ export function refusalFor(nurse: RosterNurse): string | null {
  if (!nurse.zone) return rosterRefusals.outsideCoverage;
  const decision = mayTakeAVisit(nurse);
  if (decision.allowed) return null;
- const lapsed = nurse.subject.records.some(record => record.expiresOn && Date.parse(`${record.expiresOn}T00:00:00Z`) < Date.now());
+ /* Which refusal this is comes from the same arithmetic the gate uses, resolved through the vetting
+    module rather than re-derived against an instant here. Hand-rolled, it called a clearance lapsed
+    on the day it expires — `Date.parse('...T00:00:00Z') < Date.now()` is true from the first second
+    of that date — while resolveState calls the same record "expiring" and keeps her dispatchable all
+    day. So a patient offered nobody was told a clearance had run out when the board beside it was
+    still scheduling her, and the two sentences disagreeing is worse than either being wrong. */
+ const lapsed = nurse.subject.records.some(record => resolveState(record) === 'lapsed');
  return lapsed ? rosterRefusals.lapsed : rosterRefusals.unfinished;
 }
 

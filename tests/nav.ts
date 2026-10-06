@@ -62,7 +62,7 @@ export async function goSection(page: Page, name: string) {
   const row = page.locator('.menu-row').filter({ hasText: name });
   /* Since 5 October the patient's More hub folds My Health, Wellness and Devices into its one Explore
      MyThuso row, whose page lists those rows first. A row that is not in the hub is one step further. */
-  const explore = page.locator('.menu-row').filter({ hasText: 'Explore MyThuso' });
+  const explore = page.locator('.menu-row').filter({ hasText: EXPLORE_LABEL });
   await expect(row.or(explore).first()).toBeVisible();
   if (!(await row.count()) && (await explore.count())) {
     await explore.first().click();
@@ -94,6 +94,10 @@ export async function openDestination(page: Page, name: string): Promise<Locator
 const ROLE_PARAM: Record<string, string> = {
   Nurse: 'nurse', Doctor: 'doctor', Partner: 'partner', 'Control Tower': 'control-tower'
 };
+/* The same map with the two patient-side labels added, because `chooseRole` has to be able to go
+   back to the patient from a clinical shell as well as away from her. Labels are lib/roles.ts's;
+   a role nobody lists throws rather than silently changing nothing. */
+const ROLE_BY_LABEL: Record<string, string> = { ...ROLE_PARAM, Patient: 'patient', 'Back office': 'back-office' };
 export async function openWorkspace(page: Page, role: string) {
   const id = ROLE_PARAM[role];
   if (!id) throw new Error(`No role "${role}" on the demo login. It offers: ${Object.keys(ROLE_PARAM).join(', ')}.`);
@@ -164,24 +168,55 @@ export async function openAdminConsole(page: Page) {
   await page.goto('/app/?role=back-office');
   await expect(page.getByRole('heading', { level: 1, name: 'Overview' })).toBeVisible();
 }
-/* Another role in the same tab, through the demo login's full list, which both viewports draw. No page
-   load happens, so whatever the preview holds in memory — a timer, a panic, a setting changed in the back
-   office — is still there, which is exactly what a journey across two roles needs to see. The role is
-   matched on its label alone, because a row's other lines can mention a nurse without being one. */
+/* Another role in the same tab. No page load happens, so whatever the preview holds in memory — a
+   timer, a panic, a case a patient opened, a setting changed in the back office — is still there,
+   which is exactly what a journey across two roles needs to see. A `goto` cannot stand in for it:
+   it would empty the module-level stores the case pathway is walked through.
+
+   Two ways in, because the patient's surface lost its switcher on 4 October — a role switch inside
+   patient care read as an account — while the clinical and portal shells kept theirs:
+
+   • Where the demo login is drawn, use it, matching a row on its label alone because a row's other
+     lines can mention a nurse without being one.
+   • Where it is not, change the address the way the browser's Back button does. Doorway listens for
+     `popstate` and re-reads the role from the query, so a pushed state plus the event is a role
+     change with no reload — the product's own supported navigation, not a private hook into it. */
 export async function chooseRole(page: Page, label: string) {
-  await page.locator('.demo-login-all').click();
-  await page.getByRole('dialog').locator('.record-row').filter({ has: page.locator('strong', { hasText: new RegExp(`^${label}$`) }) }).click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
+  const door = page.locator('.demo-login-all');
+  if (await door.count()) {
+    await door.click();
+    await page.getByRole('dialog').locator('.record-row').filter({ has: page.locator('strong', { hasText: new RegExp(`^${label}$`) }) }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    return;
+  }
+  const id = ROLE_BY_LABEL[label];
+  if (!id) throw new Error(`No role "${label}" on the demo login. It offers: ${Object.keys(ROLE_BY_LABEL).join(', ')}.`);
+  /* The address is written the way lib/roles.ts#searchForRole writes it: the role alone, and no role
+     at all for the patient on /app/. Keeping the params of the role being left would carry a back
+     office's category and tab into a patient's home. */
+  await page.evaluate((role) => {
+    const keepPatient = role === 'patient' && window.location.pathname !== '/';
+    const search = keepPatient ? '' : `?role=${role}`;
+    window.history.pushState(null, '', `${window.location.pathname}${search}`);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  }, id);
+  await expect(page.getByRole('navigation', { name: 'Main navigation' }).or(page.locator('.tabbar'))
+    .or(page.getByRole('tablist', { name: PORTAL_CATEGORIES })).first()).toBeVisible();
 }
 
 /* Explore MyThuso is the patient's roadmap page and the door to the first-run flow, the state
    gallery and the module previews. It is a sidebar entry on a wide screen and lives behind More on
-   a phone, which is why it needs a helper of its own rather than goSection. */
+   a phone, which is why it needs a helper of its own rather than goSection.
+
+   The label is named once, here, because since 5 October it is also the door the folded My Health,
+   Wellness and Devices rows sit behind on a phone — and a spec that types the name again is a
+   private copy of navigation, which is a private copy of every fix made to it since. */
+export const EXPLORE_LABEL = 'Explore MyThuso';
 export async function goExplore(page: Page) {
   const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
-  if (await sidebar.isVisible()) { await sidebar.getByRole('button', { name: 'Explore MyThuso', exact: true }).click(); return; }
+  if (await sidebar.isVisible()) { await sidebar.getByRole('button', { name: EXPLORE_LABEL, exact: true }).click(); return; }
   await page.locator('.tabbar button').nth(4).click();
-  await page.locator('.menu-row').filter({ hasText: 'Explore MyThuso' }).first().click();
+  await page.locator('.menu-row').filter({ hasText: EXPLORE_LABEL }).first().click();
 }
 export async function openFirstRun(page: Page) {
   await goExplore(page);

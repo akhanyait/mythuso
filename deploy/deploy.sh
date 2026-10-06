@@ -48,8 +48,9 @@ KEEP_RELEASES="${KEEP_RELEASES:-5}"
 OPS=/opt/mythuso/ops
 # The assistant runtime's home — outside $ROOT on purpose: the web root is served to the public
 # internet and is replaced wholesale on every deploy, and a service's code is neither disposable
-# per-deploy nor public. One file lives here (server.mjs), owned by root, read by a systemd
-# DynamicUser that exists only while the service runs.
+# per-deploy nor public. The bundle lives here (server.mjs), owned by root, read by a systemd
+# DynamicUser that exists only while the service runs, and beside it the previous generation
+# (server.mjs.prev) that the publish below keeps so this file can be rolled back without a build.
 ASSISTANT=/opt/mythuso/assistant
 IGNORE="$(dirname "$0")/.deployignore"
 
@@ -401,8 +402,54 @@ else
   # landed and one everybody believes landed. The restart itself stays a person's act, as the
   # activation sequence in deploy/RUNBOOK.md is: this deploy never starts or restarts the model tier.
   previous_digest=$(ssh "$TARGET" "if [ -f $ASSISTANT/server.mjs ]; then if command -v sha256sum >/dev/null 2>&1; then sha256sum $ASSISTANT/server.mjs; else shasum -a 256 $ASSISTANT/server.mjs; fi; fi" | cut -d' ' -f1) || previous_digest=""
-  ssh "$TARGET" "chmod 0755 $ASSISTANT && chmod 0644 $ASSISTANT/server.mjs.next && chown root:root $ASSISTANT/server.mjs.next && mv -f $ASSISTANT/server.mjs.next $ASSISTANT/server.mjs"
+  # The one copy that makes a rollback of this file possible at all, taken before the move that
+  # would destroy it. Until now `mv -f` overwrote the previous bundle outright, which left
+  # deploy/rollback.sh and deploy/RUNBOOK.md both describing a server.mjs.prev that nothing in the
+  # tree created — a documented way back for the one service that has answered patients since
+  # 21 September 2026, pointing at a file that did not exist.
+  #
+  # The branch shape is the site file's own (see .mythuso.conf.prev below), and so is the reason: a
+  # first deploy has no previous bundle, so there is nothing to copy, and a stale .prev left beside
+  # it would be an offer to roll back to code this box never ran. The lifetimes differ, deliberately.
+  # The site file's copy is deleted once `nginx -t` has an opinion, because the reload either applies
+  # it or the deploy rolls it back before finishing — nothing later needs it. This copy is kept
+  # across deploys, because the act that needs it is a restart, and a restart is a person's decision
+  # taken after the deploy has reported success and gone: a copy that only survived until the deploy
+  # ended would not be there for the one moment it exists for.
+  #
+  # A copy of the live file rather than a rename of it, because a rename leaves a moment where
+  # $ASSISTANT/server.mjs does not exist at all — and the unit carries Restart=on-failure with a
+  # five-second retry, so a start landing in that window fails on a path that was there a moment
+  # before. Copying never removes the live path, and the running process is untouched either way:
+  # node holds the inode it opened at start. The rename below still lands the new bundle in one
+  # step, as it always did. The mode and owner are stated again after `cp -p` because the service
+  # reads this directory as a systemd DynamicUser — a .prev that only root can read is a file, not
+  # a rollback. It is exactly one generation deep: the bundle this box ran before this publish and
+  # no further back, which is what deploy/RUNBOOK.md says rather than implying a history that is
+  # not on the box.
+  ssh "$TARGET" "set -e
+    chmod 0755 $ASSISTANT
+    chmod 0644 $ASSISTANT/server.mjs.next && chown root:root $ASSISTANT/server.mjs.next
+    if [ -f $ASSISTANT/server.mjs ]; then
+      cp -p $ASSISTANT/server.mjs $ASSISTANT/server.mjs.prev
+      chmod 0644 $ASSISTANT/server.mjs.prev && chown root:root $ASSISTANT/server.mjs.prev
+    else
+      rm -f $ASSISTANT/server.mjs.prev
+    fi
+    mv -f $ASSISTANT/server.mjs.next $ASSISTANT/server.mjs"
   echo "assistant runtime  $ASSISTANT/server.mjs  sha256 ${local_digest:0:16}…"
+  # Say which generation was kept, and with the digest read from the live bundle before the copy —
+  # so the line names the bytes the copy holds rather than a second guess at them, and the person
+  # deciding whether to go back can compare it with the previous deploy's own output. That read can
+  # only have failed if the box lost its hashing tool between the two ssh calls, and a line that
+  # printed "sha256 …" with nothing before it would look like a digest of unknown value rather than
+  # an absent one — so the absent case is named instead of truncated into silence.
+  if ssh "$TARGET" "[ -f $ASSISTANT/server.mjs.prev ]"; then
+    kept_digest="${previous_digest:+${previous_digest:0:16}…}"
+    echo "   previous bundle kept at $ASSISTANT/server.mjs.prev  sha256 ${kept_digest:-not read}"
+  else
+    echo "   no previous bundle on the box yet — nothing to roll this file back to"
+  fi
   if [ "$previous_digest" != "$local_digest" ] && ssh "$TARGET" "systemctl is-active --quiet assistant-api.service"; then
     assistant_behind=1
     echo "!! assistant-api.service is RUNNING THE PREVIOUS RUNTIME. Its code changed in this deploy and the"

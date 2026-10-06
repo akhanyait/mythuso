@@ -86,7 +86,16 @@ test('every source is drawn with its verdict and two unsigned signatures, and no
   if (!verdicts[s.licensing.verdict]!.mayActivate)
    await expect(switchOn).toHaveAccessibleDescription(new RegExp(refusal('licence-does-not-permit-activation').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
  }
- expect(opened, 'the eight sources whose licences permit are opened for demonstration').toBe(8);
+ /* Derived, never typed: while the override is in force every source whose licence permits a
+    commercial service's use, and which the override gates, is opened for demonstration; with the
+    override off — as it has been since the fail-closed commit of 4 October — none are, and the
+    record below still says why. A literal eight here would fail on the day the override closes and
+    would pass on a contract that opened one fewer than it should. */
+ const permit = sources.filter(s => {
+  const v = verdicts[s.licensing.verdict] as { mayActivate: boolean; requiresPermissionRecord?: boolean };
+  return gateOf(s) && v.mayActivate && !v.requiresPermissionRecord;
+ }).length;
+ expect(opened, 'the sources whose licences permit are opened only while the override is in force').toBe(override.inForce ? permit : 0);
  /* The override's own record: its disclaimer, the founder's words, what going live changes, and what it
     does not open, each with why. */
  const record = panel(page).getByRole('region', { name: dw.heading });
@@ -166,7 +175,13 @@ test('the GilbertOne Knowledge screen draws every source\'s verdict and its two 
  await page.goto('/app/?role=back-office&category=gilbertone&tab=knowledge');
  await expect(page.locator('#pt-category .pt-loading')).toHaveCount(0);
  const list = panel(page).getByRole('list', { name: `${sources.length} external sources, ${opened} on for demonstration` });
- await expect(panel(page).getByRole('note').filter({ hasText: override.disclaimer.sentence })).toBeVisible();
+ /* The disclaimer is the override's own sentence about what it stands in for. With the override off
+    it is not on the screen, and asserting it visible then would be asserting a permission nobody
+    gave — the same fork gilbertone-admin.spec.ts draws. */
+ if (override.inForce)
+  await expect(panel(page).getByRole('note').filter({ hasText: override.disclaimer.sentence })).toBeVisible();
+ else
+  await expect(panel(page)).not.toContainText(override.disclaimer.sentence);
  for (const s of sources) {
   const card = list.getByRole('article', { name: s.name, exact: true });
   await expect(card).toContainText(verdicts[s.licensing.verdict]!.label);

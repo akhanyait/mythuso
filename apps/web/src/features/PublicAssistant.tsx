@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp, Send, X } from "lucide-react";
 import { latestLabel } from "../../../../packages/catalog/assistant-chat-ui.json";
 import { emergencyAnswer, identity, lines, silenceIsNotSafety } from "../lib/assistant";
 import { GilbertOneLogo } from "./GilbertAvatar";
+import { AssistantGreeting } from "../components/AssistantGreeting";
 import { crisisLines, showsCrisisLines } from "../lib/crisis-lines";
 import { publicAnswer, publicAssistant as copy, type PublicAnswer } from "../lib/public-assistant";
 import { sendOnEnter } from "../lib/composer";
@@ -137,6 +138,10 @@ export default function PublicAssistant({ request = null }: { request?: { questi
 
   return (
     <>
+      {/* The public page's invitation, the same one the app's orb carries: it appears on its own
+          contract delay and hides the moment the sheet is open, so there is one way in rather than
+          a bubble sitting beside its own dialog. */}
+      <AssistantGreeting open={open} onOpen={() => setOpen(true)} />
       <button
         ref={launcher}
         className="public-assistant-launcher"

@@ -1,12 +1,102 @@
 {
+  "version": 2,
   "fetchedOn": "2026-10-04",
-  "rule": "A patient reply may name a source only when status is approved and audience is public, and only when the patient's own words match a topic. Candidates and clinician-only entries are a shelf and are never cited. Notes are not page text.",
+  "rule": "A patient reply may name a source only when status is approved, audience is public, and use is quotable, and only when the patient's own words match a topic. A source whose use is link-only may be pointed to as further reading and never named as the source of an answer. Candidates and clinician-only entries are a shelf and are never cited. Notes are not page text.",
+  "_versionNote": "Version 2, 6 October 2026, adds the two axes this register was missing. Until today the scout asked exactly two questions of an entry — is it approved, is it public — and quoted whatever said yes to both. That approved Cochrane, the WHO fact sheets and the NHS conditions index to PATIENTS while packages/catalog/knowledge/federation.json's assessedNotAdmitted bars all three as quotable, and it approved two pages the scout itself records as never having been read past their titles. The contradiction was invisible because check-boundaries.mjs had never read this file; the cross-register check added beside version 2 fails the build on exactly that disagreement. Two hand-maintained registers is the founder's decision of 6 October 2026, so neither is generated and the check is what holds them together.",
+  "use": {
+    "_why": "The third axis. status and audience answer whether an entry may be shown to a patient at all; this answers whether an answer may stand on it. The two are different questions and the register used to ask only the first, which is how a publisher Wiley reserves text-and-data-mining and AI-training rights on ended up approved for patient quotation.",
+    "modes": {
+      "quotable": {
+        "label": "May be the source of an answer",
+        "sentence": "An answer may stand on this and name it as its source."
+      },
+      "link-only": {
+        "label": "Further reading, never the source",
+        "sentence": "An answer may point to it as further reading and never as its source."
+      }
+    },
+    "refusals": [
+      {
+        "id": "licence-bars-quotation",
+        "statement": "That publisher's licence does not cover a commercial service quoting it, so it is offered as further reading and never named as the source of an answer.",
+        "why": "Copyright is law, not an internal gate. packages/catalog/knowledge/federation.json's licenceVerdicts say the same of a verdict that may not activate, and its assessedNotAdmitted records the assessment; this register may not be more generous than the assessment beside it."
+      },
+      {
+        "id": "unread-page-is-not-a-citation",
+        "statement": "That page was not read past its title, so it is offered as further reading and never named as the source of an answer.",
+        "why": "A citation is a claim that somebody read the thing. An entry the scout's own note admits came through as a title alone is a claim nobody can make, and quoting it would put MyThuso's name behind a page nobody opened."
+      },
+      {
+        "id": "licence-not-assessed",
+        "statement": "Nobody has read that publisher's licence yet, so it is offered as further reading and never named as the source of an answer.",
+        "why": "federation.json's not-assessed verdict is the honest starting point for every source and stays there until the Information Officer records a verdict. An unassessed licence is not a permitted one."
+      }
+    ]
+  },
+  "caption": {
+    "_why": "The words a caption uses to keep the two halves apart. They live here rather than in the component because a refusal sentence typed into a screen is a refusal that can drift from the contract beside it, and because the same words are what the build checks against. The existing stylesheet already carries .as-sources-label and .as-sources-used for exactly this split, so nothing new is drawn — the label was designed for and never wired.",
+    "sourcesLabel": "Sources",
+    "furtherReadingLabel": "Further reading",
+    "furtherReadingDetail": "MyThuso may point you to this page, and may not quote it: either its licence does not cover a commercial service, or nobody has read it past its title yet. What you read there is the publisher's, and this answer is not based on it."
+  },
+  "jurisdictions": {
+    "_why": "SA-first, as data. The register carried jurisdiction only as prose inside a note — 'it is a US page and not an authority for South African HIV, TB, medicines, or immunisation' — which no sort can read. This list is the order a patient's references are offered in, and the order is the whole of the ranking: nothing else in the tree restates it. South Africa first because that is whose guidance applies to the person reading. International second because WHO's fact sheets and Cochrane's reviews are the evidence base the National Department of Health's own guidelines are built on, so they sit nearer a South African answer than another country's national guidance does. The United Kingdom before the United States because this register's own notes caveat the US pages more heavily — they add 'is not a South African dosing source', which the UK entries do not — so of two pages that are both another country's national guidance, the UK one is the nearer.",
+    "order": [
+      {
+        "id": "south-africa",
+        "label": "South Africa",
+        "sentence": "South African guidance, from the authority that issues it here."
+      },
+      {
+        "id": "international",
+        "label": "International",
+        "sentence": "International evidence, not one country's national guidance."
+      },
+      {
+        "id": "united-kingdom",
+        "label": "United Kingdom",
+        "sentence": "Another country's national guidance. Where it differs from a South African page, follow the National Department of Health."
+      },
+      {
+        "id": "united-states",
+        "label": "United States",
+        "sentence": "Another country's national guidance, and not a South African dosing source. Where it differs from a South African page, follow the National Department of Health."
+      }
+    ]
+  },
+  "hosts": {
+    "_why": "Four hosts carry more than one entry, and they are not merged: nicd and nicd-diseases-a-z are different pages on different topics, and merging them would change what a patient is shown for 'measles' — the homepage's topics are the communicable diseases the scout read on it, while the A-Z index's are general because its body was never read. What was wrong was that the duplication was invisible: two entries named one host with nothing saying so, and nothing holding an entry's host to its own url. Each host is therefore listed once here with the entries under it and the reason they stay apart, and scripts/check-boundaries.mjs fails the build when an entry's host and url disagree or when a host group names entries it does not hold.",
+    "entries": [
+      {
+        "host": "nicd.ac.za",
+        "sharedBy": ["nicd", "nicd-diseases-a-z"],
+        "why": "Kept apart on purpose. The homepage carries the communicable-disease topics read off it and is quotable; the Diseases A-Z index was opened and only its title came through, so its topics stay general and it is further reading until somebody reads the body. One merged entry would hand the A-Z's generality the homepage's authority."
+      },
+      {
+        "host": "cochrane.org",
+        "sharedBy": ["cochrane", "cochrane-evidence"],
+        "why": "Kept apart on purpose: the homepage is the public entry to the systematic reviews and /evidence is the plain-language summary search. Both are further reading, because federation.json's cochrane-pls assessment bars the host as quotable — Wiley reserves reuse, text-and-data-mining and AI-training rights — and a second page on a barred host is not a second licence."
+      },
+      {
+        "host": "medlineplus.gov",
+        "sharedBy": ["medlineplus", "medlineplus-heartburn"],
+        "why": "Kept apart on purpose: the library's front door is quotable under the reuse-with-conditions verdict federation.json records for medlineplus-nlm, while the heartburn page is further reading because the scout's own note admits only its title came through. Merging them would either promote an unread page or demote a licence that permits the library."
+      },
+      {
+        "host": "knowledgehub.health.gov.za",
+        "sharedBy": ["ndoh-elibrary", "ndoh-hiv-guidelines-2026"],
+        "why": "Kept apart on purpose: the e-Library is the National Department of Health's shelf and the 2026 consolidated HIV guidelines are one document on it. Both are clinician candidates and neither is cited to a patient, so the duplication has no patient-facing consequence today; it is recorded because the shelf and a document on it are reviewed separately and will not stay in step by accident."
+      }
+    ]
+  },
   "sources": [
     {
       "id": "nicd",
       "name": "NICD",
       "publisher": "National Institute for Communicable Diseases",
       "url": "https://www.nicd.ac.za/",
+      "host": "nicd.ac.za",
+      "jurisdiction": "south-africa",
       "topics": [
         "communicable disease",
         "symptoms",
@@ -20,40 +110,59 @@
       ],
       "audience": "public",
       "status": "approved",
+      "use": "link-only",
+      "useRefusal": "licence-not-assessed",
+      "licenceVerdict": "not-assessed",
+      "licenceAssessedIn": "packages/catalog/knowledge/federation.json#licenceVerdicts/not-assessed",
       "fetchedOn": "2026-10-04",
-      "note": "The NICD homepage is a public and clinician starting point for communicable-disease information, and this entry does not cite a separate disease A to Z page."
+      "note": "The NICD homepage is a public and clinician starting point for communicable-disease information, and this entry does not cite a separate disease A to Z page. South Africa's own authority for these diseases, and the entry this register would most want quotable — but neither register records a licence verdict for nicd.ac.za, so it is further reading until the Information Officer reads one. That is a narrowing, not a judgement on the source: recording a verdict in federation.json is what makes it quotable, and no flag in this file may.",
+      "narrowedOn": "2026-10-06"
     },
     {
       "id": "cochrane",
       "name": "Cochrane",
       "publisher": "Cochrane",
       "url": "https://www.cochrane.org/",
+      "host": "cochrane.org",
+      "jurisdiction": "international",
       "topics": [
         "systematic reviews"
       ],
       "audience": "public",
       "status": "approved",
+      "use": "link-only",
+      "useRefusal": "licence-bars-quotation",
+      "licenceVerdict": "no-reuse",
+      "licenceAssessedIn": "packages/catalog/knowledge/federation.json#assessedNotAdmitted/cochrane-pls",
       "fetchedOn": "2026-10-04",
-      "note": "The Cochrane homepage is the public and professional entry to its systematic reviews, and this entry does not cite the Cochrane Library host."
+      "note": "The Cochrane homepage is the public and professional entry to its systematic reviews, and this entry does not cite the Cochrane Library host. Further reading only: federation.json assessed cochrane.org on 1 October 2026 and turned it away — all rights reserved including text and data mining and AI training (John Wiley & Sons), reuse licensed for a fee — and this register was approving it to patients in the same week. Narrowed on 6 October 2026.",
+      "narrowedOn": "2026-10-06"
     },
     {
       "id": "medlineplus",
       "name": "MedlinePlus",
       "publisher": "National Library of Medicine",
       "url": "https://medlineplus.gov/",
+      "host": "medlineplus.gov",
+      "jurisdiction": "united-states",
       "topics": [
         "health topics"
       ],
       "audience": "public",
       "status": "approved",
+      "use": "quotable",
+      "licenceVerdict": "reuse-with-conditions",
+      "licenceAssessedIn": "packages/catalog/knowledge/federation.json#sources/medlineplus-nlm",
       "fetchedOn": "2026-10-04",
-      "note": "MedlinePlus is a US patient health-topic library and is not a South African dosing source; where it differs from a South African page, follow the National Department of Health."
+      "note": "MedlinePlus is a US patient health-topic library and is not a South African dosing source; where it differs from a South African page, follow the National Department of Health. Quotable because federation.json records the reuse-with-conditions verdict for medlineplus-nlm, whose conditions are attribution and the South African adaptation layer its activation note asks for — and the adaptation is why this entry sorts last among a patient's matches rather than first."
     },
     {
       "id": "nhs-conditions",
       "name": "NHS Conditions",
       "publisher": "National Health Service",
       "url": "https://www.nhs.uk/conditions/",
+      "host": "nhs.uk",
+      "jurisdiction": "united-kingdom",
       "topics": [
         "hiv",
         "tuberculosis",
@@ -64,95 +173,138 @@
       ],
       "audience": "public",
       "status": "approved",
+      "use": "link-only",
+      "useRefusal": "licence-bars-quotation",
+      "licenceVerdict": "outside-licence-scope",
+      "licenceAssessedIn": "packages/catalog/knowledge/federation.json#assessedNotAdmitted/nhs-website-content",
       "fetchedOn": "2026-10-04",
-      "note": "The NHS conditions index is a UK public page, not South African protocol; where it differs from a South African page, follow the National Department of Health."
+      "note": "The NHS conditions index is a UK public page, not South African protocol; where it differs from a South African page, follow the National Department of Health. Further reading only: federation.json assessed nhs.uk on 1 October 2026 and turned it away as outside its licence's scope — the API's licence covers only users located in the United Kingdom under English law, and the website's own terms say it is for people who live in England. A South African patient is outside both, and no signature can bring her inside. Narrowed on 6 October 2026.",
+      "narrowedOn": "2026-10-06"
     },
     {
       "id": "cdc",
       "name": "CDC",
       "publisher": "Centers for Disease Control and Prevention",
       "url": "https://www.cdc.gov/",
+      "host": "cdc.gov",
+      "jurisdiction": "united-states",
       "topics": [
         "flu",
         "respiratory illness"
       ],
       "audience": "public",
       "status": "candidate",
+      "use": "link-only",
+      "useRefusal": "unread-page-is-not-a-citation",
+      "licenceVerdict": "reuse-with-conditions",
+      "licenceAssessedIn": "packages/catalog/knowledge/federation.json#sources/cdc-content-services",
       "fetchedOn": "2026-10-04",
-      "note": "The CDC homepage was not opened in this run, so it is not approved; it is a US page and not an authority for South African HIV, TB, medicines, or immunisation, and where it differs follow the National Department of Health."
+      "note": "The CDC homepage was not opened in this run, so it is not approved; it is a US page and not an authority for South African HIV, TB, medicines, or immunisation, and where it differs follow the National Department of Health. Its licence would permit quotation — federation.json records reuse-with-conditions for cdc-content-services — so what keeps it further reading is that nobody read it, and status candidate already keeps it off the shelf a patient sees."
     },
     {
       "id": "ndoh-elibrary",
       "name": "NDoH Knowledge Hub e-Library",
       "publisher": "National Department of Health",
       "url": "https://knowledgehub.health.gov.za/e-library",
+      "host": "knowledgehub.health.gov.za",
+      "jurisdiction": "south-africa",
       "topics": [
         "guidelines",
         "library"
       ],
       "audience": "clinician",
       "status": "candidate",
+      "use": "link-only",
+      "useRefusal": "licence-bars-quotation",
+      "licenceVerdict": "permission-required",
+      "licenceAssessedIn": "packages/catalog/knowledge/federation.json#sources/ndoh-stg-eml-phc",
       "fetchedOn": "2026-10-04",
-      "note": "The Knowledge Hub e-library is a National Department of Health shelf for clinicians and is never named in a patient reply."
+      "note": "The Knowledge Hub e-library is a National Department of Health shelf for clinicians and is never named in a patient reply. Audience clinician keeps it off a patient's caption whatever its use says; the use is recorded because federation.json's verdict for ndoh-stg-eml-phc is permission-required, and the owner's written permission is not on file."
     },
     {
       "id": "ndoh-stg-eml",
       "name": "STG and Essential Medicines List",
       "publisher": "National Department of Health",
       "url": "https://www.health.gov.za/nhi-edp-stgs-eml/",
+      "host": "health.gov.za",
+      "jurisdiction": "south-africa",
       "topics": [
         "essential medicines",
         "standard treatment"
       ],
       "audience": "clinician",
       "status": "candidate",
+      "use": "link-only",
+      "useRefusal": "licence-bars-quotation",
+      "licenceVerdict": "permission-required",
+      "licenceAssessedIn": "packages/catalog/knowledge/federation.json#sources/ndoh-stg-eml-phc",
       "fetchedOn": "2026-10-04",
-      "note": "This National Department of Health page points at standard treatment guidelines and the essential medicines list, and it is clinician context only."
+      "note": "This National Department of Health page points at standard treatment guidelines and the essential medicines list, and it is clinician context only. Recorded link-only for the same permission-required verdict as the e-library. Note that health.gov.za's host is also the one federation.json's gcis-gov-za assessment turns away under gov.za's non-commercial terms; the Department's own guidelines are listed separately there, and that separation is what keeps this entry from inheriting a bar on the apex domain."
     },
     {
       "id": "ndoh-hiv-guidelines-2026",
       "name": "National Consolidated HIV Guidelines 2026",
       "publisher": "National Department of Health",
       "url": "https://knowledgehub.health.gov.za/elibrary/national-consolidated-guidelines-management-hiv-adults-adolescents-children-infants-and",
+      "host": "knowledgehub.health.gov.za",
+      "jurisdiction": "south-africa",
       "topics": [
         "hiv"
       ],
       "audience": "clinician",
       "status": "candidate",
+      "use": "link-only",
+      "useRefusal": "unread-page-is-not-a-citation",
+      "licenceVerdict": "permission-required",
+      "licenceAssessedIn": "packages/catalog/knowledge/federation.json#sources/ndoh-stg-eml-phc",
       "fetchedOn": "2026-10-04",
-      "note": "The 2026 national consolidated HIV guidelines file was not opened in this run, so it stays a clinician candidate and is not cited."
+      "note": "The 2026 national consolidated HIV guidelines file was not opened in this run, so it stays a clinician candidate and is not cited. Both refusals apply to it: the document was not read, and the shelf it sits on needs written permission."
     },
     {
       "id": "samrc",
       "name": "SAMRC",
       "publisher": "South African Medical Research Council",
       "url": "https://www.samrc.ac.za/",
+      "host": "samrc.ac.za",
+      "jurisdiction": "south-africa",
       "topics": [
         "research"
       ],
       "audience": "clinician",
       "status": "candidate",
+      "use": "link-only",
+      "useRefusal": "licence-not-assessed",
+      "licenceVerdict": "not-assessed",
+      "licenceAssessedIn": "packages/catalog/knowledge/federation.json#licenceVerdicts/not-assessed",
       "fetchedOn": "2026-10-04",
-      "note": "The SAMRC homepage is research-council context only and is not a patient-education source."
+      "note": "The SAMRC homepage is research-council context only and is not a patient-education source. Neither register records a licence verdict for samrc.ac.za; clinician audience already keeps it off a patient's caption."
     },
     {
       "id": "nice-guidance",
       "name": "NICE guidance",
       "publisher": "National Institute for Health and Care Excellence",
       "url": "https://www.nice.org.uk/guidance",
+      "host": "nice.org.uk",
+      "jurisdiction": "united-kingdom",
       "topics": [
         "guidance"
       ],
       "audience": "clinician",
       "status": "candidate",
+      "use": "link-only",
+      "useRefusal": "licence-not-assessed",
+      "licenceVerdict": "not-assessed",
+      "licenceAssessedIn": "packages/catalog/knowledge/federation.json#licenceVerdicts/not-assessed",
       "fetchedOn": "2026-10-04",
-      "note": "The NICE guidance index is UK clinician guidance, not a South African standard; where it differs from a South African page, follow the National Department of Health."
+      "note": "The NICE guidance index is UK clinician guidance, not a South African standard; where it differs from a South African page, follow the National Department of Health. Neither register records a licence verdict for nice.org.uk."
     },
     {
       "id": "who-fact-sheets",
       "name": "WHO Fact sheets",
       "publisher": "World Health Organization",
       "url": "https://www.who.int/news-room/fact-sheets",
+      "host": "who.int",
+      "jurisdiction": "international",
       "topics": [
         "tb",
         "tuberculosis",
@@ -170,14 +322,21 @@
       ],
       "audience": "public",
       "status": "approved",
+      "use": "link-only",
+      "useRefusal": "licence-bars-quotation",
+      "licenceVerdict": "non-commercial-only",
+      "licenceAssessedIn": "packages/catalog/knowledge/federation.json#assessedNotAdmitted/who-fact-sheets-iris",
       "fetchedOn": "2026-10-05",
-      "note": "The WHO's official plain-language fact sheets, about 240 public topics. Approved by Gilbert on 5 October 2026 from the weekday source scout. Where it differs from the National Department of Health, follow the Department."
+      "note": "The WHO's official plain-language fact sheets, about 240 public topics. Approved by Gilbert on 5 October 2026 from the weekday source scout — four days after federation.json assessed who.int and turned it away as non-commercial-only, because commercial use of WHO material needs WHO's prior written permission and MyThuso is a commercial service. Further reading only, and the topic list stays: these are the plain-language pages a patient is most often better served by, so pointing to one is worth keeping even though quoting it is not. WHO's ICD-11 API is a separate federation source under its own licence and is unaffected. Narrowed on 6 October 2026.",
+      "narrowedOn": "2026-10-06"
     },
     {
       "id": "nicd-diseases-a-z",
       "name": "NICD Diseases A-Z",
       "publisher": "National Institute for Communicable Diseases",
       "url": "https://www.nicd.ac.za/diseases-a-z-index/",
+      "host": "nicd.ac.za",
+      "jurisdiction": "south-africa",
       "topics": [
         "communicable disease",
         "infectious disease",
@@ -185,14 +344,21 @@
       ],
       "audience": "public",
       "status": "approved",
+      "use": "link-only",
+      "useRefusal": "unread-page-is-not-a-citation",
+      "licenceVerdict": "not-assessed",
+      "licenceAssessedIn": "packages/catalog/knowledge/federation.json#licenceVerdicts/not-assessed",
       "fetchedOn": "2026-10-05",
-      "note": "South Africa's communicable-disease topic index. Approved by Gilbert on 5 October 2026 from the weekday source scout. When the scout opened it only the page title came through, so its topics here are kept general until its contents are read."
+      "note": "South Africa's communicable-disease topic index. Approved by Gilbert on 5 October 2026 from the weekday source scout. When the scout opened it only the page title came through, so its topics here are kept general until its contents are read — and a page nobody read past its title is not a citation, whatever its status says. Demoted to further reading on 6 October 2026 until a human reads the body; reading it also settles the licence verdict its host has never had.",
+      "narrowedOn": "2026-10-06"
     },
     {
       "id": "medlineplus-heartburn",
       "name": "MedlinePlus Heartburn",
       "publisher": "National Library of Medicine",
       "url": "https://medlineplus.gov/heartburn.html",
+      "host": "medlineplus.gov",
+      "jurisdiction": "united-states",
       "topics": [
         "heartburn",
         "heart burn",
@@ -203,14 +369,21 @@
       ],
       "audience": "public",
       "status": "approved",
+      "use": "link-only",
+      "useRefusal": "unread-page-is-not-a-citation",
+      "licenceVerdict": "reuse-with-conditions",
+      "licenceAssessedIn": "packages/catalog/knowledge/federation.json#sources/medlineplus-nlm",
       "fetchedOn": "2026-10-05",
-      "note": "The US patient page on heartburn, acid reflux and GERD. Approved by Gilbert on 5 October 2026 from the weekday source scout. It is not a South African dosing source; where it differs from the National Department of Health, follow the Department."
+      "note": "The US patient page on heartburn, acid reflux and GERD. Approved by Gilbert on 5 October 2026 from the weekday source scout. It is not a South African dosing source; where it differs from the National Department of Health, follow the Department. Demoted to further reading on 6 October 2026 for the same reason as the NICD index: the scout recorded that only the page title came through, and its host's licence permits quotation only once somebody has read the page it would quote.",
+      "narrowedOn": "2026-10-06"
     },
     {
       "id": "cochrane-evidence",
       "name": "Cochrane plain language summaries",
       "publisher": "Cochrane",
       "url": "https://www.cochrane.org/evidence",
+      "host": "cochrane.org",
+      "jurisdiction": "international",
       "topics": [
         "evidence",
         "does it work",
@@ -219,8 +392,13 @@
       ],
       "audience": "public",
       "status": "approved",
+      "use": "link-only",
+      "useRefusal": "licence-bars-quotation",
+      "licenceVerdict": "no-reuse",
+      "licenceAssessedIn": "packages/catalog/knowledge/federation.json#assessedNotAdmitted/cochrane-pls",
       "fetchedOn": "2026-10-05",
-      "note": "Plain-language summaries of Cochrane systematic reviews, searchable by condition, treatment or medicine. Approved by Gilbert on 5 October 2026 from the weekday source scout."
+      "note": "Plain-language summaries of Cochrane systematic reviews, searchable by condition, treatment or medicine. Approved by Gilbert on 5 October 2026 from the weekday source scout. Further reading only, and this is the sharpest of the four contradictions version 2 corrects: federation.json's cochrane-pls assessment names these plain-language summaries specifically, records that free republication is only for registered Cochrane groups and that Wiley reserves text-and-data-mining and AI-training rights, and adds that clinicians may read and cite it behind MyThuso's own reviewed text. Behind MyThuso's reviewed text is exactly what further reading is; being the source of a patient answer is not. Narrowed on 6 October 2026.",
+      "narrowedOn": "2026-10-06"
     }
   ]
 }

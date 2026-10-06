@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import { EXPLORE_LABEL } from './nav';
 import { noticeFor } from './notices';
 
 /* The patient screens the Lovable export draws and the live app did not have, on both viewports: connected
@@ -38,6 +39,18 @@ async function reach(page: Page, name: string) {
  const row = page.locator('.menu-row').filter({ has: page.locator('strong').getByText(name, { exact: true }) });
  await expect(page.locator('.menu-row').first()).toBeVisible();
  if (await row.count()) { await row.first().click(); return; }
+ /* Since 5 October the hub folds My Health, Wellness and Devices into its one Explore MyThuso row,
+    whose page lists those rows first under the same names — so a page that is not in the hub is one
+    step further in, not one screen away. This is the same step nav.ts#goSection takes, and it is
+    written here rather than reached through that helper only because this one matches a row by its
+    exact title: a contained match finds "activity" inside the wallet's line. */
+ const explore = page.locator('.menu-row').filter({ has: page.locator('strong').getByText(EXPLORE_LABEL, { exact: true }) });
+ if (await explore.count()) {
+  await explore.first().click();
+  await expect(row.first()).toBeVisible();
+  await row.first().click();
+  return;
+ }
  /* The rest of Your health's pages are the hub's shortcuts, one row further in. */
  await page.locator('.menu-row').filter({ has: page.locator('strong').getByText(pages.hub.opens, { exact: true }) }).first().click();
  await page.locator('.pp-shortcut').filter({ has: page.locator('strong').getByText(name, { exact: true }) }).first().click();

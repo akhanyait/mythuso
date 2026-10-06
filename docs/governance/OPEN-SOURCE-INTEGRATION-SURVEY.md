@@ -363,7 +363,10 @@ none of which a new data source supplies:
    entry says it means", which was done once by hand against OLS4, WHO and loinc.org. This is a
    documentation gap, not a content gap, and finding 1 above may close the SNOMED half of it.
 3. **Retrieval that can be measured.** The `knowledge-sources` card is `dark` and all three allowlisted
-   sources ship `active: false`, with the reason recorded in `federation.json`: activation needs "a
+   sources ship `active: false` *(annotation, 6 October 2026: the allowlist grew to **14** on
+   2 October, the day after this survey was written, and every one of the fourteen is still
+   `active: false` — the finding is unchanged by the number; the darkness claim itself is under
+   review in a separate change and was not re-verified here)*, with the reason recorded in `federation.json`: activation needs "a
    recorded decision against the source's licence and the POPIA s72 cross-border position". The TF-IDF
    keyword floor always runs; Qdrant is optional and `dark`. **What is missing is an evaluation, not a
    source** — and `docs/governance/GOLDEN-SETS.md` is the mechanism already designed for it.

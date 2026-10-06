@@ -22,7 +22,7 @@
  * actually is, so that is the one sent. The larger ones are recorded as superseded — dealt with,
  * never delivered — so they cannot resurface tomorrow.
  */
-import { EXPIRY_WARNING_DAYS, resolveState, type CheckState } from '../protection/index.ts';
+import { daysUntil as calendarDaysUntil, EXPIRY_WARNING_DAYS, resolveState, type CheckState } from '../protection/index.ts';
 import type { Evidence } from './contract.ts';
 
 /**
@@ -35,8 +35,6 @@ import type { Evidence } from './contract.ts';
  * day it stops counting, which is a different message and not a warning at all.
  */
 export const RENEWAL_MILESTONES: readonly number[] = [EXPIRY_WARNING_DAYS, 14, 0];
-
-const DAY = 86_400_000;
 
 /**
  * How often an authority is asked again where the check itself states no cadence.
@@ -63,12 +61,21 @@ export function authorityAnswerDueAt(checkedAt: number, renewMonths: number | nu
  return due.getTime();
 }
 
-/** Whole days, from the start of today to the expiry date. Negative once it has passed. */
+/**
+ * Whole calendar days to an expiry, in the zone the contract names — the gate's arithmetic, not a
+ * second copy of it. Counted this way rather than against a UTC instant because an expiry is a
+ * calendar date and both phones resolve one against a calendar day; the UTC version left the server
+ * gate open between midnight and two in the morning in Johannesburg (see protection/gate.ts).
+ *
+ * The one difference this module keeps is the answer for a date nobody can read. The gate returns
+ * NaN so `resolveState` can call an unreadable expiry lapsed without mistaking it for an absent one,
+ * and the same distinction matters here: `resolve()` reads a null as "unparseable, therefore lapsed"
+ * while `noticesFor` reads it as "no warning to send", and every other caller fails closed through
+ * `?? -1`. Collapsing NaN to null keeps both readings true rather than making each caller test twice.
+ */
 export function daysUntil(iso: string | null | undefined, now: number): number | null {
- if (!iso) return null;
- const at = new Date(`${iso}T00:00:00Z`).getTime();
- if (Number.isNaN(at)) return null;
- return Math.ceil((at - now) / DAY);
+ const days = calendarDaysUntil(iso, now);
+ return days !== null && Number.isNaN(days) ? null : days;
 }
 
 /** The expiry a check earns from its own cadence, so a renewal date is arithmetic rather than typed. */

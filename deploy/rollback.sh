@@ -11,9 +11,15 @@
 #   ./deploy/rollback.sh <release>       # move the live symlink onto it and verify
 #
 # What this does NOT roll back: the assistant runtime, the ops scripts, the nginx site file and the
-# systemd units. Each has its own mechanism — the runtime keeps a server.mjs.prev, the site file
-# keeps .mythuso.conf.prev — and pretending one symlink covers them would be a rollback that reports
-# more than it did. If the bad deploy also touched those, deploy/RUNBOOK.md has the sequences.
+# systemd units. Each has its own mechanism — deploy.sh keeps the runtime's previous bundle at
+# /opt/mythuso/assistant/server.mjs.prev beside the live one, and the site file's previous version at
+# /etc/nginx/sites-available/.mythuso.conf.prev — and pretending one symlink covers them would be a
+# rollback that reports more than it did. Neither copy is moved back by this script. The site file's
+# belongs to the deploy that wrote it: it is put back by roll_back_site whenever nginx -t refuses and
+# deleted once a reload has succeeded, so there is never a window where it is this script's business.
+# The runtime's is an operator's, because restoring it means a restart of a service that answers
+# patients and a restart is a person's act here, never a script's. deploy/RUNBOOK.md, "Rolling back a
+# bad release", is that sequence.
 set -euo pipefail
 
 TARGET="${TARGET:-liqzar-server}"

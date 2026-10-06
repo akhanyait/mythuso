@@ -1,5 +1,6 @@
 import schema from '../../../../packages/catalog/vetting.json';
 import { validateSaId } from './identity';
+import { isoIn, timezone } from './scheduling';
 
 /* Vetting is the gate the whole marketplace rests on. Thirteen parties are vetted — not only nurses —
    and every one of them is refused something specific until their checks pass. The roles, the
@@ -88,23 +89,62 @@ export type VettingSubject = {
 
 export const EXPIRY_WARNING_DAYS = 45;
 export const today = () => new Date();
-export const isoDate = (d: Date) => d.toISOString().slice(0, 10);
+/* ---- One calendar for the whole gate ----------------------------------------------------------
+   An expiry is a calendar date rather than an instant, so every day count here is a calendar-day
+   count in the one zone the contract names — packages/catalog/scheduling.json's `timezone`, taken
+   through lib/scheduling's isoIn. Both phones count the same way: Vetting.swift resolves against
+   `Calendar.current.startOfDay` and Vetting.kt against `LocalDate.now()`.
+
+   Counting against a UTC instant instead made the gate open on its own. Between midnight and two in
+   the morning in Johannesburg the UTC day is still yesterday, so `Math.ceil` returned negative zero
+   for a clearance that expired the day before, and `-0 < 0` is false — a lapsed police clearance
+   resolved to "expiring", which passingStates lets through, so she stayed dispatchable and the
+   dispatch board kept offering her. The server's gate did the same thing (apps/api's
+   protection/gate.ts, fixed beside this). It fails open, and it fails open every night.
+
+   `isoDate` moved with `daysUntil` because they are two halves of one calendar: a fixture that says
+   "today" through `inDays(0)` and then counts the days to it must get zero back. Every other caller
+   of `isoDate` anchors its date at UTC midnight before asking, so a two-hour shift cannot move it. */
+export const isoDate = (d: Date) => isoIn(d);
 /* Fixtures say "three weeks from now" rather than a date, so the preview never goes stale. */
 export const inDays = (days: number) => isoDate(new Date(Date.now() + days * 86_400_000));
 export const inMonths = (months: number) => inDays(Math.round(months * 30.44));
+/**
+ * Whole calendar days from today in Johannesburg to an ISO date. Negative once it has passed.
+ *
+ * Null means no expiry was given. NaN means one was given and cannot be read, and `resolveState`
+ * treats that as lapsed: an expiry nobody can read has not passed the test. Both dates are anchored
+ * at noon so the difference is a whole number of days with no fraction left to round away.
+ */
 export function daysUntil(iso?: string): number | null {
  if (!iso) return null;
- return Math.ceil((new Date(`${iso}T00:00:00Z`).getTime() - Date.now()) / 86_400_000);
+ const target = Date.parse(`${iso}T12:00:00Z`);
+ if (Number.isNaN(target)) return Number.NaN;
+ return Math.round((target - Date.parse(`${isoDate(today())}T12:00:00Z`)) / 86_400_000);
 }
-export const formatDate = (iso?: string) => iso ? new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+/* The day printed beside a countdown, in the same zone the countdown was counted in. Without the
+   zone this renders UTC midnight in the device's own, so a handset set anywhere west of it reads
+   out the day before the date it is describing — the same defect scheduling.ts's isoIn exists to
+   prevent, in the sentence next to the number. */
+export const formatDate = (iso?: string) => iso ? new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-ZA', { timeZone: timezone, day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
 /* A stored "verified" is only true until its expiry date. Resolving the state here — rather than
    trusting what was written down — is what makes the scheduled re-vetting real rather than a claim
-   in a paragraph of copy. */
+   in a paragraph of copy.
+
+   An expiry nobody can read is not an expiry that has passed the test, so it resolves to lapsed and
+   not to verified. This is the gate's own rule (apps/api/src/protection/gate.ts's resolveState, and
+   apps/api/src/vetting/expiry.ts beside it): a nurse's clearance whose date cannot be parsed is
+   refused by the server, and a console that called her verified would be telling a different story
+   about the same record. The two phones cannot carry this case at all — theirs is a Date and a
+   LocalDate, so there is no malformed string to resolve. */
 export function resolveState(record: CheckRecord): CheckState {
  if (record.state !== 'verified') return record.state;
+ /* An expiry that is absent is a check that does not expire. One that is present but cannot be read
+    is not an expiry that has passed the test, and it is not one to keep trusting. */
+ if (record.expiresOn === undefined) return 'verified';
  const days = daysUntil(record.expiresOn);
- if (days === null) return 'verified';
+ if (days === null || Number.isNaN(days)) return 'lapsed';
  if (days < 0) return 'lapsed';
  if (days <= EXPIRY_WARNING_DAYS) return 'expiring';
  return 'verified';

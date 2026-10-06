@@ -57,7 +57,11 @@ import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { IconButton } from "../ui/IconButton";
 import { crisisLines, showsCrisisLines } from "../lib/crisis-lines";
-import { referencesUsedFor } from "../lib/gilbertone-reference-scout";
+import {
+  referencesUsedFor,
+  referenceWords,
+  type CitedReference,
+} from "../lib/gilbertone-reference-scout";
 import { latestCaseFor, useCases } from "../lib/case";
 import { sendOnEnter, useGrowingField } from "../lib/composer";
 import {
@@ -1169,12 +1173,13 @@ export default function Assistant({
                     {asked && turn.asked && !pendingReplies.has(turn.id) && (
                       <Sources
                         replyKind={turn.reply.kind}
+                        /* Passed whole rather than mapped to a name and a url: the scout's `use` is
+                           what tells the caption whether this entry may be named as a source or only
+                           offered as further reading, and a map that drops it is how a link-only
+                           publisher reads as the source of an answer. */
                         references={
                           turn.reply.kind === "record"
-                            ? referencesUsedFor(turn.asked ?? "").map((source) => ({
-                                name: source.name,
-                                url: source.url,
-                              }))
+                            ? referencesUsedFor(turn.asked ?? "")
                             : undefined
                         }
                         used={undefined}
@@ -1626,31 +1631,67 @@ function stageOf(
 /* One quiet link under the bubble, only when a signed-in reply matched an approved public card.
    The name is the link text and the card's own URL is the href. Nothing is drawn when nothing matched,
    and the name is not written into the reply sentence. */
+/* The caption beneath an answer. Look and feel are the founder's and are not
+   this function's to move, so the common path is unchanged: one quiet link, no
+   label, exactly as it has rendered since 2 October 2026.
+
+   The one case that changes is the one that was wrong. A link-only entry — a
+   publisher whose licence bars a commercial service from quoting it, or a page
+   nobody read past its title — may be pointed to as further reading and never
+   named as the source of an answer, and a bare link under an answer names it.
+   So when the message matched only link-only entries, the caption says which
+   half it is, in the contract's own words, rather than leaving a Cochrane or an
+   NHS page to read as the source of a South African patient's answer. The label
+   and the detail come from gilbertone-references.json#caption and its
+   use.refusals, never typed here, so all three platforms can render them word
+   for word. The stylesheet already carries .as-sources-label for it — the class
+   was designed and never wired — so nothing new is drawn. */
 function Sources({
   references,
 }: {
   replyKind: string;
   used?: readonly string[];
-  references?: readonly { name: string; url: string }[];
+  references?: readonly CitedReference[];
 }) {
   const links = (references ?? []).filter(
     (source) => source.name && source.url.startsWith("https://"),
   );
   const link = links[0];
   if (!link) return null;
+  /* Quotable entries sort first in the scout, so a link-only entry reaches here
+     only when nothing quotable matched the person's own words. */
+  const furtherReadingOnly = link.use === "link-only";
   return (
     <div className="as-sources">
-      {[link].map((source) => (
-        <a
-          key={source.url}
-          className="as-source-link"
-          href={source.url}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {source.name}
-        </a>
-      ))}
+      {furtherReadingOnly ? (
+        <>
+          <p className="as-sources-label">{referenceWords.furtherReadingLabel}</p>
+          {[link].map((source) => (
+            <a
+              key={source.url}
+              className="as-source-link"
+              href={source.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {source.name}
+            </a>
+          ))}
+          <p>{referenceWords.furtherReadingDetail}</p>
+        </>
+      ) : (
+        [link].map((source) => (
+          <a
+            key={source.url}
+            className="as-source-link"
+            href={source.url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {source.name}
+          </a>
+        ))
+      )}
     </div>
   );
 }

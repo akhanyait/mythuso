@@ -802,9 +802,61 @@ it names had arrived. The deploy still reported success, because every check in 
 against the finished tree.
 
 What it does **not** roll back: the assistant runtime, the ops scripts, the nginx site file and the
-systemd units. Each has its own mechanism — the runtime keeps `server.mjs.prev`, the site file keeps
-`.mythuso.conf.prev` — and one symlink over the web root does not cover them. If the bad deploy also
-touched those, the sequences are below and under "Backing it out".
+systemd units. Each has its own mechanism — `deploy.sh` copies the runtime's previous bundle to
+`/opt/mythuso/assistant/server.mjs.prev` before it moves the new one into place, and keeps the site
+file's previous version at `/etc/nginx/sites-available/.mythuso.conf.prev` — and one symlink over the
+web root does not cover them. `rollback.sh` moves neither copy back, and that is deliberate. The site
+file's copy is not yours to move: the deploy that wrote the file is the one that puts it back, in its
+own `roll_back_site`, whenever `nginx -t` refuses — the copy exists for that moment and is deleted
+straight after a successful reload. The runtime's copy is yours, because the act that needs it is a
+restart of a service that answers patients, and in this project a restart is a person's act and never
+a script's. That sequence is below; taking the whole site off the box is under "Backing it out".
+
+### The assistant runtime, from the copy the deploy kept
+
+The copy is taken on every publish, before the `mv -f` that replaces the live file, and it is kept at
+`0644 root:root` — the same posture as the bundle it is a copy of, because the service reads that
+directory as a systemd `DynamicUser` and a previous bundle only root could read would be a file rather
+than a rollback. The deploy says which generation it kept, and prints that bundle's sha256 beside the
+new one's, so you can tell what you are about to go back to:
+
+```
+assistant runtime  /opt/mythuso/assistant/server.mjs  sha256 9f2c1a7b40de8e31…
+   previous bundle kept at /opt/mythuso/assistant/server.mjs.prev  sha256 4b7e0d5c11a9f6e2…
+```
+
+Putting it back is a rename, not a copy over the live file, and the restart is what actually changes
+what patients are answered — publishing a file does not change a running process, which is the same
+reason the deploy warns when the service is behind:
+
+```sh
+ssh liqzar-server "ls -l /opt/mythuso/assistant/server.mjs.prev"
+ssh liqzar-server "cd /opt/mythuso/assistant \
+  && cp -p server.mjs.prev server.mjs.rollback \
+  && chmod 0644 server.mjs.rollback && chown root:root server.mjs.rollback \
+  && mv -f server.mjs.rollback server.mjs"
+ssh liqzar-server "systemctl restart assistant-api.service"
+ssh liqzar-server "curl -s http://127.0.0.1:8791/assistant/health"
+```
+
+Beside, then over, for the reason the deploy publishes `server.mjs.next` the same way: the unit has
+`Restart=on-failure` and retries every five seconds, so a start that lands while the live file is
+being written gets a half-written bundle — a syntax error wearing a rollback's success. The rename is
+one step and cannot be read half-way through, and the mode and owner are restated so the restored
+file's posture is what this sequence says rather than whatever the copy inherited.
+
+The copy is left in place by design: a restore that consumed its own rollback would leave you with
+nothing to try next. Know what that costs, though — after this, `server.mjs` and `server.mjs.prev`
+hold the same bytes, so **the one generation is spent**. Going forward again means deploying the
+commit that fixes it, not another move of these two files.
+
+Two limits worth knowing before you need them. It is **one generation deep** — the bundle this box ran
+before the last publish, and no further back; anything older means building and deploying from that
+commit. And **the first publish to a box has nothing to copy**, so the `.prev` will not exist there and
+the deploy says so rather than leaving a stale one behind to be mistaken for a way back. Neither case
+is an outage: while the service is down or dark the panel in `/app/` falls back to the on-device
+answers, which is what it does during any assistant outage. If the runtime is the wrong thing to have
+on the box at all, remove it instead — that is under "Backing it out".
 
 ## Backing it out
 

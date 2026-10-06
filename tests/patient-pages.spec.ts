@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+import { EXPLORE_LABEL } from './nav';
 
 /* The eight patient pages of the full Lovable export's Phase D and their "Your health" hub.
  *
@@ -34,7 +35,15 @@ async function openHub(page: Page) {
  const sidebar = page.getByRole('navigation', { name: 'Main navigation' });
  if (await sidebar.isVisible()) { await page.goto(at(contract.hub.opens)); return; }
  await page.locator('.tabbar button').last().click();
- await page.locator('.menu-row').filter({ hasText: contract.hub.opens }).first().click();
+ const row = page.locator('.menu-row').filter({ hasText: contract.hub.opens });
+ /* Since 5 October the phone's hub folds My Health into its one Explore MyThuso row, so the hub's
+    door is a step further in on the narrow screen and, above the sidebar breakpoint, still an
+    address. Same fold as nav.ts#goSection takes; the label comes from there, not typed twice. */
+ if (!(await row.count())) {
+  await page.locator('.menu-row').filter({ hasText: EXPLORE_LABEL }).first().click();
+  await expect(row.first()).toBeVisible();
+ }
+ await row.first().click();
 }
 
 test('the More hub holds the door to Your health, and every shortcut opens its own page', async ({ page }) => {

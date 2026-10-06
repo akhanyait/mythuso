@@ -6,16 +6,58 @@ it finds the code. It is a pointer, not a brief.
 **Read `CLAUDE.md` first and in full.** It is the whole brief: what the product is, the three native
 apps and the three services, and the sections that matter most —
 
-- `## The rules that are not negotiable` (`CLAUDE.md:69`) — nothing here is a real service; a number
+<!-- These four line numbers are corrected on 6 October 2026. They were already stale before this
+pass — they named lines 69, 102, 126 and 174, which pointed into the middle of other sections on the
+tree this was written against — and adding the shop to `CLAUDE.md`'s entries paragraph moved the real
+headings again. A pointer that lands in the wrong section is worse than no pointer, because this is
+the file that sends an agent opening the repository cold to the brief, and it will be believed. Line
+numbers are not a number in the sense the one-place rule means, so they are re-derived here; if you
+edit `CLAUDE.md`'s length, re-derive them again rather than leaving them to rot. -->
+- `## The rules that are not negotiable` (`CLAUDE.md:88`) — nothing here is a real service; a number
   lives in one place; contracts are authored in `packages/catalog/*.json` and everything else derives.
-- `## Working here` (`CLAUDE.md:102`) — how to build, check and test.
-- `## Adding a feature — the shape it takes` (`CLAUDE.md:126`) — eight steps, ending at
+- `## Working here` (`CLAUDE.md:152`) — how to build, check and test.
+- `## Adding a feature — the shape it takes` (`CLAUDE.md:176`) — eight steps, ending at
   `docs/FEATURE-MAP.md`. A feature that skips a step is not finished.
-- `## Deployment` (`CLAUDE.md:174`) — static files only, one manual script, a shared box.
+- `## Deployment` (`CLAUDE.md:224`) — static files only, one manual script, a shared box.
 
-The patient entry budget is measured in `CLAUDE.md:28` and is **282.16 kB**. Compare a new figure
-only against one taken the same way. If your change raises it, the convenience has been paid for by
-the people this is built for, and that is a decision to bring to the founder rather than to make.
+The patient entry has a **ceiling of 282.16 kB**, and it is a ceiling somebody chose, not a
+measurement of what the entry weighs today. `scripts/check-bundle-budget.mjs` holds it as
+`CEILING_KB = 282.16` and fails a build that goes over it, after `npm run build -w @mythuso/web`:
+every script, module preload and stylesheet `apps/web/dist/index.html` references, each gzipped at
+level 9, summed in binary kB (`bytes / 1024`). The figure came from a real measurement — 16
+September 2026 at `8bf3e48`, recorded in `CLAUDE.md:28` — and was then fixed as the number to hold
+the line at. The measurement moves; the ceiling does not move unless the founder moves it.
+
+`docs/FEATURE-MAP.md` records what the entry has actually weighed since, and the recent figures sit
+well under it: on 2 October 2026 a sweep built every commit from `a2cb669b` to `8b0d7d95` and
+measured **255.80 kB to 256.70 kB** across the run (255.81 at the first, 256.70 at the heaviest),
+against **283.83–284.13 kB** in the days before it — so the entry is some 26 kB inside the ceiling
+on the tree that sweep measured. Compare a figure only against one taken the same way: the script
+prints the same bytes divided by 1,000 beside its own, and the two differ by about six at this size,
+which is how a "~6 kB" growth that was never there got into an earlier record. If your change takes
+the entry over the ceiling, the convenience has been paid for by the people this is built for, and
+raising the ceiling is a decision to bring to the founder rather than to make — that weight is the
+whole point of the number and does not change because today's build happens to sit under it.
+
+> **Open item, 6 October 2026 — the measured entry and the entry a patient is sent to are not the
+> same file, and this pass did not measure the difference.** `check-bundle-budget.mjs` measures
+> `apps/web/dist/index.html`, which nginx serves at `/app/` and which loads `/src/main.tsx`. But the
+> public page's own call to action sends a patient to `/?role=patient`
+> (`apps/web/src/features/Landing.tsx:85`), and `/` serves `landing.html`, which loads
+> `/src/landing.tsx`. That entry's `MainEntry` renders `<Workspace/>` on a lazy import **when a
+> `role` parameter is present** and `<Landing/>` when it is not — so the address the CTA sends a
+> patient to draws the Workspace chunk, and the address the budget measures draws a different entry
+> point entirely. Neither `landing.html` nor the Workspace chunk is what the ceiling holds. Two
+> independent reviews read the heavier path as the one nothing measures.
+>
+> **No new number is written here and none should be quoted from this note.** Working out what that
+> path costs needs a fresh build of both entries measured the same way, and this pass ran no build —
+> the mechanism above was read from source, not measured. The next session must verify the figure
+> against the entry that is actually served to a patient rather than trust either number, including
+> the one the script prints, which answers a question about `/app/` and not about `/`. Which of the
+> two is the patient's real first view — and therefore which one the ceiling should hold — is a
+> question to bring to the founder along with any figure derived from it, not to settle by pointing
+> the script at a different file.
 
 ## What is decided and where the decision is written down
 
@@ -64,8 +106,13 @@ actually included.
 
 **Verify before claiming.** Run the real command and read its output. Do not trust a summary from
 another session, and never report a result you did not obtain. A deploy is not done until the external
-verification has been done: the five entries over https, the six security headers, the `subjectAltName`
-covering both the apex and `www`, and the co-tenant diff against the baseline.
+verification has been done: the entries over https — four pages answering 200 (`/`, `/app/`, `/shop/`,
+`/status/`) and three paths answering 301 (`/staff/`, `/admin/`, `/status`), as
+`deploy/nginx/mythuso.conf` maps them — the six security headers, the `subjectAltName`
+covering both the apex and `www`, and the co-tenant diff against the baseline. <!-- This said "five
+entries" until 6 October 2026, which was true before `shop.html` became an entry. `deploy/RUNBOOK.md`
+§3 still heads itself "all five entries" while its own loop walks seven paths; that file is outside
+this pass's scope and its heading is the stale one, not its commands. -->
 
 **Do not widen scope during a deploy.** The identity service is off because there is no SMS provider,
 its nginx `/api/` block stays commented out, and nobody can sign in. That is the intended state, not a

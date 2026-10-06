@@ -1,136 +1,146 @@
 import { z } from "zod";
 import { tool } from "@langchain/core/tools";
+import { outgoingTerm, type AdapterDeps } from "../sources/config.ts";
+import {
+  literatureCitations,
+  type LiteratureCitation,
+  type LiteratureOutcome,
+} from "../sources/pubmed-adapter.ts";
 
-/* The literature-search tool: a live call to Europe PMC's free, keyless search API
-   (https://europepmc.org/RestfulWebService), returned as titled, dated, identified citations and
-   nothing else. It answers one question only — "here is a real, published paper that discusses
-   X" — and every result it can return carries the identifier (a PMID, and where indexed a PMCID
-   or DOI) that makes it independently checkable on europepmc.org or PubMed. It never answers "is
-   this true", "does this paper say I should" or "what does this mean for me": it does not
-   summarise a paper's conclusion beyond the one line the API itself indexes as an abstract, it
-   never combines what several papers say into a recommendation, and nothing it returns may be
-   used elsewhere in this pipeline to justify a diagnosis or a treatment suggestion — that reading
-   of the literature belongs to a nurse, doctor or pharmacist, the same as every other tool in this
+/* The literature-search tool: titled, dated, identified citations from Europe PMC's index of PubMed
+   and PMC literature, and nothing else. It answers one question only — "here is a real, published
+   paper that discusses X" — and every result it can return carries the identifier (a PMID, and where
+   indexed a PMCID or DOI) that makes it independently checkable on europepmc.org or PubMed. It never
+   answers "is this true", "does this paper say I should" or "what does this mean for me": it does not
+    10|   summarise a paper's conclusion beyond the one line the API itself indexes as an abstract, it
+   never combines what several papers say into a recommendation, and nothing it returns may be used
+   elsewhere in this pipeline to justify a diagnosis or a treatment suggestion — that reading of the
+   literature belongs to a nurse, doctor or pharmacist, the same as every other tool in this
    directory hands its own decision back to one.
 
-   WHY EUROPE PMC. It needs no API key and no rate-limit registration, unlike PubMed's own
-   E-utilities — so this tool carries no credential for this codebase to hold, rotate or leak,
-   the same reasoning that keeps every other external call in this tier dark by default. A search
-   that cannot be reached fails exactly like the two other external calls in this tier (the model
-   providers in llm-adapter.ts, the Qdrant and embedding calls in knowledge.ts): a short timeout,
-   a caught failure, and an honest "could not be reached" answer — never a hang, never an
-   unhandled rejection, and never a paper invented to fill the silence. An empty result set is
-   reported as empty, not padded with anything that looks like a citation but was not returned by
-   the API. */
+   ROUTED THROUGH THE GOVERNED ADAPTER, 6 OCTOBER 2026 — AND THIS IS THE POINT OF THE CHANGE. This
+   file used to make its own fetch() to https://www.ebi.ac.uk/europepmc/webservices/rest/search,
+   which is the very endpoint apps/assistant-api/src/lib/sources/pubmed-adapter.ts governs as the
+   federation source `pubmed-europepmc`. Two roads therefore reached one governed source and only
+    20|   one of them respected it: the adapter asked isSourceActive before sending anything, ran the
+   query through outgoingTerm (the same PHI redaction every model call gets) and took a token from
+   the 30-per-minute rate gate; this tool asked nothing, redacted nothing and counted nothing. It
+   reached a UK-hosted index from a live production service while federation.json recorded that
+   source as "active": false and "crossBorderTransferApproved": false. That is why this file now
+   imports the adapter and holds no endpoint, no timeout, no result cap, no truncation length and no
+   fetch() of its own: each of those numbers lives in the adapter, once, and a boundary check fails
+   the build if a fetch() ever returns here (scripts/check-boundaries.mjs, the egress table).
 
-const EUROPE_PMC_TIMEOUT_MS = 4000; // the same ceiling knowledge.ts holds its own external calls to (QDRANT_TIMEOUT_MS, EMBEDDING_TIMEOUT_MS)
-const EUROPE_PMC_SEARCH_URL = "https://www.ebi.ac.uk/europepmc/webservices/rest/search";
-/* A query this long has stopped being a topic and started being a paragraph; Europe PMC's own
-   query language does not need more to find good matches, and a shorter query is a cheaper,
-   faster call. */
-const MAX_QUERY_LENGTH = 200;
-/* Matches knowledge-search's own ceiling of a handful of results — enough to be useful, small
-   enough that the model reads titles rather than skimming past them. */
-const MAX_RESULTS = 5;
-/* "Reasonably short", per the task this tool was built to: an author list past this length is
-   truncated rather than dropped, so the citation still names somebody. */
-const MAX_AUTHOR_LENGTH = 120;
-const ABSTRACT_SNIPPET_LENGTH = 220;
+   WHAT ROUTING IT COSTS, DELIBERATELY. While federation.json says "active": false and the founder's
+   demonstration override is not in force, this tool answers that the source is switched off and
+    30|   sends nothing. It used to answer whatever Europe PMC answered, because nothing asked. That is
+   the intended outcome and not a regression: a source nobody has signed for is a source that stays
+   dark, and the sentence below says so rather than reporting a silence as an empty literature.
 
-type EuropePmcResult = {
-  id?: string;
-  pmid?: string;
-  pmcid?: string;
-  doi?: string;
-  title?: string;
-  authorString?: string;
-  pubYear?: string;
-  journalTitle?: string;
-  abstractText?: string;
-};
+   WHAT ROUTING IT ADDED. The per-record licence condition. Europe PMC returns each article's own
+   licence, and federation.json records that only CC BY and CC0 text may be shown or reworded by a
+   commercial service. The adapter withholds an abstract opening under any other licence and this
+   tool says why, so a citation is still checkable by its title, authors, identifier and page — and
+   MyThuso is no longer reproducing text it has no licence to reproduce.
 
-type EuropePmcResponse = {
-  resultList?: { result?: EuropePmcResult[] };
-};
+   EVERY FAILURE IS A FACT, NEVER AN EXCEPTION, AND NEVER A PADDED ANSWER. A provider that timed
+    40|   out, a gate that refused, a source that is dark and a search that found nothing are four
+   different sentences, because collapsing them is how a governed refusal comes to look like an
+   empty literature and an empty literature comes to look like a clinical finding. An empty result
+   set is reported as empty, never padded with anything that looks like a citation but was not
+   returned by the API. */
 
-/* The one identifier a result is shown by, in the order that makes it easiest to check: a PMID is
-   how PubMed itself is searched, a PMCID reaches free full text directly, and a DOI is the
-   fallback for the record types that carry neither. A result with none of the three is not shown
-   as a citation at all — see searchLiterature below. */
-const identifierOf = (result: EuropePmcResult): string | null => {
-  if (result.pmid) return `PMID:${result.pmid}`;
-  if (result.pmcid) return result.pmcid;
-  if (result.doi) return `DOI:${result.doi}`;
-  return null;
-};
+/* The echo's own cap, and the only number this file holds. It is not the query cap — the adapter
+   owns that, at MAX_QUERY_LENGTH, because it is the adapter that decides what leaves the process.
+   This one decides how much of the person's own wording an answer may print back at them, and it
+   runs through outgoingTerm so the echo is redacted the same way the outgoing query is: a name or a
+   phone number typed into a literature search is not repeated into an answer log. */
+const ECHO_MAX_LENGTH = 120;
 
-const truncate = (value: string, max: number): string =>
-  value.length > max ? `${value.slice(0, max).trimEnd()}…` : value;
+/* The injection seam the adapters keep and production does not use: a test passes an activated copy
+   of the real federation.json row, a stub fetch and a small gate, so the dark path every deployment
+   takes is the one that runs when nobody overrides anything. */
+export type LiteratureDeps = AdapterDeps;
 
-/* One printable line per result: title, year, journal, authors (short or truncated), the
-   identifier that makes it checkable, and — only when Europe PMC itself indexed one — the
-   opening of its own abstract, never a rewritten summary of it. */
-const formatResult = (result: EuropePmcResult, identifier: string): string => {
-  const year = result.pubYear ?? "year not indexed";
-  const journal = result.journalTitle ? `, ${result.journalTitle}` : "";
-  const authors = result.authorString
-    ? truncate(result.authorString, MAX_AUTHOR_LENGTH)
-    : "authors not indexed";
-  const abstract = (result.abstractText ?? "").trim();
-  const snippet = abstract ? `\n   ${truncate(abstract, ABSTRACT_SNIPPET_LENGTH)}` : "";
-  return `${result.title ?? "(title not indexed)"} (${year}${journal}). ${authors}. ${identifier}.${snippet}`;
-};
-
-export async function searchLiterature(query: string): Promise<string> {
-  const trimmed = (query ?? "").trim().slice(0, MAX_QUERY_LENGTH);
-  if (!trimmed)
-    return (
-      "Name a topic, condition or treatment and I will look for real published papers about it on Europe PMC.\n" +
-      "Sources: Europe PMC (europepmc.org) — no query given."
+/* One printable line per citation: title, year, journal, authors (already truncated by the adapter),
+   the identifier that makes it checkable, the page it resolves to, and — only when the record's own
+   licence permits showing it — the opening of the abstract Europe PMC indexed, never a rewritten
+   summary of it. */
+const formatCitation = (citation: LiteratureCitation): string => {
+  const journal = citation.journal ? `, ${citation.journal}` : "";
+  const lines = [
+    `${citation.title} (${citation.year}${journal}). ${citation.authors}. ${citation.identifier}`,
+    `   Page: ${citation.url}`,
+  ];
+  if (citation.abstractOpening)
+    lines.push(`   ${citation.abstractOpening}`);
+  else
+    /* Said rather than left blank. A citation with no abstract looks like a paper with no abstract,
+       and the reason here is a licence, which is a fact about MyThuso's permission and not about the
+       research. The person can still read it at the page above. */
+    lines.push(
+      `   No abstract is quoted here: this record's licence (${citation.licence}) does not cover a commercial service reproducing it. The title, authors and identifier are the citation, and the page above is where the abstract can be read.`,
     );
+  return lines.join("\n");
+};
 
-  let body: EuropePmcResponse;
-  try {
-    const url = `${EUROPE_PMC_SEARCH_URL}?query=${encodeURIComponent(trimmed)}&format=json&pageSize=${MAX_RESULTS}&resultType=core`;
-    const response = await fetch(url, {
-      signal: AbortSignal.timeout(EUROPE_PMC_TIMEOUT_MS),
-    });
-    if (!response.ok) throw new Error(`europepmc answered ${response.status}`);
-    body = (await response.json()) as EuropePmcResponse;
-  } catch {
-    /* A provider that timed out, refused or answered nothing is not a topic with no literature —
-       it is a search that did not run, and the two must never be said the same way. */
-    return (
-      `Europe PMC could not be reached to search for "${trimmed}" just now.\n` +
-      "That says nothing about whether literature exists — try again shortly, or ask a nurse, doctor or pharmacist to search directly.\n" +
-      "Sources: Europe PMC (europepmc.org) — unreachable."
-    );
+const render = (asked: string, outcome: LiteratureOutcome): string => {
+  switch (outcome.status) {
+    case "dark":
+      return [
+        `Europe PMC is switched off, so no literature search ran for "${asked}".`,
+        "That is a statement about MyThuso's own governance, not about the topic: nothing was sent, and nothing was found or not found. The source is opened only once its licence and its POPIA position are recorded and signed.",
+        "Ask a nurse, doctor or pharmacist to search the literature directly.",
+        "Sources: Europe PMC (europepmc.org) — switched off, nothing sent.",
+      ].join("\n");
+    case "rate-limited":
+      return [
+        `Europe PMC's own rate limit for this service is reached, so nothing was sent for "${asked}" just now.`,
+        `Try again in about ${Math.max(1, Math.ceil(outcome.retryAfterMs / 1000))} seconds, or ask a nurse, doctor or pharmacist to search directly.`,
+        "Sources: Europe PMC (europepmc.org) — rate limit reached, nothing sent.",
+      ].join("\n");
+    case "unavailable":
+      /* A provider that timed out, refused or answered nothing is not a topic with no literature —
+         it is a search that did not run, and the two must never be said the same way. */
+      return [
+        `Europe PMC could not be reached to search for "${asked}" just now.`,
+        "That says nothing about whether literature exists — try again shortly, or ask a nurse, doctor or pharmacist to search directly.",
+        "Sources: Europe PMC (europepmc.org) — unreachable.",
+      ].join("\n");
+    case "ok": {
+      if (!outcome.citations.length)
+        return [
+          `No papers with a checkable identifier were found on Europe PMC for "${asked}".`,
+          "That is a statement about this search, not about the topic — try it in different words, or ask a nurse, doctor or pharmacist.",
+          "Sources: Europe PMC (europepmc.org).",
+        ].join("\n");
+      return [
+        `Real, published papers from Europe PMC for "${asked}" — titles and identifiers only, never a conclusion drawn from them:`,
+        ...outcome.citations.map(
+          (citation, index) => `${index + 1}. ${formatCitation(citation)}`,
+        ),
+        "Each identifier can be checked directly at europepmc.org or pubmed.ncbi.nlm.nih.gov. Finding a paper is not a medical opinion about it and is not a reason to change anything — a nurse, doctor or pharmacist is who weighs published research against a person's own care.",
+        "Sources: Europe PMC (europepmc.org), live search.",
+      ].join("\n");
+    }
   }
+};
 
-  const withIdentifiers = (body.resultList?.result ?? [])
-    .slice(0, MAX_RESULTS)
-    .map((result) => ({ result, identifier: identifierOf(result) }))
-    /* A citation with nothing to check it against is not a citation this tool will hand over —
-       the whole point of a real source is that it can be traced. */
-    .filter((entry): entry is { result: EuropePmcResult; identifier: string } => entry.identifier !== null);
-
-  if (!withIdentifiers.length)
-    return (
-      `No papers with a checkable identifier were found on Europe PMC for "${trimmed}".\n` +
-      "That is a statement about this search, not about the topic — try it in different words, or ask a nurse, doctor or pharmacist.\n" +
-      "Sources: Europe PMC (europepmc.org)."
-    );
-
-  const lines = withIdentifiers.map(
-    ({ result, identifier }, i) => `${i + 1}. ${formatResult(result, identifier)}`,
-  );
-
-  return [
-    `Real, published papers from Europe PMC for "${trimmed}" — titles and identifiers only, never a conclusion drawn from them:`,
-    ...lines,
-    "Each identifier can be checked directly at europepmc.org or pubmed.ncbi.nlm.nih.gov. Finding a paper is not a medical opinion about it and is not a reason to change anything — a nurse, doctor or pharmacist is who weighs published research against a person's own care.",
-    "Sources: Europe PMC (europepmc.org), live search.",
-  ].join("\n");
+export async function searchLiterature(
+  query: string,
+  deps: LiteratureDeps = {},
+): Promise<string> {
+  /* Asked of the echo, and the adapter asks it again of the query: the two are separate questions
+     with separate ceilings, and neither trusts the other's answer. A query that redacts to nothing
+     — a message that was only a name, or only a number — gets the "name a topic" sentence and never
+     reaches the network, which is what the adapter would have done anyway. */
+  const asked = outgoingTerm(query ?? "", ECHO_MAX_LENGTH);
+  if (!asked)
+    return [
+      "Name a topic, condition or treatment and I will look for real published papers about it on Europe PMC.",
+      "Sources: Europe PMC (europepmc.org) — no query given.",
+    ].join("\n");
+  return render(asked, await literatureCitations(query ?? "", deps));
 }
 
 export const literatureSearchTool = tool(
@@ -138,7 +148,7 @@ export const literatureSearchTool = tool(
   {
     name: "literature_search",
     description:
-      "Search Europe PMC — a free, keyless biomedical literature database covering PubMed/MEDLINE and more — for real, published papers on a topic, and return each one's title, authors, year and identifier (PMID/PMCID/DOI) so it can be checked independently. Use when a message asks for research, evidence, studies, a source, or 'what does the literature say' about a topic. Every paper named is a live Europe PMC result, never invented, and this tool never summarises what a paper concludes beyond its own indexed abstract opening — it finds citations, it does not form or support a medical opinion.",
+      "Search Europe PMC — a free, keyless biomedical literature database covering PubMed/MEDLINE and more — for real, published papers on a topic, and return each one's title, authors, year and identifier (PMID/PMCID/DOI) so it can be checked independently. Use when a message asks for research, evidence, studies, a source, or 'what does the literature say' about a topic. Every paper named is a live Europe PMC result, never invented, and this tool never summarises what a paper concludes beyond its own indexed abstract opening — it finds citations, it does not form or support a medical opinion. The source is governed: while it is switched off, or its rate limit is reached, the tool says so and sends nothing, and that answer is about MyThuso's own switch, never a finding that no literature exists.",
     schema: z.object({
       query: z
         .string()

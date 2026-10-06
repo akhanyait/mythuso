@@ -24,7 +24,7 @@ export type { Database } from './audit.ts';
    exists in four places — the gate, apps/web, iOS and Android — and scripts/check-boundaries.mjs
    guards all four. Anything on this side of the wall that needs the number takes it from here, so
    there is no fifth copy to drift. */
-export { EXPIRY_WARNING_DAYS, resolveState, standingOf, neverGranted } from './gate.ts';
+export { EXPIRY_WARNING_DAYS, resolveState, standingOf, neverGranted, daysUntil, dayIn } from './gate.ts';
 export type { CheckState, CheckRecord, ActorVetting, VettingSource, ReleaseRegister, Standing } from './gate.ts';
 export type { SealedColumn, Rotation, RotationReport, RotationStanding, ColumnStanding } from './rotation.ts';
 /* The seal, and only the seal. A module outside this directory gets a `LogSeal` — commit my head,

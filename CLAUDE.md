@@ -6,10 +6,22 @@ Johannesburg. `Documentation/` holds the funding proposal this is built from.
 
 Three native apps and three services:
 
-- `apps/web` — React 19 + TypeScript + Vite. **Three entries**, and the split is about who is
+- `apps/web` — React 19 + TypeScript + Vite. **Four entries**, and the split is about who is
   reading rather than who is working: the public page (`landing.html`, served at `/`), the whole
-  product (`index.html`, served at `/app/`), and the status page (`status.html`), which renders
-  `packages/catalog/capabilities.json` and carries no framework at all.
+  product (`index.html`, served at `/app/`), the status page (`status.html`, served at `/status/`),
+  which renders `packages/catalog/capabilities.json` and carries no framework at all, and the shop
+  (`shop.html`, served at `/shop/`). <!-- Counted from `apps/web/vite.config.ts`'s
+  `build.rollupOptions.input` and from `deploy/nginx/mythuso.conf` on 6 October 2026; the same file's
+  own comment still says "Three entries" and "the three cannot drift apart", because the shop arrived
+  after it was written. A boundary check holds the entry list to the nginx site file, so the four are
+  the four that are served. Corrected here because `AGENTS.md` sends an agent opening this repo cold
+  to this file as the whole brief, and an entry the brief does not name is how somebody builds a
+  competing surface at the same address. --> The shop is its own entry for the reason the status page
+  is: a different audience on a different errand, and the reason is written at
+  `apps/web/vite.config.ts:35-38` — a patient checking her visit on metered data must not download a
+  product catalogue, and a person browsing a blood pressure monitor does not need the dispatch board.
+  It is also the entry most likely to grow, so keeping that growth outside `index.html` is what
+  protects the patient entry's budget.
 
   The product was four applications behind four addresses until 12 September, when the founder asked
   for one address and a role you pick — `/app/?role=nurse` and the rest, with no role meaning the
@@ -54,7 +66,11 @@ Three native apps and three services:
   `MYTHUSO_ASSISTANT_PRODUCTION=acknowledged` written by hand — which it is. Every change here is a
   production change, and a deploy does not restart the service. Built is not live: triage, the
   vital-sign reading and the handover submission are each gated on a contract that does not exist
-  yet, and the three allowlisted external knowledge sources all ship `"active": false`.
+  yet, and the fourteen allowlisted external knowledge sources all ship `"active": false`.
+  <!-- Counted from packages/catalog/knowledge/federation.json on 6 October 2026: 14 entries in
+  `sources`, every one `active: false`. It said three until the allowlist grew on 2 October. Only
+  the count was re-derived here; the wider claim that nothing external is reachable is under review
+  in a separate change and must not be read as checked and passed. -->
 - `packages/gilbertone` — the deterministic half of GilbertOne, compiled into all three platforms:
   emergency recognition, essential refusals and safe offline fallback, answered from the message and
   the contract alone. **No dependencies, no network, no environment variable**, and the build fails if
@@ -136,7 +152,7 @@ available as the server-side fallback for en-ZA neural voice when configured.
 ## Working here
 
 ```
-npm run dev        # Vite on :5173 — app at /, landing at /landing.html
+npm run dev        # Vite on :5173 — landing at /, app at /app/, status at /status/, shop at /shop/
 npm run check      # typecheck every workspace (incl. apps/passport) + scripts/check-boundaries.mjs
 npm test           # package, api and passport node:test + Playwright (desktop 1440×1100, mobile 390×844)
 npm run passport-p0  # the Passport P0 service on loopback — development flag required, synthetic data only

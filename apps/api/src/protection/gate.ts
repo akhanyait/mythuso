@@ -31,6 +31,7 @@
  * way to keep that true is to have no branch that falls through to "allowed".
  */
 import records from '../../../../packages/catalog/records.json' with { type: 'json' };
+import scheduling from '../../../../packages/catalog/scheduling.json' with { type: 'json' };
 import vetting from '../../../../packages/catalog/vetting.json' with { type: 'json' };
 import type { AccessOutcome, AccessRequest, AuditChain, Gate, Purpose, RecordCrypto, Sealed } from './contract.ts';
 
@@ -215,8 +216,44 @@ export interface VettingSource {
  find(actorId: string): ActorVetting | null;
 }
 
-const daysUntil = (iso: string | undefined, now: number): number | null =>
- iso === undefined ? null : Math.ceil((new Date(`${iso}T00:00:00Z`).getTime() - now) / 86_400_000);
+/* ---- Calendar days, in the one timezone the contract names ------------------------------------
+   An expiry is a calendar date rather than an instant, so it is counted in calendar days — in the
+   zone packages/catalog/scheduling.json names, which is the same zone both phones count in:
+   Vetting.swift resolves against `Calendar.current.startOfDay` and Vetting.kt against
+   `LocalDate.now()`. apps/web/src/lib/arrival.ts counts the same way for the arrival view.
+
+   Counting against a UTC instant instead was a gate that opened on its own. Between midnight and
+   two in the morning in Johannesburg the UTC day is still yesterday, so `Math.ceil` returned
+   negative zero for a clearance that expired the day before — and `-0 < 0` is false, which is how
+   a lapsed police clearance resolved to "expiring". "Expiring" is a passing state, so she was
+   dispatchable, and the audit trail recorded the dispatch as allowed. The direction is what makes
+   it worth fixing here rather than as a cosmetic drift between the three apps: it fails open, and
+   it fails open every night.
+
+   Both dates are anchored at noon so the difference is a whole number of days with no fraction to
+   round away. South Africa has one offset and does not move it, which is exactly the circumstance
+   in which a hard-coded +02:00 goes unnoticed until something runs on UTC and every shift ends
+   two hours early — so the offset is asked of the zone, as scheduling.ts and roster.ts both do. */
+const ZONE = scheduling.timezone;
+
+/** The ISO calendar date a moment falls on in Johannesburg, not in whatever zone the server runs. */
+export const dayIn = (at: number): string =>
+ new Intl.DateTimeFormat('en-CA', { timeZone: ZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(at));
+
+/**
+ * Whole calendar days from today in Johannesburg to an ISO date. Negative once it has passed.
+ *
+ * Null means the date is absent — a check that does not expire. An expiry that is present but
+ * cannot be parsed comes back NaN, and every caller resolves that to lapsed: a date nobody can read
+ * has not passed the test. Both answers are deliberate, and neither one is an absent date.
+ */
+export const daysUntil = (iso: string | null | undefined, now: number): number | null => {
+ if (!iso) return null;
+ if (Number.isNaN(now)) return Number.NaN;
+ const target = Date.parse(`${iso}T12:00:00Z`);
+ if (Number.isNaN(target)) return Number.NaN;
+ return Math.round((target - Date.parse(`${dayIn(now)}T12:00:00Z`)) / 86_400_000);
+};
 
 export function resolveState(record: CheckRecord, now: number): CheckState {
  if (record.state !== 'verified') return record.state;
