@@ -14,6 +14,9 @@ export const patientScreenRoutes = {
  /* The Wednesday demo's simulated call. Named here so the consultation screen's button and
     ?open=video-consult open one page, and so the screen itself stays on a dynamic import. */
  videoConsult: { opens: 'Video consult', opening: 'Opening the video consult.' },
+ /* The Wednesday demo's six questions. Named once so the home button, `?open=book-care` and the
+    screen cannot disagree. Not a sidebar row: the home is the only door in. */
+ bookCare: { opens: 'Book care', opening: 'Opening Book care.' },
 } as const;
 
 export const patientScreenNames: string[] = Object.values(patientScreenRoutes).map(route => route.opens);

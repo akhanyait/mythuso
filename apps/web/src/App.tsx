@@ -104,6 +104,9 @@ const PatientMessagesPage = lazy(() => import('./features/PatientMessages').then
 const PatientResultsPage = lazy(() => import('./features/PatientResults').then(m => ({ default: m.PatientResults })));
 const PatientConsultationPage = lazy(() => import('./features/PatientConsultation').then(m => ({ default: m.PatientConsultation })));
 const VideoConsultDemoPage = lazy(() => import('./features/VideoConsultDemo').then(m => ({ default: m.VideoConsultDemo })));
+/* Book care is the Wednesday demo's six questions. It is not the booking flow in Booking.tsx, and
+   a patient who never opens it does not download it. */
+const BookCarePage = lazy(() => import('./features/BookCare').then(m => ({ default: m.BookCare })));
 import { patientScreenNames, patientScreenOpenings, patientScreenRoutes } from './lib/patient-screens-routes';
 /* The icon family's gallery, at `?open=icons`, in development builds only: every icon of
    packages/catalog/icons.json at two sizes with its signal pulsing, so the family can be looked at and
@@ -308,6 +311,7 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
               : page === patientScreenRoutes.results.opens ? <Suspense fallback={patientScreenLoading}><PatientResultsPage navigate={navigate} open={setModal}/></Suspense>
               : page === patientScreenRoutes.consultation.opens ? <Suspense fallback={patientScreenLoading}><PatientConsultationPage navigate={navigate}/></Suspense>
               : page === patientScreenRoutes.videoConsult.opens ? <Suspense fallback={patientScreenLoading}><VideoConsultDemoPage navigate={navigate}/></Suspense>
+              : page === patientScreenRoutes.bookCare.opens ? <Suspense fallback={patientScreenLoading}><BookCarePage navigate={navigate}/></Suspense>
               : patientPageNames.includes(page) ? <Suspense fallback={loadingNotice(patientPageOpenings[page])}><PatientPagesView page={page} navigate={navigate} open={setModal} book={setBooking} entries={wellbeing}/></Suspense>
                : <MoreHub navigate={navigate} open={setModal} onSignOut={signOut}/>}
   </PatientShell>
