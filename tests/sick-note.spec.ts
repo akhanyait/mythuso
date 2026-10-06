@@ -15,8 +15,12 @@ const refusal = (id: string) => (c.refusals as { id: string; sentence?: string }
 const doctorRefusal = (vetting.roles as { id: string; grants: { capability: string; refusal: string }[] }[])
  .find(r => r.id === 'doctor')!.grants.find(g => g.capability === c.issuer.capability)!.refusal;
 const callOnly = (teleconsult.issued.items as { id: string; condition: string }[]).find(i => i.id === 'certificate')!.condition;
-/* The date input's value for a day offset, against the browser's calendar day, the way the screen works it out. */
-const isoOf = (offset: number) => { const d = new Date(); return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) + offset * 86_400_000).toISOString().slice(0, 10); };
+/* The date input's value for a day offset, against the browser's calendar day, the way the screen works it out.
+   The browser's day is Africa/Johannesburg's (playwright.config.ts pins it), not the machine running the
+   suite's: on a UTC runner after 22:00 the two are a day apart, and a period filled exactly backdateDays
+   back was read as one day too far. */
+const todayInZa = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg' }).format(new Date());
+const isoOf = (offset: number) => new Date(Date.parse(`${todayInZa()}T00:00:00Z`) + offset * 86_400_000).toISOString().slice(0, 10);
 
 async function openDesk(page: Page): Promise<Locator> {
  await openWorkspace(page, 'Doctor');
