@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import {
  Activity, ChevronLeft, Droplets, Heart, Lock, Mic, MicOff, PhoneOff,
  Shield, ShieldCheck, UserRound, Users, Video, VideoOff,
@@ -33,6 +33,24 @@ function clock(total: number) {
  const minutes = Math.floor(total / 60);
  const seconds = total % 60;
  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+/* While this is mounted the floating assistant stands down (AssistantLauncher reads the attribute).
+   The gate and the call mount it; Call ended does not, so the orb is back once the call is over
+   and once the screen itself is left. */
+function useStandDownAssistant() {
+ useLayoutEffect(() => {
+  const root = document.documentElement;
+  const mark = (live: boolean) => {
+   if (live) root.setAttribute('data-consult-live', '');
+   else root.removeAttribute('data-consult-live');
+   /* Synchronous, so the launcher's listener runs inside this layout effect and React
+      paints the call without the orb. A mutation observer would arrive a frame later. */
+   root.dispatchEvent(new Event('mythuso:consult-live'));
+  };
+  mark(true);
+  return () => mark(false);
+ }, []);
 }
 
 function ChecklistIcon({ kind }: { kind: typeof CHECKLIST[number]['icon'] }) {
@@ -78,6 +96,7 @@ function Gate({ understood, onUnderstood, onBack, onJoin }: {
  onBack: () => void;
  onJoin: () => void;
 }) {
+ useStandDownAssistant();
  return <section className="vcd vcd-gate">
   <header className="vcd-bar">
    <button type="button" className="vcd-back" onClick={onBack} aria-label="Back to Online consultation">
@@ -136,6 +155,7 @@ function Call({ muted, cameraOn, elapsed, onMute, onCamera, onLeave }: {
  onCamera: () => void;
  onLeave: () => void;
 }) {
+ useStandDownAssistant();
  const shown = clock(elapsed);
  return <section className="vcd vcd-call">
   <header className="vcd-call-bar">

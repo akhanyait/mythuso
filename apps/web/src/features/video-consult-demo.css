@@ -252,6 +252,9 @@
  .vcd-demo-data { font-size: 11px; }
  .vcd-vital strong { font-size: 14px; }
  .vcd-pip { top: 12px; right: 12px; bottom: auto; width: 110px; height: 80px; }
+ /* The tab bar already pads the home indicator. The controls are the last thing in the call,
+    so they keep the same inset rather than sitting in it when a phone draws one. */
+ .vcd-controls { padding-bottom: env(safe-area-inset-bottom, 0px); }
 }
 
 @media (prefers-reduced-motion: reduce) {

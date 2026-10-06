@@ -32,7 +32,9 @@ async function secondsOf(page: Page) {
  return Number(match[1]) * 60 + Number(match[2]);
 }
 
-test('Booklet 10 gates a simulated consult, and the call never asks for a camera', async ({ page }) => {
+const launcher = (page: Page) => page.getByRole('button', { name: 'Ask GilbertOne', exact: true });
+
+test('Booklet 10 gates a simulated consult, and the call never asks for a camera', async ({ page, isMobile }) => {
  await armMedia(page);
  await page.goto('/app/');
  await goSection(page, 'Online consultation');
@@ -40,6 +42,8 @@ test('Booklet 10 gates a simulated consult, and the call never asks for a camera
 
  await expect(page.getByRole('heading', { name: 'Before you join' })).toBeVisible();
  await expect(page.getByText('Booklet 10 consent checklist')).toBeVisible();
+ /* The orb floats over the bottom of a phone, which is where Leave sits. It stands down for the gate. */
+ await expect(launcher(page)).toBeHidden();
  for (const title of ['Who is on the call', 'No recording in this preview', 'Nurse may be present'])
   await expect(page.getByText(title, { exact: true })).toBeVisible();
 
@@ -55,6 +59,7 @@ test('Booklet 10 gates a simulated consult, and the call never asks for a camera
  await understand.check();
  await page.getByRole('button', { name: 'Back to Online consultation' }).click();
  await expect(page.getByRole('heading', { level: 1, name: 'Online consultation' })).toBeVisible();
+ await expect(launcher(page)).toBeVisible();
  await page.getByRole('button', { name: 'Start video consult' }).click();
  await expect(understand).not.toBeChecked();
  await expect(join).toBeDisabled();
@@ -73,7 +78,19 @@ test('Booklet 10 gates a simulated consult, and the call never asks for a camera
  await expect(controls.getByRole('button')).toHaveCount(3);
  const mute = controls.getByRole('button', { name: 'Mute', exact: true });
  const camera = controls.getByRole('button', { name: 'Camera', exact: true });
- await expect(controls.getByRole('button', { name: 'Leave', exact: true })).toBeVisible();
+ const leave = controls.getByRole('button', { name: 'Leave', exact: true });
+ await expect(leave).toBeVisible();
+ await expect(launcher(page)).toBeHidden();
+ /* A tap in the centre of Leave ended the call on a desktop and opened GilbertOne on a phone. */
+ if (isMobile) {
+  await leave.scrollIntoViewIfNeeded();
+  const hit = await leave.evaluate(button => {
+   const rect = button.getBoundingClientRect();
+   const el = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+   return (el instanceof Element && (el === button || button.contains(el))) ? 'Leave' : (el?.closest('button')?.getAttribute('aria-label') ?? el?.closest('button')?.textContent ?? 'nothing');
+  });
+  expect(hit).toBe('Leave');
+ }
  await expect(mute).toHaveAttribute('aria-pressed', 'false');
  await mute.click();
  await expect(mute).toHaveAttribute('aria-pressed', 'true');
@@ -82,9 +99,10 @@ test('Booklet 10 gates a simulated consult, and the call never asks for a camera
  await expect(camera).toHaveAttribute('aria-pressed', 'true');
  await expect(page.getByText('Camera off', { exact: true })).toBeVisible();
 
- await controls.getByRole('button', { name: 'Leave', exact: true }).click();
+ await leave.click();
  await expect(page.getByRole('heading', { name: 'Call ended' })).toBeVisible();
  await expect(page.getByText('This was a simulated call. Nothing was recorded or stored.')).toBeVisible();
+ await expect(launcher(page)).toBeVisible();
  await page.getByRole('button', { name: 'Back to MyThuso' }).click();
  await expect(page.getByRole('heading', { level: 1, name: 'Online consultation' })).toBeVisible();
 
