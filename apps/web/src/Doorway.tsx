@@ -18,13 +18,24 @@ import { roleFromSearch, roleOf, searchForRole, type RoleId } from './lib/roles'
 
    The deployed build sets it, since 6 October 2026: deploy/deploy.sh names it on the build command
    and the reason is written there. It was set in exactly one place before then, in
-   playwright.config.ts's webServer, so the suite exercised a build no deploy ever produced. Setting
-   it does not change what a patient downloads at her own address — the shells stay behind these
-   dynamic imports and arrive only when a role is opened — but the staff and portal code is in the
-   published tree now, so ?role=nurse, =doctor and =partner open a workspace with nothing in front of
-   them. The other two roles do not: shells/FounderGate.tsx holds on import.meta.env.PROD and draws
-   the founder's two-factor sign-in before the portal, failing closed when the service is dark or
-   silent. deploy/deploy.sh says the same, and what is exposed is his decision to weigh there. */
+   playwright.config.ts's webServer, so the suite exercised a build no deploy ever produced.
+
+   The two shells themselves stay behind these dynamic imports, and a patient at her own address
+   still fetches neither: the same nineteen asset files load at /app/ with the flag set and unset, and
+   StaffShell's and PortalShell's own chunks are not among them. But setting it is not free to her,
+   and this comment said that it was until it was measured. With the subtree in the graph, Rollup
+   re-splits what it shares and moves vendor code the staff screens also use into chunks the entry
+   already loads, so the patient's first view pays for code she never runs: 241.88 kB to 254.06 kB
+   gzipped at level 9 by scripts/check-bundle-budget.mjs, +12.18 kB, against the 282.16 kB ceiling,
+   which leaves 28.10 kB. sos carries +7.64 of it, revamp +3.01, Workspace +1.19 and DemoLogin +0.35;
+   no file was added to or dropped from the entry. Watch the ceiling when this next moves, because
+   the growth is in shared chunks and so is invisible to a check that only counts files.
+
+   The staff and portal code is in the published tree now, so ?role=nurse, =doctor and =partner open
+   a workspace with nothing in front of them. The other two roles do not: shells/FounderGate.tsx holds
+   on import.meta.env.PROD and draws the founder's two-factor sign-in before the portal, failing
+   closed when the service is dark or silent. deploy/deploy.sh says the same, and what is exposed is
+   his decision to weigh there. */
 const staffPreview = import.meta.env.VITE_MYTHUSO_STAFF_PREVIEW === 'true';
 const ClinicalWorkspace = staffPreview ? lazy(() => import('./shells/StaffShell')) : null;
 /* The back office's door is the merged Control Tower's now (Phase 3): ?role=control-tower and

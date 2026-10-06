@@ -178,8 +178,22 @@ say "Building the site"
 # visibility, and the difference is what this changes. A visitor can also address GilbertOne as a
 # member of staff, since a workspace passes its own audience to the panel.
 #
+# What it costs the patient, measured rather than assumed, because this is the part that is not
+# obvious and is the one a later session would otherwise have to rediscover. The shells stay behind
+# Doorway.tsx's dynamic imports and a patient at her own address fetches neither of them — the same
+# nineteen asset files load at /app/ with the flag set and unset, and StaffShell's and PortalShell's
+# own chunks are not among them. But the first view is not unchanged. With the subtree in the graph
+# Rollup re-splits what it shares and moves vendor code the staff screens also use into chunks the
+# entry already loads, so she downloads code she never runs: 241.88 kB to 254.06 kB gzipped at level
+# 9 by scripts/check-bundle-budget.mjs, +12.18 kB against the 282.16 kB ceiling, which leaves 28.10
+# kB. sos carries +7.64 of it, revamp +3.01, Workspace +1.19 and DemoLogin +0.35; no file was added
+# to or dropped from the entry. Both builds were measured in a worktree, on 6 October 2026, at
+# fc8d7a21 and at this change. The growth is invisible to a check that counts files, which is why the
+# budget script runs after the build below and not as an optional extra.
+#
 # The founder's decision of 6 October 2026, taken for the funder demo of 7 October, and his to
-# reverse: drop the variable below and the subtree stops shipping again.
+# reverse: drop the variable below and the subtree stops shipping again, and the patient's entry goes
+# back to 241.88 kB.
 #
 # Inline on the command rather than exported, so it reaches this build and nothing else. An export
 # here would also be set for the assistant-runtime build below and for every ssh and rsync after it.

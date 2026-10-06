@@ -35161,7 +35161,17 @@ const p3Files = [
      tree-shakes the portal out of the build entirely and a patient downloads none of it. Set — and
      deploy/deploy.sh has set it since 6 October 2026, so the deployed build does — the portal is in
      the published tree but still only behind this dynamic import, which is what the check below is
-     about: a patient's first view still pays nothing for it, and what a role opens pays for it. */
+     about: no portal source reaches the first load statically, and what a role opens pays for the
+     portal's own code.
+
+     One thing this check does not hold, and it was measured rather than assumed on 6 October 2026.
+     "Pays nothing" is not true of the flag, only of the portal's own files. With the staff subtree in
+     the graph Rollup re-splits what it shares, and vendor code the staff screens also use moves into
+     chunks the entry already loads — so the patient's first view grows from 241.88 kB to 254.06 kB
+     gzipped while still fetching the same nineteen asset files and none of the portal. The static
+     import sweep below cannot see that, because the growth is in shared chunks rather than in a file
+     that names the portal. scripts/check-bundle-budget.mjs is what catches it; this is why it runs
+     after the build and not as an optional extra. */
   if (!/const ControlTower = (?:staffPreview \? )?lazy\(\(\) => import\('\.\/shells\/PortalShell'\)\)/.test(door))
     throw new Error("apps/web/src/Doorway.tsx no longer reaches the merged Control Tower through a dynamic import.");
   const firstLoad = [
