@@ -255,12 +255,21 @@ final class ScreenAudit {
                    tapped at this scroll position and can at the next one, which is a fact about
                    scrolling rather than a defect. And only where the label picks out one control,
                    because a query that resolved to the wrong twin would answer about the wrong
-                   control. */
+                   control.
+
+                   "One control" means one on the screen, and the query reaches the whole tree. Health
+                   trends draws four charts and four "Show readings as a table" buttons; with one of
+                   them on screen, .firstMatch answered for whichever came first in the tree — a chart
+                   scrolled off above — and reported the button in view as untappable, on some runs
+                   and not others, depending on where the swipes came to rest. So the twin is picked
+                   by where it is, not by being first. */
                 if content.contains(frame), record.hittable != true,
                    seen["\(node.elementType.rawValue)|\(node.label)"] == 1, !node.label.isEmpty {
                     let element = app.descendants(matching: node.elementType)
-                        .matching(NSPredicate(format: "label == %@", node.label)).firstMatch
-                    if element.exists { record.hittable = element.isHittable }
+                        .matching(NSPredicate(format: "label == %@", node.label))
+                        .allElementsBoundByIndex
+                        .first { abs($0.frame.minX - frame.minX) < 1 && abs($0.frame.minY - frame.minY) < 1 }
+                    if let element, element.exists { record.hittable = element.isHittable }
                 }
                 controls[key] = record
             }
