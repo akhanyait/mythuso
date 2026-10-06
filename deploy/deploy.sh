@@ -149,7 +149,41 @@ if echo "$before" | grep -qv ' 200$'; then
 fi
 
 say "Building the site"
-npm run build --silent
+# The staff workspaces ship in this build, and that is a decision about what is public rather than a
+# build detail.
+#
+# VITE_MYTHUSO_STAFF_PREVIEW gates apps/web/src/Doorway.tsx's two lazy imports of the clinical shells
+# and the Control Tower. Until 6 October 2026 it was set in exactly one place in the repository —
+# playwright.config.ts's webServer command — so the suite exercised a build this script never produced.
+# In the flagless build Rollup tree-shakes the whole subtree out: nothing under apps/web/dist/assets
+# carries the clinician console's strings at all. The failure is silent, not an error page, because
+# Doorway resolves the role to 'patient' and setRole to a no-op when the flag is off. A presenter
+# walking step (d) of docs/qa/DEMO-CLICKTHROUGH.md against mythuso.co.za would have got the patient
+# application at /app/?role=doctor, and a role switcher that did nothing when he pressed it.
+#
+# What this makes publicly reachable, said out loud rather than left to be discovered. Anyone holding
+# the address gets the three clinical workspaces — Nurse, Doctor and Pharmacy partner, at
+# /app/?role=nurse, =doctor and =partner — with nothing in front of them, and the screens, their copy
+# and their simulated caseload are on the public internet. The other two roles are a door rather than
+# an exposure: /app/?role=control-tower and =back-office draw the founder's two-factor sign-in first,
+# because shells/FounderGate.tsx holds on import.meta.env.PROD and fails closed when the service is
+# dark or silent — which is the state the box is in, since MYTHUSO_FOUNDER_ACCESS is written by hand
+# and no deploy sets it. That is packages/catalog/founder-access.json#door and the account in
+# docs/governance/FOUNDER-ACCESS.md, and both were verified against a production build of this very
+# change rather than read and assumed.
+#
+# deploy/nginx/mythuso.conf's "choosing a role grants nothing" stays exactly true: the identity
+# service is off, there is no account to sign in to, and the three workspaces above read the contracts
+# in packages/catalog and in-memory demo fixtures. But that is a statement about permission, not about
+# visibility, and the difference is what this changes. A visitor can also address GilbertOne as a
+# member of staff, since a workspace passes its own audience to the panel.
+#
+# The founder's decision of 6 October 2026, taken for the funder demo of 7 October, and his to
+# reverse: drop the variable below and the subtree stops shipping again.
+#
+# Inline on the command rather than exported, so it reaches this build and nothing else. An export
+# here would also be set for the assistant-runtime build below and for every ssh and rsync after it.
+VITE_MYTHUSO_STAFF_PREVIEW=true npm run build --silent
 
 # Built before anything on the server is touched, deliberately. The assistant bundle is one file
 # with no install step on the far side, but it is still half of what this deploy publishes, and a

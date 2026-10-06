@@ -15,6 +15,17 @@ of `origin/main` at 10:27 on 6 October, which is after this checklist was writte
 
 Where GilbertOne's exact wording is still being locked, do not invent softer answers on stage.
 
+**Step (d) and the Doctor workspace under "Before you present" both need `VITE_MYTHUSO_STAFF_PREVIEW`.**
+Until 6 October it was set in one place in this repository — the test harness's own dev server — so a
+build made any other way tree-shook the clinician console out of the bundle entirely, and
+`/app/?role=doctor` opened the patient app instead: **Hello, Lerato** and **Nothing booked yet**, with
+no **Review queue** and no message explaining why. The patient's More hub still offered a **Demo
+login** row listing all six roles, and its staff buttons did nothing at all when pressed.
+`deploy/deploy.sh` sets it on the build command now, so the deployed site carries it. A site you build
+yourself reproduces the demo only if you build it the same way —
+`VITE_MYTHUSO_STAFF_PREVIEW=true npm run build -w @mythuso/web` — and the way to tell in ten seconds
+is that `/app/?role=doctor` opens a **Review queue**, not **Hello, Lerato**.
+
 ---
 
 ## Before you present (on the demo laptop, 10 minutes before)

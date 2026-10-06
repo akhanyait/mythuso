@@ -35157,7 +35157,11 @@ const p3Files = [
    own. tests/states.spec.ts holds the bytes; this holds the shape that keeps them. */
 {
   const door = read("apps/web/src/Doorway.tsx");
-  /* Since 4 October 2026 the import is also behind VITE_MYTHUSO_STAFF_PREVIEW, so a patient build never downloads it. */
+  /* Since 4 October 2026 the import is behind VITE_MYTHUSO_STAFF_PREVIEW as well. Unset, Rollup
+     tree-shakes the portal out of the build entirely and a patient downloads none of it. Set — and
+     deploy/deploy.sh has set it since 6 October 2026, so the deployed build does — the portal is in
+     the published tree but still only behind this dynamic import, which is what the check below is
+     about: a patient's first view still pays nothing for it, and what a role opens pays for it. */
   if (!/const ControlTower = (?:staffPreview \? )?lazy\(\(\) => import\('\.\/shells\/PortalShell'\)\)/.test(door))
     throw new Error("apps/web/src/Doorway.tsx no longer reaches the merged Control Tower through a dynamic import.");
   const firstLoad = [
