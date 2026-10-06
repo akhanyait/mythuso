@@ -88,23 +88,30 @@ test('every source is drawn with its verdict and two unsigned signatures, and no
  }
  /* Derived, never typed: while the override is in force every source whose licence permits a
     commercial service's use, and which the override gates, is opened for demonstration; with the
-    override off — as it has been since the fail-closed commit of 4 October — none are, and the
-    record below still says why. A literal eight here would fail on the day the override closes and
-    would pass on a contract that opened one fewer than it should. */
+    override off — as it has been since the fail-closed commit of 4 October — none are. A literal
+    eight here would fail on the day the override closes and would pass on a contract that opened
+    one fewer than it should. */
  const permit = sources.filter(s => {
   const v = verdicts[s.licensing.verdict] as { mayActivate: boolean; requiresPermissionRecord?: boolean };
   return gateOf(s) && v.mayActivate && !v.requiresPermissionRecord;
  }).length;
  expect(opened, 'the sources whose licences permit are opened only while the override is in force').toBe(override.inForce ? permit : 0);
- /* The override's own record: its disclaimer, the founder's words, what going live changes, and what it
-    does not open, each with why. */
- const record = panel(page).getByRole('region', { name: dw.heading });
- await expect(record.getByRole('note')).toContainText(override.disclaimer.sentence);
- await expect(record).toContainText(override.decided.words);
- await expect(record).toContainText(override.goLive);
- const closed = record.getByRole('list', { name: `${override.notOpened.length} not opened by the override` });
- await expect(closed.locator(':scope > li')).toHaveCount(override.notOpened.length);
- for (const n of override.notOpened as { name: string; why: string }[]) await expect(closed).toContainText(n.why);
+ /* The override's own record — its disclaimer, the founder's words, what going live changes, and what
+    it leaves closed — is drawn only while it is in force (KnowledgeSources.tsx:92). With it off the
+    region is absent by design: standing in for two signatures is the whole thing it exists to say, so
+    a closed override draws nothing to stand in for. Assert it is gone rather than empty, so a record
+    that lingers after go-live fails here. */
+ if (override.inForce) {
+  const record = panel(page).getByRole('region', { name: dw.heading });
+  await expect(record.getByRole('note')).toContainText(override.disclaimer.sentence);
+  await expect(record).toContainText(override.decided.words);
+  await expect(record).toContainText(override.goLive);
+  const closed = record.getByRole('list', { name: `${override.notOpened.length} not opened by the override` });
+  await expect(closed.locator(':scope > li')).toHaveCount(override.notOpened.length);
+  for (const n of override.notOpened as { name: string; why: string }[]) await expect(closed).toContainText(n.why);
+ } else {
+  await expect(panel(page).getByRole('region', { name: dw.heading })).toHaveCount(0);
+ }
  const turnedAway = panel(page).getByRole('list', { name: `${notAdmitted.length} assessed and not admitted` });
  await expect(turnedAway.locator(':scope > li')).toHaveCount(notAdmitted.length);
  for (const n of notAdmitted) await expect(turnedAway).toContainText(n.reason);

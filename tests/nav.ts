@@ -200,8 +200,14 @@ export async function chooseRole(page: Page, label: string) {
     window.history.pushState(null, '', `${window.location.pathname}${search}`);
     window.dispatchEvent(new PopStateEvent('popstate'));
   }, id);
+  /* Generous, and deliberately so: the workspace being switched to is a dynamic import, so the first
+     switch in a run pays for its chunk on a dev server that has not built it yet. Doorway draws its
+     own "Getting your workspace ready" card for exactly that wait, and failing on the default five
+     seconds would make this helper report a broken role switch when the product was still loading the
+     workspace it had been asked for — on the slow connection this product is designed for, that is the
+     difference between a passing test and a lie about the door. */
   await expect(page.getByRole('navigation', { name: 'Main navigation' }).or(page.locator('.tabbar'))
-    .or(page.getByRole('tablist', { name: PORTAL_CATEGORIES })).first()).toBeVisible();
+    .or(page.getByRole('tablist', { name: PORTAL_CATEGORIES })).first()).toBeVisible({ timeout: 60_000 });
 }
 
 /* Explore MyThuso is the patient's roadmap page and the door to the first-run flow, the state

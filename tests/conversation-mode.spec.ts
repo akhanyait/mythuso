@@ -364,8 +364,12 @@ test("Stop ends everything at once, and the words caught go nowhere", async ({ p
   await expect(hot(page)).toHaveCount(0);
   await expect.poll(() => micOpen(page)).toBe(false);
   await page.waitForTimeout(endpointMs + 200);
-  /* Nothing was sent and nothing was drafted. */
-  await expect(panel(page).locator(".as-turn")).toHaveCount(1);
+  /* Nothing was sent and nothing was drafted. Zero turns, not one: since the quiet-panel redesign the
+     opening "Nothing needs you…" line is a welcome status rendered outside the log (Assistant.tsx's
+     isOpeningStatus returns before it becomes a bubble), so the only way a turn exists here is if
+     Stop let one through. A count of one would have passed on the old opening turn alone and could
+     not have told that apart from a half-sent message. */
+  await expect(panel(page).locator(".as-turn")).toHaveCount(0);
   await expect(panel(page).getByLabel(gilbert.conversation.inputLabel)).toHaveValue("");
 });
 

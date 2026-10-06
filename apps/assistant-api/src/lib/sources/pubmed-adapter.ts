@@ -6,6 +6,7 @@ import {
   type AdapterDeps,
   type AdapterOutcome,
   type FederatedResult,
+  type SourceConfig,
 } from "./config.ts";
 import { rateGateFor } from "./rate-gate.ts";
 
@@ -37,6 +38,13 @@ const TIMEOUT_MS = 4000;
 const MAX_RESULTS = 5;
 const MAX_QUERY_LENGTH = 200;
 const ABSTRACT_SNIPPET_LENGTH = 220;
+/* The length the literature_search tool already truncated an author string to, carried across
+   whole when the tool was routed through this adapter on 6 October 2026 — not re-chosen here,
+   because a number that moves file has not thereby changed value, and a wider cap would have
+   quietly altered what a citation says. Europe PMC returns authors as one comma-separated string
+   that grows with the author list; past this it is truncated rather than dropped, so the citation
+   still names somebody. */
+const MAX_AUTHOR_LENGTH = 120;
 /* The same politeness the literature tool sends: a caller that names itself is a caller a provider
    can throttle precisely instead of banning broadly. */
 const USER_AGENT =
@@ -101,7 +109,11 @@ const identifierOf = (
    to say about it. */
 type AskOutcome =
   | { ok: true; config: SourceConfig; records: EuropePmcRecord[] }
-  | { ok: false; outcome: Omit<AdapterOutcome, { status: "ok" }> };
+  /* Exclude, not Omit: AdapterOutcome is a discriminated union and the failure arm is the union with
+     its "ok" variant removed, keeping dark, rate-limited and unavailable whole. Omit's second
+     argument names keys, so passing it a { status: "ok" } object collapses the union into one
+     object type carrying every variant's keys at once — an outcome no adapter can actually build. */
+  | { ok: false; outcome: Exclude<AdapterOutcome, { status: "ok" }> };
 
 async function askEuropePmc(
   query: string,

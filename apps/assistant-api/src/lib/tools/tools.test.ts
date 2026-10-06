@@ -15,6 +15,9 @@ import { emergencyNumbers, emergencyNumbersTool } from "./emergency-numbers.ts";
 import { lookupCoverage, coverageLookupTool } from "./coverage-lookup.ts";
 import geography from "../../../../../packages/catalog/geography.json" with { type: "json" };
 import { searchLiterature, literatureSearchTool } from "./literature-search.ts";
+import { federationSource } from "../sources/config.ts";
+import { RateGate } from "../sources/rate-gate.ts";
+import { overrideClosed } from "../demonstration-override.ts";
 
 /* The five tools' own tests, added with the orchestrator tier on 21 September 2026. Every tool is
    a catalog lookup, so the assertions pin outputs to the catalog's own records — read here from
@@ -290,10 +293,20 @@ test("coverage-lookup refuses an area outside phase one honestly, not as an empt
   assert.ok(empty.includes("not whether a clinic or pharmacy is there"));
 });
 
-/* literature-search's own tests. Unlike the other tools this one makes a live external call, so
-   every test stubs globalThis.fetch — the same pattern llm-adapter.test.ts and
-   orchestrator.test.ts already use for the model providers' own network calls — and restores it
-   in a finally, so a failure here can never leak a stub into a test that runs after it. */
+/* literature-search's own tests.
+
+   REWRITTEN 6 OCTOBER 2026 WHEN THE TOOL WAS ROUTED THROUGH THE GOVERNED ADAPTER. This block used
+   to stub globalThis.fetch and expect a live answer, because the tool made its own call to Europe
+   PMC and nothing decided whether it might. It cannot be tested that way any more, and it should not
+   be: the tool now asks pubmed-adapter.ts, which asks federation.json. So the first test here is the
+   one that did not exist — that the DEFAULT state of a deployment is a refusal, and that the refusal
+   costs nothing on the network. The live-shape tests follow, and they inject an activated COPY of the
+   real federation.json row through AdapterDeps (the seam adapters.test.ts uses), never an edit of the
+   contract: if federation.json ever renames the source or the flag, those tests fail on the copy
+   rather than quietly passing against a config that no longer exists.
+
+   Every test that could reach a network passes a stub fetch that records what it was given, so a
+   "nothing was sent" assertion is a fact about the call list and not about a missing assertion. */
 
 const stubFetch = (impl: typeof fetch): (() => void) => {
   const original = globalThis.fetch;
@@ -306,17 +319,58 @@ const stubFetch = (impl: typeof fetch): (() => void) => {
 const europePmcBody = (result: Record<string, unknown>[]): string =>
   JSON.stringify({ resultList: { result } });
 
-test("literature-search parses a real-shaped Europe PMC response into cited results", async () => {
+/* An activated copy of the real row — the injection seam, never an edit of the contract. */
+const activePubMed = () => {
+  const source = federationSource("pubmed-europepmc");
+  assert.ok(source, "federation.json should carry pubmed-europepmc");
+  return { ...source, active: true };
+};
+
+/* A gate of its own, so a test never spends the real source's shared budget or another test's. */
+const liveDeps = (fetchImpl: typeof fetch) => ({
+  config: activePubMed(),
+  fetchImpl,
+  gate: new RateGate(30),
+});
+
+test("literature-search refuses while its source is dark, and sends nothing", async () => {
+  /* The go-live state: the real federation.json row ("active": false) with the founder's
+     demonstration override switched off. This is what production does today. */
+  const calls: string[] = [];
   const restore = stubFetch((async (input: unknown) => {
+    calls.push(String(input));
+    throw new Error("a dark source must not be called");
+  }) as unknown as typeof fetch);
+  try {
+    const output = await searchLiterature("gestational diabetes", {
+      override: overrideClosed,
+    });
     assert.ok(
-      String(input).startsWith(
-        "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
-      ),
+      output.includes("Europe PMC is switched off"),
+      "the answer says the source is off",
     );
     assert.ok(
-      String(input).includes("query=gestational"),
-      "the query reaches the request URL",
+      output.includes("nothing was sent"),
+      "and that nothing was sent — a governed refusal is not an empty literature",
     );
+    assert.ok(
+      output.includes("governance"),
+      "the refusal is named as MyThuso's own switch, not as a fact about the research",
+    );
+    assert.ok(
+      output.includes("nurse, doctor or pharmacist"),
+      "and hands the search to a person who can run it",
+    );
+    assert.deepEqual(calls, [], "a dark source is never called");
+  } finally {
+    restore();
+  }
+});
+
+test("literature-search parses a real-shaped Europe PMC response into cited results", async () => {
+  const seen: string[] = [];
+  const restore = stubFetch((async (input: unknown) => {
+    seen.push(String(input));
     return new Response(
       europePmcBody([
         {
@@ -329,6 +383,9 @@ test("literature-search parses a real-shaped Europe PMC response into cited resu
           authorString: "Hüttl VN, Deutz NEP, Wierzchowska-McNew RA.",
           pubYear: "2026",
           journalTitle: "Am J Hypertens",
+          /* CC BY is one of the two licences the adapter will show text under, so the opening is
+             carried; the non-reusable case is its own test below. */
+          license: "cc by",
           abstractText:
             "This study investigates arginine metabolism in hypertensive adults, finding altered whole-body flux.",
         },
@@ -337,7 +394,21 @@ test("literature-search parses a real-shaped Europe PMC response into cited resu
     );
   }) as unknown as typeof fetch);
   try {
-    const output = await searchLiterature("gestational diabetes");
+    const output = await searchLiterature(
+      "gestational diabetes",
+      liveDeps(globalThis.fetch),
+    );
+    assert.ok(seen.length === 1, "exactly one request left the process");
+    assert.ok(
+      seen[0].startsWith(
+        "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+      ),
+      "and it is the endpoint federation.json records, read from the contract rather than typed here",
+    );
+    assert.ok(
+      seen[0].includes("query=gestational"),
+      "the query reaches the request URL",
+    );
     assert.ok(output.includes("Real, published papers from Europe PMC"));
     assert.ok(
       output.includes(
@@ -352,6 +423,10 @@ test("literature-search parses a real-shaped Europe PMC response into cited resu
       "every result carries the real identifier that makes it checkable",
     );
     assert.ok(
+      output.includes("https://europepmc.org/article/MED/42149813"),
+      "and the page that identifier resolves to",
+    );
+    assert.ok(
       output.includes("This study investigates arginine metabolism"),
       "the abstract opening is carried, never a rewritten summary",
     );
@@ -362,12 +437,56 @@ test("literature-search parses a real-shaped Europe PMC response into cited resu
   }
 });
 
+test("literature-search withholds an abstract its record's licence does not cover, and says why", async () => {
+  const restore = stubFetch(
+    (async () =>
+      new Response(
+        europePmcBody([
+          {
+            pmid: "777",
+            title: "A study under a licence MyThuso may not reproduce",
+            pubYear: "2024",
+            journalTitle: "Some Journal",
+            /* CC BY-NC is not for a commercial service: federation.json records that only CC BY and
+               CC0 text may be shown or reworded, so the adapter hands over the citation and not the
+               text. This is the discipline the ungoverned call had no way to apply. */
+            license: "cc by-nc",
+            abstractText:
+              "These are the words MyThuso has no licence to reproduce, and they must not appear.",
+          },
+        ]),
+        { status: 200, headers: { "content-type": "application/json" } },
+      )) as unknown as typeof fetch,
+  );
+  try {
+    const output = await searchLiterature("hypertension", liveDeps(globalThis.fetch));
+    assert.ok(output.includes("PMID:777"), "the citation is still checkable");
+    assert.ok(
+      !output.includes("These are the words MyThuso has no licence"),
+      "and the licensed-out text is not reproduced",
+    );
+    assert.ok(
+      output.includes("does not cover a commercial service reproducing it"),
+      "the reason is stated, so a missing abstract is not read as a paper with none",
+    );
+    assert.ok(
+      output.includes("cc by-nc"),
+      "the record's own licence is named in that reason",
+    );
+  } finally {
+    restore();
+  }
+});
+
 test('literature-search degrades to an honest "could not be reached" answer, never a hang or a thrown error', async () => {
   const restore = stubFetch((async () => {
     throw new Error("simulated network failure");
   }) as unknown as typeof fetch);
   try {
-    const output = await searchLiterature("hypertension");
+    const output = await searchLiterature(
+      "hypertension",
+      liveDeps(globalThis.fetch),
+    );
     assert.ok(output.includes("could not be reached"));
     assert.ok(
       output.includes("says nothing about whether literature exists"),
@@ -378,15 +497,68 @@ test('literature-search degrades to an honest "could not be reached" answer, nev
     restore();
   }
 
-  /* A response that answers but not with 200 (rate-limited, servers down) fails the same honest way. */
+  /* A response that answers but not with 200 (servers down, blocked) fails the same honest way. */
   const restoreBadStatus = stubFetch(
     (async () => new Response("", { status: 503 })) as unknown as typeof fetch,
   );
   try {
-    const output = await searchLiterature("hypertension");
+    const output = await searchLiterature(
+      "hypertension",
+      liveDeps(globalThis.fetch),
+    );
     assert.ok(output.includes("could not be reached"));
   } finally {
     restoreBadStatus();
+  }
+});
+
+test("literature-search reports the rate limit as a wait, and sends nothing", async () => {
+  /* The whole point of routing the tool through the adapter: the ceiling in federation.json is now
+     one ceiling for every road to this source, not a limit one caller happened to respect.
+
+     The gate is spent before the ask rather than constructed empty, and the clock is pinned so the
+     spend and the ask fall in one window. An empty gate cannot prove a refusal here: a gate built
+     with a ceiling of zero computes its wait from a hit that does not exist, and Math.max(1, NaN)
+     answers NaN, which is not > 0 — so it ADMITS the call it was meant to refuse. That is worth
+     knowing about rate-gate.ts, but it is not this tool's defect and this test must not depend on
+     it. Spending a real token exercises the same path production hits when the ceiling is reached. */
+  const calls: string[] = [];
+  const restore = stubFetch((async (input: unknown) => {
+    calls.push(String(input));
+    return new Response(europePmcBody([]), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  }) as unknown as typeof fetch);
+  try {
+    const pinned = Date.UTC(2026, 9, 6, 12, 0, 0);
+    const gate = new RateGate(1);
+    assert.equal(gate.take(pinned), true, "the first ask spends the one token");
+    const output = await searchLiterature("hypertension", {
+      config: activePubMed(),
+      fetchImpl: globalThis.fetch,
+      now: () => new Date(pinned),
+      gate,
+    });
+    assert.ok(
+      output.includes("rate limit for this service is reached"),
+      "the answer names the limit",
+    );
+    assert.ok(
+      output.includes("nothing was sent"),
+      "a rate-limited call is a call that did not happen",
+    );
+    assert.ok(
+      output.includes("seconds"),
+      "and says how long to wait, so the person can decide whether to",
+    );
+    assert.ok(
+      !output.includes("No papers with a checkable identifier"),
+      "and it is never reported as an empty literature",
+    );
+    assert.deepEqual(calls, [], "the gate refuses before any request is built");
+  } finally {
+    restore();
   }
 });
 
@@ -399,7 +571,10 @@ test("literature-search reports an empty result set as empty, never invented", a
       })) as unknown as typeof fetch,
   );
   try {
-    const output = await searchLiterature("zzzqqqnonsensequery");
+    const output = await searchLiterature(
+      "zzzqqqnonsensequery",
+      liveDeps(globalThis.fetch),
+    );
     assert.ok(
       output.includes("No papers with a checkable identifier were found"),
     );
@@ -432,7 +607,7 @@ test("literature-search reports an empty result set as empty, never invented", a
       )) as unknown as typeof fetch,
   );
   try {
-    const output = await searchLiterature("untraceable");
+    const output = await searchLiterature("untraceable", liveDeps(globalThis.fetch));
     assert.ok(
       output.includes("No papers with a checkable identifier were found"),
     );
@@ -446,15 +621,70 @@ test("literature-search reports an empty result set as empty, never invented", a
 });
 
 test("literature-search asks for a topic rather than searching an empty string", async () => {
-  let called = false;
-  const restore = stubFetch((async () => {
-    called = true;
+  const calls: string[] = [];
+  const restore = stubFetch((async (input: unknown) => {
+    calls.push(String(input));
     throw new Error("an empty query should never reach the network");
   }) as unknown as typeof fetch);
   try {
-    const output = await searchLiterature("");
+    const output = await searchLiterature("", liveDeps(globalThis.fetch));
     assert.ok(output.includes("Name a topic"));
-    assert.equal(called, false);
+    assert.deepEqual(calls, []);
+  } finally {
+    restore();
+  }
+});
+
+test("literature-search sends redacted topic words, never the person's identifiers", async () => {
+  /* The redaction the ungoverned call did not run. outgoingTerm is the adapter's — redactPHI, then
+     whitespace folded and capped — and the tool runs its own echo through it too, so an identifier
+     typed into a literature search appears in neither the request nor the answer.
+
+     WHAT THIS CLAIMS, AND WHAT IT DOES NOT. redactPHI (packages/gilbertone/src/phi.ts) is
+     deliberately narrow: an SA identity number (Luhn-checked, so a thirteen-digit run that is a date
+     or a tracking code is left alone), an international or local phone number, an email address and
+     a medical-aid number. It does NOT catch a person's name or her street address, so this test
+     asserts neither — a test that claimed they never leave would pass today and misrepresent what
+     the guard does. The honest position is that the outgoing term is identifier-redacted and capped,
+     and that the tool's own contract asks the model for topic words and never the person's sentence
+     (the schema's describe says so). Both halves are load-bearing and neither alone is enough. */
+  const seen: string[] = [];
+  const restore = stubFetch((async (input: unknown) => {
+    seen.push(String(input));
+    return new Response(europePmcBody([]), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  }) as unknown as typeof fetch);
+  try {
+    const output = await searchLiterature(
+      "hypertension for 8001015009087, reachable on 0721234567 or thandi@example.co.za",
+      liveDeps(globalThis.fetch),
+    );
+    assert.ok(seen.length === 1);
+    const url = decodeURIComponent(seen[0]);
+    for (const identifier of [
+      "8001015009087",
+      "0721234567",
+      "thandi@example.co.za",
+    ]) {
+      assert.ok(
+        !url.includes(identifier),
+        `${identifier} must not ride the lookup — a literature search crosses a border and carries topic words alone`,
+      );
+      assert.ok(
+        !output.includes(identifier),
+        `${identifier} must not be echoed back into the answer either`,
+      );
+    }
+    assert.ok(
+      url.includes("hypertension"),
+      "the topic itself still reaches the search",
+    );
+    assert.ok(
+      url.includes("[ID REDACTED]") || !url.includes("800101"),
+      "the identifier is replaced by the redaction's own token, not simply absent",
+    );
   } finally {
     restore();
   }
@@ -496,21 +726,25 @@ test("each LangChain wrapper carries the name the agent knows it by, and answers
   const coverage = await coverageLookupTool.invoke({ area: "Rosebank" });
   assert.ok(String(coverage).includes("phase-one coverage area"));
 
-  const restore = stubFetch(
-    (async () =>
-      new Response(
-        europePmcBody([{ pmid: "1", title: "A paper", pubYear: "2020" }]),
-        {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        },
-      )) as unknown as typeof fetch,
-  );
+  /* The LangChain wrapper takes no deps argument — it is what the agent calls, so it reads the real
+     federation.json, where pubmed-europepmc is "active": false and the override is off. Invoking it
+     therefore proves the deployed tool is dark by default and sends nothing, rather than exercising a
+     live-shape path the tests above already cover through the injection seam. A stub fetch that would
+     record any call keeps that honest. */
+  const calls: string[] = [];
+  const restore = stubFetch((async (input: unknown) => {
+    calls.push(String(input));
+    throw new Error("the deployed wrapper must not reach the network while dark");
+  }) as unknown as typeof fetch);
   try {
     const literature = await literatureSearchTool.invoke({
       query: "hypertension",
     });
-    assert.ok(String(literature).includes("PMID:1"));
+    assert.ok(
+      String(literature).includes("Europe PMC is switched off"),
+      "the agent's own door answers dark while federation.json says so",
+    );
+    assert.deepEqual(calls, [], "and sends nothing");
   } finally {
     restore();
   }

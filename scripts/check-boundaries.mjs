@@ -32736,6 +32736,279 @@ console.log(
       );
   }
 
+  /* 4c. The two registers agree about a URL — the cross-register check.
+     ADDED BY THE KNOWLEDGE-GOVERNANCE WORK, 6 OCTOBER 2026.
+
+     WHY THIS CHECK EXISTS. MyThuso keeps TWO hand-maintained registers of external knowledge, and
+     the founder decided on 6 October 2026 to keep both that way rather than generate one from the
+     other. packages/catalog/knowledge/federation.json is the federated-search allowlist: what an
+     adapter may ask, under what licence, and what was assessed and turned away.
+     packages/catalog/gilbertone-references.json is the assistant's citation register: what a patient
+     reply may name as its source and what it may only point to as further reading. Two registers that
+     nobody compares will disagree, and the disagreement found on 4-5 October was not theoretical —
+     the citation register had approved Cochrane, the WHO fact sheets and the NHS conditions index to
+     PATIENTS as sources an answer may stand on, while federation.json's assessedNotAdmitted barred
+     all three hosts: Wiley reserves reuse, text-and-data-mining and AI-training rights on
+     cochrane.org, WHO material is non-commercial and MyThuso is a commercial service, and nhs.uk is
+     licensed only to users located in the United Kingdom under English law. A commercial health
+     service quoting a publisher that turned it away is a copyright position, not a housekeeping one.
+
+     WHY IT WAS INVISIBLE. This file had never read gilbertone-references.json — not once — and read
+     federation.json in exactly one place, to test whether an environment-variable name appeared in
+     it. The build therefore passed on a tree where two contracts contradicted each other about what
+     a patient could be shown, and the only thing that found it was a person reading both.
+
+     WHAT IT ENFORCES. Every entry's host is derived from its own url rather than trusted; every
+     entry's licenceVerdict and licenceAssessedIn must be the federation assessment that ACTUALLY
+     governs that host, resolved by the most specific host match (so knowledgehub.health.gov.za is
+     governed by ndoh-stg-eml-phc's assessment of health.gov.za, and icd.who.int by icd11-who's
+     rather than by who.int's bar — a suffix rule would get both wrong); and an entry may be
+     `quotable` only when that governing verdict permits a commercial service's use without a
+     permission record that is not on file. A register that is MORE restrictive than the licence is
+     always allowed — narrowing needs no version and no justification here, because refusing to quote
+     something quotable costs a reader a convenience, and quoting something barred costs MyThuso a
+     licence.
+
+     THE VOCABULARY IS HELD TOO. The scout at apps/web/src/lib/gilbertone-reference-scout.ts fails
+     closed on an unknown `use`, and its own comment says the build holds that as well — this is the
+     build holding it. An entry whose `use`, `useRefusal`, `jurisdiction` or `licenceVerdict` is
+     outside the contract's own vocabulary is a typo that would otherwise silently demote or promote
+     what a patient is shown. */
+  {
+    const referencesFile = "packages/catalog/gilbertone-references.json";
+    const references = JSON.parse(read(referencesFile));
+    const entries = references.sources;
+    if (!Array.isArray(entries) || entries.length < 8)
+      throw new Error(
+        `${referencesFile} carries ${Array.isArray(entries) ? entries.length : "no"} sources, fewer than the 8 first approved on 4 October 2026 — the citation register has shrunk, and this check is meant to guard it, not follow it. An entry is retired by a reviewed edit that records why, not by deletion.`,
+      );
+
+    /* The federation's own vocabulary, read from the federation rather than restated here: a verdict
+       that permits a commercial service's use, and whether it needs the owner's written permission
+       on file first. The permission branch matters and is not a technicality — permission-required is
+       the verdict federation.json records for six South African sources whose terms do not cover a
+       commercial service as published, and recording the owner's written permission as a permissionRef
+       on that source is what makes it quotable. Until then it is not. */
+    const verdicts = federation.licenceVerdicts ?? {};
+    const permitsQuotation = (assessment) => {
+      const verdict = verdicts[assessment.verdict];
+      if (!verdict || verdict.mayActivate !== true) return false;
+      return (
+        verdict.requiresPermissionRecord !== true || Boolean(assessment.permissionRef)
+      );
+    };
+    const refusalIds = new Set(
+      (references.use?.refusals ?? []).map((refusal) => refusal.id),
+    );
+    if (refusalIds.size < 3)
+      throw new Error(
+        `${referencesFile} carries ${refusalIds.size} use.refusals, fewer than the 3 that explain why an entry is further reading rather than a source (a barred licence, an unread page, an unassessed licence). A narrowing with no sentence behind it is a narrowing nobody can explain to the person it applies to.`,
+      );
+    const jurisdictionIds = new Set(
+      (references.jurisdictions?.order ?? []).map((entry) => entry.id),
+    );
+    if (!jurisdictionIds.has("south-africa"))
+      throw new Error(
+        `${referencesFile}'s jurisdictions.order does not rank south-africa. SA-first ordering is the whole of that list, and a rank with no South Africa in it sorts a patient's references by somebody else's geography.`,
+      );
+    if (jurisdictionIds.size < 2)
+      throw new Error(
+        `${referencesFile} ranks ${jurisdictionIds.size} jurisdiction(s), so its SA-first ordering ranks nothing against anything.`,
+      );
+
+    /* Every host the federation has an opinion about, from both halves of it: an allowlisted source's
+       own hosts and an assessedNotAdmitted entry's hosts. One list, so a host barred in one half and
+       allowlisted in the other cannot be resolved by whichever half the check happened to read. */
+    const assessments = [];
+    for (const source of federation.sources ?? [])
+      for (const host of source.hosts ?? [])
+        assessments.push({
+          host,
+          where: `sources/${source.id}`,
+          verdict: source.licensing?.verdict,
+          permissionRef: source.licensing?.permissionRef,
+        });
+    for (const turned of federation.assessedNotAdmitted ?? [])
+      for (const host of turned.hosts ?? [])
+        assessments.push({
+          host,
+          where: `assessedNotAdmitted/${turned.id}`,
+          verdict: turned.verdict,
+          permissionRef: turned.licensing?.permissionRef,
+        });
+    if (assessments.length < 20)
+      throw new Error(
+        `scripts/check-boundaries.mjs resolved only ${assessments.length} host assessments out of ${knowledgeDir}/federation.json, so the cross-register check is comparing against almost nothing.`,
+      );
+
+    /* An assessment covers a host when it names it exactly or names a domain the host sits under:
+       gov.za covers health.gov.za. Never the reverse — a bar on knowledgehub.health.gov.za says
+       nothing about health.gov.za. */
+    const covers = (assessed, host) =>
+      host === assessed || host.endsWith(`.${assessed}`);
+
+    /* The assessment that governs a host: the most specific one, because that is the one whose
+       licence was actually read for that address. Ties break on the pointer so the answer is
+       deterministic rather than dependent on federation.json's own ordering. */
+    const governing = (host) => {
+      const hits = assessments
+        .filter((assessment) => covers(assessment.host, host))
+        .sort(
+          (a, b) =>
+            b.host.length - a.host.length || a.where.localeCompare(b.where),
+        );
+      /* No assessment covers it. The honest answer is federation.json's own starting point for every
+         source — not-assessed — which bars quotation until somebody records a verdict. A host
+         neither register has read is not a host this check gets to promote. */
+      return (
+        hits[0] ?? {
+          host: null,
+          where: "licenceVerdicts/not-assessed",
+          verdict: "not-assessed",
+        }
+      );
+    };
+
+    /* What each host in this register actually carries, so the duplication groups can be checked
+       against the entries rather than against a prose note. */
+    const hostToEntries = new Map();
+    for (const entry of entries)
+      hostToEntries.set(entry.host, [
+        ...(hostToEntries.get(entry.host) ?? []),
+        entry.id,
+      ]);
+
+    for (const entry of entries) {
+      const name = `${referencesFile} source "${entry.id}"`;
+      /* Host derived from the url, never trusted from the field: the field is what the duplication
+         groups and the federation comparison are keyed on, so a host that does not match its own url
+         is an entry governing one address while pointing a patient at another. */
+      let derived;
+      try {
+        derived = new URL(entry.url).hostname.replace(/^www\./, "");
+      } catch {
+        throw new Error(
+          `${name}: url "${entry.url}" is not a URL, so no host can be derived from it and nothing can be compared against ${knowledgeDir}/federation.json.`,
+        );
+      }
+      if (entry.host !== derived)
+        throw new Error(
+          `${name}: host "${entry.host}" is not the host of its own url "${entry.url}" (${derived}). The host is what the cross-register comparison is keyed on, so an entry that disagrees with itself is governed by one address and points a patient at another.`,
+        );
+
+      /* The vocabulary, held against the contract's own lists. */
+      const modes = Object.keys(references.use?.modes ?? {});
+      if (!modes.includes(entry.use))
+        throw new Error(
+          `${name}: use "${entry.use}" is not one of ${modes.join(", ")} — the axes this register asks are ${references.use?.modes ? "status, audience and use" : "unknown"}, and an entry on an axis nobody defined is an entry the scout fails closed on.`,
+        );
+      if (!jurisdictionIds.has(entry.jurisdiction))
+        throw new Error(
+          `${name}: jurisdiction "${entry.jurisdiction}" is not one of the ${[...jurisdictionIds].join(", ")} that ${referencesFile}'s own jurisdictions.order ranks, so SA-first ordering would place it by accident. Add the jurisdiction to the order — with the reasoning that puts it there — rather than leaving the entry unranked.`,
+        );
+      if (entry.use === "quotable" && entry.useRefusal)
+        throw new Error(
+          `${name}: use is quotable but it carries useRefusal "${entry.useRefusal}". A refusal explains a narrowing; on an entry that may be quoted it is a sentence that contradicts the axis beside it, and a surface that renders it would refuse what the register permits.`,
+        );
+      if (entry.use === "link-only") {
+        if (!refusalIds.has(entry.useRefusal))
+          throw new Error(
+            `${name}: use is link-only but useRefusal "${entry.useRefusal}" is not one of ${[...refusalIds].join(", ")} in ${referencesFile}'s use.refusals. A source offered as further reading rather than quoted owes the person a sentence saying why, and that sentence lives in the contract so all three platforms render it word for word.`,
+          );
+      }
+
+      /* THE CROSS-REGISTER ASSERTION. Resolve the federation assessment that actually governs this
+         host and require the entry to agree with it — on the verdict, and on the pointer that names
+         where the verdict was read. Both, because a right verdict with a wrong pointer is a claim
+         nobody can check, and a right pointer with a stale verdict is the contradiction this check
+         exists to end. */
+      const governs = governing(entry.host);
+      const expectedPointer = `${knowledgeDir}/federation.json#${governs.where}`;
+      if (entry.licenceAssessedIn !== expectedPointer)
+        throw new Error(
+          `${name}: licenceAssessedIn is "${entry.licenceAssessedIn}", but the assessment that governs ${entry.host} is ${knowledgeDir}/federation.json#${governs.where} — ${
+            governs.host === null
+              ? `no assessment in ${knowledgeDir}/federation.json names that host or any domain above it, so the honest pointer is the not-assessed verdict`
+              : `its most specific assessment is of "${governs.host}"`
+          }. A pointer to a different assessment is a claim about a licence nobody read for this address, and it is how this register came to approve a host federation.json had turned away.`,
+        );
+      if (entry.licenceVerdict !== governs.verdict)
+        throw new Error(
+          `${name}: licenceVerdict is "${entry.licenceVerdict}" but ${knowledgeDir}/federation.json#${governs.where} records "${governs.verdict}" for ${governs.host === null ? `an unassessed ${entry.host}` : entry.host}. The two registers are hand-maintained by the founder's decision of 6 October 2026, so this agreement is the only thing holding them together — read the assessment and correct this entry, never the other way round.`,
+        );
+      if (entry.use === "quotable" && !permitsQuotation(governs)) {
+        const reason =
+          governs.where.startsWith("assessedNotAdmitted/")
+            ? `${knowledgeDir}/federation.json assessed it and turned it away`
+            : governs.verdict === "permission-required"
+              ? `its verdict is permission-required, which permits use only once the owner's written permission is on file as a permissionRef on ${governs.where} — and none is, so copyright keeps it off, not an internal gate`
+              : `its verdict is ${governs.verdict}, whose mayActivate is not true`;
+        throw new Error(
+          `${name}: use is quotable, but ${reason}. Set use to "link-only" with a useRefusal from the contract's own use.refusals. That is a narrowing, and narrowing needs no version and no founder: a patient keeps the page as further reading, and MyThuso stops standing an answer on a publisher that does not permit it.`,
+        );
+      }
+    }
+
+    /* The duplication groups: recorded, because four hosts carry more than one entry and the founder
+       decided not to merge them (nicd and nicd-diseases-a-z carry different topics, so merging would
+       change what a patient is shown for "measles"). A group that names an entry the register does
+       not hold, or omits one it does, is a note about a duplication that no longer exists — and the
+       reason the entries stay apart is the only record of that decision. */
+    const groups = references.hosts?.entries ?? [];
+    const grouped = new Set();
+    for (const group of groups) {
+      const actual = hostToEntries.get(group.host) ?? [];
+      const declared = [...group.sharedBy].sort();
+      if (actual.length < 2)
+        throw new Error(
+          `${referencesFile} groups host "${group.host}" as shared by ${JSON.stringify(group.sharedBy)}, but only ${actual.length} entry in the register carries it. A duplication that has stopped being one is a group to delete, and leaving it says the register is more tangled than it is.`,
+        );
+      if (JSON.stringify(declared) !== JSON.stringify([...actual].sort()))
+        throw new Error(
+          `${referencesFile} groups host "${group.host}" as shared by ${JSON.stringify(declared)}, and the entries that carry it are ${JSON.stringify([...actual].sort())}. Record the duplication that exists: the reason two entries stay apart under one host is the only thing that stops a later reader merging them and changing what a patient is shown.`,
+        );
+      for (const id of group.sharedBy) grouped.add(id);
+      if (typeof group.why !== "string" || !group.why.trim())
+        throw new Error(
+          `${referencesFile} groups host "${group.host}" with no why. Two entries under one host look like an accident until something says they are not, and merging them is the obvious tidy-up that changes what a patient is shown for a topic.`,
+        );
+    }
+    /* And the reverse: a host genuinely shared by two or more entries is a group. */
+    for (const [host, ids] of hostToEntries)
+      if (ids.length > 1 && !groups.some((group) => group.host === host))
+        throw new Error(
+          `${referencesFile} carries ${ids.length} entries under host "${host}" (${ids.join(", ")}) and its hosts.entries lists no group for it. Make the duplication explicit: whether those entries may be merged is a decision somebody has to record, and an unrecorded duplication gets merged by whoever tidies next.`,
+        );
+
+    /* The scout must read the contract's ranking rather than restate it, or the order is two copies
+       and one of them will move. The invariant is narrow and deliberately so: the scout types no
+       jurisdiction id at all. It builds its rank map from jurisdictions.order and sorts on it, so
+       re-ordering SA-first is one reviewed edit in one file — and a jurisdiction id typed into the
+       scout is a second copy of that order, which is the drift the one-place rule exists to prevent. */
+    const scout = "apps/web/src/lib/gilbertone-reference-scout.ts";
+    const scoutCode = uncommented(read(scout));
+    if (!scoutCode.includes("references.jurisdictions.order"))
+      throw new Error(
+        `${scout} no longer builds its SA-first ranking from ${referencesFile}'s jurisdictions.order. The ranking lives in the contract as data so a change of order is one reviewed edit in one file; a rank written into the scout is a second copy that drifts, and the order is the whole of what SA-first means.`,
+      );
+    const typedJurisdiction = [...jurisdictionIds].find((id) =>
+      new RegExp(`["'\`]${id}["'\`]`).test(scoutCode),
+    );
+    if (typedJurisdiction)
+      throw new Error(
+        `${scout} types the jurisdiction id "${typedJurisdiction}". Every jurisdiction the register ranks is read from its jurisdictions.order, so a scout that names one is a second copy of the ordering — and the copy is the one that goes stale when the founder re-ranks.`,
+      );
+    if (!scoutCode.includes('=== "quotable"'))
+      throw new Error(
+        `${scout} no longer fails closed on the use axis. Only the exact string "quotable" may open quotation, so an entry nobody thought about — or a typo — arrives as further reading rather than as the source of a patient's answer.`,
+      );
+
+    const linkOnly = entries.filter((entry) => entry.use === "link-only").length;
+    console.log(
+      `Cross-register · ${entries.length} citation entries in ${referencesFile} agree with ${knowledgeDir}/federation.json: every host derived from its own url, every licenceVerdict resolved against the assessment that actually governs it (${groups.length} shared-host groups recorded with their reason, ${hostToEntries.size} distinct hosts), and ${entries.length - linkOnly} of them quotable against ${linkOnly} offered as further reading and never named as a source. A quotable entry on a host federation.json bars, or a verdict that disagrees with the pointer beside it, fails the build — the two registers are hand-maintained and this agreement is the only thing holding them together.`,
+    );
+  }
+
   /* 5. Governance's Knowledge sources screen proposes and never activates (1 October 2026). A pasted link
      is held in the screen's memory and nowhere else: neither the screen nor its lib may reach the
      network, open or link to what was pasted, and the screen's one handler withdraws a proposal. Every

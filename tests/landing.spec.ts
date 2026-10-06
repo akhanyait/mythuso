@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
 /* The landing page is the one screen a stranger reads before anybody explains anything, so what is
@@ -558,7 +558,26 @@ const stage = contract('hero').stage as {
   guideCard: { label: string; questions: { id: string; question: string }[] };
   impact: { coverage: string; planNote: string };
 };
-const publicGuide: { label: string; questions: { id: string; question: string }[] } = contract('assistant-public');
+const publicGuide: { label: string; refusal: string; questions: { id: string; question: string; linkLabel: string }[] } = contract('assistant-public');
+
+/* The public sheet is named for the guide once it is accepted, and "Before we start" until then: one
+   dialog element whose aria-labelledby moves from the gate's heading to the guide's title
+   (PublicAssistant.tsx:158). A sheet the guide has already answered therefore sits behind the gate,
+   and a test that waits for the GilbertOne-named dialog alone waits for a name the sheet does not
+   have yet. Both are asserted so a sheet that never leaves its gate fails here rather than passing
+   on the wrong element. */
+const guideIdentity: string = (contract('assistant') as { identity: { name: string } }).identity.name;
+async function openSheet(page: Page) {
+  const gate = page.getByRole('dialog', { name: 'Before we start' });
+  const sheet = page.getByRole('dialog', { name: guideIdentity });
+  await expect(gate.or(sheet)).toBeVisible();
+  if (await gate.isVisible()) {
+    await gate.getByRole('checkbox', { name: 'I understand' }).check();
+    await gate.getByRole('button', { name: 'Continue', exact: true }).click();
+  }
+  await expect(sheet).toBeVisible();
+  return sheet;
+}
 
 test('the hero’s GilbertOne card asks the guide’s own questions, and each opens the public sheet already asked', async ({ page }) => {
   const card = page.locator('.hero-guide');
@@ -575,11 +594,18 @@ test('the hero’s GilbertOne card asks the guide’s own questions, and each op
 
   const row = rows.nth(1);
   await row.click();
-  const sheet = page.getByRole('dialog', { name: 'GilbertOne' });
-  await expect(sheet).toBeVisible();
-  await expect(sheet.locator('ol > li')).toHaveCount(1);
-  await expect(sheet.locator('ol > li').first()).toHaveAttribute('data-outcome', 'faq');
-  await expect(sheet.locator('.public-assistant-question')).toContainText(stage.guideCard.questions[1].question);
+  const sheet = await openSheet(page);
+  await expect(sheet.locator('.go-turn')).toHaveCount(1);
+  /* Which question the sheet opened on, and that it was answered rather than refused. The quiet
+     redesign carries no data-outcome attribute, so both are read from the contract instead: the
+     question in her own words, and the answer's own link label — a refusal renders the guide's one
+     refusal sentence and no source link at all, so asserting the link label present and the refusal
+     absent is what tells the two apart. */
+  const asked = stage.guideCard.questions[1];
+  const guide = publicGuide.questions.find(g => g.id === asked.id)!;
+  await expect(sheet.locator('.go-said')).toContainText(asked.question);
+  await expect(sheet.locator('.go-answer')).toContainText(guide.linkLabel);
+  await expect(sheet.locator('.go-answer')).not.toContainText(publicGuide.refusal);
   /* Closing hands focus back to the row that opened it, not to the round button in the corner. */
   await page.keyboard.press('Escape');
   await expect(sheet).not.toBeVisible();
@@ -590,9 +616,10 @@ test('the guide card’s action opens the same public sheet, with nothing asked 
   const action = page.getByRole('button', { name: stage.guide.action, exact: true });
   await action.scrollIntoViewIfNeeded();
   await action.click();
-  const sheet = page.getByRole('dialog', { name: 'GilbertOne' });
-  await expect(sheet).toBeVisible();
-  await expect(sheet.locator('ol > li')).toHaveCount(0);
+  const sheet = await openSheet(page);
+  /* Nothing asked on her behalf: the sheet opens clean, so its one turn element — the guide's, not a
+     question of hers — is absent. Counted the same way the sheet's turns are counted above. */
+  await expect(sheet.locator('.go-turn')).toHaveCount(0);
   await page.keyboard.press('Escape');
   await expect(action).toBeFocused();
 });
