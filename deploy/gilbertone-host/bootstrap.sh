@@ -19,9 +19,14 @@
 # worse than the gap it closed.
 set -euo pipefail
 
-# The model this host serves. One tag, pinned: a moving tag is a model that changes under the same
-# name, and every answer's audit line must be able to say which model wrote it.
-QWEN_MODEL="${QWEN_MODEL:-qwen3:8b}"
+# The models this host is measured with. Tags with a size in them, never a bare "latest": a moving
+# tag is a model that changes under the same name, and every answer's audit line must be able to
+# say which model wrote it. Both are Apache-2.0 (read on their Hugging Face cards, 6 October 2026).
+#   qwen3.8:27b              — the newest Qwen, dense, 27B, ~18 GB. The founder asked for the latest.
+#   qwen3.6:35b-a3b-q4_K_M   — mixture-of-experts, 35B total but 3B active per word, ~24 GB. On a
+#                              CPU with no GPU it is expected to answer several times faster.
+# Both are pulled and timed; which one serves is chosen from the measured speed, not assumed.
+QWEN_MODELS="${QWEN_MODELS:-qwen3.8:27b qwen3.6:35b-a3b-q4_K_M}"
 # The Node floor the assistant runtime is built for (package.json "engines").
 NODE_MAJOR_FLOOR=22
 
@@ -110,17 +115,23 @@ systemctl restart ollama
 for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:11434/api/version >/dev/null 2>&1 && break; sleep 1; done
 curl -fsS http://127.0.0.1:11434/api/version || die "Ollama did not come up on 127.0.0.1:11434."
 
-say "Pulling ${QWEN_MODEL}"
-ollama pull "$QWEN_MODEL"
-digest="$(curl -fsS http://127.0.0.1:11434/api/tags | jq -r --arg m "$QWEN_MODEL" '.models[] | select(.name==$m) | .digest')"
-
-say "Measuring speed on this CPU"
-# A short, harmless, non-clinical prompt. The number that matters is tokens per second while
-# answering, measured here rather than assumed.
-result="$(curl -fsS http://127.0.0.1:11434/api/generate -d "$(jq -n --arg m "$QWEN_MODEL" \
-  '{model:$m, stream:false, prompt:"In two sentences, explain why drinking water matters on a hot day.", options:{num_ctx:4096}}')")"
-tps="$(printf '%s' "$result" | jq -r '(.eval_count / (.eval_duration / 1e9)) * 100 | floor / 100')"
-load_s="$(printf '%s' "$result" | jq -r '(.load_duration / 1e9) * 10 | floor / 10')"
+say "Pulling and timing: ${QWEN_MODELS}"
+# A short, harmless, non-clinical prompt, with thinking off so the figure is the speed of an answer
+# rather than of a hidden reasoning trace. Tokens per second while answering is what a patient waits
+# on; it is measured here, on this CPU, rather than taken from a benchmark.
+measured=""
+for model in $QWEN_MODELS; do
+  ollama pull "$model"
+  digest="$(curl -fsS http://127.0.0.1:11434/api/tags | jq -r --arg m "$model" '.models[] | select(.name==$m) | .digest')"
+  result="$(curl -fsS --max-time 900 http://127.0.0.1:11434/api/generate -d "$(jq -n --arg m "$model" \
+    '{model:$m, stream:false, think:false, prompt:"In two sentences, explain why drinking water matters on a hot day.", options:{num_ctx:4096}}')")" || result='{}'
+  tps="$(printf '%s' "$result" | jq -r 'if .eval_count then ((.eval_count / (.eval_duration / 1e9)) * 100 | floor / 100) else "failed" end')"
+  load_s="$(printf '%s' "$result" | jq -r 'if .load_duration then ((.load_duration / 1e9) * 10 | floor / 10) else "-" end')"
+  measured="${measured}model: ${model}
+  digest: ${digest}
+  speed: ${tps} tokens/second (first load ${load_s}s)
+"
+done
 
 mkdir -p /etc/mythuso
 cat > /etc/mythuso/gilbertone-host.txt <<EOF
@@ -129,10 +140,7 @@ bootstrapped: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 os: ${PRETTY_NAME}
 cpus: $(nproc)
 memory: $(free -g | awk '/^Mem:/ {print $2}') GB
-model: ${QWEN_MODEL}
-model digest: ${digest}
-speed: ${tps} tokens/second (first load ${load_s}s)
-nested virtualisation (needed for Lima): $( [ -e /dev/kvm ] && echo available || echo not available )
+${measured}nested virtualisation (needed for Lima): $( [ -e /dev/kvm ] && echo available || echo not available )
 EOF
 
 say "Done"

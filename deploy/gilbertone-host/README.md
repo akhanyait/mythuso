@@ -16,8 +16,9 @@ It is run once, by hand, on the new server. It:
 - turns off SSH password login **only** when a key is already installed for the account that ran it,
   so it cannot lock its operator out;
 - installs Ollama bound to `127.0.0.1:11434`, one answer at a time;
-- pulls one pinned Qwen model (`QWEN_MODEL`, default `qwen3:8b`) and records its digest;
-- measures tokens per second on this CPU and writes what it found to `/etc/mythuso/gilbertone-host.txt`,
+- pulls two pinned Qwen models and records each digest: `qwen3.8:27b`, the newest Qwen (dense, about 18 GB),
+  and `qwen3.6:35b-a3b-q4_K_M` (mixture-of-experts, 3B active, about 24 GB), both Apache-2.0 (`QWEN_MODELS` overrides);
+- measures each one's tokens per second on this CPU, with thinking off, and writes what it found to `/etc/mythuso/gilbertone-host.txt`,
   including whether nested virtualisation (`/dev/kvm`, which Lima needs) is available.
 
 It does **not** install the assistant service, open a public port, configure TLS, or touch
@@ -34,7 +35,11 @@ sudo bash bootstrap.sh
 ```
 
 Add your SSH key first (`ssh-copy-id <user>@<server>`) so the script can switch password login off.
-The model download is several gigabytes; the whole run takes a while.
+The two models are about 42 GB together, roughly an hour to download on the 100 Mbps port.
+Whichever answers fast enough on this CPU becomes the main model; the other is removed with `ollama rm`.
+
+Both are "thinking" models. Before the chat tier uses one, the orchestrator must ask for answers
+without the reasoning trace, or a patient waits for text they never see.
 
 ## What has to be true before the assistant moves here
 
