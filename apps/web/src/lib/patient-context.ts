@@ -115,7 +115,7 @@ export const messageUsesRecord = (text: string) => CLINICAL.test(text) && !BARE_
    list cannot place goes to the reviewed unmatched answer and the safety-checked service, so
    no unreviewed health advice is written into this file. Emergencies and refusals stay on the
    deterministic path. Passport, results, notes, and vitals are not read until a one-fact tool exists. */
-export function prefersLocalConversation(text: string, replyKind: string): boolean {
+export function prefersLocalConversation(_text: string, replyKind: string): boolean {
   /* Bare greetings stay on answers.greeting in the contract. The quiet-panel local sentence
      was replacing that path and failing the greeting journey. Emergencies and refusals never
      come through here either. */

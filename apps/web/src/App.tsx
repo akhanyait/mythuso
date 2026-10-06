@@ -103,6 +103,7 @@ const PatientDevicesPage = lazy(() => import('./features/PatientDevices').then(m
 const PatientMessagesPage = lazy(() => import('./features/PatientMessages').then(m => ({ default: m.PatientMessages })));
 const PatientResultsPage = lazy(() => import('./features/PatientResults').then(m => ({ default: m.PatientResults })));
 const PatientConsultationPage = lazy(() => import('./features/PatientConsultation').then(m => ({ default: m.PatientConsultation })));
+const VideoConsultDemoPage = lazy(() => import('./features/VideoConsultDemo').then(m => ({ default: m.VideoConsultDemo })));
 import { patientScreenNames, patientScreenOpenings, patientScreenRoutes } from './lib/patient-screens-routes';
 /* The icon family's gallery, at `?open=icons`, in development builds only: every icon of
    packages/catalog/icons.json at two sizes with its signal pulsing, so the family can be looked at and
@@ -306,6 +307,7 @@ function PatientApp({ locale, setLocale }: { locale: LocaleCode; setLocale: (l: 
               : page === patientScreenRoutes.messages.opens ? <Suspense fallback={patientScreenLoading}><PatientMessagesPage rows={rows} threads={threads} onThread={(id, next) => setThreads(held => ({ ...held, [id]: next }))} view={setViewing} navigate={navigate}/></Suspense>
               : page === patientScreenRoutes.results.opens ? <Suspense fallback={patientScreenLoading}><PatientResultsPage navigate={navigate} open={setModal}/></Suspense>
               : page === patientScreenRoutes.consultation.opens ? <Suspense fallback={patientScreenLoading}><PatientConsultationPage navigate={navigate}/></Suspense>
+              : page === patientScreenRoutes.videoConsult.opens ? <Suspense fallback={patientScreenLoading}><VideoConsultDemoPage navigate={navigate}/></Suspense>
               : patientPageNames.includes(page) ? <Suspense fallback={loadingNotice(patientPageOpenings[page])}><PatientPagesView page={page} navigate={navigate} open={setModal} book={setBooking} entries={wellbeing}/></Suspense>
                : <MoreHub navigate={navigate} open={setModal} onSignOut={signOut}/>}
   </PatientShell>
