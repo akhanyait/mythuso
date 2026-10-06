@@ -40,8 +40,9 @@ const onScreen = (sentence: string) => new RegExp(sentence.replace(/[.*+?^${}()|
 test('every reading explains itself in the contract’s own words, and says who wrote them', async ({ page }) => {
   await page.goto('/app/');
   await navigate(page, 'Health Passport');
-  /* Under Vitals since the Passport took the export's tabs (30 September 2026). */
-  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Vitals' }).click();
+  /* The Passport's Vitals tab is Preview-empty since 5 October 2026; the Records tab keeps the door
+     to these written explanations, being the one part of the passport that does not need a record. */
+  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Records' }).click();
   await page.getByRole('button', { name: /What these readings mean/ }).click();
   await expect(page.getByRole('heading', { name: 'What your readings mean.' })).toBeVisible();
 

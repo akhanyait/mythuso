@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { noticeFor } from './notices';
+import { goSection } from './nav';
 import { readFileSync } from 'node:fs';
 /* The five patient screens that were left behind when the home was rebuilt.
  *
@@ -131,20 +132,23 @@ test('the wallet activity list carries the shared error state, and says no money
 
 /* The Medications tab said "No active prescriptions" beside a prescription screen counting the repeats left
    on a chronic authorisation — two accounts of one patient's medicines. Since 30 September 2026 it draws the
-   authorisation and the prescription dispensing.json holds, so this asserts those, read from the contract. */
+   authorisation and the prescription dispensing.json holds, so this asserts those, read from the contract.
+   Since 5 October the tab is Preview-empty, and the one account of a patient's medicines is the
+   prescription's own page, which draws the same AuthorisationLead and PrescriptionItems. */
 const dispensingContract = JSON.parse(readFileSync(new URL('../packages/catalog/dispensing.json', import.meta.url), 'utf8'));
 test('the passport reads its medicines from the dispensing contract, and keeps review status on documents', async ({ page }) => {
   await page.goto('/app/');
-  await navigate(page, 'Health Passport');
-  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Medications' }).click();
-  await expect(page.getByText(`${dispensingContract.authorisation.reference} · authorised`)).toBeVisible();
-  await expect(page.getByRole('heading', { name: `Prescription ${dispensingContract.prescription.reference}` })).toBeVisible();
-  await expect(page.locator('.hp-row')).toHaveCount(dispensingContract.prescription.items.length);
+  await goSection(page, 'What happens to a prescription');
+  const rxPanel = page.locator('#rx-panel');
+  await expect(rxPanel.getByText(`${dispensingContract.authorisation.reference} · authorised`)).toBeVisible();
+  await expect(rxPanel.getByRole('heading', { name: `Prescription ${dispensingContract.prescription.reference}` })).toBeVisible();
+  await expect(rxPanel.locator('.hp-row')).toHaveCount(dispensingContract.prescription.items.length);
   await expect(page.getByRole('heading', { name: 'No active prescriptions' })).toHaveCount(0);
   await page.getByRole('button', { name: 'See how a prescription reads' }).click();
   await expect(page.getByRole('dialog').getByRole('heading', { name: 'Prescription' })).toBeVisible();
   await page.getByRole('button', { name: 'Close dialog' }).click();
 
+  await goSection(page, 'Health Passport');
   await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Records' }).click();
   const lab = page.locator('.record-row').filter({ hasText: 'Laboratory results' });
   await expect(lab).toContainText('Doctor reviewed');

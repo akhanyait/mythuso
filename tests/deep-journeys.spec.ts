@@ -250,9 +250,9 @@ test('a doctor whose registration has lapsed cannot sign, and is told which chec
 });
 test('every clinical chart is also available as a table', async ({ page }) => {
   await page.goto('/app/');
-  await navigate(page, 'Health Passport');
-  /* The charts are the Passport's Vitals tab since the tabbed health home of 30 September 2026. */
-  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Vitals' }).click();
+  /* The Passport's Vitals tab is Preview-empty since 5 October 2026, so the charts this journey is
+     about are the trends screen's own — the same reading sets, drawn against the same ranges. */
+  await goSection(page, 'Health trends');
   const chart = page.locator('.chart-card').filter({ hasText: 'Blood pressure' }).first();
   /* The date is not pinned any more. These readings were four literal arrays typed into the passport
      and dated "12 Aug" through "4 Sep" — labels that were right the week they were written; they are
@@ -290,8 +290,9 @@ test('new surfaces do not overflow the viewport or throw', async ({ page }, test
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('/app/');
-  await navigate(page, 'Health Passport');
-  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Vitals' }).click();
+  /* Vitals is Preview-empty since 5 October 2026; the charts this surface sweep measures are the
+     trends screen's, which is what a patient reaches for their readings now. */
+  await goSection(page, 'Health trends');
   await expect(page.locator('.chart-card').first()).toBeVisible();
   await page.screenshot({ path: `test-results/passport-charts-${testInfo.project.name}.png` });
   await switchRole(page, 'Control Tower');

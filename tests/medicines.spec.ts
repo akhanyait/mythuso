@@ -63,9 +63,10 @@ test('prescribed against a check that was not run, verified and dispensed, autho
   await closeDialog(page);
 
   await chooseRole(page, 'Patient');
-  await goSection(page, 'Health Passport');
-  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Medications' }).click();
-  await page.getByRole('button', { name: /What happens after a doctor signs one/ }).click();
+  /* The Passport's Medications tab is Preview-empty since 5 October 2026, so the patient's side of
+     this journey starts on the prescription's own page — which is where that tab's button went, and
+     where the authorisation to collect is still the patient's to give. */
+  await goSection(page, 'What happens to a prescription');
   await page.getByRole('button', { name: capabilityOf('medicine-collection').name }).click();
   dialog = page.getByRole('dialog');
   await expect(dialog.getByRole('heading', { name: words.authorise.heading })).toBeVisible();

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { noticeFor } from './notices';
+import { goSection } from './nav';
 
 /* Five screens the walked-journey audit found no door to.
  *
@@ -106,11 +107,9 @@ test('cancelling a visit records the reason and the side of the window it was on
 
 test('the trends screen draws every reading against the range the contract holds it to', async ({ page }) => {
   await page.goto('/app/');
-  await navigate(page, 'Health Passport');
-  /* The trend charts are the Passport's Vitals tab since it took the export's tabs (30 September 2026), and
-     the whole trends screen is the tab's own door. */
-  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Vitals' }).click();
-  await page.getByRole('button', { name: 'Every reading, as charts and tables' }).click();
+  /* The Passport's Vitals tab is Preview-empty since 5 October 2026, so the door to the whole trends
+     screen is the shell's own row rather than a button on a tab that holds nothing yet. */
+  await goSection(page, 'Health trends');
   await expect(page.getByRole('heading', { name: 'How your readings have changed.' })).toBeVisible();
   await expect(page.getByText(noticeFor('clinical-records'), { exact: false })).toBeVisible();
 
@@ -213,8 +212,9 @@ test('a preselected patient does not outlive the journey that set it', async ({ 
 test('the passport explains a measurement, refuses to diagnose, and says who decides', async ({ page }) => {
   await page.goto('/app/');
   await navigate(page, 'Health Passport');
-  /* Under Vitals since the Passport took the export's tabs (30 September 2026). */
-  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Vitals' }).click();
+  /* The Passport's Vitals tab is Preview-empty since 5 October 2026, and the door to this screen is
+     the Records tab's own shortcut — the one record door that does not depend on a stored reading. */
+  await page.getByRole('tablist', { name: 'Passport sections' }).getByRole('tab', { name: 'Records' }).click();
   await page.getByRole('button', { name: /What these readings mean/ }).click();
   await expect(page.getByRole('heading', { name: 'What your readings mean.' })).toBeVisible();
   /* The screening capability's own notice, above everything, because this is where screening will

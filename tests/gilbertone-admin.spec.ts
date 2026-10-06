@@ -429,6 +429,11 @@ test.describe('each sub-screen shows what it holds, and acts on nothing', () => 
   }
   const sheet = page.getByRole('dialog', { name: gilbert.identity.name });
   await expect(sheet).toBeVisible();
+  /* The door's own two boxes stand before the composer, so the patient's side of this journey walks
+     the same way in as assistant.spec.ts does. Skipping it was a wait for a field the gate replaces. */
+  await sheet.getByRole('checkbox', { name: gilbert.consent.checkboxDoctor }).check();
+  await sheet.getByRole('checkbox', { name: gilbert.consent.checkboxEmergency }).check();
+  await sheet.getByRole('button', { name: gilbert.consent.accept }).click();
   const ask = async (words: string) => {
    await sheet.getByLabel(gilbert.conversation.inputLabel).fill(words);
    await sheet.getByRole('button', { name: gilbert.conversation.sendLabel, exact: true }).click();
