@@ -57,6 +57,10 @@ import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { IconButton } from "../ui/IconButton";
 import { crisisLines, showsCrisisLines } from "../lib/crisis-lines";
+/* The booking door's label, read rather than typed. i18n.ts is already on the patient's first load —
+   App.tsx imports it statically for the shell's own rows — so this pulls the locales contract into a
+   chunk that has always carried it and costs the entry nothing. */
+import { useT } from "../lib/i18n";
 import {
   referencesUsedFor,
   referenceWords,
@@ -1865,6 +1869,10 @@ function ReplyBody({
 }: ReplyProps) {
   const { sos: allowSos, handover: allowHandover } =
     audienceOf(audience).actions;
+  /* The booking door's label. Read once at the top of the body rather than at the door itself, because
+     every branch below returns early and a hook called inside one of them would be called only on the
+     turns that reach it. */
+  const t = useT();
   switch (reply.kind) {
     case "situation":
       return <p>{reply.situation.sentence}</p>;
@@ -2268,8 +2276,14 @@ function ReplyBody({
           <p>{reply.state?.stopped ? w.answer.stop.stopped : w.answer.closing}</p>
           {navigate && (
             <div className="as-actions">
+              {/* The door into the booking section, wearing the navigation's own label for it rather than a
+                  sentence typed here — the same derivation Dashboard.tsx uses for its button into the same
+                  section, out of the one key in packages/catalog/locales.json that holds it. The route name
+                  stays a literal because it is an address App.tsx matches on, not copy: only the words the
+                  reader sees follow her language. tests/symptom-intake.spec.ts derives its expectation from
+                  that key, so a reworded section name moves the test instead of failing it. */}
               <Button variant="primary" className="as-go" onClick={() => navigate("Book a nurse")}>
-                Book a nurse
+                {t("nav.Book a nurse")}
               </Button>
             </div>
           )}

@@ -81,7 +81,14 @@ export const PATIENT_SURFACE = 'patient-surface';
    The third element is the hub's one line under the name, which a phone has the width for and the
    sidebar does not; the sidebar never draws it. It says what the screen is, never what it promises, and
    it must not contain another row's name: the hub is searched by a row's words (tests/nav.ts), and a line
-   that names a later row answers for it. tests/patient-shell.spec.ts fails if one does. */
+   that names a later row answers for it. tests/patient-shell.spec.ts fails if one does.
+
+   "Another row's name" means every row in this table, including the ones a phone no longer sees here.
+   Since 5 October 2026 the More hub folds My Health, Wellness and Devices into its one Explore MyThuso
+   row and draws them on the Explore page instead (Pages.tsx#EXPLORE_FOLDED), and goSection searches the
+   hub before it opens Explore — so a folded row is still answered for by a line in a group it is not
+   in. That is what happened: the wallet's line said "activity", Activity is in Wellness, and on a phone
+   the wallet opened when a journey asked for Activity. A folded row is out of sight, not out of reach. */
 type NavRow = readonly [string, ComponentType, string?];
 export const navGroups: { id: string; label?: string; rows: NavRow[] }[] = [
  { id: 'overview', rows: [['Overview', MyThusoDashboardIcon]] },
@@ -118,7 +125,9 @@ export const navGroups: { id: string; label?: string; rows: NavRow[] }[] = [
   ['Care you sponsor', HandCoins, 'What has been used, and what it cost']
  ] },
  { id: 'account', label: 'Account', rows: [
-  ['Thuso Wallet', CreditCard, 'Balance, activity and sponsored care'], ['Privacy & settings', MyThusoSettingsIcon, 'Your data and app preferences'],
+  /* "What has moved" and not "activity": the wallet's own ledger says it, and the word "activity"
+     answered for the Activity row in Wellness on a phone, where the two are not in one hub. */
+  ['Thuso Wallet', CreditCard, 'Balance, what has moved and sponsored care'], ['Privacy & settings', MyThusoSettingsIcon, 'Your data and app preferences'],
   /* Counted from locales.json: its spoken locales, and South African Sign Language, which the contract
      holds apart because it is the twelfth official language and not a language the interface is set in. */
   ['Language & access', Languages, `${locales.length + (signLanguage ? 1 : 0)} official languages, and what is honestly offered in each`],

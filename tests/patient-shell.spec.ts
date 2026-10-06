@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { goSection, PATIENT_TAB_LABEL } from './nav';
+import { goExplore, goSection, PATIENT_TAB_LABEL } from './nav';
 
 /* The patient's shell in the Lovable export's arrangement (30 September 2026): the sidebar's labelled groups
  * that fold, the top bar's search and profile chip, Log out at the sidebar's foot, the footer's Privacy, and
@@ -177,11 +177,31 @@ test('the More hub on a phone is the sidebar\'s groups and rows, less the tabs',
 
  /* Every row is the first one its own name finds, the way tests/nav.ts#goSection looks for it — a line under
     an earlier row that named a later one would answer for it. Matched as Playwright's hasText matches: case
-    folded, whitespace collapsed, anywhere in the row. */
- const shadowed = await page.evaluate(names => {
-  const rows = [...document.querySelectorAll('main .menu-row')];
-  const text = (el: Element) => (el.textContent ?? '').replace(/\s+/g, ' ').toLowerCase();
-  return names.filter(name => rows.find(row => text(row).includes(name.toLowerCase()))?.querySelector('strong')?.textContent !== name);
- }, expected.flatMap(group => group.rows));
- expect(shadowed).toEqual([]);
+    folded, whitespace collapsed, anywhere in the row.
+
+    Swept against *every* row in the sidebar's table, not only the ones the hub draws, because a folded row
+    is out of sight and not out of reach: goSection searches the hub first and only opens Explore when the
+    hub has no row for the name, so a hub sub-line naming a folded row answers for it and the journey never
+    gets as far as Explore. That is exactly how the wallet shipped answering for Activity — 6deb4a0f folded
+    Wellness (and so Activity) out of the hub into Explore on 5 October 2026, moving it past the reach of a
+    sweep that only listed the hub's own rows, and the wallet's "Balance, activity and sponsored care" was
+    left standing in for it. A name no row in this surface mentions is not shadowed here, so it is swept
+    again on the Explore page below rather than counted as a miss. */
+ const shadowedIn = async (names: string[]) => page.evaluate(list => {
+  const rows = [...document.querySelectorAll('main .menu-row')].map(row => ({
+   text: (row.textContent ?? '').replace(/\s+/g, ' ').toLowerCase(),
+   name: row.querySelector('strong')?.textContent ?? ''
+  }));
+  return list.filter(name => {
+   const found = rows.find(row => row.text.includes(name.toLowerCase()));
+   return found !== undefined && found.name !== name;
+  });
+ }, names);
+ const everyRow = sidebarMap.flatMap(group => group.rows);
+ expect(await shadowedIn(everyRow)).toEqual([]);
+
+ /* And the second surface: the Explore page is where the folded groups are drawn, and goSection searches it
+    the same way, so a line there that names a sibling is the same defect one step further in. */
+ await goExplore(page);
+ expect(await shadowedIn(everyRow)).toEqual([]);
 });
