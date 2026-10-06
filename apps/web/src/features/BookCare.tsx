@@ -104,7 +104,7 @@ type OptionProps = {
 
 function Option({ name, value, checked, onSelect, icon: Icon, title, detail, badge }: OptionProps) {
  return <label className="bc-card">
-  <input className="visually-hidden" type="radio" name={name} value={value} checked={checked} aria-checked={checked} onChange={onSelect}/>
+  <input type="radio" name={name} value={value} checked={checked} aria-checked={checked} onChange={onSelect}/>
   <span className="bc-card__icon" aria-hidden="true"><Icon size={26} strokeWidth={1.75}/></span>
   <span className="bc-card__copy">
    <span className="bc-card__title">{title}</span>
@@ -201,7 +201,7 @@ export function BookCare({ navigate }: { navigate: (page: string) => void }) {
    </div>
    {who === 'other' && <div role="radiogroup" aria-label="Someone you care for" className="bc-people">
     {caredFor.map(person => <label key={person.id} className="bc-person">
-     <input className="visually-hidden" type="radio" name="bc-person" value={person.id} checked={otherId === person.id} aria-checked={otherId === person.id} onChange={() => setOtherId(person.id)}/>
+     <input type="radio" name="bc-person" value={person.id} checked={otherId === person.id} aria-checked={otherId === person.id} onChange={() => setOtherId(person.id)}/>
      <span className="bc-person__name">{person.name}</span>
      <Badge size="sm" variant="neutral">Demo data</Badge>
     </label>)}

@@ -27,7 +27,7 @@ test('six steps, one question each, then a simulated confirmation', async ({ pag
  const homeVisit = main.getByRole('radio', { name: /Home visit/ });
  await homeVisit.check();
  await expect(homeVisit).toHaveAttribute('aria-checked', 'true');
- await expect(main.locator('.bc-card').filter({ has: homeVisit }).locator('.bc-check')).toBeVisible();
+ await expect(main.locator('.bc-card', { hasText: 'Home visit' }).locator('.bc-check')).toBeVisible();
  await main.getByRole('button', { name: 'Next' }).click();
 
  await expect(main.getByRole('heading', { name: 'When suits you?' })).toBeVisible();
