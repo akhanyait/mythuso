@@ -29,9 +29,14 @@ test('every icon renders at 24 and 48 px with its elements and the signal dot, p
    const svg = svgs.nth(i);
    await expect(svg).toBeVisible();
    await expect(svg).toHaveAttribute('aria-label', `${icon.name}, ${size} pixels`);
+   /* Mobile emulation quantises an inline svg's laid-out height by one 32768th of a pixel — 23.999969482421875
+      for a 24, intermittently, while desktop measures the same DOM exactly and getBoundingClientRect reads it
+      back exactly on the phone. The four standard sizes below are read rounded for the same reason. Half a
+      pixel is the tolerance, which is far tighter than the 24-pixel gap between the two sizes the contract
+      draws, so an icon wearing the wrong one still fails here rather than hiding behind the rounding. */
    const box = await svg.boundingBox();
-   expect(box?.width).toBe(size);
-   expect(box?.height).toBe(size);
+   expect(box?.width).toBeCloseTo(size, 0);
+   expect(box?.height).toBeCloseTo(size, 0);
    /* Every element the contract draws, plus the one signal dot. */
    expect(await svg.locator('path, rect, circle').count()).toBe(icon.elements.length + 1);
    await expect(svg.locator(`.${contract.signal.className}`)).toHaveCount(1);
