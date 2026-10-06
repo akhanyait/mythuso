@@ -11,6 +11,9 @@ export const patientScreenRoutes = {
  messages: { opens: 'Messages', opening: 'Opening your messages.' },
  results: { opens: 'Test results', opening: 'Opening your test results.' },
  consultation: { opens: 'Online consultation', opening: 'Opening the consultation.' },
+ /* The Wednesday demo's six questions. Named once so the home button, `?open=book-care` and the
+    screen cannot disagree. Not a sidebar row: the home is the only door in. */
+ bookCare: { opens: 'Book care', opening: 'Opening Book care.' },
 } as const;
 
 export const patientScreenNames: string[] = Object.values(patientScreenRoutes).map(route => route.opens);
