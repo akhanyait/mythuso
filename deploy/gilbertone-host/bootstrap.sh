@@ -8,10 +8,11 @@
 # WHY A SEPARATE HOST. docs/ROADMAP.md puts Ollama, Qdrant, Whisper, Piper and Medplum on "a new,
 # isolated server of their own. Never liqzar-server", and docs/governance/DATA-RESIDENCY-OPTIONS.md
 # §2 says why: five unrelated sites share root there. This script is the first step of that server
-# and nothing more. It hardens the box, installs Ollama bound to loopback, pulls one pinned Qwen
-# model, and measures how fast it answers on this CPU. It does not install the assistant service,
-# does not open a public port, and does not carry patient data — moving the chat tier here is a
-# production change, done later and by hand, once the residency decision is signed.
+# and nothing more. It hardens the box, installs Ollama bound to loopback, pulls the pinned Qwen
+# models onto the 1 TB data disk, and measures how fast they answer on this CPU. It does not
+# install the assistant service, does not open a public port, and does not carry patient data —
+# moving the chat tier here is a production change, done later and by hand, once the residency
+# decision is signed.
 #
 # WHAT IT REFUSES. It stops if it finds a co-tenant's nginx site (it is not on liqzar-server), if
 # the OS is not Ubuntu, and it never turns off SSH password login unless a key is already
@@ -99,9 +100,71 @@ if ! command -v ollama >/dev/null; then
   curl -fsSL https://ollama.com/install.sh -o /root/ollama-install.sh
   sh /root/ollama-install.sh
 fi
+say "The 1 TB data disk, for models and later the search index"
+# The order added a 1 TB SSD beside the 500 GB system disk. Models and indexes live there so the
+# system disk keeps room for the OS and its logs. A disk is formatted ONLY when it is blank — no
+# partitions, no filesystem signature, not mounted — and only when exactly one such disk of at
+# least 900 GB exists. Anything else is reported and left alone: wiping the wrong disk is the one
+# mistake this script cannot take back. GILBERTONE_DISK=/dev/xxx names the disk explicitly.
+DATA_MOUNT=/srv/gilbertone
+data_disk="${GILBERTONE_DISK:-}"
+if mountpoint -q "$DATA_MOUNT"; then
+  echo "Already mounted: $(findmnt -no SOURCE "$DATA_MOUNT") on ${DATA_MOUNT}."
+else
+  if [ -z "$data_disk" ]; then
+    labelled="$(blkid -L gilbertone-data 2>/dev/null || true)"
+    if [ -n "$labelled" ]; then
+      data_disk="$labelled"
+    else
+      blank=""
+      while read -r name size type; do
+        [ "$type" = "disk" ] || continue
+        [ "$size" -ge 900000000000 ] || continue
+        [ "$(lsblk -no NAME "$name" | wc -l)" -eq 1 ] || continue   # has partitions
+        [ -z "$(lsblk -no MOUNTPOINTS "$name" | tr -d '[:space:]')" ] || continue
+        [ -z "$(wipefs -n "$name" 2>/dev/null | tail -n +2)" ] || continue   # has a signature
+        blank="${blank}${name} "
+      done < <(lsblk -dbpno NAME,SIZE,TYPE)
+      set -- $blank
+      if [ "$#" -eq 1 ]; then data_disk="$1"; fi
+      if [ "$#" -gt 1 ]; then
+        echo "WARNING: more than one blank large disk (${blank}). Name one with GILBERTONE_DISK=/dev/... and run again."
+      fi
+    fi
+  fi
+  if [ -n "$data_disk" ]; then
+    if [ -z "$(blkid -o value -s TYPE "$data_disk" 2>/dev/null)" ]; then
+      [ -z "$(wipefs -n "$data_disk" 2>/dev/null | tail -n +2)" ] || die "${data_disk} is not blank. Nothing was formatted."
+      echo "Formatting blank disk ${data_disk} ($(lsblk -dno SIZE "$data_disk")) as ext4, label gilbertone-data."
+      mkfs.ext4 -q -L gilbertone-data "$data_disk"
+    fi
+    mkdir -p "$DATA_MOUNT"
+    uuid="$(blkid -o value -s UUID "$data_disk")"
+    grep -q "$uuid" /etc/fstab || echo "UUID=${uuid} ${DATA_MOUNT} ext4 defaults,noatime,nofail 0 2" >> /etc/fstab
+    systemctl daemon-reload
+    mount "$DATA_MOUNT"
+    echo "Mounted ${data_disk} on ${DATA_MOUNT}: $(df -h --output=avail "$DATA_MOUNT" | tail -1 | tr -d ' ') free."
+  else
+    echo "WARNING: no separate blank 1 TB disk found, so models go on the system disk."
+    echo "         If the host added the 1 TB to the system disk instead, lsblk below shows it;"
+    echo "         send that back and the partition can be grown by hand."
+    lsblk
+  fi
+fi
+
+if mountpoint -q "$DATA_MOUNT"; then
+  model_dir="${DATA_MOUNT}/ollama/models"
+else
+  model_dir="/usr/share/ollama/.ollama/models"
+fi
+mkdir -p "$model_dir"
+chown -R ollama:ollama "$(dirname "$model_dir")"
+
 mkdir -p /etc/systemd/system/ollama.service.d
-cat > /etc/systemd/system/ollama.service.d/10-mythuso.conf <<'EOF'
+cat > /etc/systemd/system/ollama.service.d/10-mythuso.conf <<EOF
 [Service]
+# Models on the data disk when there is one.
+Environment=OLLAMA_MODELS=${model_dir}
 # Loopback only: the firewall would refuse it anyway, and two locks are the point.
 Environment=OLLAMA_HOST=127.0.0.1:11434
 # One answer at a time uses the CPU well; a second would halve both.
@@ -109,6 +172,10 @@ Environment=OLLAMA_NUM_PARALLEL=1
 Environment=OLLAMA_MAX_LOADED_MODELS=1
 Environment=OLLAMA_KEEP_ALIVE=24h
 EOF
+# If the data disk failed to mount at boot, Ollama must not start and quietly fill the system disk.
+if mountpoint -q "$DATA_MOUNT"; then
+  printf '[Unit]\nRequiresMountsFor=%s\n' "$DATA_MOUNT" >> /etc/systemd/system/ollama.service.d/10-mythuso.conf
+fi
 systemctl daemon-reload
 systemctl enable --now ollama
 systemctl restart ollama
@@ -140,6 +207,7 @@ bootstrapped: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 os: ${PRETTY_NAME}
 cpus: $(nproc)
 memory: $(free -g | awk '/^Mem:/ {print $2}') GB
+models stored in: ${model_dir} ($(df -h --output=avail "$model_dir" | tail -1 | tr -d ' ') free)
 ${measured}nested virtualisation (needed for Lima): $( [ -e /dev/kvm ] && echo available || echo not available )
 EOF
 

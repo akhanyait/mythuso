@@ -15,7 +15,11 @@ It is run once, by hand, on the new server. It:
 - turns on automatic security updates, a firewall that admits SSH and nothing else, and fail2ban;
 - turns off SSH password login **only** when a key is already installed for the account that ran it,
   so it cannot lock its operator out;
-- installs Ollama bound to `127.0.0.1:11434`, one answer at a time;
+- formats and mounts the 1 TB data disk at `/srv/gilbertone` **only if it is blank** (no partitions, no
+  filesystem), and keeps the models there; a disk that is not blank is reported and never touched, and
+  `GILBERTONE_DISK=/dev/…` names the disk when there is any doubt;
+- installs Ollama bound to `127.0.0.1:11434`, one answer at a time, refusing to start if the data disk
+  did not mount;
 - pulls two pinned Qwen models and records each digest: `qwen3.8:27b`, the newest Qwen (dense, about 18 GB),
   and `qwen3.6:35b-a3b-q4_K_M` (mixture-of-experts, 3B active, about 24 GB), both Apache-2.0 (`QWEN_MODELS` overrides);
 - measures each one's tokens per second on this CPU, with thinking off, and writes what it found to `/etc/mythuso/gilbertone-host.txt`,
