@@ -18,11 +18,16 @@ It is run once, by hand, on the new server. It:
 - formats and mounts the 1 TB data disk at `/srv/gilbertone` **only if it is blank** (no partitions, no
   filesystem), and keeps the models there; a disk that is not blank is reported and never touched, and
   `GILBERTONE_DISK=/dev/…` names the disk when there is any doubt;
-- installs Ollama bound to `127.0.0.1:11434`, one answer at a time, refusing to start if the data disk
-  did not mount;
+- builds **one Incus system container, `gilbertone`,** on that disk, capped at 10 of the 12 CPUs and
+  40 GB of the 48 so the host can always be reached. Qwen and, later, the assistant service, its search
+  index and its database all live inside it and nowhere else on the server, so GilbertOne cannot mix
+  with anything else the server carries and can be snapshotted, backed up or removed as one thing. A
+  container rather than a Lima VM because it needs no nested virtualisation and no RAM of its own;
+  it has outbound network for updates and no inbound port at all;
+- installs Ollama inside the container, bound to the container's own `127.0.0.1:11434`, one answer at a time;
 - pulls two pinned Qwen models and records each digest: `qwen3.8:27b`, the newest Qwen (dense, about 18 GB),
   and `qwen3.6:35b-a3b-q4_K_M` (mixture-of-experts, 3B active, about 24 GB), both Apache-2.0 (`QWEN_MODELS` overrides);
-- measures each one's tokens per second on this CPU, with thinking off, and writes what it found to `/etc/mythuso/gilbertone-host.txt`,
+- measures each one's tokens per second on this CPU, with thinking off, inside the container's CPU cap, and writes what it found to `/etc/mythuso/gilbertone-host.txt`,
   including whether nested virtualisation (`/dev/kvm`, which Lima needs) is available.
 
 It does **not** install the assistant service, open a public port, configure TLS, or touch
@@ -40,7 +45,8 @@ sudo bash bootstrap.sh
 
 Add your SSH key first (`ssh-copy-id <user>@<server>`) so the script can switch password login off.
 The two models are about 42 GB together, roughly an hour to download on the 100 Mbps port.
-Whichever answers fast enough on this CPU becomes the main model; the other is removed with `ollama rm`.
+Whichever answers fast enough becomes the main model; the other is removed with
+`sudo incus exec gilbertone -- ollama rm <model>`. `sudo incus exec gilbertone -- bash` opens a shell inside the box.
 
 Both are "thinking" models. Before the chat tier uses one, the orchestrator must ask for answers
 without the reasoning trace, or a patient waits for text they never see.
@@ -56,4 +62,5 @@ Moving `/assistant/` to this host is a production change, made by hand and recor
    language a clinician has read.
 3. Backups leave the machine (condition R3), and the host's operator agreement (POPIA s 21) is on file.
 4. `deploy.sh` learns a second target, with its own nginx and TLS, and the chat tier's `OLLAMA_URL`
-   points at this host's model over loopback.
+   points at the model over the container's loopback, with the assistant
+   service installed inside the same container and nginx on the host the only way in.

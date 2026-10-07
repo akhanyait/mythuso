@@ -8,11 +8,11 @@
 # WHY A SEPARATE HOST. docs/ROADMAP.md puts Ollama, Qdrant, Whisper, Piper and Medplum on "a new,
 # isolated server of their own. Never liqzar-server", and docs/governance/DATA-RESIDENCY-OPTIONS.md
 # §2 says why: five unrelated sites share root there. This script is the first step of that server
-# and nothing more. It hardens the box, installs Ollama bound to loopback, pulls the pinned Qwen
-# models onto the 1 TB data disk, and measures how fast they answer on this CPU. It does not
-# install the assistant service, does not open a public port, and does not carry patient data —
-# moving the chat tier here is a production change, done later and by hand, once the residency
-# decision is signed.
+# and nothing more. It hardens the box, then builds ONE container ("gilbertone") on the 1 TB data
+# disk that holds everything GilbertOne will run, starting with Ollama and the pinned Qwen models,
+# and measures how fast they answer. It does not install the assistant service, does not open a
+# public port, and does not carry patient data — moving the chat tier here is a production change,
+# done later and by hand, once the residency decision is signed.
 #
 # WHAT IT REFUSES. It stops if it finds a co-tenant's nginx site (it is not on liqzar-server), if
 # the OS is not Ubuntu, and it never turns off SSH password login unless a key is already
@@ -84,22 +84,6 @@ sshd -t || { rm -f /etc/ssh/sshd_config.d/10-mythuso.conf; die "the SSH settings
 systemctl reload ssh 2>/dev/null || systemctl reload sshd
 systemctl enable --now fail2ban
 
-say "Node.js for the assistant runtime"
-if ! command -v node >/dev/null || [ "$(node -p 'process.versions.node.split(".")[0]')" -lt "$NODE_MAJOR_FLOOR" ]; then
-  apt-get install -yq nodejs || true
-fi
-if command -v node >/dev/null && [ "$(node -p 'process.versions.node.split(".")[0]')" -ge "$NODE_MAJOR_FLOOR" ]; then
-  echo "Node $(node --version)"
-else
-  echo "WARNING: Ubuntu's Node is older than ${NODE_MAJOR_FLOOR}. Not needed yet; needed before the assistant moves here."
-fi
-
-say "Ollama, bound to loopback"
-if ! command -v ollama >/dev/null; then
-  # Downloaded to a file rather than piped into a shell, so what ran is what can be read afterwards.
-  curl -fsSL https://ollama.com/install.sh -o /root/ollama-install.sh
-  sh /root/ollama-install.sh
-fi
 say "The 1 TB data disk, for models and later the search index"
 # The order added a 1 TB SSD beside the 500 GB system disk. Models and indexes live there so the
 # system disk keeps room for the OS and its logs. A disk is formatted ONLY when it is blank — no
@@ -152,46 +136,101 @@ else
   fi
 fi
 
-if mountpoint -q "$DATA_MOUNT"; then
-  model_dir="${DATA_MOUNT}/ollama/models"
-else
-  model_dir="/usr/share/ollama/.ollama/models"
+say "The container: Qwen and GilbertOne in one box of their own"
+# Everything GilbertOne runs lives in ONE Incus system container named "gilbertone": the model,
+# later the assistant service, its search index and its database. Nothing of it is installed on the
+# host itself, so it cannot mix with anything else this server ever carries, and the whole of it can
+# be capped, snapshotted, backed up or deleted as one thing. A system container rather than a VM
+# because it needs no nested virtualisation (which this VPS may not offer) and costs no RAM of its
+# own; rather than Docker because one box holding a full Ubuntu with systemd is what "one container
+# for Qwen and GilbertOne" means, and the services inside keep talking to each other over loopback.
+#
+# The container is capped below the host so the host can always be reached and patched: 10 of the
+# 12 CPUs and 40 GB of the 48. Its disk is a storage pool on the 1 TB data disk when it is mounted.
+# It has outbound network for updates and model downloads, and NO inbound port: nothing on the
+# internet reaches it until a later, deliberate change maps one through nginx on this host.
+BOX=gilbertone
+BOX_IMAGE="${BOX_IMAGE:-images:ubuntu/24.04}"
+BOX_CPUS="${BOX_CPUS:-10}"
+BOX_MEMORY="${BOX_MEMORY:-40GiB}"
+apt-get install -yq incus
+if mountpoint -q "$DATA_MOUNT"; then pool_dir="${DATA_MOUNT}/incus"; else pool_dir=""; fi
+if ! incus storage show gilbertone >/dev/null 2>&1; then
+  if [ -n "$pool_dir" ]; then mkdir -p "$pool_dir"; pool_config="source: ${pool_dir}"; else pool_config="{}"; fi
+  incus admin init --preseed <<EOF
+networks:
+- name: incusbr0
+  type: bridge
+  config:
+    ipv4.address: auto
+    ipv4.nat: "true"
+    ipv6.address: none
+storage_pools:
+- name: gilbertone
+  driver: dir
+  config: ${pool_config}
+profiles:
+- name: default
+  devices:
+    root: {path: /, pool: gilbertone, type: disk}
+    eth0: {name: eth0, network: incusbr0, type: nic}
+EOF
 fi
-mkdir -p "$model_dir"
-chown -R ollama:ollama "$(dirname "$model_dir")"
+# ufw's "deny incoming" also blocks the container's DHCP and DNS from the host and its forwarded
+# traffic out. These rules open the bridge to the host and outward only; the internet still has no
+# way in.
+ufw allow in on incusbr0
+ufw route allow in on incusbr0
+ufw route allow out on incusbr0
+if ! incus info "$BOX" >/dev/null 2>&1; then
+  incus launch "$BOX_IMAGE" "$BOX" -c limits.cpu="$BOX_CPUS" -c limits.memory="$BOX_MEMORY" \
+    -c security.nesting=false -c boot.autostart=true
+fi
+in_box() { incus exec "$BOX" -- "$@"; }
+for _ in $(seq 1 60); do in_box getent hosts ollama.com >/dev/null 2>&1 && break; sleep 2; done
+in_box getent hosts ollama.com >/dev/null || die "the container has no network. Check: incus list; ufw status."
+in_box env DEBIAN_FRONTEND=noninteractive apt-get update -q
+in_box env DEBIAN_FRONTEND=noninteractive apt-get upgrade -yq
+in_box env DEBIAN_FRONTEND=noninteractive apt-get install -yq unattended-upgrades curl ca-certificates jq zstd
 
-mkdir -p /etc/systemd/system/ollama.service.d
-cat > /etc/systemd/system/ollama.service.d/10-mythuso.conf <<EOF
+say "Ollama inside the container, bound to its loopback"
+if ! in_box sh -c 'command -v ollama' >/dev/null; then
+  # Downloaded to a file rather than piped into a shell, so what ran is what can be read afterwards.
+  in_box curl -fsSL https://ollama.com/install.sh -o /root/ollama-install.sh
+  in_box sh /root/ollama-install.sh
+fi
+in_box mkdir -p /etc/systemd/system/ollama.service.d
+in_box sh -c 'cat > /etc/systemd/system/ollama.service.d/10-mythuso.conf' <<'EOF'
 [Service]
-# Models on the data disk when there is one.
-Environment=OLLAMA_MODELS=${model_dir}
-# Loopback only: the firewall would refuse it anyway, and two locks are the point.
+# Loopback of the container only: GilbertOne's service will sit beside it in the same box.
 Environment=OLLAMA_HOST=127.0.0.1:11434
 # One answer at a time uses the CPU well; a second would halve both.
 Environment=OLLAMA_NUM_PARALLEL=1
 Environment=OLLAMA_MAX_LOADED_MODELS=1
 Environment=OLLAMA_KEEP_ALIVE=24h
 EOF
-# If the data disk failed to mount at boot, Ollama must not start and quietly fill the system disk.
-if mountpoint -q "$DATA_MOUNT"; then
-  printf '[Unit]\nRequiresMountsFor=%s\n' "$DATA_MOUNT" >> /etc/systemd/system/ollama.service.d/10-mythuso.conf
-fi
-systemctl daemon-reload
-systemctl enable --now ollama
-systemctl restart ollama
-for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:11434/api/version >/dev/null 2>&1 && break; sleep 1; done
-curl -fsS http://127.0.0.1:11434/api/version || die "Ollama did not come up on 127.0.0.1:11434."
+in_box systemctl daemon-reload
+in_box systemctl enable --now ollama
+in_box systemctl restart ollama
+for _ in $(seq 1 30); do in_box curl -fsS http://127.0.0.1:11434/api/version >/dev/null 2>&1 && break; sleep 1; done
+in_box curl -fsS http://127.0.0.1:11434/api/version || die "Ollama did not come up inside the container."
+
+say "Node.js inside the container, for the assistant runtime later"
+in_box env DEBIAN_FRONTEND=noninteractive apt-get install -yq nodejs || true
+box_node="$(in_box sh -c 'command -v node >/dev/null && node --version' || echo none)"
+echo "Node in the container: ${box_node} (the assistant runtime needs ${NODE_MAJOR_FLOOR} or newer before it moves here)."
 
 say "Pulling and timing: ${QWEN_MODELS}"
 # A short, harmless, non-clinical prompt, with thinking off so the figure is the speed of an answer
 # rather than of a hidden reasoning trace. Tokens per second while answering is what a patient waits
-# on; it is measured here, on this CPU, rather than taken from a benchmark.
+# on; it is measured here, inside the container's CPU cap, rather than taken from a benchmark.
 measured=""
 for model in $QWEN_MODELS; do
-  ollama pull "$model"
-  digest="$(curl -fsS http://127.0.0.1:11434/api/tags | jq -r --arg m "$model" '.models[] | select(.name==$m) | .digest')"
-  result="$(curl -fsS --max-time 900 http://127.0.0.1:11434/api/generate -d "$(jq -n --arg m "$model" \
-    '{model:$m, stream:false, think:false, prompt:"In two sentences, explain why drinking water matters on a hot day.", options:{num_ctx:4096}}')")" || result='{}'
+  in_box ollama pull "$model"
+  digest="$(in_box curl -fsS http://127.0.0.1:11434/api/tags | jq -r --arg m "$model" '.models[] | select(.name==$m) | .digest')"
+  body="$(jq -nc --arg m "$model" \
+    '{model:$m, stream:false, think:false, prompt:"In two sentences, explain why drinking water matters on a hot day.", options:{num_ctx:4096}}')"
+  result="$(in_box curl -fsS --max-time 900 http://127.0.0.1:11434/api/generate -d "$body")" || result='{}'
   tps="$(printf '%s' "$result" | jq -r 'if .eval_count then ((.eval_count / (.eval_duration / 1e9)) * 100 | floor / 100) else "failed" end')"
   load_s="$(printf '%s' "$result" | jq -r 'if .load_duration then ((.load_duration / 1e9) * 10 | floor / 10) else "-" end')"
   measured="${measured}model: ${model}
@@ -202,17 +241,19 @@ done
 
 mkdir -p /etc/mythuso
 cat > /etc/mythuso/gilbertone-host.txt <<EOF
-role: GilbertOne model host (no patient data; assistant not installed)
+role: GilbertOne host (no patient data; assistant not installed)
 bootstrapped: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 os: ${PRETTY_NAME}
 cpus: $(nproc)
 memory: $(free -g | awk '/^Mem:/ {print $2}') GB
-models stored in: ${model_dir} ($(df -h --output=avail "$model_dir" | tail -1 | tr -d ' ') free)
+container: ${BOX} ($(incus list "$BOX" -c s -f csv)), ${BOX_CPUS} CPUs, ${BOX_MEMORY}, node ${box_node}
+container disk: ${pool_dir:-system disk} ($(df -h --output=avail "${pool_dir:-/var/lib/incus}" | tail -1 | tr -d ' ') free)
 ${measured}nested virtualisation (needed for Lima): $( [ -e /dev/kvm ] && echo available || echo not available )
 EOF
 
 say "Done"
 cat /etc/mythuso/gilbertone-host.txt
 echo
-echo "Send the block above back in the thread. Nothing here is public: the model answers on"
-echo "127.0.0.1 only, and the firewall allows SSH alone."
+echo "Send the block above back in the thread. Nothing here is public: the model answers on the"
+echo "container's own 127.0.0.1, the container has no inbound port, and the firewall allows SSH alone."
+echo "To get a shell inside the box: sudo incus exec ${BOX} -- bash"
