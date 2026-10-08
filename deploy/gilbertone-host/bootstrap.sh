@@ -210,26 +210,60 @@ Environment=OLLAMA_MAX_LOADED_MODELS=1
 Environment=OLLAMA_KEEP_ALIVE=24h
 EOF
 in_box systemctl daemon-reload
-in_box systemctl enable --now ollama
-in_box systemctl restart ollama
-for _ in $(seq 1 30); do in_box curl -fsS http://127.0.0.1:11434/api/version >/dev/null 2>&1 && break; sleep 1; done
+in_box systemctl enable ollama
+# Restart the whole container, not the service. The installer starts Ollama from `incus exec`, which
+# runs under a different AppArmor label from the container's own systemd, and the profile denies
+# signals across the two: `systemctl restart ollama` then cannot stop the first copy, which keeps the
+# port without these settings while the service fails "address already in use" every 3 seconds. That
+# is what the first run on the server did on 8 October 2026. A container restart clears every process
+# in it and lets systemd start Ollama with the drop-in above.
+incus restart "$BOX"
+for _ in $(seq 1 60); do in_box curl -fsS http://127.0.0.1:11434/api/version >/dev/null 2>&1 && break; sleep 2; done
 in_box curl -fsS http://127.0.0.1:11434/api/version || die "Ollama did not come up inside the container."
+serving="$(in_box pgrep -fc 'ollama serve' || true)"
+[ "$serving" = "1" ] || die "expected one 'ollama serve' in the container, found ${serving:-0}. Check: sudo incus exec ${BOX} -- ps aux"
+in_box systemctl is-active --quiet ollama || die "Ollama answers, but not as the systemd service. Check: sudo incus exec ${BOX} -- systemctl status ollama"
 
-say "Node.js inside the container, for the assistant runtime later"
-in_box env DEBIAN_FRONTEND=noninteractive apt-get install -yq nodejs || true
-box_node="$(in_box sh -c 'command -v node >/dev/null && node --version' || echo none)"
-echo "Node in the container: ${box_node} (the assistant runtime needs ${NODE_MAJOR_FLOOR} or newer before it moves here)."
+say "Node.js ${NODE_MAJOR_FLOOR} inside the container, for the assistant runtime later"
+# Ubuntu's own nodejs is 18, below what the assistant runtime needs, so the NodeSource repository for
+# the floor version is added instead. Its setup script is saved to a file before it runs, as Ollama's is.
+box_node_major() { in_box sh -c 'node --version 2>/dev/null | sed -E "s/^v([0-9]+).*/\\1/"' || true; }
+major="$(box_node_major)"
+if [ "${major:-0}" -lt "$NODE_MAJOR_FLOOR" ]; then
+  in_box curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR_FLOOR}.x" -o /root/nodesource-setup.sh
+  in_box bash /root/nodesource-setup.sh
+  in_box env DEBIAN_FRONTEND=noninteractive apt-get install -yq nodejs
+  major="$(box_node_major)"
+fi
+box_node="$(in_box node --version 2>/dev/null || echo none)"
+[ "${major:-0}" -ge "$NODE_MAJOR_FLOOR" ] || die "Node in the container is ${box_node}; the assistant runtime needs ${NODE_MAJOR_FLOOR} or newer."
+echo "Node in the container: ${box_node}"
 
 say "Pulling and timing: ${QWEN_MODELS}"
 # A short, harmless, non-clinical prompt, with thinking off so the figure is the speed of an answer
 # rather than of a hidden reasoning trace. Tokens per second while answering is what a patient waits
 # on; it is measured here, inside the container's CPU cap, rather than taken from a benchmark.
+# num_thread is the container's CPU count: llama.cpp otherwise sees the host's 12 cores and starts a
+# thread for each, and more threads than cores stalls it (0.2 tokens/second on the first run). Each
+# model is unloaded before the next loads, because two of them do not fit in the container's memory
+# together and the second is killed for it (the first run's "failed").
+unload_all() {
+  for loaded in $(in_box curl -fsS http://127.0.0.1:11434/api/ps | jq -r '.models[].name'); do
+    in_box curl -fsS http://127.0.0.1:11434/api/generate -d "$(jq -nc --arg m "$loaded" '{model:$m, keep_alive:0}')" >/dev/null || true
+  done
+  for _ in $(seq 1 60); do
+    [ "$(in_box curl -fsS http://127.0.0.1:11434/api/ps | jq '.models | length')" = "0" ] && return 0
+    sleep 2
+  done
+  die "a model would not unload. Check: sudo incus exec ${BOX} -- ollama ps"
+}
 measured=""
 for model in $QWEN_MODELS; do
   in_box ollama pull "$model"
+  unload_all
   digest="$(in_box curl -fsS http://127.0.0.1:11434/api/tags | jq -r --arg m "$model" '.models[] | select(.name==$m) | .digest')"
-  body="$(jq -nc --arg m "$model" \
-    '{model:$m, stream:false, think:false, prompt:"In two sentences, explain why drinking water matters on a hot day.", options:{num_ctx:4096}}')"
+  body="$(jq -nc --arg m "$model" --argjson t "$BOX_CPUS" \
+    '{model:$m, stream:false, think:false, prompt:"In two sentences, explain why drinking water matters on a hot day.", options:{num_ctx:4096, num_thread:$t}}')"
   result="$(in_box curl -fsS --max-time 900 http://127.0.0.1:11434/api/generate -d "$body")" || result='{}'
   tps="$(printf '%s' "$result" | jq -r 'if .eval_count then ((.eval_count / (.eval_duration / 1e9)) * 100 | floor / 100) else "failed" end')"
   load_s="$(printf '%s' "$result" | jq -r 'if .load_duration then ((.load_duration / 1e9) * 10 | floor / 10) else "-" end')"
@@ -238,6 +272,7 @@ for model in $QWEN_MODELS; do
   speed: ${tps} tokens/second (first load ${load_s}s)
 "
 done
+unload_all
 
 mkdir -p /etc/mythuso
 cat > /etc/mythuso/gilbertone-host.txt <<EOF

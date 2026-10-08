@@ -17,17 +17,25 @@ It is run once, by hand, on the new server. It:
   so it cannot lock its operator out;
 - formats and mounts the 1 TB data disk at `/srv/gilbertone` **only if it is blank** (no partitions, no
   filesystem), and keeps the models there; a disk that is not blank is reported and never touched, and
-  `GILBERTONE_DISK=/dev/…` names the disk when there is any doubt;
+  `GILBERTONE_DISK=/dev/…` names the disk when there is any doubt. On the Sive Host server, found on
+  8 October 2026, the "1 TB" is not a disk of its own: it is about 1 TB left unallocated on the one
+  1.5 TB disk, after the 500 GB system partition. The script does not partition a disk the system
+  runs from, so it formats nothing there and the container lives on the system disk; giving the spare
+  space its own partition is a separate, deliberate step by hand;
 - builds **one Incus system container, `gilbertone`,** on that disk, capped at 10 of the 12 CPUs and
   40 GB of the 48 so the host can always be reached. Qwen and, later, the assistant service, its search
   index and its database all live inside it and nowhere else on the server, so GilbertOne cannot mix
   with anything else the server carries and can be snapshotted, backed up or removed as one thing. A
   container rather than a Lima VM because it needs no nested virtualisation and no RAM of its own;
   it has outbound network for updates and no inbound port at all;
-- installs Ollama inside the container, bound to the container's own `127.0.0.1:11434`, one answer at a time;
+- installs Ollama inside the container, bound to the container's own `127.0.0.1:11434`, one answer at
+  a time, and restarts the container so systemd starts it with those settings (a `systemctl restart`
+  cannot stop the installer's first copy across the container's AppArmor profile);
+- installs Node.js 22 inside it from NodeSource, because Ubuntu's own is 18, and stops if it is older;
 - pulls two pinned Qwen models and records each digest: `qwen3.8:27b`, the newest Qwen (dense, about 18 GB),
   and `qwen3.6:35b-a3b-q4_K_M` (mixture-of-experts, 3B active, about 24 GB), both Apache-2.0 (`QWEN_MODELS` overrides);
-- measures each one's tokens per second on this CPU, with thinking off, inside the container's CPU cap, and writes what it found to `/etc/mythuso/gilbertone-host.txt`,
+- measures each one's tokens per second on this CPU, with thinking off, one thread per container CPU and one
+  model loaded at a time, and writes what it found to `/etc/mythuso/gilbertone-host.txt`,
   including whether nested virtualisation (`/dev/kvm`, which Lima needs) is available.
 
 It does **not** install the assistant service, open a public port, configure TLS, or touch
