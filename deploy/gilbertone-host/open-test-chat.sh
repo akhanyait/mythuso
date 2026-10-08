@@ -54,7 +54,7 @@ fi
 password="$(cat "$LOGIN_FILE")"
 hash="$(in_box caddy hash-password --plaintext "$password")"
 
-in_box mkdir -p /srv/test-chat
+in_box mkdir -p /srv/test-chat /etc/caddy/gilbertone.d
 # The page and the GilbertOne logo files beside it, each readable by Caddy.
 for f in "$here"/test-chat/*; do
   incus file push --mode 0644 "$f" "$BOX/srv/test-chat/$(basename "$f")"
@@ -111,6 +111,9 @@ ${HOSTNAME_WEB} {
 		X-Frame-Options "DENY"
 	}
 ${routes}
+	# Anything else GilbertOne serves behind this login, each in its own file (the media studio:
+	# media/install.sh). A glob that matches nothing is allowed, so the chat runs without them.
+	import /etc/caddy/gilbertone.d/*.caddy
 	handle {
 		root * /srv/test-chat
 		file_server

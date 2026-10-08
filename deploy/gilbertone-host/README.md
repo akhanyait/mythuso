@@ -99,6 +99,12 @@ the same login, and closes plain Qwen's `/api/chat`. The page says under every a
 and has a patient, nurse or doctor switch; today Qwen answers patients only, as the turn route decides,
 and the page says so.
 
+The media studio (`media/`, PR #24) shares this Ollama and unloads Qwen before each picture, so a
+GilbertOne question asked while a picture is painting waits for Qwen to load again, and past the
+60-second budget it gets the safe standard reply; the page then says Qwen did not answer in time. Ask
+again once the picture is done. `open-test-chat.sh` imports the studio's Caddy route from
+`/etc/caddy/gilbertone.d/`, and the chat links to it as **Draw**.
+
 Still off: real patient details, any login but the founder's, the outside knowledge sources (all 14 dark in
 `federation.json`), production mode, and mythuso.co.za's live GilbertOne, which still answers from Azure.
 
