@@ -61,7 +61,7 @@
    "detailsFrom": "packages/catalog/model-providers.json#providers ollama",
    "buildStatus": "dark",
    "statusToday": "dark",
-   "environment": ["OLLAMA_URL", "OLLAMA_MODEL"],
+   "environment": ["OLLAMA_URL", "OLLAMA_MODEL", "OLLAMA_EMBEDDING_MODEL", "LLAMA_GUARD_MODEL"],
    "codeNames": [],
    "capabilityRef": null,
    "feedRef": null,

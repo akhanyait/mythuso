@@ -3,7 +3,11 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import {
   AzureOpenAIProvider,
+  embed,
+  embeddingProvider,
   embedWithAzure,
+  guardAnswer,
+  readGuardVerdict,
   LLM_MAX_OUTPUT_TOKENS,
   LLM_REPLY_LIMIT,
   llmSystemPrompt,
@@ -29,6 +33,8 @@ const ENV_KEYS = [
   "AZURE_OPENAI_MODEL",
   "OLLAMA_URL",
   "OLLAMA_MODEL",
+  "OLLAMA_EMBEDDING_MODEL",
+  "LLAMA_GUARD_MODEL",
 ] as const;
 
 /* Run `body` with exactly the given provider environment and nothing else, then put the real
@@ -249,4 +255,92 @@ test("the token ceiling is derived from the reply cap, so the two cannot drift",
     LLM_MAX_OUTPUT_TOKENS * 2 <= LLM_REPLY_LIMIT,
     "and the ceiling stays calibrated: anything looser is no ceiling at all",
   );
+});
+
+/* ── The self-hosted half: Ollama embeddings and the Llama Guard check (8 October 2026) ──────────
+
+   What the GilbertOne host needs held: each is off until its model is named, both need OLLAMA_URL
+   as well, both redact before sending, and the guard fails closed on anything but a plain "safe". */
+
+const ollamaStub = async (
+  answer: (path: string, body: Record<string, unknown>) => unknown,
+  run: (url: string, seen: { path: string; body: Record<string, unknown> }[]) => Promise<void>,
+) => {
+  const seen: { path: string; body: Record<string, unknown> }[] = [];
+  const server = createServer((req, res) => {
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => {
+      const body = JSON.parse(Buffer.concat(chunks).toString("utf8")) as Record<string, unknown>;
+      seen.push({ path: req.url ?? "", body });
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify(answer(req.url ?? "", body)));
+    });
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  try {
+    await run(`http://127.0.0.1:${address.port}`, seen);
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+};
+
+test("the self-hosted embedding is used when named, and redacts before it leaves", async () => {
+  await ollamaStub(
+    () => ({ embeddings: [[0.5, 0.25]] }),
+    async (url, seen) => {
+      await withEnv({ OLLAMA_URL: url, OLLAMA_EMBEDDING_MODEL: "bge-m3" }, async () => {
+        assert.equal(embeddingProvider(), "ollama");
+        assert.deepEqual(await embed("my id number is 8001015009087"), [0.5, 0.25]);
+      });
+      assert.equal(seen.length, 1);
+      assert.equal(seen[0].path, "/api/embed");
+      assert.equal(seen[0].body.model, "bge-m3");
+      assert.equal(seen[0].body.input, "my id number is [ID REDACTED]");
+    },
+  );
+});
+
+test("an embedding model without OLLAMA_URL is not a road: nothing is sent to the default port", async () => {
+  await withEnv({ OLLAMA_EMBEDDING_MODEL: "bge-m3" }, async () => {
+    assert.equal(embeddingProvider(), null);
+    assert.equal(await embed("hello"), null);
+  });
+});
+
+test("no guard is asked when none is named", async () => {
+  await withEnv({ OLLAMA_URL: "http://127.0.0.1:9" }, async () => {
+    assert.equal(await guardAnswer("q", "a"), null);
+  });
+});
+
+test("the guard passes a plain safe and reads the question and answer redacted", async () => {
+  await ollamaStub(
+    () => ({ message: { content: "safe" } }),
+    async (url, seen) => {
+      await withEnv({ OLLAMA_URL: url, LLAMA_GUARD_MODEL: "llama-guard3:1b" }, async () => {
+        assert.deepEqual(await guardAnswer("call me on 0821234567", "Rest and drink water."), {
+          safe: true,
+          categories: [],
+        });
+      });
+      assert.equal(seen[0].path, "/api/chat");
+      assert.equal(JSON.stringify(seen[0].body).includes("0821234567"), false);
+    },
+  );
+});
+
+test("the guard fails closed: unsafe, unreadable or unreachable are all not safe", async () => {
+  assert.deepEqual(readGuardVerdict("unsafe\nS6"), { safe: false, categories: ["S6"] });
+  assert.deepEqual(readGuardVerdict("unsafe\nS2,S6"), { safe: false, categories: ["S2", "S6"] });
+  assert.equal(readGuardVerdict("").safe, false);
+  assert.equal(readGuardVerdict("Safe enough, probably").safe, false);
+  assert.equal(readGuardVerdict(undefined).safe, false);
+  await withEnv({ OLLAMA_URL: "http://127.0.0.1:9", LLAMA_GUARD_MODEL: "llama-guard3:1b" }, async () => {
+    const verdict = await guardAnswer("q", "a", 500);
+    assert.ok(verdict);
+    assert.equal(verdict.safe, false);
+  });
 });

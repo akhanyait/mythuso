@@ -246,7 +246,11 @@ Environment=OLLAMA_HOST=127.0.0.1:11434
 # the long prompt every turn and it was read again from scratch, about 40 seconds on this CPU
 # (measured 8 October 2026). Two answers at once would still halve each other's speed.
 Environment=OLLAMA_NUM_PARALLEL=2
-Environment=OLLAMA_MAX_LOADED_MODELS=1
+# Three models stay loaded: Qwen, and beside it the two small ones open-gilbertone.sh adds, the bge-m3
+# embedder (about 1.2 GB) for the knowledge search and llama-guard3:1b (about 1.6 GB) for the second
+# safety check. With one, every turn's embedding and every guard check would evict Qwen, and reading
+# 24 GB back in costs a minute or more on this disk. The three together fit inside the 40 GB cap.
+Environment=OLLAMA_MAX_LOADED_MODELS=3
 Environment=OLLAMA_KEEP_ALIVE=24h
 EOF
 in_box systemctl daemon-reload

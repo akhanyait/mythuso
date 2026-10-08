@@ -7,7 +7,7 @@ import mentalHealth from "../../../../packages/catalog/knowledge/mental-health.j
 import saHealthSystem from "../../../../packages/catalog/knowledge/sa-health-system.json" with { type: "json" };
 import prevention from "../../../../packages/catalog/knowledge/prevention.json" with { type: "json" };
 import interactions from "../../../../packages/catalog/knowledge/interactions.json" with { type: "json" };
-import { azureCredentials, embedWithAzure } from "./llm-adapter.ts";
+import { embed, embeddingProvider } from "./llm-adapter.ts";
 import {
   attributionOf,
   citationOf,
@@ -498,12 +498,15 @@ async function retrieveUncached(
 ): Promise<KnowledgeResult[]> {
   const url = qdrantUrl();
   if (!url) return searchKnowledge(query, topK);
-  const vector = await embedWithAzure(query, VECTOR_STEP_TIMEOUT_MS);
+  /* embed() is the self-hosted model when OLLAMA_EMBEDDING_MODEL names one (the GilbertOne host,
+     8 October 2026) and Azure otherwise: the same choice the ingestion script made when it filled
+     the index, so the question and the catalogue are embedded by one model. */
+  const vector = await embed(query, VECTOR_STEP_TIMEOUT_MS);
   if (vector) {
     const hits = await qdrantSearch(url, vector, topK);
     if (hits) return hits;
-  } else if (!azureCredentials()) {
-    /* No Azure embedding credentials: the vector road is closed for a reason an operator can fix,
+  } else if (!embeddingProvider()) {
+    /* No embedding model at all: the vector road is closed for a reason an operator can fix,
        and that is worth one line in the log rather than silence. */
     console.log("[gilbertone:knowledge] qdrant configured but no embedding model; keyword search used");
   } else {

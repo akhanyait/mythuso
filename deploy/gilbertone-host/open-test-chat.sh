@@ -59,18 +59,29 @@ in_box mkdir -p /srv/test-chat
 for f in "$here"/test-chat/*; do
   incus file push --mode 0644 "$f" "$BOX/srv/test-chat/$(basename "$f")"
 done
-in_box sh -c 'cat > /etc/caddy/Caddyfile' <<EOF
-${HOSTNAME_WEB} {
-	basicauth {
-		${LOGIN_USER} ${hash}
+# Where the page's questions go. Once open-gilbertone.sh has installed GilbertOne in the box, to its
+# turn route and nowhere else: the founder's go of 8 October 2026 put every message behind GilbertOne's
+# checks, and leaving plain Qwen reachable beside it would be a second door without them. Until then,
+# to Ollama's chat route alone, as before.
+if in_box test -s /opt/mythuso/assistant/server.mjs; then
+  ROUTE_MODE=gilbertone
+  routes="$(cat <<'ROUTES'
+	# GilbertOne's turn route and its health line, and nothing else of the service: the founder routes,
+	# the speech routes and the rest stay on the container's loopback. The browser's Origin is passed
+	# through, because the service's own origin policy is what answers it.
+	@gilbertone {
+		path /assistant/v1/turn /assistant/health
 	}
-	header {
-		Strict-Transport-Security "max-age=300"
-		X-Robots-Tag "noindex, nofollow"
-		Referrer-Policy "no-referrer"
-		X-Content-Type-Options "nosniff"
-		X-Frame-Options "DENY"
+	handle @gilbertone {
+		reverse_proxy 127.0.0.1:8791 {
+			flush_interval -1
+		}
 	}
+ROUTES
+)"
+else
+  ROUTE_MODE=qwen
+  routes="$(cat <<'ROUTES'
 	# The one Ollama route let through. Ollama refuses browser origins it does not know, so the
 	# request reaches it as if from its own loopback; the login above is what guards it.
 	@chat {
@@ -84,6 +95,22 @@ ${HOSTNAME_WEB} {
 			flush_interval -1
 		}
 	}
+ROUTES
+)"
+fi
+in_box sh -c 'cat > /etc/caddy/Caddyfile' <<EOF
+${HOSTNAME_WEB} {
+	basicauth {
+		${LOGIN_USER} ${hash}
+	}
+	header {
+		Strict-Transport-Security "max-age=300"
+		X-Robots-Tag "noindex, nofollow"
+		Referrer-Policy "no-referrer"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+	}
+${routes}
 	handle {
 		root * /srv/test-chat
 		file_server
@@ -112,6 +139,13 @@ done
 [ "$code" = "401" ] || die "https://${HOSTNAME_WEB}/ answered '${code}' instead of asking for the login. Check: sudo incus exec ${BOX} -- journalctl -u caddy -n 50"
 chat_code="$(curl -s -o /dev/null -w '%{http_code}' -u "${LOGIN_USER}:${password}" -X POST "https://${HOSTNAME_WEB}/api/pull" -d '{}' || true)"
 [ "$chat_code" != "200" ] || die "/api/pull answered 200 through the login; only /api/chat may reach Ollama."
+if [ "$ROUTE_MODE" = gilbertone ]; then
+  plain_code="$(curl -s -o /dev/null -w '%{http_code}' -u "${LOGIN_USER}:${password}" -X POST "https://${HOSTNAME_WEB}/api/chat" -d '{}' || true)"
+  [ "$plain_code" != "200" ] || die "/api/chat still reaches Qwen directly; with GilbertOne installed, only its turn route may answer."
+  health_code="$(curl -s -o /dev/null -w '%{http_code}' -u "${LOGIN_USER}:${password}" "https://${HOSTNAME_WEB}/assistant/health" || true)"
+  [ "$health_code" = "200" ] || die "GilbertOne's health line answered '${health_code}' through the login. Check: sudo incus exec ${BOX} -- journalctl -u gilbertone-assistant -n 50"
+  echo "The test chat talks to GilbertOne; plain Qwen is closed."
+fi
 
 say "Open"
 echo "Address:  https://${HOSTNAME_WEB}/"

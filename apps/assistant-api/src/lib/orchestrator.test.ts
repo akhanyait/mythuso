@@ -26,6 +26,7 @@ const ENV_KEYS = [
  'AZURE_OPENAI_EMBEDDING_MODEL',
  'OLLAMA_URL',
  'OLLAMA_MODEL',
+ 'LLAMA_GUARD_MODEL',
  'QDRANT_URL',
  'QDRANT_COLLECTION',
  /* modelTierAllowed() (./activation.ts), added the same day as this file, reads these two as well
@@ -421,6 +422,59 @@ test('every Ollama call turns thinking off, or a Qwen 3 model reasons past the c
   });
   assert.ok(provider.bodies.length > 0);
   for (const body of provider.bodies) assert.equal(JSON.parse(body).reasoning_effort, 'none');
+ } finally {
+  await provider.close();
+ }
+});
+
+/* ---- The second reader (8 October 2026) ----
+
+   With LLAMA_GUARD_MODEL named, the answer Qwen wrote is read by the guard before it is returned, on
+   the same Ollama: request three is the guard's. "safe" lets the answer through unchanged; anything
+   else drops it and the caller keeps the classifier's own reply. */
+
+const guardSays = (content: string): string => JSON.stringify({ message: { role: 'assistant', content } });
+
+test('a guarded answer the checker calls safe comes back unchanged, after one guard request', async () => {
+ const provider = await scriptedProvider([nerEmpty, assistantAnswer('Rest, drink water, and ask the nurse.'), guardSays('safe')]);
+ try {
+  await withEnv({ OLLAMA_URL: provider.url, LLAMA_GUARD_MODEL: 'llama-guard3:1b' }, async () => {
+   const result = await orchestrate('what helps a mild cold');
+   assert.equal(result.degraded, false);
+   assert.equal(result.answer, 'Rest, drink water, and ask the nurse.');
+   assert.equal(provider.bodies.length, 3);
+   const guardBody = JSON.parse(provider.bodies[2]) as { model: string; messages: { role: string; content: string }[] };
+   assert.equal(guardBody.model, 'llama-guard3:1b');
+   assert.equal(guardBody.messages[1].content, 'Rest, drink water, and ask the nurse.');
+  });
+ } finally {
+  await provider.close();
+ }
+});
+
+test('an answer the checker calls unsafe, or cannot judge, is dropped for the classifier’s own', async () => {
+ for (const verdict of [guardSays('unsafe\nS6'), guardSays(''), '{}']) {
+  const provider = await scriptedProvider([nerEmpty, assistantAnswer('Take two of these and you will be fine.'), verdict]);
+  try {
+   await withEnv({ OLLAMA_URL: provider.url, LLAMA_GUARD_MODEL: 'llama-guard3:1b' }, async () => {
+    const result = await orchestrate('what should I take for a headache');
+    assert.equal(result.degraded, true);
+    assert.equal(result.answer, '');
+   });
+  } finally {
+   await provider.close();
+  }
+ }
+});
+
+test('with no checker named, no guard request is made', async () => {
+ const provider = await scriptedProvider([nerEmpty, assistantAnswer('Rest and fluids.')]);
+ try {
+  await withEnv({ OLLAMA_URL: provider.url }, async () => {
+   const result = await orchestrate('what helps a mild cold');
+   assert.equal(result.degraded, false);
+   assert.equal(provider.bodies.length, 2);
+  });
  } finally {
   await provider.close();
  }

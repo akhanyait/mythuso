@@ -77,6 +77,39 @@ once on the terminal; it does not go in this repository or a chat. The page is t
 GilbertOne, and says so: no safety checks, nothing about a real person's health, nothing kept.
 `sudo bash open-test-chat.sh --close` shuts it again.
 
+## GilbertOne in the box: `open-gilbertone.sh`, and `install.sh` for all of it
+
+Asked for by the founder on 8 October 2026: GilbertOne wired to the self-hosted Qwen, with its modules
+and knowledge bases attached. `open-gilbertone.sh` installs, inside the container and on its loopback
+only:
+
+- **the assistant service** (`gilbertone-assistant`, 127.0.0.1:8791) in test mode: `NODE_ENV` unset, no
+  Azure key, no founder access, `OLLAMA_MODEL=gilbertone-qwen` and a 60-second budget. Every message meets
+  the emergency recognition and the refusals first; Qwen sees only what those could not answer, with the
+  catalogue's tools around it (knowledge search, symptom guidance, medicine facts and interactions,
+  emergency numbers, coverage area);
+- **the knowledge index**: Qdrant (pinned, checksum-checked) filled with the 261 entries of
+  `packages/catalog/knowledge`, embedded by **bge-m3** in the same Ollama, so the knowledge search finds an
+  entry by meaning as well as by words;
+- **a second safety check**: **llama-guard3:1b** reads each answer Qwen writes, and anything but a plain
+  "safe", or no verdict in time, is dropped for the classifier's own reply.
+
+`open-test-chat.sh` then routes the test chat's `/assistant/v1/turn` and `/assistant/health` to it, behind
+the same login, and closes plain Qwen's `/api/chat`. The page says under every answer which part answered,
+and has a patient, nurse or doctor switch; today Qwen answers patients only, as the turn route decides,
+and the page says so.
+
+Still off: real patient details, any login but the founder's, the outside knowledge sources (all 14 dark in
+`federation.json`), production mode, and mythuso.co.za's live GilbertOne, which still answers from Azure.
+
+`install.sh` runs `bootstrap.sh`, `open-gilbertone.sh` and `open-test-chat.sh` in that order, and
+`install-from-mac.sh` builds the two files it needs (`npm run assistant-runtime` and the bundled ingestion
+script, into `dist/`), copies this folder to the server and runs it there:
+
+```sh
+bash deploy/gilbertone-host/install-from-mac.sh
+```
+
 ## What has to be true before the assistant moves here
 
 Moving `/assistant/` to this host is a production change, made by hand and recorded in

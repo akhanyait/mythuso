@@ -29,7 +29,7 @@
    looking like it succeeded. */
 
 import { createHash } from "node:crypto";
-import { embedWithAzure } from "../apps/assistant-api/src/lib/llm-adapter.ts";
+import { embed, embeddingProvider } from "../apps/assistant-api/src/lib/llm-adapter.ts";
 import { knowledgeChunks } from "../apps/assistant-api/src/lib/knowledge.ts";
 
 const QDRANT_DEFAULT_COLLECTION = "gilbertone-knowledge";
@@ -153,15 +153,30 @@ async function main() {
   const collection = (process.env.QDRANT_COLLECTION ?? "").trim() || QDRANT_DEFAULT_COLLECTION;
 
   const chunks = knowledgeChunks();
-  console.log(`embedding ${chunks.length} knowledge entries through Azure OpenAI…`);
+  /* The same choice retrieveKnowledge() makes at query time, read from the same function: the
+     self-hosted model when OLLAMA_URL and OLLAMA_EMBEDDING_MODEL name one (the GilbertOne host), Azure
+     otherwise. An index filled by one model and searched with another returns noise, not an error. */
+  const provider = embeddingProvider();
+  if (!provider) {
+    console.error(
+      "No embedding model is configured. Set OLLAMA_URL and OLLAMA_EMBEDDING_MODEL for the self-hosted " +
+        "one, or AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_KEY for Azure.",
+    );
+    process.exitCode = 1;
+    return;
+  }
+  console.log(`embedding ${chunks.length} knowledge entries through ${provider === "ollama" ? "Ollama" : "Azure OpenAI"}…`);
 
   const embedded = await mapWithConcurrency(chunks, EMBED_CONCURRENCY, async (chunk) => {
-    const vector = await embedWithAzure(chunk.text, EMBED_TIMEOUT_MS);
+    const vector = await embed(chunk.text, EMBED_TIMEOUT_MS);
     if (!vector)
       throw new Error(
-        `embedding failed for ${chunk.id} ("${chunk.title}") — check AZURE_OPENAI_ENDPOINT, ` +
-          "AZURE_OPENAI_KEY (or AZURE_OPENAI_API_KEY) and, if the account's deployment is not " +
-          "named text-embedding-3-small, AZURE_OPENAI_EMBEDDING_MODEL.",
+        provider === "ollama"
+          ? `embedding failed for ${chunk.id} ("${chunk.title}") — check that Ollama answers at ` +
+              "OLLAMA_URL and holds OLLAMA_EMBEDDING_MODEL (ollama pull it first)."
+          : `embedding failed for ${chunk.id} ("${chunk.title}") — check AZURE_OPENAI_ENDPOINT, ` +
+              "AZURE_OPENAI_KEY (or AZURE_OPENAI_API_KEY) and, if the account's deployment is not " +
+              "named text-embedding-3-small, AZURE_OPENAI_EMBEDDING_MODEL.",
       );
     return { chunk, vector };
   });

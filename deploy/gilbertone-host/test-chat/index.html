@@ -1,13 +1,17 @@
 <!doctype html>
 <!--
   GilbertOne on its own server: one page, served by Caddy inside the gilbertone container behind a
-  login only the founder holds, talking to Qwen through the one Ollama route Caddy lets through
-  (/api/chat). The founder named it GilbertOne on 8 October 2026 and asked for it to look the part, so
-  it carries the official logo (the Lovable artwork, unaltered, from apps/web/public/lovable) and the
-  brand's colours.
-  The name does not make it the finished GilbertOne, and the page says so where it cannot be missed:
-  this is the model alone, without the emergency recognition, refusals, contract and audit the
-  service wraps around it. A health service that overstates its readiness is not a marketing problem.
+  login only the founder holds. The founder named it GilbertOne on 8 October 2026 and asked for it to
+  look the part, so it carries the official logo (the Lovable artwork, unaltered, from
+  apps/web/public/lovable) and the brand's colours.
+  Since the founder's go of 8 October 2026 ("start wiring gilbertone to qwen and all the modules and
+  knowledge bases"), it talks to the GilbertOne service, not to Qwen: POST /assistant/v1/turn, the
+  same route mythuso.co.za's panel uses, running inside the same container. Every message meets the
+  emergency recognition and the refusals first, and Qwen sees only what those could not answer, with
+  the catalogue's tools, the knowledge base and a second safety check around it. Under each answer the
+  page says which of those answered, because "GilbertOne said it" hides the one fact a tester needs.
+  It is still a preview, and says so where it cannot be missed: synthetic cases only, no real person's
+  health, one login. A health service that overstates its readiness is not a marketing problem.
   It keeps nothing: the conversation lives in this page's memory and is gone when the tab closes or
   "New chat" is pressed. No storage API is touched, and replies render as text, never HTML.
   Phone first: the composer sits above the keyboard and the home indicator, the page fills the visible
@@ -105,6 +109,11 @@
   .typing i { width:7px; height:7px; border-radius:50%; background:var(--teal); animation:bounce 1.2s infinite ease-in-out; }
   .typing i:nth-child(2) { animation-delay:.15s; } .typing i:nth-child(3) { animation-delay:.3s; }
   .wake { display:block; margin-top:4px; font-size:13px; color:var(--muted); }
+  .who { display:flex; align-items:center; gap:8px; margin:10px 16px 0; font-size:14px; color:var(--muted); flex-wrap:wrap; }
+  .who [role=radiogroup] { display:inline-flex; border:1px solid var(--line); border-radius:22px; overflow:hidden; background:var(--surface); }
+  .who button { min-height:40px; padding:0 14px; border:0; background:none; color:var(--text); font:inherit; font-size:14px; }
+  .who button[aria-checked=true] { background:var(--ink); color:#fff; }
+  .who small { flex-basis:100%; font-size:12px; }
 
   form {
     display:flex; align-items:flex-end; gap:8px;
@@ -146,9 +155,20 @@
 
   <details class="notice" open>
     <summary>Preview, not yet the health service</summary>
-    <p>This is GilbertOne's model on its own, without the safety checks the full service adds. Do not
-    type anything about a real person's health. Nothing you type is kept.</p>
+    <p>This is GilbertOne with its safety checks, on Qwen on MyThuso's own server, in a private preview.
+    Use made-up cases only, never a real person's health. Sending a message is your consent for this
+    preview to read it. The conversation is forgotten when you start a new chat.</p>
   </details>
+
+  <div class="who">
+    <span id="who-label">Asking as</span>
+    <div role="radiogroup" aria-labelledby="who-label" id="who">
+      <button type="button" role="radio" data-audience="patient" aria-checked="true">Patient</button>
+      <button type="button" role="radio" data-audience="nurse" aria-checked="false">Nurse</button>
+      <button type="button" role="radio" data-audience="doctor" aria-checked="false">Doctor</button>
+    </div>
+    <small id="who-note"></small>
+  </div>
 
   <main id="log" aria-live="polite"></main>
 
@@ -161,13 +181,25 @@
   </form>
 </div>
 <script>
-// The copy GilbertOne itself calls, built by bootstrap.sh from the model the founder chose on 8 October
-// 2026. Asking for the plain tag instead made Ollama, which keeps one model loaded, swap the two in turn,
-// a minute or more each time, and the plain tag runs on the wrong thread count.
-const MODEL = 'gilbertone-qwen';
-// Who it is, said to the model so it answers as GilbertOne rather than as Qwen. It names what it is
-// not as well, because the name alone sounds like more than this preview is.
-const SYSTEM = "You are GilbertOne, MyThuso's assistant, in a private preview for the founder. You are an AI, not a person and not a doctor. Be warm, clear and brief, and use British spelling. Never diagnose, never give medicine doses, and for anything about a real person's health say a MyThuso nurse or doctor should decide.";
+// The GilbertOne service, through the same login. Streaming here is the service's own: the classifier's
+// read arrives at once, then the whole answer as one event when it is ready (routes/turn.ts says why it
+// is not word by word), so the page shows what was understood while Qwen is still writing.
+const TURN = '/assistant/v1/turn';
+// Which part answered, in plain words. `source` and `route` are the service's own fields; the tool names
+// are the orchestrator's (apps/assistant-api/src/lib/tools).
+const TOOLS = {
+  knowledge_search: 'MyThuso knowledge base', symptom_check: 'symptom guidance', medication_info: 'medicine facts',
+  drug_interaction_check: 'medicine interactions', emergency_numbers: 'emergency numbers',
+  coverage_lookup: 'coverage area', literature_search: 'research papers',
+};
+// Who is asking changes what GilbertOne may do. Today the service sends only patients' open questions to
+// Qwen: staff get the fixed answers their workspaces carry, because Qwen's instructions are written to a
+// patient (routes/turn.ts). The switch is here so that difference can be seen, not hidden.
+const WHO_NOTE = {
+  patient: 'Open questions go to Qwen, with the checks around it.',
+  nurse: 'For now nurses get GilbertOne’s fixed staff answers. Qwen answers patients only until clinician answers are approved.',
+  doctor: 'For now doctors get GilbertOne’s fixed staff answers. Qwen answers patients only until clinician answers are approved.',
+};
 const SUGGESTIONS = ['Introduce yourself', 'Say hello in isiXhosa', 'What is a MyThuso home visit?'];
 const SEND_ICON = document.getElementById('send').innerHTML;
 const STOP_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>';
@@ -175,7 +207,26 @@ const STOP_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="
 const log = document.getElementById('log'), form = document.getElementById('ask'), q = document.getElementById('q'),
       send = document.getElementById('send'), dot = document.getElementById('dot'), state = document.getElementById('state'),
       notice = document.querySelector('.notice');
-let history = [], controller = null;
+let controller = null, audience = 'patient', sessionId = crypto.randomUUID();
+const who = document.getElementById('who'), whoNote = document.getElementById('who-note');
+function setAudience(next) {
+  audience = next;
+  for (const b of who.querySelectorAll('button')) b.setAttribute('aria-checked', String(b.dataset.audience === next));
+  whoNote.textContent = WHO_NOTE[next];
+}
+who.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b || b.dataset.audience === audience) return;
+  // A new audience is a new conversation: the service keeps one session per chat, read as one person.
+  if (controller) controller.abort();
+  setAudience(b.dataset.audience); sessionId = crypto.randomUUID(); showWelcome();
+});
+function answeredBy(r, tools) {
+  if (r.route === 'emergency') return 'Emergency check, at once, no AI';
+  if (r.refusalId) return 'A refusal GilbertOne always gives';
+  if (r.source === 'orchestrator') return 'Qwen' + (tools.length ? ', using ' + tools.map((t) => TOOLS[t] || t).join(', ') : '') + ', passed the safety checks';
+  if (audience === 'patient' && r.route === 'unknown') return 'GilbertOne’s safe standard reply: Qwen did not answer in time, or a check stopped it';
+  return 'GilbertOne’s fixed answer, no AI';
+}
 const narrow = () => window.matchMedia('(max-width: 600px)').matches;
 const touch = () => window.matchMedia('(pointer: coarse)').matches;
 
@@ -198,7 +249,7 @@ function showWelcome() {
   logo.sizes = '240px'; logo.alt = 'GilbertOne'; logo.width = 360; logo.height = 270;
   card.append(logo);
   box.append(card, el('h1', null, 'Hi, I’m GilbertOne'),
-    el('p', null, 'Ask me anything to see how I answer. Short replies take a few seconds; the first one after a quiet spell can take a minute.'));
+    el('p', null, 'Try made-up cases to see how I answer. Emergencies are answered at once; questions for Qwen take 15 to 30 seconds, and the first one after a quiet spell can take a minute or two.'));
   const chips = el('div', 'chips');
   for (const s of SUGGESTIONS) {
     const b = el('button', 'chip', s); b.type = 'button';
@@ -217,7 +268,7 @@ q.addEventListener('keydown', (e) => {
 form.addEventListener('submit', (e) => { e.preventDefault(); controller ? controller.abort() : ask(); });
 document.getElementById('reset').addEventListener('click', () => {
   if (controller) controller.abort();
-  history = []; showWelcome(); q.value = ''; grow(); if (!touch()) q.focus();
+  sessionId = crypto.randomUUID(); showWelcome(); q.value = ''; grow(); if (!touch()) q.focus();
 });
 
 async function ask() {
@@ -227,24 +278,23 @@ async function ask() {
   // On a narrow screen the notice folds once a message is sent, so the conversation has the room.
   if (narrow()) notice.open = false;
   q.value = ''; grow();
-  history.push({ role: 'user', content: text });
   const mine = el('div', 'row you'); mine.append(el('div', 'msg', text)); log.append(mine);
   const row = el('div', 'row bot'); const out = el('div', 'msg');
   const typing = el('span', 'typing'); typing.append(el('i'), el('i'), el('i'));
   out.append(typing); row.append(mini(), out); log.append(row); scrollDown();
 
   controller = new AbortController();
-  setBusy(true, 'Thinking…');
+  setBusy(true, 'Reading…');
   const started = performance.now();
-  let answer = '', last = null;
+  let answered = false;
   const waking = setTimeout(() => {
-    if (!answer) { out.append(el('span', 'wake', 'Waking up. The first answer after a quiet spell can take a minute or two.')); scrollDown(); }
-  }, 8000);
+    if (!answered) { out.append(el('span', 'wake', 'Qwen is writing. The first answer after a quiet spell can take a minute or two.')); scrollDown(); }
+  }, 12000);
   try {
-    const res = await fetch('/api/chat', {
+    const res = await fetch(TURN, {
       method: 'POST', signal: controller.signal,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: MODEL, messages: [{ role: 'system', content: SYSTEM }, ...history], stream: true, think: false }),
+      headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+      body: JSON.stringify({ text, audience, sessionId, userConsent: true, stream: true }),
     });
     if (!res.ok) throw new Error('The server answered ' + res.status + '.');
     const reader = res.body.getReader(), decoder = new TextDecoder();
@@ -253,33 +303,34 @@ async function ask() {
       const { value, done } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
-      let nl;
-      while ((nl = buffer.indexOf('\n')) >= 0) {
-        const line = buffer.slice(0, nl).trim(); buffer = buffer.slice(nl + 1);
-        if (!line) continue;
-        const chunk = JSON.parse(line);
-        if (chunk.message && chunk.message.content) {
-          if (!answer) setBusy(true, 'Writing…');
-          answer += chunk.message.content; out.textContent = answer; scrollDown();
+      let cut;
+      while ((cut = buffer.indexOf('\n\n')) >= 0) {
+        const block = buffer.slice(0, cut); buffer = buffer.slice(cut + 2);
+        const name = (block.match(/^event: (.*)$/m) || [])[1];
+        const data = (block.match(/^data: (.*)$/m) || [])[1];
+        if (!name || data == null) continue;
+        const payload = JSON.parse(data);
+        if (name === 'classification') setBusy(true, 'Writing…');
+        if (name === 'response') {
+          answered = true;
+          out.textContent = payload.reply;
+          const seconds = ((performance.now() - started) / 1000).toFixed(1);
+          log.append(el('div', 'meta', answeredBy(payload, payload.toolsUsed || []) + ' · ' + seconds + ' s'));
+          scrollDown();
         }
-        if (chunk.done) last = chunk;
       }
     }
-    history.push({ role: 'assistant', content: answer });
-    if (last && last.eval_count && last.eval_duration) {
-      const tps = last.eval_count / (last.eval_duration / 1e9);
-      log.append(el('div', 'meta', ((performance.now() - started) / 1000).toFixed(1) + ' s · ' + tps.toFixed(1) + ' words a second'));
-    }
+    if (!answered) throw new Error('The answer was cut off.');
   } catch (err) {
     const stopped = err.name === 'AbortError';
-    if (answer) { history.push({ role: 'assistant', content: answer }); if (stopped) log.append(el('div', 'meta', 'Stopped')); }
-    else { history.pop(); out.classList.add('err'); out.textContent = stopped ? 'Stopped.' : 'No answer came back. ' + err.message; }
+    if (!answered) { out.classList.add('err'); out.textContent = stopped ? 'Stopped.' : 'No answer came back. ' + err.message; }
   } finally {
     clearTimeout(waking); controller = null; setBusy(false); scrollDown();
     if (!touch()) q.focus();
   }
 }
 
+setAudience('patient');
 showWelcome();
 </script>
 </body>

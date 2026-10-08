@@ -18,6 +18,7 @@ import {
   OLLAMA_DEFAULT_MODEL,
   OLLAMA_DEFAULT_URL,
   OLLAMA_OPTIONS,
+  guardAnswer,
   llmSystemPrompt,
   probeOllama,
 } from "./llm-adapter.ts";
@@ -679,9 +680,28 @@ export async function orchestrate(
     return degradedResult(finalState.providerName ?? "", started);
   }
 
+  /* The second reader, when an operator has named one (LLAMA_GUARD_MODEL; the GilbertOne host, 8
+     October 2026): a different model reads the question and this answer before a person does, inside
+     what is left of the same budget. Anything but a plain "safe" — including no verdict in time —
+     drops the answer and the caller keeps the classifier's own, the fall-back every other failure in
+     this tier already takes. The check is not added to toolsUsed: the contract freezes that list as
+     the catalog tools that grounded the reply, and a guard grounds nothing. */
+  const toolsUsed = finalState.toolsUsed ?? [];
+  const verdict = await guardAnswer(
+    redactedText,
+    finalState.result,
+    Math.max(1000, deadline - Date.now()),
+  );
+  if (verdict && !verdict.safe) {
+    console.warn(
+      `[gilbertone:orchestrator] degraded guard-unsafe ${verdict.categories.join(",") || "no-verdict"} ${finalState.providerName || "-"} ${Date.now() - started}ms`,
+    );
+    return degradedResult(finalState.providerName ?? "", started);
+  }
+
   return {
     answer: finalState.result,
-    toolsUsed: finalState.toolsUsed ?? [],
+    toolsUsed,
     confidence: finalState.confidence,
     sources: [...new Set(finalState.sources ?? [])],
     provider: finalState.providerName,
