@@ -2,7 +2,8 @@
 // The founder's way into the four-agent team, from a terminal inside the gilbertone container:
 //
 //   node team.mjs ask "…"            the Project Manager takes it and hands work to the others
-//   node team.mjs as designer "…"    talk to one role directly (pm, designer, developer, admin)
+//   node team.mjs as Lerato "…"      talk to one directly: Thandi (pm), Lerato (designer),
+//                                    Sipho (developer) or GilbertTwo (admin)
 //   node team.mjs roles              who is on the team and what each may do
 //   node team.mjs pending            commands and emails waiting for approval
 //   node team.mjs approve 3          show approval 3, and run it only if you type yes
@@ -23,7 +24,7 @@ const cfg = settings();
 const team = await loadRoles();
 const [command, ...rest] = process.argv.slice(2);
 
-const shortName = (role) => role.title.split(" (")[0];
+const shortName = (role) => role.name;
 const minutes = (ms) => (ms < 60_000 ? `${Math.round(ms / 1000)} s` : `${(ms / 60_000).toFixed(1)} min`);
 
 function progress(transcript) {
@@ -85,8 +86,8 @@ async function main() {
       return runAsk(rest[0], rest.slice(1).join(" "));
     case "roles":
       for (const role of team.roles) {
-        const boss = role.reportsTo === "founder" ? team.founder : team.byId.get(role.reportsTo).title;
-        console.log(`\n${role.id}: ${role.title}\n  reports to ${boss}\n  tools: ${role.tools.join(", ")}`);
+        const boss = role.reportsTo === "founder" ? team.founder : team.byId.get(role.reportsTo).name;
+        console.log(`\n${role.name} (${role.id}): ${role.title}\n  reports to ${boss}\n  tools: ${role.tools.join(", ")}`);
         for (const r of role.refuses) console.log(`  · ${r}`);
       }
       return;
@@ -112,7 +113,7 @@ async function main() {
       return console.log(`${cfg.model} at ${cfg.ollamaUrl} answered "${reply.content.trim()}" in ${minutes(Date.now() - started)}.`);
     }
     default:
-      console.log('Usage: node team.mjs ask "…" | as <pm|designer|developer|admin> "…" | roles | pending | approve <n> | reject <n> | check');
+      console.log('Usage: node team.mjs ask "…" | as <Thandi|Lerato|Sipho|GilbertTwo> "…" | roles | pending | approve <n> | reject <n> | check');
       process.exitCode = command ? 1 : 0;
   }
 }

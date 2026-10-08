@@ -34,7 +34,8 @@ const call = (name, args) => ({ content: "", tool_calls: [{ function: { name, ar
 
 test("the roles file names four roles, one lead reporting to the founder, and only known tools", async () => {
   const team = await loadRoles();
-  assert.deepEqual([...team.byId.keys()], ["pm", "designer", "developer", "admin"]);
+  assert.deepEqual(team.roles.map((r) => [r.id, r.name]), [["pm", "Thandi"], ["designer", "Lerato"], ["developer", "Sipho"], ["admin", "GilbertTwo"]]);
+  assert.equal(team.byId.get("gilberttwo"), team.byId.get("admin"));
   assert.deepEqual(team.roles.filter((r) => r.reportsTo === "founder").map((r) => r.id), [team.lead]);
   for (const role of team.roles) {
     assert.ok(role.prompt && role.title && role.refuses.length, role.id);
@@ -68,7 +69,7 @@ test("the PM hands work on, the developer's change is a draft, and the work fold
   assert.equal(await readFile(join(cfg.home, "drafts", "developer", "README.md"), "utf8"), "# MyThuso\n");
   assert.ok(seen.every((b) => b.think === false && b.stream === false && b.model === "gilbertone-qwen"));
   assert.match(seen[1].messages[0].content, /Full Stack Developer/);
-  assert.match(seen[1].messages[0].content, /You report to Project Manager/);
+  assert.match(seen[1].messages[0].content, /Your name is Sipho\.[\s\S]*You report to Thandi, the Project Manager/);
   assert.match(seen[0].messages[0].content, /You report to Gilbert/);
 });
 
@@ -82,7 +83,7 @@ test("a command is queued for approval and never run; an email is drafted and ne
     call("read_inbox", {}),
     { content: "Queued 1 and 2." },
   ]);
-  const result = await ask(cfg, team, "Do admin", { as: "admin" });
+  const result = await ask(cfg, team, "Do admin", { as: "GilbertTwo" });
   assert.deepEqual(result.approvals, [1, 2]);
   assert.deepEqual((await listApprovals(cfg)).map((a) => [a.id, a.kind, a.status]), [[1, "command", "waiting"], [2, "email", "waiting"]]);
   assert.deepEqual(await readdir(cfg.workdir), ["README.md"]);

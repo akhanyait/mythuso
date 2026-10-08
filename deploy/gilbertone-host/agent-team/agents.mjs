@@ -44,7 +44,9 @@ export function settings(env = process.env) {
 
 export async function loadRoles(path = join(here, "roles.json")) {
   const team = JSON.parse(await readFile(path, "utf8"));
+  // A role answers to its id or its name, so `as GilbertTwo` and `as admin` are the same agent.
   const byId = new Map(team.roles.map((r) => [r.id, r]));
+  for (const r of team.roles) byId.set(r.name.toLowerCase(), r);
   return { ...team, byId };
 }
 
@@ -196,7 +198,7 @@ function makeTools(cfg, role, ctx) {
       if (!mate || mate.reportsTo !== role.id) return `Refused: ${to} does not report to you.`;
       ctx.delegations += 1;
       const report = await runAgent(cfg, ctx.team, mate, task, ctx);
-      return clip(`${mate.title} reports:\n${report}`, 4000);
+      return clip(`${mate.name} (${mate.title}) reports:\n${report}`, 4000);
     },
     async list_files({ path = "." } = {}) {
       const dir = inside(cfg.workdir, path);
@@ -284,9 +286,11 @@ export async function runAgent(cfg, team, role, task, ctx) {
   const tools = makeTools(cfg, role, ctx);
   const allowed = role.tools.filter((t) => TOOL_SPECS[t]);
   const specs = allowed.map((name) => ({ type: "function", function: { name, ...TOOL_SPECS[name] } }));
-  const boss = role.reportsTo === "founder" ? team.founder : team.byId.get(role.reportsTo)?.title;
+  const lead = team.byId.get(role.reportsTo);
+  const boss = role.reportsTo === "founder" ? team.founder : `${lead?.name}, the ${lead?.title}`;
   const system = [
     team.shared,
+    `Your name is ${role.name}.`,
     role.prompt,
     `You report to ${boss}. What you will not do:`,
     ...role.refuses.map((r) => `- ${r}`),
@@ -328,8 +332,8 @@ export async function runAgent(cfg, team, role, task, ctx) {
 
 // The founder's ask, given to the lead (the Project Manager) or, with `as`, to one role directly.
 export async function ask(cfg, team, text, { as = team.lead, log = () => {} } = {}) {
-  const role = team.byId.get(as);
-  if (!role) throw new Error(`No role called ${as}. Roles: ${[...team.byId.keys()].join(", ")}`);
+  const role = team.byId.get(String(as).toLowerCase());
+  if (!role) throw new Error(`No one called ${as}. The team: ${team.roles.map((r) => `${r.name} (${r.id})`).join(", ")}`);
   const ctx = { team, delegations: 0, drafts: [], approvals: [], log };
   await mkdir(cfg.home, { recursive: true });
   const report = await runAgent(cfg, team, role, text, ctx);
