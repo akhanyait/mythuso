@@ -9990,13 +9990,13 @@ if (
         `deploy/nginx/mythuso.conf's location /assistant/ redeclares ${hidden} but does not proxy_hide_header the service's own copy of it, so the browser receives the header twice.`,
       );
   }
-  /* HSTS inside the location stays at the five minutes the server level ships — a location that
-     quietly raised it would be the two-year decision taken at the edge of the file where nobody
-     reads, which is what the server-level comment exists to prevent. */
+  /* HSTS inside the location stays at the one year the server level ships — a location that
+     quietly changed it would be a different max-age taken at the edge of the file where nobody
+     reads. The value is the one live on the site: one year, subdomains included, no preload. */
   const hsts = location[1].match(/Strict-Transport-Security "([^"]*)"/)?.[1];
-  if (!hsts || !/max-age=300/.test(hsts) || !/includeSubDomains/.test(hsts))
+  if (!hsts || !/max-age=31536000/.test(hsts) || !/includeSubDomains/.test(hsts))
     throw new Error(
-      `location /assistant/ ships HSTS "${hsts ?? "none"}" — the server level ships "max-age=300; includeSubDomains", and the location must not drift from it.`,
+      `location /assistant/ ships HSTS "${hsts ?? "none"}" — the server level ships "max-age=31536000; includeSubDomains", and the location must not drift from it.`,
     );
   /* The microphone policy, changed from () to (self) on 21 September 2026 — the same day the
      contract's own web tap-to-talk was read against this file. The panel's recognition runs in

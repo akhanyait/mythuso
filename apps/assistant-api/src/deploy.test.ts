@@ -486,10 +486,10 @@ test("nginx carries the assistant proxy, the fence on it, and the microphone pol
   assert.match(nginx, /add_header X-Robots-Tag "noindex, nofollow" always;/);
   assert.equal(
     nginx.split(
-      'add_header Strict-Transport-Security "max-age=300; includeSubDomains" always;',
+      'add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;',
     ).length - 1,
     2,
-    "HSTS stays at 300 seconds on both declarations — deliberately short until the certificate proof is in",
+    "HSTS is max-age=31536000; includeSubDomains on both declarations — the value live on the site",
   );
   const policy =
     'add_header Permissions-Policy "camera=(), microphone=(self), geolocation=(), interest-cohort=()" always;';
