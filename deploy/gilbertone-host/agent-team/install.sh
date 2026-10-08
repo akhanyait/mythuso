@@ -30,7 +30,7 @@ tags="$(in_box curl -fsS http://127.0.0.1:11434/api/tags)"
 if grep -q '"gilbertone-qwen' <<<"$tags"; then
   local_json='{"model":"gilbertone-qwen"}'
 elif grep -q "\"${SERVED}\"" <<<"$tags"; then
-  local_json="{\"model\":\"${SERVED}\",\"numThread\":$(in_box nproc),\"numCtx\":4096}"
+  local_json="{\"model\":\"${SERVED}\",\"numThread\":$(in_box nproc),\"numCtx\":8192}"
   echo "gilbertone-qwen is not built here yet; the team will use ${SERVED} with $(in_box nproc) threads."
 else
   die "neither gilbertone-qwen nor ${SERVED} is in the container's Ollama; run bootstrap.sh first."

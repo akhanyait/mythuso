@@ -131,10 +131,10 @@ test("the PM can hand out at most four pieces of one ask", async () => {
 
 test("a host without gilbertone-qwen runs the served Qwen with its thread count sent on every call", async () => {
   const { cfg: base } = await sandbox();
-  const cfg = { ...base, ...settings({ AGENT_TEAM_HOME: base.home, AGENT_TEAM_WORKDIR: base.workdir }, { model: "qwen3.6:35b-a3b-q4_K_M", numThread: 10, numCtx: 4096 }) };
+  const cfg = { ...base, ...settings({ AGENT_TEAM_HOME: base.home, AGENT_TEAM_WORKDIR: base.workdir }, { model: "qwen3.6:35b-a3b-q4_K_M", numThread: 10, numCtx: 8192 }) };
   const team = await loadRoles();
   const seen = scriptOllama([{ content: "Hello." }]);
   await ask(cfg, team, "hi", { as: "Thandi" });
   assert.equal(seen[0].model, "qwen3.6:35b-a3b-q4_K_M");
-  assert.deepEqual(seen[0].options, { num_ctx: 4096, num_thread: 10 });
+  assert.deepEqual(seen[0].options, { num_ctx: 8192, num_thread: 10 });
 });
