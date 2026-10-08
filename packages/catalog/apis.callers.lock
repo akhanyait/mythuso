@@ -484,3 +484,7 @@ GET /v1/clinical/cases/{caseRef}@1 callers=doctor,nurse,patient purpose=treatmen
 POST /v1/clinical/cases/{caseRef}/setting@1 callers=nurse purpose=treatment because=-
 GET /v1/photo-reading@1 callers=anonymous purpose=treatment because=-
 POST /v1/photo-reading@1 callers=anonymous purpose=treatment because=-
+POST /turn@2 callers=anonymous purpose=treatment because=-
+POST /v1/turn@2 callers=anonymous purpose=treatment because=-
+POST /turn@1 callers=- purpose=treatment because=-
+POST /v1/turn@1 callers=- purpose=treatment because=-

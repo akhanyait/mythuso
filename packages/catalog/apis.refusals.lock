@@ -511,3 +511,5 @@ GET /v1/clinical/cases/{caseRef}@1 d636e564ef581354
 POST /v1/clinical/cases/{caseRef}/setting@1 145efbf9cbbc8a29
 GET /v1/photo-reading@1 5deabec87e76c998
 POST /v1/photo-reading@1 91d65db2d5a0d780
+POST /turn@2 f7bb3f71daab3edc
+POST /v1/turn@2 27fc1f313db7e553

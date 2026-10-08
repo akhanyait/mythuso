@@ -30,7 +30,7 @@ enum AssistantApi {
 
     /// Each built route at the catalog's own version, for readers and for
     /// scripts/check-boundaries.mjs. The paths below are the same routes minus method and version.
-    static let turnAddress = "POST /assistant/v1/turn@1"
+    static let turnAddress = "POST /assistant/v1/turn@2"
     static let knowledgeSearchAddress = "POST /assistant/v1/knowledge/search@2"
     static let statusAddress = "GET /assistant/v1/status@2"
     /// Push-to-talk's two built addresses travel even though no phone calls them yet: the voice
@@ -59,7 +59,7 @@ enum AssistantApi {
     static let speakPath = "/assistant/v1/speak"
 }
 
-/// POST /v1/turn@1's request. Optional fields are omitted from the JSON when nil — the service
+/// POST /v1/turn@2's request. Optional fields are omitted from the JSON when nil — the service
 /// reads an absent sessionId as "mint one", exactly as the contract says.
 struct AssistantTurnRequest: Encodable {
     var sessionId: String?
@@ -69,7 +69,7 @@ struct AssistantTurnRequest: Encodable {
     var userConsent: Bool
 }
 
-/// POST /v1/turn@1's response, field for field.
+/// POST /v1/turn@2's response, field for field.
 struct AssistantTurnReply: Decodable {
     let turnId: String
     let sessionId: String
