@@ -40639,3 +40639,54 @@ console.log(await checkSuppliers({ read, files, exists: existsSync }));
   if (!/data-motion=\{decor\.reduced \? 'still' : decor\.playing \? 'running' : 'paused'\}/.test(triage)) tmFail("the Triage screen no longer hands its vitals the page's motion flag, so the heart would beat with no way to stop it.");
   console.log(`The triage markers · ${tm.lines.length} alert lines, each on or outside its indicative range, owned by the ${g.owner} and ${g.status === "reviewed" ? `reviewed on ${g.reviewedOn}` : "drawn under the demo banner"}; nothing typed, nothing summed; ${tm.preview.readings.length} consented sandbox patients with readings.`);
 }
+
+/* ---- GilbertOne's media studio (packages/catalog/gilbertone-media.json, deploy/gilbertone-host/media) ----
+   A private preview on the GilbertOne host that draws, paints and animates. What holds it:
+   1. Every refusal the code names exists in the contract, and the code and the page type no refusal
+      sentence or label of their own: a reworded refusal is reworded once.
+   2. Every model it runs may be used commercially and names its licence; none of the refused models is
+      a file it fetches.
+   3. The emergency refusal carries no number of its own. The numbers are said by packages/gilbertone's
+      escalation rule, appended after it, so 10177 and 112 live where they already live.
+   4. It stays on the GilbertOne host: nothing in deploy/ outside deploy/gilbertone-host names it, it
+      binds to loopback only, and it refuses to start without its flag.
+   5. Nothing in it touches browser storage. */
+{
+  const mFile = "packages/catalog/gilbertone-media.json";
+  const media = JSON.parse(read(mFile));
+  const mFail = (message) => { throw new Error(`The media studio: ${message}`); };
+  const mDir = "deploy/gilbertone-host/media";
+  const srcFiles = readdirSync(`${mDir}/src`).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts")).map((f) => `${mDir}/src/${f}`);
+  const pageFiles = [`${mDir}/studio/index.html`, `${mDir}/studio/studio.js`];
+  const ids = new Set(media.refusals.map((r) => r.id));
+  /* 1. */
+  for (const f of srcFiles) {
+    for (const m of read(f).matchAll(/(?:refusal|refuse|Refused)\(\s*"([\w-]+)"/g)) if (!ids.has(m[1])) mFail(`${f} names refusal "${m[1]}", which ${mFile} does not have.`);
+    for (const m of read(f).matchAll(/r\.id === "([\w-]+)"/g)) if (!ids.has(m[1])) mFail(`${f} looks up refusal "${m[1]}", which ${mFile} does not have.`);
+  }
+  for (const f of [...srcFiles, ...pageFiles]) {
+    const text = read(f);
+    for (const r of media.refusals) if (text.includes(r.sentence.slice(0, 40))) mFail(`${f} types the "${r.id}" refusal. It lives in ${mFile}.`);
+    for (const [k, label] of Object.entries(media.labels)) if (text.includes(label)) mFail(`${f} types the ${k} label. It lives in ${mFile}.`);
+  }
+  /* 2. */
+  for (const model of media.models) if (!model.licence || model.commercialUse !== true) mFail(`${model.id} has no licence named, or is not cleared for commercial use.`);
+  const fetched = media.models.flatMap((m) => m.files ?? []).map((f) => `${f.name} ${f.url}`.toLowerCase());
+  if (fetched.some((f) => /turbo|flux\.1-dev|flux1-dev/.test(f))) mFail(`a picture-model file is one of the models the contract refuses (${media.refusedModels.map((m) => m.id).join("; ")}).`);
+  /* 3. */
+  const emergency = media.refusals.find((r) => r.id === "emergency");
+  if (!emergency || /\d/.test(emergency.sentence)) mFail("the emergency refusal types a number. 10177 and 112 come from the escalation rule appended after it.");
+  if (!/checkEscalation\(/.test(read(`${mDir}/src/guard.ts`)) || !/escalation\.rule\.message/.test(read(`${mDir}/src/guard.ts`))) mFail("guard.ts no longer runs packages/gilbertone's escalation rules first, or no longer says the rule's own message.");
+  /* 4. */
+  const deployFiles = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? deployFiles(join(dir, e.name)) : [join(dir, e.name)]));
+  for (const f of deployFiles("deploy")) {
+    if (f.startsWith("deploy/gilbertone-host/") || /\.(png|webp|jpe?g)$/.test(f)) continue;
+    if (/gilbertone-media|deploy\/gilbertone-host\/media|:8792\b/.test(read(f))) mFail(`${f} names the media studio. It lives on the GilbertOne host alone, never in the mythuso.co.za deploy.`);
+  }
+  const server = read(`${mDir}/src/server.ts`);
+  if (!/MYTHUSO_GILBERTONE_MEDIA !== FLAG/.test(server)) mFail("server.ts starts without MYTHUSO_GILBERTONE_MEDIA=private-preview.");
+  if (!/host !== "127\.0\.0\.1" && host !== "::1"/.test(server)) mFail("server.ts no longer refuses to bind beyond loopback.");
+  /* 5. */
+  for (const f of [...srcFiles, ...pageFiles]) if (/localStorage|sessionStorage|indexedDB/.test(read(f).replace(/\/\/.*$/gm, ""))) mFail(`${f} touches browser storage.`);
+  console.log(`The media studio · ${media.kinds.length} kinds (${media.kinds.map((k) => k.id).join(", ")}), ${media.refusals.length} refusals, ${media.models.length} components each cleared for commercial use; the emergency answer is packages/gilbertone's own; loopback only, behind its flag, on the GilbertOne host alone.`);
+}

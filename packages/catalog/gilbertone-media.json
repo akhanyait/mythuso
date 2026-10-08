@@ -1,0 +1,274 @@
+{
+  "_note": "What GilbertOne may draw, picture and animate on its own server, and what it refuses. Asked for by the founder on 8 October 2026 ('be able to draw and create some images and videos'). The GilbertOne scope (docs/GilbertOne_Developer_Scope_v1.md) names an SVG character rig and nothing that generates media, so this contract is ours: it picks drawings as the main form because they are cheap on a CPU-only server, readable, editable and impossible to mistake for a photograph. Every sentence a person reads is here, once; deploy/gilbertone-host/media reads it and types none of its own.",
+  "version": 1,
+  "status": "built on the GilbertOne host, private preview only: behind the founder's login, never on mythuso.co.za, never in the patient app",
+  "kinds": [
+    {
+      "id": "drawing",
+      "label": "Drawing",
+      "meaning": "A flat, labelled illustration or diagram that Qwen writes as SVG: how to wash hands, the steps of a home visit, a food plate, a map of a process. Cleaned to an allowlist of shapes and text before anyone sees it.",
+      "engine": "qwen",
+      "typicalSeconds": [
+        60,
+        300
+      ],
+      "maxPromptCharacters": 600
+    },
+    {
+      "id": "picture",
+      "label": "Picture",
+      "meaning": "A painted-style image from an open-weight image model running on the same CPU. Slow, and the one kind that could look real, so it carries the most refusals and a visible label burned into the image.",
+      "engine": "image-model",
+      "typicalSeconds": [
+        120,
+        600
+      ],
+      "maxPromptCharacters": 400,
+      "width": 512,
+      "height": 512,
+      "steps": 4
+    },
+    {
+      "id": "video",
+      "label": "Short video",
+      "meaning": "A silent explainer of three to six scenes: Qwen writes the storyboard, each scene is a drawing with a caption, and ffmpeg joins them with gentle motion into an MP4. No model on this server can make true generated video at a usable speed without a GPU, so this is an animated storyboard and says so.",
+      "engine": "qwen+ffmpeg",
+      "typicalSeconds": [
+        300,
+        1800
+      ],
+      "maxPromptCharacters": 600,
+      "minScenes": 3,
+      "maxScenes": 6,
+      "secondsPerScene": 4,
+      "width": 1280,
+      "height": 720,
+      "framesPerSecond": 25
+    }
+  ],
+  "models": [
+    {
+      "id": "gilbertone-qwen",
+      "role": "Writes drawings (SVG) and video storyboards",
+      "source": "The Qwen already serving GilbertOne in the container; no second language model",
+      "licence": "Apache-2.0",
+      "commercialUse": true
+    },
+    {
+      "id": "flux1-schnell-q4",
+      "role": "Pictures",
+      "source": "FLUX.1 [schnell] by Black Forest Labs, 4-bit GGUF, run by stable-diffusion.cpp on the CPU",
+      "licence": "Apache-2.0",
+      "commercialUse": true,
+      "files": [
+        {
+          "name": "flux1-schnell-Q4_0.gguf",
+          "url": "https://huggingface.co/city96/FLUX.1-schnell-gguf/resolve/main/flux1-schnell-Q4_0.gguf",
+          "flag": "--diffusion-model"
+        },
+        {
+          "name": "t5-v1_1-xxl-encoder-Q4_K_M.gguf",
+          "url": "https://huggingface.co/city96/t5-v1_1-xxl-encoder-gguf/resolve/main/t5-v1_1-xxl-encoder-Q4_K_M.gguf",
+          "flag": "--t5xxl"
+        },
+        {
+          "name": "clip_l.safetensors",
+          "url": "https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors",
+          "flag": "--clip_l"
+        },
+        {
+          "name": "ae.safetensors",
+          "url": "https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main/ae.safetensors",
+          "flag": "--vae"
+        }
+      ]
+    },
+    {
+      "id": "stable-diffusion.cpp",
+      "role": "Runs the picture model on the CPU",
+      "source": "https://github.com/leejet/stable-diffusion.cpp, built from source inside the container",
+      "licence": "MIT",
+      "commercialUse": true
+    },
+    {
+      "id": "ffmpeg",
+      "role": "Joins video scenes",
+      "source": "Ubuntu's ffmpeg package",
+      "licence": "LGPL-2.1-or-later (Ubuntu's build is GPL; run as a separate program, not linked)",
+      "commercialUse": true
+    },
+    {
+      "id": "librsvg",
+      "role": "Turns drawings into video frames",
+      "source": "Ubuntu's librsvg2-bin package (rsvg-convert)",
+      "licence": "LGPL-2.1-or-later",
+      "commercialUse": true
+    }
+  ],
+  "refusedModels": [
+    {
+      "id": "sd-turbo / sdxl-turbo",
+      "why": "Stability AI's non-commercial research licence; MyThuso charges for care."
+    },
+    {
+      "id": "FLUX.1 [dev]",
+      "why": "Its weights are under a non-commercial licence; a paid service would need a separate agreement with Black Forest Labs."
+    },
+    {
+      "id": "Any cloud image or video API",
+      "why": "A prompt about a health worry is health information; it does not leave this server without a residency decision, the same rule that holds for chat and speech."
+    }
+  ],
+  "oneHeavyModelAtATime": "The server must never run two large models side by side. Before a picture, the service asks Ollama to unload Qwen and waits for it to go; only one media job runs at a time, and a chat that arrives meanwhile reloads Qwen after the picture finishes its step. Drawings and videos use the Qwen that is already loaded.",
+  "labels": {
+    "drawing": "Drawn by GilbertOne. An illustration for explaining, not medical advice.",
+    "picture": "Made by GilbertOne · AI picture, not a photograph",
+    "video": "Made by GilbertOne · an animated drawing, not real footage"
+  },
+  "keeping": {
+    "minutes": 60,
+    "sentence": "Nothing you make here is kept for long. Each drawing, picture and video is deleted from the server an hour after it is made, and your words are never written to a log."
+  },
+  "preview": "Private preview. GilbertOne's safety checks run on your words before anything is drawn, but nobody has reviewed these drawings clinically yet. Do not use a real person's name, face or health details.",
+  "refusals": [
+    {
+      "id": "emergency",
+      "appliesTo": [
+        "drawing",
+        "picture",
+        "video"
+      ],
+      "sentence": "I will not make anything for this, because what you said needs help now.",
+      "source": "packages/gilbertone escalation rules, emergency severity. The rule's own approved message follows this sentence, so the emergency numbers and the SADAG line are said in the words GilbertOne already uses everywhere else."
+    },
+    {
+      "id": "personal-details",
+      "appliesTo": [
+        "drawing",
+        "picture",
+        "video"
+      ],
+      "sentence": "I took nothing from that, because it holds what looks like an ID number, phone number, email address or medical aid number. Please ask again without anyone's personal details.",
+      "source": "packages/gilbertone PHI patterns"
+    },
+    {
+      "id": "real-person",
+      "appliesTo": [
+        "drawing",
+        "picture",
+        "video"
+      ],
+      "sentence": "I do not make pictures of real people, named or described, or anything made to look like someone you know. I can draw an imagined person instead.",
+      "patterns": [
+        "\\b(photo|picture|image|portrait|likeness|deepfake|face)\\s+of\\s+(my|our|his|her|their)\\b",
+        "\\b(looks?|look)\\s+(exactly\\s+)?like\\s+(my|our|his|her|their|the\\s+president|a\\s+celebrity)\\b",
+        "\\bdeep\\s*fake\\b",
+        "\\b(ramaphosa|mandela|zuma|malema|tutu|siya\\s+kolisi|trevor\\s+noah|tyla|black\\s+coffee)\\b"
+      ]
+    },
+    {
+      "id": "clinical-image",
+      "appliesTo": [
+        "picture"
+      ],
+      "sentence": "I will not make a realistic picture of a wound, rash, scan or other medical finding: it could be mistaken for a real one. I can make a labelled drawing of it instead.",
+      "patterns": [
+        "\\b(x-?ray|mri|ct\\s+scan|ultrasound|sonar|ecg|ekg|scan\\s+(image|result)s?)\\b",
+        "\\b(wound|rash|lesion|ulcer|bed\\s*sore|pressure\\s+sore|burn|tumou?r|mole|abscess|infection|blister|bruise|cyst|gangrene|melanoma)\\b",
+        "\\b(realistic|photo-?real\\w*|real-?life|clinical\\s+photo)\\b.*\\b(skin|body|eye|mouth|foot|feet|leg|arm|baby|genital\\w*)\\b"
+      ]
+    },
+    {
+      "id": "child-likeness",
+      "appliesTo": [
+        "picture"
+      ],
+      "sentence": "I do not make realistic pictures of children. I can draw a friendly illustration instead.",
+      "patterns": [
+        "\\b(realistic|photo-?real\\w*|real-?life|photograph)\\b.*\\b(child|children|kid|kids|baby|babies|toddler|infant|girl|boy|teen\\w*)\\b",
+        "\\b(child|children|kid|kids|baby|babies|toddler|infant|girl|boy|teen\\w*)\\b.*\\b(realistic|photo-?real\\w*|real-?life|photograph)\\b"
+      ]
+    },
+    {
+      "id": "document",
+      "appliesTo": [
+        "drawing",
+        "picture",
+        "video"
+      ],
+      "sentence": "I do not make anything that looks like an official document, badge or another organisation's logo: a sick note, prescription, ID, certificate or registration card made here would be a forgery.",
+      "patterns": [
+        "\\b(sick\\s*note|medical\\s+certificate|doctor'?s\\s+note|prescription|script\\s+for|id\\s+(card|book|document)|passport\\s+page|driver'?s\\s+licen[cs]e|certificate|diploma|payslip|bank\\s+statement)\\b",
+        "\\b(sanc|hpcsa|sahpra|discovery|bonitas|momentum|medshield|gems|netcare|mediclinic|life\\s+healthcare|clicks|dis-?chem)\\b.*\\b(logo|badge|card|letterhead|stamp|form)\\b",
+        "\\b(logo|badge|card|letterhead|stamp|form)\\b.*\\b(sanc|hpcsa|sahpra|discovery|bonitas|momentum|medshield|gems|netcare|mediclinic|life\\s+healthcare|clicks|dis-?chem)\\b",
+        "\\b(official\\s+stamp|rubber\\s+stamp|signature\\s+of)\\b"
+      ]
+    },
+    {
+      "id": "harmful",
+      "appliesTo": [
+        "drawing",
+        "picture",
+        "video"
+      ],
+      "sentence": "I will not make that. I make pictures that help people understand their health and their care.",
+      "patterns": [
+        "\\b(nude|naked|nsfw|sexual|sexy|porn\\w*|erotic|lingerie|undress\\w*)\\b",
+        "\\b(gore|gory|blood\\s*bath|dismember\\w*|decapitat\\w*|torture|corpse|dead\\s+body)\\b",
+        "\\b(gun|rifle|pistol|bomb|explosive|knife\\s+attack|weapon)\\b"
+      ]
+    },
+    {
+      "id": "too-long",
+      "appliesTo": [
+        "drawing",
+        "picture",
+        "video"
+      ],
+      "sentence": "That is longer than I can draw from. Please describe it in a sentence or two."
+    },
+    {
+      "id": "busy",
+      "appliesTo": [
+        "drawing",
+        "picture",
+        "video"
+      ],
+      "sentence": "I am already working on three things. Please wait for one to finish, then ask again."
+    },
+    {
+      "id": "pictures-off",
+      "appliesTo": [
+        "picture"
+      ],
+      "sentence": "Pictures are not switched on on this server yet. I can make a drawing instead."
+    },
+    {
+      "id": "drawing-failed",
+      "appliesTo": [
+        "drawing",
+        "video"
+      ],
+      "sentence": "I could not make a clean drawing of that, so I am showing you nothing rather than something broken. Try saying it more simply."
+    }
+  ],
+  "drawingRules": [
+    "Write one SVG, nothing else: no Markdown fence, no explanation before or after.",
+    "viewBox=\"0 0 800 600\", no width or height attributes.",
+    "Use only svg, g, rect, circle, ellipse, line, polyline, polygon, path, text, tspan, defs, linearGradient, radialGradient, stop, title.",
+    "No script, no image, no link, no foreignObject, no animation, no style element, no external reference of any kind.",
+    "Keep it small: at most 30 shapes, no decorative detail, so it is quick to write.",
+    "Flat, friendly shapes with rounded corners. Short labels of at most five words, font-family=\"sans-serif\", font-size at least 22.",
+    "Colours: #083848 ink, #14b8a6 teal, #189870 green, #d8f818 lime accent, #1e3a8a navy, #ffffff and #eef6f7 backgrounds, #f59e0b for a warning.",
+    "Draw people as simple, imagined figures with varied skin tones; never a real or named person.",
+    "Do not draw blood, wounds in detail, needles going into skin, or anything frightening.",
+    "Write the labels in the language the person asked in. If you are unsure of a word in that language, use a picture instead of a word."
+  ],
+  "storyboardRules": [
+    "Answer with JSON only: {\"title\": string, \"scenes\": [{\"caption\": string, \"drawing\": string}]}.",
+    "Between 3 and 6 scenes. Each caption is one plain sentence of at most 14 words, in the language the person asked in.",
+    "Each drawing is a short description (at most 25 words) of one flat illustration for that scene; it will be drawn separately.",
+    "Teach one thing, in order. No diagnosis, no medicine doses, no promises."
+  ],
+  "timingNote": "Estimates for Qwen 3.6 35B-A3B on the GilbertOne host's CPU, which answered at about 9 tokens a second on 8 October 2026: a drawing is 1,000 to 2,500 tokens of SVG. install.sh times one real picture and records it in /etc/mythuso/gilbertone-media.txt; nothing here has been timed on the server yet."
+}

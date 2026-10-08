@@ -77,6 +77,14 @@ once on the terminal; it does not go in this repository or a chat. The page is t
 GilbertOne, and says so: no safety checks, nothing about a real person's health, nothing kept.
 `sudo bash open-test-chat.sh --close` shuts it again.
 
+## Drawings, pictures and short videos: `media/`
+
+`media/install.sh` adds GilbertOne's media studio to the same container, at `/media/` behind the same
+login: drawings Qwen writes as SVG, pictures from FLUX.1 [schnell] on the CPU, and short silent videos
+made of captioned drawings. What it refuses and how it keeps to one large model at a time are in
+`media/README.md`; the rules are `packages/catalog/gilbertone-media.json`. `open-test-chat.sh` imports
+`/etc/caddy/gilbertone.d/*.caddy` so a re-run keeps the studio's route.
+
 ## What has to be true before the assistant moves here
 
 Moving `/assistant/` to this host is a production change, made by hand and recorded in
