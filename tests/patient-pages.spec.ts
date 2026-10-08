@@ -47,6 +47,10 @@ async function openHub(page: Page) {
 }
 
 test('the More hub holds the door to Your health, and every shortcut opens its own page', async ({ page }) => {
+ /* Ten shortcuts, each opened and then walked back to the hub: twenty navigations, and on the phone
+    each walk back is two taps through Explore. It took 26 seconds on desktop and ran past the default
+    30 on mobile without anything being wrong, so it gets the room the other long journeys have. */
+ test.setTimeout(90_000);
  await openHub(page);
  await expect(page.getByRole('heading', { level: 1, name: hubHeading() })).toBeVisible();
  await expect(page.getByText(contract.hub.lead)).toBeVisible();
