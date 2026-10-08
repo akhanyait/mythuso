@@ -69,9 +69,19 @@ import { entityContextBlock, routeEntities, type ToolHint } from "./ner/route-en
    before this tier existed.
 
    ONE CEILING. The whole orchestration — model calls, tool rounds, everything — runs inside a
-   15-second budget. A turn that cannot finish inside it is a turn the classifier answers alone. */
+   15-second budget. A turn that cannot finish inside it is a turn the classifier answers alone.
+   GILBERTONE_ORCHESTRATOR_TIMEOUT_MS moves it, within 5 to 120 seconds, for a host whose model is
+   slower than Azure's: the self-hosted Qwen on the CPU-only GilbertOne host needs about 15 seconds
+   just to read this tier's prompt (measured 8 October 2026), so at 15 every turn there would fall
+   back. Unset, it is 15 seconds exactly as before. */
 
-export const ORCHESTRATOR_TIMEOUT_MS = 15 * 1000;
+export function orchestratorTimeoutFrom(env: Record<string, string | undefined>): number {
+  const asked = Number((env.GILBERTONE_ORCHESTRATOR_TIMEOUT_MS ?? "").trim());
+  if (!Number.isFinite(asked) || asked <= 0) return 15 * 1000;
+  return Math.min(120 * 1000, Math.max(5 * 1000, Math.round(asked)));
+}
+
+export const ORCHESTRATOR_TIMEOUT_MS = orchestratorTimeoutFrom(process.env);
 /* A ReAct loop needs its steps bounded: each step is a model call, and a model that keeps calling
    tools forever is a model that never answers. Four rounds is enough for a lookup and a follow-up. */
 const MAX_STEPS = 4;
@@ -247,7 +257,14 @@ async function resolveChatModel(): Promise<ResolvedModel | null> {
            on constrained hardware. modelKwargs is spread into the body, so this is where an option
            LangChain has no first-class field for is said; it rides beside maxTokens rather than
            replacing it, and the two reach the wire as `options` and `max_tokens` respectively. */
-        modelKwargs: { options: { ...OLLAMA_OPTIONS } },
+        modelKwargs: {
+          options: { ...OLLAMA_OPTIONS },
+          /* Thinking off. A Qwen 3 model reasons before it answers unless told not to, and on /v1
+             that reasoning ignores max_tokens: a "say hello" ran for over four minutes on the
+             GilbertOne host on 8 October 2026. "none" is Ollama's word for think:false, and a
+             model that does not think is unaffected by it. */
+          reasoning_effort: "none",
+        },
       }),
     };
   }

@@ -30,6 +30,8 @@ set -euo pipefail
 # mixture-of-experts answered at 8.9 tokens/second, the dense 27B at 1.3, too slow to chat with. Only
 # the one that serves is pulled now; QWEN_MODELS="qwen3.8:27b qwen3.6:35b-a3b-q4_K_M" times both again.
 QWEN_MODELS="${QWEN_MODELS:-qwen3.6:35b-a3b-q4_K_M}"
+# The one GilbertOne serves, chosen by the founder on 8 October 2026; gilbertone-qwen is built from it.
+SERVE_MODEL="${SERVE_MODEL:-qwen3.6:35b-a3b-q4_K_M}"
 # The Node floor the assistant runtime is built for (package.json "engines").
 NODE_MAJOR_FLOOR=22
 
@@ -314,6 +316,17 @@ unload_all
 for pulled in $(in_box curl -fsS http://127.0.0.1:11434/api/tags | jq -r '.models[].name | select(startswith("qwen"))'); do
   case " $QWEN_MODELS " in *" $pulled "*) ;; *) echo "Removing ${pulled}, which QWEN_MODELS no longer names."; in_box ollama rm "$pulled" ;; esac
 done
+
+# GilbertOne calls the model through Ollama's OpenAI-compatible /v1, which ignores per-request
+# `options`, so the thread count timed above never reached it: Ollama's own default of 12 threads on
+# a 10-CPU container stalled Qwen at 0.12 tokens a second (8 October 2026). The settings are baked
+# into a model of its own instead, gilbertone-qwen, which shares the served model's files and costs
+# no disk. OLLAMA_MODEL=gilbertone-qwen is what the assistant service is pointed at when it moves here.
+say "gilbertone-qwen: ${SERVE_MODEL} with ${BOX_CPUS} threads and a 4096-token window"
+case " $QWEN_MODELS " in *" $SERVE_MODEL "*) ;; *) die "SERVE_MODEL ${SERVE_MODEL} is not one of QWEN_MODELS." ;; esac
+printf 'FROM %s\nPARAMETER num_thread %s\nPARAMETER num_ctx 4096\n' "$SERVE_MODEL" "$BOX_CPUS" \
+  | in_box sh -c 'cat > /root/gilbertone-qwen.Modelfile'
+in_box ollama create gilbertone-qwen -f /root/gilbertone-qwen.Modelfile
 
 mkdir -p /etc/mythuso
 cat > /etc/mythuso/gilbertone-host.txt <<EOF
