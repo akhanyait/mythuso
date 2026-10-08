@@ -309,8 +309,9 @@ done
 unload_all
 # Models this script no longer names are removed, so a model dropped on a measured decision does not
 # sit on the disk (qwen3.8:27b, dropped by the founder on 8 October 2026 for answering at 1.3 tokens a
-# second). Naming it in QWEN_MODELS again brings it back.
-for pulled in $(in_box curl -fsS http://127.0.0.1:11434/api/tags | jq -r '.models[].name'); do
+# second). Naming it in QWEN_MODELS again brings it back. Only Qwen tags are considered: Ollama keeps
+# its own converted copy of a model under a "llamacpp:" name, and that copy is the model that serves.
+for pulled in $(in_box curl -fsS http://127.0.0.1:11434/api/tags | jq -r '.models[].name | select(startswith("qwen"))'); do
   case " $QWEN_MODELS " in *" $pulled "*) ;; *) echo "Removing ${pulled}, which QWEN_MODELS no longer names."; in_box ollama rm "$pulled" ;; esac
 done
 
