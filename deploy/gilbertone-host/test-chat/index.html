@@ -4,88 +4,217 @@
   a login, that talks to Qwen through the one Ollama route Caddy lets through (/api/chat). It exists
   so the founder can try the self-hosted model in a browser before GilbertOne itself moves here.
   It is not GilbertOne: no emergency recognition, no refusals, no contract, no audit line. So it says
-  so above the box, and it keeps nothing: the conversation lives in this page's memory and is gone
-  when the tab closes.
+  so where it cannot be missed, and it keeps nothing: the conversation lives in this page's memory and
+  is gone when the tab closes or "New chat" is pressed. No storage API is touched.
+  Redesigned on 8 October 2026 at the founder's ask, after he tried it on his phone: the composer sits
+  on the bottom edge above the keyboard and the home indicator, the page fills the visible height
+  rather than 100vh (which hides the composer under mobile browser chrome), and type is 16px so iOS
+  does not zoom into the box. Replies render as text, never HTML: what a model writes is not markup.
 -->
 <html lang="en-ZA">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#083848">
 <title>GilbertOne test chat</title>
 <style>
-  :root { --bg:#f7f6f3; --fg:#1d1d1b; --muted:#5f5e5a; --line:#d8d6cf; --you:#e7eef7; --warn:#fff4d6; --accent:#1f5f8b; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#171716; --fg:#ecebe6; --muted:#a3a19a; --line:#3a3936; --you:#1f2a36; --warn:#3a3220; --accent:#7fb3d9; } }
+  /* MyThuso's own colours, from packages/catalog's tokens: brand ink, brand green, mango. */
+  :root {
+    --ink:#083848; --green:#189870; --mango:#ffb347; --mango-soft:#fff4e3; --mango-ink:#92400e;
+    --bg:#f4f8f9; --surface:#ffffff; --text:#0f172a; --muted:#52606d; --line:#dbe5e8;
+    --you:#083848; --you-text:#ffffff; --bot:#ffffff; --focus:#189870;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#0b1418; --surface:#122026; --text:#e8eef0; --muted:#9aabb2; --line:#22343b;
+      --you:#189870; --you-text:#ffffff; --bot:#16262d; --mango-soft:#2e2414; --mango-ink:#ffcf8a;
+    }
+  }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
-  main { max-width:760px; margin:0 auto; padding:16px; display:flex; flex-direction:column; min-height:100vh; gap:12px; }
-  h1 { font-size:1.25rem; margin:8px 0 0; }
-  .notice { background:var(--warn); border:1px solid var(--line); border-radius:8px; padding:10px 12px; font-size:.92rem; }
-  #log { flex:1; display:flex; flex-direction:column; gap:10px; }
-  .turn { padding:10px 12px; border-radius:8px; border:1px solid var(--line); white-space:pre-wrap; overflow-wrap:anywhere; }
-  .you { background:var(--you); align-self:flex-end; max-width:85%; }
-  .qwen { background:transparent; }
-  .meta { color:var(--muted); font-size:.82rem; margin-top:4px; }
-  form { display:flex; gap:8px; position:sticky; bottom:0; background:var(--bg); padding:8px 0 16px; }
-  textarea { flex:1; min-height:48px; max-height:200px; resize:vertical; font:inherit; padding:10px; border-radius:8px; border:1px solid var(--line); background:transparent; color:inherit; }
-  button { min-width:88px; min-height:48px; font:inherit; border-radius:8px; border:0; background:var(--accent); color:#fff; cursor:pointer; }
-  button:disabled { opacity:.5; cursor:default; }
+  html, body { height:100%; }
+  body {
+    margin:0; background:var(--bg); color:var(--text);
+    font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased; -webkit-text-size-adjust:100%;
+  }
+  .app { display:flex; flex-direction:column; height:100vh; height:100dvh; max-width:760px; margin:0 auto; }
+
+  header {
+    display:flex; align-items:center; gap:12px;
+    padding:calc(10px + env(safe-area-inset-top)) 16px 10px;
+    background:var(--ink); color:#fff;
+  }
+  .mark { width:36px; height:36px; border-radius:50%; background:var(--green); display:grid; place-items:center; font-weight:700; flex:none; }
+  .title { flex:1; min-width:0; }
+  .title b { display:block; font-size:17px; letter-spacing:-0.01em; }
+  .title span { display:flex; align-items:center; gap:6px; font-size:13px; color:#b9d3db; }
+  .dot { width:8px; height:8px; border-radius:50%; background:#9fe1cb; flex:none; }
+  .dot.busy { background:var(--mango); animation:pulse 1.2s ease-in-out infinite; }
+  .ghost {
+    min-height:44px; padding:0 14px; border-radius:22px; border:1px solid rgba(255,255,255,.35);
+    background:transparent; color:#fff; font:inherit; font-size:14px;
+  }
+
+  .notice {
+    margin:12px 16px 0; padding:10px 12px; border-radius:12px;
+    background:var(--mango-soft); color:var(--mango-ink); font-size:14px; line-height:1.4;
+  }
+  .notice summary { font-weight:600; list-style:none; cursor:pointer; }
+  .notice summary::-webkit-details-marker { display:none; }
+  .notice summary::after { content:" ›"; }
+  .notice[open] summary::after { content:" ⌄"; }
+  .notice p { margin:6px 0 0; }
+
+  #log { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px; overscroll-behavior:contain; }
+  .empty { margin:auto 0; text-align:center; color:var(--muted); }
+  .empty h2 { margin:0 0 4px; font-size:20px; color:var(--text); }
+  .chips { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:16px; }
+  .chip {
+    min-height:44px; padding:8px 14px; border-radius:22px; border:1px solid var(--line);
+    background:var(--surface); color:var(--text); font:inherit; font-size:15px; text-align:left;
+  }
+
+  .msg { max-width:86%; padding:10px 14px; border-radius:18px; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .msg.you { align-self:flex-end; background:var(--you); color:var(--you-text); border-bottom-right-radius:6px; }
+  .msg.bot { align-self:flex-start; background:var(--bot); border:1px solid var(--line); border-bottom-left-radius:6px; }
+  .msg.err { border-color:var(--mango); }
+  .meta { align-self:flex-start; margin:-6px 0 0 6px; font-size:12px; color:var(--muted); }
+  .typing { display:inline-flex; gap:4px; padding:4px 0; }
+  .typing i { width:7px; height:7px; border-radius:50%; background:var(--muted); animation:bounce 1.2s infinite ease-in-out; }
+  .typing i:nth-child(2) { animation-delay:.15s; } .typing i:nth-child(3) { animation-delay:.3s; }
+  .wake { display:block; margin-top:4px; font-size:13px; color:var(--muted); }
+
+  form {
+    display:flex; align-items:flex-end; gap:8px;
+    padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+    background:var(--surface); border-top:1px solid var(--line);
+  }
+  textarea {
+    flex:1; min-height:48px; max-height:160px; resize:none; padding:12px 14px;
+    border-radius:24px; border:1px solid var(--line); background:var(--bg); color:inherit;
+    font:inherit; font-size:16px; line-height:1.4;
+  }
+  .send {
+    flex:none; width:48px; height:48px; border-radius:50%; border:0;
+    background:var(--green); color:#fff; display:grid; place-items:center;
+  }
+  .send.stop { background:var(--ink); }
+  .send:disabled { background:var(--line); color:var(--muted); }
+  :focus-visible { outline:3px solid var(--focus); outline-offset:2px; }
+  header :focus-visible { outline-color:#9fe1cb; }
+
+  @keyframes bounce { 0%,80%,100% { transform:translateY(0); } 40% { transform:translateY(-5px); } }
+  @keyframes pulse { 50% { transform:scale(.6); } }
+  @media (prefers-reduced-motion: reduce) { .typing i, .dot.busy { animation:none; } }
+  @media (min-width:761px) { .app { border-left:1px solid var(--line); border-right:1px solid var(--line); } }
 </style>
 </head>
 <body>
-<main>
-  <h1>GilbertOne test chat</h1>
-  <p class="notice">This is the self-hosted Qwen model on its own, for testing speed and answers. It is not
-  GilbertOne and not a health service: it has none of GilbertOne's safety checks. Do not type anything
-  about a real person's health. Nothing you type is kept; closing the tab clears it.</p>
-  <div id="log" aria-live="polite"></div>
+<div class="app">
+  <header>
+    <div class="mark" aria-hidden="true">G1</div>
+    <div class="title">
+      <b>GilbertOne test chat</b>
+      <span><i class="dot" id="dot"></i><span id="state">Qwen on the GilbertOne server</span></span>
+    </div>
+    <button class="ghost" id="reset" type="button">New chat</button>
+  </header>
+
+  <details class="notice" open>
+    <summary>Testing only, not a health service</summary>
+    <p>This is the self-hosted Qwen model on its own. It is not GilbertOne and has none of GilbertOne's
+    safety checks. Do not type anything about a real person's health. Nothing you type is kept.</p>
+  </details>
+
+  <main id="log" aria-live="polite"></main>
+
   <form id="ask">
     <label for="q" hidden>Your message</label>
-    <textarea id="q" placeholder="Ask Qwen something" required></textarea>
-    <button id="send" type="submit">Send</button>
+    <textarea id="q" rows="1" placeholder="Ask Qwen something" enterkeyhint="send" autocomplete="off"></textarea>
+    <button class="send" id="send" type="submit" aria-label="Send" disabled>
+      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3.4 20.4 21 12 3.4 3.6 3.4 10l12.6 2-12.6 2z"/></svg>
+    </button>
   </form>
-</main>
+</div>
 <script>
 // The copy GilbertOne itself calls, built by bootstrap.sh from the model the founder chose on 8 October
 // 2026. Asking for the plain tag instead made Ollama, which keeps one model loaded, swap the two in turn,
-// a minute or more each time, and the page sat on "…" with no word of why.
+// a minute or more each time, and the plain tag runs on the wrong thread count.
 const MODEL = 'gilbertone-qwen';
-const log = document.getElementById('log'), form = document.getElementById('ask'),
-      q = document.getElementById('q'), send = document.getElementById('send');
-const history = [];
+const SUGGESTIONS = ['Say hello in isiXhosa', 'Explain what a home nurse visit is', 'Write a short poem about Johannesburg'];
+const SEND_ICON = document.getElementById('send').innerHTML;
+const STOP_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>';
 
-function turn(cls, text) {
-  const el = document.createElement('div');
-  el.className = 'turn ' + cls;
-  el.textContent = text;
-  log.appendChild(el);
-  el.scrollIntoView({ block: 'end' });
-  return el;
+const log = document.getElementById('log'), form = document.getElementById('ask'), q = document.getElementById('q'),
+      send = document.getElementById('send'), dot = document.getElementById('dot'), state = document.getElementById('state'),
+      notice = document.querySelector('.notice');
+let history = [], controller = null;
+
+function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function scrollDown() { log.scrollTop = log.scrollHeight; }
+function setBusy(on, label) {
+  dot.classList.toggle('busy', on);
+  state.textContent = label || 'Qwen on the GilbertOne server';
+  send.classList.toggle('stop', on);
+  send.innerHTML = on ? STOP_ICON : SEND_ICON;
+  send.setAttribute('aria-label', on ? 'Stop' : 'Send');
+  send.disabled = !on && !q.value.trim();
 }
+function showEmpty() {
+  log.replaceChildren();
+  const box = el('div', 'empty');
+  box.append(el('h2', null, 'Try Qwen'), el('p', null, 'Short answers take a few seconds. The first one after a quiet spell can take a minute.'));
+  const chips = el('div', 'chips');
+  for (const s of SUGGESTIONS) {
+    const b = el('button', 'chip', s); b.type = 'button';
+    b.addEventListener('click', () => { q.value = s; ask(); });
+    chips.append(b);
+  }
+  box.append(chips); log.append(box);
+}
+function grow() { q.style.height = 'auto'; q.style.height = Math.min(q.scrollHeight, 160) + 'px'; send.disabled = !controller && !q.value.trim(); }
 
-q.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); } });
+q.addEventListener('input', grow);
+q.addEventListener('keydown', (e) => {
+  // Enter sends on a keyboard; on a phone the return key adds a line and the button sends.
+  if (e.key === 'Enter' && !e.shiftKey && !window.matchMedia('(pointer: coarse)').matches) { e.preventDefault(); form.requestSubmit(); }
+});
+form.addEventListener('submit', (e) => { e.preventDefault(); controller ? controller.abort() : ask(); });
+document.getElementById('reset').addEventListener('click', () => {
+  if (controller) controller.abort();
+  history = []; showEmpty(); q.value = ''; grow(); q.focus();
+});
 
-form.addEventListener('submit', async (e) => {
-  e.preventDefault();
+async function ask() {
   const text = q.value.trim();
-  if (!text) return;
-  q.value = ''; send.disabled = true;
+  if (!text || controller) return;
+  if (!log.querySelector('.msg')) log.replaceChildren();
+  // On a narrow screen the notice folds once a message is sent, so the conversation has the room.
+  if (window.matchMedia('(max-width: 600px)').matches) notice.open = false;
+  q.value = ''; grow();
   history.push({ role: 'user', content: text });
-  turn('you', text);
-  const out = turn('qwen', '…');
-  const meta = document.createElement('div'); meta.className = 'meta';
+  log.append(el('div', 'msg you', text));
+  const out = el('div', 'msg bot');
+  const typing = el('span', 'typing'); typing.append(el('i'), el('i'), el('i'));
+  out.append(typing); log.append(out); scrollDown();
+
+  controller = new AbortController();
+  setBusy(true, 'Thinking…');
   const started = performance.now();
-  const waking = setTimeout(() => { if (out.textContent === '…') out.textContent = 'Qwen is waking up. The first answer after a quiet spell can take a minute or two.'; }, 8000);
-  let answer = '';
+  const waking = setTimeout(() => {
+    if (!answer) { out.append(el('span', 'wake', 'Qwen is waking up. The first answer after a quiet spell can take a minute or two.')); scrollDown(); }
+  }, 8000);
+  let answer = '', last = null;
   try {
     const res = await fetch('/api/chat', {
-      method: 'POST',
+      method: 'POST', signal: controller.signal,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: MODEL, messages: history, stream: true, think: false }),
     });
     if (!res.ok) throw new Error('The server answered ' + res.status + '.');
     const reader = res.body.getReader(), decoder = new TextDecoder();
-    let buffer = '', last = null;
+    let buffer = '';
     for (;;) {
       const { value, done } = await reader.read();
       if (done) break;
@@ -95,23 +224,29 @@ form.addEventListener('submit', async (e) => {
         const line = buffer.slice(0, nl).trim(); buffer = buffer.slice(nl + 1);
         if (!line) continue;
         const chunk = JSON.parse(line);
-        if (chunk.message && chunk.message.content) { answer += chunk.message.content; out.textContent = answer; }
+        if (chunk.message && chunk.message.content) {
+          if (!answer) setBusy(true, 'Writing…');
+          answer += chunk.message.content; out.textContent = answer; scrollDown();
+        }
         if (chunk.done) last = chunk;
       }
     }
     history.push({ role: 'assistant', content: answer });
     if (last && last.eval_count && last.eval_duration) {
       const tps = last.eval_count / (last.eval_duration / 1e9);
-      meta.textContent = tps.toFixed(1) + ' tokens a second · ' + ((performance.now() - started) / 1000).toFixed(1) + ' s in all';
+      log.append(el('div', 'meta', ((performance.now() - started) / 1000).toFixed(1) + ' s · ' + tps.toFixed(1) + ' words a second'));
     }
   } catch (err) {
-    out.textContent = answer || 'No answer came back. ' + err.message;
-    history.pop();
+    const stopped = err.name === 'AbortError';
+    if (answer) { history.push({ role: 'assistant', content: answer }); if (stopped) log.append(el('div', 'meta', 'Stopped')); }
+    else { history.pop(); out.classList.add('err'); out.textContent = stopped ? 'Stopped.' : 'No answer came back. ' + err.message; }
+  } finally {
+    clearTimeout(waking); controller = null; setBusy(false); scrollDown();
+    if (!window.matchMedia('(pointer: coarse)').matches) q.focus();
   }
-  clearTimeout(waking);
-  out.appendChild(meta);
-  send.disabled = false; q.focus();
-});
+}
+
+showEmpty();
 </script>
 </body>
 </html>
