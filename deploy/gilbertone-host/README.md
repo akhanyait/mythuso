@@ -62,6 +62,18 @@ Whichever answers fast enough becomes the main model; the other is removed with
 Both are "thinking" models. Before the chat tier uses one, the orchestrator must ask for answers
 without the reasoning trace, or a patient waits for text they never see.
 
+## Trying Qwen in a browser: `open-test-chat.sh`
+
+`sudo bash open-test-chat.sh` (from this folder, on the server) opens a one-page test chat at
+`https://<ip-with-dashes>.sslip.io/`, or at `GILBERTONE_HOSTNAME` once a GilbertOne domain exists.
+It is the first thing this server serves to the internet, so it is narrow: Caddy runs inside the
+container with a Let's Encrypt certificate, the host forwards only ports 80 and 443 to it, every request
+needs a login, and only `POST /api/chat` reaches Ollama, so the login cannot pull or delete models. The
+password is made on the server, kept root-only in `/root/gilbertone-test-chat-login.txt` and printed
+once on the terminal; it does not go in this repository or a chat. The page is the model on its own, not
+GilbertOne, and says so: no safety checks, nothing about a real person's health, nothing kept.
+`sudo bash open-test-chat.sh --close` shuts it again.
+
 ## What has to be true before the assistant moves here
 
 Moving `/assistant/` to this host is a production change, made by hand and recorded in

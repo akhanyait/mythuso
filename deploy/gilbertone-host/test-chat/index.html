@@ -1,0 +1,113 @@
+<!doctype html>
+<!--
+  The GilbertOne host's test chat: one page, served by Caddy inside the gilbertone container behind
+  a login, that talks to Qwen through the one Ollama route Caddy lets through (/api/chat). It exists
+  so the founder can try the self-hosted model in a browser before GilbertOne itself moves here.
+  It is not GilbertOne: no emergency recognition, no refusals, no contract, no audit line. So it says
+  so above the box, and it keeps nothing: the conversation lives in this page's memory and is gone
+  when the tab closes.
+-->
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>GilbertOne test chat</title>
+<style>
+  :root { --bg:#f7f6f3; --fg:#1d1d1b; --muted:#5f5e5a; --line:#d8d6cf; --you:#e7eef7; --warn:#fff4d6; --accent:#1f5f8b; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#171716; --fg:#ecebe6; --muted:#a3a19a; --line:#3a3936; --you:#1f2a36; --warn:#3a3220; --accent:#7fb3d9; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:16px; display:flex; flex-direction:column; min-height:100vh; gap:12px; }
+  h1 { font-size:1.25rem; margin:8px 0 0; }
+  .notice { background:var(--warn); border:1px solid var(--line); border-radius:8px; padding:10px 12px; font-size:.92rem; }
+  #log { flex:1; display:flex; flex-direction:column; gap:10px; }
+  .turn { padding:10px 12px; border-radius:8px; border:1px solid var(--line); white-space:pre-wrap; overflow-wrap:anywhere; }
+  .you { background:var(--you); align-self:flex-end; max-width:85%; }
+  .qwen { background:transparent; }
+  .meta { color:var(--muted); font-size:.82rem; margin-top:4px; }
+  form { display:flex; gap:8px; position:sticky; bottom:0; background:var(--bg); padding:8px 0 16px; }
+  textarea { flex:1; min-height:48px; max-height:200px; resize:vertical; font:inherit; padding:10px; border-radius:8px; border:1px solid var(--line); background:transparent; color:inherit; }
+  button { min-width:88px; min-height:48px; font:inherit; border-radius:8px; border:0; background:var(--accent); color:#fff; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:default; }
+</style>
+</head>
+<body>
+<main>
+  <h1>GilbertOne test chat</h1>
+  <p class="notice">This is the self-hosted Qwen model on its own, for testing speed and answers. It is not
+  GilbertOne and not a health service: it has none of GilbertOne's safety checks. Do not type anything
+  about a real person's health. Nothing you type is kept; closing the tab clears it.</p>
+  <div id="log" aria-live="polite"></div>
+  <form id="ask">
+    <label for="q" hidden>Your message</label>
+    <textarea id="q" placeholder="Ask Qwen something" required></textarea>
+    <button id="send" type="submit">Send</button>
+  </form>
+</main>
+<script>
+// The model is pinned to what the host serves; the founder chose it on 8 October 2026.
+const MODEL = 'qwen3.6:35b-a3b-q4_K_M';
+const log = document.getElementById('log'), form = document.getElementById('ask'),
+      q = document.getElementById('q'), send = document.getElementById('send');
+const history = [];
+
+function turn(cls, text) {
+  const el = document.createElement('div');
+  el.className = 'turn ' + cls;
+  el.textContent = text;
+  log.appendChild(el);
+  el.scrollIntoView({ block: 'end' });
+  return el;
+}
+
+q.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); } });
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const text = q.value.trim();
+  if (!text) return;
+  q.value = ''; send.disabled = true;
+  history.push({ role: 'user', content: text });
+  turn('you', text);
+  const out = turn('qwen', '…');
+  const meta = document.createElement('div'); meta.className = 'meta';
+  const started = performance.now();
+  let answer = '';
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: MODEL, messages: history, stream: true, think: false }),
+    });
+    if (!res.ok) throw new Error('The server answered ' + res.status + '.');
+    const reader = res.body.getReader(), decoder = new TextDecoder();
+    let buffer = '', last = null;
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let nl;
+      while ((nl = buffer.indexOf('\n')) >= 0) {
+        const line = buffer.slice(0, nl).trim(); buffer = buffer.slice(nl + 1);
+        if (!line) continue;
+        const chunk = JSON.parse(line);
+        if (chunk.message && chunk.message.content) { answer += chunk.message.content; out.textContent = answer; }
+        if (chunk.done) last = chunk;
+      }
+    }
+    history.push({ role: 'assistant', content: answer });
+    if (last && last.eval_count && last.eval_duration) {
+      const tps = last.eval_count / (last.eval_duration / 1e9);
+      meta.textContent = tps.toFixed(1) + ' tokens a second · ' + ((performance.now() - started) / 1000).toFixed(1) + ' s in all';
+    }
+  } catch (err) {
+    out.textContent = answer || 'No answer came back. ' + err.message;
+    history.pop();
+  }
+  out.appendChild(meta);
+  send.disabled = false; q.focus();
+});
+</script>
+</body>
+</html>
