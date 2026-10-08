@@ -39,11 +39,16 @@ prints how long each step took, and the first run will tell.
 
 ## Trying it
 
-On the server, once (from a checkout of this repository):
+On the server, once. The repository is public, so the server fetches it itself:
 
 ```sh
-sudo bash deploy/gilbertone-host/agent-team/install.sh .      # . gives the team a copy of the code to read
+mkdir -p ~/mythuso-copy
+curl -fsSL https://codeload.github.com/akhanyait/mythuso/tar.gz/refs/heads/main | tar -xz -C ~/mythuso-copy --strip-components=1
+sudo bash ~/mythuso-copy/deploy/gilbertone-host/agent-team/install.sh ~/mythuso-copy   # the copy is what the team reads
 ```
+
+It uses `gilbertone-qwen` when `bootstrap.sh` has built it, and otherwise the served Qwen with the
+container's thread count sent on every call; it changes nothing about Ollama either way.
 
 Then, whenever you want the team:
 

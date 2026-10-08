@@ -23,21 +23,36 @@
 // No dependencies: node: modules and fetch only, so it runs on the container's Node 22 as copied.
 
 import { readFile, writeFile, mkdir, readdir, stat } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { join, resolve, relative, dirname, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-export function settings(env = process.env) {
+// local.json, written by install.sh beside this file, says which model this host has; the
+// environment overrides it. gilbertone-qwen is the served Qwen with the container's thread count
+// baked in (bootstrap.sh). A host that has not built it yet runs the served Qwen itself and sends the
+// thread count with each call instead: the native /api/chat honours `options`, unlike /v1, and
+// without it Ollama's default of 12 threads on a 10-CPU container stalls Qwen (8 October 2026).
+function readLocal() {
+  try {
+    return JSON.parse(readFileSync(join(here, "local.json"), "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+export function settings(env = process.env, local = env === process.env ? readLocal() : {}) {
+  const number = (v) => (v === undefined || v === "" ? undefined : Number(v));
   return {
     ollamaUrl: (env.OLLAMA_URL || "http://127.0.0.1:11434").replace(/\/+$/, ""),
-    // gilbertone-qwen is the served Qwen with this container's thread count baked in (bootstrap.sh).
-    model: env.AGENT_TEAM_MODEL || "gilbertone-qwen",
+    model: env.AGENT_TEAM_MODEL || local.model || "gilbertone-qwen",
     home: resolve(env.AGENT_TEAM_HOME || join(here, "outbox")),
     workdir: resolve(env.AGENT_TEAM_WORKDIR || join(here, "work")),
-    // Unset keeps the context window baked into the model, so the team never forces a reload.
-    numCtx: env.AGENT_TEAM_NUM_CTX ? Number(env.AGENT_TEAM_NUM_CTX) : undefined,
+    // Unset keeps what is baked into the model, so the team never forces a reload.
+    numCtx: number(env.AGENT_TEAM_NUM_CTX ?? local.numCtx),
+    numThread: number(env.AGENT_TEAM_NUM_THREAD ?? local.numThread),
     callTimeoutMs: Number(env.AGENT_TEAM_CALL_TIMEOUT_MS || 300_000),
   };
 }
@@ -255,7 +270,10 @@ function makeTools(cfg, role, ctx) {
 
 export async function chat(cfg, messages, tools) {
   const body = { model: cfg.model, messages, tools, stream: false, think: false };
-  if (cfg.numCtx) body.options = { num_ctx: cfg.numCtx };
+  const options = {};
+  if (cfg.numCtx) options.num_ctx = cfg.numCtx;
+  if (cfg.numThread) options.num_thread = cfg.numThread;
+  if (Object.keys(options).length) body.options = options;
   let response;
   try {
     response = await fetch(`${cfg.ollamaUrl}/api/chat`, {

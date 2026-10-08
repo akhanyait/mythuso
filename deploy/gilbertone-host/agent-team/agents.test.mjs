@@ -67,7 +67,7 @@ test("the PM hands work on, the developer's change is a draft, and the work fold
   assert.deepEqual(result.drafts, [join("drafts", "developer", "README.md")]);
   assert.equal(await readFile(join(cfg.workdir, "README.md"), "utf8"), "MyThuso readme\n");
   assert.equal(await readFile(join(cfg.home, "drafts", "developer", "README.md"), "utf8"), "# MyThuso\n");
-  assert.ok(seen.every((b) => b.think === false && b.stream === false && b.model === "gilbertone-qwen"));
+  assert.ok(seen.every((b) => b.think === false && b.stream === false && b.model === "gilbertone-qwen" && !b.options));
   assert.match(seen[1].messages[0].content, /Full Stack Developer/);
   assert.match(seen[1].messages[0].content, /Your name is Sipho\.[\s\S]*You report to Thandi, the Project Manager/);
   assert.match(seen[0].messages[0].content, /You report to Gilbert/);
@@ -127,4 +127,14 @@ test("the PM can hand out at most four pieces of one ask", async () => {
   const seen = scriptOllama(replies);
   await ask(cfg, team, "x");
   assert.match(seen.at(-1).messages.at(-1).content, /Refused: this ask has already been handed out 4 times/);
+});
+
+test("a host without gilbertone-qwen runs the served Qwen with its thread count sent on every call", async () => {
+  const { cfg: base } = await sandbox();
+  const cfg = { ...base, ...settings({ AGENT_TEAM_HOME: base.home, AGENT_TEAM_WORKDIR: base.workdir }, { model: "qwen3.6:35b-a3b-q4_K_M", numThread: 10, numCtx: 4096 }) };
+  const team = await loadRoles();
+  const seen = scriptOllama([{ content: "Hello." }]);
+  await ask(cfg, team, "hi", { as: "Thandi" });
+  assert.equal(seen[0].model, "qwen3.6:35b-a3b-q4_K_M");
+  assert.deepEqual(seen[0].options, { num_ctx: 4096, num_thread: 10 });
 });
