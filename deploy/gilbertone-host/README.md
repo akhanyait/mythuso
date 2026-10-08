@@ -74,6 +74,15 @@ once on the terminal; it does not go in this repository or a chat. The page is t
 GilbertOne, and says so: no safety checks, nothing about a real person's health, nothing kept.
 `sudo bash open-test-chat.sh --close` shuts it again.
 
+## The four-agent team: `agent-team/`
+
+The founder's own work team on this server's Qwen: a Project Manager who takes the ask and hands it to
+a UI/UX designer, a full-stack developer and an admin agent. Roles are configuration in
+`agent-team/roles.json`; the admin agent's commands run only after the founder types yes at the
+terminal, email is a draft until a mailbox is connected, and nothing the team writes changes a file it
+reads. It is not GilbertOne and never sees a patient. `agent-team/README.md` says how to install and
+use it.
+
 ## What has to be true before the assistant moves here
 
 Moving `/assistant/` to this host is a production change, made by hand and recorded in
