@@ -177,7 +177,17 @@ EOF
 else
   printf '\nWARNING: Zabbly publishes no Incus for %s; using the distribution package, which may deny signals inside the container.\n' "$codename"
 fi
+# Stop the container before the package changes under it. A container still running from the old
+# Incus has stop hooks that point at files the upgrade removes, so the restart below then stops it and
+# never starts it again (the 6.0.5 to 7.5.1 upgrade on 8 October 2026). A fresh server has no container.
+restart_after_upgrade=""
+if command -v incus >/dev/null && apt-get install -s incus 2>/dev/null | grep -q '^Inst incus ' \
+   && [ "$(incus list "$BOX" -c s -f csv 2>/dev/null)" = "RUNNING" ]; then
+  incus stop "$BOX"
+  restart_after_upgrade=yes
+fi
 apt-get install -yq incus
+[ -z "$restart_after_upgrade" ] || incus start "$BOX"
 if mountpoint -q "$DATA_MOUNT"; then pool_dir="${DATA_MOUNT}/incus"; else pool_dir=""; fi
 if ! incus storage show gilbertone >/dev/null 2>&1; then
   if [ -n "$pool_dir" ]; then mkdir -p "$pool_dir"; pool_config="source: ${pool_dir}"; else pool_config="{}"; fi
@@ -297,6 +307,12 @@ for model in $QWEN_MODELS; do
 "
 done
 unload_all
+# Models this script no longer names are removed, so a model dropped on a measured decision does not
+# sit on the disk (qwen3.8:27b, dropped by the founder on 8 October 2026 for answering at 1.3 tokens a
+# second). Naming it in QWEN_MODELS again brings it back.
+for pulled in $(in_box curl -fsS http://127.0.0.1:11434/api/tags | jq -r '.models[].name'); do
+  case " $QWEN_MODELS " in *" $pulled "*) ;; *) echo "Removing ${pulled}, which QWEN_MODELS no longer names."; in_box ollama rm "$pulled" ;; esac
+done
 
 mkdir -p /etc/mythuso
 cat > /etc/mythuso/gilbertone-host.txt <<EOF
