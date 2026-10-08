@@ -2483,14 +2483,15 @@ export interface GetAssistantHealthV2Response {
  readonly speech: boolean;
 }
 
-export interface PostAssistantTurnRequest {
+export interface PostAssistantTurnV2Request {
  readonly sessionId?: string;
  readonly parentTurnId?: string;
  readonly text: string;
  readonly audience?: string;
+ readonly language?: string;
  readonly userConsent: boolean;
 }
-export interface PostAssistantTurnResponse {
+export interface PostAssistantTurnV2Response {
  readonly turnId: string;
  readonly sessionId: string;
  readonly route: string;
@@ -2501,18 +2502,21 @@ export interface PostAssistantTurnResponse {
  readonly requiresConfirmation: boolean;
  readonly suggestedActions: readonly string[];
  readonly refusalId?: string;
- readonly source?: string;
+ readonly source: string;
  readonly cue?: string;
+ readonly detectedLanguage: string;
 }
 
-export interface PostTurnRequest {
+export interface PostTurnV2Request {
  readonly sessionId?: string;
  readonly parentTurnId?: string;
  readonly text: string;
  readonly audience?: string;
+ readonly language?: string;
+ readonly stream?: boolean;
  readonly userConsent: boolean;
 }
-export interface PostTurnResponse {
+export interface PostTurnV2Response {
  readonly turnId: string;
  readonly sessionId: string;
  readonly route: string;
@@ -2523,8 +2527,11 @@ export interface PostTurnResponse {
  readonly requiresConfirmation: boolean;
  readonly suggestedActions: readonly string[];
  readonly refusalId?: string;
- readonly source?: string;
+ readonly source: string;
  readonly cue?: string;
+ readonly detectedLanguage: string;
+ readonly toolsUsed?: readonly string[];
+ readonly sources?: readonly string[];
 }
 
 export interface PostListenV3Request {
@@ -3057,8 +3064,8 @@ export const apiRoutes = {
  getMoneyClaims: { name: "getMoneyClaims", method: "GET", path: "/v1/money/claims", mountedPath: "/v1/money/claims", version: 1, engine: "money", callers: ["patient","doctor"], purpose: ["billing"], idempotent: false, status: "built" },
  getMoneyHeldCashPayments: { name: "getMoneyHeldCashPayments", method: "GET", path: "/v1/money/held-cash-payments", mountedPath: "/v1/money/held-cash-payments", version: 1, engine: "money", callers: ["ops-desk"], purpose: ["billing"], idempotent: false, status: "built" },
  getAssistantHealthV2: { name: "getAssistantHealthV2", method: "GET", path: "/health", mountedPath: "/assistant/health", version: 2, engine: "assistant", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built" },
- postAssistantTurn: { name: "postAssistantTurn", method: "POST", path: "/turn", mountedPath: "/assistant/turn", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
- postTurn: { name: "postTurn", method: "POST", path: "/v1/turn", mountedPath: "/assistant/v1/turn", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postAssistantTurnV2: { name: "postAssistantTurnV2", method: "POST", path: "/turn", mountedPath: "/assistant/turn", version: 2, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
+ postTurnV2: { name: "postTurnV2", method: "POST", path: "/v1/turn", mountedPath: "/assistant/v1/turn", version: 2, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
  postListenV3: { name: "postListenV3", method: "POST", path: "/v1/listen", mountedPath: "/assistant/v1/listen", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
  postSpeakV4: { name: "postSpeakV4", method: "POST", path: "/v1/speak", mountedPath: "/assistant/v1/speak", version: 4, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },
  postTriageStartV3: { name: "postTriageStartV3", method: "POST", path: "/v1/triage/start", mountedPath: "/assistant/v1/triage/start", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built" },

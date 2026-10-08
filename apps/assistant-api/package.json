@@ -11,10 +11,9 @@
     "eval:golden-sets": "node --test src/eval/golden-sets.test.ts"
   },
   "dependencies": {
-    "@langchain/community": "^0.3.59",
-    "@langchain/core": "^0.3.80",
-    "@langchain/langgraph": "^0.4.10",
-    "@langchain/openai": "^0.3.17"
+    "@langchain/core": "^1.2.16",
+    "@langchain/langgraph": "^1.4.19",
+    "@langchain/openai": "^1.6.2"
   },
   "devDependencies": {
     "typescript": "~5.9.3"
