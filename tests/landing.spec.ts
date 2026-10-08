@@ -252,11 +252,20 @@ test('everything focusable shows a focus indicator', async ({ page }) => {
   for (let i = 0; i < count; i++) {
     const el = focusables.nth(i);
     if (!(await el.isVisible())) continue;
-    await el.focus();
+    /* Focused and measured in one task inside the page. Focusing from the test and measuring in a
+       second round trip left a gap the page could fill: GilbertOne's "Before we start" card can open
+       and take focus to its own close button in between, and the control was then measured unfocused,
+       failing on a different button each time (go-before-close on desktop, a bare button on mobile, on
+       8 October 2026). A control that never holds focus is not one whose ring can be judged. */
     const ring = await el.evaluate(node => {
+      (node as HTMLElement).focus();
       const style = getComputedStyle(node);
-      return { width: parseFloat(style.outlineWidth), style: style.outlineStyle, shadow: style.boxShadow };
+      return {
+        focused: document.activeElement === node,
+        width: parseFloat(style.outlineWidth), style: style.outlineStyle, shadow: style.boxShadow,
+      };
     });
+    if (!ring.focused) continue;
     if (!(ring.width >= 2 && ring.style !== 'none') && ring.shadow === 'none') {
       missing.push(await el.evaluate(node => `${node.tagName.toLowerCase()}.${node.className}`));
     }
