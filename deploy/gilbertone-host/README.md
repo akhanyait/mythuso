@@ -39,7 +39,10 @@ It is run once, by hand, on the new server. It:
   distribution's 6.0.5 lets AppArmor block Ollama from stopping its own model runner inside the container;
 - measures each one's tokens per second on this CPU, with thinking off, one thread per container CPU and one
   model loaded at a time, and writes what it found to `/etc/mythuso/gilbertone-host.txt`,
-  including whether nested virtualisation (`/dev/kvm`, which Lima needs) is available.
+  including whether nested virtualisation (`/dev/kvm`, which Lima needs) is available;
+- builds `gilbertone-qwen` from the served model with the container's thread count and an 8192-token
+  window baked in, because GilbertOne calls Ollama's `/v1`, which ignores per-request options, and gives
+  Ollama two slots so a turn's short entity pre-read does not evict its long rules-and-tools prompt.
 
 It does **not** install the assistant service, open a public port, configure TLS, or touch
 `liqzar-server`. Production still answers from Azure on `liqzar-server` exactly as before.

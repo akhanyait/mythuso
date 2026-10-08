@@ -240,8 +240,12 @@ in_box sh -c 'cat > /etc/systemd/system/ollama.service.d/10-mythuso.conf' <<'EOF
 [Service]
 # Loopback of the container only: GilbertOne's service will sit beside it in the same box.
 Environment=OLLAMA_HOST=127.0.0.1:11434
-# One answer at a time uses the CPU well; a second would halve both.
-Environment=OLLAMA_NUM_PARALLEL=1
+# Two slots, so each of a GilbertOne turn's prompts keeps its own already-read copy. A turn calls the
+# model in turn, never at once: the entity pre-read on its short prompt, then the tool loop and the
+# answer on the long one (about 2,600 tokens of rules and tools). With one slot the pre-read evicted
+# the long prompt every turn and it was read again from scratch, about 40 seconds on this CPU
+# (measured 8 October 2026). Two answers at once would still halve each other's speed.
+Environment=OLLAMA_NUM_PARALLEL=2
 Environment=OLLAMA_MAX_LOADED_MODELS=1
 Environment=OLLAMA_KEEP_ALIVE=24h
 EOF
@@ -322,9 +326,11 @@ done
 # a 10-CPU container stalled Qwen at 0.12 tokens a second (8 October 2026). The settings are baked
 # into a model of its own instead, gilbertone-qwen, which shares the served model's files and costs
 # no disk. OLLAMA_MODEL=gilbertone-qwen is what the assistant service is pointed at when it moves here.
-say "gilbertone-qwen: ${SERVE_MODEL} with ${BOX_CPUS} threads and a 4096-token window"
+# The window is 8192, not the 4096 timed above: the rules and tools alone are about 2,600 tokens, and
+# the tool results and a conversation's history go on top of them.
+say "gilbertone-qwen: ${SERVE_MODEL} with ${BOX_CPUS} threads and an 8192-token window"
 case " $QWEN_MODELS " in *" $SERVE_MODEL "*) ;; *) die "SERVE_MODEL ${SERVE_MODEL} is not one of QWEN_MODELS." ;; esac
-printf 'FROM %s\nPARAMETER num_thread %s\nPARAMETER num_ctx 4096\n' "$SERVE_MODEL" "$BOX_CPUS" \
+printf 'FROM %s\nPARAMETER num_thread %s\nPARAMETER num_ctx 8192\n' "$SERVE_MODEL" "$BOX_CPUS" \
   | in_box sh -c 'cat > /root/gilbertone-qwen.Modelfile'
 in_box ollama create gilbertone-qwen -f /root/gilbertone-qwen.Modelfile
 

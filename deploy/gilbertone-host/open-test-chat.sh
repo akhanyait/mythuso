@@ -46,15 +46,16 @@ say "Caddy inside the container"
 in_box env DEBIAN_FRONTEND=noninteractive apt-get install -yq caddy
 
 # The password is made once and kept, so re-running this script does not lock the founder out.
+# The umask is held to a subshell: left in force, it also made the pushed page unreadable to Caddy,
+# which answered 403 on the first run (8 October 2026).
 if [ ! -s "$LOGIN_FILE" ]; then
-  umask 077
-  printf '%s\n' "$(openssl rand -base64 24 | tr -d '/+=' | cut -c1-24)" > "$LOGIN_FILE"
+  ( umask 077; printf '%s\n' "$(openssl rand -base64 24 | tr -d '/+=' | cut -c1-24)" > "$LOGIN_FILE" )
 fi
 password="$(cat "$LOGIN_FILE")"
 hash="$(in_box caddy hash-password --plaintext "$password")"
 
 in_box mkdir -p /srv/test-chat
-incus file push "$here/test-chat/index.html" "$BOX/srv/test-chat/index.html"
+incus file push --mode 0644 "$here/test-chat/index.html" "$BOX/srv/test-chat/index.html"
 in_box sh -c 'cat > /etc/caddy/Caddyfile' <<EOF
 ${HOSTNAME_WEB} {
 	basicauth {

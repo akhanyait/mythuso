@@ -282,7 +282,7 @@ export function emitAssistant(root = "") {
       );
     return found;
   };
-  const turnRoute = builtRoute("/v1/turn", 1, "the turn call");
+  const turnRoute = builtRoute("/v1/turn", 2, "the turn call");
   const knowledgeRoute = builtRoute(
     "/v1/knowledge/search",
     2,
@@ -346,7 +346,7 @@ export function emitAssistant(root = "") {
       audience: "string",
       userConsent: "boolean",
     },
-    "POST /v1/turn@1's request",
+    "POST /v1/turn@2's request",
   );
   expectFields(
     turnRoute.response,
@@ -364,7 +364,7 @@ export function emitAssistant(root = "") {
       source: "string",
       cue: "string",
     },
-    "POST /v1/turn@1's response",
+    "POST /v1/turn@2's response",
   );
   expectFields(
     knowledgeRoute.request,
@@ -1014,7 +1014,7 @@ enum AssistantApi {
     static let speakPath = ${swift("/assistant" + speakRoute.path)}
 }
 
-/// POST /v1/turn@1's request. Optional fields are omitted from the JSON when nil — the service
+/// POST /v1/turn@2's request. Optional fields are omitted from the JSON when nil — the service
 /// reads an absent sessionId as "mint one", exactly as the contract says.
 struct AssistantTurnRequest: Encodable {
     var sessionId: String?
@@ -1024,7 +1024,7 @@ struct AssistantTurnRequest: Encodable {
     var userConsent: Bool
 }
 
-/// POST /v1/turn@1's response, field for field.
+/// POST /v1/turn@2's response, field for field.
 struct AssistantTurnReply: Decodable {
     let turnId: String
     let sessionId: String
@@ -1236,7 +1236,7 @@ object AssistantApi {
     const val speakPath = ${kotlin("/assistant" + speakRoute.path)}
 }
 
-/** POST /v1/turn@1's request. Optional fields are omitted from the JSON when null — the service
+/** POST /v1/turn@2's request. Optional fields are omitted from the JSON when null — the service
  *  reads an absent sessionId as "mint one", exactly as the contract says. */
 data class AssistantTurnRequest(
     val sessionId: String?,
@@ -1262,7 +1262,7 @@ data class AssistantKnowledgeRequest(val query: String, val language: String) {
     }
 }
 
-/** POST /v1/turn@1's response, field for field. */
+/** POST /v1/turn@2's response, field for field. */
 data class AssistantTurnReply(
     val turnId: String,
     val sessionId: String,

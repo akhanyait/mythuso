@@ -272,8 +272,8 @@ enum ApisData {
     static let getMoneyClaims = Route(id: "getMoneyClaims", method: "GET", path: "/v1/money/claims", mountedPath: "/v1/money/claims", version: 1, engine: "money", callers: ["patient", "doctor"], purpose: ["billing"], idempotent: false, status: "built")
     static let getMoneyHeldCashPayments = Route(id: "getMoneyHeldCashPayments", method: "GET", path: "/v1/money/held-cash-payments", mountedPath: "/v1/money/held-cash-payments", version: 1, engine: "money", callers: ["ops-desk"], purpose: ["billing"], idempotent: false, status: "built")
     static let getAssistantHealthV2 = Route(id: "getAssistantHealthV2", method: "GET", path: "/health", mountedPath: "/assistant/health", version: 2, engine: "assistant", callers: ["anonymous"], purpose: ["audit"], idempotent: false, status: "built")
-    static let postAssistantTurn = Route(id: "postAssistantTurn", method: "POST", path: "/turn", mountedPath: "/assistant/turn", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
-    static let postTurn = Route(id: "postTurn", method: "POST", path: "/v1/turn", mountedPath: "/assistant/v1/turn", version: 1, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postAssistantTurnV2 = Route(id: "postAssistantTurnV2", method: "POST", path: "/turn", mountedPath: "/assistant/turn", version: 2, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
+    static let postTurnV2 = Route(id: "postTurnV2", method: "POST", path: "/v1/turn", mountedPath: "/assistant/v1/turn", version: 2, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postListenV3 = Route(id: "postListenV3", method: "POST", path: "/v1/listen", mountedPath: "/assistant/v1/listen", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postSpeakV4 = Route(id: "postSpeakV4", method: "POST", path: "/v1/speak", mountedPath: "/assistant/v1/speak", version: 4, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
     static let postTriageStartV3 = Route(id: "postTriageStartV3", method: "POST", path: "/v1/triage/start", mountedPath: "/assistant/v1/triage/start", version: 3, engine: "assistant", callers: ["anonymous"], purpose: ["treatment"], idempotent: false, status: "built")
@@ -551,8 +551,8 @@ enum ApisData {
         getMoneyClaims,
         getMoneyHeldCashPayments,
         getAssistantHealthV2,
-        postAssistantTurn,
-        postTurn,
+        postAssistantTurnV2,
+        postTurnV2,
         postListenV3,
         postSpeakV4,
         postTriageStartV3,
@@ -2792,14 +2792,15 @@ enum ApisData {
         let activated: Bool
         let speech: Bool
     }
-    struct PostAssistantTurnRequest {
+    struct PostAssistantTurnV2Request {
         let sessionId: String?
         let parentTurnId: String?
         let text: String
         let audience: String?
+        let language: String?
         let userConsent: Bool
     }
-    struct PostAssistantTurnResponse {
+    struct PostAssistantTurnV2Response {
         let turnId: String
         let sessionId: String
         let route: String
@@ -2810,17 +2811,20 @@ enum ApisData {
         let requiresConfirmation: Bool
         let suggestedActions: [String]
         let refusalId: String?
-        let source: String?
+        let source: String
         let cue: String?
+        let detectedLanguage: String
     }
-    struct PostTurnRequest {
+    struct PostTurnV2Request {
         let sessionId: String?
         let parentTurnId: String?
         let text: String
         let audience: String?
+        let language: String?
+        let stream: Bool?
         let userConsent: Bool
     }
-    struct PostTurnResponse {
+    struct PostTurnV2Response {
         let turnId: String
         let sessionId: String
         let route: String
@@ -2831,8 +2835,11 @@ enum ApisData {
         let requiresConfirmation: Bool
         let suggestedActions: [String]
         let refusalId: String?
-        let source: String?
+        let source: String
         let cue: String?
+        let detectedLanguage: String
+        let toolsUsed: [String]?
+        let sources: [String]?
     }
     struct PostListenV3Request {
         let userConsent: Bool

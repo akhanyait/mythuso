@@ -126,8 +126,8 @@ The 30-second listening cap and
 
 **Speech conversation mode — founder amendment, 21 September 2026.**
 
-ALL audio processing is on-device: wake word (Porcupine), VAD (Silero),
-STT (faster-whisper), TTS (Piper). No audio or transcript ever leaves the machine.
+ALL audio processing is to be on-device: wake word (Porcupine), VAD (Silero),
+STT (faster-whisper), TTS (Piper). No audio or transcript is to leave the machine.
 No retention: the audio buffer is a ring buffer, overwritten continuously.
 The session transcript exists only in memory and is destroyed when the
 conversation ends. No localStorage/sessionStorage/indexedDB for patient data.
@@ -142,10 +142,24 @@ Cloud voice APIs (ElevenLabs, Resemble) remain prohibited for the on-device
 conversation mode. Azure Speech REST routes (/v1/listen, /v1/speak) remain
 available as the server-side fallback for en-ZA neural voice when configured.
 
-> **DPIA caution:** This amendment changes GilbertOne's privacy posture in front
-> of regulators even if no data leaves the device, because the mic is now capable
-> of always listening. When the DPIA for passport gets written, this amendment
-> must be in scope.
+**Where this stands (checked 6 October 2026): planned, not installed.** None of the
+four is a dependency of any workspace — no `package.json`, Swift package or Gradle
+file names Porcupine, Silero, faster-whisper or Piper, and nothing loads a model for
+them. `packages/gilbertone/src/speech-state.ts` is the state machine they would plug
+into, and it holds no microphone. The amendment above is the rule that stack will be
+built to, not a description of what runs. What hears a person today is narrower and
+named in one file per platform: the browser's own recognition in
+`apps/web/src/lib/voice.ts`, opened only from a tap and disclosed because a browser may
+hand the words to its maker; Apple's recogniser with `requiresOnDeviceRecognition` in
+`apps/ios/MyThuso/Features/GilbertVoice.swift`; Android's in `ui/GilbertVoice.kt`; and
+push-to-talk's Azure Speech routes. There is no wake word on any platform, so nothing
+listens until someone taps. Do not describe the on-device stack as present until it is.
+
+> **DPIA caution:** When the stack above is built, it changes GilbertOne's privacy
+> posture in front of regulators even if no data leaves the device, because a wake
+> word makes the mic capable of always listening. It does not do that today. When the
+> DPIA for passport gets written, this amendment must be in scope, along with the
+> speech paths that do exist now.
 
 ---
 
