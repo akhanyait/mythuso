@@ -205,3 +205,118 @@ export async function probeOllama(): Promise<boolean> {
     return false;
   }
 }
+
+/* ---- The self-hosted half: embeddings and a second safety check through the same Ollama ----
+
+   Added 8 October 2026, when the founder asked for GilbertOne to be wired to the self-hosted Qwen on
+   the GilbertOne host "with all the modules and knowledge bases attached". Two things on that host had
+   only an Azure road: the knowledge tier's vector search, whose query embedding went through
+   embedWithAzure alone, and nothing at all for a second, independent reading of a model's answer
+   before a person sees it. The host carries no Azure key by design, so both are answered by the
+   Ollama the chat tier already uses, inside the same container, over its loopback.
+
+   Each is switched on by naming its model, and by nothing else: OLLAMA_EMBEDDING_MODEL (bge-m3 on
+   the host) and LLAMA_GUARD_MODEL (llama-guard3:1b). Unset, both return null and every caller keeps
+   exactly the road it had: the keyword floor for knowledge, no guard for answers. Both require
+   OLLAMA_URL, the operator's statement that Ollama is there; the default-URL probe is a way to find
+   a chat model, not licence to send a guard or an embedding request to whatever answers on 11434.
+
+   ONE CALL SITE. Both go through ollamaPost below, so the egress table in
+   scripts/check-boundaries.mjs classifies one call, as "local": the container's own loopback. */
+
+const ollamaUrl = (env: Record<string, string | undefined> = process.env): string =>
+  (env.OLLAMA_URL ?? "").trim().replace(/\/+$/, "");
+
+async function ollamaPost(path: string, body: unknown, timeoutMs: number): Promise<unknown | null> {
+  const base = ollamaUrl();
+  if (!base) return null;
+  try {
+    const response = await fetch(`${base}/api/${path}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    return response.ok ? await response.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+export const ollamaEmbeddingModel = (env: Record<string, string | undefined> = process.env): string =>
+  ollamaUrl(env) ? (env.OLLAMA_EMBEDDING_MODEL ?? "").trim() : "";
+
+/* The same contract as embedWithAzure: redacted before it leaves this process, null on anything
+   short of a vector. */
+export async function embedWithOllama(
+  text: string,
+  timeoutMs: number = LLM_TIMEOUT_MS,
+): Promise<number[] | null> {
+  const model = ollamaEmbeddingModel();
+  if (!model) return null;
+  const body = (await ollamaPost("embed", { model, input: redactPHI(text) }, timeoutMs)) as {
+    embeddings?: number[][];
+  } | null;
+  const vector = body?.embeddings?.[0];
+  return Array.isArray(vector) && vector.length ? vector : null;
+}
+
+/* The embedding road a deployment actually has: the self-hosted model when one is named, Azure
+   otherwise. One choice, read by the knowledge tier at query time and by the ingestion script that
+   filled the index, so a question is never embedded by a different model from the catalogue it is
+   searched against. */
+export const embeddingProvider = (): "ollama" | "azure" | null =>
+  ollamaEmbeddingModel() ? "ollama" : azureCredentials() ? "azure" : null;
+
+export async function embed(text: string, timeoutMs: number = LLM_TIMEOUT_MS): Promise<number[] | null> {
+  const provider = embeddingProvider();
+  if (provider === "ollama") return embedWithOllama(text, timeoutMs);
+  if (provider === "azure") return embedWithAzure(text, timeoutMs);
+  return null;
+}
+
+export const guardModel = (env: Record<string, string | undefined> = process.env): string =>
+  ollamaUrl(env) ? (env.LLAMA_GUARD_MODEL ?? "").trim() : "";
+
+/* Llama Guard reads the exchange and answers "safe", or "unsafe" and the hazard categories it saw.
+   This is a second reader, not the first: the refusal policies and the emergency classifier have
+   already run on the message, and run again on the answer in the turn route. What it adds is a
+   different model's judgement of the answer, so a fault Qwen and its own system prompt share is not
+   a fault nobody catches.
+
+   FAIL CLOSED. Anything but a plain "safe" — "unsafe", an unreadable verdict, a timeout, Ollama down
+   — is reported as not safe, and the orchestrator then keeps the classifier's own answer. A guard
+   that waves an answer through because it could not be asked is a guard in name only. Returns null
+   only when no guard is configured, which is the one state where the caller does not ask. */
+export type GuardVerdict = { safe: boolean; categories: string[] };
+
+export async function guardAnswer(
+  question: string,
+  answer: string,
+  timeoutMs: number = LLM_TIMEOUT_MS,
+): Promise<GuardVerdict | null> {
+  const model = guardModel();
+  if (!model) return null;
+  const body = (await ollamaPost(
+    "chat",
+    {
+      model,
+      stream: false,
+      messages: [
+        { role: "user", content: redactPHI(question) },
+        { role: "assistant", content: redactPHI(answer) },
+      ],
+    },
+    timeoutMs,
+  )) as { message?: { content?: unknown } } | null;
+  return readGuardVerdict(body?.message?.content);
+}
+
+/* Exported for the tests. Llama Guard 3 writes "safe", or "unsafe" then a line of S-codes. */
+export function readGuardVerdict(content: unknown): GuardVerdict {
+  const text = typeof content === "string" ? content.trim() : "";
+  const [first = "", ...rest] = text.split(/\s*\n\s*/);
+  if (first.toLowerCase() === "safe") return { safe: true, categories: [] };
+  const categories = rest.join(",").split(/[\s,]+/).filter((code) => /^S\d+$/.test(code));
+  return { safe: false, categories };
+}

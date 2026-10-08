@@ -32698,6 +32698,12 @@ console.log(
       {
         file: "apps/assistant-api/src/lib/llm-adapter.ts",
         kind: "local",
+        at: "`${base}/api/${path}`",
+        what: "ollamaPost, the self-hosted embeddings (OLLAMA_EMBEDDING_MODEL) and the Llama Guard check (LLAMA_GUARD_MODEL) against the Ollama an operator named in OLLAMA_URL. On the GilbertOne host that is the container's own loopback, so no topic and no person leaves the box.",
+      },
+      {
+        file: "apps/assistant-api/src/lib/llm-adapter.ts",
+        kind: "local",
         at: "`${OLLAMA_DEFAULT_URL}/api/version",
         what: "probeOllama, a version probe against Ollama's default localhost URL. It asks whether a provider exists rather than looking anything up, and it carries no query.",
       },
