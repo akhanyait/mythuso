@@ -32,8 +32,11 @@ It is run once, by hand, on the new server. It:
   a time, and restarts the container so systemd starts it with those settings (a `systemctl restart`
   cannot stop the installer's first copy across the container's AppArmor profile);
 - installs Node.js 22 inside it from NodeSource, because Ubuntu's own is 18, and stops if it is older;
-- pulls two pinned Qwen models and records each digest: `qwen3.8:27b`, the newest Qwen (dense, about 18 GB),
-  and `qwen3.6:35b-a3b-q4_K_M` (mixture-of-experts, 3B active, about 24 GB), both Apache-2.0 (`QWEN_MODELS` overrides);
+- pulls the pinned Qwen model that serves, `qwen3.6:35b-a3b-q4_K_M` (mixture-of-experts, 3B active, about
+  24 GB, Apache-2.0), and records its digest. On this server on 8 October 2026 it answered at 8.9 tokens a
+  second against 1.3 for the dense `qwen3.8:27b`; `QWEN_MODELS` times both again;
+- installs Incus from Zabbly's stable repository where it publishes one for this release, because the
+  distribution's 6.0.5 lets AppArmor block Ollama from stopping its own model runner inside the container;
 - measures each one's tokens per second on this CPU, with thinking off, one thread per container CPU and one
   model loaded at a time, and writes what it found to `/etc/mythuso/gilbertone-host.txt`,
   including whether nested virtualisation (`/dev/kvm`, which Lima needs) is available.

@@ -26,8 +26,10 @@ set -euo pipefail
 #   qwen3.8:27b              — the newest Qwen, dense, 27B, ~18 GB. The founder asked for the latest.
 #   qwen3.6:35b-a3b-q4_K_M   — mixture-of-experts, 35B total but 3B active per word, ~24 GB. On a
 #                              CPU with no GPU it is expected to answer several times faster.
-# Both are pulled and timed; which one serves is chosen from the measured speed, not assumed.
-QWEN_MODELS="${QWEN_MODELS:-qwen3.8:27b qwen3.6:35b-a3b-q4_K_M}"
+# Measured on this server on 8 October 2026, each alone with 10 threads and thinking off: the
+# mixture-of-experts answered at 8.9 tokens/second, the dense 27B at 1.3, too slow to chat with. Only
+# the one that serves is pulled now; QWEN_MODELS="qwen3.8:27b qwen3.6:35b-a3b-q4_K_M" times both again.
+QWEN_MODELS="${QWEN_MODELS:-qwen3.6:35b-a3b-q4_K_M}"
 # The Node floor the assistant runtime is built for (package.json "engines").
 NODE_MAJOR_FLOOR=22
 
@@ -153,6 +155,28 @@ BOX=gilbertone
 BOX_IMAGE="${BOX_IMAGE:-images:ubuntu/24.04}"
 BOX_CPUS="${BOX_CPUS:-10}"
 BOX_MEMORY="${BOX_MEMORY:-40GiB}"
+# Incus from Zabbly's stable repository, its maintainers' own build, rather than the distribution's.
+# Ubuntu 26.04's Incus 6.0.5 lets the container's AppArmor profile deny signals from a process inside
+# the container to its own children (Ollama to its model runner): models cannot be unloaded and the
+# service falls into a restart loop. That was the second run on 8 October 2026. The distribution's
+# package is kept only where Zabbly publishes nothing for this release, and the script says so.
+codename="$(. /etc/os-release && echo "$VERSION_CODENAME")"
+if curl -fsS -o /dev/null "https://pkgs.zabbly.com/incus/stable/dists/${codename}/Release"; then
+  install -d -m 0755 /etc/apt/keyrings
+  curl -fsSL https://pkgs.zabbly.com/key.asc -o /etc/apt/keyrings/zabbly.asc
+  cat > /etc/apt/sources.list.d/zabbly-incus-stable.sources <<EOF
+Enabled: yes
+Types: deb
+URIs: https://pkgs.zabbly.com/incus/stable
+Suites: ${codename}
+Components: main
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/zabbly.asc
+EOF
+  apt-get update -q
+else
+  printf '\nWARNING: Zabbly publishes no Incus for %s; using the distribution package, which may deny signals inside the container.\n' "$codename"
+fi
 apt-get install -yq incus
 if mountpoint -q "$DATA_MOUNT"; then pool_dir="${DATA_MOUNT}/incus"; else pool_dir=""; fi
 if ! incus storage show gilbertone >/dev/null 2>&1; then
