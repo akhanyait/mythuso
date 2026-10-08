@@ -1,15 +1,17 @@
 <!doctype html>
 <!--
-  The GilbertOne host's test chat: one page, served by Caddy inside the gilbertone container behind
-  a login, that talks to Qwen through the one Ollama route Caddy lets through (/api/chat). It exists
-  so the founder can try the self-hosted model in a browser before GilbertOne itself moves here.
-  It is not GilbertOne: no emergency recognition, no refusals, no contract, no audit line. So it says
-  so where it cannot be missed, and it keeps nothing: the conversation lives in this page's memory and
-  is gone when the tab closes or "New chat" is pressed. No storage API is touched.
-  Redesigned on 8 October 2026 at the founder's ask, after he tried it on his phone: the composer sits
-  on the bottom edge above the keyboard and the home indicator, the page fills the visible height
-  rather than 100vh (which hides the composer under mobile browser chrome), and type is 16px so iOS
-  does not zoom into the box. Replies render as text, never HTML: what a model writes is not markup.
+  GilbertOne on its own server: one page, served by Caddy inside the gilbertone container behind a
+  login only the founder holds, talking to Qwen through the one Ollama route Caddy lets through
+  (/api/chat). The founder named it GilbertOne on 8 October 2026 and asked for it to look the part, so
+  it carries the official logo (the Lovable artwork, unaltered, from apps/web/public/lovable) and the
+  brand's colours.
+  The name does not make it the finished GilbertOne, and the page says so where it cannot be missed:
+  this is the model alone, without the emergency recognition, refusals, contract and audit the
+  service wraps around it. A health service that overstates its readiness is not a marketing problem.
+  It keeps nothing: the conversation lives in this page's memory and is gone when the tab closes or
+  "New chat" is pressed. No storage API is touched, and replies render as text, never HTML.
+  Phone first: the composer sits above the keyboard and the home indicator, the page fills the visible
+  height (dvh), and type is 16px so iOS does not zoom into the box.
 -->
 <html lang="en-ZA">
 <head>
@@ -17,48 +19,56 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#083848">
-<title>GilbertOne test chat</title>
+<link rel="icon" href="gilbert-icon.webp">
+<link rel="apple-touch-icon" href="gilbert-icon.webp">
+<title>GilbertOne</title>
 <style>
-  /* MyThuso's own colours, from packages/catalog's tokens: brand ink, brand green, mango. */
+  /* The logo's own colours: teal into navy, the lime antenna, MyThuso's brand ink and green. */
   :root {
-    --ink:#083848; --green:#189870; --mango:#ffb347; --mango-soft:#fff4e3; --mango-ink:#92400e;
-    --bg:#f4f8f9; --surface:#ffffff; --text:#0f172a; --muted:#52606d; --line:#dbe5e8;
-    --you:#083848; --you-text:#ffffff; --bot:#ffffff; --focus:#189870;
+    --ink:#083848; --navy:#1e3a8a; --teal:#14b8a6; --green:#189870; --lime:#d8f818;
+    --bg:#eef6f7; --surface:#ffffff; --text:#0f172a; --muted:#51616b; --line:#d6e4e7;
+    --you-a:#0f766e; --you-b:#083848; --bot:#ffffff; --warn-bg:#fff6e5; --warn-ink:#8a4b06; --focus:#14b8a6;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg:#0b1418; --surface:#122026; --text:#e8eef0; --muted:#9aabb2; --line:#22343b;
-      --you:#189870; --you-text:#ffffff; --bot:#16262d; --mango-soft:#2e2414; --mango-ink:#ffcf8a;
+      --bg:#071419; --surface:#0e1f26; --text:#e7f0f2; --muted:#93a8b0; --line:#1d343c;
+      --bot:#11262e; --warn-bg:#2a2112; --warn-ink:#ffcf8a;
     }
   }
   * { box-sizing:border-box; }
   html, body { height:100%; }
   body {
-    margin:0; background:var(--bg); color:var(--text);
+    margin:0; color:var(--text);
+    background:
+      radial-gradient(120% 60% at 100% 0%, rgba(20,184,166,.16), transparent 60%),
+      radial-gradient(90% 50% at 0% 100%, rgba(30,58,138,.10), transparent 60%),
+      var(--bg);
     font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     -webkit-font-smoothing:antialiased; -webkit-text-size-adjust:100%;
   }
-  .app { display:flex; flex-direction:column; height:100vh; height:100dvh; max-width:760px; margin:0 auto; }
+  .app { display:flex; flex-direction:column; height:100vh; height:100dvh; max-width:780px; margin:0 auto; }
 
   header {
     display:flex; align-items:center; gap:12px;
     padding:calc(10px + env(safe-area-inset-top)) 16px 10px;
-    background:var(--ink); color:#fff;
+    background:linear-gradient(120deg, var(--ink) 0%, #0b4a5c 55%, var(--navy) 130%); color:#fff;
+    box-shadow:0 6px 24px rgba(8,56,72,.18);
   }
-  .mark { width:36px; height:36px; border-radius:50%; background:var(--green); display:grid; place-items:center; font-weight:700; flex:none; }
+  .avatar { width:42px; height:42px; border-radius:50%; background:#fff; padding:3px; flex:none; box-shadow:0 0 0 2px rgba(216,248,24,.55); }
+  .avatar img { width:100%; height:100%; border-radius:50%; display:block; }
   .title { flex:1; min-width:0; }
-  .title b { display:block; font-size:17px; letter-spacing:-0.01em; }
-  .title span { display:flex; align-items:center; gap:6px; font-size:13px; color:#b9d3db; }
-  .dot { width:8px; height:8px; border-radius:50%; background:#9fe1cb; flex:none; }
-  .dot.busy { background:var(--mango); animation:pulse 1.2s ease-in-out infinite; }
+  .title b { display:block; font-size:18px; letter-spacing:-0.01em; }
+  .title span { display:flex; align-items:center; gap:6px; font-size:13px; color:#bfe3e6; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--lime); flex:none; }
+  .dot.busy { background:#ffb347; animation:pulse 1.2s ease-in-out infinite; }
   .ghost {
     min-height:44px; padding:0 14px; border-radius:22px; border:1px solid rgba(255,255,255,.35);
-    background:transparent; color:#fff; font:inherit; font-size:14px;
+    background:rgba(255,255,255,.06); color:#fff; font:inherit; font-size:14px; flex:none;
   }
 
   .notice {
-    margin:12px 16px 0; padding:10px 12px; border-radius:12px;
-    background:var(--mango-soft); color:var(--mango-ink); font-size:14px; line-height:1.4;
+    margin:12px 16px 0; padding:10px 14px; border-radius:14px;
+    background:var(--warn-bg); color:var(--warn-ink); font-size:14px; line-height:1.4;
   }
   .notice summary { font-weight:600; list-style:none; cursor:pointer; }
   .notice summary::-webkit-details-marker { display:none; }
@@ -67,71 +77,84 @@
   .notice p { margin:6px 0 0; }
 
   #log { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px; overscroll-behavior:contain; }
-  .empty { margin:auto 0; text-align:center; color:var(--muted); }
-  .empty h2 { margin:0 0 4px; font-size:20px; color:var(--text); }
-  .chips { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:16px; }
+  .welcome { margin:auto 0; text-align:center; color:var(--muted); padding:8px 0 16px; }
+  .logo-card {
+    width:min(240px, 62vw); margin:0 auto 14px; padding:14px 18px 10px; border-radius:28px; background:#fff;
+    box-shadow:0 10px 30px rgba(8,56,72,.12), inset 0 0 0 1px rgba(20,184,166,.18);
+  }
+  .logo-card img { width:100%; height:auto; display:block; }
+  .welcome h1 { margin:0 0 4px; font-size:22px; color:var(--text); letter-spacing:-0.01em; }
+  .welcome p { margin:0 auto; max-width:30em; }
+  .chips { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:18px; }
   .chip {
-    min-height:44px; padding:8px 14px; border-radius:22px; border:1px solid var(--line);
+    min-height:44px; padding:8px 16px; border-radius:22px; border:1px solid var(--line);
     background:var(--surface); color:var(--text); font:inherit; font-size:15px; text-align:left;
+    box-shadow:0 2px 8px rgba(8,56,72,.06);
   }
 
-  .msg { max-width:86%; padding:10px 14px; border-radius:18px; white-space:pre-wrap; overflow-wrap:anywhere; }
-  .msg.you { align-self:flex-end; background:var(--you); color:var(--you-text); border-bottom-right-radius:6px; }
-  .msg.bot { align-self:flex-start; background:var(--bot); border:1px solid var(--line); border-bottom-left-radius:6px; }
-  .msg.err { border-color:var(--mango); }
-  .meta { align-self:flex-start; margin:-6px 0 0 6px; font-size:12px; color:var(--muted); }
+  .row { display:flex; gap:8px; align-items:flex-end; }
+  .row.you { justify-content:flex-end; }
+  .mini { width:28px; height:28px; border-radius:50%; background:#fff; padding:2px; flex:none; box-shadow:0 0 0 1px var(--line); }
+  .mini img { width:100%; height:100%; border-radius:50%; display:block; }
+  .msg { max-width:84%; padding:10px 14px; border-radius:20px; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .you .msg { background:linear-gradient(135deg, var(--you-a), var(--you-b)); color:#fff; border-bottom-right-radius:6px; }
+  .bot .msg { background:var(--bot); border:1px solid var(--line); border-bottom-left-radius:6px; box-shadow:0 2px 10px rgba(8,56,72,.05); }
+  .bot .msg.err { border-color:#ffb347; }
+  .meta { margin:-6px 0 0 36px; font-size:12px; color:var(--muted); }
   .typing { display:inline-flex; gap:4px; padding:4px 0; }
-  .typing i { width:7px; height:7px; border-radius:50%; background:var(--muted); animation:bounce 1.2s infinite ease-in-out; }
+  .typing i { width:7px; height:7px; border-radius:50%; background:var(--teal); animation:bounce 1.2s infinite ease-in-out; }
   .typing i:nth-child(2) { animation-delay:.15s; } .typing i:nth-child(3) { animation-delay:.3s; }
   .wake { display:block; margin-top:4px; font-size:13px; color:var(--muted); }
 
   form {
     display:flex; align-items:flex-end; gap:8px;
     padding:10px 12px calc(10px + env(safe-area-inset-bottom));
-    background:var(--surface); border-top:1px solid var(--line);
+    background:color-mix(in srgb, var(--surface) 92%, transparent); border-top:1px solid var(--line);
+    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
   }
   textarea {
-    flex:1; min-height:48px; max-height:160px; resize:none; padding:12px 14px;
-    border-radius:24px; border:1px solid var(--line); background:var(--bg); color:inherit;
+    flex:1; min-height:48px; max-height:160px; resize:none; padding:12px 16px;
+    border-radius:24px; border:1px solid var(--line); background:var(--surface); color:inherit;
     font:inherit; font-size:16px; line-height:1.4;
   }
   .send {
     flex:none; width:48px; height:48px; border-radius:50%; border:0;
-    background:var(--green); color:#fff; display:grid; place-items:center;
+    background:linear-gradient(135deg, var(--teal), var(--green)); color:#fff; display:grid; place-items:center;
+    box-shadow:0 4px 14px rgba(24,152,112,.35);
   }
-  .send.stop { background:var(--ink); }
-  .send:disabled { background:var(--line); color:var(--muted); }
+  .send.stop { background:var(--ink); box-shadow:none; }
+  .send:disabled { background:var(--line); color:var(--muted); box-shadow:none; }
   :focus-visible { outline:3px solid var(--focus); outline-offset:2px; }
-  header :focus-visible { outline-color:#9fe1cb; }
+  header :focus-visible { outline-color:var(--lime); }
 
   @keyframes bounce { 0%,80%,100% { transform:translateY(0); } 40% { transform:translateY(-5px); } }
   @keyframes pulse { 50% { transform:scale(.6); } }
   @media (prefers-reduced-motion: reduce) { .typing i, .dot.busy { animation:none; } }
-  @media (min-width:761px) { .app { border-left:1px solid var(--line); border-right:1px solid var(--line); } }
+  @media (min-width:781px) { .app { border-left:1px solid var(--line); border-right:1px solid var(--line); background:color-mix(in srgb, var(--bg) 70%, transparent); } }
 </style>
 </head>
 <body>
 <div class="app">
   <header>
-    <div class="mark" aria-hidden="true">G1</div>
+    <div class="avatar"><img src="gilbert-icon.webp" alt="" width="36" height="36"></div>
     <div class="title">
-      <b>GilbertOne test chat</b>
-      <span><i class="dot" id="dot"></i><span id="state">Qwen on the GilbertOne server</span></span>
+      <b>GilbertOne</b>
+      <span><i class="dot" id="dot"></i><span id="state">Preview on its own server</span></span>
     </div>
     <button class="ghost" id="reset" type="button">New chat</button>
   </header>
 
   <details class="notice" open>
-    <summary>Testing only, not a health service</summary>
-    <p>This is the self-hosted Qwen model on its own. It is not GilbertOne and has none of GilbertOne's
-    safety checks. Do not type anything about a real person's health. Nothing you type is kept.</p>
+    <summary>Preview, not yet the health service</summary>
+    <p>This is GilbertOne's model on its own, without the safety checks the full service adds. Do not
+    type anything about a real person's health. Nothing you type is kept.</p>
   </details>
 
   <main id="log" aria-live="polite"></main>
 
   <form id="ask">
     <label for="q" hidden>Your message</label>
-    <textarea id="q" rows="1" placeholder="Ask Qwen something" enterkeyhint="send" autocomplete="off"></textarea>
+    <textarea id="q" rows="1" placeholder="Message GilbertOne" enterkeyhint="send" autocomplete="off"></textarea>
     <button class="send" id="send" type="submit" aria-label="Send" disabled>
       <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3.4 20.4 21 12 3.4 3.6 3.4 10l12.6 2-12.6 2z"/></svg>
     </button>
@@ -142,7 +165,10 @@
 // 2026. Asking for the plain tag instead made Ollama, which keeps one model loaded, swap the two in turn,
 // a minute or more each time, and the plain tag runs on the wrong thread count.
 const MODEL = 'gilbertone-qwen';
-const SUGGESTIONS = ['Say hello in isiXhosa', 'Explain what a home nurse visit is', 'Write a short poem about Johannesburg'];
+// Who it is, said to the model so it answers as GilbertOne rather than as Qwen. It names what it is
+// not as well, because the name alone sounds like more than this preview is.
+const SYSTEM = "You are GilbertOne, MyThuso's assistant, in a private preview for the founder. You are an AI, not a person and not a doctor. Be warm, clear and brief, and use British spelling. Never diagnose, never give medicine doses, and for anything about a real person's health say a MyThuso nurse or doctor should decide.";
+const SUGGESTIONS = ['Introduce yourself', 'Say hello in isiXhosa', 'What is a MyThuso home visit?'];
 const SEND_ICON = document.getElementById('send').innerHTML;
 const STOP_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>';
 
@@ -150,21 +176,29 @@ const log = document.getElementById('log'), form = document.getElementById('ask'
       send = document.getElementById('send'), dot = document.getElementById('dot'), state = document.getElementById('state'),
       notice = document.querySelector('.notice');
 let history = [], controller = null;
+const narrow = () => window.matchMedia('(max-width: 600px)').matches;
+const touch = () => window.matchMedia('(pointer: coarse)').matches;
 
 function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+function mini() { const m = el('div', 'mini'); const i = el('img'); i.src = 'gilbert-icon.webp'; i.alt = ''; m.append(i); return m; }
 function scrollDown() { log.scrollTop = log.scrollHeight; }
 function setBusy(on, label) {
   dot.classList.toggle('busy', on);
-  state.textContent = label || 'Qwen on the GilbertOne server';
+  state.textContent = label || 'Preview on its own server';
   send.classList.toggle('stop', on);
   send.innerHTML = on ? STOP_ICON : SEND_ICON;
   send.setAttribute('aria-label', on ? 'Stop' : 'Send');
   send.disabled = !on && !q.value.trim();
 }
-function showEmpty() {
+function showWelcome() {
   log.replaceChildren();
-  const box = el('div', 'empty');
-  box.append(el('h2', null, 'Try Qwen'), el('p', null, 'Short answers take a few seconds. The first one after a quiet spell can take a minute.'));
+  const box = el('div', 'welcome');
+  const card = el('div', 'logo-card');
+  const logo = el('img'); logo.src = 'gilbertone-logo-360.webp'; logo.srcset = 'gilbertone-logo-360.webp 360w, gilbertone-logo-720.webp 720w';
+  logo.sizes = '240px'; logo.alt = 'GilbertOne'; logo.width = 360; logo.height = 270;
+  card.append(logo);
+  box.append(card, el('h1', null, 'Hi, I’m GilbertOne'),
+    el('p', null, 'Ask me anything to see how I answer. Short replies take a few seconds; the first one after a quiet spell can take a minute.'));
   const chips = el('div', 'chips');
   for (const s of SUGGESTIONS) {
     const b = el('button', 'chip', s); b.type = 'button';
@@ -178,39 +212,39 @@ function grow() { q.style.height = 'auto'; q.style.height = Math.min(q.scrollHei
 q.addEventListener('input', grow);
 q.addEventListener('keydown', (e) => {
   // Enter sends on a keyboard; on a phone the return key adds a line and the button sends.
-  if (e.key === 'Enter' && !e.shiftKey && !window.matchMedia('(pointer: coarse)').matches) { e.preventDefault(); form.requestSubmit(); }
+  if (e.key === 'Enter' && !e.shiftKey && !touch()) { e.preventDefault(); form.requestSubmit(); }
 });
 form.addEventListener('submit', (e) => { e.preventDefault(); controller ? controller.abort() : ask(); });
 document.getElementById('reset').addEventListener('click', () => {
   if (controller) controller.abort();
-  history = []; showEmpty(); q.value = ''; grow(); q.focus();
+  history = []; showWelcome(); q.value = ''; grow(); if (!touch()) q.focus();
 });
 
 async function ask() {
   const text = q.value.trim();
   if (!text || controller) return;
-  if (!log.querySelector('.msg')) log.replaceChildren();
+  if (!log.querySelector('.row')) log.replaceChildren();
   // On a narrow screen the notice folds once a message is sent, so the conversation has the room.
-  if (window.matchMedia('(max-width: 600px)').matches) notice.open = false;
+  if (narrow()) notice.open = false;
   q.value = ''; grow();
   history.push({ role: 'user', content: text });
-  log.append(el('div', 'msg you', text));
-  const out = el('div', 'msg bot');
+  const mine = el('div', 'row you'); mine.append(el('div', 'msg', text)); log.append(mine);
+  const row = el('div', 'row bot'); const out = el('div', 'msg');
   const typing = el('span', 'typing'); typing.append(el('i'), el('i'), el('i'));
-  out.append(typing); log.append(out); scrollDown();
+  out.append(typing); row.append(mini(), out); log.append(row); scrollDown();
 
   controller = new AbortController();
   setBusy(true, 'Thinking…');
   const started = performance.now();
-  const waking = setTimeout(() => {
-    if (!answer) { out.append(el('span', 'wake', 'Qwen is waking up. The first answer after a quiet spell can take a minute or two.')); scrollDown(); }
-  }, 8000);
   let answer = '', last = null;
+  const waking = setTimeout(() => {
+    if (!answer) { out.append(el('span', 'wake', 'Waking up. The first answer after a quiet spell can take a minute or two.')); scrollDown(); }
+  }, 8000);
   try {
     const res = await fetch('/api/chat', {
       method: 'POST', signal: controller.signal,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: MODEL, messages: history, stream: true, think: false }),
+      body: JSON.stringify({ model: MODEL, messages: [{ role: 'system', content: SYSTEM }, ...history], stream: true, think: false }),
     });
     if (!res.ok) throw new Error('The server answered ' + res.status + '.');
     const reader = res.body.getReader(), decoder = new TextDecoder();
@@ -242,11 +276,11 @@ async function ask() {
     else { history.pop(); out.classList.add('err'); out.textContent = stopped ? 'Stopped.' : 'No answer came back. ' + err.message; }
   } finally {
     clearTimeout(waking); controller = null; setBusy(false); scrollDown();
-    if (!window.matchMedia('(pointer: coarse)').matches) q.focus();
+    if (!touch()) q.focus();
   }
 }
 
-showEmpty();
+showWelcome();
 </script>
 </body>
 </html>

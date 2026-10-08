@@ -55,7 +55,10 @@ password="$(cat "$LOGIN_FILE")"
 hash="$(in_box caddy hash-password --plaintext "$password")"
 
 in_box mkdir -p /srv/test-chat
-incus file push --mode 0644 "$here/test-chat/index.html" "$BOX/srv/test-chat/index.html"
+# The page and the GilbertOne logo files beside it, each readable by Caddy.
+for f in "$here"/test-chat/*; do
+  incus file push --mode 0644 "$f" "$BOX/srv/test-chat/$(basename "$f")"
+done
 in_box sh -c 'cat > /etc/caddy/Caddyfile' <<EOF
 ${HOSTNAME_WEB} {
 	basicauth {
