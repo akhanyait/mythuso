@@ -141,3 +141,29 @@ decision.
 
 **Do not start a large build near the weekly credit cap.** Write the plan into `docs/ROADMAP.md`
 instead, so the next session can pick it up cold.
+
+## Cursor Cloud specific instructions
+
+Added 10 October 2026, from setting a Cloud Agent environment up on a Linux image whose `node`
+was 22.14.
+
+`npm run dev` is what comes up on boot, on port 5173: `/` the public page, `/app/` the product,
+`/status/` what is connected, `/shop/` the shop. The identity service stays down. It refuses to
+start until `MYTHUSO_ENV` is set, and with `MYTHUSO_ENV=development` the preview asks for a
+one-time code (`npm run api`, health at `http://127.0.0.1:8787/health`).
+
+A Cloud Agent shell can resolve `node` to `/exec-daemon/node`. On the image this was written
+against, that binary was 22.14. That satisfies `engines` (`>=22.12.0`) and still cannot import a
+`.ts` file: type stripping is on by default only from 22.18. `scripts/check-boundaries.mjs` and
+the services import TypeScript with plain `node`, so `npm run check` fails on 22.14 with
+`ERR_UNKNOWN_FILE_EXTENSION`. The environment install pins Node 22.23.3 under `/usr/local` and
+links `node`, `npm` and `npx` into `/usr/local/cargo/bin`, which this image searches before
+`/exec-daemon`. `node -v` should say v22.23.3.
+
+Playwright owns its dev server. `reuseExistingServer` is false, and a suite that finds 5173 taken
+fails rather than testing whatever is already there. The boot server is that occupant. Run
+`MYTHUSO_PORT=<free port> npm test` while it is up. `MYTHUSO_PORT` is also the identity service's
+listen port when that service is started, so set it only for the test command.
+
+iOS needs macOS and Xcode. The Android SDK and JDK 17 are outside this environment; CI builds
+them on `ubuntu-latest` with `compileSdk` 35.
