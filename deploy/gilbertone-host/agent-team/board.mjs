@@ -41,7 +41,20 @@ export function screenFile(cfg) {
   return join(cfg.workdir, "screen.json");
 }
 
-// Added people and hidden seed ids live in the work folder. roles.json is the seed and is not edited.
+function stringList(value) {
+  const seen = [];
+  for (const id of value ?? []) {
+    if (typeof id === "string" && id && !seen.includes(id)) seen.push(id);
+  }
+  return seen;
+}
+
+export function emptyScreen() {
+  return { added: [], hidden: [], pins: {}, done: [], dismissed: [], groups: [], muteDay: "" };
+}
+
+// Added people, hidden seed ids, pins, done, dismissed, named groups, the mute day,
+// and edited crafts live in the work folder. roles.json is the seed and is not edited.
 export function normalScreen(data) {
   const added = [];
   for (const person of data?.added ?? []) {
@@ -49,20 +62,80 @@ export function normalScreen(data) {
     if (!person.id || !person.name.trim() || !person.craft.trim()) continue;
     added.push({ id: person.id, name: person.name.trim(), craft: person.craft.trim() });
   }
-  const hidden = [];
-  for (const id of data?.hidden ?? []) {
-    if (typeof id === "string" && id && !hidden.includes(id)) hidden.push(id);
+  const hidden = stringList(data?.hidden);
+  const pins = {};
+  if (data?.pins && typeof data.pins === "object") {
+    for (const [key, id] of Object.entries(data.pins)) {
+      if (typeof key === "string" && key && typeof id === "string" && id) pins[key] = id;
+    }
   }
-  return { added, hidden };
+  const groups = [];
+  for (const group of data?.groups ?? []) {
+    if (!group || typeof group.name !== "string" || !Array.isArray(group.roleIds)) continue;
+    const name = group.name.trim();
+    const roleIds = stringList(group.roleIds);
+    if (!name || roleIds.length < 2 || typeof group.id !== "string" || !group.id) continue;
+    groups.push({ id: group.id, name, roleIds });
+  }
+  const muteDay = typeof data?.muteDay === "string" && /^\d{4}-\d{2}-\d{2}$/.test(data.muteDay) ? data.muteDay : "";
+  return { added, hidden, pins, done: stringList(data?.done), dismissed: stringList(data?.dismissed), groups, muteDay };
 }
 
 export async function readScreen(file) {
   try {
     return normalScreen(JSON.parse(await readFile(file, "utf8")));
   } catch (error) {
-    if (error.code === "ENOENT") return { added: [], hidden: [] };
+    if (error.code === "ENOENT") return emptyScreen();
     throw error;
   }
+}
+
+export function johannesburgDay(date = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Johannesburg",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+export function dutyHay(task) {
+  const parts = [task?.text, task?.title, task?.heldFor];
+  for (const reply of task?.replies ?? []) parts.push(reply?.name, reply?.text);
+  return parts.filter((part) => typeof part === "string").join("\n").toLowerCase();
+}
+
+export function searchDuties(tasks, query) {
+  const needle = String(query ?? "").trim().toLowerCase();
+  if (!needle) return tasks;
+  return tasks.filter((task) => dutyHay(task).includes(needle));
+}
+
+export function dayList(tasks, screen, now = new Date()) {
+  const day = johannesburgDay(now);
+  const done = new Set(screen.done ?? []);
+  const dismissed = new Set(screen.dismissed ?? []);
+  const lines = [];
+  for (const task of tasks) {
+    if (!task?.id || dismissed.has(task.id)) continue;
+    const at = new Date(task.at);
+    if (Number.isNaN(at.getTime()) || johannesburgDay(at) !== day) continue;
+    const time = new Intl.DateTimeFormat("en-ZA", {
+      timeZone: "Africa/Johannesburg",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(at);
+    const who = task.title || "Whole team";
+    const text = String(task.text ?? "").split("\n")[0].trim();
+    lines.push(`${time} — ${who} — ${text} — ${done.has(task.id) ? "done" : "held"}`);
+  }
+  return lines.join("\n");
+}
+
+export function heldCount(tasks, screen) {
+  const done = new Set(screen.done ?? []);
+  const dismissed = new Set(screen.dismissed ?? []);
+  return tasks.filter((task) => task?.id && !done.has(task.id) && !dismissed.has(task.id)).length;
 }
 
 async function writeScreen(file, screen) {
@@ -111,6 +184,82 @@ export function removePerson(roles, screen, id) {
     return { ...screen, added: screen.added.filter((person) => person.id !== id) };
   }
   return { ...screen, hidden: [...(screen.hidden ?? []), id] };
+}
+
+export function editCraft(roles, screen, input) {
+  const id = typeof input?.id === "string" ? input.id : "";
+  const craft = typeof input?.craft === "string" ? input.craft.trim().replace(/\s+/g, " ") : "";
+  if ((roles.roles ?? []).some((role) => role.id === id)) {
+    throw Object.assign(new Error("The six keep the craft in the roster."), { statusCode: 400 });
+  }
+  if (!(screen.added ?? []).some((person) => person.id === id)) {
+    throw Object.assign(new Error("That person is not on this screen."), { statusCode: 400 });
+  }
+  if (!craft) throw Object.assign(new Error("A person needs a one-line craft."), { statusCode: 400 });
+  if (craft.length > 160) throw Object.assign(new Error("The craft is longer than 160 characters."), { statusCode: 400 });
+  return {
+    ...screen,
+    added: screen.added.map((person) => (person.id === id ? { ...person, craft } : person)),
+  };
+}
+
+function requireTask(tasks, id) {
+  const task = tasks.find((row) => row.id === id);
+  if (!task) throw Object.assign(new Error("That duty is not on this screen."), { statusCode: 400 });
+  return task;
+}
+
+export function pinDuty(tasks, screen, id) {
+  const task = requireTask(tasks, id);
+  const pins = { ...(screen.pins ?? {}) };
+  if (pins[task.threadKey] === id) delete pins[task.threadKey];
+  else pins[task.threadKey] = id;
+  return { ...screen, pins };
+}
+
+export function markDone(tasks, screen, id) {
+  requireTask(tasks, id);
+  if ((screen.done ?? []).includes(id)) return screen;
+  return { ...screen, done: [...(screen.done ?? []), id] };
+}
+
+export function dismissDuty(tasks, screen, id) {
+  requireTask(tasks, id);
+  const pins = { ...(screen.pins ?? {}) };
+  for (const [key, pinned] of Object.entries(pins)) {
+    if (pinned === id) delete pins[key];
+  }
+  if ((screen.dismissed ?? []).includes(id)) return { ...screen, pins };
+  return { ...screen, pins, dismissed: [...(screen.dismissed ?? []), id] };
+}
+
+export function saveGroup(roles, screen, input) {
+  const name = typeof input?.name === "string" ? input.name.trim().replace(/\s+/g, " ") : "";
+  if (!name) throw Object.assign(new Error("A group needs a name."), { statusCode: 400 });
+  if (!/^[A-Za-z]+(?: [A-Za-z]+)*$/.test(name)) {
+    throw Object.assign(new Error("Use letters for the group name."), { statusCode: 400 });
+  }
+  const rail = screenRoster(roles, screen);
+  const wanted = new Set(Array.isArray(input?.roleIds) ? input.roleIds : []);
+  const roleIds = rail.filter((person) => wanted.has(person.id)).map((person) => person.id);
+  if (roleIds.length < 2) throw Object.assign(new Error("A group needs two or more people."), { statusCode: 400 });
+  if ((screen.groups ?? []).some((group) => group.name.toLowerCase() === name.toLowerCase())) {
+    throw Object.assign(new Error(`${name} is already a group on this screen.`), { statusCode: 400 });
+  }
+  const group = { id: `group-${randomBytes(3).toString("hex")}`, name, roleIds };
+  return { screen: { ...screen, groups: [...(screen.groups ?? []), group] }, group };
+}
+
+export function removeGroup(screen, id) {
+  if (!(screen.groups ?? []).some((group) => group.id === id)) {
+    throw Object.assign(new Error("That group is not on this screen."), { statusCode: 400 });
+  }
+  return { ...screen, groups: screen.groups.filter((group) => group.id !== id) };
+}
+
+export function muteToday(screen, now = new Date()) {
+  const day = johannesburgDay(now);
+  return { ...screen, muteDay: screen.muteDay === day ? "" : day };
 }
 
 // Who a duty is for, in roster order, and the words the thread uses. An id that roles.json
@@ -423,6 +572,15 @@ function sessionCookie(token) {
   };
 }
 
+async function readPosted(req) {
+  try {
+    return JSON.parse(await readBody(req));
+  } catch (error) {
+    if (error.statusCode) throw error;
+    throw Object.assign(new Error("That was not understood."), { statusCode: 400 });
+  }
+}
+
 function readBody(req) {
   return new Promise((resolveBody, reject) => {
     const chunks = [];
@@ -475,14 +633,31 @@ export function createBoard(cfg = settings(), options = {}) {
           .map((task) => presentTask(roles, status, task, { modelConnected: probe.connected, screen }))
           .filter(Boolean);
         const lead = (roles.roles ?? []).find((role) => role.id === roles.lead);
+        const dismissed = new Set(screen.dismissed ?? []);
         send(res, 200, {
           held: status.held,
           modelConnected: probe.connected,
           leadId: roles.lead,
           leadName: lead?.name ?? "",
           people: screenRoster(roles, screen),
-          tasks,
+          pins: screen.pins ?? {},
+          done: screen.done ?? [],
+          dismissed: screen.dismissed ?? [],
+          groups: screen.groups ?? [],
+          muteDay: screen.muteDay ?? "",
+          heldCount: heldCount(tasks, screen),
+          dayList: dayList(tasks, screen),
+          tasks: tasks.filter((task) => !dismissed.has(task.id)),
         }, "application/json; charset=utf-8", cookie);
+        return;
+      }
+      if (req.method === "GET" && url.pathname === "/search") {
+        const { roles, status } = readTeamStatus();
+        const screen = await readScreen(screenFile(cfg));
+        const tasks = (await readTasks(tasksFile(cfg)))
+          .map((task) => presentTask(roles, status, task, { screen }))
+          .filter(Boolean);
+        send(res, 200, { tasks: searchDuties(tasks, url.searchParams.get("q") || "") }, "application/json; charset=utf-8", cookie);
         return;
       }
       if (req.method === "POST" && url.pathname === "/people") {
@@ -515,6 +690,54 @@ export function createBoard(cfg = settings(), options = {}) {
         const next = removePerson(roles, screen, typeof input?.id === "string" ? input.id : "");
         await writeScreen(file, next);
         send(res, 200, { people: screenRoster(roles, next) }, "application/json; charset=utf-8", cookie);
+        return;
+      }
+      if (req.method === "POST" && url.pathname === "/people/craft") {
+        const input = await readPosted(req);
+        const { roles } = readTeamStatus();
+        const file = screenFile(cfg);
+        const next = editCraft(roles, await readScreen(file), input);
+        await writeScreen(file, next);
+        send(res, 200, { people: screenRoster(roles, next) }, "application/json; charset=utf-8", cookie);
+        return;
+      }
+      if (req.method === "POST" && (url.pathname === "/tasks/pin" || url.pathname === "/tasks/done" || url.pathname === "/tasks/dismiss")) {
+        const input = await readPosted(req);
+        const id = typeof input?.id === "string" ? input.id : "";
+        const file = screenFile(cfg);
+        const screen = await readScreen(file);
+        const tasks = await readTasks(tasksFile(cfg));
+        const next = url.pathname === "/tasks/pin"
+          ? pinDuty(tasks, screen, id)
+          : url.pathname === "/tasks/done"
+            ? markDone(tasks, screen, id)
+            : dismissDuty(tasks, screen, id);
+        await writeScreen(file, next);
+        send(res, 200, { pins: next.pins, done: next.done, dismissed: next.dismissed }, "application/json; charset=utf-8", cookie);
+        return;
+      }
+      if (req.method === "POST" && url.pathname === "/groups") {
+        const input = await readPosted(req);
+        const { roles } = readTeamStatus();
+        const file = screenFile(cfg);
+        const { screen: next, group } = saveGroup(roles, await readScreen(file), input);
+        await writeScreen(file, next);
+        send(res, 201, { group, groups: next.groups }, "application/json; charset=utf-8", cookie);
+        return;
+      }
+      if (req.method === "POST" && url.pathname === "/groups/remove") {
+        const input = await readPosted(req);
+        const file = screenFile(cfg);
+        const next = removeGroup(await readScreen(file), typeof input?.id === "string" ? input.id : "");
+        await writeScreen(file, next);
+        send(res, 200, { groups: next.groups }, "application/json; charset=utf-8", cookie);
+        return;
+      }
+      if (req.method === "POST" && url.pathname === "/screen/mute") {
+        const file = screenFile(cfg);
+        const next = muteToday(await readScreen(file));
+        await writeScreen(file, next);
+        send(res, 200, { muteDay: next.muteDay }, "application/json; charset=utf-8", cookie);
         return;
       }
       if (req.method === "POST" && url.pathname === "/tasks") {

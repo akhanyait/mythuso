@@ -28,6 +28,10 @@ held for each of them. A message with nobody named is held for the whole team. T
 does the same when two or more are chosen. The host team is not installed. The page says so at
 the top of the conversation, in that file's own sentence, and the next sentence says whether a
 model is connected. Recording a duty shows that person is writing, then paints their reply from the same response.
+A duty can be pinned, marked done, or dismissed. The thread can be searched. Notices can be muted
+for the Johannesburg day. Enter sends. A named group can be duty'd in one tap. Today's list can be
+copied. The morning line counts who is on the rail and what is still held. An added person's craft
+can be edited. Those notes stay under `work/`.
 The page also polls the board. Up to three suggestions offer the next people on the rail.
 A person can be added or removed on this screen; that list is kept under `work/`, and `roles.json`
 stays the seed. The reply is taken from `roles.json` and `status.json`,

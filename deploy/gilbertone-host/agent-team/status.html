@@ -94,6 +94,18 @@
   .suggest {
     min-height:36px; padding:0 12px; border:1px solid var(--line); border-radius:999px; background:transparent; font-size:13px;
   }
+  .morning { margin:8px 0 0; font-size:14px; }
+  .day-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+  .day-actions button, .text-action, .edit-craft {
+    min-height:36px; padding:0 10px; border:1px solid var(--line); border-radius:999px; background:transparent; font-size:13px;
+  }
+  .thread-find { display:block; padding:0 0 8px; }
+  .thread-find input {
+    width:100%; min-height:40px; padding:8px 12px; border:1px solid var(--line); border-radius:999px; background:#0e1013;
+  }
+  .duty-actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .done-line { margin:8px 0 0; color:var(--warn); font-size:13px; font-weight:700; }
+  .unread { width:8px; height:8px; border-radius:99px; background:var(--hot); flex:none; }
   .who { min-width:0; display:grid; }
   .name {
     font-family:Outfit,ui-sans-serif,system-ui,sans-serif; font-size:15px; font-weight:650;
@@ -312,6 +324,8 @@
         </li>
       </ul>
       <button type="button" id="add-person">Add a person</button>
+      <p class="rail-label">Groups</p>
+      <ul class="groups" id="saved-groups"></ul>
       <p class="rail-label">Threads</p>
       <ul class="threads" id="thread-list"></ul>
     </div>
@@ -327,10 +341,19 @@
         <ul id="notice-list"></ul>
       </section>
       <p class="visually-hidden">The host team is not installed. The install script is on the branch and has not been run. It is not GilbertOne, and it is not six cloud agents. These roles are not live processes. Nobody is running.</p>
+      <p id="morning" class="morning">On the rail: nobody. No duties are still held.</p>
+      <div class="day-actions">
+        <button type="button" id="copy-day">Copy today's list</button>
+        <button type="button" id="mute-day">Mute notices today</button>
+      </div>
       <h1 id="thread-title">Whole team</h1>
       <p class="thread-sub" id="thread-sub">A message with nobody named is held here for the whole team.</p>
     </header>
     <div class="log" id="log">
+      <label class="thread-find">
+        <span class="visually-hidden">Search this thread</span>
+        <input id="thread-search" type="search" placeholder="Search this thread" autocomplete="off">
+      </label>
       <p id="empty">No duties yet.</p>
       <div id="bubbles"></div>
     </div>
@@ -345,6 +368,7 @@
         <button type="submit" class="icon-button primary" aria-label="Send duty"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 16h14M16 9l7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       </div>
       <div class="composer-meta">
+        <p class="disclosure">Enter sends. Shift+Enter starts a new line.</p>
         <p class="disclosure">The browser may hand the words to its maker.</p>
         <p class="listen" id="listen" hidden><span class="listen-mark" aria-hidden="true"></span>Listening</p>
         <p id="mic-state" role="status"></p>
@@ -358,11 +382,15 @@
     <div class="dialog-body">
       <h2 id="group-heading">Group</h2>
       <p>Choose two or more. One thread is held for each of them.</p>
+      <label class="add-field">Name this group
+        <input id="group-name" name="group-name" maxlength="40" autocomplete="off">
+      </label>
       <div id="group-picks"></div>
       <p id="group-problem" role="status"></p>
     </div>
     <div class="dialog-actions">
       <button type="button" id="group-cancel">Cancel</button>
+      <button type="button" id="group-save">Save group</button>
       <button type="submit" id="group-ok">Use this group</button>
     </div>
   </form>
@@ -411,6 +439,14 @@ var sending = null;
 var sendLock = false;
 var boardStamp = 0;
 var POLL_MS = 2000;
+var unread = {};
+var boardReady = false;
+roster.pins = {};
+roster.done = [];
+roster.groups = [];
+roster.muteDay = "";
+roster.dayList = "";
+roster.heldCount = 0;
 var seedMarks = {};
 document.querySelectorAll(".people .person").forEach(function (button) {
   var mark = button.querySelector(".mark");
@@ -622,6 +658,12 @@ function renderPeople() {
     button.setAttribute("data-name", person.name);
     button.setAttribute("data-title", person.title || "");
     if (person.id === openKey) button.setAttribute("aria-current", "true");
+    if (unread[person.id]) {
+      var dot = document.createElement("span");
+      dot.className = "unread";
+      dot.setAttribute("aria-label", "Unread");
+      button.append(dot);
+    }
     var who = document.createElement("span");
     who.className = "who";
     var name = document.createElement("span");
@@ -640,6 +682,15 @@ function renderPeople() {
     remove.textContent = "Remove";
     remove.addEventListener("click", function () { removePerson(person.id); });
     li.append(button, remove);
+    if (person.seed === false) {
+      var craft = document.createElement("button");
+      craft.type = "button";
+      craft.className = "edit-craft";
+      craft.textContent = "Craft";
+      craft.setAttribute("aria-label", "Edit craft for " + person.name);
+      craft.addEventListener("click", function () { editCraft(person); });
+      li.append(craft);
+    }
     list.append(li);
   });
   applyFind();
@@ -653,11 +704,72 @@ function applyFind() {
   });
 }
 
+function johannesburgDay(date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Johannesburg",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function dutyMatches(duty, query) {
+  var hay = [duty.text || "", duty.title || "", duty.heldFor || ""].join(" ");
+  (duty.replies || []).forEach(function (reply) { hay += " " + (reply.name || "") + " " + (reply.text || ""); });
+  return hay.toLowerCase().indexOf(query) !== -1;
+}
+
+function renderMorning() {
+  var line = document.getElementById("morning");
+  if (!line) return;
+  var names = roster.people.map(function (person) { return person.name; });
+  var who = "nobody";
+  if (names.length === 1) who = names[0];
+  else if (names.length > 1) who = names.slice(0, -1).join(", ") + " and " + names[names.length - 1];
+  var count = roster.heldCount || 0;
+  var held = count === 1 ? "1 duty is still held." : count === 0 ? "No duties are still held." : count + " duties are still held.";
+  line.textContent = "On the rail: " + who + ". " + held;
+  var mute = document.getElementById("mute-day");
+  if (mute) mute.textContent = roster.muteDay && roster.muteDay === johannesburgDay(new Date()) ? "Notices muted today" : "Mute notices today";
+}
+
+function renderGroups() {
+  var list = document.getElementById("saved-groups");
+  if (!list) return;
+  list.replaceChildren();
+  (roster.groups || []).forEach(function (group) {
+    var li = document.createElement("li");
+    li.className = "person-row";
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "thread";
+    button.textContent = group.name;
+    button.addEventListener("click", function () { dutyGroup(group); });
+    var remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "remove-person";
+    remove.setAttribute("aria-label", "Remove group " + group.name);
+    remove.textContent = "Remove";
+    remove.addEventListener("click", function () { removeGroup(group.id); });
+    li.append(button, remove);
+    list.append(li);
+  });
+}
+
 function renderLog() {
   var host = document.getElementById("bubbles");
+  var log = document.getElementById("log");
+  var stick = Boolean(sending) || (log.scrollHeight - log.scrollTop - log.clientHeight < 120);
   host.replaceChildren();
+  var query = document.getElementById("thread-search").value.trim().toLowerCase();
   var rows = duties.filter(function (duty) { return duty.threadKey === openKey; });
-  document.getElementById("empty").hidden = rows.length > 0;
+  if (query) rows = rows.filter(function (duty) { return dutyMatches(duty, query); });
+  var pinId = roster.pins ? roster.pins[openKey] : "";
+  var pinned = rows.filter(function (duty) { return duty.id === pinId; });
+  rows = pinned.concat(rows.filter(function (duty) { return duty.id !== pinId; }));
+  var empty = document.getElementById("empty");
+  empty.hidden = rows.length > 0 || Boolean(sending);
+  empty.textContent = query && !rows.length ? "Nothing in this thread matches." : "No duties yet.";
   rows.forEach(function (duty) {
     var time = document.createElement("p");
     time.className = "when";
@@ -670,6 +782,32 @@ function renderLog() {
     mineText.className = "duty-text";
     mineText.textContent = duty.text;
     mineCard.append(mineText);
+    if ((roster.done || []).indexOf(duty.id) !== -1) {
+      var doneLine = document.createElement("p");
+      doneLine.className = "done-line";
+      doneLine.textContent = "Marked done on this screen. Nobody carried this out.";
+      mineCard.append(doneLine);
+    }
+    var actions = document.createElement("div");
+    actions.className = "duty-actions";
+    var pin = document.createElement("button");
+    pin.type = "button";
+    pin.className = "text-action";
+    pin.textContent = duty.id === pinId ? "Unpin" : "Pin";
+    pin.addEventListener("click", function () { postScreen("/tasks/pin", { id: duty.id }); });
+    var done = document.createElement("button");
+    done.type = "button";
+    done.className = "text-action";
+    done.textContent = "Mark done";
+    done.hidden = (roster.done || []).indexOf(duty.id) !== -1;
+    done.addEventListener("click", function () { postScreen("/tasks/done", { id: duty.id }); });
+    var dismiss = document.createElement("button");
+    dismiss.type = "button";
+    dismiss.className = "text-action";
+    dismiss.textContent = "Dismiss";
+    dismiss.addEventListener("click", function () { postScreen("/tasks/dismiss", { id: duty.id }); });
+    actions.append(pin, done, dismiss);
+    mineCard.append(actions);
     mine.append(mineCard);
     host.append(time, mine);
     var replies = Array.isArray(duty.replies) ? duty.replies : [];
@@ -714,8 +852,7 @@ function renderLog() {
       host.append(line);
     });
   }
-  var log = document.getElementById("log");
-  log.scrollTop = log.scrollHeight;
+  if (stick) log.scrollTop = log.scrollHeight;
 }
 
 function renderReply(reply) {
@@ -786,6 +923,7 @@ function showModel(connected) {
 }
 
 function raiseHeld(duty) {
+  if (roster.muteDay && roster.muteDay === johannesburgDay(new Date())) return;
   var who = duty.title || "Whole team";
   if (typeof Notification !== "function") return;
   function send() {
@@ -804,7 +942,9 @@ function render() {
   var meta = threadMeta();
   document.getElementById("thread-title").textContent = meta.title;
   document.getElementById("thread-sub").textContent = meta.sub;
+  renderMorning();
   renderPeople();
+  renderGroups();
   renderThreads();
   renderLog();
   renderNotices();
@@ -813,6 +953,8 @@ function render() {
 
 function openThread(key) {
   openKey = key;
+  delete unread[key];
+  String(key || "").split("+").forEach(function (id) { delete unread[id]; });
   render();
 }
 
@@ -1051,6 +1193,46 @@ async function removePerson(id) {
   }
 }
 
+async function postScreen(path, payload) {
+  try {
+    var response = await fetch(authed(path), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload || {}),
+    });
+    var body = await response.json();
+    if (!response.ok) {
+      problem.textContent = body.error || "That was not saved.";
+      return null;
+    }
+    await loadBoard();
+    return body;
+  } catch (error) {
+    problem.textContent = "The board did not save that.";
+    return null;
+  }
+}
+
+function dutyGroup(group) {
+  var text = box.value.trim();
+  if (!text) {
+    problem.textContent = "Write the duty, then tap the group.";
+    box.focus();
+    return;
+  }
+  sendDuty(text, group.roleIds || []);
+}
+
+function editCraft(person) {
+  var craft = window.prompt("Craft for " + person.name, person.title || "");
+  if (craft === null) return;
+  postScreen("/people/craft", { id: person.id, craft: craft });
+}
+
+function removeGroup(id) {
+  postScreen("/groups/remove", { id: id });
+}
+
 async function loadBoard() {
   var stamp = boardStamp;
   try {
@@ -1058,10 +1240,27 @@ async function loadBoard() {
     if (!response.ok || stamp !== boardStamp) return;
     var board = await response.json();
     if (stamp !== boardStamp) return;
+    var previous = {};
+    duties.forEach(function (duty) { if (duty.id) previous[duty.id] = true; });
+    var incoming = board.tasks || [];
+    if (boardReady) {
+      incoming.forEach(function (duty) {
+        if (!duty.id || previous[duty.id] || duty.threadKey === openKey) return;
+        var ids = duty.roleIds && duty.roleIds.length ? duty.roleIds : [board.leadId];
+        ids.forEach(function (id) { if (id && id !== openKey) unread[id] = true; });
+      });
+    }
+    boardReady = true;
     if (Array.isArray(board.people)) roster.people = board.people;
     if (board.leadId) roster.leadId = board.leadId;
     if (board.leadName) roster.leadName = board.leadName;
-    duties = board.tasks || [];
+    roster.pins = board.pins || {};
+    roster.done = board.done || [];
+    roster.groups = board.groups || [];
+    roster.muteDay = board.muteDay || "";
+    roster.dayList = board.dayList || "";
+    roster.heldCount = board.heldCount || 0;
+    duties = incoming;
     showModel(board.modelConnected === true);
     render();
   } catch (error) {
@@ -1080,6 +1279,33 @@ document.getElementById("add-person").addEventListener("click", function () {
   addDialog.showModal();
 });
 document.getElementById("add-cancel").addEventListener("click", function () { addDialog.close(); });
+document.getElementById("thread-search").addEventListener("input", function () { renderLog(); });
+document.getElementById("copy-day").addEventListener("click", async function () {
+  var text = roster.dayList || "";
+  if (!text) {
+    problem.textContent = "Nothing is held today.";
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    problem.textContent = "Today's list is copied.";
+  } catch (error) {
+    problem.textContent = text;
+  }
+});
+document.getElementById("mute-day").addEventListener("click", function () { postScreen("/screen/mute", {}); });
+document.getElementById("group-save").addEventListener("click", async function () {
+  var checked = Array.prototype.map.call(picks.querySelectorAll("input:checked"), function (input) { return input.value; });
+  var name = document.getElementById("group-name").value.trim();
+  if (checked.length < 2) {
+    document.getElementById("group-problem").textContent = "A group needs two or more people.";
+    return;
+  }
+  var saved = await postScreen("/groups", { name: name, roleIds: checked });
+  if (!saved) return;
+  document.getElementById("group-name").value = "";
+  dialog.close();
+});
 document.getElementById("add-form").addEventListener("submit", async function (event) {
   event.preventDefault();
   var name = document.getElementById("add-name").value.trim();

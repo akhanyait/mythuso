@@ -237,8 +237,29 @@ test("the status page is inlined from the two JSON files and says the team is no
   assert.equal(html.includes("localStorage"), false);
   assert.equal(html.includes("sessionStorage"), false);
   assert.equal(html.includes("indexedDB"), false);
-  const fetches = [...html.matchAll(/fetch\(authed\("([^"]+)"\)/g)].map((match) => match[1]);
-  assert.deepEqual(fetches.sort(), ["/board", "/people", "/people/remove", "/tasks"]);
+  const fetches = [
+    ...html.matchAll(/fetch\(authed\("([^"]+)"\)/g),
+    ...html.matchAll(/postScreen\("([^"]+)"/g),
+  ].map((match) => match[1]);
+  assert.deepEqual(fetches.sort(), [
+    "/board",
+    "/groups",
+    "/groups/remove",
+    "/people",
+    "/people/craft",
+    "/people/remove",
+    "/screen/mute",
+    "/tasks",
+    "/tasks/dismiss",
+    "/tasks/done",
+    "/tasks/pin",
+  ]);
+  assert.ok(html.includes("Enter sends. Shift+Enter starts a new line."));
+  assert.ok(html.includes("Marked done on this screen. Nobody carried this out."));
+  assert.ok(html.includes("Search this thread"));
+  assert.ok(html.includes("Copy today's list"));
+  assert.ok(html.includes("Mute notices today"));
+  assert.ok(html.includes("On the rail:"));
   assert.ok(html.includes("is writing"));
   assert.ok(html.includes('className = "suggest"'));
   assert.ok(html.includes("Add a person"));
@@ -560,6 +581,84 @@ test("a person can be added and removed on this screen, and Thandi's reply stays
     assert.equal(rail.people.some((person) => person.id === "qa"), false);
     const roster = JSON.parse(await readFile(new URL("./roles.json", import.meta.url), "utf8"));
     assert.ok(roster.roles.some((role) => role.id === "qa"));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("a duty can be pinned, marked done, searched, copied, grouped, and an added craft can be edited", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "board-day-"));
+  const server = await startBoard({ port: 0, workdir: dir, token: BOARD_KEY, env: { OLLAMA_URL: "" } });
+  const { port } = server.address();
+  const url = `http://127.0.0.1:${port}`;
+  try {
+    const duty = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleId: "pm", text: "Proofpin ledger word" }),
+    });
+    assert.equal(duty.status, 201);
+    const task = await duty.json();
+    assert.match(task.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+    const pinned = await boardFetch(`${url}/tasks/pin`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: task.id }),
+    });
+    assert.equal(pinned.status, 200);
+    assert.equal((await pinned.json()).pins[task.threadKey], task.id);
+    const done = await boardFetch(`${url}/tasks/done`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: task.id }),
+    });
+    assert.equal(done.status, 200);
+    assert.ok((await done.json()).done.includes(task.id));
+    const found = await (await boardFetch(`${url}/search?q=${encodeURIComponent("ledger")}`)).json();
+    assert.equal(found.tasks.length, 1);
+    assert.match(found.tasks[0].text, /Proofpin ledger word/);
+    const board = await (await boardFetch(`${url}/board`)).json();
+    assert.match(board.dayList, /Proofpin ledger word/);
+    assert.match(board.dayList, /done/);
+    assert.ok(board.people.some((person) => person.name === "Thandi"));
+    const seedCraft = await boardFetch(`${url}/people/craft`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: "pm", craft: "A different craft" }),
+    });
+    assert.equal(seedCraft.status, 400);
+    const created = await boardFetch(`${url}/people`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "Proofcrafter", craft: "Keeps a note." }),
+    });
+    const person = (await created.json()).person;
+    const edited = await boardFetch(`${url}/people/craft`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: person.id, craft: "Keeps the edited note." }),
+    });
+    assert.equal(edited.status, 200);
+    assert.equal((await edited.json()).people.find((row) => row.id === person.id).title, "Keeps the edited note.");
+    const group = await boardFetch(`${url}/groups`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "Proofgroup", roleIds: ["designer", "qa"] }),
+    });
+    assert.equal(group.status, 201);
+    const saved = (await group.json()).group;
+    const grouped = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleIds: saved.roleIds, text: "Duty the named group." }),
+    });
+    assert.equal(grouped.status, 201);
+    const shared = await grouped.json();
+    assert.equal(shared.audience, "group");
+    assert.deepEqual(shared.roleIds, ["designer", "qa"]);
+    assert.match(shared.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+    const roster = JSON.parse(await readFile(new URL("./roles.json", import.meta.url), "utf8"));
+    assert.equal(roster.roles.find((role) => role.id === "pm").title, "Project Manager");
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
