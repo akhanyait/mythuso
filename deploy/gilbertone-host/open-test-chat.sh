@@ -6,13 +6,14 @@
 #     80 and 443 into it. The host itself still serves nothing.
 #   - Every request needs the login. The password is made here, stored root-only on the server and
 #     printed once on this terminal; it is never written into the repository or a chat.
-#   - Only POST /api/chat reaches Ollama. Its other routes (pull, delete, copy, create) stay on the
-#     container's loopback, so the login cannot be used to change which models the server holds.
+#   - Only one chat route is open. Until the assistant is installed in the box, that is POST /api/chat
+#     to Ollama, and the page says the model is on its own. Once it is installed, that route is closed
+#     and POST /assistant/v1/turn is the only way in, and the page says the safety checks are on.
+#     Ollama's other routes (pull, delete, copy, create) stay on the container's loopback either way.
 #   - The address is <ip>.sslip.io until a GilbertOne domain exists: sslip.io answers any such name
 #     with the IP in it, which lets Let's Encrypt issue a certificate today. GILBERTONE_HOSTNAME
 #     points it at a real domain later.
-# It is a test page, not GilbertOne: no safety checks, no audit, and it says so on the page. Nothing
-# about a patient goes through it. `--close` takes the opening away again.
+# Nothing about a patient goes through it. `--close` takes the opening away again.
 set -euo pipefail
 
 say() { printf '\n== %s\n' "$*"; }
@@ -41,6 +42,7 @@ LOGIN_USER=gilbert
 LOGIN_FILE=/root/gilbertone-test-chat-login.txt
 here="$(cd "$(dirname "$0")" && pwd)"
 [ -f "$here/test-chat/index.html" ] || die "test-chat/index.html is missing beside this script."
+[ -f "$here/test-chat/qwen.html" ] || die "test-chat/qwen.html is missing beside this script."
 
 say "Caddy inside the container"
 in_box env DEBIAN_FRONTEND=noninteractive apt-get install -yq caddy
@@ -55,16 +57,15 @@ password="$(cat "$LOGIN_FILE")"
 hash="$(in_box caddy hash-password --plaintext "$password")"
 
 in_box mkdir -p /srv/test-chat /etc/caddy/gilbertone.d
-# The page and the GilbertOne logo files beside it, each readable by Caddy.
-for f in "$here"/test-chat/*; do
-  incus file push --mode 0644 "$f" "$BOX/srv/test-chat/$(basename "$f")"
-done
-# Where the page's questions go. Once open-gilbertone.sh has installed GilbertOne in the box, to its
-# turn route and nowhere else: the founder's go of 8 October 2026 put every message behind GilbertOne's
-# checks, and leaving plain Qwen reachable beside it would be a second door without them. Until then,
-# to Ollama's chat route alone, as before.
+# Where the page's questions go is decided before any page is pushed. On 10 October 2026 the new
+# GilbertOne page was pushed while the assistant was not in the box: it said the safety checks were
+# on and posted to /assistant/v1/turn, which answered 404, while Qwen was still listening on /api/chat.
+# The page a person reads has to be the route that is open.
 if in_box test -s /opt/mythuso/assistant/server.mjs; then
   ROUTE_MODE=gilbertone
+  page="$here/test-chat/index.html"
+  grep -q "with its safety checks" "$page" || die "the GilbertOne page no longer says the safety checks are on."
+  grep -q "/assistant/v1/turn" "$page" || die "the GilbertOne page no longer posts to /assistant/v1/turn."
   routes="$(cat <<'ROUTES'
 	# GilbertOne's turn route and its health line, and nothing else of the service: the founder routes,
 	# the speech routes and the rest stay on the container's loopback. The browser's Origin is passed
@@ -81,6 +82,12 @@ ROUTES
 )"
 else
   ROUTE_MODE=qwen
+  page="$here/test-chat/qwen.html"
+  grep -q "without the safety checks" "$page" || die "the model-only page no longer says the safety checks are absent."
+  grep -q "/api/chat" "$page" || die "the model-only page no longer posts to /api/chat."
+  if grep -q "with its safety checks" "$page"; then
+    die "the model-only page claims the safety checks are on."
+  fi
   routes="$(cat <<'ROUTES'
 	# The one Ollama route let through. Ollama refuses browser origins it does not know, so the
 	# request reaches it as if from its own loopback; the login above is what guards it.
@@ -98,6 +105,16 @@ else
 ROUTES
 )"
 fi
+# Logos and icons, never either page: the chosen page is pushed under the name the browser asks for,
+# and the other page is not put where a person could open it.
+for f in "$here"/test-chat/*; do
+  base="$(basename "$f")"
+  case "$base" in
+    index.html|qwen.html) continue ;;
+  esac
+  incus file push --mode 0644 "$f" "$BOX/srv/test-chat/$base"
+done
+incus file push --mode 0644 "$page" "$BOX/srv/test-chat/index.html"
 in_box sh -c 'cat > /etc/caddy/Caddyfile' <<EOF
 ${HOSTNAME_WEB} {
 	basicauth {
@@ -148,6 +165,8 @@ if [ "$ROUTE_MODE" = gilbertone ]; then
   health_code="$(curl -s -o /dev/null -w '%{http_code}' -u "${LOGIN_USER}:${password}" "https://${HOSTNAME_WEB}/assistant/health" || true)"
   [ "$health_code" = "200" ] || die "GilbertOne's health line answered '${health_code}' through the login. Check: sudo incus exec ${BOX} -- journalctl -u gilbertone-assistant -n 50"
   echo "The test chat talks to GilbertOne; plain Qwen is closed."
+else
+  echo "The test chat is the model on its own. The safety checks are not on this page."
 fi
 
 say "Open"

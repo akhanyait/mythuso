@@ -40645,3 +40645,25 @@ console.log(await checkSuppliers({ read, files, exists: existsSync }));
   if (!/data-motion=\{decor\.reduced \? 'still' : decor\.playing \? 'running' : 'paused'\}/.test(triage)) tmFail("the Triage screen no longer hands its vitals the page's motion flag, so the heart would beat with no way to stop it.");
   console.log(`The triage markers · ${tm.lines.length} alert lines, each on or outside its indicative range, owned by the ${g.owner} and ${g.status === "reviewed" ? `reviewed on ${g.reviewedOn}` : "drawn under the demo banner"}; nothing typed, nothing summed; ${tm.preview.readings.length} consented sandbox patients with readings.`);
 }
+
+/* The GilbertOne host's preview page has to be the route that is open. On 10 October 2026 the new
+   page was pushed while the assistant was not in the box: it said the safety checks were on and
+   posted to a route that answered 404. index.html is that new page, and it is served only when
+   open-test-chat.sh finds the assistant. qwen.html is the model on its own, and it is what is
+   served until then. Neither sentence may move to the other file. */
+{
+  const hostFail = (message) => { throw new Error(`The GilbertOne host preview: ${message}`); };
+  const gilbertPage = read("deploy/gilbertone-host/test-chat/index.html");
+  const qwenPage = read("deploy/gilbertone-host/test-chat/qwen.html");
+  const opener = read("deploy/gilbertone-host/open-test-chat.sh");
+  if (!gilbertPage.includes("with its safety checks")) hostFail("index.html no longer says the safety checks are on.");
+  if (!gilbertPage.includes("/assistant/v1/turn")) hostFail("index.html no longer posts to /assistant/v1/turn.");
+  if (gilbertPage.includes("fetch('/api/chat'")) hostFail("index.html still posts to /api/chat, which the new GilbertOne closes.");
+  if (!qwenPage.includes("without the safety checks")) hostFail("qwen.html no longer says the safety checks are absent.");
+  if (!qwenPage.includes("/api/chat")) hostFail("qwen.html no longer posts to /api/chat.");
+  if (qwenPage.includes("with its safety checks")) hostFail("qwen.html claims the safety checks are on.");
+  if (!opener.includes('page="$here/test-chat/index.html"')) hostFail("open-test-chat.sh no longer serves index.html when the assistant is installed.");
+  if (!opener.includes('page="$here/test-chat/qwen.html"')) hostFail("open-test-chat.sh no longer serves qwen.html until the assistant is installed.");
+  if (!/index\.html\|qwen\.html\) continue/.test(opener)) hostFail("open-test-chat.sh pushes both pages, so a person can open the one the route does not answer.");
+  console.log("The GilbertOne host preview · the new page is served only with the assistant; until then the page says the model is on its own.");
+}
