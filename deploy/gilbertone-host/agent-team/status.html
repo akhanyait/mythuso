@@ -126,6 +126,13 @@
   }
   .mine .card { background:var(--mine); border-bottom-right-radius:5px; }
   .receipt .card { border-bottom-left-radius:5px; }
+  .bubble.reply { justify-content:flex-start; }
+  .reply-person { display:flex; gap:8px; align-items:flex-end; max-width:min(40rem, 100%); }
+  .reply-person .card { border-bottom-left-radius:5px; max-width:min(34rem, 100%); }
+  .reply-name {
+    margin:0 0 4px; font-family:Outfit,ui-sans-serif,system-ui,sans-serif; font-size:13px; font-weight:700;
+  }
+  .reply-text { margin:0; white-space:pre-wrap; }
   .duty-text, .held, .held-for { margin:0; }
   .duty-text { white-space:pre-wrap; }
   .held-for { margin-bottom:4px; color:var(--warn); font-size:13px; font-weight:700; }
@@ -553,22 +560,55 @@ function renderLog() {
     mineText.textContent = duty.text;
     mineCard.append(mineText);
     mine.append(mineCard);
-    var receipt = document.createElement("div");
-    receipt.className = "bubble receipt";
-    var card = document.createElement("div");
-    card.className = "card";
-    var kicker = document.createElement("p");
-    kicker.className = "held-for";
-    kicker.textContent = duty.heldFor || "";
-    var sentence = document.createElement("p");
-    sentence.className = "held";
-    sentence.textContent = duty.sentence;
-    card.append(kicker, sentence);
-    receipt.append(card);
-    host.append(time, mine, receipt);
+    host.append(time, mine);
+    var replies = Array.isArray(duty.replies) ? duty.replies : [];
+    if (!replies.length) {
+      var receipt = document.createElement("div");
+      receipt.className = "bubble receipt";
+      var card = document.createElement("div");
+      card.className = "card";
+      var kicker = document.createElement("p");
+      kicker.className = "held-for";
+      kicker.textContent = duty.heldFor || "";
+      var sentence = document.createElement("p");
+      sentence.className = "held";
+      sentence.textContent = duty.sentence;
+      card.append(kicker, sentence);
+      receipt.append(card);
+      host.append(receipt);
+      return;
+    }
+    replies.forEach(function (reply) { host.append(renderReply(reply)); });
   });
   var log = document.getElementById("log");
   log.scrollTop = log.scrollHeight;
+}
+
+function renderReply(reply) {
+  var row = document.createElement("div");
+  row.className = "bubble reply";
+  var person = document.createElement("div");
+  person.className = "reply-person person-" + (reply.roleId || "");
+  var mark = document.createElement("span");
+  mark.className = "mark";
+  var source = document.querySelector('.people .person[data-role="' + reply.roleId + '"] .mark');
+  if (source) {
+    Array.prototype.forEach.call(source.childNodes, function (node) {
+      mark.appendChild(node.cloneNode(true));
+    });
+  }
+  var card = document.createElement("div");
+  card.className = "card";
+  var who = document.createElement("p");
+  who.className = "reply-name";
+  who.textContent = reply.name || "";
+  var text = document.createElement("p");
+  text.className = "reply-text";
+  text.textContent = reply.text || "";
+  card.append(who, text);
+  person.append(mark, card);
+  row.append(person);
+  return row;
 }
 
 function firstLine(text) {

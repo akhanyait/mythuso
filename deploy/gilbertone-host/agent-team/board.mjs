@@ -1,8 +1,7 @@
 // The founder's board for the work team. It serves status.html and writes a duty into the
-// gitignored work folder. A duty is handed to the local team engine only when OLLAMA_URL
-// is set and that host's GET /api/tags succeeds. Otherwise it is held with status.json's
-// own sentence, and nobody is invented a reply. The board key lives in the work folder
-// and is never written into the page source.
+// gitignored work folder. The reply under that duty is written here from roles.json and
+// status.json. It is not a model reply, and recording a duty does not call Qwen. The board
+// key lives in the work folder and is never written into the page source.
 //
 // A duty names role ids from roles.json. One id is one person. Two or more are one shared
 // thread, held for each of them. None is the whole team. The sentence is never taken from
@@ -96,9 +95,72 @@ function dutyIds(roles, input) {
   return seen;
 }
 
+// The words the page must keep. They live in status.json; a reply copies them from there
+// and refuses to speak if that sentence no longer contains them.
+const HELD_WORDS = "The team is not installed, so nobody is carrying this out";
+
+// A reply may name only a role id from roles.json. Anything else is refused here, before
+// a sentence is written, so an unknown id never gets words put in its mouth.
+function roleForReply(roles, id) {
+  const role = (roles.roles ?? []).find((item) => item.id === id);
+  if (!role) {
+    const shown = typeof id === "string" && id ? id : "nothing";
+    throw Object.assign(new Error(`a reply names ${shown}, which roles.json does not have`), { statusCode: 400 });
+  }
+  return role;
+}
+
+function replyText(role, status, wholeTeam) {
+  const person = (status.people ?? []).find((row) => row.id === role.id);
+  if (!person || !/not running/i.test(String(person.sentence ?? ""))) {
+    throw new Error(`status.json does not say ${role.id} is not running`);
+  }
+  const will = wholeTeam ? role.willTeam : role.will;
+  if (typeof will !== "string" || will.trim() === "") {
+    throw new Error(`roles.json has no answer for ${role.id}`);
+  }
+  const doing = wholeTeam ? will.trim() : `I will ${will.trim()}`;
+  return `I am ${role.name}, ${role.title}, and ${doing}. I am not running and the duty is held, so I have not started it: ${HELD_WORDS}.`;
+}
+
+// One named person answers. Several answer in roster order. Nobody named means the lead
+// holds it for the whole team and does not hand it on. The duty's own words are not
+// turned into a claim that the work is done.
+export function dutyReplies(roles, status, roleIds) {
+  if (!String(status?.held ?? "").includes(HELD_WORDS)) {
+    throw new Error("status.json no longer says the team is not carrying this out");
+  }
+  const ids = Array.isArray(roleIds) ? roleIds : [];
+  const speakers = [];
+  if (ids.length === 0) {
+    speakers.push({ role: roleForReply(roles, roles.lead), wholeTeam: true });
+  } else {
+    const wanted = new Set(ids);
+    for (const role of roles.roles ?? []) {
+      if (wanted.has(role.id)) speakers.push({ role, wholeTeam: false });
+    }
+    for (const id of ids) roleForReply(roles, id);
+  }
+  return speakers.map(({ role, wholeTeam }) => ({
+    roleId: role.id,
+    name: role.name,
+    text: replyText(role, status, wholeTeam),
+  }));
+}
+
+function presentReplies(roles, status, described, task) {
+  if (!Array.isArray(task.replies)) return dutyReplies(roles, status, described.roleIds);
+  return task.replies.map((reply) => {
+    const role = roleForReply(roles, reply?.roleId);
+    const text = typeof reply.text === "string" ? reply.text : "";
+    return { roleId: role.id, name: role.name, text };
+  });
+}
+
 // A duty may name only role ids from roles.json. No ids means the whole team. The text is
 // the founder's words. The sentence is never taken from the request: it is the held line,
-// because recording a duty does not start anyone.
+// because recording a duty does not start anyone. The replies are written here, not copied
+// from the request and not written by a model.
 export function holdTask(roles, status, tasks, input) {
   const described = describeDuty(roles, dutyIds(roles, input));
   const text = typeof input?.text === "string" ? input.text.trim() : "";
@@ -111,6 +173,7 @@ export function holdTask(roles, status, tasks, input) {
     ...described,
     text,
     sentence: status.held,
+    replies: dutyReplies(roles, status, described.roleIds),
     at: new Date().toISOString(),
   };
   return { tasks: [...tasks, task], task };
@@ -137,6 +200,7 @@ export function presentTask(roles, status, task, options = {}) {
       text: typeof task.text === "string" ? task.text : "",
       // With OLLAMA_URL unset, the receipt stays status.json's held sentence.
       sentence: report || status.held,
+      replies: presentReplies(roles, status, described, task),
       at: task.at,
     };
   } catch {
@@ -306,12 +370,8 @@ export function createBoard(cfg = settings(), options = {}) {
         const { tasks, task } = holdTask(roles, status, existing, input);
         await mkdir(dirname(file), { recursive: true });
         await writeFile(file, `${JSON.stringify({ tasks }, null, 2)}\n`);
-        const outcome = await carryDuty(cfg, env, task, fetchImpl);
-        if (outcome.task !== task) {
-          const updated = tasks.map((row) => (row.id === task.id ? outcome.task : row));
-          await writeFile(file, `${JSON.stringify({ tasks: updated }, null, 2)}\n`);
-        }
-        const shown = presentTask(roles, status, outcome.task, { modelConnected: outcome.connected });
+        // The reply is already on the task. This path does not call the model.
+        const shown = presentTask(roles, status, task);
         send(res, 201, shown, "application/json; charset=utf-8", cookie);
         return;
       }

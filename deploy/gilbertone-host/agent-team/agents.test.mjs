@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { settings, loadRoles, ask, inside, listApprovals, delegationCap, KNOWN_TOOLS, configuredOllamaUrl, probeModel } from "./agents.mjs";
 import { readTeamStatus, statusProblems, checkStatusPage, shortenStatus } from "./render-status.mjs";
-import { startBoard } from "./board.mjs";
+import { startBoard, dutyReplies, carryDuty } from "./board.mjs";
 
 // The model stand-in replaces global fetch and does not put it back. The board test talks to
 // its own server, so it keeps the fetch this file was loaded with.
@@ -247,6 +247,8 @@ test("the status page is inlined from the two JSON files and says the team is no
   assert.ok(html.includes("No notices yet."));
   assert.ok(html.includes("It is held."));
   assert.ok(html.includes("requestPermission"));
+  assert.ok(html.includes("bubble reply"));
+  assert.ok(html.includes("reply-text"));
   assert.ok(html.includes("The browser may hand the words to its maker."));
   assert.ok(html.includes("No duties yet."));
   assert.ok(html.includes('id="mic"'));
@@ -317,6 +319,14 @@ test("a task that names a role the roster does not have is refused and not store
     assert.equal(task.roleId, "engineer");
     assert.equal(task.text, "Morning-of card on the web");
     assert.equal(task.sentence, "Held. The team is not installed, so nobody is carrying this out.");
+    assert.equal(task.replies.length, 1);
+    assert.equal(task.replies[0].roleId, "engineer");
+    assert.equal(task.replies[0].name, "Sipho");
+    assert.match(task.replies[0].text, /Specialist Full Stack Engineer/);
+    assert.match(task.replies[0].text, /I will draft the web piece/);
+    assert.match(task.replies[0].text, /I am not running and the duty is held, so I have not started it/);
+    assert.match(task.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+    assert.equal(/built/i.test(task.replies[0].text), false);
     const board = await (await boardFetch(`${url}/board`)).json();
     assert.equal(board.tasks.length, 1);
     assert.equal(board.tasks[0].sentence, task.sentence);
@@ -337,6 +347,9 @@ test("a task that names a role the roster does not have is refused and not store
     assert.equal(shared.heldFor, "Held for Lerato and Nomsa.");
     assert.equal(shared.roleId, undefined);
     assert.equal(shared.sentence, task.sentence);
+    assert.deepEqual(shared.replies.map((reply) => reply.name), ["Lerato", "Nomsa"]);
+    assert.match(shared.replies[0].text, /I will draft the screen/);
+    assert.match(shared.replies[1].text, /I will queue a check/);
 
     const teamDuty = await boardFetch(`${url}/tasks`, {
       method: "POST",
@@ -349,6 +362,10 @@ test("a task that names a role the roster does not have is refused and not store
     assert.deepEqual(everyone.roleIds, []);
     assert.equal(everyone.heldFor, "Held for the whole team.");
     assert.equal(everyone.sentence, task.sentence);
+    assert.equal(everyone.replies.length, 1);
+    assert.equal(everyone.replies[0].name, "Thandi");
+    assert.match(everyone.replies[0].text, /holding this for the whole team and have not handed it on/);
+    assert.match(everyone.replies[0].text, /The team is not installed, so nobody is carrying this out/);
 
     const mixed = await boardFetch(`${url}/tasks`, {
       method: "POST",
@@ -414,7 +431,7 @@ test("OLLAMA_URL unset does not call a model, and a duty stays held", async () =
   }
 });
 
-test("a duty is handed on only when /api/tags succeeds, and a failed tags call sends no chat", async () => {
+test("recording a duty does not call Ollama, even when OLLAMA_URL is set", async () => {
   const dir = await mkdtemp(join(tmpdir(), "board-tags-"));
   const seen = [];
   const server = await startBoard({
@@ -432,54 +449,64 @@ test("a duty is handed on only when /api/tags succeeds, and a failed tags call s
     const held = await boardFetch(`http://127.0.0.1:${port}/tasks`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ roleId: "designer", text: "A screen, held." }),
+      body: JSON.stringify({
+        roleId: "designer",
+        text: "A screen, held.",
+        replies: [{ roleId: "admin", text: "I built it." }],
+      }),
     });
     assert.equal(held.status, 201);
-    assert.equal((await held.json()).sentence, "Held. The team is not installed, so nobody is carrying this out.");
-    assert.deepEqual(seen, ["http://ollama.test/api/tags"]);
-    const board = await (await boardFetch(`http://127.0.0.1:${port}/board`)).json();
-    assert.equal(board.modelConnected, false);
-    assert.equal(board.tasks[0].sentence, "Held. The team is not installed, so nobody is carrying this out.");
+    const task = await held.json();
+    assert.equal(task.sentence, "Held. The team is not installed, so nobody is carrying this out.");
+    assert.equal(task.replies.length, 1);
+    assert.equal(task.replies[0].name, "Lerato");
+    assert.match(task.replies[0].text, /I will draft the screen/);
+    assert.equal(/built/i.test(task.replies[0].text), false);
+    assert.deepEqual(seen, []);
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
 });
 
-test("when tags succeed the duty is handed to that role and the receipt is the engine report", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "board-on-"));
+test("a reply is refused for a role id roles.json does not have", () => {
+  const { roles, status } = readTeamStatus();
+  assert.throws(
+    () => dutyReplies(roles, status, ["admin"]),
+    (error) => error.statusCode === 400 && /a reply names admin, which roles.json does not have/.test(error.message),
+  );
+  const sipho = dutyReplies(roles, status, ["engineer"]);
+  assert.equal(sipho.length, 1);
+  assert.match(sipho[0].text, /The team is not installed, so nobody is carrying this out/);
+  assert.equal(/built/i.test(sipho[0].text), false);
+});
+
+test("the engine is still not asked to chat unless tags succeed, and that path is not the page", async () => {
+  const { cfg } = await sandbox();
+  const missed = [];
+  const blocked = await carryDuty(cfg, { OLLAMA_URL: "http://ollama.test" }, { roleIds: ["engineer"], text: "x" }, async (url) => {
+    missed.push(String(url));
+    return new Response("no", { status: 503 });
+  });
+  assert.equal(blocked.connected, false);
+  assert.equal(blocked.task.report, undefined);
+  assert.deepEqual(missed, ["http://ollama.test/api/tags"]);
   const seen = [];
-  const server = await startBoard({
-    port: 0,
-    workdir: dir,
-    token: BOARD_KEY,
-    env: { OLLAMA_URL: "http://ollama.test" },
-    fetchImpl: async (url, init) => {
+  const handed = await carryDuty(
+    cfg,
+    { OLLAMA_URL: "http://ollama.test" },
+    { roleIds: ["engineer"], text: "Morning-of card on the web" },
+    async (url, init) => {
       seen.push(String(url));
       if (String(url).endsWith("/api/tags")) return new Response(JSON.stringify({ models: [] }), { status: 200 });
       const body = JSON.parse(init.body);
       assert.match(body.messages[0].content, /Your name is Sipho/);
       return new Response(JSON.stringify({ message: { role: "assistant", content: "Drafted the card." } }));
     },
-  });
-  const { port } = server.address();
-  try {
-    const handed = await boardFetch(`http://127.0.0.1:${port}/tasks`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ roleId: "engineer", text: "Morning-of card on the web" }),
-    });
-    assert.equal(handed.status, 201);
-    const task = await handed.json();
-    assert.equal(task.sentence, "Drafted the card.");
-    assert.equal(task.roleId, "engineer");
-    const board = await (await boardFetch(`http://127.0.0.1:${port}/board`)).json();
-    assert.equal(board.modelConnected, true);
-    assert.equal(board.tasks[0].sentence, "Drafted the card.");
-    assert.ok(seen.includes("http://ollama.test/api/tags"));
-    assert.ok(seen.includes("http://ollama.test/api/chat"));
-  } finally {
-    await new Promise((resolve) => server.close(resolve));
-  }
+  );
+  assert.equal(handed.connected, true);
+  assert.equal(handed.task.report, "Drafted the card.");
+  assert.ok(seen.includes("http://ollama.test/api/tags"));
+  assert.ok(seen.includes("http://ollama.test/api/chat"));
 });
 
 test("a host without gilbertone-qwen runs the served Qwen with its thread count sent on every call", async () => {
