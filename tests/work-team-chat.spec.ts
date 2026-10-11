@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { mkdtemp, readFileSync, rm } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startBoard } from '../deploy/gilbertone-host/agent-team/board.mjs';
@@ -32,7 +33,7 @@ test.afterAll(async () => {
 test('the rail, an @ duty, a group thread, and the mic', async ({ page }) => {
   const port = (server.address() as { port: number }).port;
   await page.goto(`http://127.0.0.1:${port}/status.html`);
-  await expect(page.getByText('The host team is not installed.')).toBeVisible();
+  await expect(page.getByText('The host team is not installed.', { exact: true })).toBeVisible();
 
   for (const role of roles.roles) {
     const person = status.people.find((row) => row.id === role.id);
@@ -62,14 +63,16 @@ test('the rail, an @ duty, a group thread, and the mic', async ({ page }) => {
   await page.getByRole('option', { name: /^Karabo,/ }).click();
   await box.pressSequentially('Share one thread.');
   await page.getByRole('button', { name: 'Send duty' }).click();
+  const conversation = page.getByRole('region', { name: 'Conversation' });
   await expect(page.getByRole('heading', { name: 'Lerato and Karabo', exact: true })).toBeVisible();
-  await expect(page.getByText('Held for Lerato and Karabo.')).toBeVisible();
+  await expect(conversation.getByText('Held for Lerato and Karabo.')).toBeVisible();
+  await expect(conversation.getByText(status.held)).toBeVisible();
   await expect(page.getByRole('button', { name: /Lerato and Karabo/ })).toHaveCount(1);
   await expect(page.getByText('Hold the morning-of card.')).toHaveCount(0);
 
   await page.locator('button[data-role="engineer"]').click();
   await expect(page.getByRole('heading', { name: 'Sipho', exact: true })).toBeVisible();
-  await expect(page.getByText('Specialist Full Stack Engineer')).toBeVisible();
+  await expect(page.locator('#thread-sub')).toHaveText('Specialist Full Stack Engineer');
   await expect(page.getByText('Hold the morning-of card.')).toBeVisible();
   await expect(page.getByText('Share one thread.')).toHaveCount(0);
 
@@ -94,6 +97,35 @@ test('the rail, an @ duty, a group thread, and the mic', async ({ page }) => {
   const mic = page.getByRole('button', { name: 'Listen' });
   await expect(mic).toBeVisible();
   await expect(page.getByText('The browser may hand the words to its maker.')).toBeVisible();
+  // A browser with no recognition must not invent words. Playwright's Chromium may have the
+  // API, so this removes it and checks the honest line.
+  await page.evaluate(() => {
+    const host = window as Window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown };
+    delete host.SpeechRecognition;
+    delete host.webkitSpeechRecognition;
+  });
   await mic.click();
-  await expect(page.getByText(/The words have to be typed/)).toBeVisible();
+  await expect(page.getByText('This browser has no speech recognition. The words have to be typed.')).toBeVisible();
+  await expect(page.locator('#listen')).toBeHidden();
+  await expect(page.getByRole('textbox', { name: 'Duty' })).toHaveValue('');
+
+  await page.evaluate(() => {
+    class FakeRecognition {
+      lang = '';
+      continuous = false;
+      interimResults = false;
+      onresult: ((event: unknown) => void) | null = null;
+      onerror: (() => void) | null = null;
+      onend: (() => void) | null = null;
+      start() {}
+      stop() { this.onend?.(); }
+    }
+    (window as Window & { SpeechRecognition?: unknown }).SpeechRecognition = FakeRecognition;
+  });
+  await page.getByRole('button', { name: 'Listen' }).click();
+  await expect(page.getByText('Listening', { exact: true })).toBeVisible();
+  await expect(page.locator('#mic')).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Stop listening' }).click();
+  await expect(page.locator('#listen')).toBeHidden();
+  await expect(page.getByRole('textbox', { name: 'Duty' })).toHaveValue('');
 });

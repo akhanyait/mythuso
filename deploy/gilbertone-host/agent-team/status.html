@@ -171,14 +171,21 @@
   #group-ok { background:#f2f4f7; color:#12151a; border-color:transparent; font-weight:700; }
   @media (max-width:760px) {
     body { overflow:hidden; }
-    .app { grid-template-columns:1fr; grid-template-rows:auto minmax(0,1fr); height:100dvh; }
+    .app { grid-template-columns:1fr; grid-template-rows:auto minmax(0,1fr); height:100dvh; overflow:hidden; }
     .rail { border-right:0; border-bottom:1px solid var(--line); }
-    .rail-scroll { overflow:visible; }
-    .conv-head, .log { padding-left:14px; padding-right:14px; }
-    .conv-head { padding-top:12px; }
-    h1 { font-size:24px; margin-top:8px; }
-    .notice-rest { font-size:12.5px; }
-    .composer { padding:0 8px 10px; }
+    .rail-head { padding:10px 12px 4px; }
+    .rail-scroll { overflow:visible; padding-bottom:8px; }
+    .person, .thread { min-height:44px; padding:4px 8px; }
+    .mark { width:32px; height:32px; border-radius:10px; }
+    .rail-label { margin-top:8px; }
+    .conv-head, .log { padding-left:12px; padding-right:12px; }
+    .conv-head { padding-top:8px; padding-bottom:4px; }
+    h1 { font-size:22px; margin-top:6px; }
+    .notice-rest { display:none; }
+    .log { min-height:88px; }
+    .composer { padding:0 8px 8px; }
+    .composer-row textarea { min-height:40px; padding-top:8px; padding-bottom:8px; }
+    .card { max-width:92%; }
   }
   @media (prefers-reduced-motion:reduce) {
     *, *::before, *::after { animation:none !important; transition:none !important; }
@@ -381,7 +388,8 @@ function renderChips() {
     chip.addEventListener("click", function () { removePerson(id); });
     host.append(chip);
   });
-  if (ids.length === 0) box.placeholder = "Message the whole team, or type @ to duty someone";
+  var narrow = window.matchMedia("(max-width: 760px)").matches;
+  if (ids.length === 0) box.placeholder = narrow ? "Type @ to duty" : "Message the whole team, or type @ to duty someone";
   else if (ids.length === 1) box.placeholder = "Duty for " + personById(ids[0]).name;
   else box.placeholder = "Duty for this group";
 }
