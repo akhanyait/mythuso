@@ -9,7 +9,7 @@ import { mkdtemp, mkdir, writeFile, readFile, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { settings, loadRoles, ask, inside, listApprovals, delegationCap, KNOWN_TOOLS } from "./agents.mjs";
-import { readTeamStatus, statusProblems, checkStatusPage } from "./render-status.mjs";
+import { readTeamStatus, statusProblems, checkStatusPage, shortenStatus } from "./render-status.mjs";
 import { startBoard } from "./board.mjs";
 
 // The model stand-in replaces global fetch and does not put it back. The board test talks to
@@ -237,25 +237,36 @@ test("the status page is inlined from the two JSON files and says the team is no
   assert.equal(html.includes("localStorage"), false);
   assert.equal(html.includes("sessionStorage"), false);
   assert.equal(html.includes("indexedDB"), false);
-  assert.deepEqual([...html.matchAll(/fetch\("([^"]+)"/g)].map((match) => match[1]), ["/board", "/tasks"]);
+  const fetches = [...html.matchAll(/fetch\("([^"]+)"/g)].map((match) => match[1]);
+  assert.deepEqual(fetches.sort(), ["/board", "/tasks"]);
   assert.ok(html.includes(status.notice));
-  assert.ok(html.includes("No tasks yet."));
-  assert.ok(html.indexOf('class="notice"') < html.indexOf("<form"));
-  assert.ok(html.indexOf("<form") < html.indexOf("<article"));
+  assert.ok(html.includes("The host team is not installed."));
+  assert.ok(html.includes("The browser may hand the words to its maker."));
+  assert.ok(html.includes("No duties yet."));
+  assert.ok(html.includes('id="mic"'));
+  assert.ok(html.includes("45000"));
+  assert.ok(html.indexOf('class="notice-lead"') < html.indexOf('id="task-form"'));
   assert.equal(status.held, "Held. The team is not installed, so nobody is carrying this out.");
+  assert.equal(html.includes("Investment Bot"), false);
+  assert.equal(html.includes("Hacker and Security"), false);
+  assert.equal(html.includes("Marketing Bot"), false);
   for (const role of roles.roles) {
     const person = status.people.find((row) => row.id === role.id);
+    const snippet = shortenStatus(person.sentence);
+    const stem = snippet.endsWith("…") ? snippet.slice(0, -1) : snippet;
     assert.ok(html.includes(role.name), role.id);
     assert.ok(html.includes(role.title), role.id);
     assert.ok(html.includes(person.word), role.id);
     assert.ok(html.includes(person.sentence), role.id);
-    assert.ok(html.includes(`<option value="${role.id}">`), role.id);
+    assert.ok(html.includes(snippet), role.id);
+    assert.ok(person.sentence.startsWith(stem), role.id);
     assert.ok(html.includes(`data-role="${role.id}"`), role.id);
     assert.ok(html.includes(`class="person person-${role.id}"`), role.id);
   }
-  assert.equal((html.match(/<svg /g) ?? []).length, roles.roles.length);
+  assert.equal((html.match(/<span class="mark">/g) ?? []).length, roles.roles.length);
   assert.ok(html.includes("prefers-reduced-motion"));
   assert.equal(/@keyframes\s+pulse|animation:\s*pulse/.test(html), false);
+  assert.equal(html.includes("live-dot"), false);
 });
 
 test("a task that names a role the roster does not have is refused and not stored", async () => {
@@ -288,6 +299,44 @@ test("a task that names a role the roster does not have is refused and not store
     assert.equal(board.tasks.length, 1);
     assert.equal(board.tasks[0].sentence, task.sentence);
     assert.equal(board.held, task.sentence);
+
+    const group = await realFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleIds: ["qa", "designer", "designer"], text: "One shared check." }),
+    });
+    assert.equal(group.status, 201);
+    const shared = await group.json();
+    assert.equal(shared.audience, "group");
+    assert.deepEqual(shared.roleIds, ["designer", "qa"]);
+    assert.equal(shared.threadKey, "designer+qa");
+    assert.equal(shared.title, "Lerato and Nomsa");
+    assert.equal(shared.heldFor, "Held for Lerato and Nomsa.");
+    assert.equal(shared.roleId, undefined);
+    assert.equal(shared.sentence, task.sentence);
+
+    const teamDuty = await realFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleIds: [], text: "For everyone." }),
+    });
+    assert.equal(teamDuty.status, 201);
+    const everyone = await teamDuty.json();
+    assert.equal(everyone.audience, "team");
+    assert.deepEqual(everyone.roleIds, []);
+    assert.equal(everyone.heldFor, "Held for the whole team.");
+    assert.equal(everyone.sentence, task.sentence);
+
+    const mixed = await realFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleIds: ["engineer", "admin"], text: "Do not store this." }),
+    });
+    assert.equal(mixed.status, 400);
+    assert.match((await mixed.json()).error, /a task names admin, which roles.json does not have/);
+    const after = await (await realFetch(`${url}/board`)).json();
+    assert.equal(after.tasks.length, 3);
+    assert.ok(after.tasks.every((row) => row.sentence === task.sentence));
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }

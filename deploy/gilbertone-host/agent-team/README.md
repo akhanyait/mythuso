@@ -20,15 +20,21 @@ Change a role there; the engine in `agents.mjs` reads it on every run.
 
 ## Status
 
-`status.html` is one screen for the six roles: the name and title from `roles.json`, and one status
-word and one sentence from `status.json`. The same page takes a task for one of them. The host team
-is not installed. The page says so in that file's own sentence, above the names and the form.
-Recording a task does not start anyone. The task is held, in `status.json`'s own held sentence, and
-written under `work/`, which git ignores. It is not a patient page.
+`status.html` is Gilbert's chat for the six roles: a rail of names and titles from `roles.json`,
+each with their own colour and icon, and a one-line snippet of that person's sentence from
+`status.json`. The thread is beside the rail, and the composer sits along the bottom. Typing @
+offers the six. One @ duties one person, and more than one @ in a message is one shared thread,
+held for each of them. A message with nobody named is held for the whole team. The Group control
+does the same when two or more are chosen. The host team is not installed. The page says so at
+the top of the conversation, in that file's own sentence. Recording a duty does not start anyone.
+The duty is held, in `status.json`'s own held sentence, and written under `work/`, which git
+ignores. It is not a patient page.
 
-The screen is drawn for Gilbert to sit with: warm paper, the product's ink and accent, Outfit and
-Figtree inlined from the faces the web already hosts, and a different icon on each person. A recorded
-task reads as a note under that person. Nothing on it pulses, and nobody is marked as running.
+The microphone on the composer is the browser's own speech recognition, and only after a tap.
+There is no wake word. A listen stops at 45 seconds and leaves the words in the box. The line
+beside the mic says the browser may hand the words to its maker. If the browser has no
+recognition, the mic says the words have to be typed. Nothing on the page pulses, and nobody is
+marked as running. Outfit and Figtree are inlined from the faces the web already hosts.
 
 ```sh
 node board.mjs                  # http://127.0.0.1:8765/status.html

@@ -1,11 +1,12 @@
-// The founder's status page for the work team. Names and titles stay in roles.json. What each
-// person has done stays in status.json. This script inlines both into status.html so the roster
-// is not typed a second time. It fails when the page drifts from those files, when a status names
-// a role the roster does not have, or when a roster id has no status.
+// The founder's work-team page. Names and titles stay in roles.json. What each person has done
+// stays in status.json. This script inlines both into status.html so the roster is not typed a
+// second time. It fails when the page drifts from those files, when a status names a role the
+// roster does not have, or when a roster id has no status.
 //
-// The page is not a patient route. A patient on metered data must not download an agent roster.
-// A task recorded on the page is held by board.mjs in the gitignored work folder. Recording it
-// does not start anyone: the notice is status.json's own sentence, and the held line is too.
+// The page is a dark chat for Gilbert: a rail of the six, a thread, and a composer. It is not a
+// patient route. A duty recorded on the page is held by board.mjs in the gitignored work folder.
+// Recording it does not start anyone: the notice is status.json's own sentence, and the held line
+// is too. The microphone is the browser's own recognition, opened only by a tap.
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -99,6 +100,22 @@ function iconFor(id) {
   return svg;
 }
 
+// The rail shows one line. It is the status sentence, cut on a word, never a sentence written
+// for the rail. The full sentence stays on the control for anyone who needs it.
+export function shortenStatus(sentence, max = 88) {
+  const clean = String(sentence).replace(/\s+/g, " ").trim();
+  if (clean.length <= max) return clean;
+  const slice = clean.slice(0, max);
+  const space = slice.lastIndexOf(" ");
+  const cut = (space > 48 ? slice.slice(0, space) : slice).replace(/[.,;:]+$/, "");
+  return `${cut}…`;
+}
+
+const BRAND_ICON = `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="4" width="24" height="24" rx="8" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="12" cy="14" r="1.4" fill="currentColor"/><circle cx="20" cy="14" r="1.4" fill="currentColor"/><circle cx="16" cy="20" r="1.4" fill="currentColor"/></svg>`;
+const PLUS_ICON = `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 8v16M8 16h16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>`;
+const MIC_ICON = `<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="12" y="5" width="8" height="14" rx="4" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M9 15.5a7 7 0 0 0 14 0M16 22.5V27M12 27h8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>`;
+const SEND_ICON = `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 16h14M16 9l7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
 // Outfit and Figtree, the two faces the product already hosts. Inlined so this board,
 // which serves one HTML file, does not need a second copy of the files and does not
 // ask a font service who is reading the page. Latin covers this screen.
@@ -114,61 +131,457 @@ function typeFaces() {
   ].join("\n");
 }
 
-// The page asks the local board for tasks and posts a new one back. It has no other request.
+// The page asks the local board for duties and posts a new one back. It has no other request.
 // Opened as a file, the request fails and the empty line stays, because a file cannot write
 // the work folder and must not pretend it stored anything.
+//
+// The microphone is the browser's own speech recognition, and only after a tap. There is no
+// wake word. A single listen stops at 45 seconds and leaves the words in the box. If the
+// browser has no recognition, the mic says the words have to be typed. It does not call a
+// cloud voice API.
 const PAGE_SCRIPT = `
-function showTask(task) {
-  var list = document.querySelector("ul.tasks[data-role='" + CSS.escape(task.roleId) + "']");
-  if (!list) return;
-  var item = document.createElement("li");
-  var words = document.createElement("p");
-  words.className = "task-text";
-  words.textContent = task.text;
-  var held = document.createElement("p");
-  held.className = "held";
-  held.textContent = task.sentence;
-  item.append(words, held);
-  list.append(item);
-  var empty = document.getElementById("empty");
-  if (empty) empty.hidden = true;
+var roster = JSON.parse(document.getElementById("roster").textContent);
+var duties = [];
+var openKey = "team";
+var groupIds = [];
+var mentionIndex = 0;
+var lastHits = [];
+var box = document.getElementById("task");
+var form = document.getElementById("task-form");
+var problem = document.getElementById("problem");
+var micNote = document.getElementById("mic-state");
+var listenEl = document.getElementById("listen");
+var mic = document.getElementById("mic");
+var hot = false;
+var rec = null;
+var listenTimer = null;
+var baseText = "";
+var LISTEN_MS = 45000;
+
+function personById(id) {
+  return roster.people.find(function (person) { return person.id === id; });
 }
+
+function parseMentions(text) {
+  var ids = [];
+  var unknown = [];
+  var re = /(^|\\s)@([A-Za-z]+)/g;
+  var match;
+  while ((match = re.exec(text))) {
+    var name = match[2].toLowerCase();
+    var person = roster.people.find(function (item) { return item.name.toLowerCase() === name; });
+    if (!person) unknown.push(match[2]);
+    else if (ids.indexOf(person.id) === -1) ids.push(person.id);
+  }
+  return { ids: ids, unknown: unknown };
+}
+
+function currentIds() {
+  var ids = groupIds.slice();
+  parseMentions(box.value).ids.forEach(function (id) {
+    if (ids.indexOf(id) === -1) ids.push(id);
+  });
+  return ids;
+}
+
+function mentionQuery() {
+  var pos = box.selectionStart || 0;
+  var head = box.value.slice(0, pos);
+  var match = /(?:^|\\s)@([A-Za-z]*)$/.exec(head);
+  if (!match) return null;
+  return { query: match[1], start: pos - match[1].length - 1 };
+}
+
+function renderChips() {
+  var host = document.getElementById("chips");
+  host.replaceChildren();
+  var ids = currentIds();
+  ids.forEach(function (id) {
+    var person = personById(id);
+    var chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "chip";
+    chip.textContent = "@" + person.name;
+    chip.setAttribute("aria-label", "Remove " + person.name);
+    chip.addEventListener("click", function () { removePerson(id); });
+    host.append(chip);
+  });
+  if (ids.length === 0) box.placeholder = "Message the whole team, or type @ to duty someone";
+  else if (ids.length === 1) box.placeholder = "Duty for " + personById(ids[0]).name;
+  else box.placeholder = "Duty for this group";
+}
+
+function removePerson(id) {
+  groupIds = groupIds.filter(function (item) { return item !== id; });
+  var person = personById(id);
+  var pattern = new RegExp("(^|\\\\s)@" + person.name + "(?=$|\\\\s)", "ig");
+  box.value = box.value.replace(pattern, "$1").replace(/[ \\t]{2,}/g, " ").replace(/^ /, "");
+  renderChips();
+  showMentionMenu();
+}
+
+function showMentionMenu() {
+  var menu = document.getElementById("mentions");
+  var found = mentionQuery();
+  menu.replaceChildren();
+  lastHits = [];
+  if (!found) { menu.hidden = true; return; }
+  var query = found.query.toLowerCase();
+  var taken = currentIds();
+  lastHits = roster.people.filter(function (person) {
+    return person.name.toLowerCase().indexOf(query) === 0 && taken.indexOf(person.id) === -1;
+  });
+  if (!lastHits.length) { menu.hidden = true; mentionIndex = 0; return; }
+  if (mentionIndex >= lastHits.length) mentionIndex = 0;
+  lastHits.forEach(function (person, index) {
+    var option = document.createElement("button");
+    option.type = "button";
+    option.className = "mention" + (index === mentionIndex ? " is-active" : "");
+    option.setAttribute("role", "option");
+    option.setAttribute("data-name", person.name);
+    option.textContent = person.name + ", " + person.title;
+    option.addEventListener("mousedown", function (event) { event.preventDefault(); });
+    option.addEventListener("click", function () { choose(person); });
+    menu.append(option);
+  });
+  menu.hidden = false;
+}
+
+function choose(person) {
+  var found = mentionQuery();
+  if (!found) return;
+  var pos = box.selectionStart || box.value.length;
+  var insert = "@" + person.name + " ";
+  box.value = box.value.slice(0, found.start) + insert + box.value.slice(pos);
+  var caret = found.start + insert.length;
+  box.focus();
+  box.setSelectionRange(caret, caret);
+  mentionIndex = 0;
+  showMentionMenu();
+  renderChips();
+}
+
+function whenLabel(iso) {
+  var date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  var time = date.toLocaleTimeString("en-ZA", { hour: "numeric", minute: "2-digit", timeZone: "Africa/Johannesburg" });
+  var today = new Date();
+  var day = date.toLocaleDateString("en-ZA", { timeZone: "Africa/Johannesburg" });
+  var todayKey = today.toLocaleDateString("en-ZA", { timeZone: "Africa/Johannesburg" });
+  var yesterday = new Date(today.getTime() - 86400000);
+  var yesterdayKey = yesterday.toLocaleDateString("en-ZA", { timeZone: "Africa/Johannesburg" });
+  if (day === todayKey) return "Today " + time;
+  if (day === yesterdayKey) return "Yesterday " + time;
+  return date.toLocaleDateString("en-ZA", { day: "numeric", month: "short", timeZone: "Africa/Johannesburg" }) + " " + time;
+}
+
+function threadMeta() {
+  if (openKey === "team") {
+    return { title: "Whole team", sub: "A message with nobody named is held here for the whole team." };
+  }
+  var person = personById(openKey);
+  if (person) return { title: person.name, sub: person.title };
+  var duty = duties.find(function (item) { return item.threadKey === openKey; });
+  if (duty) return { title: duty.title, sub: "One thread, shared. The duty is held for each of them." };
+  return { title: "Whole team", sub: "A message with nobody named is held here for the whole team." };
+}
+
+function renderThreads() {
+  var list = document.getElementById("thread-list");
+  list.replaceChildren();
+  var keys = [{ key: "team", title: "Whole team", snippet: "Nobody named" }];
+  var seen = {};
+  duties.forEach(function (duty) {
+    if (duty.audience !== "group" || seen[duty.threadKey]) return;
+    seen[duty.threadKey] = true;
+    keys.push({ key: duty.threadKey, title: duty.title, snippet: duty.heldFor });
+  });
+  keys.forEach(function (item) {
+    var li = document.createElement("li");
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "thread";
+    button.setAttribute("data-thread", item.key);
+    if (item.key === openKey) button.setAttribute("aria-current", "true");
+    var name = document.createElement("span");
+    name.className = "name";
+    name.textContent = item.title;
+    var snippet = document.createElement("span");
+    snippet.className = "snippet";
+    snippet.textContent = item.snippet;
+    button.append(name, snippet);
+    button.addEventListener("click", function () { openThread(item.key); });
+    li.append(button);
+    list.append(li);
+  });
+}
+
+function renderPeople() {
+  document.querySelectorAll(".people .person").forEach(function (button) {
+    if (button.getAttribute("data-thread") === openKey) button.setAttribute("aria-current", "true");
+    else button.removeAttribute("aria-current");
+  });
+}
+
+function renderLog() {
+  var host = document.getElementById("bubbles");
+  host.replaceChildren();
+  var rows = duties.filter(function (duty) { return duty.threadKey === openKey; });
+  document.getElementById("empty").hidden = rows.length > 0;
+  rows.forEach(function (duty) {
+    var time = document.createElement("p");
+    time.className = "when";
+    time.textContent = whenLabel(duty.at);
+    var mine = document.createElement("div");
+    mine.className = "bubble mine";
+    var mineCard = document.createElement("div");
+    mineCard.className = "card";
+    var mineText = document.createElement("p");
+    mineText.className = "duty-text";
+    mineText.textContent = duty.text;
+    mineCard.append(mineText);
+    mine.append(mineCard);
+    var receipt = document.createElement("div");
+    receipt.className = "bubble receipt";
+    var card = document.createElement("div");
+    card.className = "card";
+    var kicker = document.createElement("p");
+    kicker.className = "held-for";
+    kicker.textContent = duty.heldFor || "";
+    var sentence = document.createElement("p");
+    sentence.className = "held";
+    sentence.textContent = duty.sentence;
+    card.append(kicker, sentence);
+    receipt.append(card);
+    host.append(time, mine, receipt);
+  });
+  var log = document.getElementById("log");
+  log.scrollTop = log.scrollHeight;
+}
+
+function render() {
+  var meta = threadMeta();
+  document.getElementById("thread-title").textContent = meta.title;
+  document.getElementById("thread-sub").textContent = meta.sub;
+  renderPeople();
+  renderThreads();
+  renderLog();
+  renderChips();
+}
+
+function openThread(key) {
+  openKey = key;
+  render();
+}
+
+function showMentionMenuFromInput() {
+  mentionIndex = 0;
+  showMentionMenu();
+  renderChips();
+}
+
+function setHot(on) {
+  hot = on;
+  mic.classList.toggle("is-hot", on);
+  mic.setAttribute("aria-pressed", on ? "true" : "false");
+  mic.setAttribute("aria-label", on ? "Stop listening" : "Listen");
+  listenEl.hidden = !on;
+}
+
+function stopListen() {
+  setHot(false);
+  if (listenTimer) { clearTimeout(listenTimer); listenTimer = null; }
+  if (rec) {
+    var current = rec;
+    rec = null;
+    current.onresult = null;
+    current.onerror = null;
+    current.onend = null;
+    try { current.stop(); } catch (error) { /* already stopped */ }
+  }
+}
+
+function wordsMustBeTyped(sentence) {
+  stopListen();
+  micNote.textContent = sentence || "The words have to be typed.";
+}
+
+mic.addEventListener("click", function () {
+  if (hot) { stopListen(); return; }
+  var Recogniser = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Recogniser) {
+    wordsMustBeTyped("This browser has no speech recognition. The words have to be typed.");
+    return;
+  }
+  micNote.textContent = "";
+  try { rec = new Recogniser(); }
+  catch (error) {
+    wordsMustBeTyped("This browser has no speech recognition. The words have to be typed.");
+    return;
+  }
+  rec.lang = "en-ZA";
+  rec.continuous = true;
+  rec.interimResults = true;
+  baseText = box.value;
+  rec.onresult = function (event) {
+    if (!hot) return;
+    var said = "";
+    for (var i = 0; i < event.results.length; i += 1) said += event.results[i][0].transcript;
+    var gap = baseText && !/\\s$/.test(baseText) ? " " : "";
+    box.value = (baseText + gap + said).slice(0, 2000);
+    renderChips();
+  };
+  rec.onerror = function () { wordsMustBeTyped("The words have to be typed."); };
+  rec.onend = function () { if (hot) stopListen(); };
+  try { rec.start(); }
+  catch (error) {
+    wordsMustBeTyped("The words have to be typed.");
+    return;
+  }
+  setHot(true);
+  listenTimer = setTimeout(function () {
+    stopListen();
+    micNote.textContent = "Listening stopped after 45 seconds. The words are in the box for you to send.";
+  }, LISTEN_MS);
+});
+
+document.querySelectorAll(".people .person").forEach(function (button) {
+  button.addEventListener("click", function () {
+    openThread(button.getAttribute("data-thread"));
+  });
+});
+
+document.getElementById("find").addEventListener("input", function (event) {
+  var query = event.currentTarget.value.trim().toLowerCase();
+  document.querySelectorAll(".people .person").forEach(function (button) {
+    var hay = (button.getAttribute("data-name") + " " + button.getAttribute("data-title")).toLowerCase();
+    button.parentElement.hidden = query !== "" && hay.indexOf(query) === -1;
+  });
+});
+
+box.addEventListener("input", showMentionMenuFromInput);
+box.addEventListener("click", showMentionMenu);
+box.addEventListener("keyup", function (event) {
+  if (event.key === "ArrowLeft" || event.key === "ArrowRight" || event.key === "Home" || event.key === "End") showMentionMenu();
+});
+box.addEventListener("keydown", function (event) {
+  if (!document.getElementById("mentions").hidden) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      mentionIndex = (mentionIndex + 1) % lastHits.length;
+      showMentionMenu();
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      mentionIndex = (mentionIndex - 1 + lastHits.length) % lastHits.length;
+      showMentionMenu();
+      return;
+    }
+    if (event.key === "Enter" && lastHits[mentionIndex]) {
+      event.preventDefault();
+      choose(lastHits[mentionIndex]);
+      return;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      document.getElementById("mentions").hidden = true;
+      return;
+    }
+  }
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    form.requestSubmit();
+  }
+});
+
+var dialog = document.getElementById("group-dialog");
+var picks = document.getElementById("group-picks");
+roster.people.forEach(function (person) {
+  var label = document.createElement("label");
+  label.className = "pick";
+  var input = document.createElement("input");
+  input.type = "checkbox";
+  input.value = person.id;
+  var text = document.createElement("span");
+  text.textContent = person.name + ", " + person.title;
+  label.append(input, text);
+  picks.append(label);
+});
+document.getElementById("group").addEventListener("click", function () {
+  picks.querySelectorAll("input").forEach(function (input) {
+    input.checked = groupIds.indexOf(input.value) !== -1;
+  });
+  document.getElementById("group-problem").textContent = "";
+  dialog.showModal();
+});
+document.getElementById("group-cancel").addEventListener("click", function () { dialog.close(); });
+document.getElementById("group-form").addEventListener("submit", function (event) {
+  event.preventDefault();
+  var checked = Array.prototype.map.call(picks.querySelectorAll("input:checked"), function (input) { return input.value; });
+  if (checked.length < 2) {
+    document.getElementById("group-problem").textContent = "A group needs two or more people.";
+    return;
+  }
+  groupIds = checked;
+  dialog.close();
+  renderChips();
+  box.focus();
+});
+
+form.addEventListener("submit", async function (event) {
+  event.preventDefault();
+  var text = box.value.trim();
+  var button = form.querySelector("button[type='submit']");
+  problem.textContent = "";
+  if (!text) {
+    problem.textContent = "Write the duty before you send it.";
+    return;
+  }
+  var parsed = parseMentions(text);
+  if (parsed.unknown.length) {
+    problem.textContent = "@" + parsed.unknown[0] + " is not on this team.";
+    return;
+  }
+  var ids = [];
+  groupIds.forEach(function (id) { if (ids.indexOf(id) === -1) ids.push(id); });
+  parsed.ids.forEach(function (id) { if (ids.indexOf(id) === -1) ids.push(id); });
+  button.disabled = true;
+  stopListen();
+  try {
+    var response = await fetch("/tasks", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleIds: ids, text: text }),
+    });
+    var body = await response.json();
+    if (!response.ok) {
+      problem.textContent = body.error || "The duty was not recorded.";
+      return;
+    }
+    duties.push(body);
+    box.value = "";
+    groupIds = [];
+    openThread(body.threadKey);
+  } catch (error) {
+    problem.textContent = "Run node board.mjs in this folder, then open the address it prints. This file cannot store a duty by itself.";
+  } finally {
+    button.disabled = false;
+  }
+});
+
 async function loadBoard() {
   try {
     var response = await fetch("/board");
     if (!response.ok) return;
     var board = await response.json();
-    (board.tasks || []).forEach(showTask);
+    duties = board.tasks || [];
+    render();
   } catch (error) {
     // Opened as a file, or the board is not running. The empty line stays.
   }
 }
-document.getElementById("task-form").addEventListener("submit", async function (event) {
-  event.preventDefault();
-  var form = event.currentTarget;
-  var button = form.querySelector("button");
-  var problem = document.getElementById("problem");
-  button.disabled = true;
-  problem.textContent = "";
-  try {
-    var response = await fetch("/tasks", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ roleId: form.roleId.value, text: form.text.value }),
-    });
-    var body = await response.json();
-    if (!response.ok) {
-      problem.textContent = body.error || "The task was not recorded.";
-      return;
-    }
-    showTask(body);
-    form.text.value = "";
-  } catch (error) {
-    problem.textContent = "Run node board.mjs in this folder, then open the address it prints. This file cannot store a task by itself.";
-  } finally {
-    button.disabled = false;
-  }
-});
+render();
 loadBoard();
 `;
 
@@ -176,29 +589,29 @@ export function renderStatusHtml(roles, status) {
   const problems = statusProblems(roles, status);
   if (problems.length) throw new Error(problems.join("\n"));
   const byId = new Map(status.people.map((person) => [person.id, person]));
-  const options = roles.roles.map((role) =>
-    `        <option value="${escapeHtml(role.id)}">${escapeHtml(role.name)}, ${escapeHtml(role.title)}</option>`,
-  ).join("\n");
-  const cards = roles.roles.map((role) => {
+  const notice = status.notice;
+  const lead = "The host team is not installed.";
+  const rest = notice.startsWith(lead) ? notice.slice(lead.length).trim() : notice;
+  const rosterJson = JSON.stringify({
+    people: roles.roles.map((role) => ({ id: role.id, name: role.name, title: role.title })),
+  }).replaceAll("<", "\\u003c");
+  const people = roles.roles.map((role) => {
     const person = byId.get(role.id);
-    return `    <article class="person person-${escapeHtml(role.id)}">
-      <header class="person-head">
-        <span class="mark">${iconFor(role.id)}</span>
-        <div>
-          <h2>${escapeHtml(role.name)}</h2>
-          <p class="title">${escapeHtml(role.title)}</p>
-        </div>
-      </header>
-      <p class="word">${escapeHtml(person.word)}</p>
-      <p class="sentence">${escapeHtml(person.sentence)}</p>
-      <ul class="tasks" data-role="${escapeHtml(role.id)}"></ul>
-    </article>`;
+    return `        <li>
+          <button type="button" class="person person-${escapeHtml(role.id)}" data-role="${escapeHtml(role.id)}" data-thread="${escapeHtml(role.id)}" data-name="${escapeHtml(role.name)}" data-title="${escapeHtml(role.title)}" title="${escapeHtml(person.sentence)}">
+            <span class="mark">${iconFor(role.id)}</span>
+            <span class="who">
+              <span class="name">${escapeHtml(role.name)}</span>
+              <span class="snippet">${escapeHtml(shortenStatus(person.sentence))}</span>
+              <span class="visually-hidden">${escapeHtml(person.word)}</span>
+            </span>
+          </button>
+        </li>`;
   }).join("\n");
-  const founder = typeof roles.founder === "string" && roles.founder.trim() ? roles.founder.trim() : "the founder";
   return `<!doctype html>
 <!--
   Drawn by render-status.mjs from roles.json and status.json. Do not edit the names or the
-  sentences here: the check fails when this file drifts. No fetch, no storage, no patient route.
+  sentences here: the check fails when this file drifts. The page asks only the local board.
   The host team is not installed, and this page must not say otherwise.
 -->
 <html lang="en-ZA">
@@ -206,178 +619,250 @@ export function renderStatusHtml(roles, status) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#f5f4ef">
+<meta name="theme-color" content="#0e1013">
 <title>${escapeHtml(status.heading)}</title>
 <style>
 ${typeFaces()}
-  /* Warm paper (--studio-paper), brand ink, and the accent as a still mark.
-     Nobody is running, so nothing here pulses, and green is never a live dot.
-     Motion is a short arrival and a small lift: transform and opacity only. */
+  /* A dark chat for the founder. Colour marks a person. It is not a live light, and nothing pulses. */
   :root {
-    --ink:#083848; --paper:#f5f4ef; --surface:#ffffff; --text:#022235; --muted:#4e6b7a;
-    --line:#e4ddd2; --accent:#189870; --warn-bg:#fff6e8; --warn-ink:#7a3e0b;
-    --ease:cubic-bezier(0.22,1,0.36,1);
+    --bg:#0e1013; --rail:#12151a; --text:#f2f4f7; --muted:#9aa3b2; --line:rgba(255,255,255,.08);
+    --bubble:#1c212b; --mine:#24382f; --composer:#1a1f27; --warn:#e7c98a; --hot:#f3d48a;
   }
   * { box-sizing:border-box; }
-  html { color-scheme:light; }
+  html, body { height:100%; }
+  html { color-scheme:dark; }
   body {
-    margin:0; color:var(--text); background:
-      radial-gradient(920px 420px at 0% -8%, rgba(159,225,203,.55), transparent 62%),
-      radial-gradient(720px 380px at 100% 0%, rgba(244,221,201,.85), transparent 58%),
-      var(--paper);
-    font:16px/1.5 Figtree,ui-sans-serif,system-ui,sans-serif;
-    -webkit-font-smoothing:antialiased;
+    margin:0; color:var(--text); background:var(--bg);
+    font:16px/1.45 Figtree,ui-sans-serif,system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased; overflow:hidden;
   }
-  main { max-width:1080px; margin:0 auto; padding:40px 24px 72px; }
-  .kicker {
-    margin:0; color:var(--ink); font-size:13px; font-weight:700; letter-spacing:.08em;
+  button, input, textarea { font:inherit; color:inherit; }
+  button { cursor:pointer; }
+  :focus-visible { outline:3px solid var(--hot); outline-offset:2px; }
+  .visually-hidden {
+    position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
+    clip:rect(0,0,0,0); white-space:nowrap; border:0;
+  }
+  .app {
+    display:grid; grid-template-columns:308px minmax(0,1fr); height:100dvh; min-height:0;
+  }
+  .rail {
+    display:flex; flex-direction:column; min-height:0; background:var(--rail);
+    border-right:1px solid var(--line);
+  }
+  .rail-head { display:flex; gap:12px; align-items:center; padding:16px 16px 8px; }
+  .brand-mark {
+    display:grid; place-items:center; width:40px; height:40px; flex:none; border-radius:12px;
+    background:#2a241c; color:var(--hot);
+  }
+  .brand-mark svg, .mark svg, .icon-button svg { width:22px; height:22px; display:block; }
+  .brand { margin:0; font-family:Outfit,ui-sans-serif,system-ui,sans-serif; font-size:18px; font-weight:650; letter-spacing:-.02em; }
+  .brand-sub { margin:1px 0 0; color:var(--muted); font-size:12px; }
+  .find { display:block; padding:8px 12px 4px; }
+  .find input {
+    width:100%; min-height:40px; padding:8px 12px; border:1px solid var(--line); border-radius:999px;
+    background:#0e1013; color:var(--text);
+  }
+  .rail-scroll { overflow:auto; min-height:0; padding:4px 8px 16px; }
+  .rail-label {
+    margin:12px 8px 4px; color:var(--muted); font-size:11px; font-weight:700; letter-spacing:.08em;
     text-transform:uppercase;
   }
-  h1 {
-    margin:8px 0 0; color:var(--ink); font-family:Outfit,ui-sans-serif,system-ui,sans-serif;
-    font-size:44px; font-weight:600; letter-spacing:-.03em; line-height:1.05; text-wrap:balance;
+  .people, .threads { list-style:none; margin:0; padding:0; display:grid; gap:2px; }
+  .person, .thread {
+    display:flex; gap:10px; align-items:center; width:100%; min-height:48px; padding:7px 8px;
+    border:0; border-radius:12px; background:transparent; text-align:left;
   }
-  .lede { max-width:40rem; margin:14px 0 0; font-size:18px; line-height:1.45; color:#243844; }
-  .notice {
-    margin:22px 0 0; padding:14px 16px; border:1px solid #f0ddc0; border-radius:12px;
-    background:var(--warn-bg); color:var(--warn-ink); font-size:15px; line-height:1.5;
+  .thread { flex-direction:column; align-items:flex-start; gap:1px; }
+  .person:hover, .thread:hover, .person[aria-current="true"], .thread[aria-current="true"] {
+    background:rgba(255,255,255,.06);
   }
-  form {
-    margin:22px 0 28px; padding:22px; border:1px solid var(--line); border-radius:16px;
-    background:var(--surface); box-shadow:0 8px 24px rgba(2,34,53,.06);
-  }
-  .composer-title {
-    margin:0; font-family:Outfit,ui-sans-serif,system-ui,sans-serif; font-size:22px;
-    font-weight:600; letter-spacing:-.02em; color:var(--ink);
-  }
-  .composer-copy { margin:6px 0 16px; color:var(--muted); font-size:15px; }
-  .composer-row { display:grid; grid-template-columns:minmax(18rem,26rem) minmax(0,1fr) auto; gap:12px 14px; align-items:end; }
-  label { display:block; margin:0 0 6px; color:var(--ink); font-size:13px; font-weight:700; }
-  select, input {
-    width:100%; min-height:44px; padding:10px 12px; border:1px solid #d9d1c5; border-radius:8px;
-    background:#fffdf9; color:var(--text); font:inherit;
-  }
-  button {
-    min-height:44px; padding:0 18px; border:0; border-radius:8px; background:var(--ink); color:#fff;
-    font:inherit; font-weight:650; cursor:pointer;
-    transition:transform 160ms var(--ease), opacity 160ms var(--ease);
-  }
-  button:hover:not(:disabled) { transform:translateY(-1px); }
-  button:disabled { opacity:.6; cursor:not-allowed; }
-  :focus-visible { outline:3px solid #ffb347; outline-offset:2px; }
-  .hint, #empty, #problem { margin:12px 0 0; color:var(--muted); font-size:14px; }
-  #problem:empty { display:none; }
-  #problem:not(:empty) { color:var(--warn-ink); }
-  .roster { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-  article {
-    display:flex; flex-direction:column; min-width:0; padding:20px 20px 18px; border:1px solid var(--line);
-    border-radius:16px; background:
-      linear-gradient(var(--stripe), var(--stripe)) 0 0 / 100% 4px no-repeat,
-      radial-gradient(140px 90px at 100% 0%, var(--wash), transparent 72%),
-      var(--surface);
-    box-shadow:0 8px 24px rgba(2,34,53,.05);
-    animation:arrive 280ms var(--ease) backwards;
-    transition:transform 180ms var(--ease);
-  }
-  article:nth-child(2) { animation-delay:40ms; }
-  article:nth-child(3) { animation-delay:80ms; }
-  article:nth-child(4) { animation-delay:120ms; }
-  article:nth-child(5) { animation-delay:160ms; }
-  article:nth-child(6) { animation-delay:200ms; }
-  article:hover { transform:translateY(-2px); }
-  @keyframes arrive { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
-  .person-pm { --stripe:#189870; --wash:rgba(24,152,112,.18); }
-  .person-architect { --stripe:#083848; --wash:rgba(8,56,72,.10); }
-  .person-designer { --stripe:#e8a07a; --wash:rgba(244,221,201,.95); }
-  .person-engineer { --stripe:#189870; --wash:rgba(159,225,203,.7); }
-  .person-engineer-2 { --stripe:#ffb347; --wash:rgba(255,179,71,.28); }
-  .person-qa { --stripe:#466647; --wash:rgba(178,192,170,.55); }
-  .person-head { display:flex; gap:14px; align-items:flex-start; }
   .mark {
-    display:grid; place-items:center; width:56px; height:56px; flex:none; border-radius:14px;
+    display:grid; place-items:center; width:36px; height:36px; flex:none; border-radius:11px; color:#f7f8fa;
   }
-  .mark svg { width:30px; height:30px; display:block; }
-  .person-pm .mark { background:#083848; color:#9fe1cb; }
-  .person-architect .mark { background:#e7eef2; color:#083848; }
-  .person-designer .mark { background:#f4ddc9; color:#9a3412; }
-  .person-engineer .mark { background:#d7f3ea; color:#0c5c48; }
-  .person-engineer-2 .mark { background:#fff1d6; color:#92400e; }
-  .person-qa .mark { background:#e7eee4; color:#24382c; }
-  article h2 {
-    margin:2px 0 0; font-family:Outfit,ui-sans-serif,system-ui,sans-serif; font-size:22px;
-    font-weight:600; letter-spacing:-.02em; line-height:1.15; color:var(--ink);
+  .person-pm .mark { background:#148f77; }
+  .person-architect .mark { background:#3c5f8a; }
+  .person-designer .mark { background:#c56b86; }
+  .person-engineer .mark { background:#d08a3e; }
+  .person-engineer-2 .mark { background:#7a6bb5; }
+  .person-qa .mark { background:#3e86b0; }
+  .who { min-width:0; display:grid; }
+  .name {
+    font-family:Outfit,ui-sans-serif,system-ui,sans-serif; font-size:15px; font-weight:650;
+    letter-spacing:-.01em; line-height:1.2;
   }
-  .title { margin:3px 0 0; color:var(--muted); font-size:14px; line-height:1.35; }
-  .word {
-    align-self:flex-start; margin:14px 0 0; padding:4px 10px; border-radius:999px;
-    background:#eef1f2; color:#3e5160; font-size:13px; font-weight:700;
+  .snippet {
+    color:var(--muted); font-size:12.5px; line-height:1.3; white-space:nowrap; overflow:hidden;
+    text-overflow:ellipsis;
   }
-  .person-architect .word { background:#e7eef2; color:#083848; }
-  .person-designer .word { background:#f8efe6; color:#7a3e12; }
-  .person-engineer-2 .word { background:#fff4e3; color:#92400e; }
-  .person-qa .word { background:#eef3ec; color:#24382c; }
-  .sentence { margin:12px 0 0; font-size:15px; line-height:1.55; color:#1c3340; }
-  ul.tasks { list-style:none; margin:16px 0 0; padding:0; display:grid; gap:8px; }
-  ul.tasks:empty { display:none; }
-  ul.tasks li {
-    margin:0; padding:12px 14px; border:1px solid #f0e0c8; border-radius:12px; background:#fff8ee;
-    animation:arrive 220ms var(--ease) backwards;
+  .conversation {
+    display:grid; grid-template-rows:auto minmax(0,1fr) auto; min-width:0; min-height:0;
+    background:
+      radial-gradient(880px 420px at 100% -10%, rgba(60,95,138,.22), transparent 60%),
+      var(--bg);
   }
-  .task-text { margin:0; font-weight:650; }
-  .held { margin:4px 0 0; color:var(--warn-ink); font-size:14px; line-height:1.45; }
-  footer { margin-top:28px; max-width:44rem; color:var(--muted); font-size:14px; line-height:1.5; }
-  @media (max-width:860px) {
-    .composer-row { grid-template-columns:1fr; }
-    button { width:100%; }
+  .conv-head { padding:16px 28px 8px; }
+  .notice-lead { margin:0; color:var(--warn); font-size:14px; font-weight:700; }
+  .notice-rest { margin:6px 0 0; max-width:42rem; color:var(--muted); font-size:13px; line-height:1.45; }
+  h1 {
+    margin:12px 0 0; font-family:Outfit,ui-sans-serif,system-ui,sans-serif; font-size:28px;
+    font-weight:650; letter-spacing:-.03em; line-height:1.1;
   }
-  @media (max-width:800px) {
-    main { padding:28px 16px 56px; }
-    h1 { font-size:34px; }
-    .lede { font-size:17px; }
-    .roster { grid-template-columns:1fr; }
-    form, article { padding:18px 16px; }
+  .thread-sub { margin:4px 0 0; color:var(--muted); font-size:14px; }
+  .log { overflow:auto; padding:8px 28px 12px; }
+  #empty { margin:18px 0; color:var(--muted); }
+  #empty[hidden] { display:none; }
+  .when { margin:16px 0 6px; color:var(--muted); font-size:12px; text-align:center; }
+  .bubble { display:flex; margin:6px 0; }
+  .bubble.mine { justify-content:flex-end; }
+  .card {
+    max-width:min(36rem, 82%); padding:10px 14px; border-radius:16px; background:var(--bubble);
+  }
+  .mine .card { background:var(--mine); border-bottom-right-radius:5px; }
+  .receipt .card { border-bottom-left-radius:5px; }
+  .duty-text, .held, .held-for { margin:0; }
+  .duty-text { white-space:pre-wrap; }
+  .held-for { margin-bottom:4px; color:var(--warn); font-size:13px; font-weight:700; }
+  .held { color:#d5dbe6; font-size:15px; line-height:1.45; }
+  .composer { padding:0 16px 14px; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; min-height:0; padding:0 8px 8px; }
+  .chips:empty { display:none; }
+  .chip {
+    min-height:32px; padding:0 10px; border:1px solid rgba(243,212,138,.45); border-radius:999px;
+    background:rgba(243,212,138,.1); color:var(--hot);
+  }
+  .mentions {
+    display:grid; gap:2px; margin:0 8px 8px; padding:6px; border:1px solid var(--line); border-radius:14px;
+    background:#161b22;
+  }
+  .mentions[hidden] { display:none; }
+  .mention {
+    min-height:40px; padding:8px 10px; border:0; border-radius:10px; background:transparent; text-align:left;
+  }
+  .mention.is-active, .mention:hover { background:rgba(255,255,255,.06); }
+  .composer-row {
+    display:flex; gap:8px; align-items:flex-end; padding:8px; border:1px solid var(--line);
+    border-radius:28px; background:var(--composer);
+  }
+  .composer-row textarea {
+    flex:1; min-width:0; max-height:140px; min-height:44px; padding:10px 8px; border:0; resize:none;
+    background:transparent; line-height:1.4;
+  }
+  .icon-button {
+    display:grid; place-items:center; width:44px; height:44px; flex:none; border:0; border-radius:999px;
+    background:transparent; color:var(--text);
+  }
+  .icon-button.primary { background:#f2f4f7; color:#12151a; }
+  #mic.is-hot { background:var(--hot); color:#1a1408; box-shadow:0 0 0 4px rgba(243,212,138,.28); }
+  .composer-meta { padding:8px 12px 0; display:grid; gap:4px; }
+  .disclosure, #mic-state, #problem { margin:0; color:var(--muted); font-size:12.5px; line-height:1.4; }
+  #mic-state:empty, #problem:empty { display:none; }
+  #problem:not(:empty) { color:#f0b4a8; }
+  .listen { display:flex; align-items:center; gap:8px; margin:0; color:var(--hot); font-size:13px; font-weight:700; }
+  .listen[hidden] { display:none; }
+  .listen-mark { width:10px; height:10px; border-radius:2px; background:var(--hot); box-shadow:0 0 0 4px rgba(243,212,138,.25); }
+  dialog {
+    width:min(28rem, calc(100vw - 32px)); padding:0; border:1px solid var(--line); border-radius:16px;
+    background:#161b22; color:var(--text);
+  }
+  dialog::backdrop { background:rgba(0,0,0,.55); }
+  .dialog-body { padding:18px 18px 8px; }
+  dialog h2 { margin:0; font-family:Outfit,ui-sans-serif,system-ui,sans-serif; font-size:22px; font-weight:650; }
+  dialog p { margin:8px 0 0; color:var(--muted); font-size:14px; }
+  .pick { display:flex; gap:10px; align-items:center; min-height:44px; margin-top:8px; }
+  .pick input { width:18px; height:18px; }
+  #group-problem:empty { display:none; }
+  #group-problem:not(:empty) { color:#f0b4a8; }
+  .dialog-actions { display:flex; justify-content:flex-end; gap:8px; padding:8px 18px 18px; }
+  .dialog-actions button {
+    min-height:44px; padding:0 14px; border-radius:10px; border:1px solid var(--line); background:transparent;
+  }
+  #group-ok { background:#f2f4f7; color:#12151a; border-color:transparent; font-weight:700; }
+  @media (max-width:760px) {
+    body { overflow:hidden; }
+    .app { grid-template-columns:1fr; grid-template-rows:auto minmax(0,1fr); height:100dvh; }
+    .rail { border-right:0; border-bottom:1px solid var(--line); }
+    .rail-scroll { overflow:visible; }
+    .conv-head, .log { padding-left:14px; padding-right:14px; }
+    .conv-head { padding-top:12px; }
+    h1 { font-size:24px; margin-top:8px; }
+    .notice-rest { font-size:12.5px; }
+    .composer { padding:0 8px 10px; }
   }
   @media (prefers-reduced-motion:reduce) {
-    *, *::before, *::after {
-      animation:none !important; transition:none !important;
-    }
-    article:hover, button:hover:not(:disabled) { transform:none; }
+    *, *::before, *::after { animation:none !important; transition:none !important; }
   }
 </style>
 </head>
 <body>
-<main>
-  <header class="mast">
-    <p class="kicker">${escapeHtml(founder)}'s page</p>
-    <h1>${escapeHtml(status.heading)}</h1>
-    <p class="lede">Six roles on this page, and none of them is running. A task you record stays under that person's name, held, because nobody is carrying it out.</p>
-  </header>
-  <p class="notice">${escapeHtml(status.notice)}</p>
-  <form id="task-form">
-    <h2 class="composer-title">Give a task</h2>
-    <p class="composer-copy">Choose who it is for, and write it in your own words.</p>
-    <div class="composer-row">
+<div class="app">
+  <aside class="rail" aria-label="People">
+    <header class="rail-head">
+      <span class="brand-mark">${BRAND_ICON}</span>
       <div>
-        <label for="role">Who</label>
-        <select id="role" name="roleId" required>
-${options}
-        </select>
+        <p class="brand">${escapeHtml(status.heading)}</p>
+        <p class="brand-sub">Not installed</p>
       </div>
-      <div>
-        <label for="task">Task</label>
-        <input id="task" name="text" type="text" required maxlength="2000" autocomplete="off" placeholder="What should be held">
-      </div>
-      <button type="submit">Record the task</button>
+    </header>
+    <label class="find">
+      <span class="visually-hidden">Find a person</span>
+      <input id="find" type="search" placeholder="Find a person" autocomplete="off">
+    </label>
+    <div class="rail-scroll">
+      <p class="rail-label">People</p>
+      <ul class="people">
+${people}
+      </ul>
+      <p class="rail-label">Threads</p>
+      <ul class="threads" id="thread-list"></ul>
     </div>
-    <p class="hint">Recording a task does not start anyone.</p>
-    <p id="empty">No tasks yet.</p>
-    <p id="problem" role="status"></p>
+  </aside>
+  <section class="conversation" aria-label="Conversation">
+    <header class="conv-head">
+      <p class="notice-lead">${escapeHtml(lead)}</p>
+      <p class="notice-rest">${escapeHtml(rest)}</p>
+      <p class="visually-hidden">${escapeHtml(notice)}</p>
+      <h1 id="thread-title">Whole team</h1>
+      <p class="thread-sub" id="thread-sub">A message with nobody named is held here for the whole team.</p>
+    </header>
+    <div class="log" id="log">
+      <p id="empty">No duties yet.</p>
+      <div id="bubbles"></div>
+    </div>
+    <form id="task-form" class="composer">
+      <div id="mentions" class="mentions" role="listbox" aria-label="People" hidden></div>
+      <div id="chips" class="chips"></div>
+      <div class="composer-row">
+        <button type="button" class="icon-button" id="group" aria-label="Group">${PLUS_ICON}</button>
+        <label class="visually-hidden" for="task">Duty</label>
+        <textarea id="task" name="text" rows="1" maxlength="2000" autocomplete="off" placeholder="Message the whole team, or type @ to duty someone"></textarea>
+        <button type="button" class="icon-button" id="mic" aria-pressed="false" aria-label="Listen">${MIC_ICON}</button>
+        <button type="submit" class="icon-button primary" aria-label="Send duty">${SEND_ICON}</button>
+      </div>
+      <div class="composer-meta">
+        <p class="disclosure">The browser may hand the words to its maker.</p>
+        <p class="listen" id="listen" hidden><span class="listen-mark" aria-hidden="true"></span>Listening</p>
+        <p id="mic-state" role="status"></p>
+        <p id="problem" role="status"></p>
+      </div>
+    </form>
+  </section>
+</div>
+<dialog id="group-dialog" aria-labelledby="group-heading">
+  <form id="group-form">
+    <div class="dialog-body">
+      <h2 id="group-heading">Group</h2>
+      <p>Choose two or more. One thread is held for each of them.</p>
+      <div id="group-picks"></div>
+      <p id="group-problem" role="status"></p>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" id="group-cancel">Cancel</button>
+      <button type="submit" id="group-ok">Use this group</button>
+    </div>
   </form>
-  <div class="roster">
-${cards}
-  </div>
-  <footer>Names and titles are roles.json. These sentences are status.json. A recorded task is held in the work folder on this machine. It does not start anyone, and this page is not part of the patient app.</footer>
-</main>
+</dialog>
+<script type="application/json" id="roster">${rosterJson}</script>
 <script>
 ${PAGE_SCRIPT}
 </script>

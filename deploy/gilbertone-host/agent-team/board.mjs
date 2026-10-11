@@ -1,6 +1,10 @@
-// The founder's board for the work team. It serves status.html and writes a task into the
+// The founder's board for the work team. It serves status.html and writes a duty into the
 // gitignored work folder. It does not call the model, queue a command, or start a role.
-// The host team is not installed, so every task is held with status.json's own sentence.
+// The host team is not installed, so every duty is held with status.json's own sentence.
+//
+// A duty names role ids from roles.json. One id is one person. Two or more are one shared
+// thread, held for each of them. None is the whole team. The sentence is never taken from
+// the request, and neither is the line that says who it is held for.
 //
 //   node board.mjs
 //   open http://127.0.0.1:8765/status.html
@@ -32,15 +36,69 @@ export async function readTasks(file) {
   }
 }
 
-// A task may name only a role id from roles.json. The text is the founder's words.
-// The sentence is never taken from the request: it is the held line, because recording
-// a task does not start anyone.
-export function holdTask(roles, status, tasks, input) {
-  const roleId = typeof input?.roleId === "string" ? input.roleId : "";
+// Who a duty is for, in roster order, and the words the thread uses. An id that roles.json
+// does not have is refused here, before anything is written. Duplicates collapse: one person
+// per mention, however many times the same id arrives.
+export function describeDuty(roles, roleIds) {
   const known = new Set((roles.roles ?? []).map((role) => role.id));
-  if (!known.has(roleId)) {
-    throw Object.assign(new Error(`a task names ${roleId || "nothing"}, which roles.json does not have`), { statusCode: 400 });
+  const ordered = [];
+  for (const role of roles.roles ?? []) {
+    if (roleIds.includes(role.id)) ordered.push(role);
   }
+  for (const id of roleIds) {
+    if (!known.has(id)) {
+      const shown = typeof id === "string" && id ? id : "nothing";
+      throw Object.assign(new Error(`a task names ${shown}, which roles.json does not have`), { statusCode: 400 });
+    }
+  }
+  const names = ordered.map((role) => role.name);
+  let title = "Whole team";
+  let heldFor = "Held for the whole team.";
+  if (names.length === 1) {
+    title = names[0];
+    heldFor = `Held for ${names[0]}.`;
+  } else if (names.length === 2) {
+    title = `${names[0]} and ${names[1]}`;
+    heldFor = `Held for ${title}.`;
+  } else if (names.length > 2) {
+    title = `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+    heldFor = `Held for ${title}.`;
+  }
+  const audience = names.length === 0 ? "team" : names.length === 1 ? "person" : "group";
+  const ids = ordered.map((role) => role.id);
+  return {
+    roleIds: ids,
+    audience,
+    threadKey: audience === "team" ? "team" : ids.join("+"),
+    title,
+    heldFor,
+    ...(ids.length === 1 ? { roleId: ids[0] } : {}),
+  };
+}
+
+function dutyIds(roles, input) {
+  const raw = Array.isArray(input?.roleIds)
+    ? input.roleIds
+    : (typeof input?.roleId === "string" && input.roleId !== "" ? [input.roleId] : []);
+  // describeDuty throws on an unknown id. Walking the raw list first keeps that error on the
+  // id that was sent, including one that is not a string.
+  const known = new Set((roles.roles ?? []).map((role) => role.id));
+  const seen = [];
+  for (const id of raw) {
+    if (typeof id !== "string" || !known.has(id)) {
+      const shown = typeof id === "string" && id ? id : "nothing";
+      throw Object.assign(new Error(`a task names ${shown}, which roles.json does not have`), { statusCode: 400 });
+    }
+    if (!seen.includes(id)) seen.push(id);
+  }
+  return seen;
+}
+
+// A duty may name only role ids from roles.json. No ids means the whole team. The text is
+// the founder's words. The sentence is never taken from the request: it is the held line,
+// because recording a duty does not start anyone.
+export function holdTask(roles, status, tasks, input) {
+  const described = describeDuty(roles, dutyIds(roles, input));
   const text = typeof input?.text === "string" ? input.text.trim() : "";
   if (!text) throw Object.assign(new Error("a task has no words"), { statusCode: 400 });
   if (text.length > MAX_TEXT) {
@@ -48,12 +106,33 @@ export function holdTask(roles, status, tasks, input) {
   }
   const task = {
     id: randomUUID(),
-    roleId,
+    ...described,
     text,
     sentence: status.held,
     at: new Date().toISOString(),
   };
   return { tasks: [...tasks, task], task };
+}
+
+// A stored duty is shown only when every id it names is still on the roster. The receipt
+// is status.json's held sentence, not whatever the file happens to say.
+export function presentTask(roles, status, task) {
+  const raw = Array.isArray(task?.roleIds)
+    ? task.roleIds
+    : (typeof task?.roleId === "string" && task.roleId ? [task.roleId] : null);
+  if (!raw) return null;
+  try {
+    const described = describeDuty(roles, raw);
+    return {
+      id: task.id,
+      ...described,
+      text: typeof task.text === "string" ? task.text : "",
+      sentence: status.held,
+      at: task.at,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function send(res, statusCode, body, type = "application/json; charset=utf-8") {
@@ -91,8 +170,9 @@ export function createBoard(cfg = settings()) {
       }
       if (req.method === "GET" && url.pathname === "/board") {
         const { roles, status } = readTeamStatus();
-        const known = new Set(roles.roles.map((role) => role.id));
-        const tasks = (await readTasks(tasksFile(cfg))).filter((task) => known.has(task.roleId));
+        const tasks = (await readTasks(tasksFile(cfg)))
+          .map((task) => presentTask(roles, status, task))
+          .filter(Boolean);
         send(res, 200, { held: status.held, tasks });
         return;
       }

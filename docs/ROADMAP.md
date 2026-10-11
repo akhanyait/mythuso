@@ -1455,8 +1455,11 @@ host, from the Mac that holds the key. It does not install the assistant.
 
 What each role has done, and the sentence that the team is not installed, is
 `deploy/gilbertone-host/agent-team/status.json`, shown by `status.html` in the same folder. The
-same page records a task for one role. The task is held in the gitignored work folder, in that
-file's own held sentence. It does not start anyone. It is not a patient page.
+same page is a chat. @ duties one of the six, more than one @ is one shared thread held for each
+of them, and a message with nobody named is held for the whole team. A duty is held in the
+gitignored work folder, in that file's own held sentence. It does not start anyone. The mic is
+the browser's own recognition, opened only by a tap, and capped at 45 seconds. It is not a
+patient page.
 
 ## GilbertOne linked to MyThuso, tracked 11 October 2026
 
