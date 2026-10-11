@@ -1437,3 +1437,66 @@ What is not started, because it would pretend a service is live or describe a di
   development-only until they exist.
 - Installing the assistant on the GilbertOne host. That remains `install-from-mac.sh` from this
   branch, run on the Mac, and it is a separate go.
+
+## Work team on the GilbertOne host, 11 October 2026
+
+The ask was a project manager, an enterprise architect, a specialist creative designer (senior
+UI/UX), two specialist full-stack engineers, and QA and tester. That roster is
+`deploy/gilbertone-host/agent-team/roles.json`. Thandi manages. Kabelo writes the shape and the
+refusals. Lerato designs. Sipho and Karabo draft code, each the piece they were given. Nomsa writes
+the test and may queue a check. Gilbert approves the check by typing yes; until then it does not run.
+
+It is a work team on the host's own Qwen, inside the `gilbertone` container. It is not GilbertOne,
+and it is not six cloud agents. It never sees a patient. No role can send email, commit, or touch
+liqzar-server. Drafts stay in the team's outbox.
+
+The install script is on the branch and has not been run. Running it is `sudo` on the GilbertOne
+host, from the Mac that holds the key. It does not install the assistant.
+
+What each role has done, and the sentence that the team is not installed, is
+`deploy/gilbertone-host/agent-team/status.json`, shown by `status.html` in the same folder. The
+same page is a chat. @ duties one of the six, more than one @ is one shared thread held for each
+of them, and a message with nobody named is held for the whole team. A duty is held in the
+gitignored work folder, in that file's own held sentence. It does not start anyone. The mic is
+the browser's own recognition, opened only by a tap, and capped at 45 seconds. It is not a
+patient page.
+
+## GilbertOne linked to MyThuso, tracked 11 October 2026
+
+Thandi is keeping this. Kabelo's shape, and what it refuses:
+
+- The nine files in `packages/catalog/knowledge/` are what GilbertOne searches. A file added there
+  and left off `LOCAL_KNOWLEDGE_FILES` fails the test. The fourteen federation sources are linked
+  by name and consulted only when their own `active` flag is true. All fourteen are false, so
+  linking them does not call them.
+- MyThuso's eleven locales are GilbertOne's language scope. A turn sent `zu-ZA` is answered as
+  isiZulu. A code outside the eleven is ignored and the words are read instead. The web panel
+  sends the language the person chose. Emergencies still never wait on that request.
+- What is not in this pass: installing the assistant on the host, switching a federation source
+  on, translating a clinical sentence, and pointing MyThuso at the unchecked Qwen page.
+
+## Look, motion and the patient journey, scoped 11 October 2026
+
+Lerato walked the four pages that are served, and the patient journey inside the app, at 1440 and
+at 390. The nurse address on this preview opened the patient home, because the staff preview flag
+was off, so the nurse, doctor and Control Tower screens are not in this pass.
+
+What already follows. Landing, the patient home, booking and the shop share one palette. Booking
+is three questions on one screen: who, what, when. The phone has five tabs, and Book care is one
+of them. GilbertOne asks "Before we start" before a question. The status page says nothing is
+connected. Each visit row says Preview.
+
+What makes the journey hard:
+
+- Booking has three names: "Book a nurse" in the sidebar, "Book care" on the phone, "Book a
+  check-in" on the home.
+- The desktop sidebar holds about thirty-five rows, all open. The phone hides My Health, Wellness
+  and Devices behind More, then Explore MyThuso, which is a directory.
+- The phone home gives the next visit and four equal actions the same weight.
+- Health Passport, the health pages, health trends, the care timeline and "what readings mean"
+  sit side by side. The names do not say which one to open.
+
+Motion, and only this, when it is built. A short fade of the main column on a page change, using
+transform and opacity, behind the existing decor switch, and still when reduced motion is on.
+The sidebar, the tab bar and the orb do not join it. Booking stays one screen. No nurse moves on
+a map. The bundle is measured before and after, against the 282.16 kB ceiling.

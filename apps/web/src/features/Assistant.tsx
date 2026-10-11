@@ -60,7 +60,7 @@ import { crisisLines, showsCrisisLines } from "../lib/crisis-lines";
 /* The booking door's label, read rather than typed. i18n.ts is already on the patient's first load —
    App.tsx imports it statically for the shell's own rows — so this pulls the locales contract into a
    chunk that has always carried it and costs the entry nothing. */
-import { useT } from "../lib/i18n";
+import { useLocaleCode, useT } from "../lib/i18n";
 import {
   referencesUsedFor,
   referenceWords,
@@ -414,6 +414,9 @@ export default function Assistant({
      presentation register a routine reply is read in — the patient's or the administrator's — and
      the adapter reads that register's setting at the moment of speaking, never here. */
   const voiceAdapter = useVoiceAdapter("assistant", audienceId);
+  /* The language chosen in MyThuso, sent with an unmatched question so GilbertOne answers in
+     it. The service keeps the eleven official languages and drops anything outside them. */
+  const locale = useLocaleCode();
   const callHead = turns[turns.length - 1];
   const callPending = callTurn !== null && pendingReplies.has(callTurn);
   const callReady = callTurn !== null && callHead?.id === callTurn && !callPending;
@@ -777,6 +780,7 @@ export default function Assistant({
       audienceId,
       conversationRef.current,
       audienceId === "patient" ? { patient: signedInPatientContext() } : undefined,
+      locale,
     ).then((refined) => {
       if (refine.current !== generation) return;
       const answer = refined?.[refined.length - 1] ?? candidate;

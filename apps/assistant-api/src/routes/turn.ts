@@ -24,7 +24,7 @@ import { redactPHI } from "../../../../packages/gilbertone/src/phi.ts";
 import assistant from "../../../../packages/catalog/assistant.json" with { type: "json" };
 import conversationMode from "../../../../packages/catalog/conversation-mode.json" with { type: "json" };
 import { orchestrate } from "../lib/orchestrator.ts";
-import { detectLanguage } from "../lib/language-detect.ts";
+import { resolveTurnLanguage } from "../lib/language-detect.ts";
 import { createSessionStore } from "../lib/session-store.ts";
 import type {
   AssistantTurnRequest,
@@ -231,22 +231,17 @@ async function* runTurn(
 
   /* The language this turn is answered in, resolved once and carried on every path below — the
      classifier's own reply, a refusal, the empty-message clarify and the orchestrator's answer
-     alike — because it describes the turn rather than the tier that wrote the reply. A language the
-     caller declared wins, trimmed and lower-cased; with none declared the service reads the language
-     out of the words it was sent (../lib/language-detect.ts), which returns the safe English default
-     whenever it is not confident. Neither reading is a fact about the person and neither touches the
-     safety chain: it only steers the words an answer is composed in, and the orchestrator turns a
-     code it does not know back into English. This runs before the emergency and consent gates so
-     those paths can carry the field too; it is cheap — a weighted count over a short message — and
-     reads no model and no network. */
-  const declaredLanguage =
-    typeof req?.language === "string" && req.language.trim()
-      ? req.language.trim().toLowerCase()
-      : undefined;
-  const detected = detectLanguage(
+     alike — because it describes the turn rather than the tier that wrote the reply. A MyThuso
+     locale (zu-ZA) is the same language as the detector's zu, and that declaration wins. A code
+     outside the eleven is absent, and the words are read instead (../lib/language-detect.ts),
+     which returns English whenever it is not confident. Neither reading is a fact about the
+     person and neither touches the safety chain: it only steers the words an answer is composed
+     in. This runs before the emergency and consent gates so those paths can carry the field too;
+     it is cheap — a weighted count over a short message — and reads no model and no network. */
+  const language = resolveTurnLanguage(
+    typeof req?.language === "string" ? req.language : undefined,
     typeof req?.text === "string" ? req.text : "",
   );
-  const language = declaredLanguage ?? detected.language;
 
   /* userConsent is a required field of this route's contract (packages/catalog/apis/assistant.json),
      so an absent one is the caller's omission, answered with the shared required-field-missing 400

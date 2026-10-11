@@ -1,0 +1,923 @@
+// The team's refusals, proved against a scripted stand-in for Ollama so they hold without a model:
+// the roles file is the roster that was asked for, the PM is the only way in and the only one who
+// hands out work, a command is queued and never run, an email cannot be sent by anyone on the
+// roster, and no file outside the work folder is read or written.
+// Run with: node --test deploy/gilbertone-host/agent-team/agents.test.mjs
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { mkdtemp, mkdir, writeFile, readFile, readdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { settings, loadRoles, ask, inside, listApprovals, delegationCap, KNOWN_TOOLS, configuredOllamaUrl, probeModel } from "./agents.mjs";
+import { readTeamStatus, statusProblems, checkStatusPage, shortenStatus } from "./render-status.mjs";
+import { startBoard, dutyReplies, carryDuty } from "./board.mjs";
+
+// The model stand-in replaces global fetch and does not put it back. The board test talks to
+// its own server, so it keeps the fetch this file was loaded with.
+const realFetch = globalThis.fetch;
+
+const ROSTER = [
+  ["pm", "Thandi", "Project Manager"],
+  ["architect", "Kabelo", "Enterprise Architect"],
+  ["designer", "Lerato", "Specialist Creative Designer, Senior UI/UX"],
+  ["engineer", "Sipho", "Specialist Full Stack Engineer"],
+  ["engineer-2", "Karabo", "Specialist Full Stack Engineer"],
+  ["qa", "Nomsa", "QA and Tester"],
+];
+
+async function sandbox() {
+  const root = await mkdtemp(join(tmpdir(), "agent-team-"));
+  const workdir = join(root, "work");
+  await mkdir(workdir);
+  await writeFile(join(workdir, "README.md"), "MyThuso readme\n");
+  await writeFile(join(root, "secret.txt"), "not yours\n");
+  return { root, cfg: settings({ AGENT_TEAM_HOME: join(root, "outbox"), AGENT_TEAM_WORKDIR: workdir }) };
+}
+
+// Each entry answers one /api/chat call, in order, and records what was asked.
+function scriptOllama(replies) {
+  const seen = [];
+  globalThis.fetch = async (url, init) => {
+    const body = JSON.parse(init.body);
+    seen.push(body);
+    const next = replies.shift();
+    assert.ok(next, `unexpected extra model call from: ${body.messages[0].content.slice(0, 80)}`);
+    return new Response(JSON.stringify({ message: { role: "assistant", ...next } }));
+  };
+  return seen;
+}
+const call = (name, args) => ({ content: "", tool_calls: [{ function: { name, arguments: args } }] });
+
+test("the roles file is the six-person roster, one lead, and only known tools", async () => {
+  const team = await loadRoles();
+  assert.deepEqual(
+    team.roles.map((r) => [r.id, r.name, r.title]),
+    ROSTER,
+  );
+  assert.equal(team.byId.get("karabo"), team.byId.get("engineer-2"));
+  assert.equal(team.byId.get("nomsa"), team.byId.get("qa"));
+  assert.equal(team.byId.get("kabelo"), team.byId.get("architect"));
+  assert.deepEqual(team.roles.filter((r) => r.reportsTo === "founder").map((r) => r.id), [team.lead]);
+  assert.equal(delegationCap(team), 5);
+  for (const role of team.roles) {
+    assert.ok(role.prompt && role.title && role.refuses.length, role.id);
+    for (const tool of role.tools) assert.ok(KNOWN_TOOLS.includes(tool), `${role.id}: ${tool}`);
+    if (role.id !== team.lead) {
+      assert.equal(role.reportsTo, team.lead, role.id);
+      assert.ok(!role.tools.includes("delegate"), `${role.id} may not hand out work`);
+    }
+  }
+  const qa = team.byId.get("qa");
+  assert.ok(qa.tools.includes("propose_command"));
+  for (const role of team.roles.filter((r) => r.id !== "qa")) {
+    assert.ok(!role.tools.includes("propose_command"), role.id);
+  }
+  for (const role of team.roles) {
+    assert.ok(!role.tools.includes("draft_email") && !role.tools.includes("read_inbox"), role.id);
+  }
+  assert.equal(team.roles.filter((r) => r.title === "Specialist Full Stack Engineer").length, 2);
+});
+
+test("the PM hands one engineer a change, it is a draft, and the work folder is untouched", async () => {
+  const { cfg } = await sandbox();
+  const team = await loadRoles();
+  const seen = scriptOllama([
+    call("delegate", { to: "engineer", task: "Fix the readme title." }),
+    call("read_file", { path: "README.md" }),
+    call("write_draft", { path: "README.md", content: "# MyThuso\n" }),
+    { content: "Drafted the new README." },
+    { content: "Done: Sipho drafted README.md for you to review." },
+  ]);
+  const result = await ask(cfg, team, "Tidy the readme");
+  assert.match(result.report, /Sipho drafted/);
+  assert.deepEqual(result.drafts, [join("drafts", "engineer", "README.md")]);
+  assert.equal(await readFile(join(cfg.workdir, "README.md"), "utf8"), "MyThuso readme\n");
+  assert.equal(await readFile(join(cfg.home, "drafts", "engineer", "README.md"), "utf8"), "# MyThuso\n");
+  assert.ok(seen.every((b) => b.think === false && b.stream === false && b.model === "gilbertone-qwen" && !b.options));
+  assert.match(seen[1].messages[0].content, /Specialist Full Stack Engineer/);
+  assert.match(seen[1].messages[0].content, /Your name is Sipho\.[\s\S]*You report to Thandi, the Project Manager/);
+  assert.match(seen[0].messages[0].content, /You report to Gilbert/);
+  const delegate = seen[0].tools.find((t) => t.function.name === "delegate");
+  assert.deepEqual(delegate.function.parameters.properties.to.enum, ["architect", "designer", "engineer", "engineer-2", "qa"]);
+});
+
+test("the two engineers draft into separate folders and neither can queue a command", async () => {
+  const { cfg } = await sandbox();
+  const team = await loadRoles();
+  const seen = scriptOllama([
+    call("delegate", { to: "engineer", task: "Draft the web copy." }),
+    call("write_draft", { path: "web.md", content: "web\n" }),
+    { content: "Web draft done." },
+    call("delegate", { to: "engineer-2", task: "Draft the iOS note." }),
+    call("propose_command", { command: "npm test", reason: "not mine" }),
+    call("write_draft", { path: "ios.md", content: "ios\n" }),
+    { content: "iOS draft done." },
+    { content: "Both engineers drafted." },
+  ]);
+  const result = await ask(cfg, team, "Split the work");
+  assert.deepEqual(result.drafts, [join("drafts", "engineer", "web.md"), join("drafts", "engineer-2", "ios.md")]);
+  assert.deepEqual(result.approvals, []);
+  const toolText = seen.flatMap((body) => body.messages.filter((m) => m.role === "tool").map((m) => m.content)).join("\n");
+  assert.match(toolText, /Karabo \(Specialist Full Stack Engineer\) has no tool called propose_command/);
+  assert.equal(await readFile(join(cfg.home, "drafts", "engineer-2", "ios.md"), "utf8"), "ios\n");
+});
+
+test("QA queues a check and it does not run; nobody on the roster can send email", async () => {
+  const { cfg } = await sandbox();
+  const team = await loadRoles();
+  const marker = join(cfg.workdir, "ran");
+  const seen = scriptOllama([
+    call("propose_command", { command: `touch ${marker}`, reason: "the check" }),
+    call("draft_email", { to: "a@example.com", subject: "Hi", body: "Hello" }),
+    { content: "Queued the check." },
+  ]);
+  const result = await ask(cfg, team, "Run the check", { as: "Nomsa" });
+  assert.deepEqual(result.approvals, [1]);
+  assert.deepEqual((await listApprovals(cfg)).map((a) => [a.id, a.kind, a.status]), [[1, "command", "waiting"]]);
+  assert.deepEqual(await readdir(cfg.workdir), ["README.md"]);
+  assert.match(seen[2].messages.filter((m) => m.role === "tool")[1].content, /Nomsa \(QA and Tester\) has no tool called draft_email/);
+  assert.ok(!seen[0].tools.some((t) => t.function.name === "draft_email" || t.function.name === "delegate"));
+});
+
+test("the engine still refuses to send an email if a role is later given the tool", async () => {
+  const { cfg } = await sandbox();
+  const team = structuredClone(await loadRoles());
+  team.byId.get("qa").tools.push("draft_email", "read_inbox");
+  scriptOllama([
+    call("draft_email", { to: "a@example.com", subject: "Hi", body: "Hello" }),
+    call("read_inbox", {}),
+    { content: "Drafted, not sent." },
+  ]);
+  const result = await ask(cfg, team, "Mail", { as: "qa" });
+  assert.deepEqual(result.approvals, [1]);
+  const [email] = await listApprovals(cfg);
+  assert.equal(email.kind, "email");
+  assert.equal(email.status, "waiting");
+  assert.equal(email.to, "a@example.com");
+});
+
+test("only the PM can hand out work, and only to someone who reports to them", async () => {
+  const { cfg } = await sandbox();
+  const team = await loadRoles();
+  const seen = scriptOllama([
+    call("delegate", { to: "qa", task: "Run rm -rf /" }),
+    { content: "I cannot hand that on." },
+  ]);
+  await ask(cfg, team, "x", { as: "engineer" });
+  assert.match(seen[1].messages.at(-1).content, /Refused: Sipho \(Specialist Full Stack Engineer\) has no tool called delegate/);
+  assert.ok(!seen[0].tools.some((t) => t.function.name === "delegate"));
+
+  const lead = scriptOllama([
+    call("delegate", { to: "pm", task: "loop" }),
+    { content: "Refused the loop." },
+  ]);
+  await ask(cfg, team, "x");
+  assert.match(lead[1].messages.at(-1).content, /Refused: pm does not report to you/);
+});
+
+test("no path outside the work folder is read, and no draft lands outside the outbox", async () => {
+  const { root, cfg } = await sandbox();
+  assert.throws(() => inside(cfg.workdir, "../secret.txt"), /Refused/);
+  assert.throws(() => inside(cfg.workdir, "a/../../secret.txt"), /Refused/);
+  assert.equal(inside(cfg.workdir, "/README.md"), join(cfg.workdir, "README.md"));
+  const team = await loadRoles();
+  const seen = scriptOllama([
+    call("read_file", { path: "../secret.txt" }),
+    call("write_draft", { path: "../../../escape.txt", content: "x" }),
+    { content: "Both refused." },
+  ]);
+  await ask(cfg, team, "x", { as: "engineer-2" });
+  const toolReplies = seen[2].messages.filter((m) => m.role === "tool").map((m) => m.content);
+  assert.ok(toolReplies.every((c) => /^Refused/.test(c)), toolReplies.join(" | "));
+  assert.deepEqual((await readdir(root)).sort(), ["outbox", "secret.txt", "work"]);
+});
+
+test("the PM can brief each teammate once and no further", async () => {
+  const { cfg } = await sandbox();
+  const team = await loadRoles();
+  const cap = delegationCap(team);
+  const replies = [];
+  for (let i = 0; i < cap + 1; i += 1) {
+    replies.push(call("delegate", { to: "designer", task: `t${i}` }));
+    if (i < cap) replies.push({ content: "ok" });
+  }
+  replies.push({ content: "Reported." });
+  const seen = scriptOllama(replies);
+  await ask(cfg, team, "x");
+  assert.match(seen.at(-1).messages.at(-1).content, new RegExp(`Refused: this ask has already been handed out ${cap} times`));
+});
+
+test("status.json names only roster ids, and every roster id has a status", () => {
+  const { roles, status } = readTeamStatus();
+  assert.deepEqual(statusProblems(roles, status), []);
+
+  const extra = structuredClone(status);
+  extra.people.push({ id: "admin", word: "not running", sentence: "There is no admin on this team." });
+  assert.ok(
+    statusProblems(roles, extra).some((problem) => problem.includes("status.json names admin, which roles.json does not have")),
+    statusProblems(roles, extra).join("\n"),
+  );
+
+  const missing = structuredClone(status);
+  missing.people = missing.people.filter((person) => person.id !== "qa");
+  assert.ok(
+    statusProblems(roles, missing).some((problem) => problem.includes("roles.json has qa, and status.json has no status for it")),
+    statusProblems(roles, missing).join("\n"),
+  );
+
+  const running = structuredClone(status);
+  running.people[0].word = "running";
+  assert.ok(statusProblems(roles, running).some((problem) => problem.includes("which this page does not use")));
+});
+
+test("the status page is inlined from the two JSON files and says the team is not installed", () => {
+  const html = checkStatusPage();
+  const { roles, status } = readTeamStatus();
+  assert.equal(html.includes(">Active<"), false);
+  assert.equal(html.includes("localStorage"), false);
+  assert.equal(html.includes("sessionStorage"), false);
+  assert.equal(html.includes("indexedDB"), false);
+  const fetches = [
+    ...html.matchAll(/fetch\(authed\("([^"]+)"\)/g),
+    ...html.matchAll(/postScreen\("([^"]+)"/g),
+  ].map((match) => match[1]);
+  assert.deepEqual(fetches.sort(), [
+    "/board",
+    "/groups",
+    "/groups/remove",
+    "/people",
+    "/people/craft",
+    "/people/remove",
+    "/screen/mute",
+    "/tasks",
+    "/tasks/dismiss",
+    "/tasks/done",
+    "/tasks/pin",
+  ]);
+  assert.ok(html.includes("Enter sends. Shift+Enter starts a new line."));
+  assert.ok(html.includes("Marked done on this screen. Nobody carried this out."));
+  assert.ok(html.includes("Search this thread"));
+  assert.ok(html.includes("Copy today's list"));
+  assert.ok(html.includes("Mute notices today"));
+  assert.ok(html.includes("On the rail:"));
+  assert.ok(html.includes("is writing"));
+  assert.ok(html.includes('className = "suggest"'));
+  assert.ok(html.includes("Add a person"));
+  assert.ok(html.includes("POLL_MS = 2000"));
+  assert.equal(html.includes("setTimeout(function () { render"), false);
+  assert.ok(html.includes(status.notice));
+  assert.ok(html.includes("The host team is not installed."));
+  assert.ok(html.includes("This page is not calling a model, so nobody here is carrying a duty out."));
+  assert.equal(html.includes("has not been run"), false);
+  assert.equal(/install failed/i.test(html), false);
+  assert.ok(html.indexOf('class="notice-lead"') < html.indexOf('id="model-line"'));
+  assert.ok(html.includes("A model is not connected."));
+  assert.ok(html.includes("Notices"));
+  assert.ok(html.includes("No notices yet."));
+  assert.ok(html.includes("It is held."));
+  assert.ok(html.includes("requestPermission"));
+  assert.ok(html.includes("bubble reply"));
+  assert.ok(html.includes("reply-text"));
+  assert.ok(html.includes("The browser may hand the words to its maker."));
+  assert.ok(html.includes("No duties yet."));
+  assert.ok(html.includes('id="mic"'));
+  assert.ok(html.includes("45000"));
+  assert.ok(html.indexOf('class="notice-lead"') < html.indexOf('id="task-form"'));
+  assert.equal(status.held, "Held. The team is not installed, so nobody is carrying this out.");
+  assert.equal(html.includes("Investment Bot"), false);
+  assert.equal(html.includes("Hacker and Security"), false);
+  assert.equal(html.includes("Marketing Bot"), false);
+  for (const role of roles.roles) {
+    const person = status.people.find((row) => row.id === role.id);
+    const snippet = shortenStatus(person.sentence);
+    const stem = snippet.endsWith("…") ? snippet.slice(0, -1) : snippet;
+    assert.ok(html.includes(role.name), role.id);
+    assert.ok(html.includes(role.title), role.id);
+    assert.ok(html.includes(person.word), role.id);
+    assert.ok(html.includes(person.sentence), role.id);
+    assert.ok(html.includes(snippet), role.id);
+    assert.ok(person.sentence.startsWith(stem), role.id);
+    assert.ok(html.includes(`data-role="${role.id}"`), role.id);
+    assert.ok(html.includes(`class="person person-${role.id}"`), role.id);
+  }
+  assert.equal((html.match(/<span class="mark">/g) ?? []).length, roles.roles.length);
+  assert.ok(html.includes("prefers-reduced-motion"));
+  assert.equal(/@keyframes\s+pulse|animation:\s*pulse/.test(html), false);
+  assert.equal(html.includes("live-dot"), false);
+});
+
+const BOARD_KEY = "board-test-key";
+
+function boardFetch(url, init = {}) {
+  const headers = new Headers(init.headers || {});
+  headers.set("authorization", `Bearer ${BOARD_KEY}`);
+  return realFetch(url, { ...init, headers });
+}
+
+test("a task that names a role the roster does not have is refused and not stored", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "board-"));
+  const server = await startBoard({ port: 0, workdir: dir, token: BOARD_KEY, env: { OLLAMA_URL: "" } });
+  const { port } = server.address();
+  const url = `http://127.0.0.1:${port}`;
+  try {
+    const closed = await realFetch(`${url}/status.html`);
+    assert.equal(closed.status, 401);
+    const refusal = await closed.text();
+    assert.match(refusal, /This board needs its key/);
+    for (const name of ["Thandi", "Kabelo", "Lerato", "Sipho", "Karabo", "Nomsa"]) {
+      assert.equal(refusal.includes(name), false, name);
+    }
+
+    const refused = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleId: "admin", text: "Install the team" }),
+    });
+    assert.equal(refused.status, 400);
+    const problem = await refused.json();
+    assert.match(problem.error, /a task names admin, which roles.json does not have/);
+    assert.deepEqual((await (await boardFetch(`${url}/board`)).json()).tasks, []);
+
+    const held = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleId: "engineer", text: "Morning-of card on the web", sentence: "Sipho is running." }),
+    });
+    assert.equal(held.status, 201);
+    const task = await held.json();
+    assert.equal(task.roleId, "engineer");
+    assert.equal(task.text, "Morning-of card on the web");
+    assert.equal(task.sentence, "Held. The team is not installed, so nobody is carrying this out.");
+    assert.equal(task.replies.length, 1);
+    assert.equal(task.replies[0].roleId, "engineer");
+    assert.equal(task.replies[0].name, "Sipho");
+    assert.match(task.replies[0].text, /Specialist Full Stack Engineer/);
+    assert.match(task.replies[0].text, /I will draft the web piece/);
+    assert.match(task.replies[0].text, /I am not running and the duty is held, so I have not started it/);
+    assert.match(task.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+    assert.equal(/built/i.test(task.replies[0].text), false);
+    const board = await (await boardFetch(`${url}/board`)).json();
+    assert.equal(board.tasks.length, 1);
+    assert.equal(board.tasks[0].sentence, task.sentence);
+    assert.equal(board.held, task.sentence);
+    assert.equal(board.modelConnected, false);
+
+    const group = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleIds: ["qa", "designer", "designer"], text: "One shared check." }),
+    });
+    assert.equal(group.status, 201);
+    const shared = await group.json();
+    assert.equal(shared.audience, "group");
+    assert.deepEqual(shared.roleIds, ["designer", "qa"]);
+    assert.equal(shared.threadKey, "designer+qa");
+    assert.equal(shared.title, "Lerato and Nomsa");
+    assert.equal(shared.heldFor, "Held for Lerato and Nomsa.");
+    assert.equal(shared.roleId, undefined);
+    assert.equal(shared.sentence, task.sentence);
+    assert.deepEqual(shared.replies.map((reply) => reply.name), ["Lerato", "Nomsa"]);
+    assert.match(shared.replies[0].text, /I will draft the screen/);
+    assert.match(shared.replies[1].text, /I will queue a check/);
+
+    const teamDuty = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleIds: [], text: "For everyone." }),
+    });
+    assert.equal(teamDuty.status, 201);
+    const everyone = await teamDuty.json();
+    assert.equal(everyone.audience, "team");
+    assert.deepEqual(everyone.roleIds, []);
+    assert.equal(everyone.heldFor, "Held for the whole team.");
+    assert.equal(everyone.sentence, task.sentence);
+    assert.equal(everyone.replies.length, 1);
+    assert.equal(everyone.replies[0].name, "Thandi");
+    assert.match(everyone.replies[0].text, /holding this for the whole team and have not handed it on/);
+    assert.match(everyone.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+
+    const mixed = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleIds: ["engineer", "admin"], text: "Do not store this." }),
+    });
+    assert.equal(mixed.status, 400);
+    assert.match((await mixed.json()).error, /a task names admin, which roles.json does not have/);
+    const after = await (await boardFetch(`${url}/board`)).json();
+    assert.equal(after.tasks.length, 3);
+    assert.ok(after.tasks.every((row) => row.sentence === task.sentence));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("OLLAMA_URL unset does not call a model, and a duty stays held", async () => {
+  assert.equal(configuredOllamaUrl({}), null);
+  assert.equal(configuredOllamaUrl({ OLLAMA_URL: "  " }), null);
+  let calls = 0;
+  const probe = await probeModel({ OLLAMA_URL: "" }, async () => {
+    calls += 1;
+    throw new Error("should not be called");
+  });
+  assert.equal(probe.connected, false);
+  assert.equal(calls, 0);
+
+  const dir = await mkdtemp(join(tmpdir(), "board-off-"));
+  const seen = [];
+  const server = await startBoard({
+    port: 0,
+    workdir: dir,
+    token: BOARD_KEY,
+    env: { OLLAMA_URL: "" },
+    fetchImpl: async (url) => {
+      seen.push(String(url));
+      throw new Error("no model");
+    },
+  });
+  const { port } = server.address();
+  try {
+    const page = await realFetch(`http://127.0.0.1:${port}/?k=${BOARD_KEY}`);
+    assert.equal(page.status, 200);
+    const html = await page.text();
+    assert.match(html, /A model is not connected/);
+    assert.match(html, /Thandi/);
+    assert.match(page.headers.get("set-cookie") || "", /board_key=/);
+    const cooked = await realFetch(`http://127.0.0.1:${port}/board`, {
+      headers: { cookie: page.headers.get("set-cookie").split(";")[0] },
+    });
+    const board = await cooked.json();
+    assert.equal(board.modelConnected, false);
+    const held = await boardFetch(`http://127.0.0.1:${port}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleId: "pm", text: "Hold this for Thandi." }),
+    });
+    assert.equal(held.status, 201);
+    assert.equal((await held.json()).sentence, "Held. The team is not installed, so nobody is carrying this out.");
+    assert.deepEqual(seen, []);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("recording a duty does not call Ollama, even when OLLAMA_URL is set", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "board-tags-"));
+  const seen = [];
+  const server = await startBoard({
+    port: 0,
+    workdir: dir,
+    token: BOARD_KEY,
+    env: { OLLAMA_URL: "http://ollama.test" },
+    fetchImpl: async (url) => {
+      seen.push(String(url));
+      return new Response("no", { status: 503 });
+    },
+  });
+  const { port } = server.address();
+  try {
+    const held = await boardFetch(`http://127.0.0.1:${port}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        roleId: "designer",
+        text: "A screen, held.",
+        replies: [{ roleId: "admin", text: "I built it." }],
+      }),
+    });
+    assert.equal(held.status, 201);
+    const task = await held.json();
+    assert.equal(task.sentence, "Held. The team is not installed, so nobody is carrying this out.");
+    assert.equal(task.replies.length, 1);
+    assert.equal(task.replies[0].name, "Lerato");
+    assert.match(task.replies[0].text, /I will draft the screen/);
+    assert.equal(/built/i.test(task.replies[0].text), false);
+    assert.deepEqual(seen, []);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("a reply is refused for a role id roles.json does not have", () => {
+  const { roles, status } = readTeamStatus();
+  const screen = { added: [{ id: "screen-proof", name: "Proofbot", craft: "Keeps this screen." }], hidden: [] };
+  assert.throws(
+    () => dutyReplies(roles, status, ["admin"], screen),
+    (error) => error.statusCode === 400 && /a reply names admin, which roles.json does not have/.test(error.message),
+  );
+  const added = dutyReplies(roles, status, ["screen-proof"], screen);
+  assert.equal(added[0].name, "Proofbot");
+  assert.match(added[0].text, /I am on this screen only/);
+  assert.match(added[0].text, /The team is not installed, so nobody is carrying this out/);
+  const sipho = dutyReplies(roles, status, ["engineer"]);
+  assert.equal(sipho.length, 1);
+  assert.match(sipho[0].text, /The team is not installed, so nobody is carrying this out/);
+  assert.equal(/built/i.test(sipho[0].text), false);
+});
+
+test("a plan question lists what is held and a greeting includes the morning line", () => {
+  const { roles, status } = readTeamStatus();
+  const screen = { added: [], hidden: [], done: [], dismissed: [], pins: {}, groups: [], muteDay: "" };
+  const tasks = [{
+    id: "gate",
+    title: "Sipho",
+    text: "Check the gate",
+    at: new Date().toISOString(),
+    threadKey: "engineer",
+  }];
+  const plan = dutyReplies(roles, status, [], screen, { text: "whats the plan today?", tasks });
+  assert.equal(plan[0].name, "Thandi");
+  assert.match(plan[0].text, /Check the gate/);
+  assert.match(plan[0].text, /still held|Check the gate/);
+  assert.match(plan[0].text, /The team is not installed, so nobody is carrying this out/);
+  assert.equal(/have not handed it on/.test(plan[0].text), false);
+  assert.equal(/built/i.test(plan[0].text), false);
+  const hello = dutyReplies(roles, status, [], screen, { text: "hello", tasks });
+  assert.match(hello[0].text, /^Hello\. I am Thandi\./);
+  assert.match(hello[0].text, /On the rail:/);
+  assert.match(hello[0].text, /still held/);
+  assert.match(hello[0].text, /I am not running, so I have not started any work/);
+  assert.match(hello[0].text, /The team is not installed, so nobody is carrying this out/);
+  assert.equal(/holding this for the whole team/.test(hello[0].text), false);
+  assert.equal(/You wrote:/.test(hello[0].text), false);
+  const how = dutyReplies(roles, status, [], screen, { text: "how are you?", tasks });
+  assert.equal(how[0].name, "Thandi");
+  assert.equal(how.length, 1);
+  assert.match(how[0].text, /I am not running, so I have not started any work/);
+  assert.equal(/holding this for the whole team/.test(how[0].text), false);
+  const named = dutyReplies(roles, status, [], screen, { text: "howzit Sipho", tasks });
+  assert.equal(named[0].name, "Sipho");
+  assert.match(named[0].text, /^Hello\./);
+  const work = dutyReplies(roles, status, ["engineer"], screen, { text: "Draft the shop header", tasks });
+  assert.match(work[0].text, /I will draft the web piece/);
+  assert.match(work[0].text, /Draft the shop header/);
+  assert.match(work[0].text, /The team is not installed, so nobody is carrying this out/);
+});
+
+test("a person can be added and removed on this screen, and Thandi's reply stays held", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "board-people-"));
+  const server = await startBoard({ port: 0, workdir: dir, token: BOARD_KEY, env: { OLLAMA_URL: "" } });
+  const { port } = server.address();
+  const url = `http://127.0.0.1:${port}`;
+  try {
+    const created = await boardFetch(`${url}/people`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "Proofbot", craft: "Keeps this screen." }),
+    });
+    assert.equal(created.status, 201);
+    const made = await created.json();
+    assert.ok(made.people.some((person) => person.name === "Proofbot"));
+    const duplicate = await boardFetch(`${url}/people`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "thandi", craft: "Another manager." }),
+    });
+    assert.equal(duplicate.status, 400);
+    const blank = await boardFetch(`${url}/people`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "   ", craft: "Notes." }),
+    });
+    assert.equal(blank.status, 400);
+    const started = Date.now();
+    const duty = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleId: "pm", text: "Hold the morning list." }),
+    });
+    const took = Date.now() - started;
+    assert.equal(duty.status, 201);
+    assert.ok(took < 1000);
+    const task = await duty.json();
+    assert.equal(task.replies[0].name, "Thandi");
+    assert.match(task.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+    assert.deepEqual(task.replies[0].suggestions.map((item) => item.name), ["Kabelo", "Lerato", "Sipho"]);
+    assert.match(task.replies[0].suggestions[0].label, /^Hand this to /);
+    const theirs = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleId: made.person.id, text: "Note this." }),
+    });
+    assert.equal(theirs.status, 201);
+    const note = await theirs.json();
+    assert.match(note.replies[0].text, /I am on this screen only/);
+    assert.match(note.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+    const removed = await boardFetch(`${url}/people/remove`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: made.person.id }),
+    });
+    assert.equal(removed.status, 200);
+    const after = await removed.json();
+    assert.equal(after.people.some((person) => person.name === "Proofbot"), false);
+    const board = await (await boardFetch(`${url}/board`)).json();
+    assert.equal(board.people.some((person) => person.name === "Proofbot"), false);
+    assert.ok(board.people.some((person) => person.name === "Nomsa"));
+    const hidden = await boardFetch(`${url}/people/remove`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: "qa" }),
+    });
+    assert.equal(hidden.status, 200);
+    const rail = await hidden.json();
+    assert.equal(rail.people.some((person) => person.id === "qa"), false);
+    const roster = JSON.parse(await readFile(new URL("./roles.json", import.meta.url), "utf8"));
+    assert.ok(roster.roles.some((role) => role.id === "qa"));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("a duty can be pinned, marked done, searched, copied, grouped, and an added craft can be edited", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "board-day-"));
+  const server = await startBoard({ port: 0, workdir: dir, token: BOARD_KEY, env: { OLLAMA_URL: "" } });
+  const { port } = server.address();
+  const url = `http://127.0.0.1:${port}`;
+  try {
+    const duty = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleId: "pm", text: "Proofpin ledger word" }),
+    });
+    assert.equal(duty.status, 201);
+    const task = await duty.json();
+    assert.match(task.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+    const pinned = await boardFetch(`${url}/tasks/pin`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: task.id }),
+    });
+    assert.equal(pinned.status, 200);
+    assert.equal((await pinned.json()).pins[task.threadKey], task.id);
+    const done = await boardFetch(`${url}/tasks/done`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: task.id }),
+    });
+    assert.equal(done.status, 200);
+    assert.ok((await done.json()).done.includes(task.id));
+    const found = await (await boardFetch(`${url}/search?q=${encodeURIComponent("ledger")}`)).json();
+    assert.equal(found.tasks.length, 1);
+    assert.match(found.tasks[0].text, /Proofpin ledger word/);
+    const board = await (await boardFetch(`${url}/board`)).json();
+    assert.match(board.dayList, /Proofpin ledger word/);
+    assert.match(board.dayList, /done/);
+    assert.ok(board.people.some((person) => person.name === "Thandi"));
+    const seedCraft = await boardFetch(`${url}/people/craft`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: "pm", craft: "A different craft" }),
+    });
+    assert.equal(seedCraft.status, 400);
+    const created = await boardFetch(`${url}/people`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "Proofcrafter", craft: "Keeps a note." }),
+    });
+    const person = (await created.json()).person;
+    const edited = await boardFetch(`${url}/people/craft`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: person.id, craft: "Keeps the edited note." }),
+    });
+    assert.equal(edited.status, 200);
+    assert.equal((await edited.json()).people.find((row) => row.id === person.id).title, "Keeps the edited note.");
+    const group = await boardFetch(`${url}/groups`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "Proofgroup", roleIds: ["designer", "qa"] }),
+    });
+    assert.equal(group.status, 201);
+    const saved = (await group.json()).group;
+    const grouped = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleIds: saved.roleIds, text: "Duty the named group." }),
+    });
+    assert.equal(grouped.status, 201);
+    const shared = await grouped.json();
+    assert.equal(shared.audience, "group");
+    assert.deepEqual(shared.roleIds, ["designer", "qa"]);
+    assert.match(shared.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+    const roster = JSON.parse(await readFile(new URL("./roles.json", import.meta.url), "utf8"));
+    assert.equal(roster.roles.find((role) => role.id === "pm").title, "Project Manager");
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("a posted @ mention assigns that person, and an unknown mention is refused", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "board-mention-"));
+  const server = await startBoard({ port: 0, workdir: dir, token: BOARD_KEY, env: { OLLAMA_URL: "" } });
+  const { port } = server.address();
+  const url = `http://127.0.0.1:${port}`;
+  try {
+    const thandi = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text: "@Thandi Plan today. One job only." }),
+    });
+    assert.equal(thandi.status, 201);
+    const planned = await thandi.json();
+    assert.equal(planned.roleId, "pm");
+    assert.equal(planned.title, "Thandi");
+    assert.equal(planned.heldFor, "Held for Thandi.");
+    assert.equal(planned.audience, "person");
+    assert.equal(planned.replies.length, 1);
+    assert.equal(planned.replies[0].name, "Thandi");
+    assert.match(planned.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+    assert.equal(planned.sentence, "Held. The team is not installed, so nobody is carrying this out.");
+
+    const sipho = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text: "@sipho Draft the web piece only." }),
+    });
+    assert.equal(sipho.status, 201);
+    const drafted = await sipho.json();
+    assert.equal(drafted.roleId, "engineer");
+    assert.equal(drafted.title, "Sipho");
+    assert.equal(drafted.heldFor, "Held for Sipho.");
+    assert.equal(drafted.replies[0].name, "Sipho");
+    assert.match(drafted.replies[0].text, /I will draft the web piece/);
+    assert.match(drafted.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+
+    const unknown = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text: "@Nobody Do this." }),
+    });
+    assert.equal(unknown.status, 400);
+    assert.match((await unknown.json()).error, /@Nobody is not on this team/);
+
+    const plain = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text: "For everyone, with no mention." }),
+    });
+    assert.equal(plain.status, 201);
+    const everyone = await plain.json();
+    assert.equal(everyone.audience, "team");
+    assert.equal(everyone.title, "Whole team");
+    assert.equal(everyone.heldFor, "Held for the whole team.");
+
+    const board = await (await boardFetch(`${url}/board`)).json();
+    assert.deepEqual(board.tasks.map((task) => task.title), ["Thandi", "Sipho", "Whole team"]);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("a greeting with nobody named is Thandi's and is not held for the whole team", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "board-greet-"));
+  await writeFile(join(dir, "tasks.json"), `${JSON.stringify({
+    tasks: [{
+      id: "old-how",
+      roleIds: [],
+      audience: "team",
+      threadKey: "team",
+      title: "Whole team",
+      heldFor: "Held for the whole team.",
+      text: "how are you?",
+      sentence: "Held. The team is not installed, so nobody is carrying this out.",
+      replies: [{
+        roleId: "pm",
+        name: "Thandi",
+        text: "I am Thandi, Project Manager, and I am holding this for the whole team and have not handed it on. You wrote: how are you?.",
+      }],
+      at: new Date().toISOString(),
+    }],
+  }, null, 2)}\n`);
+  const server = await startBoard({ port: 0, workdir: dir, token: BOARD_KEY, env: { OLLAMA_URL: "" } });
+  const { port } = server.address();
+  const url = `http://127.0.0.1:${port}`;
+  async function post(text, extra = {}) {
+    const response = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text, ...extra }),
+    });
+    assert.equal(response.status, 201, text);
+    return response.json();
+  }
+  try {
+    const reread = await (await boardFetch(`${url}/board`)).json();
+    assert.equal(reread.tasks[0].text, "how are you?");
+    assert.equal(reread.tasks[0].roleId, "pm");
+    assert.equal(reread.tasks[0].title, "Thandi");
+    assert.equal(reread.tasks[0].audience, "person");
+    assert.equal(/holding this for the whole team/.test(reread.tasks[0].replies[0].text), false);
+    const kept = JSON.parse(await readFile(join(dir, "tasks.json"), "utf8"));
+    assert.equal(kept.tasks[0].id, "old-how");
+    assert.deepEqual(kept.tasks[0].roleIds, []);
+
+    const thandiLines = [
+      "how are you?",
+      "How are you?",
+      "hello",
+      "hi",
+      "hey",
+      "howzit",
+      "sawubona",
+      "molo",
+      "how's it going",
+      "how are you doing",
+      "hello thandi",
+      "hello there",
+    ];
+    for (const text of thandiLines) {
+      const task = await post(text, text === "how are you?" ? { roleIds: [] } : {});
+      assert.equal(task.roleId, "pm", text);
+      assert.equal(task.title, "Thandi", text);
+      assert.equal(task.audience, "person", text);
+      assert.notEqual(task.title, "Whole team", text);
+      assert.equal(task.replies.length, 1, text);
+      assert.equal(task.replies[0].name, "Thandi", text);
+      assert.equal(task.replies[0].roleId, "pm", text);
+      assert.match(task.replies[0].text, /^Hello\. I am Thandi\./, text);
+      assert.match(task.replies[0].text, /On the rail:/, text);
+      assert.match(task.replies[0].text, /I am not running, so I have not started any work/, text);
+      assert.match(task.replies[0].text, /The team is not installed, so nobody is carrying this out/, text);
+      assert.equal(/holding this for the whole team/.test(task.replies[0].text), false, text);
+      assert.equal(/You wrote:/.test(task.replies[0].text), false, text);
+      assert.equal(/I have not started it/.test(task.replies[0].text), false, text);
+    }
+
+    const sipho = await post("howzit Sipho");
+    assert.equal(sipho.roleId, "engineer");
+    assert.equal(sipho.title, "Sipho");
+    assert.equal(sipho.replies.length, 1);
+    assert.equal(sipho.replies[0].name, "Sipho");
+    assert.match(sipho.replies[0].text, /^Hello\. I am Sipho\./);
+    assert.equal(/holding this for the whole team/.test(sipho.replies[0].text), false);
+
+    const named = await post("hello sipho");
+    assert.equal(named.roleId, "engineer");
+    assert.equal(named.replies.length, 1);
+
+    const work = await post("Draft the shop header.");
+    assert.equal(work.audience, "team");
+    assert.equal(work.title, "Whole team");
+    assert.deepEqual(work.roleIds, []);
+    assert.equal(work.replies.length, 1);
+    assert.equal(work.replies[0].name, "Thandi");
+    assert.match(work.replies[0].text, /holding this for the whole team and have not handed it on/);
+
+    const waved = await post("@Lerato @Nomsa hello");
+    assert.equal(waved.audience, "group");
+    assert.equal(waved.replies.length, 1);
+    assert.equal(/holding this for the whole team/.test(waved.replies[0].text), false);
+
+    const karabo = await post("@Karabo Hold the phone draft.");
+    assert.equal(karabo.roleId, "engineer-2");
+    assert.equal(karabo.title, "Karabo");
+    assert.match(karabo.replies[0].text, /I will draft the phone piece/);
+
+    const board = await (await boardFetch(`${url}/board`)).json();
+    const fresh = board.tasks.find((task) => task.text === "how are you?" && task.id !== "old-how");
+    assert.equal(fresh.title, "Thandi");
+    assert.equal(fresh.roleId, "pm");
+    assert.equal(/holding this for the whole team/.test(fresh.replies[0].text), false);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("the engine is still not asked to chat unless tags succeed, and that path is not the page", async () => {
+  const { cfg } = await sandbox();
+  const missed = [];
+  const blocked = await carryDuty(cfg, { OLLAMA_URL: "http://ollama.test" }, { roleIds: ["engineer"], text: "x" }, async (url) => {
+    missed.push(String(url));
+    return new Response("no", { status: 503 });
+  });
+  assert.equal(blocked.connected, false);
+  assert.equal(blocked.task.report, undefined);
+  assert.deepEqual(missed, ["http://ollama.test/api/tags"]);
+  const seen = [];
+  const handed = await carryDuty(
+    cfg,
+    { OLLAMA_URL: "http://ollama.test" },
+    { roleIds: ["engineer"], text: "Morning-of card on the web" },
+    async (url, init) => {
+      seen.push(String(url));
+      if (String(url).endsWith("/api/tags")) return new Response(JSON.stringify({ models: [] }), { status: 200 });
+      const body = JSON.parse(init.body);
+      assert.match(body.messages[0].content, /Your name is Sipho/);
+      return new Response(JSON.stringify({ message: { role: "assistant", content: "Drafted the card." } }));
+    },
+  );
+  assert.equal(handed.connected, true);
+  assert.equal(handed.task.report, "Drafted the card.");
+  assert.ok(seen.includes("http://ollama.test/api/tags"));
+  assert.ok(seen.includes("http://ollama.test/api/chat"));
+});
+
+test("a host without gilbertone-qwen runs the served Qwen with its thread count sent on every call", async () => {
+  const { cfg: base } = await sandbox();
+  const cfg = { ...base, ...settings({ AGENT_TEAM_HOME: base.home, AGENT_TEAM_WORKDIR: base.workdir }, { model: "qwen3.6:35b-a3b-q4_K_M", numThread: 10, numCtx: 8192 }) };
+  const team = await loadRoles();
+  const seen = scriptOllama([{ content: "Hello." }]);
+  await ask(cfg, team, "hi", { as: "Thandi" });
+  assert.equal(seen[0].model, "qwen3.6:35b-a3b-q4_K_M");
+  assert.deepEqual(seen[0].options, { num_ctx: 8192, num_thread: 10 });
+});
