@@ -21,11 +21,13 @@ Change a role there; the engine in `agents.mjs` reads it on every run.
 ## Status
 
 `status.html` is one screen for the six roles: the name and title from `roles.json`, and one status
-word and one sentence from `status.json`. The host team is not installed. The page says so in that
-file's own sentence, above the names. It is not a patient page, and it does not call the network.
-Open the file in a browser, or serve this folder and open `status.html`.
+word and one sentence from `status.json`. The same page takes a task for one of them. The host team
+is not installed. The page says so in that file's own sentence, above the names and the form.
+Recording a task does not start anyone. The task is held, in `status.json`'s own held sentence, and
+written under `work/`, which git ignores. It is not a patient page.
 
 ```sh
+node board.mjs                  # http://127.0.0.1:8765/status.html
 node render-status.mjs          # rewrite status.html after a sentence changes
 node render-status.mjs --check  # fail if the page has drifted, or a status names a role the roster does not have
 ```

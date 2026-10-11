@@ -1,10 +1,11 @@
 // The founder's status page for the work team. Names and titles stay in roles.json. What each
-// person has done stays in status.json. This script inlines both into status.html so the page
-// opens as a file and never fetches. It fails when the page drifts from those files, when a
-// status names a role the roster does not have, or when a roster id has no status.
+// person has done stays in status.json. This script inlines both into status.html so the roster
+// is not typed a second time. It fails when the page drifts from those files, when a status names
+// a role the roster does not have, or when a roster id has no status.
 //
-// The page is not a patient route. A patient on metered data must not download an agent roster,
-// and nothing here is installed or running: the notice is status.json's own sentence.
+// The page is not a patient route. A patient on metered data must not download an agent roster.
+// A task recorded on the page is held by board.mjs in the gitignored work folder. Recording it
+// does not start anyone: the notice is status.json's own sentence, and the held line is too.
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -43,6 +44,9 @@ export function statusProblems(roles, status) {
   if (typeof status?.heading === "string" && /\bactive\b/i.test(status.heading)) {
     problems.push("the heading groups the team as active");
   }
+  if (typeof status?.held !== "string" || status.held.trim() === "") {
+    problems.push("status.json has no held sentence");
+  }
   const roster = new Map();
   for (const role of roles?.roles ?? []) {
     if (roster.has(role.id)) problems.push(`roles.json repeats ${role.id}`);
@@ -76,10 +80,71 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;");
 }
 
+// The page asks the local board for tasks and posts a new one back. It has no other request.
+// Opened as a file, the request fails and the empty line stays, because a file cannot write
+// the work folder and must not pretend it stored anything.
+const PAGE_SCRIPT = `
+function showTask(task) {
+  var list = document.querySelector("ul.tasks[data-role='" + CSS.escape(task.roleId) + "']");
+  if (!list) return;
+  var item = document.createElement("li");
+  var words = document.createElement("p");
+  words.className = "task-text";
+  words.textContent = task.text;
+  var held = document.createElement("p");
+  held.className = "held";
+  held.textContent = task.sentence;
+  item.append(words, held);
+  list.append(item);
+  var empty = document.getElementById("empty");
+  if (empty) empty.hidden = true;
+}
+async function loadBoard() {
+  try {
+    var response = await fetch("/board");
+    if (!response.ok) return;
+    var board = await response.json();
+    (board.tasks || []).forEach(showTask);
+  } catch (error) {
+    // Opened as a file, or the board is not running. The empty line stays.
+  }
+}
+document.getElementById("task-form").addEventListener("submit", async function (event) {
+  event.preventDefault();
+  var form = event.currentTarget;
+  var button = form.querySelector("button");
+  var problem = document.getElementById("problem");
+  button.disabled = true;
+  problem.textContent = "";
+  try {
+    var response = await fetch("/tasks", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleId: form.roleId.value, text: form.text.value }),
+    });
+    var body = await response.json();
+    if (!response.ok) {
+      problem.textContent = body.error || "The task was not recorded.";
+      return;
+    }
+    showTask(body);
+    form.text.value = "";
+  } catch (error) {
+    problem.textContent = "Run node board.mjs in this folder, then open the address it prints. This file cannot store a task by itself.";
+  } finally {
+    button.disabled = false;
+  }
+});
+loadBoard();
+`;
+
 export function renderStatusHtml(roles, status) {
   const problems = statusProblems(roles, status);
   if (problems.length) throw new Error(problems.join("\n"));
   const byId = new Map(status.people.map((person) => [person.id, person]));
+  const options = roles.roles.map((role) =>
+    `        <option value="${escapeHtml(role.id)}">${escapeHtml(role.name)}, ${escapeHtml(role.title)}</option>`,
+  ).join("\n");
   const cards = roles.roles.map((role) => {
     const person = byId.get(role.id);
     return `    <article>
@@ -87,6 +152,7 @@ export function renderStatusHtml(roles, status) {
       <p class="title">${escapeHtml(role.title)}</p>
       <p class="word">${escapeHtml(person.word)}</p>
       <p class="sentence">${escapeHtml(person.sentence)}</p>
+      <ul class="tasks" data-role="${escapeHtml(role.id)}"></ul>
     </article>`;
   }).join("\n");
   return `<!doctype html>
@@ -127,6 +193,24 @@ export function renderStatusHtml(roles, status) {
     background:var(--surface); font-size:0.85rem;
   }
   .sentence { margin:0.45rem 0 0; }
+  form { margin:0 0 1.25rem; padding:0.9rem 1rem; border-radius:0.75rem; background:var(--surface); border:1px solid var(--line); }
+  label { display:block; margin:0.7rem 0 0.25rem; color:var(--muted); font-size:0.9rem; }
+  label:first-child { margin-top:0; }
+  select, input {
+    width:100%; min-height:44px; padding:0.5rem 0.7rem; border:1px solid var(--line); border-radius:0.6rem;
+    background:var(--surface); color:var(--text); font:inherit;
+  }
+  button {
+    margin-top:0.85rem; min-height:44px; padding:0 1rem; border:0; border-radius:999px;
+    background:var(--ink); color:#fff; font:inherit;
+  }
+  button:disabled { opacity:0.6; }
+  .hint, #empty, #problem { margin:0.6rem 0 0; color:var(--muted); font-size:0.9rem; }
+  #problem:empty { display:none; }
+  ul.tasks { list-style:none; margin:0.7rem 0 0; padding:0; }
+  ul.tasks li { margin:0 0 0.6rem; }
+  .task-text { margin:0; }
+  .held { margin:0.15rem 0 0; color:var(--warn-ink); }
   footer { margin-top:1.25rem; color:var(--muted); font-size:0.9rem; }
 </style>
 </head>
@@ -134,9 +218,24 @@ export function renderStatusHtml(roles, status) {
 <main>
   <h1>${escapeHtml(status.heading)}</h1>
   <p class="notice">${escapeHtml(status.notice)}</p>
+  <form id="task-form">
+    <label for="role">Who</label>
+    <select id="role" name="roleId" required>
+${options}
+    </select>
+    <label for="task">Task</label>
+    <input id="task" name="text" type="text" required maxlength="2000" autocomplete="off">
+    <button type="submit">Record the task</button>
+    <p class="hint">Recording a task does not start anyone.</p>
+    <p id="empty">No tasks yet.</p>
+    <p id="problem" role="status"></p>
+  </form>
 ${cards}
-  <footer>Names and titles are roles.json. These sentences are status.json. This page does not call the network, and it is not part of the patient app.</footer>
+  <footer>Names and titles are roles.json. These sentences are status.json. A recorded task is held in the work folder on this machine. It does not start anyone, and this page is not part of the patient app.</footer>
 </main>
+<script>
+${PAGE_SCRIPT}
+</script>
 </body>
 </html>
 `;

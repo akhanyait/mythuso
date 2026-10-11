@@ -10,6 +10,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { settings, loadRoles, ask, inside, listApprovals, delegationCap, KNOWN_TOOLS } from "./agents.mjs";
 import { readTeamStatus, statusProblems, checkStatusPage } from "./render-status.mjs";
+import { startBoard } from "./board.mjs";
+
+// The model stand-in replaces global fetch and does not put it back. The board test talks to
+// its own server, so it keeps the fetch this file was loaded with.
+const realFetch = globalThis.fetch;
 
 const ROSTER = [
   ["pm", "Thandi", "Project Manager"],
@@ -229,15 +234,58 @@ test("the status page is inlined from the two JSON files and says the team is no
   const html = checkStatusPage();
   const { roles, status } = readTeamStatus();
   assert.equal(html.includes(">Active<"), false);
-  assert.equal(html.includes("fetch("), false);
+  assert.equal(html.includes("localStorage"), false);
+  assert.equal(html.includes("sessionStorage"), false);
+  assert.equal(html.includes("indexedDB"), false);
+  assert.deepEqual([...html.matchAll(/fetch\("([^"]+)"/g)].map((match) => match[1]), ["/board", "/tasks"]);
   assert.ok(html.includes(status.notice));
-  assert.ok(html.indexOf(status.notice) < html.indexOf("<article>"));
+  assert.ok(html.includes("No tasks yet."));
+  assert.ok(html.indexOf('class="notice"') < html.indexOf("<form"));
+  assert.ok(html.indexOf("<form") < html.indexOf("<article>"));
+  assert.equal(status.held, "Held. The team is not installed, so nobody is carrying this out.");
   for (const role of roles.roles) {
     const person = status.people.find((row) => row.id === role.id);
     assert.ok(html.includes(role.name), role.id);
     assert.ok(html.includes(role.title), role.id);
     assert.ok(html.includes(person.word), role.id);
     assert.ok(html.includes(person.sentence), role.id);
+    assert.ok(html.includes(`<option value="${role.id}">`), role.id);
+    assert.ok(html.includes(`data-role="${role.id}"`), role.id);
+  }
+});
+
+test("a task that names a role the roster does not have is refused and not stored", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "board-"));
+  const server = await startBoard({ port: 0, workdir: dir });
+  const { port } = server.address();
+  const url = `http://127.0.0.1:${port}`;
+  try {
+    const refused = await realFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleId: "admin", text: "Install the team" }),
+    });
+    assert.equal(refused.status, 400);
+    const problem = await refused.json();
+    assert.match(problem.error, /a task names admin, which roles.json does not have/);
+    assert.deepEqual((await (await realFetch(`${url}/board`)).json()).tasks, []);
+
+    const held = await realFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleId: "engineer", text: "Morning-of card on the web", sentence: "Sipho is running." }),
+    });
+    assert.equal(held.status, 201);
+    const task = await held.json();
+    assert.equal(task.roleId, "engineer");
+    assert.equal(task.text, "Morning-of card on the web");
+    assert.equal(task.sentence, "Held. The team is not installed, so nobody is carrying this out.");
+    const board = await (await realFetch(`${url}/board`)).json();
+    assert.equal(board.tasks.length, 1);
+    assert.equal(board.tasks[0].sentence, task.sentence);
+    assert.equal(board.held, task.sentence);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
   }
 });
 

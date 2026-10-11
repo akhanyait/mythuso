@@ -36,6 +36,24 @@
     background:var(--surface); font-size:0.85rem;
   }
   .sentence { margin:0.45rem 0 0; }
+  form { margin:0 0 1.25rem; padding:0.9rem 1rem; border-radius:0.75rem; background:var(--surface); border:1px solid var(--line); }
+  label { display:block; margin:0.7rem 0 0.25rem; color:var(--muted); font-size:0.9rem; }
+  label:first-child { margin-top:0; }
+  select, input {
+    width:100%; min-height:44px; padding:0.5rem 0.7rem; border:1px solid var(--line); border-radius:0.6rem;
+    background:var(--surface); color:var(--text); font:inherit;
+  }
+  button {
+    margin-top:0.85rem; min-height:44px; padding:0 1rem; border:0; border-radius:999px;
+    background:var(--ink); color:#fff; font:inherit;
+  }
+  button:disabled { opacity:0.6; }
+  .hint, #empty, #problem { margin:0.6rem 0 0; color:var(--muted); font-size:0.9rem; }
+  #problem:empty { display:none; }
+  ul.tasks { list-style:none; margin:0.7rem 0 0; padding:0; }
+  ul.tasks li { margin:0 0 0.6rem; }
+  .task-text { margin:0; }
+  .held { margin:0.15rem 0 0; color:var(--warn-ink); }
   footer { margin-top:1.25rem; color:var(--muted); font-size:0.9rem; }
 </style>
 </head>
@@ -43,43 +61,122 @@
 <main>
   <h1>Work team</h1>
   <p class="notice">The host team is not installed. The install script is on the branch and has not been run. It is not GilbertOne, and it is not six cloud agents. These roles are not live processes. Nobody is running.</p>
+  <form id="task-form">
+    <label for="role">Who</label>
+    <select id="role" name="roleId" required>
+        <option value="pm">Thandi, Project Manager</option>
+        <option value="architect">Kabelo, Enterprise Architect</option>
+        <option value="designer">Lerato, Specialist Creative Designer, Senior UI/UX</option>
+        <option value="engineer">Sipho, Specialist Full Stack Engineer</option>
+        <option value="engineer-2">Karabo, Specialist Full Stack Engineer</option>
+        <option value="qa">Nomsa, QA and Tester</option>
+    </select>
+    <label for="task">Task</label>
+    <input id="task" name="text" type="text" required maxlength="2000" autocomplete="off">
+    <button type="submit">Record the task</button>
+    <p class="hint">Recording a task does not start anyone.</p>
+    <p id="empty">No tasks yet.</p>
+    <p id="problem" role="status"></p>
+  </form>
     <article>
       <h2>Thandi</h2>
       <p class="title">Project Manager</p>
       <p class="word">not running</p>
       <p class="sentence">She scoped the unfinished host and product work, kept in docs/ROADMAP.md as Research takeaways, scoped 11 October 2026. She is keeping the GilbertOne link, recorded there as GilbertOne linked to MyThuso, tracked 11 October 2026. Feature recommendations are in the chat record, and they are not committed as a decision. Her current work is tracking. She is not running.</p>
+      <ul class="tasks" data-role="pm"></ul>
     </article>
     <article>
       <h2>Kabelo</h2>
       <p class="title">Enterprise Architect</p>
       <p class="word">done on this branch</p>
       <p class="sentence">The knowledge and language link is committed on this branch. GilbertOne reads the nine local catalogue files. The fourteen federation sources stay consulted only when active, and all fourteen are false. MyThuso's eleven locales are the language scope. He is not running.</p>
+      <ul class="tasks" data-role="architect"></ul>
     </article>
     <article>
       <h2>Lerato</h2>
       <p class="title">Specialist Creative Designer, Senior UI/UX</p>
       <p class="word">scoped</p>
       <p class="sentence">The patient-journey audit is recorded in docs/ROADMAP.md, under Look, motion and the patient journey, scoped 11 October 2026. It is scoped, and it is not built. She is not running.</p>
+      <ul class="tasks" data-role="designer"></ul>
     </article>
     <article>
       <h2>Sipho</h2>
       <p class="title">Specialist Full Stack Engineer</p>
       <p class="word">not running</p>
       <p class="sentence">He is cleared to build the morning-of card on the web and in the contracts. That card has not been built. He is not running.</p>
+      <ul class="tasks" data-role="engineer"></ul>
     </article>
     <article>
       <h2>Karabo</h2>
       <p class="title">Specialist Full Stack Engineer</p>
       <p class="word">standby</p>
       <p class="sentence">He is on standby for the same card on iOS and Android. It is not started. He is not running.</p>
+      <ul class="tasks" data-role="engineer-2"></ul>
     </article>
     <article>
       <h2>Nomsa</h2>
       <p class="title">QA and Tester</p>
       <p class="word">not running</p>
       <p class="sentence">On 11 October 2026, npm run check and npm test both exited 0 on this branch: 4,479 passed, 27 skipped, and 0 failed. iOS and Android were not run, because this machine is Linux. She is not running.</p>
+      <ul class="tasks" data-role="qa"></ul>
     </article>
-  <footer>Names and titles are roles.json. These sentences are status.json. This page does not call the network, and it is not part of the patient app.</footer>
+  <footer>Names and titles are roles.json. These sentences are status.json. A recorded task is held in the work folder on this machine. It does not start anyone, and this page is not part of the patient app.</footer>
 </main>
+<script>
+
+function showTask(task) {
+  var list = document.querySelector("ul.tasks[data-role='" + CSS.escape(task.roleId) + "']");
+  if (!list) return;
+  var item = document.createElement("li");
+  var words = document.createElement("p");
+  words.className = "task-text";
+  words.textContent = task.text;
+  var held = document.createElement("p");
+  held.className = "held";
+  held.textContent = task.sentence;
+  item.append(words, held);
+  list.append(item);
+  var empty = document.getElementById("empty");
+  if (empty) empty.hidden = true;
+}
+async function loadBoard() {
+  try {
+    var response = await fetch("/board");
+    if (!response.ok) return;
+    var board = await response.json();
+    (board.tasks || []).forEach(showTask);
+  } catch (error) {
+    // Opened as a file, or the board is not running. The empty line stays.
+  }
+}
+document.getElementById("task-form").addEventListener("submit", async function (event) {
+  event.preventDefault();
+  var form = event.currentTarget;
+  var button = form.querySelector("button");
+  var problem = document.getElementById("problem");
+  button.disabled = true;
+  problem.textContent = "";
+  try {
+    var response = await fetch("/tasks", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleId: form.roleId.value, text: form.text.value }),
+    });
+    var body = await response.json();
+    if (!response.ok) {
+      problem.textContent = body.error || "The task was not recorded.";
+      return;
+    }
+    showTask(body);
+    form.text.value = "";
+  } catch (error) {
+    problem.textContent = "Run node board.mjs in this folder, then open the address it prints. This file cannot store a task by itself.";
+  } finally {
+    button.disabled = false;
+  }
+});
+loadBoard();
+
+</script>
 </body>
 </html>
