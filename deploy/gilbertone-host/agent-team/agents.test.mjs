@@ -267,6 +267,9 @@ test("the status page is inlined from the two JSON files and says the team is no
   assert.equal(html.includes("setTimeout(function () { render"), false);
   assert.ok(html.includes(status.notice));
   assert.ok(html.includes("The host team is not installed."));
+  assert.ok(html.includes("This page is not calling a model, so nobody here is carrying a duty out."));
+  assert.equal(html.includes("has not been run"), false);
+  assert.equal(/install failed/i.test(html), false);
   assert.ok(html.indexOf('class="notice-lead"') < html.indexOf('id="model-line"'));
   assert.ok(html.includes("A model is not connected."));
   assert.ok(html.includes("Notices"));
@@ -532,7 +535,15 @@ test("a plan question lists what is held and a greeting includes the morning lin
   assert.match(hello[0].text, /^Hello\. I am Thandi\./);
   assert.match(hello[0].text, /On the rail:/);
   assert.match(hello[0].text, /still held/);
+  assert.match(hello[0].text, /I am not running, so I have not started any work/);
   assert.match(hello[0].text, /The team is not installed, so nobody is carrying this out/);
+  assert.equal(/holding this for the whole team/.test(hello[0].text), false);
+  assert.equal(/You wrote:/.test(hello[0].text), false);
+  const how = dutyReplies(roles, status, [], screen, { text: "how are you?", tasks });
+  assert.equal(how[0].name, "Thandi");
+  assert.equal(how.length, 1);
+  assert.match(how[0].text, /I am not running, so I have not started any work/);
+  assert.equal(/holding this for the whole team/.test(how[0].text), false);
   const named = dutyReplies(roles, status, [], screen, { text: "howzit Sipho", tasks });
   assert.equal(named[0].name, "Sipho");
   assert.match(named[0].text, /^Hello\./);
@@ -752,6 +763,121 @@ test("a posted @ mention assigns that person, and an unknown mention is refused"
 
     const board = await (await boardFetch(`${url}/board`)).json();
     assert.deepEqual(board.tasks.map((task) => task.title), ["Thandi", "Sipho", "Whole team"]);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("a greeting with nobody named is Thandi's and is not held for the whole team", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "board-greet-"));
+  await writeFile(join(dir, "tasks.json"), `${JSON.stringify({
+    tasks: [{
+      id: "old-how",
+      roleIds: [],
+      audience: "team",
+      threadKey: "team",
+      title: "Whole team",
+      heldFor: "Held for the whole team.",
+      text: "how are you?",
+      sentence: "Held. The team is not installed, so nobody is carrying this out.",
+      replies: [{
+        roleId: "pm",
+        name: "Thandi",
+        text: "I am Thandi, Project Manager, and I am holding this for the whole team and have not handed it on. You wrote: how are you?.",
+      }],
+      at: new Date().toISOString(),
+    }],
+  }, null, 2)}\n`);
+  const server = await startBoard({ port: 0, workdir: dir, token: BOARD_KEY, env: { OLLAMA_URL: "" } });
+  const { port } = server.address();
+  const url = `http://127.0.0.1:${port}`;
+  async function post(text, extra = {}) {
+    const response = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text, ...extra }),
+    });
+    assert.equal(response.status, 201, text);
+    return response.json();
+  }
+  try {
+    const reread = await (await boardFetch(`${url}/board`)).json();
+    assert.equal(reread.tasks[0].text, "how are you?");
+    assert.equal(reread.tasks[0].roleId, "pm");
+    assert.equal(reread.tasks[0].title, "Thandi");
+    assert.equal(reread.tasks[0].audience, "person");
+    assert.equal(/holding this for the whole team/.test(reread.tasks[0].replies[0].text), false);
+    const kept = JSON.parse(await readFile(join(dir, "tasks.json"), "utf8"));
+    assert.equal(kept.tasks[0].id, "old-how");
+    assert.deepEqual(kept.tasks[0].roleIds, []);
+
+    const thandiLines = [
+      "how are you?",
+      "How are you?",
+      "hello",
+      "hi",
+      "hey",
+      "howzit",
+      "sawubona",
+      "molo",
+      "how's it going",
+      "how are you doing",
+      "hello thandi",
+      "hello there",
+    ];
+    for (const text of thandiLines) {
+      const task = await post(text, text === "how are you?" ? { roleIds: [] } : {});
+      assert.equal(task.roleId, "pm", text);
+      assert.equal(task.title, "Thandi", text);
+      assert.equal(task.audience, "person", text);
+      assert.notEqual(task.title, "Whole team", text);
+      assert.equal(task.replies.length, 1, text);
+      assert.equal(task.replies[0].name, "Thandi", text);
+      assert.equal(task.replies[0].roleId, "pm", text);
+      assert.match(task.replies[0].text, /^Hello\. I am Thandi\./, text);
+      assert.match(task.replies[0].text, /On the rail:/, text);
+      assert.match(task.replies[0].text, /I am not running, so I have not started any work/, text);
+      assert.match(task.replies[0].text, /The team is not installed, so nobody is carrying this out/, text);
+      assert.equal(/holding this for the whole team/.test(task.replies[0].text), false, text);
+      assert.equal(/You wrote:/.test(task.replies[0].text), false, text);
+      assert.equal(/I have not started it/.test(task.replies[0].text), false, text);
+    }
+
+    const sipho = await post("howzit Sipho");
+    assert.equal(sipho.roleId, "engineer");
+    assert.equal(sipho.title, "Sipho");
+    assert.equal(sipho.replies.length, 1);
+    assert.equal(sipho.replies[0].name, "Sipho");
+    assert.match(sipho.replies[0].text, /^Hello\. I am Sipho\./);
+    assert.equal(/holding this for the whole team/.test(sipho.replies[0].text), false);
+
+    const named = await post("hello sipho");
+    assert.equal(named.roleId, "engineer");
+    assert.equal(named.replies.length, 1);
+
+    const work = await post("Draft the shop header.");
+    assert.equal(work.audience, "team");
+    assert.equal(work.title, "Whole team");
+    assert.deepEqual(work.roleIds, []);
+    assert.equal(work.replies.length, 1);
+    assert.equal(work.replies[0].name, "Thandi");
+    assert.match(work.replies[0].text, /holding this for the whole team and have not handed it on/);
+
+    const waved = await post("@Lerato @Nomsa hello");
+    assert.equal(waved.audience, "group");
+    assert.equal(waved.replies.length, 1);
+    assert.equal(/holding this for the whole team/.test(waved.replies[0].text), false);
+
+    const karabo = await post("@Karabo Hold the phone draft.");
+    assert.equal(karabo.roleId, "engineer-2");
+    assert.equal(karabo.title, "Karabo");
+    assert.match(karabo.replies[0].text, /I will draft the phone piece/);
+
+    const board = await (await boardFetch(`${url}/board`)).json();
+    const fresh = board.tasks.find((task) => task.text === "how are you?" && task.id !== "old-how");
+    assert.equal(fresh.title, "Thandi");
+    assert.equal(fresh.roleId, "pm");
+    assert.equal(/holding this for the whole team/.test(fresh.replies[0].text), false);
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }

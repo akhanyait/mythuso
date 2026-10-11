@@ -4,8 +4,10 @@
 // key lives in the work folder and is never written into the page source.
 //
 // A duty names role ids from roles.json. One id is one person. Two or more are one shared
-// thread, held for each of them. None is the whole team. The sentence is never taken from
-// the request, and neither is the line that says who it is held for.
+// thread, held for each of them. None is the whole team. A greeting or a line of small talk
+// with nobody @-named is one person: the trailing name when that person is on the rail,
+// otherwise the lead. It does not fan out, and it is not held for the whole team. The
+// sentence is never taken from the request, and neither is the line that says who it is held for.
 //
 //   node board.mjs
 //   open http://127.0.0.1:8765/status.html
@@ -359,6 +361,12 @@ function dutyIds(roles, input, screen = { added: [], hidden: [] }) {
   for (const id of mentioned.ids) {
     if (!seen.includes(id)) seen.push(id);
   }
+  // A greeting with nobody named is still one person's. Leaving it empty is how
+  // "how are you?" was stored for the whole team.
+  if (!seen.length) {
+    const greetingId = greetingRoleId(roles, input?.text, screen);
+    if (greetingId && rail.has(greetingId)) seen.push(greetingId);
+  }
   return seen;
 }
 
@@ -381,11 +389,45 @@ function foldedMessage(text) {
   return String(text ?? "").trim().toLowerCase().replace(/['’]/g, "");
 }
 
+// Small talk is not a duty. Longest stems first, so "how are you doing" is not
+// cut down to "how are you". A trailing name is one word, with or without @.
+const GREETING_STEMS = [
+  "how are you doing",
+  "hows it going",
+  "how are you",
+  "sawubona",
+  "howzit",
+  "hello",
+  "molo",
+  "hey",
+  "hi",
+];
+
+function greetingWords(text) {
+  return foldedMessage(text)
+    .replace(/[!.?,]+/g, " ")
+    .replace(/(^|\s)@[a-z]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Null when the line is longer than the greeting, so a real ask is not swallowed.
+export function parseGreeting(text) {
+  const greeting = greetingWords(text);
+  for (const stem of GREETING_STEMS) {
+    if (greeting === stem) return { stem, name: "" };
+    const prefix = `${stem} `;
+    if (!greeting.startsWith(prefix)) continue;
+    const rest = greeting.slice(prefix.length);
+    if (/^[a-z]+$/.test(rest)) return { stem, name: rest };
+  }
+  return null;
+}
+
 // A greeting, a question about the plan, or a piece of work. The words he typed decide which.
 export function replyKind(text) {
+  if (parseGreeting(text)) return "greeting";
   const folded = foldedMessage(text);
-  const greeting = folded.replace(/[!.?,]+/g, " ").replace(/\s+/g, " ").trim();
-  if (/^(hello|hi|howzit|sawubona)( [a-z]+)?$/.test(greeting)) return "greeting";
   const asks = folded.includes("?") || /^(what|whats)\b/.test(folded);
   if (asks && /\b(plan|today|held)\b/.test(folded)) return "plan";
   return "work";
@@ -435,10 +477,17 @@ function planSentences(tasks, screen, exceptId) {
 }
 
 function greetingName(roles, screen, text) {
-  const greeting = foldedMessage(text).replace(/[!.?,]+/g, " ").replace(/\s+/g, " ").trim();
-  const name = greeting.split(" ")[1];
-  if (!name) return null;
-  return screenRoster(roles, screen).find((person) => person.name.toLowerCase() === name) ?? null;
+  const parsed = parseGreeting(text);
+  if (!parsed?.name) return null;
+  return screenRoster(roles, screen).find((person) => person.name.toLowerCase() === parsed.name) ?? null;
+}
+
+// Nobody @-named: the trailing roster name, or the lead. A word that is not a
+// person ("hello there") stays with the lead, rather than the whole team.
+export function greetingRoleId(roles, text, screen = { added: [], hidden: [] }) {
+  if (!parseGreeting(text)) return null;
+  const named = greetingName(roles, screen, text);
+  return named?.id ?? roles.lead ?? null;
 }
 
 function replyText(role, status, wholeTeam, context = {}) {
@@ -447,7 +496,7 @@ function replyText(role, status, wholeTeam, context = {}) {
   const morning = morningLine(context.roles, context.screen, heldDuties(context.tasks, context.screen, context.exceptId));
   if (kind === "greeting") {
     const only = role.screenOnly ? " I am on this screen only." : "";
-    return `Hello. I am ${role.name}.${only} ${morning} ${HELD_WORDS}.`;
+    return `Hello. I am ${role.name}.${only} ${morning} I am not running, so I have not started any work. ${HELD_WORDS}.`;
   }
   if (kind === "plan") {
     const list = planSentences(context.tasks, context.screen, context.exceptId);
@@ -573,12 +622,21 @@ export function holdTask(roles, status, tasks, input, screen = { added: [], hidd
 // is status.json's held sentence unless a model is connected and the engine wrote a report.
 // The sentence is never taken from the request.
 export function presentTask(roles, status, task, options = {}) {
-  const raw = Array.isArray(task?.roleIds)
+  const screen = options.screen ?? { added: [], hidden: [] };
+  let raw = Array.isArray(task?.roleIds)
     ? task.roleIds
     : (typeof task?.roleId === "string" && task.roleId ? [task.roleId] : null);
   if (!raw) return null;
+  // A greeting stored before this rule still had no ids. The reply is already
+  // rewritten on read; the thread follows, and the file is left as it was.
+  if (raw.length === 0) {
+    const greetingId = greetingRoleId(roles, task?.text, screen);
+    if (greetingId && screenRoster(roles, screen).some((person) => person.id === greetingId)) {
+      raw = [greetingId];
+    }
+  }
   try {
-    const described = describeDuty(roles, raw, options.screen);
+    const described = describeDuty(roles, raw, screen);
     const report = options.modelConnected === true
       && task.fromEngine === true
       && typeof task.report === "string"
@@ -590,7 +648,7 @@ export function presentTask(roles, status, task, options = {}) {
       text: typeof task.text === "string" ? task.text : "",
       // With OLLAMA_URL unset, the receipt stays status.json's held sentence.
       sentence: report || status.held,
-      replies: presentReplies(roles, status, described, task, options.screen ?? { added: [], hidden: [] }, options.tasks ?? []),
+      replies: presentReplies(roles, status, described, task, screen, options.tasks ?? []),
       at: task.at,
     };
   } catch {
@@ -915,5 +973,5 @@ if (isMain) {
   const address = server.address();
   console.log(`Work team board at http://127.0.0.1:${address.port}/status.html`);
   console.log(probe.connected ? "A model is connected." : "A model is not connected.");
-  console.log("The host team is not installed. A duty is held unless OLLAMA_URL is set and that host answers /api/tags.");
+  console.log("This board is not calling a model, so nobody here is carrying a duty out.");
 }

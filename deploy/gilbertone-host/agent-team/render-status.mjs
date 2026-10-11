@@ -18,11 +18,13 @@ const here = dirname(fileURLToPath(import.meta.url));
 // because nobody on this team is a live process.
 export const STATUS_WORDS = ["not running", "standby", "scoped", "done on this branch"];
 
-// The notice has to keep the decision's own words: the install has not been run, and these
-// are not six cloud agents. The page prints that sentence above the names.
+// The notice has to keep the decision's own words: this page is not calling a model,
+// so nobody here is carrying a duty out, and these are not six cloud agents. It must
+// not claim the install script has not been run. The page prints that sentence above the names.
 const NOTICE_MUST_SAY = [
   "not installed",
-  "has not been run",
+  "not calling a model",
+  "nobody here is carrying a duty out",
   "not six cloud agents",
   "not live processes",
   "Nobody is running",
@@ -41,6 +43,9 @@ export function statusProblems(roles, status) {
   const notice = typeof status?.notice === "string" ? status.notice : "";
   for (const phrase of NOTICE_MUST_SAY) {
     if (!notice.includes(phrase)) problems.push(`the notice no longer says "${phrase}"`);
+  }
+  if (/has not been run|install failed/i.test(notice)) {
+    problems.push("the notice must not say the install script has not been run");
   }
   if (typeof status?.heading === "string" && /\bactive\b/i.test(status.heading)) {
     problems.push("the heading groups the team as active");
