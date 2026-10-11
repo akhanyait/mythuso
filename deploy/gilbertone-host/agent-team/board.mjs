@@ -20,7 +20,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { ask, loadRoles, probeModel, settings } from "./agents.mjs";
-import { isQwenChoice, listCursorModels, writeCursorReply } from "./cursor-models.mjs";
+import { isQwenChoice, listCursorModels, warmDefaultModel, writeCursorReply } from "./cursor-models.mjs";
 import { readTeamStatus } from "./render-status.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -1031,4 +1031,9 @@ if (isMain) {
   console.log(`Work team board at http://127.0.0.1:${address.port}/status.html`);
   console.log("Qwen on the server is not connected.");
   console.log("Cursor models are in the picker. A reply names the model that wrote it.");
+  warmDefaultModel(process.env).then((name) => {
+    if (name) console.log(`${name} is ready for the next reply.`);
+  }).catch(() => {
+    // The next duty still asks the model. Warming it is only a head start.
+  });
 }

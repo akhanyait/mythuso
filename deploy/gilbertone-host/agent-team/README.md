@@ -29,7 +29,7 @@ does the same when two or more are chosen. The host team is not installed. The p
 the top of the conversation, in that file's own sentence. The next line says Qwen on the server
 is not connected, and the board does not call it. The picker lists every Cursor model the
 environment key can call. A duty sent with one of those models is written by that model, and the
-reply names it. Recording a duty shows that person is writing, then paints their reply from the same response.
+reply names it. That model stays ready, so the next reply does not start another machine. Recording a duty shows that person is writing, then paints their reply from the same response.
 A duty can be pinned, marked done, or dismissed. The thread can be searched. Notices can be muted
 for the Johannesburg day. Enter sends. A named group can be duty'd in one tap. Today's list can be
 copied. The morning line counts who is on the rail and what is still held. An added person's craft

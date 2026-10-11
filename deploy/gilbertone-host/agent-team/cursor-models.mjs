@@ -1,7 +1,8 @@
 // Cursor models for the work-team board. The list is whatever GET /v1/models returns for the
-// key already in the environment. A reply is one no-repo cloud agent run, then the agent is
-// deleted. The key is read here and sent as a header. It is never written into a file, a log
-// line, an error message, or the page.
+// key already in the environment. The first reply for a model starts one no-repo agent. Later
+// replies for that same model are follow-ups on the agent already running, so they do not wait
+// for another machine to boot. The key is read here and sent as a header. It is never written
+// into a file, a log line, an error message, or the page.
 //
 // Qwen is not a Cursor model. This file does not know the Qwen host and does not call it.
 
@@ -102,66 +103,124 @@ export async function listCursorModels(env = process.env, fetchImpl = globalThis
   return modelsFromCatalog(catalog);
 }
 
-async function deleteAgent(fetchImpl, key, agentId) {
-  if (!agentId) return;
-  try {
-    await cursorRequest(fetchImpl, key, "DELETE", `/v1/agents/${agentId}`);
-  } catch {
-    // The reply is already in hand. A leftover agent is not a second call to Qwen.
-  }
+// One agent per model, kept after the reply, so the next message is a follow-up.
+const agentsByModel = new Map();
+const lanes = new Map();
+
+export function clearCursorAgents() {
+  agentsByModel.clear();
+  lanes.clear();
 }
 
-export async function writeCursorReply(env, fetchImpl, model, { speakerName, speakerTitle, duty, held, timeoutMs = 120_000 } = {}) {
+function enqueue(modelId, job) {
+  const previous = lanes.get(modelId) || Promise.resolve();
+  const run = previous.then(job, job);
+  lanes.set(modelId, run.then(() => undefined, () => undefined));
+  return run;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function replyPrompt(name, speakerName, speakerTitle, duty) {
+  return [
+    `Reply in two short sentences as ${speakerName}, ${speakerTitle}.`,
+    `Message: ${String(duty ?? "").trim()}`,
+    `The second sentence must name the model that wrote this reply: ${name}.`,
+    "Do not use tools. Do not read or change any file.",
+  ].join("\n");
+}
+
+async function waitForRun(fetchImpl, key, agentId, runId, timeoutMs) {
+  const started = Date.now();
+  let pause = 400;
+  let run = null;
+  while (Date.now() - started <= timeoutMs) {
+    run = await cursorRequest(fetchImpl, key, "GET", `/v1/agents/${agentId}/runs/${runId}`);
+    if (TERMINAL.has(run.status)) return run;
+    await sleep(pause);
+    pause = Math.min(1_000, pause + 200);
+  }
+  return run;
+}
+
+async function openRun(fetchImpl, key, model, prompt) {
+  const cached = agentsByModel.get(model.id);
+  if (cached) {
+    try {
+      const follow = await cursorRequest(fetchImpl, key, "POST", `/v1/agents/${cached}/runs`, {
+        prompt: { text: prompt },
+      });
+      const runId = follow.run?.id;
+      if (runId) return { agentId: cached, runId };
+    } catch (error) {
+      agentsByModel.delete(model.id);
+      if (error.code === "usage_limit_exceeded") throw error;
+    }
+  }
+  const selection = { id: model.id };
+  if (Array.isArray(model.params) && model.params.length) selection.params = model.params;
+  const created = await cursorRequest(fetchImpl, key, "POST", "/v1/agents", {
+    name: "Work-team reply",
+    prompt: { text: prompt },
+    model: selection,
+    autoCreatePR: false,
+  });
+  const agentId = created.agent?.id;
+  const runId = created.run?.id || created.agent?.latestRunId;
+  if (agentId) agentsByModel.set(model.id, agentId);
+  return { agentId, runId };
+}
+
+async function writeOnce(env, fetchImpl, model, options) {
   const key = keyFrom(env);
   if (!key) throw quiet(503, "No Cursor key is available.");
   const name = String(model?.displayName ?? "").trim();
   const id = String(model?.id ?? "").trim();
   if (!id || !name) throw quiet(400, "That model is not one this key can call.");
   if (isQwenChoice(id)) throw quiet(422, "Qwen on the server is not connected.");
-  const prompt = [
-    `You are writing one short reply on a work-team board, as ${speakerName}, ${speakerTitle}.`,
-    `The duty is: ${String(duty ?? "").trim()}`,
-    "Write at most four sentences.",
-    `Name the model that wrote this reply. That model is ${name}.`,
-    "Do not use tools. Do not read or change any file. Do not open a pull request.",
-    "Do not say the duty has been carried out.",
-    String(held ?? "").trim(),
-  ].filter(Boolean).join("\n");
-  const selection = { id };
-  if (Array.isArray(model.params) && model.params.length) selection.params = model.params;
-  let created;
+  const prompt = replyPrompt(name, options.speakerName, options.speakerTitle, options.duty);
+  let opened;
   try {
-    created = await cursorRequest(fetchImpl, key, "POST", "/v1/agents", {
-      name: "Work-team reply",
-      prompt: { text: prompt },
-      model: selection,
-      autoCreatePR: false,
-    });
+    opened = await openRun(fetchImpl, key, { ...model, id }, prompt);
   } catch (error) {
     if (error.code === "usage_limit_exceeded") {
       throw quiet(422, `${name} is not available to this key.`);
     }
     throw quiet(error.statusCode || 502, `${name} did not write a reply.`);
   }
-  const agentId = created.agent?.id;
-  const runId = created.run?.id || created.agent?.latestRunId;
+  const { agentId, runId } = opened;
   if (!agentId || !runId) throw quiet(502, `${name} did not write a reply.`);
-  try {
-    const started = Date.now();
-    let run = null;
-    while (Date.now() - started <= timeoutMs) {
-      run = await cursorRequest(fetchImpl, key, "GET", `/v1/agents/${agentId}/runs/${runId}`);
-      if (TERMINAL.has(run.status)) break;
-      await new Promise((resolve) => setTimeout(resolve, 1_500));
-    }
-    const result = typeof run?.result === "string" ? run.result.trim() : "";
-    if (run?.status !== "FINISHED" || !result) throw quiet(502, `${name} did not write a reply.`);
-    const finished = finishReply(result, model, held);
-    if (!finished.toLowerCase().includes(name.toLowerCase())) {
-      throw quiet(502, `${name} did not write a reply.`);
-    }
-    return finished;
-  } finally {
-    await deleteAgent(fetchImpl, key, agentId);
+  const run = await waitForRun(fetchImpl, key, agentId, runId, options.timeoutMs ?? 120_000);
+  const result = typeof run?.result === "string" ? run.result.trim() : "";
+  if (run?.status !== "FINISHED" || !result) {
+    agentsByModel.delete(id);
+    throw quiet(502, `${name} did not write a reply.`);
   }
+  const finished = finishReply(result, { ...model, id, displayName: name }, options.held);
+  if (!finished.toLowerCase().includes(name.toLowerCase())) {
+    throw quiet(502, `${name} did not write a reply.`);
+  }
+  return finished;
+}
+
+export async function writeCursorReply(env, fetchImpl, model, options = {}) {
+  const id = String(model?.id ?? "").trim();
+  return enqueue(id || "none", () => writeOnce(env, fetchImpl, model, options));
+}
+
+// Starts the picker default in the background so the first message someone sends is a
+// follow-up. A failure here changes nothing: the duty still asks the model itself.
+export async function warmDefaultModel(env = process.env, fetchImpl = globalThis.fetch) {
+  const models = await listCursorModels(env, fetchImpl);
+  const model = models.find((item) => item.id === "default") || models[0];
+  if (!model || agentsByModel.has(model.id)) return model?.displayName ?? "";
+  await writeCursorReply(env, fetchImpl, model, {
+    speakerName: "Thandi",
+    speakerTitle: "Project Manager",
+    duty: "Say ready.",
+    held: "",
+  });
+  return model.displayName;
 }

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { finishReply, isQwenChoice, listCursorModels, modelsFromCatalog, writeCursorReply } from "./cursor-models.mjs";
+import { clearCursorAgents, finishReply, isQwenChoice, listCursorModels, modelsFromCatalog, writeCursorReply } from "./cursor-models.mjs";
 
 test("the catalog becomes picker rows, and a Qwen id is left out", () => {
   const models = modelsFromCatalog({
@@ -52,6 +52,7 @@ test("a failed list does not repeat the key", async () => {
 });
 
 test("a usage limit is not turned into a reply, and a finished run names the model", async () => {
+  clearCursorAgents();
   const secret = "cursor-test-key-must-not-leak";
   const limited = [];
   await assert.rejects(
@@ -73,27 +74,34 @@ test("a usage limit is not turned into a reply, and a finished run names the mod
   assert.deepEqual(limited, ["https://api.cursor.com/v1/agents"]);
 
   const seen = [];
-  const text = await writeCursorReply(
+  const fetchImpl = async (url, init = {}) => {
+    const href = String(url);
+    seen.push(`${init.method || "GET"} ${href}`);
+    if (href.includes("qwen") || href.includes("/api/tags")) throw new Error("qwen was called");
+    if (init.method === "POST" && href.endsWith("/v1/agents")) {
+      return new Response(JSON.stringify({ agent: { id: "bc-1", latestRunId: "run-1" }, run: { id: "run-1" } }), { status: 201 });
+    }
+    if (init.method === "POST" && href.endsWith("/runs")) {
+      return new Response(JSON.stringify({ run: { id: "run-2", status: "CREATING" } }), { status: 201 });
+    }
+    return new Response(JSON.stringify({ status: "FINISHED", result: "Noted." }), { status: 200 });
+  };
+  const ask = (duty) => writeCursorReply(
     { CURSOR_API_KEY: secret },
-    async (url, init = {}) => {
-      const href = String(url);
-      seen.push(`${init.method || "GET"} ${href}`);
-      if (href.includes("qwen") || href.includes("/api/tags")) throw new Error("qwen was called");
-      if (init.method === "POST") {
-        return new Response(JSON.stringify({ agent: { id: "bc-1", latestRunId: "run-1" }, run: { id: "run-1" } }), { status: 201 });
-      }
-      if (init.method === "DELETE") return new Response("{}", { status: 200 });
-      return new Response(JSON.stringify({ status: "FINISHED", result: "Noted." }), { status: 200 });
-    },
+    fetchImpl,
     { id: "default", displayName: "Auto", params: [] },
-    { speakerName: "Thandi", speakerTitle: "Project Manager", duty: "Hello", held: "Held. The team is not installed, so nobody is carrying this out." },
+    { speakerName: "Thandi", speakerTitle: "Project Manager", duty, held: "Held. The team is not installed, so nobody is carrying this out." },
   );
+  const text = await ask("Hello");
   assert.match(text, /Written by Auto/);
   assert.match(text, /nobody is carrying this out/);
   assert.equal(text.includes(secret), false);
+  const again = await ask("And the next one.");
+  assert.match(again, /Written by Auto/);
   assert.deepEqual(seen, [
     "POST https://api.cursor.com/v1/agents",
     "GET https://api.cursor.com/v1/agents/bc-1/runs/run-1",
-    "DELETE https://api.cursor.com/v1/agents/bc-1",
+    "POST https://api.cursor.com/v1/agents/bc-1/runs",
+    "GET https://api.cursor.com/v1/agents/bc-1/runs/run-2",
   ]);
 });
