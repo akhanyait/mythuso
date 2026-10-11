@@ -241,7 +241,7 @@ test("the status page is inlined from the two JSON files and says the team is no
   assert.ok(html.includes(status.notice));
   assert.ok(html.includes("No tasks yet."));
   assert.ok(html.indexOf('class="notice"') < html.indexOf("<form"));
-  assert.ok(html.indexOf("<form") < html.indexOf("<article>"));
+  assert.ok(html.indexOf("<form") < html.indexOf("<article"));
   assert.equal(status.held, "Held. The team is not installed, so nobody is carrying this out.");
   for (const role of roles.roles) {
     const person = status.people.find((row) => row.id === role.id);
@@ -251,7 +251,11 @@ test("the status page is inlined from the two JSON files and says the team is no
     assert.ok(html.includes(person.sentence), role.id);
     assert.ok(html.includes(`<option value="${role.id}">`), role.id);
     assert.ok(html.includes(`data-role="${role.id}"`), role.id);
+    assert.ok(html.includes(`class="person person-${role.id}"`), role.id);
   }
+  assert.equal((html.match(/<svg /g) ?? []).length, roles.roles.length);
+  assert.ok(html.includes("prefers-reduced-motion"));
+  assert.equal(/@keyframes\s+pulse|animation:\s*pulse/.test(html), false);
 });
 
 test("a task that names a role the roster does not have is refused and not stored", async () => {

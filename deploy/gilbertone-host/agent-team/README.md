@@ -26,6 +26,10 @@ is not installed. The page says so in that file's own sentence, above the names 
 Recording a task does not start anyone. The task is held, in `status.json`'s own held sentence, and
 written under `work/`, which git ignores. It is not a patient page.
 
+The screen is drawn for Gilbert to sit with: warm paper, the product's ink and accent, Outfit and
+Figtree inlined from the faces the web already hosts, and a different icon on each person. A recorded
+task reads as a note under that person. Nothing on it pulses, and nobody is marked as running.
+
 ```sh
 node board.mjs                  # http://127.0.0.1:8765/status.html
 node render-status.mjs          # rewrite status.html after a sentence changes
