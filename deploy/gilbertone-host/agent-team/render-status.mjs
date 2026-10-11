@@ -133,7 +133,10 @@ function typeFaces() {
 
 // The page asks the local board for duties and posts a new one back. It has no other request.
 // Opened as a file, the request fails and the empty line stays, because a file cannot write
-// the work folder and must not pretend it stored anything.
+// the work folder and must not pretend it stored anything. The key, when the address has one,
+// is read from that address for the fetches on this page. Nothing is written into browser storage.
+// A recorded duty asks once for a notification and is also listed under Notices, so a phone
+// that refuses the notification still shows who it was for.
 //
 // The microphone is the browser's own speech recognition, and only after a tap. There is no
 // wake word. A single listen stops at 45 seconds and leaves the words in the box. If the
@@ -157,6 +160,13 @@ var rec = null;
 var listenTimer = null;
 var baseText = "";
 var LISTEN_MS = 45000;
+var notificationAsked = false;
+
+function authed(path) {
+  var key = new URLSearchParams(location.search).get("k");
+  if (!key) return path;
+  return path + "?k=" + encodeURIComponent(key);
+}
 
 function personById(id) {
   return roster.people.find(function (person) { return person.id === id; });
@@ -360,6 +370,51 @@ function renderLog() {
   log.scrollTop = log.scrollHeight;
 }
 
+function firstLine(text) {
+  return String(text || "").split("\\n")[0].trim();
+}
+
+function renderNotices() {
+  var list = document.getElementById("notice-list");
+  var empty = document.getElementById("notices-empty");
+  list.replaceChildren();
+  empty.hidden = duties.length > 0;
+  duties.slice().reverse().forEach(function (duty) {
+    var li = document.createElement("li");
+    var time = document.createElement("time");
+    time.dateTime = duty.at || "";
+    time.textContent = whenLabel(duty.at);
+    var who = document.createElement("span");
+    who.className = "notice-who";
+    who.textContent = duty.title || "Whole team";
+    var line = document.createElement("span");
+    line.className = "notice-line";
+    line.textContent = firstLine(duty.text);
+    li.append(time, who, line);
+    list.append(li);
+  });
+}
+
+function showModel(connected) {
+  var line = document.getElementById("model-line");
+  line.textContent = connected ? "A model is connected." : "A model is not connected.";
+}
+
+function raiseHeld(duty) {
+  var who = duty.title || "Whole team";
+  if (typeof Notification !== "function") return;
+  function send() {
+    try { new Notification(who, { body: "It is held." }); }
+    catch (error) { /* The notices list still shows the duty. */ }
+  }
+  if (Notification.permission === "granted") { send(); return; }
+  if (Notification.permission !== "default" || notificationAsked) return;
+  notificationAsked = true;
+  Notification.requestPermission().then(function (result) {
+    if (result === "granted") send();
+  }).catch(function () {});
+}
+
 function render() {
   var meta = threadMeta();
   document.getElementById("thread-title").textContent = meta.title;
@@ -367,6 +422,7 @@ function render() {
   renderPeople();
   renderThreads();
   renderLog();
+  renderNotices();
   renderChips();
 }
 
@@ -550,7 +606,7 @@ form.addEventListener("submit", async function (event) {
   button.disabled = true;
   stopListen();
   try {
-    var response = await fetch("/tasks", {
+    var response = await fetch(authed("/tasks"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ roleIds: ids, text: text }),
@@ -561,6 +617,7 @@ form.addEventListener("submit", async function (event) {
       return;
     }
     duties.push(body);
+    raiseHeld(body);
     box.value = "";
     groupIds = [];
     openThread(body.threadKey);
@@ -573,10 +630,11 @@ form.addEventListener("submit", async function (event) {
 
 async function loadBoard() {
   try {
-    var response = await fetch("/board");
+    var response = await fetch(authed("/board"));
     if (!response.ok) return;
     var board = await response.json();
     duties = board.tasks || [];
+    showModel(board.modelConnected === true);
     render();
   } catch (error) {
     // Opened as a file, or the board is not running. The empty line stays.
@@ -620,6 +678,7 @@ export function renderStatusHtml(roles, status) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#0e1013">
 <title>${escapeHtml(status.heading)}</title>
 <style>
@@ -704,7 +763,21 @@ ${typeFaces()}
   }
   .conv-head { padding:16px 28px 8px; }
   .notice-lead { margin:0; color:var(--warn); font-size:14px; font-weight:700; }
+  .model-line { margin:6px 0 0; color:var(--warn); font-size:14px; font-weight:700; }
   .notice-rest { margin:6px 0 0; max-width:42rem; color:var(--muted); font-size:13px; line-height:1.45; }
+  .notices { margin-top:12px; max-height:28vh; overflow:auto; }
+  .notices h2 {
+    margin:0; color:var(--muted); font-family:Outfit,ui-sans-serif,system-ui,sans-serif;
+    font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  }
+  .notices ul { list-style:none; margin:8px 0 0; padding:0; display:grid; gap:6px; }
+  .notices li {
+    display:grid; gap:2px; padding:8px 10px; border-radius:12px; background:rgba(255,255,255,.04);
+  }
+  .notices time, .notice-line { color:var(--muted); font-size:13px; }
+  .notice-who { font-weight:700; }
+  #notices-empty { margin:6px 0 0; color:var(--muted); font-size:13px; }
+  #notices-empty[hidden] { display:none; }
   h1 {
     margin:12px 0 0; font-family:Outfit,ui-sans-serif,system-ui,sans-serif; font-size:28px;
     font-weight:650; letter-spacing:-.03em; line-height:1.1;
@@ -792,6 +865,7 @@ ${typeFaces()}
     .conv-head { padding-top:8px; padding-bottom:4px; }
     h1 { font-size:22px; margin-top:6px; }
     .notice-rest { display:none; }
+    .model-line, .notices { display:block; }
     .log { min-height:88px; }
     .composer { padding:0 8px 8px; }
     .composer-row textarea { min-height:40px; padding-top:8px; padding-bottom:8px; }
@@ -828,7 +902,13 @@ ${people}
   <section class="conversation" aria-label="Conversation">
     <header class="conv-head">
       <p class="notice-lead">${escapeHtml(lead)}</p>
+      <p class="model-line" id="model-line">A model is not connected.</p>
       <p class="notice-rest">${escapeHtml(rest)}</p>
+      <section class="notices" aria-label="Notices">
+        <h2>Notices</h2>
+        <p id="notices-empty">No notices yet.</p>
+        <ul id="notice-list"></ul>
+      </section>
       <p class="visually-hidden">${escapeHtml(notice)}</p>
       <h1 id="thread-title">Whole team</h1>
       <p class="thread-sub" id="thread-sub">A message with nobody named is held here for the whole team.</p>

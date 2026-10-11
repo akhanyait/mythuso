@@ -44,10 +44,36 @@ function readLocal() {
   }
 }
 
+// An unset OLLAMA_URL is not a model. The default loopback address is only for a host
+// where the team has been installed and Ollama is the container's own. The board must
+// not treat that default as permission to hand a duty over.
+export function configuredOllamaUrl(env = process.env) {
+  const raw = env.OLLAMA_URL;
+  if (typeof raw !== "string" || raw.trim() === "") return null;
+  return raw.trim().replace(/\/+$/, "");
+}
+
+// A model is connected only when OLLAMA_URL is set and that host answers GET /api/tags.
+// This does not send a prompt. A failure, a timeout, or any other status is not connected.
+export async function probeModel(env = process.env, fetchImpl = globalThis.fetch) {
+  const url = configuredOllamaUrl(env);
+  if (!url) return { connected: false, url: null };
+  try {
+    const response = await fetchImpl(`${url}/api/tags`, {
+      method: "GET",
+      signal: AbortSignal.timeout(5_000),
+    });
+    return { connected: response.ok === true, url };
+  } catch {
+    return { connected: false, url };
+  }
+}
+
 export function settings(env = process.env, local = env === process.env ? readLocal() : {}) {
   const number = (v) => (v === undefined || v === "" ? undefined : Number(v));
+  const configured = configuredOllamaUrl(env);
   return {
-    ollamaUrl: (env.OLLAMA_URL || "http://127.0.0.1:11434").replace(/\/+$/, ""),
+    ollamaUrl: configured || "http://127.0.0.1:11434",
     model: env.AGENT_TEAM_MODEL || local.model || "gilbertone-qwen",
     home: resolve(env.AGENT_TEAM_HOME || join(here, "outbox")),
     workdir: resolve(env.AGENT_TEAM_WORKDIR || join(here, "work")),
@@ -282,9 +308,10 @@ export async function chat(cfg, messages, tools) {
   if (cfg.numCtx) options.num_ctx = cfg.numCtx;
   if (cfg.numThread) options.num_thread = cfg.numThread;
   if (Object.keys(options).length) body.options = options;
+  const fetchImpl = cfg.fetchImpl ?? globalThis.fetch;
   let response;
   try {
-    response = await fetch(`${cfg.ollamaUrl}/api/chat`, {
+    response = await fetchImpl(`${cfg.ollamaUrl}/api/chat`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),

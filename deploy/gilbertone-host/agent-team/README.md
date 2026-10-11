@@ -26,9 +26,13 @@ each with their own colour and icon, and a one-line snippet of that person's sen
 offers the six. One @ duties one person, and more than one @ in a message is one shared thread,
 held for each of them. A message with nobody named is held for the whole team. The Group control
 does the same when two or more are chosen. The host team is not installed. The page says so at
-the top of the conversation, in that file's own sentence. Recording a duty does not start anyone.
-The duty is held, in `status.json`'s own held sentence, and written under `work/`, which git
-ignores. It is not a patient page.
+the top of the conversation, in that file's own sentence, and the next sentence says whether a
+model is connected. Recording a duty hands it to the local team only when `OLLAMA_URL` is set
+and that host answers `GET /api/tags`. Otherwise the duty is held, in `status.json`'s own held
+sentence, and written under `work/`, which git ignores. The board asks for the key in
+`work/board.key` (query `k`, the session cookie, or a Bearer header). That file is not committed.
+A recorded duty is listed under Notices, and the browser is asked once for a notification that
+names who it was for and that it is held. It is not a patient page.
 
 The microphone on the composer is the browser's own speech recognition, and only after a tap.
 There is no wake word. A listen stops at 45 seconds and leaves the words in the box. The line

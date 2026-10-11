@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, mkdir, writeFile, readFile, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { settings, loadRoles, ask, inside, listApprovals, delegationCap, KNOWN_TOOLS } from "./agents.mjs";
+import { settings, loadRoles, ask, inside, listApprovals, delegationCap, KNOWN_TOOLS, configuredOllamaUrl, probeModel } from "./agents.mjs";
 import { readTeamStatus, statusProblems, checkStatusPage, shortenStatus } from "./render-status.mjs";
 import { startBoard } from "./board.mjs";
 
@@ -237,10 +237,16 @@ test("the status page is inlined from the two JSON files and says the team is no
   assert.equal(html.includes("localStorage"), false);
   assert.equal(html.includes("sessionStorage"), false);
   assert.equal(html.includes("indexedDB"), false);
-  const fetches = [...html.matchAll(/fetch\("([^"]+)"/g)].map((match) => match[1]);
+  const fetches = [...html.matchAll(/fetch\(authed\("([^"]+)"\)/g)].map((match) => match[1]);
   assert.deepEqual(fetches.sort(), ["/board", "/tasks"]);
   assert.ok(html.includes(status.notice));
   assert.ok(html.includes("The host team is not installed."));
+  assert.ok(html.indexOf('class="notice-lead"') < html.indexOf('id="model-line"'));
+  assert.ok(html.includes("A model is not connected."));
+  assert.ok(html.includes("Notices"));
+  assert.ok(html.includes("No notices yet."));
+  assert.ok(html.includes("It is held."));
+  assert.ok(html.includes("requestPermission"));
   assert.ok(html.includes("The browser may hand the words to its maker."));
   assert.ok(html.includes("No duties yet."));
   assert.ok(html.includes('id="mic"'));
@@ -269,13 +275,29 @@ test("the status page is inlined from the two JSON files and says the team is no
   assert.equal(html.includes("live-dot"), false);
 });
 
+const BOARD_KEY = "board-test-key";
+
+function boardFetch(url, init = {}) {
+  const headers = new Headers(init.headers || {});
+  headers.set("authorization", `Bearer ${BOARD_KEY}`);
+  return realFetch(url, { ...init, headers });
+}
+
 test("a task that names a role the roster does not have is refused and not stored", async () => {
   const dir = await mkdtemp(join(tmpdir(), "board-"));
-  const server = await startBoard({ port: 0, workdir: dir });
+  const server = await startBoard({ port: 0, workdir: dir, token: BOARD_KEY, env: { OLLAMA_URL: "" } });
   const { port } = server.address();
   const url = `http://127.0.0.1:${port}`;
   try {
-    const refused = await realFetch(`${url}/tasks`, {
+    const closed = await realFetch(`${url}/status.html`);
+    assert.equal(closed.status, 401);
+    const refusal = await closed.text();
+    assert.match(refusal, /This board needs its key/);
+    for (const name of ["Thandi", "Kabelo", "Lerato", "Sipho", "Karabo", "Nomsa"]) {
+      assert.equal(refusal.includes(name), false, name);
+    }
+
+    const refused = await boardFetch(`${url}/tasks`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ roleId: "admin", text: "Install the team" }),
@@ -283,9 +305,9 @@ test("a task that names a role the roster does not have is refused and not store
     assert.equal(refused.status, 400);
     const problem = await refused.json();
     assert.match(problem.error, /a task names admin, which roles.json does not have/);
-    assert.deepEqual((await (await realFetch(`${url}/board`)).json()).tasks, []);
+    assert.deepEqual((await (await boardFetch(`${url}/board`)).json()).tasks, []);
 
-    const held = await realFetch(`${url}/tasks`, {
+    const held = await boardFetch(`${url}/tasks`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ roleId: "engineer", text: "Morning-of card on the web", sentence: "Sipho is running." }),
@@ -295,12 +317,13 @@ test("a task that names a role the roster does not have is refused and not store
     assert.equal(task.roleId, "engineer");
     assert.equal(task.text, "Morning-of card on the web");
     assert.equal(task.sentence, "Held. The team is not installed, so nobody is carrying this out.");
-    const board = await (await realFetch(`${url}/board`)).json();
+    const board = await (await boardFetch(`${url}/board`)).json();
     assert.equal(board.tasks.length, 1);
     assert.equal(board.tasks[0].sentence, task.sentence);
     assert.equal(board.held, task.sentence);
+    assert.equal(board.modelConnected, false);
 
-    const group = await realFetch(`${url}/tasks`, {
+    const group = await boardFetch(`${url}/tasks`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ roleIds: ["qa", "designer", "designer"], text: "One shared check." }),
@@ -315,7 +338,7 @@ test("a task that names a role the roster does not have is refused and not store
     assert.equal(shared.roleId, undefined);
     assert.equal(shared.sentence, task.sentence);
 
-    const teamDuty = await realFetch(`${url}/tasks`, {
+    const teamDuty = await boardFetch(`${url}/tasks`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ roleIds: [], text: "For everyone." }),
@@ -327,16 +350,133 @@ test("a task that names a role the roster does not have is refused and not store
     assert.equal(everyone.heldFor, "Held for the whole team.");
     assert.equal(everyone.sentence, task.sentence);
 
-    const mixed = await realFetch(`${url}/tasks`, {
+    const mixed = await boardFetch(`${url}/tasks`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ roleIds: ["engineer", "admin"], text: "Do not store this." }),
     });
     assert.equal(mixed.status, 400);
     assert.match((await mixed.json()).error, /a task names admin, which roles.json does not have/);
-    const after = await (await realFetch(`${url}/board`)).json();
+    const after = await (await boardFetch(`${url}/board`)).json();
     assert.equal(after.tasks.length, 3);
     assert.ok(after.tasks.every((row) => row.sentence === task.sentence));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("OLLAMA_URL unset does not call a model, and a duty stays held", async () => {
+  assert.equal(configuredOllamaUrl({}), null);
+  assert.equal(configuredOllamaUrl({ OLLAMA_URL: "  " }), null);
+  let calls = 0;
+  const probe = await probeModel({ OLLAMA_URL: "" }, async () => {
+    calls += 1;
+    throw new Error("should not be called");
+  });
+  assert.equal(probe.connected, false);
+  assert.equal(calls, 0);
+
+  const dir = await mkdtemp(join(tmpdir(), "board-off-"));
+  const seen = [];
+  const server = await startBoard({
+    port: 0,
+    workdir: dir,
+    token: BOARD_KEY,
+    env: { OLLAMA_URL: "" },
+    fetchImpl: async (url) => {
+      seen.push(String(url));
+      throw new Error("no model");
+    },
+  });
+  const { port } = server.address();
+  try {
+    const page = await realFetch(`http://127.0.0.1:${port}/?k=${BOARD_KEY}`);
+    assert.equal(page.status, 200);
+    const html = await page.text();
+    assert.match(html, /A model is not connected/);
+    assert.match(html, /Thandi/);
+    assert.match(page.headers.get("set-cookie") || "", /board_key=/);
+    const cooked = await realFetch(`http://127.0.0.1:${port}/board`, {
+      headers: { cookie: page.headers.get("set-cookie").split(";")[0] },
+    });
+    const board = await cooked.json();
+    assert.equal(board.modelConnected, false);
+    const held = await boardFetch(`http://127.0.0.1:${port}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleId: "pm", text: "Hold this for Thandi." }),
+    });
+    assert.equal(held.status, 201);
+    assert.equal((await held.json()).sentence, "Held. The team is not installed, so nobody is carrying this out.");
+    assert.deepEqual(seen, []);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("a duty is handed on only when /api/tags succeeds, and a failed tags call sends no chat", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "board-tags-"));
+  const seen = [];
+  const server = await startBoard({
+    port: 0,
+    workdir: dir,
+    token: BOARD_KEY,
+    env: { OLLAMA_URL: "http://ollama.test" },
+    fetchImpl: async (url) => {
+      seen.push(String(url));
+      return new Response("no", { status: 503 });
+    },
+  });
+  const { port } = server.address();
+  try {
+    const held = await boardFetch(`http://127.0.0.1:${port}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleId: "designer", text: "A screen, held." }),
+    });
+    assert.equal(held.status, 201);
+    assert.equal((await held.json()).sentence, "Held. The team is not installed, so nobody is carrying this out.");
+    assert.deepEqual(seen, ["http://ollama.test/api/tags"]);
+    const board = await (await boardFetch(`http://127.0.0.1:${port}/board`)).json();
+    assert.equal(board.modelConnected, false);
+    assert.equal(board.tasks[0].sentence, "Held. The team is not installed, so nobody is carrying this out.");
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test("when tags succeed the duty is handed to that role and the receipt is the engine report", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "board-on-"));
+  const seen = [];
+  const server = await startBoard({
+    port: 0,
+    workdir: dir,
+    token: BOARD_KEY,
+    env: { OLLAMA_URL: "http://ollama.test" },
+    fetchImpl: async (url, init) => {
+      seen.push(String(url));
+      if (String(url).endsWith("/api/tags")) return new Response(JSON.stringify({ models: [] }), { status: 200 });
+      const body = JSON.parse(init.body);
+      assert.match(body.messages[0].content, /Your name is Sipho/);
+      return new Response(JSON.stringify({ message: { role: "assistant", content: "Drafted the card." } }));
+    },
+  });
+  const { port } = server.address();
+  try {
+    const handed = await boardFetch(`http://127.0.0.1:${port}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleId: "engineer", text: "Morning-of card on the web" }),
+    });
+    assert.equal(handed.status, 201);
+    const task = await handed.json();
+    assert.equal(task.sentence, "Drafted the card.");
+    assert.equal(task.roleId, "engineer");
+    const board = await (await boardFetch(`http://127.0.0.1:${port}/board`)).json();
+    assert.equal(board.modelConnected, true);
+    assert.equal(board.tasks[0].sentence, "Drafted the card.");
+    assert.ok(seen.includes("http://ollama.test/api/tags"));
+    assert.ok(seen.includes("http://ollama.test/api/chat"));
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
