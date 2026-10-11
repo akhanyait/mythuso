@@ -511,6 +511,37 @@ test("a reply is refused for a role id roles.json does not have", () => {
   assert.equal(/built/i.test(sipho[0].text), false);
 });
 
+test("a plan question lists what is held and a greeting includes the morning line", () => {
+  const { roles, status } = readTeamStatus();
+  const screen = { added: [], hidden: [], done: [], dismissed: [], pins: {}, groups: [], muteDay: "" };
+  const tasks = [{
+    id: "gate",
+    title: "Sipho",
+    text: "Check the gate",
+    at: new Date().toISOString(),
+    threadKey: "engineer",
+  }];
+  const plan = dutyReplies(roles, status, [], screen, { text: "whats the plan today?", tasks });
+  assert.equal(plan[0].name, "Thandi");
+  assert.match(plan[0].text, /Check the gate/);
+  assert.match(plan[0].text, /still held|Check the gate/);
+  assert.match(plan[0].text, /The team is not installed, so nobody is carrying this out/);
+  assert.equal(/have not handed it on/.test(plan[0].text), false);
+  assert.equal(/built/i.test(plan[0].text), false);
+  const hello = dutyReplies(roles, status, [], screen, { text: "hello", tasks });
+  assert.match(hello[0].text, /^Hello\. I am Thandi\./);
+  assert.match(hello[0].text, /On the rail:/);
+  assert.match(hello[0].text, /still held/);
+  assert.match(hello[0].text, /The team is not installed, so nobody is carrying this out/);
+  const named = dutyReplies(roles, status, [], screen, { text: "howzit Sipho", tasks });
+  assert.equal(named[0].name, "Sipho");
+  assert.match(named[0].text, /^Hello\./);
+  const work = dutyReplies(roles, status, ["engineer"], screen, { text: "Draft the shop header", tasks });
+  assert.match(work[0].text, /I will draft the web piece/);
+  assert.match(work[0].text, /Draft the shop header/);
+  assert.match(work[0].text, /The team is not installed, so nobody is carrying this out/);
+});
+
 test("a person can be added and removed on this screen, and Thandi's reply stays held", async () => {
   const dir = await mkdtemp(join(tmpdir(), "board-people-"));
   const server = await startBoard({ port: 0, workdir: dir, token: BOARD_KEY, env: { OLLAMA_URL: "" } });

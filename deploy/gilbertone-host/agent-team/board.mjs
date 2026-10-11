@@ -346,22 +346,96 @@ function roleForReply(roles, id, screen = { added: [], hidden: [] }) {
   throw Object.assign(new Error(`a reply names ${shown}, which roles.json does not have`), { statusCode: 400 });
 }
 
-function replyText(role, status, wholeTeam) {
-  if (role.screenOnly) {
-    const craft = String(role.title ?? "").trim();
-    const craftSentence = /[.!?]$/.test(craft) ? craft : `${craft}.`;
-    return `I am ${role.name}. ${craftSentence} I am on this screen only. I am not running and the duty is held, so I have not started it: ${HELD_WORDS}.`;
-  }
+function foldedMessage(text) {
+  return String(text ?? "").trim().toLowerCase().replace(/['’]/g, "");
+}
+
+// A greeting, a question about the plan, or a piece of work. The words he typed decide which.
+export function replyKind(text) {
+  const folded = foldedMessage(text);
+  const greeting = folded.replace(/[!.?,]+/g, " ").replace(/\s+/g, " ").trim();
+  if (/^(hello|hi|howzit|sawubona)( [a-z]+)?$/.test(greeting)) return "greeting";
+  const asks = folded.includes("?") || /^(what|whats)\b/.test(folded);
+  if (asks && /\b(plan|today|held)\b/.test(folded)) return "plan";
+  return "work";
+}
+
+function assertNotRunning(role, status) {
+  if (role.screenOnly) return;
   const person = (status.people ?? []).find((row) => row.id === role.id);
   if (!person || !/not running/i.test(String(person.sentence ?? ""))) {
     throw new Error(`status.json does not say ${role.id} is not running`);
+  }
+}
+
+export function morningLine(roles, screen, tasks) {
+  const names = screenRoster(roles, screen).map((person) => person.name);
+  let who = "nobody";
+  if (names.length === 1) who = names[0];
+  else if (names.length > 1) who = `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+  const count = heldCount(tasks, screen);
+  const held = count === 1 ? "1 duty is still held." : count === 0 ? "No duties are still held." : `${count} duties are still held.`;
+  return `On the rail: ${who}. ${held}`;
+}
+
+function heldDuties(tasks, screen, exceptId) {
+  const done = new Set(screen?.done ?? []);
+  const dismissed = new Set(screen?.dismissed ?? []);
+  return (tasks ?? []).filter((task) => task?.id && task.id !== exceptId && !done.has(task.id) && !dismissed.has(task.id));
+}
+
+function planSentences(tasks, screen, exceptId) {
+  const rows = heldDuties(tasks, screen, exceptId);
+  if (!rows.length) return "Nothing else is still held.";
+  const shown = rows.slice(0, 4);
+  const lines = shown.map((task) => {
+    const at = new Date(task.at);
+    const time = Number.isNaN(at.getTime())
+      ? "an unknown time"
+      : new Intl.DateTimeFormat("en-ZA", { timeZone: "Africa/Johannesburg", hour: "numeric", minute: "2-digit" }).format(at);
+    const who = task.title || "the whole team";
+    const words = String(task.text ?? "").split("\n")[0].trim();
+    return `At ${time}, ${who}: ${words}.`;
+  });
+  const rest = rows.length - shown.length;
+  if (rest === 1) lines.push("1 more is still held.");
+  else if (rest > 1) lines.push(`${rest} more are still held.`);
+  return lines.join(" ");
+}
+
+function greetingName(roles, screen, text) {
+  const greeting = foldedMessage(text).replace(/[!.?,]+/g, " ").replace(/\s+/g, " ").trim();
+  const name = greeting.split(" ")[1];
+  if (!name) return null;
+  return screenRoster(roles, screen).find((person) => person.name.toLowerCase() === name) ?? null;
+}
+
+function replyText(role, status, wholeTeam, context = {}) {
+  assertNotRunning(role, status);
+  const kind = replyKind(context.text);
+  const morning = morningLine(context.roles, context.screen, heldDuties(context.tasks, context.screen, context.exceptId));
+  if (kind === "greeting") {
+    const only = role.screenOnly ? " I am on this screen only." : "";
+    return `Hello. I am ${role.name}.${only} ${morning} ${HELD_WORDS}.`;
+  }
+  if (kind === "plan") {
+    const list = planSentences(context.tasks, context.screen, context.exceptId);
+    const only = role.screenOnly ? " I am on this screen only." : "";
+    return `I am ${role.name}.${only} ${list} ${HELD_WORDS}.`;
+  }
+  const asked = String(context.text ?? "").trim().split("\n")[0].trim().slice(0, 180);
+  const about = asked ? ` You wrote: ${asked}.` : "";
+  if (role.screenOnly) {
+    const craft = String(role.title ?? "").trim();
+    const craftSentence = /[.!?]$/.test(craft) ? craft : `${craft}.`;
+    return `I am ${role.name}. ${craftSentence} I am on this screen only.${about} I am not running and the duty is held, so I have not started it: ${HELD_WORDS}.`;
   }
   const will = wholeTeam ? role.willTeam : role.will;
   if (typeof will !== "string" || will.trim() === "") {
     throw new Error(`roles.json has no answer for ${role.id}`);
   }
   const doing = wholeTeam ? will.trim() : `I will ${will.trim()}`;
-  return `I am ${role.name}, ${role.title}, and ${doing}. I am not running and the duty is held, so I have not started it: ${HELD_WORDS}.`;
+  return `I am ${role.name}, ${role.title}, and ${doing}.${about} I am not running and the duty is held, so I have not started it: ${HELD_WORDS}.`;
 }
 
 // Up to three other people on the rail. The words are their names, not a second roster.
@@ -381,16 +455,30 @@ export function nextMessages(roles, screen, speakerId, dutyText) {
     });
 }
 
-// One named person answers. Several answer in roster order. Nobody named means the lead
-// holds it for the whole team and does not hand it on. The duty's own words are not
-// turned into a claim that the work is done.
-export function dutyReplies(roles, status, roleIds, screen = { added: [], hidden: [] }) {
+// One named person answers a piece of work, in roster order. A greeting or a plan question
+// is answered by the person named, or by the lead when nobody is named. The words come from
+// the duty and from the duties already on the board, not from a model.
+export function dutyReplies(roles, status, roleIds, screen = { added: [], hidden: [] }, context = {}) {
   if (!String(status?.held ?? "").includes(HELD_WORDS)) {
     throw new Error("status.json no longer says the team is not carrying this out");
   }
   const ids = Array.isArray(roleIds) ? roleIds : [];
+  const kind = replyKind(context.text);
   const speakers = [];
-  if (ids.length === 0) {
+  const named = kind === "greeting" ? greetingName(roles, screen, context.text) : null;
+  if (kind === "greeting" || kind === "plan") {
+    const speaker = ids.length === 1
+      ? roleForReply(roles, ids[0], screen)
+      : named
+        ? roleForReply(roles, named.id, screen)
+        : ids.length > 1
+          ? roleForReply(roles, ids[0], screen)
+          : roleForReply(roles, roles.lead, screen);
+    speakers.push({ role: speaker, wholeTeam: false });
+    if (ids.length > 1 && !named) {
+      for (const id of ids.slice(1)) roleForReply(roles, id, screen);
+    }
+  } else if (ids.length === 0) {
     speakers.push({ role: roleForReply(roles, roles.lead, screen), wholeTeam: true });
   } else {
     const wanted = new Set(ids);
@@ -405,24 +493,25 @@ export function dutyReplies(roles, status, roleIds, screen = { added: [], hidden
     }
     for (const id of ids) roleForReply(roles, id, screen);
   }
+  const replyContext = { ...context, roles, screen };
   return speakers.map(({ role, wholeTeam }) => ({
     roleId: role.id,
     name: role.name,
-    text: replyText(role, status, wholeTeam),
+    text: replyText(role, status, wholeTeam, replyContext),
   }));
 }
 
-function presentReplies(roles, status, described, task, screen) {
-  const replies = Array.isArray(task.replies)
-    ? task.replies.map((reply) => {
-      const role = roleForReply(roles, reply?.roleId, screen);
-      const text = typeof reply.text === "string" ? reply.text : "";
-      return { roleId: role.id, name: role.name, text };
-    })
-    : dutyReplies(roles, status, described.roleIds, screen);
+function presentReplies(roles, status, described, task, screen, tasks = []) {
+  // Stored reply text is rewritten from the duty and the board. Pins, done, and dismissed
+  // stay on the screen record and are not touched here.
+  const replies = dutyReplies(roles, status, described.roleIds, screen, {
+    text: typeof task.text === "string" ? task.text : "",
+    tasks,
+    exceptId: task.id,
+  });
   return replies.map((reply) => ({
     ...reply,
-    suggestions: nextMessages(roles, screen, reply.roleId, described.text ?? task.text),
+    suggestions: nextMessages(roles, screen, reply.roleId, task.text),
   }));
 }
 
@@ -442,7 +531,7 @@ export function holdTask(roles, status, tasks, input, screen = { added: [], hidd
     ...described,
     text,
     sentence: status.held,
-    replies: dutyReplies(roles, status, described.roleIds, screen),
+    replies: dutyReplies(roles, status, described.roleIds, screen, { text, tasks }),
     at: new Date().toISOString(),
   };
   return { tasks: [...tasks, task], task };
@@ -469,7 +558,7 @@ export function presentTask(roles, status, task, options = {}) {
       text: typeof task.text === "string" ? task.text : "",
       // With OLLAMA_URL unset, the receipt stays status.json's held sentence.
       sentence: report || status.held,
-      replies: presentReplies(roles, status, described, task, options.screen ?? { added: [], hidden: [] }),
+      replies: presentReplies(roles, status, described, task, options.screen ?? { added: [], hidden: [] }, options.tasks ?? []),
       at: task.at,
     };
   } catch {
@@ -629,8 +718,9 @@ export function createBoard(cfg = settings(), options = {}) {
         const { roles, status } = readTeamStatus();
         const screen = await readScreen(screenFile(cfg));
         const probe = await probeModel(env, fetchImpl);
-        const tasks = (await readTasks(tasksFile(cfg)))
-          .map((task) => presentTask(roles, status, task, { modelConnected: probe.connected, screen }))
+        const rawTasks = await readTasks(tasksFile(cfg));
+        const tasks = rawTasks
+          .map((task) => presentTask(roles, status, task, { modelConnected: probe.connected, screen, tasks: rawTasks }))
           .filter(Boolean);
         const lead = (roles.roles ?? []).find((role) => role.id === roles.lead);
         const dismissed = new Set(screen.dismissed ?? []);
@@ -654,8 +744,9 @@ export function createBoard(cfg = settings(), options = {}) {
       if (req.method === "GET" && url.pathname === "/search") {
         const { roles, status } = readTeamStatus();
         const screen = await readScreen(screenFile(cfg));
-        const tasks = (await readTasks(tasksFile(cfg)))
-          .map((task) => presentTask(roles, status, task, { screen }))
+        const rawTasks = await readTasks(tasksFile(cfg));
+        const tasks = rawTasks
+          .map((task) => presentTask(roles, status, task, { screen, tasks: rawTasks }))
           .filter(Boolean);
         send(res, 200, { tasks: searchDuties(tasks, url.searchParams.get("q") || "") }, "application/json; charset=utf-8", cookie);
         return;
@@ -756,7 +847,7 @@ export function createBoard(cfg = settings(), options = {}) {
         await mkdir(dirname(file), { recursive: true });
         await writeFile(file, `${JSON.stringify({ tasks }, null, 2)}\n`);
         // The reply is already on the task. This path does not call the model.
-        const shown = presentTask(roles, status, task, { screen });
+        const shown = presentTask(roles, status, task, { screen, tasks });
         send(res, 201, shown, "application/json; charset=utf-8", cookie);
         return;
       }

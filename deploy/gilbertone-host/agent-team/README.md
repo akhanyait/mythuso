@@ -34,7 +34,8 @@ copied. The morning line counts who is on the rail and what is still held. An ad
 can be edited. Those notes stay under `work/`.
 The page also polls the board. Up to three suggestions offer the next people on the rail.
 A person can be added or removed on this screen; that list is kept under `work/`, and `roles.json`
-stays the seed. The reply is taken from `roles.json` and `status.json`,
+stays the seed. A greeting and a question about the plan are answered from the duties already on the board.
+Any other duty still gets that person's craft. The reply is taken from `roles.json` and `status.json`,
 and does not call Qwen. With nobody named, Thandi replies that she is holding it for the whole
 team and has not handed it on. The duty is held, in `status.json`'s own held
 sentence, and written under `work/`, which git ignores. The board asks for the key in
