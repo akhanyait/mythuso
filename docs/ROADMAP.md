@@ -1466,3 +1466,29 @@ Thandi is keeping this. Kabelo's shape, and what it refuses:
   sends the language the person chose. Emergencies still never wait on that request.
 - What is not in this pass: installing the assistant on the host, switching a federation source
   on, translating a clinical sentence, and pointing MyThuso at the unchecked Qwen page.
+
+## Look, motion and the patient journey, scoped 11 October 2026
+
+Lerato walked the four pages that are served, and the patient journey inside the app, at 1440 and
+at 390. The nurse address on this preview opened the patient home, because the staff preview flag
+was off, so the nurse, doctor and Control Tower screens are not in this pass.
+
+What already follows. Landing, the patient home, booking and the shop share one palette. Booking
+is three questions on one screen: who, what, when. The phone has five tabs, and Book care is one
+of them. GilbertOne asks "Before we start" before a question. The status page says nothing is
+connected. Each visit row says Preview.
+
+What makes the journey hard:
+
+- Booking has three names: "Book a nurse" in the sidebar, "Book care" on the phone, "Book a
+  check-in" on the home.
+- The desktop sidebar holds about thirty-five rows, all open. The phone hides My Health, Wellness
+  and Devices behind More, then Explore MyThuso, which is a directory.
+- The phone home gives the next visit and four equal actions the same weight.
+- Health Passport, the health pages, health trends, the care timeline and "what readings mean"
+  sit side by side. The names do not say which one to open.
+
+Motion, and only this, when it is built. A short fade of the main column on a page change, using
+transform and opacity, behind the existing decor switch, and still when reduced motion is on.
+The sidebar, the tab bar and the orb do not join it. Booking stays one screen. No nurse moves on
+a map. The bundle is measured before and after, against the 282.16 kB ceiling.
