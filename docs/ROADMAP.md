@@ -1437,3 +1437,18 @@ What is not started, because it would pretend a service is live or describe a di
   development-only until they exist.
 - Installing the assistant on the GilbertOne host. That remains `install-from-mac.sh` from this
   branch, run on the Mac, and it is a separate go.
+
+## Work team on the GilbertOne host, 11 October 2026
+
+The ask was a project manager, an enterprise architect, a specialist creative designer (senior
+UI/UX), two specialist full-stack engineers, and QA and tester. That roster is
+`deploy/gilbertone-host/agent-team/roles.json`. Thandi manages. Kabelo writes the shape and the
+refusals. Lerato designs. Sipho and Karabo draft code, each the piece they were given. Nomsa writes
+the test and may queue a check. Gilbert approves the check by typing yes; until then it does not run.
+
+It is a work team on the host's own Qwen, inside the `gilbertone` container. It is not GilbertOne,
+and it is not six cloud agents. It never sees a patient. No role can send email, commit, or touch
+liqzar-server. Drafts stay in the team's outbox.
+
+The install script is on the branch and has not been run. Running it is `sudo` on the GilbertOne
+host, from the Mac that holds the key. It does not install the assistant.

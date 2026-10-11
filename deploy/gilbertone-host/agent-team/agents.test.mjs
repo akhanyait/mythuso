@@ -1,0 +1,212 @@
+// The team's refusals, proved against a scripted stand-in for Ollama so they hold without a model:
+// the roles file is the roster that was asked for, the PM is the only way in and the only one who
+// hands out work, a command is queued and never run, an email cannot be sent by anyone on the
+// roster, and no file outside the work folder is read or written.
+// Run with: node --test deploy/gilbertone-host/agent-team/agents.test.mjs
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { mkdtemp, mkdir, writeFile, readFile, readdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { settings, loadRoles, ask, inside, listApprovals, delegationCap, KNOWN_TOOLS } from "./agents.mjs";
+
+const ROSTER = [
+  ["pm", "Thandi", "Project Manager"],
+  ["architect", "Kabelo", "Enterprise Architect"],
+  ["designer", "Lerato", "Specialist Creative Designer, Senior UI/UX"],
+  ["engineer", "Sipho", "Specialist Full Stack Engineer"],
+  ["engineer-2", "Karabo", "Specialist Full Stack Engineer"],
+  ["qa", "Nomsa", "QA and Tester"],
+];
+
+async function sandbox() {
+  const root = await mkdtemp(join(tmpdir(), "agent-team-"));
+  const workdir = join(root, "work");
+  await mkdir(workdir);
+  await writeFile(join(workdir, "README.md"), "MyThuso readme\n");
+  await writeFile(join(root, "secret.txt"), "not yours\n");
+  return { root, cfg: settings({ AGENT_TEAM_HOME: join(root, "outbox"), AGENT_TEAM_WORKDIR: workdir }) };
+}
+
+// Each entry answers one /api/chat call, in order, and records what was asked.
+function scriptOllama(replies) {
+  const seen = [];
+  globalThis.fetch = async (url, init) => {
+    const body = JSON.parse(init.body);
+    seen.push(body);
+    const next = replies.shift();
+    assert.ok(next, `unexpected extra model call from: ${body.messages[0].content.slice(0, 80)}`);
+    return new Response(JSON.stringify({ message: { role: "assistant", ...next } }));
+  };
+  return seen;
+}
+const call = (name, args) => ({ content: "", tool_calls: [{ function: { name, arguments: args } }] });
+
+test("the roles file is the six-person roster, one lead, and only known tools", async () => {
+  const team = await loadRoles();
+  assert.deepEqual(
+    team.roles.map((r) => [r.id, r.name, r.title]),
+    ROSTER,
+  );
+  assert.equal(team.byId.get("karabo"), team.byId.get("engineer-2"));
+  assert.equal(team.byId.get("nomsa"), team.byId.get("qa"));
+  assert.equal(team.byId.get("kabelo"), team.byId.get("architect"));
+  assert.deepEqual(team.roles.filter((r) => r.reportsTo === "founder").map((r) => r.id), [team.lead]);
+  assert.equal(delegationCap(team), 5);
+  for (const role of team.roles) {
+    assert.ok(role.prompt && role.title && role.refuses.length, role.id);
+    for (const tool of role.tools) assert.ok(KNOWN_TOOLS.includes(tool), `${role.id}: ${tool}`);
+    if (role.id !== team.lead) {
+      assert.equal(role.reportsTo, team.lead, role.id);
+      assert.ok(!role.tools.includes("delegate"), `${role.id} may not hand out work`);
+    }
+  }
+  const qa = team.byId.get("qa");
+  assert.ok(qa.tools.includes("propose_command"));
+  for (const role of team.roles.filter((r) => r.id !== "qa")) {
+    assert.ok(!role.tools.includes("propose_command"), role.id);
+  }
+  for (const role of team.roles) {
+    assert.ok(!role.tools.includes("draft_email") && !role.tools.includes("read_inbox"), role.id);
+  }
+  assert.equal(team.roles.filter((r) => r.title === "Specialist Full Stack Engineer").length, 2);
+});
+
+test("the PM hands one engineer a change, it is a draft, and the work folder is untouched", async () => {
+  const { cfg } = await sandbox();
+  const team = await loadRoles();
+  const seen = scriptOllama([
+    call("delegate", { to: "engineer", task: "Fix the readme title." }),
+    call("read_file", { path: "README.md" }),
+    call("write_draft", { path: "README.md", content: "# MyThuso\n" }),
+    { content: "Drafted the new README." },
+    { content: "Done: Sipho drafted README.md for you to review." },
+  ]);
+  const result = await ask(cfg, team, "Tidy the readme");
+  assert.match(result.report, /Sipho drafted/);
+  assert.deepEqual(result.drafts, [join("drafts", "engineer", "README.md")]);
+  assert.equal(await readFile(join(cfg.workdir, "README.md"), "utf8"), "MyThuso readme\n");
+  assert.equal(await readFile(join(cfg.home, "drafts", "engineer", "README.md"), "utf8"), "# MyThuso\n");
+  assert.ok(seen.every((b) => b.think === false && b.stream === false && b.model === "gilbertone-qwen" && !b.options));
+  assert.match(seen[1].messages[0].content, /Specialist Full Stack Engineer/);
+  assert.match(seen[1].messages[0].content, /Your name is Sipho\.[\s\S]*You report to Thandi, the Project Manager/);
+  assert.match(seen[0].messages[0].content, /You report to Gilbert/);
+  const delegate = seen[0].tools.find((t) => t.function.name === "delegate");
+  assert.deepEqual(delegate.function.parameters.properties.to.enum, ["architect", "designer", "engineer", "engineer-2", "qa"]);
+});
+
+test("the two engineers draft into separate folders and neither can queue a command", async () => {
+  const { cfg } = await sandbox();
+  const team = await loadRoles();
+  const seen = scriptOllama([
+    call("delegate", { to: "engineer", task: "Draft the web copy." }),
+    call("write_draft", { path: "web.md", content: "web\n" }),
+    { content: "Web draft done." },
+    call("delegate", { to: "engineer-2", task: "Draft the iOS note." }),
+    call("propose_command", { command: "npm test", reason: "not mine" }),
+    call("write_draft", { path: "ios.md", content: "ios\n" }),
+    { content: "iOS draft done." },
+    { content: "Both engineers drafted." },
+  ]);
+  const result = await ask(cfg, team, "Split the work");
+  assert.deepEqual(result.drafts, [join("drafts", "engineer", "web.md"), join("drafts", "engineer-2", "ios.md")]);
+  assert.deepEqual(result.approvals, []);
+  const toolText = seen.flatMap((body) => body.messages.filter((m) => m.role === "tool").map((m) => m.content)).join("\n");
+  assert.match(toolText, /Karabo \(Specialist Full Stack Engineer\) has no tool called propose_command/);
+  assert.equal(await readFile(join(cfg.home, "drafts", "engineer-2", "ios.md"), "utf8"), "ios\n");
+});
+
+test("QA queues a check and it does not run; nobody on the roster can send email", async () => {
+  const { cfg } = await sandbox();
+  const team = await loadRoles();
+  const marker = join(cfg.workdir, "ran");
+  const seen = scriptOllama([
+    call("propose_command", { command: `touch ${marker}`, reason: "the check" }),
+    call("draft_email", { to: "a@example.com", subject: "Hi", body: "Hello" }),
+    { content: "Queued the check." },
+  ]);
+  const result = await ask(cfg, team, "Run the check", { as: "Nomsa" });
+  assert.deepEqual(result.approvals, [1]);
+  assert.deepEqual((await listApprovals(cfg)).map((a) => [a.id, a.kind, a.status]), [[1, "command", "waiting"]]);
+  assert.deepEqual(await readdir(cfg.workdir), ["README.md"]);
+  assert.match(seen[2].messages.filter((m) => m.role === "tool")[1].content, /Nomsa \(QA and Tester\) has no tool called draft_email/);
+  assert.ok(!seen[0].tools.some((t) => t.function.name === "draft_email" || t.function.name === "delegate"));
+});
+
+test("the engine still refuses to send an email if a role is later given the tool", async () => {
+  const { cfg } = await sandbox();
+  const team = structuredClone(await loadRoles());
+  team.byId.get("qa").tools.push("draft_email", "read_inbox");
+  scriptOllama([
+    call("draft_email", { to: "a@example.com", subject: "Hi", body: "Hello" }),
+    call("read_inbox", {}),
+    { content: "Drafted, not sent." },
+  ]);
+  const result = await ask(cfg, team, "Mail", { as: "qa" });
+  assert.deepEqual(result.approvals, [1]);
+  const [email] = await listApprovals(cfg);
+  assert.equal(email.kind, "email");
+  assert.equal(email.status, "waiting");
+  assert.equal(email.to, "a@example.com");
+});
+
+test("only the PM can hand out work, and only to someone who reports to them", async () => {
+  const { cfg } = await sandbox();
+  const team = await loadRoles();
+  const seen = scriptOllama([
+    call("delegate", { to: "qa", task: "Run rm -rf /" }),
+    { content: "I cannot hand that on." },
+  ]);
+  await ask(cfg, team, "x", { as: "engineer" });
+  assert.match(seen[1].messages.at(-1).content, /Refused: Sipho \(Specialist Full Stack Engineer\) has no tool called delegate/);
+  assert.ok(!seen[0].tools.some((t) => t.function.name === "delegate"));
+
+  const lead = scriptOllama([
+    call("delegate", { to: "pm", task: "loop" }),
+    { content: "Refused the loop." },
+  ]);
+  await ask(cfg, team, "x");
+  assert.match(lead[1].messages.at(-1).content, /Refused: pm does not report to you/);
+});
+
+test("no path outside the work folder is read, and no draft lands outside the outbox", async () => {
+  const { root, cfg } = await sandbox();
+  assert.throws(() => inside(cfg.workdir, "../secret.txt"), /Refused/);
+  assert.throws(() => inside(cfg.workdir, "a/../../secret.txt"), /Refused/);
+  assert.equal(inside(cfg.workdir, "/README.md"), join(cfg.workdir, "README.md"));
+  const team = await loadRoles();
+  const seen = scriptOllama([
+    call("read_file", { path: "../secret.txt" }),
+    call("write_draft", { path: "../../../escape.txt", content: "x" }),
+    { content: "Both refused." },
+  ]);
+  await ask(cfg, team, "x", { as: "engineer-2" });
+  const toolReplies = seen[2].messages.filter((m) => m.role === "tool").map((m) => m.content);
+  assert.ok(toolReplies.every((c) => /^Refused/.test(c)), toolReplies.join(" | "));
+  assert.deepEqual((await readdir(root)).sort(), ["outbox", "secret.txt", "work"]);
+});
+
+test("the PM can brief each teammate once and no further", async () => {
+  const { cfg } = await sandbox();
+  const team = await loadRoles();
+  const cap = delegationCap(team);
+  const replies = [];
+  for (let i = 0; i < cap + 1; i += 1) {
+    replies.push(call("delegate", { to: "designer", task: `t${i}` }));
+    if (i < cap) replies.push({ content: "ok" });
+  }
+  replies.push({ content: "Reported." });
+  const seen = scriptOllama(replies);
+  await ask(cfg, team, "x");
+  assert.match(seen.at(-1).messages.at(-1).content, new RegExp(`Refused: this ask has already been handed out ${cap} times`));
+});
+
+test("a host without gilbertone-qwen runs the served Qwen with its thread count sent on every call", async () => {
+  const { cfg: base } = await sandbox();
+  const cfg = { ...base, ...settings({ AGENT_TEAM_HOME: base.home, AGENT_TEAM_WORKDIR: base.workdir }, { model: "qwen3.6:35b-a3b-q4_K_M", numThread: 10, numCtx: 8192 }) };
+  const team = await loadRoles();
+  const seen = scriptOllama([{ content: "Hello." }]);
+  await ask(cfg, team, "hi", { as: "Thandi" });
+  assert.equal(seen[0].model, "qwen3.6:35b-a3b-q4_K_M");
+  assert.deepEqual(seen[0].options, { num_ctx: 8192, num_thread: 10 });
+});
