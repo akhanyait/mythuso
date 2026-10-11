@@ -245,6 +245,7 @@ test("the status page is inlined from the two JSON files and says the team is no
     "/board",
     "/groups",
     "/groups/remove",
+    "/models",
     "/people",
     "/people/craft",
     "/people/remove",
@@ -267,11 +268,14 @@ test("the status page is inlined from the two JSON files and says the team is no
   assert.equal(html.includes("setTimeout(function () { render"), false);
   assert.ok(html.includes(status.notice));
   assert.ok(html.includes("The host team is not installed."));
-  assert.ok(html.includes("This page is not calling a model, so nobody here is carrying a duty out."));
+  assert.ok(html.includes("Qwen on the server is not connected, and this page does not call it."));
+  assert.ok(html.includes("the reply names that model"));
   assert.equal(html.includes("has not been run"), false);
   assert.equal(/install failed/i.test(html), false);
   assert.ok(html.indexOf('class="notice-lead"') < html.indexOf('id="model-line"'));
-  assert.ok(html.includes("A model is not connected."));
+  assert.ok(html.includes("Qwen on the server is not connected."));
+  assert.ok(html.includes('id="model-picker"'));
+  assert.ok(html.includes("Qwen on the server — not connected"));
   assert.ok(html.includes("Notices"));
   assert.ok(html.includes("No notices yet."));
   assert.ok(html.includes("It is held."));
@@ -439,7 +443,7 @@ test("OLLAMA_URL unset does not call a model, and a duty stays held", async () =
     const page = await realFetch(`http://127.0.0.1:${port}/?k=${BOARD_KEY}`);
     assert.equal(page.status, 200);
     const html = await page.text();
-    assert.match(html, /A model is not connected/);
+    assert.match(html, /Qwen on the server is not connected/);
     assert.match(html, /Thandi/);
     assert.match(page.headers.get("set-cookie") || "", /board_key=/);
     const cooked = await realFetch(`http://127.0.0.1:${port}/board`, {
@@ -910,6 +914,87 @@ test("the engine is still not asked to chat unless tags succeed, and that path i
   assert.equal(handed.task.report, "Drafted the card.");
   assert.ok(seen.includes("http://ollama.test/api/tags"));
   assert.ok(seen.includes("http://ollama.test/api/chat"));
+});
+
+test("the picker lists Cursor models, a reply names the one that wrote it, and Qwen is not called", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "board-cursor-"));
+  const seen = [];
+  const secret = "cursor-test-key-must-not-leak";
+  const server = await startBoard({
+    port: 0,
+    workdir: dir,
+    token: BOARD_KEY,
+    env: { OLLAMA_URL: "http://qwen.server", CURSOR_API_KEY: secret },
+    fetchImpl: async (url, init = {}) => {
+      const href = String(url);
+      seen.push(href);
+      if (!href.startsWith("https://api.cursor.com/")) throw new Error(`called ${href} with ${secret}`);
+      if (href.endsWith("/v1/models")) {
+        return new Response(JSON.stringify({
+          items: [{
+            id: "composer-2.5",
+            displayName: "Composer 2.5",
+            variants: [{ isDefault: true, params: [{ id: "fast", value: "true" }], displayName: "Composer 2.5" }],
+          }],
+        }), { status: 200 });
+      }
+      if (init.method === "POST" && href.endsWith("/v1/agents")) {
+        const body = JSON.parse(init.body);
+        assert.equal(body.model.id, "composer-2.5");
+        assert.equal(body.autoCreatePR, false);
+        assert.equal(body.repos, undefined);
+        assert.match(body.prompt.text, /Composer 2.5/);
+        return new Response(JSON.stringify({
+          agent: { id: "bc-test", latestRunId: "run-test" },
+          run: { id: "run-test", status: "CREATING" },
+        }), { status: 201 });
+      }
+      if (init.method === "GET" && href.includes("/runs/")) {
+        return new Response(JSON.stringify({ status: "FINISHED", result: "The card can wait." }), { status: 200 });
+      }
+      if (init.method === "DELETE") return new Response("{}", { status: 200 });
+      return new Response("no", { status: 404 });
+    },
+  });
+  const { port } = server.address();
+  const url = `http://127.0.0.1:${port}`;
+  try {
+    const qwen = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleId: "engineer", text: "Call Qwen.", model: "qwen" }),
+    });
+    assert.equal(qwen.status, 422);
+    assert.match((await qwen.json()).error, /Qwen on the server is not connected/);
+    assert.deepEqual(seen, []);
+
+    const models = await (await boardFetch(`${url}/models`)).json();
+    assert.deepEqual(models.models, [{ id: "composer-2.5", displayName: "Composer 2.5" }]);
+    assert.equal(models.qwen.connected, false);
+    assert.equal(JSON.stringify(models).includes(secret), false);
+
+    const held = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleId: "engineer", text: "Morning-of card on the web", model: "composer-2.5" }),
+    });
+    assert.equal(held.status, 201);
+    const task = await held.json();
+    assert.equal(task.writtenByModel, true);
+    assert.equal(task.modelName, "Composer 2.5");
+    assert.match(task.replies[0].text, /Written by Composer 2.5/);
+    assert.match(task.replies[0].text, /Held\. The team is not installed, so nobody is carrying this out/);
+    assert.equal(JSON.stringify(task).includes(secret), false);
+    assert.ok(seen.every((href) => href.startsWith("https://api.cursor.com/")));
+    assert.equal(seen.some((href) => href.includes("qwen.server") || href.includes("/api/tags") || href.includes("/api/chat")), false);
+
+    const board = await (await boardFetch(`${url}/board`)).json();
+    assert.equal(board.qwenConnected, false);
+    assert.equal(board.modelConnected, false);
+    assert.match(board.tasks[0].replies[0].text, /Composer 2.5/);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
 });
 
 test("a host without gilbertone-qwen runs the served Qwen with its thread count sent on every call", async () => {

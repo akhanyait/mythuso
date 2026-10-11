@@ -1,7 +1,9 @@
 // The founder's board for the work team. It serves status.html and writes a duty into the
-// gitignored work folder. The reply under that duty is written here from roles.json and
-// status.json. It is not a model reply, and recording a duty does not call Qwen. The board
-// key lives in the work folder and is never written into the page source.
+// gitignored work folder. With no model chosen, the reply is written here from roles.json and
+// status.json. With a Cursor model chosen, that model writes the reply and the reply names it.
+// Qwen on the server stays not connected: this file does not call it. The board key lives in
+// the work folder and is never written into the page source. The Cursor key is read from the
+// environment and is never written here either.
 //
 // A duty names role ids from roles.json. One id is one person. Two or more are one shared
 // thread, held for each of them. None is the whole team. A greeting or a line of small talk
@@ -18,6 +20,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { ask, loadRoles, probeModel, settings } from "./agents.mjs";
+import { isQwenChoice, listCursorModels, writeCursorReply } from "./cursor-models.mjs";
 import { readTeamStatus } from "./render-status.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -581,6 +584,33 @@ export function dutyReplies(roles, status, roleIds, screen = { added: [], hidden
   }));
 }
 
+// A Cursor reply is kept word for word, and only when it still names the model that wrote
+// it. Anything else is rewritten from the roster, which is what a duty with no model chosen is.
+function modelReplies(roles, task, screen) {
+  if (task?.writtenByModel !== true) return null;
+  const name = typeof task.modelName === "string" ? task.modelName.trim() : "";
+  if (!name || !Array.isArray(task.replies) || task.replies.length === 0) return null;
+  const replies = [];
+  for (const reply of task.replies) {
+    const text = typeof reply?.text === "string" ? reply.text : "";
+    if (!text.includes(name)) return null;
+    replies.push({
+      roleId: reply.roleId,
+      name: reply.name,
+      text,
+      suggestions: nextMessages(roles, screen, reply.roleId, task.text),
+    });
+  }
+  return replies;
+}
+
+function titleFor(roles, screen, roleId) {
+  const seeded = (roles.roles ?? []).find((role) => role.id === roleId);
+  if (seeded?.title) return seeded.title;
+  const added = (screen.added ?? []).find((person) => person.id === roleId);
+  return added?.craft || "a teammate";
+}
+
 function presentReplies(roles, status, described, task, screen, tasks = []) {
   // Stored reply text is rewritten from the duty and the board. Pins, done, and dismissed
   // stay on the screen record and are not touched here.
@@ -642,13 +672,16 @@ export function presentTask(roles, status, task, options = {}) {
       && typeof task.report === "string"
       ? task.report.trim()
       : "";
+    const kept = modelReplies(roles, task, screen);
     return {
       id: task.id,
       ...described,
       text: typeof task.text === "string" ? task.text : "",
       // With OLLAMA_URL unset, the receipt stays status.json's held sentence.
       sentence: report || status.held,
-      replies: presentReplies(roles, status, described, task, screen, options.tasks ?? []),
+      replies: kept || presentReplies(roles, status, described, task, screen, options.tasks ?? []),
+      writtenByModel: Boolean(kept),
+      modelName: kept ? task.modelName : undefined,
       at: task.at,
     };
   } catch {
@@ -793,30 +826,31 @@ export function createBoard(cfg = settings(), options = {}) {
       allowed = true;
       const cookie = sessionCookie(token);
       if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/status.html")) {
-        let html = await readFile(pagePath, "utf8");
-        const probe = await probeModel(env, fetchImpl);
-        if (probe.connected) {
-          html = html.replace(
-            '<p class="model-line" id="model-line">A model is not connected.</p>',
-            '<p class="model-line" id="model-line">A model is connected.</p>',
-          );
-        }
+        const html = await readFile(pagePath, "utf8");
         send(res, 200, html, "text/html; charset=utf-8", cookie);
+        return;
+      }
+      if (req.method === "GET" && url.pathname === "/models") {
+        const models = await listCursorModels(env, fetchImpl);
+        send(res, 200, {
+          models: models.map((model) => ({ id: model.id, displayName: model.displayName })),
+          qwen: { id: "qwen", label: "Qwen on the server", connected: false },
+        }, "application/json; charset=utf-8", cookie);
         return;
       }
       if (req.method === "GET" && url.pathname === "/board") {
         const { roles, status } = readTeamStatus();
         const screen = await readScreen(screenFile(cfg));
-        const probe = await probeModel(env, fetchImpl);
         const rawTasks = await readTasks(tasksFile(cfg));
         const tasks = rawTasks
-          .map((task) => presentTask(roles, status, task, { modelConnected: probe.connected, screen, tasks: rawTasks }))
+          .map((task) => presentTask(roles, status, task, { modelConnected: false, screen, tasks: rawTasks }))
           .filter(Boolean);
         const lead = (roles.roles ?? []).find((role) => role.id === roles.lead);
         const dismissed = new Set(screen.dismissed ?? []);
         send(res, 200, {
           held: status.held,
-          modelConnected: probe.connected,
+          modelConnected: false,
+          qwenConnected: false,
           leadId: roles.lead,
           leadName: lead?.name ?? "",
           people: screenRoster(roles, screen),
@@ -933,10 +967,34 @@ export function createBoard(cfg = settings(), options = {}) {
         const screen = await readScreen(screenFile(cfg));
         const file = tasksFile(cfg);
         const existing = await readTasks(file);
-        const { tasks, task } = holdTask(roles, status, existing, input, screen);
+        const held = holdTask(roles, status, existing, input, screen);
+        let { task } = held;
+        let { tasks } = held;
+        const chosen = typeof input?.model === "string" ? input.model.trim() : "";
+        if (chosen) {
+          if (isQwenChoice(chosen)) {
+            throw Object.assign(new Error("Qwen on the server is not connected."), { statusCode: 422 });
+          }
+          const catalog = await listCursorModels(env, fetchImpl);
+          const model = catalog.find((item) => item.id === chosen);
+          if (!model) {
+            throw Object.assign(new Error("That model is not one this key can call."), { statusCode: 400 });
+          }
+          const replies = [];
+          for (const reply of task.replies) {
+            const text = await writeCursorReply(env, fetchImpl, model, {
+              speakerName: reply.name,
+              speakerTitle: titleFor(roles, screen, reply.roleId),
+              duty: task.text,
+              held: status.held,
+            });
+            replies.push({ ...reply, text });
+          }
+          task = { ...task, writtenByModel: true, modelId: model.id, modelName: model.displayName, replies };
+          tasks = [...existing, task];
+        }
         await mkdir(dirname(file), { recursive: true });
         await writeFile(file, `${JSON.stringify({ tasks }, null, 2)}\n`);
-        // The reply is already on the task. This path does not call the model.
         const shown = presentTask(roles, status, task, { screen, tasks });
         send(res, 201, shown, "application/json; charset=utf-8", cookie);
         return;
@@ -968,10 +1026,9 @@ const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(imp
 if (isMain) {
   const portArg = process.argv.indexOf("--port");
   const port = portArg === -1 ? 8765 : Number(process.argv[portArg + 1]);
-  const probe = await probeModel(process.env);
   const server = await startBoard({ port });
   const address = server.address();
   console.log(`Work team board at http://127.0.0.1:${address.port}/status.html`);
-  console.log(probe.connected ? "A model is connected." : "A model is not connected.");
-  console.log("This board is not calling a model, so nobody here is carrying a duty out.");
+  console.log("Qwen on the server is not connected.");
+  console.log("Cursor models are in the picker. A reply names the model that wrote it.");
 }

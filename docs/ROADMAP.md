@@ -1455,8 +1455,10 @@ host, from the Mac that holds the key. It does not install the assistant.
 
 What each role has done, and the sentence that the team is not installed, is
 `deploy/gilbertone-host/agent-team/status.json`, shown by `status.html` in the same folder. The
-same page is a chat. @ duties one of the six, more than one @ is one shared thread held for each
-of them, and a message with nobody named is held for the whole team. A duty is held in the
+same page is a chat. The picker lists every Cursor model the environment key can call. A reply
+from that picker is written by the chosen model and names it. Qwen on the server stays shown as
+not connected, and the board does not call it. @ duties one of the six, more than one @ is one
+shared thread held for each of them, and a message with nobody named is held for the whole team. A duty is held in the
 gitignored work folder, in that file's own held sentence. It does not start anyone. The mic is
 the browser's own recognition, opened only by a tap, and capped at 45 seconds. It is not a
 patient page.

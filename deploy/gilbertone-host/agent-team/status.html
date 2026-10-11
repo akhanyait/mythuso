@@ -196,6 +196,11 @@
   .icon-button.primary { background:#f2f4f7; color:#12151a; }
   #mic.is-hot { background:var(--hot); color:#1a1408; box-shadow:0 0 0 4px rgba(243,212,138,.28); }
   .composer-meta { padding:8px 12px 0; display:grid; gap:4px; }
+  .model-picker { display:grid; gap:4px; color:var(--muted); font-size:12.5px; }
+  .model-picker select {
+    min-height:44px; width:100%; padding:8px 10px; border-radius:12px;
+    border:1px solid var(--line); background:#0e1013; color:var(--text); font:inherit; font-size:15px;
+  }
   .disclosure, #mic-state, #problem { margin:0; color:var(--muted); font-size:12.5px; line-height:1.4; }
   #mic-state:empty, #problem:empty { display:none; }
   #problem:not(:empty) { color:#f0b4a8; }
@@ -333,14 +338,14 @@
   <section class="conversation" aria-label="Conversation">
     <header class="conv-head">
       <p class="notice-lead">The host team is not installed.</p>
-      <p class="model-line" id="model-line">A model is not connected.</p>
-      <p class="notice-rest">This page is not calling a model, so nobody here is carrying a duty out. It is not GilbertOne, and it is not six cloud agents. These roles are not live processes. Nobody is running.</p>
+      <p class="model-line" id="model-line">Qwen on the server is not connected.</p>
+      <p class="notice-rest">Qwen on the server is not connected, and this page does not call it. A reply comes from the Cursor model in the picker, and the reply names that model, so nobody here is carrying a duty out. It is not GilbertOne, and it is not six cloud agents. These roles are not live processes. Nobody is running.</p>
       <section class="notices" aria-label="Notices">
         <h2>Notices</h2>
         <p id="notices-empty">No notices yet.</p>
         <ul id="notice-list"></ul>
       </section>
-      <p class="visually-hidden">The host team is not installed. This page is not calling a model, so nobody here is carrying a duty out. It is not GilbertOne, and it is not six cloud agents. These roles are not live processes. Nobody is running.</p>
+      <p class="visually-hidden">The host team is not installed. Qwen on the server is not connected, and this page does not call it. A reply comes from the Cursor model in the picker, and the reply names that model, so nobody here is carrying a duty out. It is not GilbertOne, and it is not six cloud agents. These roles are not live processes. Nobody is running.</p>
       <p id="morning" class="morning">On the rail: nobody. No duties are still held.</p>
       <div class="day-actions">
         <button type="button" id="copy-day">Copy today's list</button>
@@ -368,6 +373,12 @@
         <button type="submit" class="icon-button primary" aria-label="Send duty"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 16h14M16 9l7 7-7 7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       </div>
       <div class="composer-meta">
+        <label class="model-picker">Cursor model
+          <select id="model-picker">
+            <option value="" selected disabled>Loading models</option>
+            <option value="qwen" disabled>Qwen on the server — not connected</option>
+          </select>
+        </label>
         <p class="disclosure">Enter sends. Shift+Enter starts a new line.</p>
         <p class="disclosure">The browser may hand the words to its maker.</p>
         <p class="listen" id="listen" hidden><span class="listen-mark" aria-hidden="true"></span>Listening</p>
@@ -917,9 +928,35 @@ function renderNotices() {
   });
 }
 
-function showModel(connected) {
+function showModel() {
   var line = document.getElementById("model-line");
-  line.textContent = connected ? "A model is connected." : "A model is not connected.";
+  line.textContent = "Qwen on the server is not connected.";
+}
+
+async function loadModels() {
+  var select = document.getElementById("model-picker");
+  try {
+    var response = await fetch(authed("/models"));
+    var body = await response.json();
+    if (!response.ok) {
+      problem.textContent = body.error || "The model list could not be read.";
+      return;
+    }
+    select.replaceChildren();
+    (body.models || []).forEach(function (model) {
+      var option = document.createElement("option");
+      option.value = model.id;
+      option.textContent = model.displayName;
+      select.append(option);
+    });
+    var qwen = document.createElement("option");
+    qwen.value = "qwen";
+    qwen.disabled = true;
+    qwen.textContent = "Qwen on the server — not connected";
+    select.append(qwen);
+  } catch (error) {
+    problem.textContent = "The model list could not be read.";
+  }
 }
 
 function raiseHeld(duty) {
@@ -1135,6 +1172,11 @@ async function sendDuty(text, ids) {
   if (sendLock) return;
   var clean = String(text || "").trim();
   if (!clean) return;
+  var chosen = document.getElementById("model-picker").value;
+  if (!chosen || chosen === "qwen") {
+    problem.textContent = "Choose a Cursor model. Qwen on the server is not connected.";
+    return;
+  }
   sendLock = true;
   boardStamp += 1;
   var button = form.querySelector("button[type='submit']");
@@ -1149,7 +1191,7 @@ async function sendDuty(text, ids) {
     var response = await fetch(authed("/tasks"), {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ roleIds: ids, text: clean }),
+      body: JSON.stringify({ roleIds: ids, text: clean, model: chosen }),
     });
     var body = await response.json();
     sending = null;
@@ -1261,13 +1303,14 @@ async function loadBoard() {
     roster.dayList = board.dayList || "";
     roster.heldCount = board.heldCount || 0;
     duties = incoming;
-    showModel(board.modelConnected === true);
+    showModel();
     render();
   } catch (error) {
     // Opened as a file, or the board is not running. The empty line stays.
   }
 }
 render();
+loadModels();
 loadBoard();
 setInterval(function () { loadBoard(); }, POLL_MS);
 

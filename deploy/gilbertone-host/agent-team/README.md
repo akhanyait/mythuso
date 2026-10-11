@@ -26,8 +26,10 @@ each with their own colour and icon, and a one-line snippet of that person's sen
 offers the six. One @ duties one person, and more than one @ in a message is one shared thread,
 held for each of them. A message with nobody named is held for the whole team. The Group control
 does the same when two or more are chosen. The host team is not installed. The page says so at
-the top of the conversation, in that file's own sentence, and the next sentence says whether a
-model is connected. Recording a duty shows that person is writing, then paints their reply from the same response.
+the top of the conversation, in that file's own sentence. The next line says Qwen on the server
+is not connected, and the board does not call it. The picker lists every Cursor model the
+environment key can call. A duty sent with one of those models is written by that model, and the
+reply names it. Recording a duty shows that person is writing, then paints their reply from the same response.
 A duty can be pinned, marked done, or dismissed. The thread can be searched. Notices can be muted
 for the Johannesburg day. Enter sends. A named group can be duty'd in one tap. Today's list can be
 copied. The morning line counts who is on the rail and what is still held. An added person's craft
@@ -35,8 +37,9 @@ can be edited. Those notes stay under `work/`.
 The page also polls the board. Up to three suggestions offer the next people on the rail.
 A person can be added or removed on this screen; that list is kept under `work/`, and `roles.json`
 stays the seed. A greeting and a question about the plan are answered from the duties already on the board.
-Any other duty still gets that person's craft. The reply is taken from `roles.json` and `status.json`,
-and does not call Qwen. With nobody named, Thandi replies that she is holding it for the whole
+Any other duty still gets that person's craft when no Cursor model is chosen. A chosen Cursor
+model writes the reply instead, and the reply names that model. The board does not call Qwen.
+With nobody named, Thandi replies that she is holding it for the whole
 team and has not handed it on. The duty is held, in `status.json`'s own held
 sentence, and written under `work/`, which git ignores. The board asks for the key in
 `work/board.key` (query `k`, the session cookie, or a Bearer header). That file is not committed.
