@@ -205,7 +205,8 @@ export function startBoard({ port = 8765, workdir } = {}) {
   const server = createBoard(cfg);
   return new Promise((resolveListen, reject) => {
     server.once("error", reject);
-    server.listen(port, "127.0.0.1", () => resolveListen(server));
+    // The founder's browser reaches this process through a forward, and a loopback-only listen is invisible to that forward.
+    server.listen(port, "0.0.0.0", () => resolveListen(server));
   });
 }
 
