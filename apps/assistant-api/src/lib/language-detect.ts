@@ -1,3 +1,5 @@
+import localesContract from "../../../../packages/catalog/locales.json" with { type: "json" };
+
 /* Lightweight language detection for the South African languages GilbertOne may be written in,
    added on 23 September 2026 with the multi-language backend pass (Phase 1A of the next wave).
 
@@ -236,4 +238,39 @@ export function languageName(code: string | undefined): string {
   return (
     LANGUAGE_NAMES[key as SupportedLanguage] ?? LANGUAGE_NAMES.en
   );
+}
+
+/* MyThuso's own locale codes (zu-ZA and the rest of packages/catalog/locales.json) mapped onto
+   the language this module names. Built once. A locale whose language is outside
+   SUPPORTED_LANGUAGES fails here, at load, because the product's language list and GilbertOne's
+   would otherwise drift apart. */
+const LOCALE_TO_LANGUAGE: ReadonlyMap<string, SupportedLanguage> = new Map(
+  localesContract.locales.map((locale) => {
+    const code = locale.code.toLowerCase();
+    const subtag = code.split("-")[0];
+    if (!(SUPPORTED_LANGUAGES as readonly string[]).includes(subtag)) {
+      throw new Error(
+        `locales.json offers ${locale.code}, which is outside GilbertOne's language scope (${SUPPORTED_LANGUAGES.join(", ")}).`,
+      );
+    }
+    return [code, subtag as SupportedLanguage];
+  }),
+);
+
+/* A language the caller declared, kept only when it is inside this scope. A bare code (zu) is
+   the detector's own. A MyThuso locale (zu-ZA) is the same language. Anything else is absent,
+   which is what the turn contract already says a code this service does not know must be:
+   the words are then read by detectLanguage, and a wrong hint never becomes an error. */
+export function languageInScope(code: string | undefined): SupportedLanguage | undefined {
+  if (typeof code !== "string") return undefined;
+  const trimmed = code.trim().toLowerCase();
+  if (!trimmed) return undefined;
+  if ((SUPPORTED_LANGUAGES as readonly string[]).includes(trimmed)) return trimmed as SupportedLanguage;
+  return LOCALE_TO_LANGUAGE.get(trimmed);
+}
+
+/* The language a turn is answered in. The caller's declaration wins when it is in scope;
+   otherwise the words are read. Neither reading decides whether the message is safe. */
+export function resolveTurnLanguage(declared: string | undefined, text: string): SupportedLanguage {
+  return languageInScope(declared) ?? detectLanguage(typeof text === "string" ? text : "").language;
 }

@@ -1452,3 +1452,17 @@ liqzar-server. Drafts stay in the team's outbox.
 
 The install script is on the branch and has not been run. Running it is `sudo` on the GilbertOne
 host, from the Mac that holds the key. It does not install the assistant.
+
+## GilbertOne linked to MyThuso, tracked 11 October 2026
+
+Thandi is keeping this. Kabelo's shape, and what it refuses:
+
+- The nine files in `packages/catalog/knowledge/` are what GilbertOne searches. A file added there
+  and left off `LOCAL_KNOWLEDGE_FILES` fails the test. The fourteen federation sources are linked
+  by name and consulted only when their own `active` flag is true. All fourteen are false, so
+  linking them does not call them.
+- MyThuso's eleven locales are GilbertOne's language scope. A turn sent `zu-ZA` is answered as
+  isiZulu. A code outside the eleven is ignored and the words are read instead. The web panel
+  sends the language the person chose. Emergencies still never wait on that request.
+- What is not in this pass: installing the assistant on the host, switching a federation source
+  on, translating a clinical sentence, and pointing MyThuso at the unchecked Qwen page.

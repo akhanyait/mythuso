@@ -186,6 +186,10 @@ export async function refineWithAssistantService(
   audience: Audience = 'patient',
   sessionId?: string,
   context?: Record<string, unknown>,
+  /* The language the person chose in MyThuso (zu-ZA and the rest). The service maps it onto
+     GilbertOne's eleven and ignores a code outside that scope. Absent, the service reads the
+     words. An emergency never reaches this function. */
+  language?: string,
 ): Promise<Turn[] | null> {
   const last = turns[turns.length - 1];
   /* Only a message the matcher itself could not place is ever refined. A matched answer, an
@@ -210,6 +214,7 @@ export async function refineWithAssistantService(
           /* Present only for the signed-in patient, and only facts the app already holds.
              The public page does not call this with a record. */
           ...(context ? { context } : {}),
+          ...(language && language.trim() ? { language: language.trim() } : {}),
         }),
         signal: controller.signal,
       });

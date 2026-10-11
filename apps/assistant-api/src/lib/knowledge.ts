@@ -214,18 +214,36 @@ const indexEntry = (file: string, entry: KnowledgeEntry): IndexedEntry => {
   };
 };
 
+/* Every local knowledge file GilbertOne searches. The directory is the other copy, and
+   intelligence-link.test.ts fails when the two disagree, so a new file is linked here in the
+   same change that adds it. Federation sources are not in this list: they stay dark until
+   their own active flag is set. */
+export const LOCAL_KNOWLEDGE_FILES = [
+  "conditions",
+  "medications",
+  "first-aid",
+  "maternal",
+  "chronic",
+  "mental-health",
+  "sa-health-system",
+  "prevention",
+  "interactions",
+] as const;
+
+const LOCAL_KNOWLEDGE: Record<(typeof LOCAL_KNOWLEDGE_FILES)[number], unknown[]> = {
+  conditions,
+  medications: medications,
+  "first-aid": firstAid,
+  maternal,
+  chronic,
+  "mental-health": mentalHealth,
+  "sa-health-system": saHealthSystem,
+  prevention,
+  interactions,
+};
+
 const loadCorpus = (): IndexedEntry[] => {
-  const files: [string, unknown[]][] = [
-    ["conditions", conditions],
-    ["medications", medications],
-    ["first-aid", firstAid],
-    ["maternal", maternal],
-    ["chronic", chronic],
-    ["mental-health", mentalHealth],
-    ["sa-health-system", saHealthSystem],
-    ["prevention", prevention],
-    ["interactions", interactions],
-  ];
+  const files: [string, unknown[]][] = LOCAL_KNOWLEDGE_FILES.map((name) => [name, LOCAL_KNOWLEDGE[name]]);
   const corpus: IndexedEntry[] = [];
   for (const [file, entries] of files)
     for (const entry of entries as KnowledgeEntry[])
