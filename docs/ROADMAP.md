@@ -1404,3 +1404,36 @@ South African English acoustic path on-device; lowering first-token latency in
 `apps/assistant-api`; or making conversation mode reachable from more of the product's surfaces than
 the two it has today — each of which needs its own dated founder disclosure, because the build counts
 them.
+
+## Research takeaways, scoped 11 October 2026
+
+A 43-page research report read the product as a public-clinic queue with a SATS five-colour advisor.
+The repository is nurse-led home care, and 0 of 23 capabilities are connected. The report is kept as
+evidence for staying bounded. It is not adopted as the product.
+
+What this pass builds, on the new GilbertOne (the assistant in the box, emergency and refusals before
+Qwen, then a second check on Qwen's answer):
+
+- The preview page and the open route are the same thing. `test-chat/index.html` says the safety
+  checks are on and posts to `/assistant/v1/turn`, and `open-test-chat.sh` serves it only when the
+  assistant is installed. Until then it serves `test-chat/qwen.html`, which says the model is on its
+  own and posts to `/api/chat`. A boundary check fails if either sentence moves to the other file.
+
+What stays as it is, because the research agrees with it:
+
+- GilbertOne answers and decides no clinical question. Affect may not soften a refusal or an emergency.
+- The doctor's Triage markers stay per reading. They are not summed, and they do not escalate.
+- The emergency word list stays unreviewed until a clinician reads it. No SATS colour is added in its place.
+- Location stays inside the day of a visit. The microphone stays behind a tap.
+- There is no WhatsApp channel. A nurse or a doctor does not consult on one if a channel is added later.
+
+What is not started, because it would pretend a service is live or describe a different business:
+
+- A provincial clinic queue, a R48,000-per-clinic price, and a SATS engine with time-to-human SLAs.
+- A real booking, a real dispatch, a reminder cadence, or a panic path that calls an armed-response
+  partner. 10177 and 112 stay on the screen. The emergency capability stays disconnected until a
+  partner who already answers is contracted.
+- An Information Officer, a DPIA, and a residency decision. Those are not code. The Passport stays
+  development-only until they exist.
+- Installing the assistant on the GilbertOne host. That remains `install-from-mac.sh` from this
+  branch, run on the Mac, and it is a separate go.
