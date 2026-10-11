@@ -76,7 +76,8 @@ served is `test-chat/qwen.html`, which says the model is on its own and the safe
 Once the assistant is installed, that route is closed, `/assistant/v1/turn` is the way in, and the page
 served is `test-chat/index.html`, which says the checks are on. The login cannot pull or delete models.
 The password is made on the server, kept root-only in `/root/gilbertone-test-chat-login.txt` and printed
-once on the terminal; it does not go in this repository or a chat. Nothing about a real person's health
+once on the terminal; it does not go in this repository or a chat. To replace it with one you choose,
+on the server: `sudo bash set-login.sh`. The user stays `gilbert`. Nothing about a real person's health
 is kept. `sudo bash open-test-chat.sh --close` shuts it again.
 
 ## GilbertOne in the box: `open-gilbertone.sh`, and `install.sh` for all of it
