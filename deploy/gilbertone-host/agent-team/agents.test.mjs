@@ -9,6 +9,7 @@ import { mkdtemp, mkdir, writeFile, readFile, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { settings, loadRoles, ask, inside, listApprovals, delegationCap, KNOWN_TOOLS } from "./agents.mjs";
+import { readTeamStatus, statusProblems, checkStatusPage } from "./render-status.mjs";
 
 const ROSTER = [
   ["pm", "Thandi", "Project Manager"],
@@ -199,6 +200,45 @@ test("the PM can brief each teammate once and no further", async () => {
   const seen = scriptOllama(replies);
   await ask(cfg, team, "x");
   assert.match(seen.at(-1).messages.at(-1).content, new RegExp(`Refused: this ask has already been handed out ${cap} times`));
+});
+
+test("status.json names only roster ids, and every roster id has a status", () => {
+  const { roles, status } = readTeamStatus();
+  assert.deepEqual(statusProblems(roles, status), []);
+
+  const extra = structuredClone(status);
+  extra.people.push({ id: "admin", word: "not running", sentence: "There is no admin on this team." });
+  assert.ok(
+    statusProblems(roles, extra).some((problem) => problem.includes("status.json names admin, which roles.json does not have")),
+    statusProblems(roles, extra).join("\n"),
+  );
+
+  const missing = structuredClone(status);
+  missing.people = missing.people.filter((person) => person.id !== "qa");
+  assert.ok(
+    statusProblems(roles, missing).some((problem) => problem.includes("roles.json has qa, and status.json has no status for it")),
+    statusProblems(roles, missing).join("\n"),
+  );
+
+  const running = structuredClone(status);
+  running.people[0].word = "running";
+  assert.ok(statusProblems(roles, running).some((problem) => problem.includes("which this page does not use")));
+});
+
+test("the status page is inlined from the two JSON files and says the team is not installed", () => {
+  const html = checkStatusPage();
+  const { roles, status } = readTeamStatus();
+  assert.equal(html.includes(">Active<"), false);
+  assert.equal(html.includes("fetch("), false);
+  assert.ok(html.includes(status.notice));
+  assert.ok(html.indexOf(status.notice) < html.indexOf("<article>"));
+  for (const role of roles.roles) {
+    const person = status.people.find((row) => row.id === role.id);
+    assert.ok(html.includes(role.name), role.id);
+    assert.ok(html.includes(role.title), role.id);
+    assert.ok(html.includes(person.word), role.id);
+    assert.ok(html.includes(person.sentence), role.id);
+  }
 });
 
 test("a host without gilbertone-qwen runs the served Qwen with its thread count sent on every call", async () => {

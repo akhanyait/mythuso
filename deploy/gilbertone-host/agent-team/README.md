@@ -18,6 +18,18 @@ in `roles.json`. Thandi, Lerato and Sipho were already named on the founder's be
 draft. Kabelo, Karabo and Nomsa are named the same way, and all six are the founder's to change.
 Change a role there; the engine in `agents.mjs` reads it on every run.
 
+## Status
+
+`status.html` is one screen for the six roles: the name and title from `roles.json`, and one status
+word and one sentence from `status.json`. The host team is not installed. The page says so in that
+file's own sentence, above the names. It is not a patient page, and it does not call the network.
+Open the file in a browser, or serve this folder and open `status.html`.
+
+```sh
+node render-status.mjs          # rewrite status.html after a sentence changes
+node render-status.mjs --check  # fail if the page has drifted, or a status names a role the roster does not have
+```
+
 No admin role is on this team. The earlier draft had one, for email and server commands. This ask
 did not name an admin, and no mailbox is connected, so nobody can draft an email. The only commands
 are the checks Nomsa queues.

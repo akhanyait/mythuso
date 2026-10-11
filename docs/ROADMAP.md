@@ -1453,6 +1453,10 @@ liqzar-server. Drafts stay in the team's outbox.
 The install script is on the branch and has not been run. Running it is `sudo` on the GilbertOne
 host, from the Mac that holds the key. It does not install the assistant.
 
+What each role has done, and the sentence that the team is not installed, is
+`deploy/gilbertone-host/agent-team/status.json`, shown by `status.html` in the same folder. It is
+not a patient page.
+
 ## GilbertOne linked to MyThuso, tracked 11 October 2026
 
 Thandi is keeping this. Kabelo's shape, and what it refuses:

@@ -1,0 +1,36 @@
+{
+  "heading": "Work team",
+  "notice": "The host team is not installed. The install script is on the branch and has not been run. It is not GilbertOne, and it is not six cloud agents. These roles are not live processes. Nobody is running.",
+  "people": [
+    {
+      "id": "pm",
+      "word": "not running",
+      "sentence": "She scoped the unfinished host and product work, kept in docs/ROADMAP.md as Research takeaways, scoped 11 October 2026. She is keeping the GilbertOne link, recorded there as GilbertOne linked to MyThuso, tracked 11 October 2026. Feature recommendations are in the chat record, and they are not committed as a decision. Her current work is tracking. She is not running."
+    },
+    {
+      "id": "architect",
+      "word": "done on this branch",
+      "sentence": "The knowledge and language link is committed on this branch. GilbertOne reads the nine local catalogue files. The fourteen federation sources stay consulted only when active, and all fourteen are false. MyThuso's eleven locales are the language scope. He is not running."
+    },
+    {
+      "id": "designer",
+      "word": "scoped",
+      "sentence": "The patient-journey audit is recorded in docs/ROADMAP.md, under Look, motion and the patient journey, scoped 11 October 2026. It is scoped, and it is not built. She is not running."
+    },
+    {
+      "id": "engineer",
+      "word": "not running",
+      "sentence": "He is cleared to build the morning-of card on the web and in the contracts. That card has not been built. He is not running."
+    },
+    {
+      "id": "engineer-2",
+      "word": "standby",
+      "sentence": "He is on standby for the same card on iOS and Android. It is not started. He is not running."
+    },
+    {
+      "id": "qa",
+      "word": "not running",
+      "sentence": "On 11 October 2026, npm run check and npm test both exited 0 on this branch: 4,479 passed, 27 skipped, and 0 failed. iOS and Android were not run, because this machine is Linux. She is not running."
+    }
+  ]
+}
