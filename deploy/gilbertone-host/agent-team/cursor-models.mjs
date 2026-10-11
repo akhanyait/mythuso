@@ -103,7 +103,11 @@ export async function listCursorModels(env = process.env, fetchImpl = globalThis
   return modelsFromCatalog(catalog);
 }
 
-// One agent per model, kept after the reply, so the next message is a follow-up.
+// One agent for the board. A later reply is a follow-up on that agent, which keeps it
+// alive. An archived agent is unarchived, which is how its time is extended. A new agent
+// is started only when the account has none named for this board.
+const BOARD_AGENT = "board";
+const AGENT_NAME = "Work-team reply";
 const agentsByModel = new Map();
 const lanes = new Map();
 
@@ -145,31 +149,74 @@ async function waitForRun(fetchImpl, key, agentId, runId, timeoutMs) {
   return run;
 }
 
+async function listedAgents(fetchImpl, key) {
+  try {
+    const listed = await cursorRequest(fetchImpl, key, "GET", "/v1/agents?limit=50");
+    return Array.isArray(listed.items) ? listed.items : [];
+  } catch (error) {
+    if (error.code === "usage_limit_exceeded") throw error;
+    return [];
+  }
+}
+
+async function remember(id) {
+  if (id) agentsByModel.set(BOARD_AGENT, id);
+  return id;
+}
+
+// Reuse the board's agent. If its time has run out, unarchive it instead of starting another.
+async function adoptAgent(fetchImpl, key) {
+  const cached = agentsByModel.get(BOARD_AGENT);
+  if (cached) return cached;
+  const named = (await listedAgents(fetchImpl, key)).filter((item) =>
+    item?.name === AGENT_NAME && typeof item.id === "string"
+  );
+  const live = named.find((item) => item.status === "ACTIVE" || item.status === "IDLE");
+  const chosen = live || named[0];
+  if (!chosen) return null;
+  if (chosen.status === "ARCHIVED") {
+    await cursorRequest(fetchImpl, key, "POST", `/v1/agents/${chosen.id}/unarchive`);
+  }
+  return remember(chosen.id);
+}
+
+async function followAgent(fetchImpl, key, agentId, prompt) {
+  const follow = await cursorRequest(fetchImpl, key, "POST", `/v1/agents/${agentId}/runs`, {
+    prompt: { text: prompt },
+  });
+  const runId = follow.run?.id;
+  return runId ? { agentId, runId } : null;
+}
+
 async function openRun(fetchImpl, key, model, prompt) {
-  const cached = agentsByModel.get(model.id);
-  if (cached) {
+  const existing = await adoptAgent(fetchImpl, key);
+  if (existing) {
     try {
-      const follow = await cursorRequest(fetchImpl, key, "POST", `/v1/agents/${cached}/runs`, {
-        prompt: { text: prompt },
-      });
-      const runId = follow.run?.id;
-      if (runId) return { agentId: cached, runId };
+      const opened = await followAgent(fetchImpl, key, existing, prompt);
+      if (opened) return opened;
     } catch (error) {
-      agentsByModel.delete(model.id);
-      if (error.code === "usage_limit_exceeded") throw error;
+      if (error.code === "usage_limit_exceeded" || error.statusCode === 409) throw error;
+      try {
+        await cursorRequest(fetchImpl, key, "POST", `/v1/agents/${existing}/unarchive`);
+        const opened = await followAgent(fetchImpl, key, existing, prompt);
+        if (opened) return opened;
+      } catch (again) {
+        if (again.code === "usage_limit_exceeded" || again.statusCode === 409) throw again;
+      }
+      agentsByModel.delete(BOARD_AGENT);
     }
   }
   const selection = { id: model.id };
   if (Array.isArray(model.params) && model.params.length) selection.params = model.params;
   const created = await cursorRequest(fetchImpl, key, "POST", "/v1/agents", {
-    name: "Work-team reply",
+    name: AGENT_NAME,
     prompt: { text: prompt },
     model: selection,
     autoCreatePR: false,
   });
   const agentId = created.agent?.id;
   const runId = created.run?.id || created.agent?.latestRunId;
-  if (agentId) agentsByModel.set(model.id, agentId);
+  if (agentId) remember(agentId);
   return { agentId, runId };
 }
 
@@ -195,7 +242,7 @@ async function writeOnce(env, fetchImpl, model, options) {
   const run = await waitForRun(fetchImpl, key, agentId, runId, options.timeoutMs ?? 120_000);
   const result = typeof run?.result === "string" ? run.result.trim() : "";
   if (run?.status !== "FINISHED" || !result) {
-    agentsByModel.delete(id);
+    agentsByModel.delete(BOARD_AGENT);
     throw quiet(502, `${name} did not write a reply.`);
   }
   const finished = finishReply(result, { ...model, id, displayName: name }, options.held);
@@ -206,21 +253,5 @@ async function writeOnce(env, fetchImpl, model, options) {
 }
 
 export async function writeCursorReply(env, fetchImpl, model, options = {}) {
-  const id = String(model?.id ?? "").trim();
-  return enqueue(id || "none", () => writeOnce(env, fetchImpl, model, options));
-}
-
-// Starts the picker default in the background so the first message someone sends is a
-// follow-up. A failure here changes nothing: the duty still asks the model itself.
-export async function warmDefaultModel(env = process.env, fetchImpl = globalThis.fetch) {
-  const models = await listCursorModels(env, fetchImpl);
-  const model = models.find((item) => item.id === "default") || models[0];
-  if (!model || agentsByModel.has(model.id)) return model?.displayName ?? "";
-  await writeCursorReply(env, fetchImpl, model, {
-    speakerName: "Thandi",
-    speakerTitle: "Project Manager",
-    duty: "Say ready.",
-    held: "",
-  });
-  return model.displayName;
+  return enqueue(BOARD_AGENT, () => writeOnce(env, fetchImpl, model, options));
 }

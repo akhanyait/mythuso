@@ -267,9 +267,10 @@ test("the status page is inlined from the two JSON files and says the team is no
   assert.ok(html.includes("POLL_MS = 2000"));
   assert.equal(html.includes("setTimeout(function () { render"), false);
   assert.ok(html.includes(status.notice));
-  assert.ok(html.includes("The host team is not installed."));
+  assert.ok(html.includes("The six answer through the model in the picker."));
+  assert.equal(html.includes("not installed"), false);
   assert.ok(html.includes("Qwen on the server is not connected, and this page does not call it."));
-  assert.ok(html.includes("the reply names that model"));
+  assert.ok(html.includes("names that model"));
   assert.equal(html.includes("has not been run"), false);
   assert.equal(/install failed/i.test(html), false);
   assert.ok(html.indexOf('class="notice-lead"') < html.indexOf('id="model-line"'));
@@ -287,7 +288,7 @@ test("the status page is inlined from the two JSON files and says the team is no
   assert.ok(html.includes('id="mic"'));
   assert.ok(html.includes("45000"));
   assert.ok(html.indexOf('class="notice-lead"') < html.indexOf('id="task-form"'));
-  assert.equal(status.held, "Held. The team is not installed, so nobody is carrying this out.");
+  assert.equal(status.held, "Noted on this board.");
   assert.equal(html.includes("Investment Bot"), false);
   assert.equal(html.includes("Hacker and Security"), false);
   assert.equal(html.includes("Marketing Bot"), false);
@@ -351,14 +352,14 @@ test("a task that names a role the roster does not have is refused and not store
     const task = await held.json();
     assert.equal(task.roleId, "engineer");
     assert.equal(task.text, "Morning-of card on the web");
-    assert.equal(task.sentence, "Held. The team is not installed, so nobody is carrying this out.");
+    assert.equal(task.sentence, "Noted on this board.");
     assert.equal(task.replies.length, 1);
     assert.equal(task.replies[0].roleId, "engineer");
     assert.equal(task.replies[0].name, "Sipho");
     assert.match(task.replies[0].text, /Specialist Full Stack Engineer/);
     assert.match(task.replies[0].text, /I will draft the web piece/);
     assert.match(task.replies[0].text, /I am not running and the duty is held, so I have not started it/);
-    assert.match(task.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+    assert.match(task.replies[0].text, /Noted on this board./);
     assert.equal(/built/i.test(task.replies[0].text), false);
     const board = await (await boardFetch(`${url}/board`)).json();
     assert.equal(board.tasks.length, 1);
@@ -398,7 +399,7 @@ test("a task that names a role the roster does not have is refused and not store
     assert.equal(everyone.replies.length, 1);
     assert.equal(everyone.replies[0].name, "Thandi");
     assert.match(everyone.replies[0].text, /holding this for the whole team and have not handed it on/);
-    assert.match(everyone.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+    assert.match(everyone.replies[0].text, /Noted on this board./);
 
     const mixed = await boardFetch(`${url}/tasks`, {
       method: "POST",
@@ -457,7 +458,7 @@ test("OLLAMA_URL unset does not call a model, and a duty stays held", async () =
       body: JSON.stringify({ roleId: "pm", text: "Hold this for Thandi." }),
     });
     assert.equal(held.status, 201);
-    assert.equal((await held.json()).sentence, "Held. The team is not installed, so nobody is carrying this out.");
+    assert.equal((await held.json()).sentence, "Noted on this board.");
     assert.deepEqual(seen, []);
   } finally {
     await new Promise((resolve) => server.close(resolve));
@@ -490,7 +491,7 @@ test("recording a duty does not call Ollama, even when OLLAMA_URL is set", async
     });
     assert.equal(held.status, 201);
     const task = await held.json();
-    assert.equal(task.sentence, "Held. The team is not installed, so nobody is carrying this out.");
+    assert.equal(task.sentence, "Noted on this board.");
     assert.equal(task.replies.length, 1);
     assert.equal(task.replies[0].name, "Lerato");
     assert.match(task.replies[0].text, /I will draft the screen/);
@@ -511,10 +512,10 @@ test("a reply is refused for a role id roles.json does not have", () => {
   const added = dutyReplies(roles, status, ["screen-proof"], screen);
   assert.equal(added[0].name, "Proofbot");
   assert.match(added[0].text, /I am on this screen only/);
-  assert.match(added[0].text, /The team is not installed, so nobody is carrying this out/);
+  assert.match(added[0].text, /Noted on this board./);
   const sipho = dutyReplies(roles, status, ["engineer"]);
   assert.equal(sipho.length, 1);
-  assert.match(sipho[0].text, /The team is not installed, so nobody is carrying this out/);
+  assert.match(sipho[0].text, /Noted on this board./);
   assert.equal(/built/i.test(sipho[0].text), false);
 });
 
@@ -532,7 +533,7 @@ test("a plan question lists what is held and a greeting includes the morning lin
   assert.equal(plan[0].name, "Thandi");
   assert.match(plan[0].text, /Check the gate/);
   assert.match(plan[0].text, /still held|Check the gate/);
-  assert.match(plan[0].text, /The team is not installed, so nobody is carrying this out/);
+  assert.match(plan[0].text, /Noted on this board./);
   assert.equal(/have not handed it on/.test(plan[0].text), false);
   assert.equal(/built/i.test(plan[0].text), false);
   const hello = dutyReplies(roles, status, [], screen, { text: "hello", tasks });
@@ -540,7 +541,7 @@ test("a plan question lists what is held and a greeting includes the morning lin
   assert.match(hello[0].text, /On the rail:/);
   assert.match(hello[0].text, /still held/);
   assert.match(hello[0].text, /I am not running, so I have not started any work/);
-  assert.match(hello[0].text, /The team is not installed, so nobody is carrying this out/);
+  assert.match(hello[0].text, /Noted on this board./);
   assert.equal(/holding this for the whole team/.test(hello[0].text), false);
   assert.equal(/You wrote:/.test(hello[0].text), false);
   const how = dutyReplies(roles, status, [], screen, { text: "how are you?", tasks });
@@ -554,7 +555,7 @@ test("a plan question lists what is held and a greeting includes the morning lin
   const work = dutyReplies(roles, status, ["engineer"], screen, { text: "Draft the shop header", tasks });
   assert.match(work[0].text, /I will draft the web piece/);
   assert.match(work[0].text, /Draft the shop header/);
-  assert.match(work[0].text, /The team is not installed, so nobody is carrying this out/);
+  assert.match(work[0].text, /Noted on this board./);
 });
 
 test("a person can be added and removed on this screen, and Thandi's reply stays held", async () => {
@@ -594,7 +595,7 @@ test("a person can be added and removed on this screen, and Thandi's reply stays
     assert.ok(took < 1000);
     const task = await duty.json();
     assert.equal(task.replies[0].name, "Thandi");
-    assert.match(task.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+    assert.match(task.replies[0].text, /Noted on this board./);
     assert.deepEqual(task.replies[0].suggestions.map((item) => item.name), ["Kabelo", "Lerato", "Sipho"]);
     assert.match(task.replies[0].suggestions[0].label, /^Hand this to /);
     const theirs = await boardFetch(`${url}/tasks`, {
@@ -605,7 +606,7 @@ test("a person can be added and removed on this screen, and Thandi's reply stays
     assert.equal(theirs.status, 201);
     const note = await theirs.json();
     assert.match(note.replies[0].text, /I am on this screen only/);
-    assert.match(note.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+    assert.match(note.replies[0].text, /Noted on this board./);
     const removed = await boardFetch(`${url}/people/remove`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -645,7 +646,7 @@ test("a duty can be pinned, marked done, searched, copied, grouped, and an added
     });
     assert.equal(duty.status, 201);
     const task = await duty.json();
-    assert.match(task.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+    assert.match(task.replies[0].text, /Noted on this board./);
     const pinned = await boardFetch(`${url}/tasks/pin`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -702,7 +703,7 @@ test("a duty can be pinned, marked done, searched, copied, grouped, and an added
     const shared = await grouped.json();
     assert.equal(shared.audience, "group");
     assert.deepEqual(shared.roleIds, ["designer", "qa"]);
-    assert.match(shared.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+    assert.match(shared.replies[0].text, /Noted on this board./);
     const roster = JSON.parse(await readFile(new URL("./roles.json", import.meta.url), "utf8"));
     assert.equal(roster.roles.find((role) => role.id === "pm").title, "Project Manager");
   } finally {
@@ -729,8 +730,8 @@ test("a posted @ mention assigns that person, and an unknown mention is refused"
     assert.equal(planned.audience, "person");
     assert.equal(planned.replies.length, 1);
     assert.equal(planned.replies[0].name, "Thandi");
-    assert.match(planned.replies[0].text, /The team is not installed, so nobody is carrying this out/);
-    assert.equal(planned.sentence, "Held. The team is not installed, so nobody is carrying this out.");
+    assert.match(planned.replies[0].text, /Noted on this board./);
+    assert.equal(planned.sentence, "Noted on this board.");
 
     const sipho = await boardFetch(`${url}/tasks`, {
       method: "POST",
@@ -744,7 +745,7 @@ test("a posted @ mention assigns that person, and an unknown mention is refused"
     assert.equal(drafted.heldFor, "Held for Sipho.");
     assert.equal(drafted.replies[0].name, "Sipho");
     assert.match(drafted.replies[0].text, /I will draft the web piece/);
-    assert.match(drafted.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+    assert.match(drafted.replies[0].text, /Noted on this board./);
 
     const unknown = await boardFetch(`${url}/tasks`, {
       method: "POST",
@@ -783,7 +784,7 @@ test("a greeting with nobody named is Thandi's and is not held for the whole tea
       title: "Whole team",
       heldFor: "Held for the whole team.",
       text: "how are you?",
-      sentence: "Held. The team is not installed, so nobody is carrying this out.",
+      sentence: "Noted on this board.",
       replies: [{
         roleId: "pm",
         name: "Thandi",
@@ -841,7 +842,7 @@ test("a greeting with nobody named is Thandi's and is not held for the whole tea
       assert.match(task.replies[0].text, /^Hello\. I am Thandi\./, text);
       assert.match(task.replies[0].text, /On the rail:/, text);
       assert.match(task.replies[0].text, /I am not running, so I have not started any work/, text);
-      assert.match(task.replies[0].text, /The team is not installed, so nobody is carrying this out/, text);
+      assert.match(task.replies[0].text, /Noted on this board./, text);
       assert.equal(/holding this for the whole team/.test(task.replies[0].text), false, text);
       assert.equal(/You wrote:/.test(task.replies[0].text), false, text);
       assert.equal(/I have not started it/.test(task.replies[0].text), false, text);
@@ -983,7 +984,7 @@ test("the picker lists Cursor models, a reply names the one that wrote it, and Q
     assert.equal(task.writtenByModel, true);
     assert.equal(task.modelName, "Composer 2.5");
     assert.match(task.replies[0].text, /Written by Composer 2.5/);
-    assert.match(task.replies[0].text, /Held\. The team is not installed, so nobody is carrying this out/);
+    assert.match(task.replies[0].text, /Noted on this board./);
     assert.equal(JSON.stringify(task).includes(secret), false);
     assert.ok(seen.every((href) => href.startsWith("https://api.cursor.com/")));
     assert.equal(seen.some((href) => href.includes("qwen.server") || href.includes("/api/tags") || href.includes("/api/chat")), false);

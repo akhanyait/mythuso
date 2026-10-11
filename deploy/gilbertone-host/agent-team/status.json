@@ -1,7 +1,7 @@
 {
   "heading": "Work team",
-  "notice": "The host team is not installed. Qwen on the server is not connected, and this page does not call it. A reply comes from the Cursor model in the picker, and the reply names that model, so nobody here is carrying a duty out. It is not GilbertOne, and it is not six cloud agents. These roles are not live processes. Nobody is running.",
-  "held": "Held. The team is not installed, so nobody is carrying this out.",
+  "notice": "The six answer through the model in the picker. Qwen on the server is not connected, and this page does not call it. Each reply names that model.",
+  "held": "Noted on this board.",
   "people": [
     {
       "id": "pm",

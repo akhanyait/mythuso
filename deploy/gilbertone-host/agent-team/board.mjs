@@ -20,7 +20,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { ask, loadRoles, probeModel, settings } from "./agents.mjs";
-import { isQwenChoice, listCursorModels, warmDefaultModel, writeCursorReply } from "./cursor-models.mjs";
+import { isQwenChoice, listCursorModels, writeCursorReply } from "./cursor-models.mjs";
 import { readTeamStatus } from "./render-status.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -375,7 +375,7 @@ function dutyIds(roles, input, screen = { added: [], hidden: [] }) {
 
 // The words the page must keep. They live in status.json; a reply copies them from there
 // and refuses to speak if that sentence no longer contains them.
-const HELD_WORDS = "The team is not installed, so nobody is carrying this out";
+const HELD_WORDS = "Noted on this board.";
 
 // A reply may name a role id from roles.json or a person added on this screen. Anything else
 // is refused here, before a sentence is written.
@@ -499,26 +499,26 @@ function replyText(role, status, wholeTeam, context = {}) {
   const morning = morningLine(context.roles, context.screen, heldDuties(context.tasks, context.screen, context.exceptId));
   if (kind === "greeting") {
     const only = role.screenOnly ? " I am on this screen only." : "";
-    return `Hello. I am ${role.name}.${only} ${morning} I am not running, so I have not started any work. ${HELD_WORDS}.`;
+    return `Hello. I am ${role.name}.${only} ${morning} I am not running, so I have not started any work. ${HELD_WORDS}`;
   }
   if (kind === "plan") {
     const list = planSentences(context.tasks, context.screen, context.exceptId);
     const only = role.screenOnly ? " I am on this screen only." : "";
-    return `I am ${role.name}.${only} ${list} ${HELD_WORDS}.`;
+    return `I am ${role.name}.${only} ${list} ${HELD_WORDS}`;
   }
   const asked = String(context.text ?? "").trim().split("\n")[0].trim().slice(0, 180);
   const about = asked ? ` You wrote: ${asked}.` : "";
   if (role.screenOnly) {
     const craft = String(role.title ?? "").trim();
     const craftSentence = /[.!?]$/.test(craft) ? craft : `${craft}.`;
-    return `I am ${role.name}. ${craftSentence} I am on this screen only.${about} I am not running and the duty is held, so I have not started it: ${HELD_WORDS}.`;
+    return `I am ${role.name}. ${craftSentence} I am on this screen only.${about} I am not running and the duty is held, so I have not started it: ${HELD_WORDS}`;
   }
   const will = wholeTeam ? role.willTeam : role.will;
   if (typeof will !== "string" || will.trim() === "") {
     throw new Error(`roles.json has no answer for ${role.id}`);
   }
   const doing = wholeTeam ? will.trim() : `I will ${will.trim()}`;
-  return `I am ${role.name}, ${role.title}, and ${doing}.${about} I am not running and the duty is held, so I have not started it: ${HELD_WORDS}.`;
+  return `I am ${role.name}, ${role.title}, and ${doing}.${about} I am not running and the duty is held, so I have not started it: ${HELD_WORDS}`;
 }
 
 // Up to three other people on the rail. The words are their names, not a second roster.
@@ -1031,9 +1031,4 @@ if (isMain) {
   console.log(`Work team board at http://127.0.0.1:${address.port}/status.html`);
   console.log("Qwen on the server is not connected.");
   console.log("Cursor models are in the picker. A reply names the model that wrote it.");
-  warmDefaultModel(process.env).then((name) => {
-    if (name) console.log(`${name} is ready for the next reply.`);
-  }).catch(() => {
-    // The next duty still asks the model. Warming it is only a head start.
-  });
 }

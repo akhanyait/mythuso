@@ -25,8 +25,8 @@ each with their own colour and icon, and a one-line snippet of that person's sen
 `status.json`. The thread is beside the rail, and the composer sits along the bottom. Typing @
 offers the six. One @ duties one person, and more than one @ in a message is one shared thread,
 held for each of them. A message with nobody named is held for the whole team. The Group control
-does the same when two or more are chosen. The host team is not installed. The page says so at
-the top of the conversation, in that file's own sentence. The next line says Qwen on the server
+does the same when two or more are chosen. The page says the six answer through the model in the picker. It does not say they are
+not installed. The next line says Qwen on the server
 is not connected, and the board does not call it. The picker lists every Cursor model the
 environment key can call. A duty sent with one of those models is written by that model, and the
 reply names it. That model stays ready, so the next reply does not start another machine. Recording a duty shows that person is writing, then paints their reply from the same response.

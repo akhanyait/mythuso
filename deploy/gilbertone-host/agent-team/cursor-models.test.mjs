@@ -27,10 +27,10 @@ test("the catalog becomes picker rows, and a Qwen id is left out", () => {
 });
 
 test("a reply names the model and keeps the held sentence", () => {
-  const named = finishReply("The card can wait.", { id: "composer-2.5", displayName: "Composer 2.5" }, "Held. The team is not installed, so nobody is carrying this out.");
+  const named = finishReply("The card can wait.", { id: "composer-2.5", displayName: "Composer 2.5" }, "Noted on this board.");
   assert.match(named, /Written by Composer 2.5/);
-  assert.match(named, /nobody is carrying this out/);
-  const already = finishReply("Composer 2.5 wrote this. Held. The team is not installed, so nobody is carrying this out.", { id: "composer-2.5", displayName: "Composer 2.5" }, "Held. The team is not installed, so nobody is carrying this out.");
+  assert.match(named, /Noted on this board/);
+  const already = finishReply("Composer 2.5 wrote this. Noted on this board.", { id: "composer-2.5", displayName: "Composer 2.5" }, "Noted on this board.");
   assert.equal(already.includes("Written by"), false);
 });
 
@@ -71,18 +71,29 @@ test("a usage limit is not turned into a reply, and a finished run names the mod
       return true;
     },
   );
-  assert.deepEqual(limited, ["https://api.cursor.com/v1/agents"]);
+  assert.deepEqual(limited, ["https://api.cursor.com/v1/agents?limit=50"]);
 
   const seen = [];
+  let follows = 0;
   const fetchImpl = async (url, init = {}) => {
     const href = String(url);
-    seen.push(`${init.method || "GET"} ${href}`);
+    const method = init.method || "GET";
+    seen.push(`${method} ${href}`);
     if (href.includes("qwen") || href.includes("/api/tags")) throw new Error("qwen was called");
-    if (init.method === "POST" && href.endsWith("/v1/agents")) {
-      return new Response(JSON.stringify({ agent: { id: "bc-1", latestRunId: "run-1" }, run: { id: "run-1" } }), { status: 201 });
+    if (method === "GET" && href.includes("/v1/agents?")) {
+      return new Response(JSON.stringify({
+        items: [{ id: "bc-1", name: "Work-team reply", status: "IDLE" }],
+      }), { status: 200 });
     }
-    if (init.method === "POST" && href.endsWith("/runs")) {
-      return new Response(JSON.stringify({ run: { id: "run-2", status: "CREATING" } }), { status: 201 });
+    if (method === "POST" && href.endsWith("/v1/agents")) {
+      throw new Error("a new agent was started");
+    }
+    if (method === "POST" && href.endsWith("/runs")) {
+      follows += 1;
+      return new Response(JSON.stringify({ run: { id: `run-${follows}`, status: "CREATING" } }), { status: 201 });
+    }
+    if (method === "POST" && href.endsWith("/unarchive")) {
+      return new Response(JSON.stringify({ id: "bc-1" }), { status: 200 });
     }
     return new Response(JSON.stringify({ status: "FINISHED", result: "Noted." }), { status: 200 });
   };
@@ -90,16 +101,18 @@ test("a usage limit is not turned into a reply, and a finished run names the mod
     { CURSOR_API_KEY: secret },
     fetchImpl,
     { id: "default", displayName: "Auto", params: [] },
-    { speakerName: "Thandi", speakerTitle: "Project Manager", duty, held: "Held. The team is not installed, so nobody is carrying this out." },
+    { speakerName: "Thandi", speakerTitle: "Project Manager", duty, held: "Noted on this board." },
   );
   const text = await ask("Hello");
   assert.match(text, /Written by Auto/);
-  assert.match(text, /nobody is carrying this out/);
+  assert.match(text, /Noted on this board/);
   assert.equal(text.includes(secret), false);
   const again = await ask("And the next one.");
   assert.match(again, /Written by Auto/);
+  assert.equal(seen.some((line) => line.startsWith("POST ") && line.endsWith("/v1/agents")), false);
   assert.deepEqual(seen, [
-    "POST https://api.cursor.com/v1/agents",
+    "GET https://api.cursor.com/v1/agents?limit=50",
+    "POST https://api.cursor.com/v1/agents/bc-1/runs",
     "GET https://api.cursor.com/v1/agents/bc-1/runs/run-1",
     "POST https://api.cursor.com/v1/agents/bc-1/runs",
     "GET https://api.cursor.com/v1/agents/bc-1/runs/run-2",

@@ -18,19 +18,14 @@ const here = dirname(fileURLToPath(import.meta.url));
 // because nobody on this team is a live process.
 export const STATUS_WORDS = ["not running", "standby", "scoped", "done on this branch"];
 
-// The notice has to keep the decision's own words: Qwen on the server is not connected and
-// this page does not call it, a Cursor reply names the model that wrote it, and nobody here
-// is carrying a duty out. It must not claim the install script has not been run. The page
-// prints that sentence above the names.
+// The notice names the six as answering through the picker. It must not say they are not
+// installed. Qwen on the server stays not connected, and the page must not claim the install
+// script has not been run.
 const NOTICE_MUST_SAY = [
-  "not installed",
+  "answer through the model in the picker",
   "Qwen on the server is not connected",
   "does not call it",
   "names that model",
-  "nobody here is carrying a duty out",
-  "not six cloud agents",
-  "not live processes",
-  "Nobody is running",
 ];
 
 export function readTeamStatus(dir = here) {
@@ -49,6 +44,9 @@ export function statusProblems(roles, status) {
   }
   if (/has not been run|install failed/i.test(notice)) {
     problems.push("the notice must not say the install script has not been run");
+  }
+  if (/not installed/i.test(notice)) {
+    problems.push("the notice must not say the team is not installed");
   }
   if (typeof status?.heading === "string" && /\bactive\b/i.test(status.heading)) {
     problems.push("the heading groups the team as active");
@@ -1102,7 +1100,7 @@ export function renderStatusHtml(roles, status) {
   if (problems.length) throw new Error(problems.join("\n"));
   const byId = new Map(status.people.map((person) => [person.id, person]));
   const notice = status.notice;
-  const lead = "The host team is not installed.";
+  const lead = "The six answer through the model in the picker.";
   const rest = notice.startsWith(lead) ? notice.slice(lead.length).trim() : notice;
   const rosterJson = JSON.stringify({
     people: roles.roles.map((role) => ({ id: role.id, name: role.name, title: role.title })),
@@ -1124,7 +1122,7 @@ export function renderStatusHtml(roles, status) {
 <!--
   Drawn by render-status.mjs from roles.json and status.json. Do not edit the names or the
   sentences here: the check fails when this file drifts. The page asks only the local board.
-  The host team is not installed, and this page must not say otherwise.
+  The six answer through the model in the picker. The page must not say they are uninstalled.
 -->
 <html lang="en-ZA">
 <head>

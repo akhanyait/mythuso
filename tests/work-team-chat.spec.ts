@@ -66,7 +66,8 @@ test.afterAll(async () => {
 test('the rail, an @ duty, a group thread, and the mic', async ({ page }) => {
   const port = (server.address() as { port: number }).port;
   await page.goto(`http://127.0.0.1:${port}/status.html?k=${BOARD_KEY}`);
-  await expect(page.getByText('The host team is not installed.', { exact: true })).toBeVisible();
+  await expect(page.getByText('The six answer through the model in the picker.', { exact: true })).toBeVisible();
+  await expect(page.getByText(/not installed/)).toHaveCount(0);
   await expect(page.locator('#model-line')).toHaveText('Qwen on the server is not connected.');
   await expect(page.locator('#model-picker')).toHaveValue('composer-2.5', { timeout: 10000 });
   await expect(page.locator('#model-picker option[value="qwen"]')).toHaveJSProperty('disabled', true);
