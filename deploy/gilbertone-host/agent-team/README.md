@@ -27,7 +27,10 @@ offers the six. One @ duties one person, and more than one @ in a message is one
 held for each of them. A message with nobody named is held for the whole team. The Group control
 does the same when two or more are chosen. The host team is not installed. The page says so at
 the top of the conversation, in that file's own sentence, and the next sentence says whether a
-model is connected. Recording a duty writes a reply from that person, taken from `roles.json` and `status.json`,
+model is connected. Recording a duty shows that person is writing, then paints their reply from the same response.
+The page also polls the board. Up to three suggestions offer the next people on the rail.
+A person can be added or removed on this screen; that list is kept under `work/`, and `roles.json`
+stays the seed. The reply is taken from `roles.json` and `status.json`,
 and does not call Qwen. With nobody named, Thandi replies that she is holding it for the whole
 team and has not handed it on. The duty is held, in `status.json`'s own held
 sentence, and written under `work/`, which git ignores. The board asks for the key in

@@ -238,7 +238,12 @@ test("the status page is inlined from the two JSON files and says the team is no
   assert.equal(html.includes("sessionStorage"), false);
   assert.equal(html.includes("indexedDB"), false);
   const fetches = [...html.matchAll(/fetch\(authed\("([^"]+)"\)/g)].map((match) => match[1]);
-  assert.deepEqual(fetches.sort(), ["/board", "/tasks"]);
+  assert.deepEqual(fetches.sort(), ["/board", "/people", "/people/remove", "/tasks"]);
+  assert.ok(html.includes("is writing"));
+  assert.ok(html.includes('className = "suggest"'));
+  assert.ok(html.includes("Add a person"));
+  assert.ok(html.includes("POLL_MS = 2000"));
+  assert.equal(html.includes("setTimeout(function () { render"), false);
   assert.ok(html.includes(status.notice));
   assert.ok(html.includes("The host team is not installed."));
   assert.ok(html.indexOf('class="notice-lead"') < html.indexOf('id="model-line"'));
@@ -470,14 +475,94 @@ test("recording a duty does not call Ollama, even when OLLAMA_URL is set", async
 
 test("a reply is refused for a role id roles.json does not have", () => {
   const { roles, status } = readTeamStatus();
+  const screen = { added: [{ id: "screen-proof", name: "Proofbot", craft: "Keeps this screen." }], hidden: [] };
   assert.throws(
-    () => dutyReplies(roles, status, ["admin"]),
+    () => dutyReplies(roles, status, ["admin"], screen),
     (error) => error.statusCode === 400 && /a reply names admin, which roles.json does not have/.test(error.message),
   );
+  const added = dutyReplies(roles, status, ["screen-proof"], screen);
+  assert.equal(added[0].name, "Proofbot");
+  assert.match(added[0].text, /I am on this screen only/);
+  assert.match(added[0].text, /The team is not installed, so nobody is carrying this out/);
   const sipho = dutyReplies(roles, status, ["engineer"]);
   assert.equal(sipho.length, 1);
   assert.match(sipho[0].text, /The team is not installed, so nobody is carrying this out/);
   assert.equal(/built/i.test(sipho[0].text), false);
+});
+
+test("a person can be added and removed on this screen, and Thandi's reply stays held", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "board-people-"));
+  const server = await startBoard({ port: 0, workdir: dir, token: BOARD_KEY, env: { OLLAMA_URL: "" } });
+  const { port } = server.address();
+  const url = `http://127.0.0.1:${port}`;
+  try {
+    const created = await boardFetch(`${url}/people`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "Proofbot", craft: "Keeps this screen." }),
+    });
+    assert.equal(created.status, 201);
+    const made = await created.json();
+    assert.ok(made.people.some((person) => person.name === "Proofbot"));
+    const duplicate = await boardFetch(`${url}/people`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "thandi", craft: "Another manager." }),
+    });
+    assert.equal(duplicate.status, 400);
+    const blank = await boardFetch(`${url}/people`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "   ", craft: "Notes." }),
+    });
+    assert.equal(blank.status, 400);
+    const started = Date.now();
+    const duty = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleId: "pm", text: "Hold the morning list." }),
+    });
+    const took = Date.now() - started;
+    assert.equal(duty.status, 201);
+    assert.ok(took < 1000);
+    const task = await duty.json();
+    assert.equal(task.replies[0].name, "Thandi");
+    assert.match(task.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+    assert.deepEqual(task.replies[0].suggestions.map((item) => item.name), ["Kabelo", "Lerato", "Sipho"]);
+    assert.match(task.replies[0].suggestions[0].label, /^Hand this to /);
+    const theirs = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roleId: made.person.id, text: "Note this." }),
+    });
+    assert.equal(theirs.status, 201);
+    const note = await theirs.json();
+    assert.match(note.replies[0].text, /I am on this screen only/);
+    assert.match(note.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+    const removed = await boardFetch(`${url}/people/remove`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: made.person.id }),
+    });
+    assert.equal(removed.status, 200);
+    const after = await removed.json();
+    assert.equal(after.people.some((person) => person.name === "Proofbot"), false);
+    const board = await (await boardFetch(`${url}/board`)).json();
+    assert.equal(board.people.some((person) => person.name === "Proofbot"), false);
+    assert.ok(board.people.some((person) => person.name === "Nomsa"));
+    const hidden = await boardFetch(`${url}/people/remove`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: "qa" }),
+    });
+    assert.equal(hidden.status, 200);
+    const rail = await hidden.json();
+    assert.equal(rail.people.some((person) => person.id === "qa"), false);
+    const roster = JSON.parse(await readFile(new URL("./roles.json", import.meta.url), "utf8"));
+    assert.ok(roster.roles.some((role) => role.id === "qa"));
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
 });
 
 test("the engine is still not asked to chat unless tags succeed, and that path is not the page", async () => {

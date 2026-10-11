@@ -78,6 +78,22 @@
   .person-engineer .mark { background:#d08a3e; }
   .person-engineer-2 .mark { background:#7a6bb5; }
   .person-qa .mark { background:#3e86b0; }
+  .person-added .mark { background:#5c6b66; font-family:Outfit,ui-sans-serif,system-ui,sans-serif; font-weight:700; }
+  .person-row { display:flex; align-items:center; gap:2px; }
+  .person-row .person { flex:1; min-width:0; }
+  .remove-person {
+    min-height:36px; padding:0 8px; border:0; border-radius:8px; background:transparent; color:var(--muted); font-size:12px;
+  }
+  #add-person {
+    margin:8px; min-height:40px; padding:0 12px; border:1px solid var(--line); border-radius:999px; background:transparent;
+  }
+  .writing { display:flex; gap:8px; align-items:center; margin:8px 0; color:var(--muted); }
+  .writing p { margin:0; font-size:14px; }
+  .writing .mark { width:28px; height:28px; }
+  .suggests { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 10px 44px; }
+  .suggest {
+    min-height:36px; padding:0 12px; border:1px solid var(--line); border-radius:999px; background:transparent; font-size:13px;
+  }
   .who { min-width:0; display:grid; }
   .name {
     font-family:Outfit,ui-sans-serif,system-ui,sans-serif; font-size:15px; font-weight:650;
@@ -184,8 +200,10 @@
   dialog p { margin:8px 0 0; color:var(--muted); font-size:14px; }
   .pick { display:flex; gap:10px; align-items:center; min-height:44px; margin-top:8px; }
   .pick input { width:18px; height:18px; }
-  #group-problem:empty { display:none; }
-  #group-problem:not(:empty) { color:#f0b4a8; }
+  #group-problem:empty, #add-problem:empty { display:none; }
+  #group-problem:not(:empty), #add-problem:not(:empty) { color:#f0b4a8; }
+  .add-field { display:grid; gap:4px; margin-top:10px; }
+  .add-field input { min-height:44px; padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:#0e1013; }
   .dialog-actions { display:flex; justify-content:flex-end; gap:8px; padding:8px 18px 18px; }
   .dialog-actions button {
     min-height:44px; padding:0 14px; border-radius:10px; border:1px solid var(--line); background:transparent;
@@ -293,6 +311,7 @@
           </button>
         </li>
       </ul>
+      <button type="button" id="add-person">Add a person</button>
       <p class="rail-label">Threads</p>
       <ul class="threads" id="thread-list"></ul>
     </div>
@@ -348,6 +367,25 @@
     </div>
   </form>
 </dialog>
+<dialog id="add-dialog" aria-labelledby="add-heading">
+  <form id="add-form">
+    <div class="dialog-body">
+      <h2 id="add-heading">Add a person</h2>
+      <p>They stay on this screen. They are not added to the roster file.</p>
+      <label class="add-field">Name
+        <input id="add-name" name="name" maxlength="40" autocomplete="off" required>
+      </label>
+      <label class="add-field">Craft
+        <input id="add-craft" name="craft" maxlength="160" autocomplete="off" required>
+      </label>
+      <p id="add-problem" role="status"></p>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" id="add-cancel">Cancel</button>
+      <button type="submit" id="add-ok">Add</button>
+    </div>
+  </form>
+</dialog>
 <script type="application/json" id="roster">{"people":[{"id":"pm","name":"Thandi","title":"Project Manager"},{"id":"architect","name":"Kabelo","title":"Enterprise Architect"},{"id":"designer","name":"Lerato","title":"Specialist Creative Designer, Senior UI/UX"},{"id":"engineer","name":"Sipho","title":"Specialist Full Stack Engineer"},{"id":"engineer-2","name":"Karabo","title":"Specialist Full Stack Engineer"},{"id":"qa","name":"Nomsa","title":"QA and Tester"}]}</script>
 <script>
 
@@ -369,6 +407,15 @@ var listenTimer = null;
 var baseText = "";
 var LISTEN_MS = 45000;
 var notificationAsked = false;
+var sending = null;
+var sendLock = false;
+var boardStamp = 0;
+var POLL_MS = 2000;
+var seedMarks = {};
+document.querySelectorAll(".people .person").forEach(function (button) {
+  var mark = button.querySelector(".mark");
+  if (mark) seedMarks[button.getAttribute("data-role")] = mark.cloneNode(true);
+});
 
 function authed(path) {
   var key = new URLSearchParams(location.search).get("k");
@@ -378,6 +425,31 @@ function authed(path) {
 
 function personById(id) {
   return roster.people.find(function (person) { return person.id === id; });
+}
+
+function threadKeyFor(ids) {
+  if (!ids.length) return "team";
+  var ordered = roster.people.filter(function (person) { return ids.indexOf(person.id) !== -1; });
+  if (ordered.length <= 1) return ordered.length === 1 ? ordered[0].id : "team";
+  return ordered.map(function (person) { return person.id; }).join("+");
+}
+
+function writersFor(ids) {
+  if (!ids.length) {
+    var lead = personById(roster.leadId || "pm");
+    if (lead) return [lead];
+    return [{ id: roster.leadId || "pm", name: roster.leadName || "Thandi" }];
+  }
+  return roster.people.filter(function (person) { return ids.indexOf(person.id) !== -1; });
+}
+
+function markFor(person) {
+  var saved = seedMarks[person.id];
+  if (saved) return saved.cloneNode(true);
+  var mark = document.createElement("span");
+  mark.className = "mark";
+  mark.textContent = (person.name || "?").slice(0, 1);
+  return mark;
 }
 
 function parseMentions(text) {
@@ -536,9 +608,48 @@ function renderThreads() {
 }
 
 function renderPeople() {
+  var list = document.querySelector(".people");
+  if (!list) return;
+  list.replaceChildren();
+  roster.people.forEach(function (person) {
+    var li = document.createElement("li");
+    li.className = "person-row";
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "person" + (person.seed === false ? " person-added" : " person-" + person.id);
+    button.setAttribute("data-role", person.id);
+    button.setAttribute("data-thread", person.id);
+    button.setAttribute("data-name", person.name);
+    button.setAttribute("data-title", person.title || "");
+    if (person.id === openKey) button.setAttribute("aria-current", "true");
+    var who = document.createElement("span");
+    who.className = "who";
+    var name = document.createElement("span");
+    name.className = "name";
+    name.textContent = person.name;
+    var snippet = document.createElement("span");
+    snippet.className = "snippet";
+    snippet.textContent = person.title || "";
+    who.append(name, snippet);
+    button.append(markFor(person), who);
+    button.addEventListener("click", function () { openThread(person.id); });
+    var remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "remove-person";
+    remove.setAttribute("aria-label", "Remove " + person.name);
+    remove.textContent = "Remove";
+    remove.addEventListener("click", function () { removePerson(person.id); });
+    li.append(button, remove);
+    list.append(li);
+  });
+  applyFind();
+}
+
+function applyFind() {
+  var query = document.getElementById("find").value.trim().toLowerCase();
   document.querySelectorAll(".people .person").forEach(function (button) {
-    if (button.getAttribute("data-thread") === openKey) button.setAttribute("aria-current", "true");
-    else button.removeAttribute("aria-current");
+    var hay = (button.getAttribute("data-name") + " " + button.getAttribute("data-title")).toLowerCase();
+    button.parentElement.hidden = query !== "" && hay.indexOf(query) === -1;
   });
 }
 
@@ -580,6 +691,29 @@ function renderLog() {
     }
     replies.forEach(function (reply) { host.append(renderReply(reply)); });
   });
+  if (sending && sending.threadKey === openKey) {
+    var echoTime = document.createElement("p");
+    echoTime.className = "when";
+    echoTime.textContent = "Now";
+    var echo = document.createElement("div");
+    echo.className = "bubble mine";
+    var echoCard = document.createElement("div");
+    echoCard.className = "card";
+    var echoText = document.createElement("p");
+    echoText.className = "duty-text";
+    echoText.textContent = sending.text;
+    echoCard.append(echoText);
+    echo.append(echoCard);
+    host.append(echoTime, echo);
+    sending.writers.forEach(function (writer) {
+      var line = document.createElement("div");
+      line.className = "writing person-" + writer.id + (writer.seed === false ? " person-added" : "");
+      var label = document.createElement("p");
+      label.textContent = writer.name + " is writing";
+      line.append(markFor(writer), label);
+      host.append(line);
+    });
+  }
   var log = document.getElementById("log");
   log.scrollTop = log.scrollHeight;
 }
@@ -588,15 +722,8 @@ function renderReply(reply) {
   var row = document.createElement("div");
   row.className = "bubble reply";
   var person = document.createElement("div");
-  person.className = "reply-person person-" + (reply.roleId || "");
-  var mark = document.createElement("span");
-  mark.className = "mark";
-  var source = document.querySelector('.people .person[data-role="' + reply.roleId + '"] .mark');
-  if (source) {
-    Array.prototype.forEach.call(source.childNodes, function (node) {
-      mark.appendChild(node.cloneNode(true));
-    });
-  }
+  person.className = "reply-person person-" + (reply.roleId || "") + (seedMarks[reply.roleId] ? "" : " person-added");
+  var mark = markFor({ id: reply.roleId, name: reply.name });
   var card = document.createElement("div");
   card.className = "card";
   var who = document.createElement("p");
@@ -608,7 +735,24 @@ function renderReply(reply) {
   card.append(who, text);
   person.append(mark, card);
   row.append(person);
-  return row;
+  var block = document.createElement("div");
+  block.className = "reply-block";
+  block.append(row);
+  var suggestions = Array.isArray(reply.suggestions) ? reply.suggestions.slice(0, 3) : [];
+  if (suggestions.length) {
+    var suggests = document.createElement("div");
+    suggests.className = "suggests";
+    suggestions.forEach(function (suggestion) {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "suggest";
+      button.textContent = suggestion.label;
+      button.addEventListener("click", function () { sendDuty(suggestion.text, [suggestion.roleId]); });
+      suggests.append(button);
+    });
+    block.append(suggests);
+  }
+  return block;
 }
 
 function firstLine(text) {
@@ -749,13 +893,7 @@ document.querySelectorAll(".people .person").forEach(function (button) {
   });
 });
 
-document.getElementById("find").addEventListener("input", function (event) {
-  var query = event.currentTarget.value.trim().toLowerCase();
-  document.querySelectorAll(".people .person").forEach(function (button) {
-    var hay = (button.getAttribute("data-name") + " " + button.getAttribute("data-title")).toLowerCase();
-    button.parentElement.hidden = query !== "" && hay.indexOf(query) === -1;
-  });
-});
+document.getElementById("find").addEventListener("input", applyFind);
 
 box.addEventListener("input", showMentionMenuFromInput);
 box.addEventListener("click", showMentionMenu);
@@ -795,18 +933,23 @@ box.addEventListener("keydown", function (event) {
 
 var dialog = document.getElementById("group-dialog");
 var picks = document.getElementById("group-picks");
-roster.people.forEach(function (person) {
-  var label = document.createElement("label");
-  label.className = "pick";
-  var input = document.createElement("input");
-  input.type = "checkbox";
-  input.value = person.id;
-  var text = document.createElement("span");
-  text.textContent = person.name + ", " + person.title;
-  label.append(input, text);
-  picks.append(label);
-});
+function fillPicks() {
+  picks.replaceChildren();
+  roster.people.forEach(function (person) {
+    var label = document.createElement("label");
+    label.className = "pick";
+    var input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = person.id;
+    var text = document.createElement("span");
+    text.textContent = person.name + ", " + person.title;
+    label.append(input, text);
+    picks.append(label);
+  });
+}
+fillPicks();
 document.getElementById("group").addEventListener("click", function () {
+  fillPicks();
   picks.querySelectorAll("input").forEach(function (input) {
     input.checked = groupIds.indexOf(input.value) !== -1;
   });
@@ -827,10 +970,9 @@ document.getElementById("group-form").addEventListener("submit", function (event
   box.focus();
 });
 
-form.addEventListener("submit", async function (event) {
+form.addEventListener("submit", function (event) {
   event.preventDefault();
   var text = box.value.trim();
-  var button = form.querySelector("button[type='submit']");
   problem.textContent = "";
   if (!text) {
     problem.textContent = "Write the duty before you send it.";
@@ -844,36 +986,81 @@ form.addEventListener("submit", async function (event) {
   var ids = [];
   groupIds.forEach(function (id) { if (ids.indexOf(id) === -1) ids.push(id); });
   parsed.ids.forEach(function (id) { if (ids.indexOf(id) === -1) ids.push(id); });
+  sendDuty(text, ids);
+});
+
+async function sendDuty(text, ids) {
+  if (sendLock) return;
+  var clean = String(text || "").trim();
+  if (!clean) return;
+  sendLock = true;
+  boardStamp += 1;
+  var button = form.querySelector("button[type='submit']");
   button.disabled = true;
   stopListen();
+  sending = { text: clean, threadKey: threadKeyFor(ids), writers: writersFor(ids) };
+  openKey = sending.threadKey;
+  box.value = "";
+  groupIds = [];
+  render();
   try {
     var response = await fetch(authed("/tasks"), {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ roleIds: ids, text: text }),
+      body: JSON.stringify({ roleIds: ids, text: clean }),
+    });
+    var body = await response.json();
+    sending = null;
+    if (!response.ok) {
+      problem.textContent = body.error || "The duty was not recorded.";
+      render();
+      return;
+    }
+    boardStamp += 1;
+    if (!duties.some(function (duty) { return duty.id === body.id; })) duties.push(body);
+    openKey = body.threadKey;
+    render();
+    raiseHeld(body);
+  } catch (error) {
+    sending = null;
+    render();
+    problem.textContent = "Run node board.mjs in this folder, then open the address it prints. This file cannot store a duty by itself.";
+  } finally {
+    sendLock = false;
+    button.disabled = false;
+  }
+}
+
+async function removePerson(id) {
+  try {
+    var response = await fetch(authed("/people/remove"), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: id }),
     });
     var body = await response.json();
     if (!response.ok) {
-      problem.textContent = body.error || "The duty was not recorded.";
+      problem.textContent = body.error || "That person was not removed.";
       return;
     }
-    duties.push(body);
-    raiseHeld(body);
-    box.value = "";
-    groupIds = [];
-    openThread(body.threadKey);
+    if (openKey === id) openKey = "team";
+    groupIds = groupIds.filter(function (item) { return item !== id; });
+    await loadBoard();
   } catch (error) {
-    problem.textContent = "Run node board.mjs in this folder, then open the address it prints. This file cannot store a duty by itself.";
-  } finally {
-    button.disabled = false;
+    problem.textContent = "The board did not remove that person.";
   }
-});
+}
 
 async function loadBoard() {
+  var stamp = boardStamp;
   try {
     var response = await fetch(authed("/board"));
-    if (!response.ok) return;
+    if (!response.ok || stamp !== boardStamp) return;
     var board = await response.json();
+    if (stamp !== boardStamp) return;
+    if (Array.isArray(board.people)) roster.people = board.people;
+    if (board.leadId) roster.leadId = board.leadId;
+    if (board.leadName) roster.leadName = board.leadName;
     duties = board.tasks || [];
     showModel(board.modelConnected === true);
     render();
@@ -883,6 +1070,39 @@ async function loadBoard() {
 }
 render();
 loadBoard();
+setInterval(function () { loadBoard(); }, POLL_MS);
+
+var addDialog = document.getElementById("add-dialog");
+document.getElementById("add-person").addEventListener("click", function () {
+  document.getElementById("add-name").value = "";
+  document.getElementById("add-craft").value = "";
+  document.getElementById("add-problem").textContent = "";
+  addDialog.showModal();
+});
+document.getElementById("add-cancel").addEventListener("click", function () { addDialog.close(); });
+document.getElementById("add-form").addEventListener("submit", async function (event) {
+  event.preventDefault();
+  var name = document.getElementById("add-name").value.trim();
+  var craft = document.getElementById("add-craft").value.trim();
+  var addProblem = document.getElementById("add-problem");
+  addProblem.textContent = "";
+  try {
+    var response = await fetch(authed("/people"), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: name, craft: craft }),
+    });
+    var body = await response.json();
+    if (!response.ok) {
+      addProblem.textContent = body.error || "That person was not added.";
+      return;
+    }
+    addDialog.close();
+    await loadBoard();
+  } catch (error) {
+    addProblem.textContent = "The board did not add that person.";
+  }
+});
 
 </script>
 </body>

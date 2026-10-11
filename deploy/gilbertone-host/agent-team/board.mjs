@@ -37,14 +37,94 @@ export async function readTasks(file) {
   }
 }
 
+export function screenFile(cfg) {
+  return join(cfg.workdir, "screen.json");
+}
+
+// Added people and hidden seed ids live in the work folder. roles.json is the seed and is not edited.
+export function normalScreen(data) {
+  const added = [];
+  for (const person of data?.added ?? []) {
+    if (!person || typeof person.id !== "string" || typeof person.name !== "string" || typeof person.craft !== "string") continue;
+    if (!person.id || !person.name.trim() || !person.craft.trim()) continue;
+    added.push({ id: person.id, name: person.name.trim(), craft: person.craft.trim() });
+  }
+  const hidden = [];
+  for (const id of data?.hidden ?? []) {
+    if (typeof id === "string" && id && !hidden.includes(id)) hidden.push(id);
+  }
+  return { added, hidden };
+}
+
+export async function readScreen(file) {
+  try {
+    return normalScreen(JSON.parse(await readFile(file, "utf8")));
+  } catch (error) {
+    if (error.code === "ENOENT") return { added: [], hidden: [] };
+    throw error;
+  }
+}
+
+async function writeScreen(file, screen) {
+  await mkdir(dirname(file), { recursive: true });
+  await writeFile(file, `${JSON.stringify(normalScreen(screen), null, 2)}\n`);
+}
+
+// The rail: the six, minus anyone he has removed, plus anyone he has added on this screen.
+export function screenRoster(roles, screen = { added: [], hidden: [] }) {
+  const hidden = new Set(screen.hidden ?? []);
+  const people = [];
+  for (const role of roles.roles ?? []) {
+    if (hidden.has(role.id)) continue;
+    people.push({ id: role.id, name: role.name, title: role.title, seed: true });
+  }
+  for (const person of screen.added ?? []) {
+    if (!person || hidden.has(person.id) || people.some((row) => row.id === person.id)) continue;
+    people.push({ id: person.id, name: person.name, title: person.craft, seed: false });
+  }
+  return people;
+}
+
+export function addPerson(roles, screen, input) {
+  const name = typeof input?.name === "string" ? input.name.trim() : "";
+  const craft = typeof input?.craft === "string" ? input.craft.trim().replace(/\s+/g, " ") : "";
+  if (!name) throw Object.assign(new Error("A person needs a name."), { statusCode: 400 });
+  if (!/^[A-Za-z]+$/.test(name)) {
+    throw Object.assign(new Error("Use a single word of letters for the name, so @ can find them."), { statusCode: 400 });
+  }
+  if (!craft) throw Object.assign(new Error("A person needs a one-line craft."), { statusCode: 400 });
+  if (craft.length > 160) throw Object.assign(new Error("The craft is longer than 160 characters."), { statusCode: 400 });
+  const rail = screenRoster(roles, screen);
+  if (rail.some((person) => person.name.toLowerCase() === name.toLowerCase())) {
+    throw Object.assign(new Error(`${name} is already on this screen.`), { statusCode: 400 });
+  }
+  const person = { id: `screen-${randomBytes(4).toString("hex")}`, name, craft };
+  return { screen: { ...screen, added: [...(screen.added ?? []), person] }, person };
+}
+
+export function removePerson(roles, screen, id) {
+  const rail = screenRoster(roles, screen);
+  if (!rail.some((person) => person.id === id)) {
+    throw Object.assign(new Error("That person is not on this screen."), { statusCode: 400 });
+  }
+  if ((screen.added ?? []).some((person) => person.id === id)) {
+    return { ...screen, added: screen.added.filter((person) => person.id !== id) };
+  }
+  return { ...screen, hidden: [...(screen.hidden ?? []), id] };
+}
+
 // Who a duty is for, in roster order, and the words the thread uses. An id that roles.json
 // does not have is refused here, before anything is written. Duplicates collapse: one person
 // per mention, however many times the same id arrives.
-export function describeDuty(roles, roleIds) {
-  const known = new Set((roles.roles ?? []).map((role) => role.id));
+export function describeDuty(roles, roleIds, screen = { added: [], hidden: [] }) {
+  const knownPeople = [
+    ...(roles.roles ?? []).map((role) => ({ id: role.id, name: role.name })),
+    ...(screen.added ?? []).map((person) => ({ id: person.id, name: person.name })),
+  ];
+  const known = new Set(knownPeople.map((person) => person.id));
   const ordered = [];
-  for (const role of roles.roles ?? []) {
-    if (roleIds.includes(role.id)) ordered.push(role);
+  for (const person of knownPeople) {
+    if (roleIds.includes(person.id) && !ordered.some((row) => row.id === person.id)) ordered.push(person);
   }
   for (const id of roleIds) {
     if (!known.has(id)) {
@@ -77,18 +157,25 @@ export function describeDuty(roles, roleIds) {
   };
 }
 
-function dutyIds(roles, input) {
+function dutyIds(roles, input, screen = { added: [], hidden: [] }) {
   const raw = Array.isArray(input?.roleIds)
     ? input.roleIds
     : (typeof input?.roleId === "string" && input.roleId !== "" ? [input.roleId] : []);
   // describeDuty throws on an unknown id. Walking the raw list first keeps that error on the
   // id that was sent, including one that is not a string.
-  const known = new Set((roles.roles ?? []).map((role) => role.id));
+  const known = new Set([
+    ...(roles.roles ?? []).map((role) => role.id),
+    ...(screen.added ?? []).map((person) => person.id),
+  ]);
+  const rail = new Set(screenRoster(roles, screen).map((person) => person.id));
   const seen = [];
   for (const id of raw) {
     if (typeof id !== "string" || !known.has(id)) {
       const shown = typeof id === "string" && id ? id : "nothing";
       throw Object.assign(new Error(`a task names ${shown}, which roles.json does not have`), { statusCode: 400 });
+    }
+    if (!rail.has(id)) {
+      throw Object.assign(new Error(`a task names ${id}, who is not on this screen`), { statusCode: 400 });
     }
     if (!seen.includes(id)) seen.push(id);
   }
@@ -99,18 +186,23 @@ function dutyIds(roles, input) {
 // and refuses to speak if that sentence no longer contains them.
 const HELD_WORDS = "The team is not installed, so nobody is carrying this out";
 
-// A reply may name only a role id from roles.json. Anything else is refused here, before
-// a sentence is written, so an unknown id never gets words put in its mouth.
-function roleForReply(roles, id) {
+// A reply may name a role id from roles.json or a person added on this screen. Anything else
+// is refused here, before a sentence is written.
+function roleForReply(roles, id, screen = { added: [], hidden: [] }) {
   const role = (roles.roles ?? []).find((item) => item.id === id);
-  if (!role) {
-    const shown = typeof id === "string" && id ? id : "nothing";
-    throw Object.assign(new Error(`a reply names ${shown}, which roles.json does not have`), { statusCode: 400 });
-  }
-  return role;
+  if (role) return { ...role, screenOnly: false };
+  const added = (screen.added ?? []).find((item) => item.id === id);
+  if (added) return { id: added.id, name: added.name, title: added.craft, screenOnly: true };
+  const shown = typeof id === "string" && id ? id : "nothing";
+  throw Object.assign(new Error(`a reply names ${shown}, which roles.json does not have`), { statusCode: 400 });
 }
 
 function replyText(role, status, wholeTeam) {
+  if (role.screenOnly) {
+    const craft = String(role.title ?? "").trim();
+    const craftSentence = /[.!?]$/.test(craft) ? craft : `${craft}.`;
+    return `I am ${role.name}. ${craftSentence} I am on this screen only. I am not running and the duty is held, so I have not started it: ${HELD_WORDS}.`;
+  }
   const person = (status.people ?? []).find((row) => row.id === role.id);
   if (!person || !/not running/i.test(String(person.sentence ?? ""))) {
     throw new Error(`status.json does not say ${role.id} is not running`);
@@ -123,23 +215,46 @@ function replyText(role, status, wholeTeam) {
   return `I am ${role.name}, ${role.title}, and ${doing}. I am not running and the duty is held, so I have not started it: ${HELD_WORDS}.`;
 }
 
+// Up to three other people on the rail. The words are their names, not a second roster.
+export function nextMessages(roles, screen, speakerId, dutyText) {
+  const text = String(dutyText ?? "").trim();
+  return screenRoster(roles, screen)
+    .filter((person) => person.id !== speakerId)
+    .slice(0, 3)
+    .map((person) => {
+      const mentioned = `@${person.name} ${text}`.replace(/\s+/g, " ").trim();
+      return {
+        roleId: person.id,
+        name: person.name,
+        label: `Hand this to ${person.name}`,
+        text: mentioned.slice(0, MAX_TEXT),
+      };
+    });
+}
+
 // One named person answers. Several answer in roster order. Nobody named means the lead
 // holds it for the whole team and does not hand it on. The duty's own words are not
 // turned into a claim that the work is done.
-export function dutyReplies(roles, status, roleIds) {
+export function dutyReplies(roles, status, roleIds, screen = { added: [], hidden: [] }) {
   if (!String(status?.held ?? "").includes(HELD_WORDS)) {
     throw new Error("status.json no longer says the team is not carrying this out");
   }
   const ids = Array.isArray(roleIds) ? roleIds : [];
   const speakers = [];
   if (ids.length === 0) {
-    speakers.push({ role: roleForReply(roles, roles.lead), wholeTeam: true });
+    speakers.push({ role: roleForReply(roles, roles.lead, screen), wholeTeam: true });
   } else {
     const wanted = new Set(ids);
-    for (const role of roles.roles ?? []) {
-      if (wanted.has(role.id)) speakers.push({ role, wholeTeam: false });
+    const ordered = [
+      ...(roles.roles ?? []),
+      ...(screen.added ?? []).map((person) => ({ id: person.id })),
+    ];
+    for (const role of ordered) {
+      if (wanted.has(role.id) && !speakers.some((row) => row.role.id === role.id)) {
+        speakers.push({ role: roleForReply(roles, role.id, screen), wholeTeam: false });
+      }
     }
-    for (const id of ids) roleForReply(roles, id);
+    for (const id of ids) roleForReply(roles, id, screen);
   }
   return speakers.map(({ role, wholeTeam }) => ({
     roleId: role.id,
@@ -148,21 +263,26 @@ export function dutyReplies(roles, status, roleIds) {
   }));
 }
 
-function presentReplies(roles, status, described, task) {
-  if (!Array.isArray(task.replies)) return dutyReplies(roles, status, described.roleIds);
-  return task.replies.map((reply) => {
-    const role = roleForReply(roles, reply?.roleId);
-    const text = typeof reply.text === "string" ? reply.text : "";
-    return { roleId: role.id, name: role.name, text };
-  });
+function presentReplies(roles, status, described, task, screen) {
+  const replies = Array.isArray(task.replies)
+    ? task.replies.map((reply) => {
+      const role = roleForReply(roles, reply?.roleId, screen);
+      const text = typeof reply.text === "string" ? reply.text : "";
+      return { roleId: role.id, name: role.name, text };
+    })
+    : dutyReplies(roles, status, described.roleIds, screen);
+  return replies.map((reply) => ({
+    ...reply,
+    suggestions: nextMessages(roles, screen, reply.roleId, described.text ?? task.text),
+  }));
 }
 
 // A duty may name only role ids from roles.json. No ids means the whole team. The text is
 // the founder's words. The sentence is never taken from the request: it is the held line,
 // because recording a duty does not start anyone. The replies are written here, not copied
 // from the request and not written by a model.
-export function holdTask(roles, status, tasks, input) {
-  const described = describeDuty(roles, dutyIds(roles, input));
+export function holdTask(roles, status, tasks, input, screen = { added: [], hidden: [] }) {
+  const described = describeDuty(roles, dutyIds(roles, input, screen), screen);
   const text = typeof input?.text === "string" ? input.text.trim() : "";
   if (!text) throw Object.assign(new Error("a task has no words"), { statusCode: 400 });
   if (text.length > MAX_TEXT) {
@@ -173,7 +293,7 @@ export function holdTask(roles, status, tasks, input) {
     ...described,
     text,
     sentence: status.held,
-    replies: dutyReplies(roles, status, described.roleIds),
+    replies: dutyReplies(roles, status, described.roleIds, screen),
     at: new Date().toISOString(),
   };
   return { tasks: [...tasks, task], task };
@@ -188,7 +308,7 @@ export function presentTask(roles, status, task, options = {}) {
     : (typeof task?.roleId === "string" && task.roleId ? [task.roleId] : null);
   if (!raw) return null;
   try {
-    const described = describeDuty(roles, raw);
+    const described = describeDuty(roles, raw, options.screen);
     const report = options.modelConnected === true
       && task.fromEngine === true
       && typeof task.report === "string"
@@ -200,7 +320,7 @@ export function presentTask(roles, status, task, options = {}) {
       text: typeof task.text === "string" ? task.text : "",
       // With OLLAMA_URL unset, the receipt stays status.json's held sentence.
       sentence: report || status.held,
-      replies: presentReplies(roles, status, described, task),
+      replies: presentReplies(roles, status, described, task, options.screen ?? { added: [], hidden: [] }),
       at: task.at,
     };
   } catch {
@@ -349,11 +469,52 @@ export function createBoard(cfg = settings(), options = {}) {
       }
       if (req.method === "GET" && url.pathname === "/board") {
         const { roles, status } = readTeamStatus();
+        const screen = await readScreen(screenFile(cfg));
         const probe = await probeModel(env, fetchImpl);
         const tasks = (await readTasks(tasksFile(cfg)))
-          .map((task) => presentTask(roles, status, task, { modelConnected: probe.connected }))
+          .map((task) => presentTask(roles, status, task, { modelConnected: probe.connected, screen }))
           .filter(Boolean);
-        send(res, 200, { held: status.held, modelConnected: probe.connected, tasks }, "application/json; charset=utf-8", cookie);
+        const lead = (roles.roles ?? []).find((role) => role.id === roles.lead);
+        send(res, 200, {
+          held: status.held,
+          modelConnected: probe.connected,
+          leadId: roles.lead,
+          leadName: lead?.name ?? "",
+          people: screenRoster(roles, screen),
+          tasks,
+        }, "application/json; charset=utf-8", cookie);
+        return;
+      }
+      if (req.method === "POST" && url.pathname === "/people") {
+        let input;
+        try {
+          input = JSON.parse(await readBody(req));
+        } catch (error) {
+          if (error.statusCode) throw error;
+          throw Object.assign(new Error("The person was not understood."), { statusCode: 400 });
+        }
+        const { roles } = readTeamStatus();
+        const file = screenFile(cfg);
+        const screen = await readScreen(file);
+        const { screen: next, person } = addPerson(roles, screen, input);
+        await writeScreen(file, next);
+        send(res, 201, { person, people: screenRoster(roles, next) }, "application/json; charset=utf-8", cookie);
+        return;
+      }
+      if (req.method === "POST" && url.pathname === "/people/remove") {
+        let input;
+        try {
+          input = JSON.parse(await readBody(req));
+        } catch (error) {
+          if (error.statusCode) throw error;
+          throw Object.assign(new Error("The person was not understood."), { statusCode: 400 });
+        }
+        const { roles } = readTeamStatus();
+        const file = screenFile(cfg);
+        const screen = await readScreen(file);
+        const next = removePerson(roles, screen, typeof input?.id === "string" ? input.id : "");
+        await writeScreen(file, next);
+        send(res, 200, { people: screenRoster(roles, next) }, "application/json; charset=utf-8", cookie);
         return;
       }
       if (req.method === "POST" && url.pathname === "/tasks") {
@@ -365,13 +526,14 @@ export function createBoard(cfg = settings(), options = {}) {
           throw Object.assign(new Error("The task was not understood."), { statusCode: 400 });
         }
         const { roles, status } = readTeamStatus();
+        const screen = await readScreen(screenFile(cfg));
         const file = tasksFile(cfg);
         const existing = await readTasks(file);
-        const { tasks, task } = holdTask(roles, status, existing, input);
+        const { tasks, task } = holdTask(roles, status, existing, input, screen);
         await mkdir(dirname(file), { recursive: true });
         await writeFile(file, `${JSON.stringify({ tasks }, null, 2)}\n`);
         // The reply is already on the task. This path does not call the model.
-        const shown = presentTask(roles, status, task);
+        const shown = presentTask(roles, status, task, { screen });
         send(res, 201, shown, "application/json; charset=utf-8", cookie);
         return;
       }
