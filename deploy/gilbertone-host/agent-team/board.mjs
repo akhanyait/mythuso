@@ -262,6 +262,28 @@ export function muteToday(screen, now = new Date()) {
   return { ...screen, muteDay: screen.muteDay === day ? "" : day };
 }
 
+// A typed @Name is the assignment the page would have sent as a role id. The match is the
+// roster on this screen, case aside. A name that is not there is refused, so the duty does
+// not fall through to the whole team.
+export function mentionIds(roles, text, screen = { added: [], hidden: [] }) {
+  const rail = screenRoster(roles, screen);
+  const ids = [];
+  const unknown = [];
+  const re = /(^|\s)@([A-Za-z]+)/g;
+  const source = String(text ?? "");
+  let match;
+  while ((match = re.exec(source))) {
+    const token = match[2];
+    const person = rail.find((item) => item.name.toLowerCase() === token.toLowerCase());
+    if (!person) {
+      if (!unknown.some((item) => item.toLowerCase() === token.toLowerCase())) unknown.push(token);
+    } else if (!ids.includes(person.id)) {
+      ids.push(person.id);
+    }
+  }
+  return { ids, unknown };
+}
+
 // Who a duty is for, in roster order, and the words the thread uses. An id that roles.json
 // does not have is refused here, before anything is written. Duplicates collapse: one person
 // per mention, however many times the same id arrives.
@@ -326,6 +348,15 @@ function dutyIds(roles, input, screen = { added: [], hidden: [] }) {
     if (!rail.has(id)) {
       throw Object.assign(new Error(`a task names ${id}, who is not on this screen`), { statusCode: 400 });
     }
+    if (!seen.includes(id)) seen.push(id);
+  }
+  // role ids and a @Name name the same person. A post that only carries the words, the way
+  // a typed message does, still has to land on that person rather than the whole team.
+  const mentioned = mentionIds(roles, input?.text, screen);
+  if (mentioned.unknown.length) {
+    throw Object.assign(new Error(`@${mentioned.unknown[0]} is not on this team.`), { statusCode: 400 });
+  }
+  for (const id of mentioned.ids) {
     if (!seen.includes(id)) seen.push(id);
   }
   return seen;
@@ -515,8 +546,9 @@ function presentReplies(roles, status, described, task, screen, tasks = []) {
   }));
 }
 
-// A duty may name only role ids from roles.json. No ids means the whole team. The text is
-// the founder's words. The sentence is never taken from the request: it is the held line,
+// A duty may name role ids from roles.json, or a @Name in the words, which is that person.
+// No ids and no mention is the whole team. The text is the founder's words. The sentence
+// is never taken from the request: it is the held line,
 // because recording a duty does not start anyone. The replies are written here, not copied
 // from the request and not written by a model.
 export function holdTask(roles, status, tasks, input, screen = { added: [], hidden: [] }) {

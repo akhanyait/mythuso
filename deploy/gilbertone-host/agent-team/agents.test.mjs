@@ -695,6 +695,68 @@ test("a duty can be pinned, marked done, searched, copied, grouped, and an added
   }
 });
 
+test("a posted @ mention assigns that person, and an unknown mention is refused", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "board-mention-"));
+  const server = await startBoard({ port: 0, workdir: dir, token: BOARD_KEY, env: { OLLAMA_URL: "" } });
+  const { port } = server.address();
+  const url = `http://127.0.0.1:${port}`;
+  try {
+    const thandi = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text: "@Thandi Plan today. One job only." }),
+    });
+    assert.equal(thandi.status, 201);
+    const planned = await thandi.json();
+    assert.equal(planned.roleId, "pm");
+    assert.equal(planned.title, "Thandi");
+    assert.equal(planned.heldFor, "Held for Thandi.");
+    assert.equal(planned.audience, "person");
+    assert.equal(planned.replies.length, 1);
+    assert.equal(planned.replies[0].name, "Thandi");
+    assert.match(planned.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+    assert.equal(planned.sentence, "Held. The team is not installed, so nobody is carrying this out.");
+
+    const sipho = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text: "@sipho Draft the web piece only." }),
+    });
+    assert.equal(sipho.status, 201);
+    const drafted = await sipho.json();
+    assert.equal(drafted.roleId, "engineer");
+    assert.equal(drafted.title, "Sipho");
+    assert.equal(drafted.heldFor, "Held for Sipho.");
+    assert.equal(drafted.replies[0].name, "Sipho");
+    assert.match(drafted.replies[0].text, /I will draft the web piece/);
+    assert.match(drafted.replies[0].text, /The team is not installed, so nobody is carrying this out/);
+
+    const unknown = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text: "@Nobody Do this." }),
+    });
+    assert.equal(unknown.status, 400);
+    assert.match((await unknown.json()).error, /@Nobody is not on this team/);
+
+    const plain = await boardFetch(`${url}/tasks`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text: "For everyone, with no mention." }),
+    });
+    assert.equal(plain.status, 201);
+    const everyone = await plain.json();
+    assert.equal(everyone.audience, "team");
+    assert.equal(everyone.title, "Whole team");
+    assert.equal(everyone.heldFor, "Held for the whole team.");
+
+    const board = await (await boardFetch(`${url}/board`)).json();
+    assert.deepEqual(board.tasks.map((task) => task.title), ["Thandi", "Sipho", "Whole team"]);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test("the engine is still not asked to chat unless tags succeed, and that path is not the page", async () => {
   const { cfg } = await sandbox();
   const missed = [];
