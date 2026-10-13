@@ -15,7 +15,7 @@ import kit from '../../../../packages/catalog/pilot-kit.json' with { type: 'json
  * DEMO DATA badge, because a reading on a medical device is the thing most easily taken as a result.
  * The watch's button reaches a person, and the card says it is not an ambulance. */
 
-const NAVY = '#141B2D', CORAL = '#E5533F', PAPER = '#FAF8F6', SHELL = '#F1EEEA', EDGE = '#D9D3CD';
+const NAVY = '#141B2D', CORAL = '#E5533F', PAPER = '#FAF8F6', EDGE = '#D9D3CD';
 
 /* The two marks, once, as symbols every drawing uses. The G1 is the mark from the approved
  * mockups (packages/brand/fresh-look); the heart-pulse is public/brand/mythuso-mark.svg. */
@@ -67,7 +67,7 @@ function Handheld() {
 }
 
 function BloodPressure() {
- return <svg viewBox="0 0 200 240" role="img" aria-label="A blood pressure monitor with the MyThuso mark">
+ return <svg viewBox="0 0 200 240" role="img" aria-label="A health check station with the MyThuso mark">
   <path d="M100 170 C 100 200, 150 205, 170 225" fill="none" stroke="#B9BFCC" strokeWidth="5" strokeLinecap="round"/>
   <rect x="26" y="44" width="148" height="132" rx="22" fill="#fff" stroke={EDGE} strokeWidth="2"/>
   <rect x="40" y="58" width="120" height="74" rx="10" fill={NAVY}/>
@@ -82,17 +82,20 @@ function BloodPressure() {
  </svg>;
 }
 
-function Glucose() {
- return <svg viewBox="0 0 200 240" role="img" aria-label="A glucose meter with the MyThuso mark">
-  <rect x="58" y="20" width="84" height="196" rx="30" fill="#fff" stroke={EDGE} strokeWidth="2"/>
-  <rect x="68" y="36" width="64" height="76" rx="10" fill={NAVY}/>
-  <text x="124" y="80" textAnchor="end" {...LCD} fontSize="28" fill="#fff">6.1</text>
-  <text x="124" y="96" textAnchor="end" {...LCD} fontSize="7.5" fill="#9AA2B2">mmol/L</text>
-  <use href="#pk-g1" x="74" y="88" width="14" height="14"/>
-  <use href="#pk-mark" x="80" y="124" width="40" height="40"/>
-  <Word x={100 - 24} y={180} size={12}/>
-  <rect x="72" y="188" width="24" height="12" rx="6" fill={SHELL} stroke={EDGE}/><rect x="104" y="188" width="24" height="12" rx="6" fill={SHELL} stroke={EDGE}/>
-  <rect x="90" y="212" width="20" height="14" rx="2" fill={CORAL}/>
+function Tablet() {
+ return <svg viewBox="0 0 200 240" role="img" aria-label="A clinic tablet showing the MyThuso queue">
+  <rect x="14" y="56" width="172" height="124" rx="14" fill={NAVY}/>
+  <rect x="24" y="66" width="152" height="104" rx="6" fill={PAPER}/>
+  <rect x="24" y="66" width="152" height="22" rx="6" fill={NAVY}/><rect x="24" y="80" width="152" height="8" fill={NAVY}/>
+  <use href="#pk-mark-rev" x="29" y="69" width="16" height="16"/><Word x={48} y={81} size={10} light/>
+  <text x="170" y="81" textAnchor="end" fontFamily="Figtree, system-ui, sans-serif" fontSize="7" fontWeight="700" fill="#C9CEDA">Clinic queue</text>
+  {[0, 1, 2].map(i => <g key={i} transform={`translate(32 ${96 + i * 23})`}>
+   <rect width="136" height="18" rx="4" fill="#fff" stroke={EDGE}/>
+   <text x="6" y="12.5" {...LCD} fontSize="7.5" fill="#C2412F">{['A12', 'A13', 'A14'][i]}</text>
+   <rect x="30" y="7" width={[70, 56, 64][i]} height="4" rx="2" fill="#C9CEDA"/>
+  </g>)}
+  <use href="#pk-g1" x="94" y="184" width="12" height="12"/>
+  <rect x="80" y="180" width="40" height="34" fill={EDGE}/><rect x="60" y="212" width="80" height="8" rx="4" fill={EDGE}/>
  </svg>;
 }
 
@@ -111,7 +114,7 @@ function Oximeter() {
 }
 
 function Watch() {
- return <svg viewBox="0 0 200 240" role="img" aria-label="A patient SOS watch with the GilbertOne mark">
+ return <svg viewBox="0 0 200 240" role="img" aria-label="A household SOS band with the GilbertOne mark">
   <rect x="72" y="4" width="56" height="232" rx="14" fill={NAVY}/>
   <rect x="50" y="64" width="100" height="112" rx="28" fill="#2B3243" stroke="#0C111D" strokeWidth="3"/>
   <rect x="152" y="104" width="10" height="32" rx="4" fill={CORAL}/>
@@ -124,7 +127,7 @@ function Watch() {
  </svg>;
 }
 
-const drawings: Record<string, () => ReactElement> = { handheld: Handheld, bp: BloodPressure, glucose: Glucose, oximeter: Oximeter, watch: Watch };
+const drawings: Record<string, () => ReactElement> = { handheld: Handheld, healthcheck: BloodPressure, oximeter: Oximeter, watch: Watch, tablet: Tablet };
 
 export default function PilotKit() {
  return <section className="fv-samples fv-kit" aria-labelledby="fv-kit-h">
@@ -133,7 +136,7 @@ export default function PilotKit() {
    <h2 id="fv-kit-h">The pilot kit, in our colours</h2>
    <span className="fv-demo">DEMO DATA</span>
   </div>
-  <p className="fv-lead">What a nurse would carry on the first pilot, in {kit.site}. {kit.partner}.</p>
+  <p className="fv-lead">What the first pilot, in {kit.site}, budgets for: a nurse's kit, a band for each household and tablets for the clinic. {kit.partner}.</p>
   <p className="fv-disclaimer" role="note">{kit.status} {kit.readingsNote}</p>
   <ul className="fv-kit-list">
    {kit.devices.map(d => {
