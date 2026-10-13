@@ -5,16 +5,16 @@
 import SwiftUI
 
 enum ThusoTheme {
-    static let indigo = Color(red: 0.118, green: 0.227, blue: 0.541)                  // #1E3A8A
-    static let indigoDeep = Color(red: 0.090, green: 0.184, blue: 0.435)              // #172F6F
-    static let indigoSoft = Color(red: 0.933, green: 0.949, blue: 1.000)              // #EEF2FF
-    static let teal = Color(red: 0.078, green: 0.722, blue: 0.651)                    // #14B8A6
-    static let tealInk = Color(red: 0.059, green: 0.463, blue: 0.431)                 // #0F766E
-    static let tealSoft = Color(red: 0.902, green: 0.980, blue: 0.965)                // #E6FAF6
-    static let accentSoft = Color(red: 0.800, green: 0.984, blue: 0.937)              // #CCFBEF
-    static let tealLight = Color(red: 0.600, green: 0.965, blue: 0.894)               // #99F6E4
-    static let tealMid = Color(red: 0.369, green: 0.918, blue: 0.831)                 // #5EEAD4
-    static let indigoWash = Color(red: 0.118, green: 0.227, blue: 0.541)              // #1E3A8A14
+    static let indigo = Color(red: 0.078, green: 0.106, blue: 0.176)                  // #141B2D
+    static let indigoDeep = Color(red: 0.047, green: 0.067, blue: 0.114)              // #0C111D
+    static let indigoSoft = Color(red: 0.953, green: 0.937, blue: 0.925)              // #F3EFEC
+    static let teal = Color(red: 0.898, green: 0.325, blue: 0.247)                    // #E5533F
+    static let tealInk = Color(red: 0.761, green: 0.255, blue: 0.184)                 // #C2412F
+    static let tealSoft = Color(red: 0.988, green: 0.929, blue: 0.918)                // #FCEDEA
+    static let accentSoft = Color(red: 0.973, green: 0.851, blue: 0.827)              // #F8D9D3
+    static let tealLight = Color(red: 0.961, green: 0.765, blue: 0.729)               // #F5C3BA
+    static let tealMid = Color(red: 0.933, green: 0.545, blue: 0.486)                 // #EE8B7C
+    static let indigoWash = Color(red: 0.078, green: 0.106, blue: 0.176)              // #141B2D14
     static let mango = Color(red: 1.000, green: 0.702, blue: 0.278)                   // #FFB347
     static let mangoInk = Color(red: 0.573, green: 0.251, blue: 0.055)                // #92400E
     static let mangoSoft = Color(red: 1.000, green: 0.957, blue: 0.890)               // #FFF4E3
@@ -22,8 +22,8 @@ enum ThusoTheme {
     static let slate = Color(red: 0.118, green: 0.161, blue: 0.231)                   // #1E293B
     static let body = Color(red: 0.278, green: 0.333, blue: 0.412)                    // #475569
     static let faint = Color(red: 0.349, green: 0.404, blue: 0.482)                   // #59677B
-    static let line = Color(red: 0.886, green: 0.910, blue: 0.941)                    // #E2E8F0
-    static let canvas = Color(red: 0.945, green: 0.961, blue: 0.976)                  // #F1F5F9
+    static let line = Color(red: 0.925, green: 0.906, blue: 0.890)                    // #ECE7E3
+    static let canvas = Color(red: 0.980, green: 0.973, blue: 0.965)                  // #FAF8F6
     static let surface = Color(red: 1.000, green: 1.000, blue: 1.000)                 // #FFFFFF
     static let mist = Color(red: 0.941, green: 0.941, blue: 0.941)                    // #F0F0F0
     static let cloud = Color(red: 0.898, green: 0.898, blue: 0.898)                   // #E5E5E5
@@ -39,7 +39,7 @@ enum ThusoTheme {
     static let glassFloorGround = Color(red: 0.914, green: 0.933, blue: 0.902)        // #E9EEE6
     static let glassFloor = Color(red: 0.976, green: 0.980, blue: 0.973)              // #F9FAF8
     static let glassEdge = Color(red: 1.000, green: 1.000, blue: 1.000)               // #FFFFFF
-    static let glow = Color(red: 0.718, green: 0.847, blue: 0.808)                    // #B7D8CE
+    static let glow = Color(red: 0.961, green: 0.765, blue: 0.729)                    // #F5C3BA
     static let danger = Color(red: 0.706, green: 0.137, blue: 0.094)                  // #B42318
     static let dangerSoft = Color(red: 0.996, green: 0.953, blue: 0.949)              // #FEF3F2
     static let info = Color(red: 0.090, green: 0.361, blue: 0.827)                    // #175CD3
@@ -61,10 +61,10 @@ enum ThusoTheme {
     static let studioLine = Color(red: 0.875, green: 0.886, blue: 0.847)              // #DFE2D8
     static let studioInkMuted = Color(red: 0.314, green: 0.365, blue: 0.325)          // #505D53
     static let studioOlive = Color(red: 0.275, green: 0.400, blue: 0.278)             // #466647
-    static let brandInk = Color(red: 0.031, green: 0.220, blue: 0.282)                // #083848
-    static let brandGreen = Color(red: 0.094, green: 0.596, blue: 0.439)              // #189870
-    static let brandOrange = Color(red: 0.973, green: 0.408, blue: 0.188)             // #F86830
-    static let brandLime = Color(red: 0.847, green: 0.973, blue: 0.094)               // #D8F818
+    static let brandInk = Color(red: 0.078, green: 0.106, blue: 0.176)                // #141B2D
+    static let brandGreen = Color(red: 0.784, green: 0.271, blue: 0.184)              // #C8452F
+    static let brandOrange = Color(red: 0.898, green: 0.325, blue: 0.247)             // #E5533F
+    static let brandLime = Color(red: 0.965, green: 0.769, blue: 0.325)               // #F6C453
     static let brandMint = Color(red: 0.624, green: 0.882, blue: 0.796)               // #9FE1CB
     static let brandCyan = Color(red: 0.318, green: 0.953, blue: 0.988)               // #51F3FC
 }
@@ -73,46 +73,46 @@ enum ThusoTheme {
 /// on iOS reads them yet; they exist so that restyling a screen is a matter of reaching for one.
 enum ThusoSemantic {
     enum Light {
-        static let background = Color(red: 0.965, green: 0.984, blue: 0.988)        // #f6fbfc oklch(0.985 0.006 211)
-        static let foreground = Color(red: 0.008, green: 0.133, blue: 0.208)        // #022235 oklch(0.24 0.052 239)
-        static let surface = Color(red: 1.000, green: 1.000, blue: 1.000)           // #ffffff oklch(1 0 0)
-        static let surfaceRaised = Color(red: 0.925, green: 0.969, blue: 0.980)     // #ecf7fa oklch(0.97 0.012 211)
-        static let primary = Color(red: 0.031, green: 0.220, blue: 0.282)           // #083848
-        static let primaryForeground = Color(red: 1.000, green: 1.000, blue: 1.000) // #ffffff oklch(1 0 0)
-        static let accent = Color(red: 0.094, green: 0.596, blue: 0.439)            // #189870
-        static let accentForeground = Color(red: 0.000, green: 0.110, blue: 0.149)  // #001c26 oklch(0.21 0.043 222)
-        static let muted = Color(red: 0.882, green: 0.933, blue: 0.945)             // #e1eef1 oklch(0.94 0.014 217)
-        static let mutedForeground = Color(red: 0.306, green: 0.420, blue: 0.478)   // #4e6b7a oklch(0.51 0.041 232)
-        static let success = Color(red: 0.094, green: 0.596, blue: 0.439)           // #189870
-        static let warning = Color(red: 0.847, green: 0.973, blue: 0.094)           // #d8f818
-        static let danger = Color(red: 0.973, green: 0.408, blue: 0.188)            // #f86830
-        static let info = Color(red: 0.094, green: 0.596, blue: 0.439)              // #189870
-        static let highlight = Color(red: 0.847, green: 0.973, blue: 0.094)         // #d8f818
-        static let coral = Color(red: 0.973, green: 0.408, blue: 0.188)             // #f86830
-        static let border = Color(red: 0.788, green: 0.859, blue: 0.882)            // #c9dbe1 oklch(0.88 0.021 220)
-        static let input = Color(red: 0.835, green: 0.894, blue: 0.918)             // #d5e4ea oklch(0.91 0.018 220)
-        static let ring = Color(red: 0.094, green: 0.596, blue: 0.439)              // #189870
+        static let background = Color(red: 0.980, green: 0.973, blue: 0.965)        // #faf8f6
+        static let foreground = Color(red: 0.078, green: 0.106, blue: 0.176)        // #141b2d
+        static let surface = Color(red: 1.000, green: 1.000, blue: 1.000)           // #ffffff
+        static let surfaceRaised = Color(red: 0.961, green: 0.945, blue: 0.933)     // #f5f1ee
+        static let primary = Color(red: 0.078, green: 0.106, blue: 0.176)           // #141b2d
+        static let primaryForeground = Color(red: 1.000, green: 1.000, blue: 1.000) // #ffffff
+        static let accent = Color(red: 0.784, green: 0.271, blue: 0.184)            // #c8452f
+        static let accentForeground = Color(red: 1.000, green: 1.000, blue: 1.000)  // #ffffff
+        static let muted = Color(red: 0.945, green: 0.925, blue: 0.910)             // #f1ece8
+        static let mutedForeground = Color(red: 0.369, green: 0.392, blue: 0.447)   // #5e6472
+        static let success = Color(red: 0.122, green: 0.541, blue: 0.298)           // #1f8a4c
+        static let warning = Color(red: 0.965, green: 0.769, blue: 0.325)           // #f6c453
+        static let danger = Color(red: 0.933, green: 0.420, blue: 0.341)            // #ee6b57
+        static let info = Color(red: 0.184, green: 0.290, blue: 0.541)              // #2f4a8a
+        static let highlight = Color(red: 0.965, green: 0.769, blue: 0.325)         // #f6c453
+        static let coral = Color(red: 0.898, green: 0.325, blue: 0.247)             // #e5533f
+        static let border = Color(red: 0.855, green: 0.824, blue: 0.796)            // #dad2cb
+        static let input = Color(red: 0.871, green: 0.847, blue: 0.827)             // #ded8d3
+        static let ring = Color(red: 0.898, green: 0.325, blue: 0.247)              // #e5533f
     }
     enum Dark {
-        static let background = Color(red: 0.000, green: 0.071, blue: 0.110)        // #00121c oklch(0.17 0.035 235)
-        static let foreground = Color(red: 0.890, green: 0.929, blue: 0.941)        // #e3edf0 oklch(0.94 0.012 211)
-        static let surface = Color(red: 0.016, green: 0.110, blue: 0.161)           // #041c29 oklch(0.215 0.04 235)
-        static let surfaceRaised = Color(red: 0.035, green: 0.149, blue: 0.208)     // #092635 oklch(0.255 0.044 235)
-        static let primary = Color(red: 0.094, green: 0.596, blue: 0.439)           // #189870
-        static let primaryForeground = Color(red: 0.000, green: 0.071, blue: 0.110) // #00121c oklch(0.17 0.035 235)
-        static let accent = Color(red: 0.145, green: 0.788, blue: 0.604)            // #25c99a
-        static let accentForeground = Color(red: 0.000, green: 0.071, blue: 0.110)  // #00121c oklch(0.17 0.035 235)
-        static let muted = Color(red: 0.094, green: 0.180, blue: 0.227)             // #182e3a oklch(0.29 0.035 232)
-        static let mutedForeground = Color(red: 0.576, green: 0.663, blue: 0.690)   // #93a9b0 oklch(0.72 0.026 220)
-        static let success = Color(red: 0.145, green: 0.788, blue: 0.604)           // #25c99a
-        static let warning = Color(red: 0.847, green: 0.973, blue: 0.094)           // #d8f818
-        static let danger = Color(red: 1.000, green: 0.482, blue: 0.282)            // #ff7b48
-        static let info = Color(red: 0.145, green: 0.788, blue: 0.604)              // #25c99a
-        static let highlight = Color(red: 0.847, green: 0.973, blue: 0.094)         // #d8f818
-        static let coral = Color(red: 1.000, green: 0.482, blue: 0.282)             // #ff7b48
-        static let border = Color(red: 0.141, green: 0.231, blue: 0.278)            // #243b47 oklch(0.34 0.036 232)
-        static let input = Color(red: 0.157, green: 0.255, blue: 0.306)             // #28414e oklch(0.36 0.038 232)
-        static let ring = Color(red: 0.145, green: 0.788, blue: 0.604)              // #25c99a
+        static let background = Color(red: 0.055, green: 0.075, blue: 0.125)        // #0e1320
+        static let foreground = Color(red: 0.929, green: 0.937, blue: 0.957)        // #edeff4
+        static let surface = Color(red: 0.086, green: 0.110, blue: 0.173)           // #161c2c
+        static let surfaceRaised = Color(red: 0.118, green: 0.145, blue: 0.220)     // #1e2538
+        static let primary = Color(red: 0.941, green: 0.478, blue: 0.408)           // #f07a68
+        static let primaryForeground = Color(red: 0.055, green: 0.075, blue: 0.125) // #0e1320
+        static let accent = Color(red: 0.941, green: 0.478, blue: 0.408)            // #f07a68
+        static let accentForeground = Color(red: 0.055, green: 0.075, blue: 0.125)  // #0e1320
+        static let muted = Color(red: 0.137, green: 0.165, blue: 0.243)             // #232a3e
+        static let mutedForeground = Color(red: 0.639, green: 0.663, blue: 0.714)   // #a3a9b6
+        static let success = Color(red: 0.298, green: 0.765, blue: 0.541)           // #4cc38a
+        static let warning = Color(red: 0.965, green: 0.769, blue: 0.325)           // #f6c453
+        static let danger = Color(red: 0.949, green: 0.478, blue: 0.612)            // #f27a9c
+        static let info = Color(red: 0.561, green: 0.659, blue: 0.902)              // #8fa8e6
+        static let highlight = Color(red: 0.965, green: 0.769, blue: 0.325)         // #f6c453
+        static let coral = Color(red: 0.941, green: 0.478, blue: 0.408)             // #f07a68
+        static let border = Color(red: 0.227, green: 0.259, blue: 0.341)            // #3a4257
+        static let input = Color(red: 0.200, green: 0.231, blue: 0.314)             // #333b50
+        static let ring = Color(red: 0.941, green: 0.478, blue: 0.408)              // #f07a68
     }
 }
 enum ThusoRadius {

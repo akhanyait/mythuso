@@ -150,10 +150,10 @@
 .ui-button--ghost:is(:hover, .is-hover):not(:disabled) { background: var(--color-muted); }
 
 /* The handoff writes white on its orange. That measures 2.99:1 on light and 2.16:1 on dark
-   (knownFailures), so the words are the dark ink both rows propose: --color-accent-foreground is #001c26
-   on light and #00121c on dark, the ink the handoff already sets on its bright fills — 5.9:1 and 7.4:1
+   (knownFailures), so the words are the dark ink both rows propose: --color-accent-foreground is #0e1320
+   on light and #0e1320 on dark, the ink the handoff already sets on its bright fills — 5.9:1 and 7.4:1
    on the orange. The button stays orange; only its words change. */
-.ui-button--destructive { background: var(--color-danger); color: var(--color-accent-foreground); }
+.ui-button--destructive { background: var(--color-danger); color: var(--brand-ink); }
 .ui-button--destructive:is(:hover, .is-hover):not(:disabled) { background: color-mix(in oklab, var(--color-danger) 90%, var(--ui-press-mix)); }
 
 /* ---- Card ------------------------------------------------------------------------------------------ */

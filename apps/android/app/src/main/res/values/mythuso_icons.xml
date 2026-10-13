@@ -10,8 +10,8 @@
 -->
 <resources>
     <!-- currentColor has no native equivalent in a drawable: the ink token stands in for it. -->
-    <color name="mythuso_icon_current">#FF083848</color>
-    <color name="mythuso_icon_accent">#FF189870</color>
-    <color name="mythuso_icon_primary">#FF083848</color>
-    <color name="mythuso_icon_highlight">#FFD8F818</color>
+    <color name="mythuso_icon_current">#FF141B2D</color>
+    <color name="mythuso_icon_accent">#FFC8452F</color>
+    <color name="mythuso_icon_primary">#FF141B2D</color>
+    <color name="mythuso_icon_highlight">#FFF6C453</color>
 </resources>

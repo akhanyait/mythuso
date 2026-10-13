@@ -38272,15 +38272,19 @@ console.log(
     if (!manifest.some(([, path]) => `${masters}/${path}` === file))
       g4(`${file} sits among the masters and the manifest does not name it.`);
 
-  /* 2. The theme is the source. The brand literals and every role, light and dark, read out of it. */
-  const theme = read(`${masters}/src/styles/theme.css`);
+  /* 2. The theme is the source. The brand literals and every role, light and dark, read out of it.
+     Since 13 October 2026 that theme is generation five, packages/brand/fresh-look/theme.css: the
+     Founder approved the navy and coral look for the TIA presentation, and colour moved there while
+     the handoff's masters, faces and radii stayed. Coral is brandOrange's role now, not danger's:
+     danger is a fill a person reads navy words on, and the brand mark is not. */
+  const theme = read("packages/brand/fresh-look/theme.css");
   const themeBlock = (selector) => {
     const body = theme.match(new RegExp(`${selector.replace(".", "\\.")}\\s*\\{([^}]+)\\}`))?.[1];
     if (!body) g4(`theme.css has no ${selector} block.`);
     return Object.fromEntries([...body.matchAll(/--([a-z-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
   };
   const themeLight = themeBlock(":root"), themeDark = themeBlock(".dark");
-  for (const [name, variable] of [["brandInk", "primary"], ["brandGreen", "accent"], ["brandOrange", "danger"], ["brandLime", "warning"]])
+  for (const [name, variable] of [["brandInk", "primary"], ["brandGreen", "accent"], ["brandOrange", "coral"], ["brandLime", "warning"]])
     if ((tokens.color[name] ?? "").toLowerCase() !== themeLight[variable].toLowerCase())
       g4(`tokens.json says ${name} is ${tokens.color[name]}; the handoff's theme.css says --${variable} is ${themeLight[variable]}. The handoff's exact values are the brand.`);
   /* OKLab → linear sRGB → sRGB, rounded to eight bits, channels clipped to the gamut. The same

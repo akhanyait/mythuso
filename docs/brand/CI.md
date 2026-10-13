@@ -112,10 +112,10 @@ The four literals the handoff delivered, decided by the Founder on 28 September 
 
 | Token | Hex | What it is |
 | --- | --- | --- |
-| brandInk | #083848 | The ink: "my" in the wordmark, the visor of the GilbertOne rig, the primary role in the light scheme |
-| brandGreen | #189870 | The green: "thuso", the accent, success, info and the focus ring in the light scheme |
-| brandOrange | #F86830 | The roof of the house mark; danger and coral as fills — never words on a light ground |
-| brandLime | #D8F818 | The dot on the mark and the signal point on every MyThuso icon; warning and highlight as fills — never words on a light ground |
+| brandInk | #141B2D | The ink: "my" in the wordmark, the visor of the GilbertOne rig, the primary role in the light scheme |
+| brandGreen | #C8452F | The green: "thuso", the accent, success, info and the focus ring in the light scheme |
+| brandOrange | #E5533F | The roof of the house mark; danger and coral as fills — never words on a light ground |
+| brandLime | #F6C453 | The dot on the mark and the signal point on every MyThuso icon; warning and highlight as fills — never words on a light ground |
 | brandMint | #9FE1CB | "thuso" in the reversed lockup; not in the handoff, kept because the clinical deck reads it |
 | brandCyan | #51F3FC | The GilbertOne character's eyes and smile, sampled from the logo master; it fills a shape on the visor and nothing else, and never carries text |
 
@@ -125,25 +125,25 @@ Generation four, `packages/design-tokens/tokens.json#semantic`: each role has a 
 
 | Role | Light hex | Light oklch | Dark hex | Dark oklch | Role in the design |
 | --- | --- | --- | --- | --- | --- |
-| `--color-background` | #f6fbfc | oklch(0.985 0.006 211) | #00121c | oklch(0.17 0.035 235) | The page ground |
-| `--color-foreground` | #022235 | oklch(0.24 0.052 239) | #e3edf0 | oklch(0.94 0.012 211) | Headings, figures and body text |
-| `--color-surface` | #ffffff | oklch(1 0 0) | #041c29 | oklch(0.215 0.04 235) | A card |
-| `--color-surface-raised` | #ecf7fa | oklch(0.97 0.012 211) | #092635 | oklch(0.255 0.044 235) | A raised panel |
-| `--color-primary` | #083848 | a hex literal in the handoff | #189870 | a hex literal in the handoff | The primary action |
-| `--color-primary-foreground` | #ffffff | oklch(1 0 0) | #00121c | oklch(0.17 0.035 235) | The label on a primary action |
-| `--color-accent` | #189870 | a hex literal in the handoff | #25c99a | a hex literal in the handoff | Actions, selected states and positive progress |
-| `--color-accent-foreground` | #001c26 | oklch(0.21 0.043 222) | #00121c | oklch(0.17 0.035 235) | The label on an accent fill |
-| `--color-muted` | #e1eef1 | oklch(0.94 0.014 217) | #182e3a | oklch(0.29 0.035 232) | A muted panel |
-| `--color-muted-foreground` | #4e6b7a | oklch(0.51 0.041 232) | #93a9b0 | oklch(0.72 0.026 220) | Secondary text, captions and helper text |
-| `--color-success` | #189870 | a hex literal in the handoff | #25c99a | a hex literal in the handoff | A success mark |
-| `--color-warning` | #d8f818 | a hex literal in the handoff | #d8f818 | a hex literal in the handoff | A warning fill |
-| `--color-danger` | #f86830 | a hex literal in the handoff | #ff7b48 | a hex literal in the handoff | A danger fill |
-| `--color-info` | #189870 | a hex literal in the handoff | #25c99a | a hex literal in the handoff | An information mark |
-| `--color-highlight` | #d8f818 | a hex literal in the handoff | #d8f818 | a hex literal in the handoff | A highlight fill |
-| `--color-coral` | #f86830 | a hex literal in the handoff | #ff7b48 | a hex literal in the handoff | A coral fill |
-| `--color-border` | #c9dbe1 | oklch(0.88 0.021 220) | #243b47 | oklch(0.34 0.036 232) | A hairline |
-| `--color-input` | #d5e4ea | oklch(0.91 0.018 220) | #28414e | oklch(0.36 0.038 232) | The resting boundary of a field |
-| `--color-ring` | #189870 | a hex literal in the handoff | #25c99a | a hex literal in the handoff | The focus ring |
+| `--color-background` | #faf8f6 | a hex literal in the handoff | #0e1320 | a hex literal in the handoff | The page ground |
+| `--color-foreground` | #141b2d | a hex literal in the handoff | #edeff4 | a hex literal in the handoff | Headings, figures and body text |
+| `--color-surface` | #ffffff | a hex literal in the handoff | #161c2c | a hex literal in the handoff | A card |
+| `--color-surface-raised` | #f5f1ee | a hex literal in the handoff | #1e2538 | a hex literal in the handoff | A raised panel |
+| `--color-primary` | #141b2d | a hex literal in the handoff | #f07a68 | a hex literal in the handoff | The primary action |
+| `--color-primary-foreground` | #ffffff | a hex literal in the handoff | #0e1320 | a hex literal in the handoff | The label on a primary action |
+| `--color-accent` | #c8452f | a hex literal in the handoff | #f07a68 | a hex literal in the handoff | Actions, selected states and positive progress |
+| `--color-accent-foreground` | #ffffff | a hex literal in the handoff | #0e1320 | a hex literal in the handoff | The label on an accent fill |
+| `--color-muted` | #f1ece8 | a hex literal in the handoff | #232a3e | a hex literal in the handoff | A muted panel |
+| `--color-muted-foreground` | #5e6472 | a hex literal in the handoff | #a3a9b6 | a hex literal in the handoff | Secondary text, captions and helper text |
+| `--color-success` | #1f8a4c | a hex literal in the handoff | #4cc38a | a hex literal in the handoff | A success mark |
+| `--color-warning` | #f6c453 | a hex literal in the handoff | #f6c453 | a hex literal in the handoff | A warning fill |
+| `--color-danger` | #ee6b57 | a hex literal in the handoff | #f27a9c | a hex literal in the handoff | A danger fill |
+| `--color-info` | #2f4a8a | a hex literal in the handoff | #8fa8e6 | a hex literal in the handoff | An information mark |
+| `--color-highlight` | #f6c453 | a hex literal in the handoff | #f6c453 | a hex literal in the handoff | A highlight fill |
+| `--color-coral` | #e5533f | a hex literal in the handoff | #f07a68 | a hex literal in the handoff | A coral fill |
+| `--color-border` | #dad2cb | a hex literal in the handoff | #3a4257 | a hex literal in the handoff | A hairline |
+| `--color-input` | #ded8d3 | a hex literal in the handoff | #333b50 | a hex literal in the handoff | The resting boundary of a field |
+| `--color-ring` | #e5533f | a hex literal in the handoff | #f07a68 | a hex literal in the handoff | The focus ring |
 
 Dark values: The dark values exist so the variables exist. The web emits them only under :root[data-theme="dark"]: on 29 September 2026 the founder saw the product dark under a dark OS scheme and decided light is the default and dark an option a person switches on (apps/web/src/components/ThemeToggle.tsx). No prefers-color-scheme block, so the OS never decides. The switch keeps nothing across a load, because the web may not touch browser storage.
 
@@ -157,93 +157,86 @@ The table below is computed here with the same formula `scripts/check-boundaries
 
 | Foreground | on background | on surface | on surfaceRaised | on muted |
 | --- | --- | --- | --- | --- |
-| `light.foreground` | 15.69:1 — declared at 4.5:1 — clears | 16.37:1 — declared at 4.5:1 — clears | 15.01:1 — declared at 4.5:1 — clears | 13.8:1 — declared at 4.5:1 — clears |
-| `light.primary` | 12.05:1 — declared at 4.5:1 — clears | 12.58:1 — declared at 4.5:1 — clears | 11.53:1 — declared at 4.5:1 — clears | 10.6:1 — declared at 4.5:1 — clears |
-| `light.accent` | 3.49:1 — declared at 3:1 — clears | 3.64:1 — declared at 3:1 — clears | 3.34:1 — declared at 3:1 — clears | 3.07:1 — declared at 3:1 — clears |
-| `light.success` | 3.49:1 — declared at 3:1 — clears | 3.64:1 — declared at 3:1 — clears | 3.34:1 — declared at 3:1 — clears | 3.07:1 — declared at 3:1 — clears |
-| `light.warning` | 1.16:1 — parked at 3:1 — replace with #92400e (6.79:1) | 1.21:1 — parked at 3:1 — replace with #92400e (7.09:1) | 1.11:1 — parked at 3:1 — replace with #92400e (6.5:1) | 1.02:1 — parked at 3:1 — replace with #92400e (5.98:1) |
-| `light.danger` | 2.87:1 — parked at 3:1 — replace with #b42318 (6.3:1) | 2.99:1 — parked at 3:1 — replace with #b42318 (6.57:1) | 2.74:1 — parked at 3:1 — replace with #b42318 (6.03:1) | 2.52:1 — parked at 3:1 — replace with #b42318 (5.54:1) |
-| `light.info` | 3.49:1 — declared at 3:1 — clears | 3.64:1 — declared at 3:1 — clears | 3.34:1 — declared at 3:1 — clears | 3.07:1 — declared at 3:1 — clears |
-| `light.highlight` | 1.16:1 — parked at 3:1 — replace with #92400e (6.79:1) | 1.21:1 — parked at 3:1 — replace with #92400e (7.09:1) | 1.11:1 — parked at 3:1 — replace with #92400e (6.5:1) | 1.02:1 — parked at 3:1 — replace with #92400e (5.98:1) |
-| `light.coral` | 2.87:1 — parked at 3:1 — replace with #b42318 (6.3:1) | 2.99:1 — parked at 3:1 — replace with #b42318 (6.57:1) | 2.74:1 — parked at 3:1 — replace with #b42318 (6.03:1) | 2.52:1 — parked at 3:1 — replace with #b42318 (5.54:1) |
-| `light.border` | 1.37:1 — declared at 1.2:1 — clears | 1.43:1 — declared at 1.2:1 — clears | 1.31:1 — declared at 1.2:1 — clears | 1.2:1 — declared at 1.2:1 — clears |
-| `light.input` | 1.25:1 — parked at 3:1 — replace with #4e6b7a (5.43:1) | 1.3:1 — parked at 3:1 — replace with #4e6b7a (5.66:1) | 1.19:1 — parked at 3:1 — replace with #4e6b7a (5.19:1) | 1.1:1 — parked at 3:1 — replace with #4e6b7a (4.77:1) |
-| `light.ring` | 3.49:1 — declared at 3:1 — clears | 3.64:1 — declared at 3:1 — clears | 3.34:1 — declared at 3:1 — clears | 3.07:1 — declared at 3:1 — clears |
+| `light.foreground` | 16.19:1 — declared at 4.5:1 — clears | 17.15:1 — declared at 4.5:1 — clears | 15.27:1 — declared at 4.5:1 — clears | 14.62:1 — declared at 4.5:1 — clears |
+| `light.primary` | 16.19:1 — declared at 4.5:1 — clears | 17.15:1 — declared at 4.5:1 — clears | 15.27:1 — declared at 4.5:1 — clears | 14.62:1 — declared at 4.5:1 — clears |
+| `light.accent` | 4.56:1 — declared at 3:1 — clears | 4.83:1 — declared at 3:1 — clears | 4.3:1 — declared at 3:1 — clears | 4.12:1 — declared at 3:1 — clears |
+| `light.success` | 4.13:1 — declared at 3:1 — clears | 4.38:1 — declared at 3:1 — clears | 3.9:1 — declared at 3:1 — clears | 3.73:1 — declared at 3:1 — clears |
+| `light.warning` | 1.53:1 — parked at 3:1 — replace with #92400e (6.69:1) | 1.62:1 — parked at 3:1 — replace with #92400e (7.09:1) | 1.45:1 — parked at 3:1 — replace with #92400e (6.31:1) | 1.38:1 — parked at 3:1 — replace with #92400e (6.04:1) |
+| `light.danger` | 2.88:1 — parked at 3:1 — replace with #b42318 (6.21:1) | 3.05:1 — declared at 3:1 — clears | 2.72:1 — parked at 3:1 — replace with #b42318 (5.85:1) | 2.6:1 — parked at 3:1 — replace with #b42318 (5.6:1) |
+| `light.info` | 8.03:1 — declared at 3:1 — clears | 8.51:1 — declared at 3:1 — clears | 7.58:1 — declared at 3:1 — clears | 7.26:1 — declared at 3:1 — clears |
+| `light.highlight` | 1.53:1 — parked at 3:1 — replace with #92400e (6.69:1) | 1.62:1 — parked at 3:1 — replace with #92400e (7.09:1) | 1.45:1 — parked at 3:1 — replace with #92400e (6.31:1) | 1.38:1 — parked at 3:1 — replace with #92400e (6.04:1) |
+| `light.coral` | 3.51:1 — declared at 3:1 — clears | 3.72:1 — declared at 3:1 — clears | 3.32:1 — declared at 3:1 — clears | 3.17:1 — declared at 3:1 — clears |
+| `light.border` | 1.41:1 — declared at 1.2:1 — clears | 1.49:1 — declared at 1.2:1 — clears | 1.33:1 — declared at 1.2:1 — clears | 1.27:1 — declared at 1.2:1 — clears |
+| `light.input` | 1.33:1 — parked at 3:1 — replace with #4e6b7a (5.35:1) | 1.41:1 — parked at 3:1 — replace with #4e6b7a (5.66:1) | 1.26:1 — parked at 3:1 — replace with #4e6b7a (5.04:1) | 1.2:1 — parked at 3:1 — replace with #4e6b7a (4.83:1) |
+| `light.ring` | 3.51:1 — declared at 3:1 — clears | 3.72:1 — declared at 3:1 — clears | 3.32:1 — declared at 3:1 — clears | 3.17:1 — declared at 3:1 — clears |
 
 #### Dark scheme
 
 | Foreground | on background | on surface | on surfaceRaised | on muted |
 | --- | --- | --- | --- | --- |
-| `dark.foreground` | 15.99:1 — declared at 4.5:1 — clears | 14.66:1 — declared at 4.5:1 — clears | 13.16:1 — declared at 4.5:1 — clears | 11.83:1 — declared at 4.5:1 — clears |
-| `dark.primary` | 5.22:1 — declared at 4.5:1 — clears | 4.79:1 — declared at 4.5:1 — clears | 4.3:1 — parked at 4.5:1 — replace with #25c99a (7.39:1) | 3.87:1 — parked at 4.5:1 — replace with #25c99a (6.64:1) |
-| `dark.accent` | 8.97:1 — declared at 4.5:1 — clears | 8.23:1 — declared at 4.5:1 — clears | 7.39:1 — declared at 4.5:1 — clears | 6.64:1 — declared at 4.5:1 — clears |
-| `dark.success` | 8.97:1 — declared at 4.5:1 — clears | 8.23:1 — declared at 4.5:1 — clears | 7.39:1 — declared at 4.5:1 — clears | 6.64:1 — declared at 4.5:1 — clears |
-| `dark.warning` | 15.73:1 — declared at 4.5:1 — clears | 14.43:1 — declared at 4.5:1 — clears | 12.95:1 — declared at 4.5:1 — clears | 11.65:1 — declared at 4.5:1 — clears |
-| `dark.danger` | 7.41:1 — declared at 4.5:1 — clears | 6.8:1 — declared at 4.5:1 — clears | 6.1:1 — declared at 4.5:1 — clears | 5.49:1 — declared at 4.5:1 — clears |
-| `dark.info` | 8.97:1 — declared at 4.5:1 — clears | 8.23:1 — declared at 4.5:1 — clears | 7.39:1 — declared at 4.5:1 — clears | 6.64:1 — declared at 4.5:1 — clears |
-| `dark.highlight` | 15.73:1 — declared at 4.5:1 — clears | 14.43:1 — declared at 4.5:1 — clears | 12.95:1 — declared at 4.5:1 — clears | 11.65:1 — declared at 4.5:1 — clears |
-| `dark.coral` | 7.41:1 — declared at 4.5:1 — clears | 6.8:1 — declared at 4.5:1 — clears | 6.1:1 — declared at 4.5:1 — clears | 5.49:1 — declared at 4.5:1 — clears |
-| `dark.border` | 1.62:1 — declared at 1.2:1 — clears | 1.49:1 — declared at 1.2:1 — clears | 1.34:1 — declared at 1.2:1 — clears | 1.2:1 — declared at 1.2:1 — clears |
-| `dark.input` | 1.77:1 — parked at 3:1 — replace with #93a9b0 (7.74:1) | 1.63:1 — parked at 3:1 — replace with #93a9b0 (7.1:1) | 1.46:1 — parked at 3:1 — replace with #93a9b0 (6.37:1) | 1.31:1 — parked at 3:1 — replace with #93a9b0 (5.73:1) |
-| `dark.ring` | 8.97:1 — declared at 4.5:1 — clears | 8.23:1 — declared at 4.5:1 — clears | 7.39:1 — declared at 4.5:1 — clears | 6.64:1 — declared at 4.5:1 — clears |
+| `dark.foreground` | 16.12:1 — declared at 4.5:1 — clears | 14.76:1 — declared at 4.5:1 — clears | 13.26:1 — declared at 4.5:1 — clears | 12.4:1 — declared at 4.5:1 — clears |
+| `dark.primary` | 6.79:1 — declared at 4.5:1 — clears | 6.22:1 — declared at 4.5:1 — clears | 5.58:1 — declared at 4.5:1 — clears | 5.22:1 — declared at 4.5:1 — clears |
+| `dark.accent` | 6.79:1 — declared at 4.5:1 — clears | 6.22:1 — declared at 4.5:1 — clears | 5.58:1 — declared at 4.5:1 — clears | 5.22:1 — declared at 4.5:1 — clears |
+| `dark.success` | 8.37:1 — declared at 4.5:1 — clears | 7.67:1 — declared at 4.5:1 — clears | 6.89:1 — declared at 4.5:1 — clears | 6.44:1 — declared at 4.5:1 — clears |
+| `dark.warning` | 11.42:1 — declared at 4.5:1 — clears | 10.46:1 — declared at 4.5:1 — clears | 9.4:1 — declared at 4.5:1 — clears | 8.79:1 — declared at 4.5:1 — clears |
+| `dark.danger` | 7.1:1 — declared at 4.5:1 — clears | 6.5:1 — declared at 4.5:1 — clears | 5.84:1 — declared at 4.5:1 — clears | 5.46:1 — declared at 4.5:1 — clears |
+| `dark.info` | 7.87:1 — declared at 4.5:1 — clears | 7.21:1 — declared at 4.5:1 — clears | 6.47:1 — declared at 4.5:1 — clears | 6.05:1 — declared at 4.5:1 — clears |
+| `dark.highlight` | 11.42:1 — declared at 4.5:1 — clears | 10.46:1 — declared at 4.5:1 — clears | 9.4:1 — declared at 4.5:1 — clears | 8.79:1 — declared at 4.5:1 — clears |
+| `dark.coral` | 6.79:1 — declared at 4.5:1 — clears | 6.22:1 — declared at 4.5:1 — clears | 5.58:1 — declared at 4.5:1 — clears | 5.22:1 — declared at 4.5:1 — clears |
+| `dark.border` | 1.85:1 — declared at 1.2:1 — clears | 1.7:1 — declared at 1.2:1 — clears | 1.52:1 — declared at 1.2:1 — clears | 1.42:1 — declared at 1.2:1 — clears |
+| `dark.input` | 1.66:1 — parked at 3:1 — replace with #93a9b0 (7.54:1) | 1.52:1 — parked at 3:1 — replace with #93a9b0 (6.91:1) | 1.37:1 — parked at 3:1 — replace with #93a9b0 (6.2:1) | 1.28:1 — parked at 3:1 — replace with #93a9b0 (5.8:1) |
+| `dark.ring` | 6.79:1 — declared at 4.5:1 — clears | 6.22:1 — declared at 4.5:1 — clears | 5.58:1 — declared at 4.5:1 — clears | 5.22:1 — declared at 4.5:1 — clears |
 
 The fills that carry words, declared and measured:
 
 | Words | On the fill | Floor | Measured | Use |
 | --- | --- | --- | --- | --- |
-| `light.primaryForeground` | `light.primary` | 4.5:1 | 12.58:1 | Light: the label of a primary button. |
+| `light.primaryForeground` | `light.primary` | 4.5:1 | 17.15:1 | Light: the label of a primary button. |
 | `light.accentForeground` | `light.accent` | 4.5:1 | 4.83:1 | Light: the label of an accent button or a selected chip. |
-| `light.foreground` | `light.highlight` | 4.5:1 | 13.53:1 | Light: dark text on a highlight fill — the only text a highlight tile may carry. |
-| `light.foreground` | `light.warning` | 4.5:1 | 13.53:1 | Light: dark text on a warning fill — the only text a warning tile may carry. |
-| `light.foreground` | `light.coral` | 4.5:1 | 5.47:1 | Light: dark text on a coral fill — the only text a coral tile may carry. |
-| `light.foreground` | `light.danger` | 4.5:1 | 5.47:1 | Light: dark text on a danger fill — the only text a danger tile may carry. |
-| `dark.primaryForeground` | `dark.primary` | 4.5:1 | 5.22:1 | Dark: the label of a primary button. |
-| `dark.accentForeground` | `dark.accent` | 4.5:1 | 8.97:1 | Dark: the label of an accent button or a selected chip. |
-| `dark.primaryForeground` | `dark.highlight` | 4.5:1 | 15.73:1 | Dark: the dark ink on a highlight fill — the only text a highlight tile may carry. |
-| `dark.primaryForeground` | `dark.warning` | 4.5:1 | 15.73:1 | Dark: the dark ink on a warning fill — the only text a warning tile may carry. |
-| `dark.primaryForeground` | `dark.coral` | 4.5:1 | 7.41:1 | Dark: the dark ink on a coral fill — the only text a coral tile may carry. |
-| `dark.primaryForeground` | `dark.danger` | 4.5:1 | 7.41:1 | Dark: the dark ink on a danger fill — the only text a danger tile may carry. |
+| `light.foreground` | `light.highlight` | 4.5:1 | 10.57:1 | Light: dark text on a highlight fill — the only text a highlight tile may carry. |
+| `light.foreground` | `light.warning` | 4.5:1 | 10.57:1 | Light: dark text on a warning fill — the only text a warning tile may carry. |
+| `light.foreground` | `light.coral` | 4.5:1 | 4.61:1 | Light: dark text on a coral fill — the only text a coral tile may carry. |
+| `light.foreground` | `light.danger` | 4.5:1 | 5.62:1 | Light: dark text on a danger fill — the only text a danger tile may carry. |
+| `dark.primaryForeground` | `dark.primary` | 4.5:1 | 6.79:1 | Dark: the label of a primary button. |
+| `dark.accentForeground` | `dark.accent` | 4.5:1 | 6.79:1 | Dark: the label of an accent button or a selected chip. |
+| `dark.primaryForeground` | `dark.highlight` | 4.5:1 | 11.42:1 | Dark: the dark ink on a highlight fill — the only text a highlight tile may carry. |
+| `dark.primaryForeground` | `dark.warning` | 4.5:1 | 11.42:1 | Dark: the dark ink on a warning fill — the only text a warning tile may carry. |
+| `dark.primaryForeground` | `dark.coral` | 4.5:1 | 6.79:1 | Dark: the dark ink on a coral fill — the only text a coral tile may carry. |
+| `dark.primaryForeground` | `dark.danger` | 4.5:1 | 7.1:1 | Dark: the dark ink on a danger fill — the only text a danger tile may carry. |
 
 ### The known failures and their proposed fixes
 
-Generation four's rows, added 28 September 2026: every foreground the handoff's theme.css defines against every surface it defines, light and dark, dotted as light.<role> / dark.<role> and resolved from #semantic. 90 clear their floor and 34 do not and are parked below with a measured replacement each. The pattern in the failures is the handoff's own: on a light ground its accent, success, info and ring (#189870) clear only the 3:1 non-text floor, and its danger, coral, warning and highlight — brand orange and brand lime — clear nothing at all, so on a light screen those four are fills and marks and never words, and white text on the orange fails too. On a dark ground every one of them clears text. The two that fail in the dark are primary as text on a raised or muted panel and light text on an orange or lime fill.
+Generation five, 13 October 2026: the fresh look (navy, coral, crimson kept for emergencies) re-valued the roles from packages/brand/fresh-look/theme.css and every row was re-measured; the rows that now clear moved into the pairs. Generation four's rows, added 28 September 2026: every foreground the handoff's theme.css defines against every surface it defines, light and dark, dotted as light.<role> / dark.<role> and resolved from #semantic. 90 clear their floor and 34 do not and are parked below with a measured replacement each. The pattern in the failures is the handoff's own: on a light ground its accent, success, info and ring (the handoff's green) cleared only the 3:1 non-text floor, and its danger, coral, warning and highlight — brand orange and brand lime — clear nothing at all, so on a light screen those four are fills and marks and never words, and white text on the orange fails too. On a dark ground every one of them clears text. The two that fail in the dark are primary as text on a raised or muted panel and light text on an orange or lime fill.
 
 | Foreground | Background | Floor | Measured | Proposed fix | Fix measures |
 | --- | --- | --- | --- | --- | --- |
-| `light.danger` | `light.background` | 3:1 | 2.87:1 | #b42318 | 6.3:1 |
-| `light.coral` | `light.background` | 3:1 | 2.87:1 | #b42318 | 6.3:1 |
-| `light.warning` | `light.background` | 3:1 | 1.16:1 | #92400e | 6.79:1 |
-| `light.highlight` | `light.background` | 3:1 | 1.16:1 | #92400e | 6.79:1 |
-| `light.input` | `light.background` | 3:1 | 1.25:1 | #4e6b7a | 5.43:1 |
-| `light.danger` | `light.surface` | 3:1 | 2.99:1 | #b42318 | 6.57:1 |
-| `light.coral` | `light.surface` | 3:1 | 2.99:1 | #b42318 | 6.57:1 |
-| `light.warning` | `light.surface` | 3:1 | 1.21:1 | #92400e | 7.09:1 |
-| `light.highlight` | `light.surface` | 3:1 | 1.21:1 | #92400e | 7.09:1 |
-| `light.input` | `light.surface` | 3:1 | 1.3:1 | #4e6b7a | 5.66:1 |
-| `light.danger` | `light.surfaceRaised` | 3:1 | 2.74:1 | #b42318 | 6.03:1 |
-| `light.coral` | `light.surfaceRaised` | 3:1 | 2.74:1 | #b42318 | 6.03:1 |
-| `light.warning` | `light.surfaceRaised` | 3:1 | 1.11:1 | #92400e | 6.5:1 |
-| `light.highlight` | `light.surfaceRaised` | 3:1 | 1.11:1 | #92400e | 6.5:1 |
-| `light.input` | `light.surfaceRaised` | 3:1 | 1.19:1 | #4e6b7a | 5.19:1 |
-| `light.danger` | `light.muted` | 3:1 | 2.52:1 | #b42318 | 5.54:1 |
-| `light.coral` | `light.muted` | 3:1 | 2.52:1 | #b42318 | 5.54:1 |
-| `light.warning` | `light.muted` | 3:1 | 1.02:1 | #92400e | 5.98:1 |
-| `light.highlight` | `light.muted` | 3:1 | 1.02:1 | #92400e | 5.98:1 |
-| `light.input` | `light.muted` | 3:1 | 1.1:1 | #4e6b7a | 4.77:1 |
-| `light.primaryForeground` | `light.highlight` | 4.5:1 | 1.21:1 | #022235 | 13.53:1 |
-| `light.primaryForeground` | `light.warning` | 4.5:1 | 1.21:1 | #022235 | 13.53:1 |
-| `light.primaryForeground` | `light.coral` | 4.5:1 | 2.99:1 | #022235 | 5.47:1 |
-| `light.primaryForeground` | `light.danger` | 4.5:1 | 2.99:1 | #022235 | 5.47:1 |
-| `dark.input` | `dark.background` | 3:1 | 1.77:1 | #93a9b0 | 7.74:1 |
-| `dark.input` | `dark.surface` | 3:1 | 1.63:1 | #93a9b0 | 7.1:1 |
-| `dark.primary` | `dark.surfaceRaised` | 4.5:1 | 4.3:1 | #25c99a | 7.39:1 |
-| `dark.input` | `dark.surfaceRaised` | 3:1 | 1.46:1 | #93a9b0 | 6.37:1 |
-| `dark.primary` | `dark.muted` | 4.5:1 | 3.87:1 | #25c99a | 6.64:1 |
-| `dark.input` | `dark.muted` | 3:1 | 1.31:1 | #93a9b0 | 5.73:1 |
-| `dark.foreground` | `dark.highlight` | 4.5:1 | 1.02:1 | #00121c | 15.73:1 |
-| `dark.foreground` | `dark.warning` | 4.5:1 | 1.02:1 | #00121c | 15.73:1 |
-| `dark.foreground` | `dark.coral` | 4.5:1 | 2.16:1 | #00121c | 7.41:1 |
-| `dark.foreground` | `dark.danger` | 4.5:1 | 2.16:1 | #00121c | 7.41:1 |
+| `light.danger` | `light.background` | 3:1 | 2.88:1 | #b42318 | 6.21:1 |
+| `light.warning` | `light.background` | 3:1 | 1.53:1 | #92400e | 6.69:1 |
+| `light.highlight` | `light.background` | 3:1 | 1.53:1 | #92400e | 6.69:1 |
+| `light.input` | `light.background` | 3:1 | 1.33:1 | #4e6b7a | 5.35:1 |
+| `light.warning` | `light.surface` | 3:1 | 1.62:1 | #92400e | 7.09:1 |
+| `light.highlight` | `light.surface` | 3:1 | 1.62:1 | #92400e | 7.09:1 |
+| `light.input` | `light.surface` | 3:1 | 1.41:1 | #4e6b7a | 5.66:1 |
+| `light.danger` | `light.surfaceRaised` | 3:1 | 2.72:1 | #b42318 | 5.85:1 |
+| `light.warning` | `light.surfaceRaised` | 3:1 | 1.45:1 | #92400e | 6.31:1 |
+| `light.highlight` | `light.surfaceRaised` | 3:1 | 1.45:1 | #92400e | 6.31:1 |
+| `light.input` | `light.surfaceRaised` | 3:1 | 1.26:1 | #4e6b7a | 5.04:1 |
+| `light.danger` | `light.muted` | 3:1 | 2.6:1 | #b42318 | 5.6:1 |
+| `light.warning` | `light.muted` | 3:1 | 1.38:1 | #92400e | 6.04:1 |
+| `light.highlight` | `light.muted` | 3:1 | 1.38:1 | #92400e | 6.04:1 |
+| `light.input` | `light.muted` | 3:1 | 1.2:1 | #4e6b7a | 4.83:1 |
+| `light.primaryForeground` | `light.highlight` | 4.5:1 | 1.62:1 | #022235 | 10.09:1 |
+| `light.primaryForeground` | `light.warning` | 4.5:1 | 1.62:1 | #022235 | 10.09:1 |
+| `light.primaryForeground` | `light.coral` | 4.5:1 | 3.72:1 | #141b2d | 4.61:1 |
+| `light.primaryForeground` | `light.danger` | 4.5:1 | 3.05:1 | #022235 | 5.36:1 |
+| `dark.input` | `dark.background` | 3:1 | 1.66:1 | #93a9b0 | 7.54:1 |
+| `dark.input` | `dark.surface` | 3:1 | 1.52:1 | #93a9b0 | 6.91:1 |
+| `dark.input` | `dark.surfaceRaised` | 3:1 | 1.37:1 | #93a9b0 | 6.2:1 |
+| `dark.input` | `dark.muted` | 3:1 | 1.28:1 | #93a9b0 | 5.8:1 |
+| `dark.foreground` | `dark.highlight` | 4.5:1 | 1.41:1 | #00121c | 11.73:1 |
+| `dark.foreground` | `dark.warning` | 4.5:1 | 1.41:1 | #00121c | 11.73:1 |
+| `dark.foreground` | `dark.coral` | 4.5:1 | 2.37:1 | #00121c | 6.97:1 |
+| `dark.foreground` | `dark.danger` | 4.5:1 | 2.27:1 | #00121c | 7.29:1 |
 
 ### Superseded generations — do not reach for these
 
