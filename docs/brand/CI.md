@@ -59,10 +59,10 @@ The official master is `packages/brand/lovable-handoff/handoff/src/assets/logos/
 | File | Frame (viewBox) | Size | Use |
 | --- | --- | --- | --- |
 | `apps/web/public/brand/mythuso-logo-mono.svg` | 366×98 | 4 kB | One-colour print and embossing |
-| `apps/web/public/brand/mythuso-logo-reversed.svg` | 366×98 | 4 kB | The lockup on a dark surface: "thuso" in brandMint, the logo's own answer to a dark ground, served under prefers-color-scheme: dark by components/Wordmark.tsx |
-| `apps/web/public/brand/mythuso-logo.svg` | 366×98 | 4 kB | The lockup on a light surface — the public page's bar and footer, every shell's sidebar, the founder's door |
-| `apps/web/public/brand/mythuso-mark-reversed.svg` | 200×200 | 1 kB | The house mark on a dark surface |
-| `apps/web/public/brand/mythuso-mark.svg` | 200×200 | 1 kB | The house mark alone — the patient shell's brand control and the sign-in door, where the lockup would be too small to read |
+| `apps/web/public/brand/mythuso-logo-reversed.svg` | 366×98 | 6 kB | The lockup on a dark surface: "thuso" in brandMint, the logo's own answer to a dark ground, served under prefers-color-scheme: dark by components/Wordmark.tsx |
+| `apps/web/public/brand/mythuso-logo.svg` | 366×98 | 6 kB | The lockup on a light surface — the public page's bar and footer, every shell's sidebar, the founder's door |
+| `apps/web/public/brand/mythuso-mark-reversed.svg` | 100×100 | 0 kB | The house mark on a dark surface |
+| `apps/web/public/brand/mythuso-mark.svg` | 100×100 | 0 kB | The house mark alone — the patient shell's brand control and the sign-in door, where the lockup would be too small to read |
 | `apps/web/public/brand/mythuso-wordmark-mono.svg` | 366×150 | 8 kB | The tagline lockup in one colour |
 | `apps/web/public/brand/mythuso-wordmark-reversed-plate.svg` | 366×150 | 8 kB | The tagline lockup on its own plate |
 | `apps/web/public/brand/mythuso-wordmark-reversed.svg` | 366×150 | 8 kB | The tagline lockup on a dark surface |
