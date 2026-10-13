@@ -273,7 +273,7 @@
 .as-panel { --go-mint: var(--surface); --go-mint-2: color-mix(in srgb, var(--brand-mint) 12%, var(--surface)); }
 .as-panel .as-ask:not(.urgent):nth-child(3n + 1) { background: color-mix(in srgb, var(--brand-mint) 24%, var(--surface)); }
 .as-panel .as-ask:not(.urgent):nth-child(3n + 2) { background: color-mix(in srgb, var(--brand-orange) 13%, var(--surface)); }
-.as-panel .as-ask:not(.urgent):nth-child(3n) { background: color-mix(in srgb, var(--brand-lime) 18%, var(--surface)); }
+.as-panel .as-ask:not(.urgent):nth-child(3n) { background: color-mix(in srgb, var(--brand-orange) 12%, var(--surface)); }
 .as-panel .as-ask { box-shadow: none; }
 .as-panel .as-reply { border: 1px solid var(--go-line); box-shadow: none; }
 .as-panel .as-compose .as-field textarea { border-radius: var(--r-pill); }

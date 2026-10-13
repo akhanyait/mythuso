@@ -40664,5 +40664,12 @@ console.log(await checkSuppliers({ read, files, exists: existsSync }));
     if (!Number.isInteger(d.catalogue)) fbFail(`the pilot kit's "${d.id}" names no catalogue item.`);
     if (!new RegExp(`\\b${d.id}: `).test(kitTsx)) fbFail(`the pilot kit lists "${d.id}" and PilotKit.tsx has no drawing for it.`);
   }
-  console.log(`The funder brief · budget lines sum to their totals; the pilot kit draws ${kit.devices.length} devices, unpriced.`);
+  /* Preview only, by Gilbert's choice on 13 October 2026: the funder view is built only under
+     VITE_MYTHUSO_FUNDER_PREVIEW=true, so the live deploy must never set it and the door must stay
+     behind the flag. */
+  const { readdirSync, statSync } = await import("node:fs");
+  const walk = (dir) => readdirSync(dir).flatMap((n) => { const f = `${dir}/${n}`; return statSync(f).isDirectory() ? walk(f) : [f]; });
+  for (const f of walk("deploy")) if (/VITE_MYTHUSO_FUNDER_PREVIEW/.test(read(f))) fbFail(`${f} names VITE_MYTHUSO_FUNDER_PREVIEW. The funder view is preview only and is never built for the live site.`);
+  if (!/const FunderPreview = funderPreview \? lazy\(/.test(read("apps/web/src/Doorway.tsx"))) fbFail("apps/web/src/Doorway.tsx imports the funder view without the VITE_MYTHUSO_FUNDER_PREVIEW gate, so the live build would carry it.");
+  console.log(`The funder brief · budget lines sum to their totals; the pilot kit draws ${kit.devices.length} devices, unpriced; the view is preview only and deploy/ never builds it.`);
 }

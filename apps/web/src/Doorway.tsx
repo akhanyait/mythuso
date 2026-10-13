@@ -68,8 +68,15 @@ const GilbertOnePreview = lazy(() => import('./features/GilbertOneDemo'));
 /* And ?preview=funder: the eight points the Technology Innovation Agency asked a demo to cover, for
    the presentation on 15 October 2026, read from packages/catalog/funder-brief.json. Behind its own
    dynamic import for the same reason as the demonstrator above: a patient on metered data should not
-   download a pitch, and the door itself is the only thing her first view pays for. */
-const FunderPreview = lazy(() => import('./features/FunderView'));
+   download a pitch, and the door itself is the only thing her first view pays for.
+
+   NOT ON THE LIVE SITE. Gilbert chose on 13 October 2026 that the funder view stays in his private
+   preview: its figures are partly still To confirm and are written for TIA, not the public. So it is
+   built only when VITE_MYTHUSO_FUNDER_PREVIEW=true, which the preview build and the tests set and
+   deploy/deploy.sh never does (scripts/check-boundaries.mjs fails if anything under deploy/ names it).
+   Unset, the import is not in the bundle at all and ?preview=funder opens the patient's app. */
+const funderPreview = import.meta.env.VITE_MYTHUSO_FUNDER_PREVIEW === 'true';
+const FunderPreview = funderPreview ? lazy(() => import('./features/FunderView')) : null;
 
 export default function Doorway() {
  const [role, setRoleState] = useState<RoleId>(() => roleFromSearch(window.location.search));
@@ -95,7 +102,7 @@ export default function Doorway() {
    <GilbertOnePreview/>
   </Suspense>;
  }
- if (new URLSearchParams(window.location.search).get('preview') === 'funder') {
+ if (FunderPreview && new URLSearchParams(window.location.search).get('preview') === 'funder') {
   return <Suspense fallback={<div className="opening"><div className="opening-card" role="status"><h1>Funder view</h1><p className="helper">Getting the funder view ready.</p></div></div>}>
    <FunderPreview/>
   </Suspense>;

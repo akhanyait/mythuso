@@ -474,7 +474,7 @@
    readings (studio ink deep on studio lilac). Everything in the tile inherits that ink, the reference band
    is paper so the range reads as a lighter lane, and the chip keeps its own paper and its own word — the
    classification is the reading's, never a grade composed here. */
-.patient-surface .passport-hero .pill.light { background: var(--brand-lime); color: var(--brand-ink); }
+.patient-surface .passport-hero .pill.light { background: var(--surface); color: var(--brand-ink); }
 .patient-surface .chart-grid .chart-card:not(.glass) { padding: var(--space-20); }
 /* Record rows as white cards on the ground, like every other card. */
 .patient-surface main > .shortcut-list > .shortcut-row:not(.glass),
