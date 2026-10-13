@@ -78,7 +78,7 @@ export default function FunderView() {
     <p className="fv-lede">The eight points TIA asked us to cover. Each figure names its source and whether it is published, a planning assumption, working today, or still to be confirmed.</p>
     <p className="fv-disclaimer" role="note">{brief.disclaimer}</p>
     {pending.length > 0 && <p className="fv-pending" role="status"><CircleAlert size={18} aria-hidden/>
-     <span><b>Still to confirm before Thursday:</b> {pending.join(', ')}.</span></p>}
+     <span><b>Marked To confirm in:</b> {pending.join(', ')}.</span></p>}
    </section>
 
    <ol className="fv-points">

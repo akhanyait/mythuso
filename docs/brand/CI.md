@@ -679,7 +679,7 @@ Affect never softens a refusal: Affect may never soften a refusal or an emergenc
 ### When each appears
 
 - **The logo** wherever GilbertOne is named as a product: the consent card, the welcome, the signed-out sheet's heading, the head of the services region, the public page beside the questions — always with `Your Thuso AI Doctor · not a person, and not a doctor` beside it, always on a light ground, never reversed.
-- **The rig** wherever GilbertOne is doing something: the launcher, the panel's head, the demonstrator. It carries no lettering — the name belongs to the logo beside it — and it is the official character by token: `go-helmet` `--mist`, `go-ear` `--brand-green`, `go-antenna-ball` `--brand-lime`, `go-antenna-stem` `--brand-ink`, `go-plate` `--brand-ink`, `go-lid` `--brand-ink`, `go-eye` `--brand-cyan`, `go-mouth-open` `--brand-cyan`.
+- **The rig** wherever GilbertOne is doing something: the launcher, the panel's head, the demonstrator. It carries no lettering — the name belongs to the logo beside it — and it is the official character by token: `go-helmet` `--brand-ink`, `go-ear` `--color-accent`, `go-antenna-ball` `--color-accent`, `go-antenna-stem` `--brand-ink`, `go-plate` `--indigo-deep`, `go-lid` `--indigo-deep`, `go-eye` `--studio-paper`, `go-mouth-open` `--color-accent`.
 - The handoff's animated PNG component (drifting eyes) is adopted nowhere: the rig is the in-product form.
 
 ### The rig's six states

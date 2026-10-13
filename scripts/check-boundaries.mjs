@@ -38920,7 +38920,9 @@ console.log(
   if (/#[0-9a-fA-F]{3,8}\b/.test(rigCss.replace(/\/\*[\s\S]*?\*\//g, "")) || /#[0-9a-fA-F]{3,8}\b|fill:\s*["'`]|\bfill=["'][^"'u]/.test(drawing))
     w3Fail("the rig types a colour. Every part of the character reads a token through gilbert-avatar.css.");
   if (/<text\b/.test(drawing)) w3Fail(`${avatarFile} prints lettering on the rig's head. The name belongs to the logo beside it.`);
-  for (const [part, token] of [["go-helmet", "--mist"], ["go-plate", "--brand-ink"], ["go-lid", "--brand-ink"], ["go-eye", "--brand-cyan"], ["go-ear", "--brand-green"], ["go-antenna-ball", "--brand-lime"], ["go-antenna-stem", "--brand-ink"]]) {
+  /* Recoloured to the G1 mark on 13 October 2026, with the approved fresh look: navy head, coral
+     ears and antenna, a paper face on a deeper visor. The robot's green, lime and cyan are retired. */
+  for (const [part, token] of [["go-helmet", "--brand-ink"], ["go-plate", "--indigo-deep"], ["go-lid", "--indigo-deep"], ["go-eye", "--studio-paper"], ["go-ear", "--color-accent"], ["go-antenna-ball", "--color-accent"], ["go-antenna-stem", "--brand-ink"]]) {
     const painted = [...rigCss.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^}]*)\}/g)]
       .some(([, sel, body]) => sel.split(",").some((s) => s.trim() === `.${part}`) && new RegExp(`fill:\\s*var\\(${token}\\)`).test(body));
     if (!painted) w3Fail(`gilbert-avatar.css no longer paints .${part} with ${token}, the official character's colour for it.`);
