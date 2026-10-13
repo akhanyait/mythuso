@@ -143,7 +143,7 @@ Generation four, `packages/design-tokens/tokens.json#semantic`: each role has a 
 | `--color-coral` | #e5533f | a hex literal in the handoff | #f07a68 | a hex literal in the handoff | A coral fill |
 | `--color-border` | #dad2cb | a hex literal in the handoff | #3a4257 | a hex literal in the handoff | A hairline |
 | `--color-input` | #ded8d3 | a hex literal in the handoff | #333b50 | a hex literal in the handoff | The resting boundary of a field |
-| `--color-ring` | #e5533f | a hex literal in the handoff | #f07a68 | a hex literal in the handoff | The focus ring |
+| `--color-ring` | #c8452f | a hex literal in the handoff | #f07a68 | a hex literal in the handoff | The focus ring |
 
 Dark values: The dark values exist so the variables exist. The web emits them only under :root[data-theme="dark"]: on 29 September 2026 the founder saw the product dark under a dark OS scheme and decided light is the default and dark an option a person switches on (apps/web/src/components/ThemeToggle.tsx). No prefers-color-scheme block, so the OS never decides. The switch keeps nothing across a load, because the web may not touch browser storage.
 
@@ -168,7 +168,7 @@ The table below is computed here with the same formula `scripts/check-boundaries
 | `light.coral` | 3.51:1 — declared at 3:1 — clears | 3.72:1 — declared at 3:1 — clears | 3.32:1 — declared at 3:1 — clears | 3.17:1 — declared at 3:1 — clears |
 | `light.border` | 1.41:1 — declared at 1.2:1 — clears | 1.49:1 — declared at 1.2:1 — clears | 1.33:1 — declared at 1.2:1 — clears | 1.27:1 — declared at 1.2:1 — clears |
 | `light.input` | 1.33:1 — parked at 3:1 — replace with #4e6b7a (5.35:1) | 1.41:1 — parked at 3:1 — replace with #4e6b7a (5.66:1) | 1.26:1 — parked at 3:1 — replace with #4e6b7a (5.04:1) | 1.2:1 — parked at 3:1 — replace with #4e6b7a (4.83:1) |
-| `light.ring` | 3.51:1 — declared at 3:1 — clears | 3.72:1 — declared at 3:1 — clears | 3.32:1 — declared at 3:1 — clears | 3.17:1 — declared at 3:1 — clears |
+| `light.ring` | 4.56:1 — declared at 3:1 — clears | 4.83:1 — declared at 3:1 — clears | 4.3:1 — declared at 3:1 — clears | 4.12:1 — declared at 3:1 — clears |
 
 #### Dark scheme
 

@@ -95,7 +95,7 @@ object ThusoSemantic {
         val coral = Color(0xFFE5533F)
         val border = Color(0xFFDAD2CB)
         val input = Color(0xFFDED8D3)
-        val ring = Color(0xFFE5533F)
+        val ring = Color(0xFFC8452F)
     }
     object Dark {
         val background = Color(0xFF0E1320)

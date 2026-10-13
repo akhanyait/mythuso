@@ -91,7 +91,7 @@ enum ThusoSemantic {
         static let coral = Color(red: 0.898, green: 0.325, blue: 0.247)             // #e5533f
         static let border = Color(red: 0.855, green: 0.824, blue: 0.796)            // #dad2cb
         static let input = Color(red: 0.871, green: 0.847, blue: 0.827)             // #ded8d3
-        static let ring = Color(red: 0.898, green: 0.325, blue: 0.247)              // #e5533f
+        static let ring = Color(red: 0.784, green: 0.271, blue: 0.184)              // #c8452f
     }
     enum Dark {
         static let background = Color(red: 0.055, green: 0.075, blue: 0.125)        // #0e1320
