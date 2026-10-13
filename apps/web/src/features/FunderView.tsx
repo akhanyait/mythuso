@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeft, ArrowRight, CircleAlert } from 'lucide-react';
 import brief from '../../../../packages/catalog/funder-brief.json' with { type: 'json' };
+import PilotKit from './PilotKit';
 import './funder-view.css';
 
 /* The funder view: the eight points the Technology Innovation Agency asked a demo to cover, on one
@@ -24,13 +25,31 @@ import './funder-view.css';
 
 type Status = keyof typeof brief.statuses;
 type Fact = { text: string; status: string; source: string; figure?: string };
-type Point = (typeof brief.points)[number] & { market?: { lead: string; others: { name: string; lane: string }[]; source: string } };
+type Budget = { lead: string; total: number; lines: { label: string; amount: number }[]; source: string };
+type Point = (typeof brief.points)[number] & { market?: { lead: string; others: { name: string; lane: string }[]; source: string }; budget?: Budget };
 
 const points = brief.points as Point[];
 const label = (s: string) => brief.statuses[s as Status] ?? s;
 
 function StatusChip({ status }: { status: string }) {
  return <span className={`fv-chip fv-chip--${status}`}>{status === 'toConfirm' && <CircleAlert size={13} aria-hidden/>}{label(status)}</span>;
+}
+
+/* Rand in millions to two places, the way the deck writes them: R2.40m. Each line's bar is its
+ * share of the whole; scripts/check-boundaries.mjs holds the lines to the total, so the bars always
+ * fill exactly one budget. The split is drawn as proposed because it is: the founder has not
+ * checked it, and the chip says so beside the figures rather than under them. */
+const millions = (n: number) => `R${(n / 1e6).toFixed(2)}m`;
+
+function BudgetSplit({ budget }: { budget: Budget }) {
+ return <div className="fv-budget">
+  <div className="fv-budget-head"><p className="fv-market-lead">{budget.lead}</p><span className="fv-chip fv-chip--planning">Proposed</span></div>
+  <ul>{budget.lines.map(l => <li key={l.label}>
+   <span className="fv-budget-label">{l.label}</span><b>{millions(l.amount)}</b>
+   <span className="fv-budget-bar" aria-hidden><i style={{ width: `${(l.amount / budget.total) * 100}%` }}/></span>
+  </li>)}</ul>
+  <p className="fv-source">{budget.source}</p>
+ </div>;
 }
 
 function FactRow({ fact }: { fact: Fact }) {
@@ -79,6 +98,7 @@ export default function FunderView() {
        <ul>{p.market.others.map(o => <li key={o.name}><b>{o.name}</b><span>{o.lane}</span></li>)}</ul>
        <p className="fv-source">{p.market.source}</p>
       </div>}
+      {p.budget && <BudgetSplit budget={p.budget}/>}
       <button type="button" className="fv-say" aria-expanded={expanded} onClick={() => setOpen(expanded ? null : p.id)}>
        {expanded ? 'Hide' : 'What GilbertOne says when asked'}<ArrowRight size={15} aria-hidden/>
       </button>
@@ -108,6 +128,8 @@ export default function FunderView() {
      })}
     </div>
    </section>
+
+   <PilotKit/>
 
    <nav className="fv-links" aria-label="Show the app">
     <a href="/app/"><ArrowLeft size={16} aria-hidden/>The patient app</a>

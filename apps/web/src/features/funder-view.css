@@ -61,3 +61,19 @@
 .fv-foot p{margin:0}
 .fv-foot p:first-child{font-weight:700;color:#fff}
 @media (max-width:520px){.fv-visit{grid-template-columns:auto 1fr}.fv-visit .fv-chip{grid-column:2;justify-self:start}}
+/* The pilot kit (features/PilotKit.tsx): five drawn devices on paper wells, two to a row on a phone. */
+.fv-kit-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,190px),1fr));gap:14px}
+.fv-kit-item{display:flex;flex-direction:column;gap:5px;min-width:0}
+.fv-kit-item b{font-size:15px}
+.fv-kit-art{background:#f7f4f1;border-radius:14px;padding:10px;display:grid;place-items:center}
+.fv-kit-art svg{width:100%;max-width:200px;height:auto;aspect-ratio:200/240}
+.fv-kit-role{font-size:13.5px;color:#4a5163;line-height:1.45}
+@media (max-width:520px){.fv-kit-list{grid-template-columns:1fr 1fr}.fv-kit-role{font-size:12.5px}}
+/* The ask's budget split: a label and its figure over a coral bar sized to its share. */
+.fv-budget{border-top:1px dashed var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px}
+.fv-budget-head{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.fv-budget ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.fv-budget li{display:grid;grid-template-columns:1fr auto;gap:3px 12px;font-size:14px}
+.fv-budget li b{font-variant-numeric:tabular-nums}
+.fv-budget-bar{grid-column:1 / -1;height:6px;border-radius:3px;background:#efe9e4;overflow:hidden}
+.fv-budget-bar i{display:block;height:100%;background:var(--brand-orange);border-radius:3px}

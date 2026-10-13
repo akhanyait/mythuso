@@ -40643,3 +40643,24 @@ console.log(await checkSuppliers({ read, files, exists: existsSync }));
   if (!/data-motion=\{decor\.reduced \? 'still' : decor\.playing \? 'running' : 'paused'\}/.test(triage)) tmFail("the Triage screen no longer hands its vitals the page's motion flag, so the heart would beat with no way to stop it.");
   console.log(`The triage markers · ${tm.lines.length} alert lines, each on or outside its indicative range, owned by the ${g.owner} and ${g.status === "reviewed" ? `reviewed on ${g.reviewedOn}` : "drawn under the demo banner"}; nothing typed, nothing summed; ${tm.preview.readings.length} consented sandbox patients with readings.`);
 }
+
+/* The funder view's budget split and the pilot kit (apps/web/src/features/FunderView.tsx, PilotKit.tsx).
+   The split's bars are each line's share of the total, so lines that do not sum to the total draw a
+   budget that is not the one being asked for. The kit carries no price, because a device figure here
+   could disagree with the budget's devices line; and every drawn device must name its catalogue item. */
+{
+  const brief = JSON.parse(read("packages/catalog/funder-brief.json"));
+  const fbFail = (m) => { console.error(`✗ funder brief: ${m}`); process.exitCode = 1; };
+  for (const p of brief.points.filter((p) => p.budget)) {
+    const sum = p.budget.lines.reduce((t, l) => t + l.amount, 0);
+    if (sum !== p.budget.total) fbFail(`the "${p.id}" budget lines sum to R${sum.toLocaleString("en-ZA")}, not the R${p.budget.total.toLocaleString("en-ZA")} it says it splits.`);
+  }
+  const kit = JSON.parse(read("packages/catalog/pilot-kit.json"));
+  if (/R ?[0-9]|\$ ?[0-9]|price/i.test(JSON.stringify(kit.devices))) fbFail("packages/catalog/pilot-kit.json prices a device. The budget's devices line is the only device figure.");
+  const kitTsx = read("apps/web/src/features/PilotKit.tsx");
+  for (const d of kit.devices) {
+    if (!Number.isInteger(d.catalogue)) fbFail(`the pilot kit's "${d.id}" names no catalogue item.`);
+    if (!new RegExp(`\\b${d.id}: `).test(kitTsx)) fbFail(`the pilot kit lists "${d.id}" and PilotKit.tsx has no drawing for it.`);
+  }
+  console.log(`The funder brief · budget lines sum to their totals; the pilot kit draws ${kit.devices.length} devices, unpriced.`);
+}
