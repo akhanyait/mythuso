@@ -180,6 +180,11 @@
           "source": "MyThuso funder brief, October 2026: founding team"
         },
         {
+          "text": "Devices: connected devices from Alibaba.com suppliers, branded MyThuso and GilbertOne. Whether this is a signed partnership is still to be confirmed.",
+          "status": "toConfirm",
+          "source": "Founder, 13 October 2026"
+        },
+        {
           "text": "Signed partners, partners in talks and letters of support.",
           "status": "toConfirm",
           "source": "Founder to confirm"
@@ -190,7 +195,7 @@
           "source": "MyThuso funder brief, October 2026"
         }
       ],
-      "answer": "Our clinical lead is Dr Xolile Vena, a GP who sets our protocols and chairs clinical safety reviews. Gilbert will name our current partners and where each stands. We are seeking impact investors, health foundations, provincial health departments and medical schemes."
+      "answer": "Our clinical lead is Dr Xolile Vena, a GP who sets our protocols and chairs clinical safety reviews. Our devices come from Alibaba.com suppliers, branded MyThuso and GilbertOne. Gilbert will name our other partners and where each stands. We are seeking impact investors, health foundations, provincial health departments and medical schemes."
     },
     {
       "id": "cofunding",
@@ -233,38 +238,90 @@
           "source": "MyThuso app"
         },
         {
+          "text": "The first pilot is in Gugulethu, Cape Town, where the founder grew up: 1,000 households, 30 part-time nurses, 3 reviewing doctors and 6,000 home visits over 18 months.",
+          "status": "planning",
+          "source": "Proposed planning assumption, 13 October 2026"
+        },
+        {
           "text": "Before real patients: a data protection impact assessment, an Information Officer and data kept in South Africa.",
           "status": "planning",
           "source": "MyThuso funder brief, October 2026"
         }
       ],
-      "answer": "The technology proof of concept is done. MyThuso has been live on web, iPhone and Android since 21 September 2026, and our own model runs on a server in South Africa, where it passed 54 of 54 safety tests. We estimate technology readiness level 6. Booking, payments and dispatch are still simulated. The next step is a clinical pilot, after the privacy paperwork is signed, and then scale."
+      "answer": "The technology proof of concept is done. MyThuso has been live on web, iPhone and Android since 21 September 2026, and our own model runs on a server in South Africa, where it passed 54 of 54 safety tests. We estimate technology readiness level 6. Booking, payments and dispatch are still simulated. The next step is a clinical pilot in Gugulethu, Cape Town, after the privacy paperwork is signed, and then scale."
     },
     {
       "id": "ask",
       "order": 8,
       "title": "The ask",
-      "lead": "Funding released against evidence, in tranches.",
+      "lead": "R12.5m for an 18-month pilot in Gugulethu, released in three tranches, each against evidence.",
       "facts": [
         {
-          "figure": "R23m",
-          "text": "MyThuso Home, over 18 months in three tranches",
-          "status": "toConfirm",
-          "source": "MyThuso funder brief, October 2026; founder to confirm"
+          "figure": "R12.5m",
+          "text": "pilot budget over 18 months, first site Gugulethu, Cape Town",
+          "status": "planning",
+          "source": "Founder, 13 October 2026"
         },
         {
-          "figure": "R25m–R35m",
-          "text": "MyThuso Clinic, to Series A readiness",
-          "status": "toConfirm",
-          "source": "MyThuso funder brief, October 2026; founder to confirm"
+          "figure": "R3.5m",
+          "text": "months 1 to 5, prepare: clinical team, insurance, privacy, SAHPRA and branded devices. Gate: independent readiness review before any patient.",
+          "status": "planning",
+          "source": "Proposed planning assumption, 13 October 2026"
         },
         {
-          "text": "The app's business model holds a different round, R9.7m over 18 months. One figure must be chosen before the presentation.",
-          "status": "toConfirm",
-          "source": "packages/catalog/business-model.json"
+          "figure": "R5.0m",
+          "text": "months 6 to 12, deliver: 1,000 households, 30 nurses, 3 reviewing doctors. Gate: 1,000 completed visits, incidents reviewed, costs reconciled.",
+          "status": "planning",
+          "source": "Proposed planning assumption, 13 October 2026"
+        },
+        {
+          "figure": "R4.0m",
+          "text": "months 13 to 18, validate: 6,000 visits and an independent evaluation. Gate: clinical audit and a sustainable cost per visit before a second site.",
+          "status": "planning",
+          "source": "Proposed planning assumption, 13 October 2026"
         }
       ],
-      "answer": "Gilbert will confirm the amount. Our October funder brief proposes R23 million for MyThuso Home over 18 months in three tranches, and R25 to R35 million for MyThuso Clinic. Each tranche unlocks only when its gate is met."
+      "answer": "We ask for R12.5 million for an 18-month pilot in Gugulethu, Cape Town: 1,000 households, 30 nurses, three reviewing doctors and 6,000 home visits, free to families. It is released in three tranches of R3.5 million, R5 million and R4 million, and each tranche unlocks only when its gate is met.",
+      "budget": {
+        "lead": "Where the R12.5m goes",
+        "currency": "ZAR",
+        "total": 12500000,
+        "lines": [
+          {
+            "label": "Clinical team and governance",
+            "amount": 2400000
+          },
+          {
+            "label": "Technology and GilbertOne",
+            "amount": 2200000
+          },
+          {
+            "label": "Branded devices from Alibaba.com suppliers",
+            "amount": 1900000
+          },
+          {
+            "label": "Gugulethu operations and community",
+            "amount": 1500000
+          },
+          {
+            "label": "Nurse home visits: 6,000 at R224",
+            "amount": 1350000
+          },
+          {
+            "label": "Legal, privacy, insurance and regulatory",
+            "amount": 1000000
+          },
+          {
+            "label": "Independent evaluation",
+            "amount": 600000
+          },
+          {
+            "label": "Reserve",
+            "amount": 1550000
+          }
+        ],
+        "source": "Proposed planning assumptions, 13 October 2026. Devices at R18.50 to the dollar plus 45% for freight, VAT, duty and clearing."
+      }
     }
   ],
   "questions": [
@@ -364,7 +421,11 @@
         "funding",
         "request",
         "rand",
-        "money"
+        "money",
+        "budget",
+        "breakdown",
+        "pilot",
+        "gugulethu"
       ]
     }
   ],
