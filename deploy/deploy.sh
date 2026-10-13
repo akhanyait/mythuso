@@ -450,6 +450,22 @@ ssh "$TARGET" "set -e
 # overwrote MYTHUSO_ALERT_TO would silence every alert and look successful doing it.
 ssh "$TARGET" "printf 'MYTHUSO_HOST=%s\n' '$HOST' > /etc/mythuso/host.env && chmod 0644 /etc/mythuso/host.env"
 
+# HSTS is the one-year value already live on the site, and a browser that has heard it cannot be
+# talked back down. The template carries that line twice — the server level, and location
+# /assistant/, which declares its own add_header and therefore inherits none. A file that still
+# carries the five-minute rehearsal, or that does not carry the live line exactly twice, must not
+# be the file this step installs.
+hsts_line='Strict-Transport-Security "max-age=31536000; includeSubDomains" always;'
+if grep -q 'max-age=300' deploy/nginx/mythuso.conf; then
+  echo "!! deploy/nginx/mythuso.conf still carries max-age=300. HSTS is one year with includeSubDomains and is never lowered. Not installing the nginx site."
+  exit 1
+fi
+hsts_count=$(grep -cF "$hsts_line" deploy/nginx/mythuso.conf || true)
+if [ "${hsts_count:-0}" -ne 2 ]; then
+  echo "!! deploy/nginx/mythuso.conf carries ${hsts_count:-0} lines of the live HSTS header; exactly two are required. Not installing the nginx site."
+  exit 1
+fi
+
 say "Installing the nginx site for $HOST"
 # The file it replaces is kept beside it for exactly as long as it takes nginx -t to have an opinion.
 # Without that, a site file that fails the test stays in sites-enabled: the running nginx carries on
@@ -478,6 +494,26 @@ roll_back_site() {
    ours. Do not restart nginx — a reload keeps the five co-tenants serving, a restart will not.
    Find it with: ssh $TARGET nginx -t"
 }
+
+# The guard above read the template. This reads the copy just written to the box, before certbot
+# edits it and before any reload. sed only substitutes the host name, so the header should be the
+# template's — and a file on disk that is not is how five-minute HSTS would go live while the
+# repository said one year.
+if ! installed_site=$(ssh "$TARGET" "cat /etc/nginx/sites-available/mythuso.conf"); then
+  echo "!! could not read /etc/nginx/sites-available/mythuso.conf on $TARGET after installing it. Rolling back; nothing reloaded."
+  roll_back_site
+  exit 1
+fi
+if printf '%s\n' "$installed_site" | grep -q 'max-age=300'; then
+  echo "!! /etc/nginx/sites-available/mythuso.conf on $TARGET still carries max-age=300. HSTS is one year with includeSubDomains and is never lowered. Rolling back; nothing reloaded."
+  roll_back_site
+  exit 1
+fi
+if ! printf '%s\n' "$installed_site" | grep -q 'max-age=31536000; includeSubDomains'; then
+  echo "!! /etc/nginx/sites-available/mythuso.conf on $TARGET does not carry HSTS max-age=31536000; includeSubDomains. Rolling back; nothing reloaded."
+  roll_back_site
+  exit 1
+fi
 
 # ── Putting TLS back, because the line above just overwrote it ─────────────────────────────────
 #

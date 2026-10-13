@@ -746,8 +746,8 @@ proved by a boundary check that fires when broken.
 activating the Passport (needs a signed DPIA, an Information Officer, a residency decision and
 KMS/HSM custody); opening the triage gate (needs a formed board, an appointed Medical Director and a
 ratified protocol); accepting the Control Tower cutover (needs somebody to sign
-`docs/control-tower-cutover.md` and close G15); and raising HSTS above `max-age=300` (deliberately
-deferred and irreversible).
+`docs/control-tower-cutover.md` and close G15). HSTS is `max-age=31536000; includeSubDomains`
+and is never lowered.
 
 ---
 
