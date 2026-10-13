@@ -201,7 +201,9 @@ a.primary { text-decoration: none }
 :root[data-theme='dark'] .app-shell > .workspace > :not(.al-dock),
 :root[data-theme='dark'] dialog.modal {
  --danger: var(--color-danger); --danger-soft: color-mix(in srgb, var(--color-danger) 14%, var(--color-surface));
- --mango-ink: var(--mango); --mango-soft: color-mix(in srgb, var(--mango) 14%, var(--color-surface));
+ /* The warning ink is the warning role, not --mango: since the fresh look (13 October 2026) --mango is
+    the brand coral, and coral on its own dark wash measured 3.93. */
+ --mango-ink: var(--color-warning); --mango-soft: color-mix(in srgb, var(--color-warning) 14%, var(--color-surface));
  --info: color-mix(in srgb, var(--info) 45%, var(--color-foreground)); --info-soft: color-mix(in srgb, var(--info) 18%, var(--color-surface));
 }
 /* The grounds that keep their colour in both themes: the ink panels (the wallet, the passport, the

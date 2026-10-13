@@ -41,6 +41,9 @@
  --ui-success-ink: var(--teal-ink);
  --ui-primary-ink: var(--color-primary);
  --ui-press-mix: transparent;
+ /* The accent is coral with white words on it, so pressing it in the light theme deepens it towards
+    the ink; fading it towards transparent (the press mix above) lightened it under 4.5. */
+ --ui-accent-press: var(--brand-ink);
  /* tokens.json#targets.minimum: a control smaller than a fingertip is a control somebody misses. */
  --ui-target: 44px;
 }
@@ -50,6 +53,7 @@
  --ui-success-ink: var(--color-success);
  --ui-primary-ink: var(--color-accent);
  --ui-press-mix: var(--color-foreground);
+ --ui-accent-press: var(--color-foreground);
 }
 
 /* ---- Focus: one outline for every component ------------------------------------------------------
@@ -140,8 +144,8 @@
 .ui-button--primary:active:not(:disabled) { background: color-mix(in oklab, var(--color-primary) 80%, var(--ui-press-mix)); }
 
 .ui-button--accent { background: var(--color-accent); color: var(--color-accent-foreground); }
-.ui-button--accent:is(:hover, .is-hover):not(:disabled) { background: color-mix(in oklab, var(--color-accent) 85%, var(--ui-press-mix)); }
-.ui-button--accent:active:not(:disabled) { background: color-mix(in oklab, var(--color-accent) 75%, var(--ui-press-mix)); }
+.ui-button--accent:is(:hover, .is-hover):not(:disabled) { background: color-mix(in oklab, var(--color-accent) 85%, var(--ui-accent-press)); }
+.ui-button--accent:active:not(:disabled) { background: color-mix(in oklab, var(--color-accent) 75%, var(--ui-accent-press)); }
 
 .ui-button--secondary { border-color: var(--color-border); background: var(--color-surface); color: var(--color-foreground); }
 .ui-button--secondary:is(:hover, .is-hover):not(:disabled) { background: var(--color-muted); }
