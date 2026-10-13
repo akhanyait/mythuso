@@ -65,6 +65,11 @@ const ControlTower = staffPreview ? lazy(() => import('./shells/PortalShell')) :
    will navigate to costs the people this is built for nothing at all. Measured on 17 September:
    275.57 kB before and 275.72 kB after, across the same 13 files. */
 const GilbertOnePreview = lazy(() => import('./features/GilbertOneDemo'));
+/* And ?preview=funder: the eight points the Technology Innovation Agency asked a demo to cover, for
+   the presentation on 15 October 2026, read from packages/catalog/funder-brief.json. Behind its own
+   dynamic import for the same reason as the demonstrator above: a patient on metered data should not
+   download a pitch, and the door itself is the only thing her first view pays for. */
+const FunderPreview = lazy(() => import('./features/FunderView'));
 
 export default function Doorway() {
  const [role, setRoleState] = useState<RoleId>(() => roleFromSearch(window.location.search));
@@ -88,6 +93,11 @@ export default function Doorway() {
      neither is true of a design review. */
   return <Suspense fallback={<div className="opening"><div className="opening-card" role="status"><h1>GilbertOne</h1><p className="helper">Getting the preview ready.</p></div></div>}>
    <GilbertOnePreview/>
+  </Suspense>;
+ }
+ if (new URLSearchParams(window.location.search).get('preview') === 'funder') {
+  return <Suspense fallback={<div className="opening"><div className="opening-card" role="status"><h1>Funder view</h1><p className="helper">Getting the funder view ready.</p></div></div>}>
+   <FunderPreview/>
   </Suspense>;
  }
  const previewRole = staffPreview ? role : 'patient';

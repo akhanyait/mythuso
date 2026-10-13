@@ -1,0 +1,440 @@
+{
+  "_note": "The eight points the Technology Innovation Agency (TIA) asked a funder demo to cover, as data, so the Funder view screen and GilbertOne's funder answers say the same words. Written 13 October 2026 for the TIA dry run and the presentation on 15 October. Every figure carries its source and a status. A figure marked toConfirm is a placeholder the founder has not given yet and must be shown as such, never filled in by whoever builds the screen.",
+  "_statusNote": "sourced = a published figure with its source named; planning = a MyThuso planning assumption, not a result; live = true of the running product today; demo = sample data for show and tell; toConfirm = the founder must supply it.",
+  "statuses": {
+    "sourced": "Sourced",
+    "planning": "Planning figure",
+    "live": "Working today",
+    "demo": "Demo data",
+    "toConfirm": "To confirm"
+  },
+  "disclaimer": "Proposed services. Nothing here books a visit, takes a payment or makes a clinical decision. Figures marked as planning are assumptions, not results.",
+  "assistantLine": "GilbertOne · not a person, and not a doctor",
+  "emergencyLine": "In an emergency call 10177 for an ambulance, or 112 from a cell phone.",
+  "points": [
+    {
+      "id": "problem",
+      "order": 1,
+      "title": "The problem",
+      "lead": "A parent who needs a nurse waits hours in a clinic queue, and the clinic is short of staff.",
+      "facts": [
+        {
+          "text": "Most households rely on public clinics, where the average wait is over three hours.",
+          "status": "sourced",
+          "source": "Stats SA General Household Survey 2025; Ritshidze 2023"
+        },
+        {
+          "text": "Families care for older parents at home with no planned nursing in between clinic trips.",
+          "status": "planning",
+          "source": "MyThuso funder brief, October 2026"
+        }
+      ],
+      "answer": "The problem is access. Most South African households depend on public clinics, the average clinic wait is over three hours, and clinics are short of staff. Families caring for a parent at home have no planned nursing in between those trips."
+    },
+    {
+      "id": "size",
+      "order": 2,
+      "title": "How big it is",
+      "lead": "Two in three households use a public clinic, and most people have no medical aid.",
+      "facts": [
+        {
+          "figure": "66.8%",
+          "text": "of households normally use a public clinic (13.4m households)",
+          "status": "sourced",
+          "source": "Stats SA GHS 2025, Table 5.2"
+        },
+        {
+          "figure": "3h07",
+          "text": "average clinic wait, against the national aim of 2 hours",
+          "status": "sourced",
+          "source": "Ritshidze 2023, 22,543 patients at 419 clinics"
+        },
+        {
+          "figure": "75%",
+          "text": "of clinic managers report too few staff",
+          "status": "sourced",
+          "source": "Ritshidze 2023, 418 managers"
+        },
+        {
+          "figure": "15.5%",
+          "text": "of South Africans have medical aid (8.2% in Limpopo)",
+          "status": "sourced",
+          "source": "Stats SA GHS 2025"
+        },
+        {
+          "figure": "128.3m",
+          "text": "public primary-care visits a year, at about 3,700 clinics",
+          "status": "sourced",
+          "source": "Clinic research supplied October 2026"
+        }
+      ],
+      "answer": "66.8% of households, 13.4 million, normally use a public clinic. The average wait is 3 hours 7 minutes, 75% of clinic managers say they are short of staff, and only 15.5% of people have medical aid. Public clinics see about 128.3 million primary-care visits a year. Sources: Stats SA General Household Survey 2025 and Ritshidze 2023."
+    },
+    {
+      "id": "solution",
+      "order": 3,
+      "title": "The solution, and what makes it different",
+      "lead": "Planned nurse visits at home and a shorter clinic queue, on one health record, with GilbertOne as the assistant inside.",
+      "facts": [
+        {
+          "text": "MyThuso Home: a registered nurse visits the home, and a named clinician reviews where needed.",
+          "status": "planning",
+          "source": "MyThuso funder brief, October 2026"
+        },
+        {
+          "text": "MyThuso Clinic: booking, digital queueing and reminders for public clinics.",
+          "status": "planning",
+          "source": "MyThuso funder brief, October 2026"
+        },
+        {
+          "text": "GilbertOne answers in South Africa's 11 official languages from our own server in South Africa.",
+          "status": "live",
+          "source": "MyThuso app and GilbertOne server"
+        },
+        {
+          "text": "Emergency words are caught on the phone itself, before any AI model, and sent to 10177 or 112.",
+          "status": "live",
+          "source": "packages/gilbertone"
+        },
+        {
+          "text": "A nurse confirms every case that is not green before it becomes a booking.",
+          "status": "planning",
+          "source": "MyThuso funder brief, October 2026"
+        }
+      ],
+      "market": {
+        "lead": "Others each cover one lane. MyThuso joins home care and the public clinic on one record.",
+        "others": [
+          {
+            "name": "Quro Medical",
+            "lane": "Hospital at home"
+          },
+          {
+            "name": "Medwell",
+            "lane": "Home nursing"
+          },
+          {
+            "name": "Hello Doctor",
+            "lane": "Virtual advice"
+          },
+          {
+            "name": "Vula Mobile",
+            "lane": "Clinician referrals"
+          },
+          {
+            "name": "MomConnect",
+            "lane": "Maternal messaging"
+          },
+          {
+            "name": "Kena Health",
+            "lane": "Paid AI intake, then a nurse"
+          },
+          {
+            "name": "RecoMed",
+            "lane": "Private bookings"
+          }
+        ],
+        "source": "Provider descriptions are self-reported, from the MyThuso funder brief, October 2026."
+      },
+      "answer": "MyThuso brings planned nurse visits into the home and shortens the clinic queue, on one health record. I am GilbertOne, the assistant inside it. I answer in South Africa's 11 official languages from a server in South Africa, I catch emergencies before any AI model sees the message, and a nurse confirms every case that matters. Others in the market each cover one lane, such as home nursing, virtual advice or private bookings. MyThuso joins home care and the public clinic on one record."
+    },
+    {
+      "id": "impact",
+      "order": 4,
+      "title": "Socio-economic importance",
+      "lead": "Care closer to home, less travel for families, and paid work for registered nurses.",
+      "facts": [
+        {
+          "figure": "R224",
+          "text": "of every R299 planned visit goes to the nurse",
+          "status": "planning",
+          "source": "MyThuso funder brief, October 2026: illustrative economics"
+        },
+        {
+          "text": "Fewer clinic trips for older and chronically ill patients, and less time off work for the family members who take them.",
+          "status": "planning",
+          "source": "MyThuso funder brief, October 2026"
+        },
+        {
+          "text": "Booking and queueing for public clinics is priced below a half-time clerical post: R4,000 a month per clinic.",
+          "status": "planning",
+          "source": "MyThuso funder brief, October 2026"
+        },
+        {
+          "text": "Nurse jobs created in the pilot.",
+          "status": "toConfirm",
+          "source": "Founder to confirm"
+        }
+      ],
+      "answer": "MyThuso brings care closer to home, so older and chronically ill patients make fewer clinic trips and family members lose less time from work. It creates paid work for registered nurses: in our planning figures, R224 of every R299 visit goes to the nurse. For clinics, booking and queueing is priced at R4,000 a month, below a half-time clerical post. These are planning figures, not results."
+    },
+    {
+      "id": "partners",
+      "order": 5,
+      "title": "Current partnerships",
+      "lead": "Partners signed, in talks, or with a letter of support.",
+      "facts": [
+        {
+          "text": "Clinical lead: Dr Xolile Vena, GP, sets protocols and chairs clinical safety reviews.",
+          "status": "live",
+          "source": "MyThuso funder brief, October 2026: founding team"
+        },
+        {
+          "text": "Signed partners, partners in talks and letters of support.",
+          "status": "toConfirm",
+          "source": "Founder to confirm"
+        },
+        {
+          "text": "Partners sought: impact investors, health foundations, provincial health departments and medical schemes.",
+          "status": "planning",
+          "source": "MyThuso funder brief, October 2026"
+        }
+      ],
+      "answer": "Our clinical lead is Dr Xolile Vena, a GP who sets our protocols and chairs clinical safety reviews. Gilbert will name our current partners and where each stands. We are seeking impact investors, health foundations, provincial health departments and medical schemes."
+    },
+    {
+      "id": "cofunding",
+      "order": 6,
+      "title": "Our co-funding",
+      "lead": "What Akhanya IT Innovations puts in alongside TIA.",
+      "facts": [
+        {
+          "text": "Co-funding amount and its form: cash, founder time, and the server and build costs already spent.",
+          "status": "toConfirm",
+          "source": "Founder to confirm"
+        }
+      ],
+      "answer": "Gilbert will give the co-funding amount and its form: cash, founder time, and what Akhanya IT Innovations has already spent on the servers and the build."
+    },
+    {
+      "id": "stage",
+      "order": 7,
+      "title": "Stage of the technology",
+      "lead": "The technology proof of concept is done. Next is a clinical pilot, then scale.",
+      "facts": [
+        {
+          "text": "Live on web, iPhone and Android since 21 September 2026, for orientation and notes.",
+          "status": "live",
+          "source": "mythuso.co.za"
+        },
+        {
+          "text": "Our own model runs on a server in South Africa and passed 54 of 54 safety tests.",
+          "status": "live",
+          "source": "GilbertOne server, safety evaluation, 8 October 2026"
+        },
+        {
+          "text": "About technology readiness level 6: a working prototype shown in a realistic setting.",
+          "status": "planning",
+          "source": "Our own estimate"
+        },
+        {
+          "text": "Booking, payments, nurse dispatch and SOS are simulated in the demo.",
+          "status": "live",
+          "source": "MyThuso app"
+        },
+        {
+          "text": "Before real patients: a data protection impact assessment, an Information Officer and data kept in South Africa.",
+          "status": "planning",
+          "source": "MyThuso funder brief, October 2026"
+        }
+      ],
+      "answer": "The technology proof of concept is done. MyThuso has been live on web, iPhone and Android since 21 September 2026, and our own model runs on a server in South Africa, where it passed 54 of 54 safety tests. We estimate technology readiness level 6. Booking, payments and dispatch are still simulated. The next step is a clinical pilot, after the privacy paperwork is signed, and then scale."
+    },
+    {
+      "id": "ask",
+      "order": 8,
+      "title": "The ask",
+      "lead": "Funding released against evidence, in tranches.",
+      "facts": [
+        {
+          "figure": "R23m",
+          "text": "MyThuso Home, over 18 months in three tranches",
+          "status": "toConfirm",
+          "source": "MyThuso funder brief, October 2026; founder to confirm"
+        },
+        {
+          "figure": "R25m–R35m",
+          "text": "MyThuso Clinic, to Series A readiness",
+          "status": "toConfirm",
+          "source": "MyThuso funder brief, October 2026; founder to confirm"
+        },
+        {
+          "text": "The app's business model holds a different round, R9.7m over 18 months. One figure must be chosen before the presentation.",
+          "status": "toConfirm",
+          "source": "packages/catalog/business-model.json"
+        }
+      ],
+      "answer": "Gilbert will confirm the amount. Our October funder brief proposes R23 million for MyThuso Home over 18 months in three tranches, and R25 to R35 million for MyThuso Clinic. Each tranche unlocks only when its gate is met."
+    }
+  ],
+  "questions": [
+    {
+      "point": "problem",
+      "ask": "What problem are you solving?",
+      "keywords": [
+        "problem",
+        "solving",
+        "issue",
+        "challenge",
+        "pain point"
+      ]
+    },
+    {
+      "point": "size",
+      "ask": "How big is the problem?",
+      "keywords": [
+        "big",
+        "size",
+        "how many",
+        "numbers",
+        "scale of"
+      ]
+    },
+    {
+      "point": "solution",
+      "ask": "What is the solution, and what makes it different?",
+      "keywords": [
+        "solution",
+        "unique",
+        "different",
+        "competitor",
+        "how does it work",
+        "what do you do",
+        "product"
+      ]
+    },
+    {
+      "point": "impact",
+      "ask": "Why does it matter socially and economically?",
+      "keywords": [
+        "socio",
+        "economic",
+        "social",
+        "impact",
+        "jobs",
+        "matter",
+        "importance",
+        "benefit"
+      ]
+    },
+    {
+      "point": "partners",
+      "ask": "Who are your partners?",
+      "keywords": [
+        "partner",
+        "partnership",
+        "collaborat",
+        "support"
+      ]
+    },
+    {
+      "point": "cofunding",
+      "ask": "What are you co-funding?",
+      "keywords": [
+        "co-fund",
+        "cofund",
+        "co fund",
+        "invest",
+        "own money",
+        "contribut"
+      ]
+    },
+    {
+      "point": "stage",
+      "ask": "What stage is the technology at?",
+      "keywords": [
+        "stage",
+        "proof",
+        "poc",
+        "trl",
+        "ready",
+        "readiness",
+        "scale",
+        "roll out",
+        "live"
+      ]
+    },
+    {
+      "point": "ask",
+      "ask": "How much are you asking for?",
+      "keywords": [
+        "ask",
+        "amount",
+        "how much",
+        "funding",
+        "request",
+        "rand",
+        "money"
+      ]
+    }
+  ],
+  "outOfScope": "In this funder demo I answer the eight questions above. For anything about your own health, please speak to a nurse or a doctor.",
+  "samples": {
+    "_demo": "DEMO DATA. Invented people and figures for show and tell. Never present them as results.",
+    "patients": [
+      {
+        "name": "Nomsa M.",
+        "age": 71,
+        "area": "Soweto",
+        "need": "Blood pressure check and medicine review",
+        "language": "isiZulu"
+      },
+      {
+        "name": "Thabo K.",
+        "age": 64,
+        "area": "Alexandra",
+        "need": "Diabetes follow-up after a clinic visit",
+        "language": "Sesotho"
+      },
+      {
+        "name": "Sarah v.d. M.",
+        "age": 82,
+        "area": "Randburg",
+        "need": "Wound dressing after a fall",
+        "language": "Afrikaans"
+      }
+    ],
+    "nurseDay": [
+      {
+        "time": "08:30",
+        "patient": "Nomsa M.",
+        "visit": "Blood pressure and medicines",
+        "status": "Planned"
+      },
+      {
+        "time": "10:15",
+        "patient": "Thabo K.",
+        "visit": "Glucose reading and foot check",
+        "status": "Planned"
+      },
+      {
+        "time": "13:00",
+        "patient": "Sarah v.d. M.",
+        "visit": "Wound dressing",
+        "status": "Planned"
+      }
+    ],
+    "clinicQueue": [
+      {
+        "position": 1,
+        "colour": "orange",
+        "label": "Priority nurse review"
+      },
+      {
+        "position": 2,
+        "colour": "yellow",
+        "label": "Same-day nurse"
+      },
+      {
+        "position": 3,
+        "colour": "green",
+        "label": "Self-care, optional booking"
+      },
+      {
+        "position": 4,
+        "colour": "blue",
+        "label": "Repeat script pick-up"
+      }
+    ]
+  }
+}
