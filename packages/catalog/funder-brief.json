@@ -201,15 +201,63 @@
       "id": "cofunding",
       "order": 6,
       "title": "Our co-funding",
-      "lead": "What Akhanya IT Innovations puts in alongside TIA.",
+      "lead": "R3.57m already invested by Akhanya IT Innovations to reach proof of concept.",
       "facts": [
         {
-          "text": "Co-funding amount and its form: cash, founder time, and the server and build costs already spent.",
+          "figure": "R3.57m",
+          "text": "invested to date, in kind and cash, about 29% on top of TIA's R12.5m",
+          "status": "toConfirm",
+          "source": "Estimated value to date, founder to confirm against invoices and time records, 13 October 2026"
+        },
+        {
+          "figure": "R1.85m",
+          "text": "apps: web, iPhone, Android and the GilbertOne service",
+          "status": "toConfirm",
+          "source": "Estimated value to date, founder to confirm against invoices and time records, 13 October 2026"
+        },
+        {
+          "figure": "R720k",
+          "text": "founder and team time, at market rates",
+          "status": "toConfirm",
+          "source": "Estimated value to date, founder to confirm against invoices and time records, 13 October 2026"
+        },
+        {
+          "figure": "R650k",
+          "text": "proof of concept: research, design and clinical protocols",
+          "status": "toConfirm",
+          "source": "Estimated value to date, founder to confirm against invoices and time records, 13 October 2026"
+        },
+        {
+          "figure": "R120k",
+          "text": "infrastructure: the South African AI server, hosting and test devices",
+          "status": "toConfirm",
+          "source": "Estimated value to date, founder to confirm against invoices and time records, 13 October 2026"
+        },
+        {
+          "figure": "R95k",
+          "text": "AI tools: coding, model tuning and safety testing",
+          "status": "toConfirm",
+          "source": "Estimated value to date, founder to confirm against invoices and time records, 13 October 2026"
+        },
+        {
+          "figure": "R85k",
+          "text": "brand, design and funding documents",
+          "status": "toConfirm",
+          "source": "Estimated value to date, founder to confirm against invoices and time records, 13 October 2026"
+        },
+        {
+          "figure": "R45k",
+          "text": "legal set-up and POPIA groundwork",
+          "status": "toConfirm",
+          "source": "Estimated value to date, founder to confirm against invoices and time records, 13 October 2026"
+        },
+        {
+          "text": "Cash added during the pilot.",
           "status": "toConfirm",
           "source": "Founder to confirm"
         }
       ],
-      "answer": "Gilbert will give the co-funding amount and its form: cash, founder time, and what Akhanya IT Innovations has already spent on the servers and the build."
+      "answer": "Akhanya IT Innovations has already invested about R3.57 million to reach proof of concept: R1.85 million in the apps, R720,000 in founder and team time, R650,000 in research, design and clinical protocols, and the rest in the South African AI server, AI tools, brand and legal groundwork. Gilbert will confirm these and the cash we add during the pilot."
     },
     {
       "id": "stage",
