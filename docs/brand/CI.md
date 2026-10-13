@@ -80,10 +80,10 @@ The master is `packages/brand/lovable-handoff/handoff/src/assets/logos/gilbert-o
 
 | File | Pixels | Size | Where |
 | --- | --- | --- | --- |
-| `apps/web/public/lovable/gilbertone/gilbertone-logo-320.webp` | 320×240 | 18 kB | `GilbertOneLogo` in the product: the consent card, the welcome, the signed-out sheet, the services region — drawn at 56, 96, 120, 168 px wide |
-| `apps/web/public/lovable/gilbertone/gilbertone-logo-640.webp` | 640×480 | 41 kB | `GilbertOneLogo` in the product: the consent card, the welcome, the signed-out sheet, the services region — drawn at 56, 96, 120, 168 px wide |
-| `apps/web/public/lovable/gilbertone-logo-360.webp` | 360×270 | 19 kB | The public page, beside the questions, at 180 px |
-| `apps/web/public/lovable/gilbertone-logo-720.webp` | 720×540 | 44 kB | The public page, beside the questions, at 180 px |
+| `apps/web/public/lovable/gilbertone/gilbertone-logo-320.webp` | 320×240 | 9 kB | `GilbertOneLogo` in the product: the consent card, the welcome, the signed-out sheet, the services region — drawn at 56, 96, 120, 168 px wide |
+| `apps/web/public/lovable/gilbertone/gilbertone-logo-640.webp` | 640×480 | 19 kB | `GilbertOneLogo` in the product: the consent card, the welcome, the signed-out sheet, the services region — drawn at 56, 96, 120, 168 px wide |
+| `apps/web/public/lovable/gilbertone-logo-360.webp` | 360×270 | 11 kB | The public page, beside the questions, at 180 px |
+| `apps/web/public/lovable/gilbertone-logo-720.webp` | 720×540 | 22 kB | The public page, beside the questions, at 180 px |
 
 From `apps/web/src/features/GilbertAvatar.tsx`: The official GilbertOne logo — the Lovable handoff's master, the seated character above the name — wherever GilbertOne is named as a product: the consent card, the welcome, the signed-out sheet's head and the services region. It is the brand form; the rig below is the in-product form, and the two are never merged, which is the handoff's own rule. Two WebP derivatives of packages/brand/lovable-handoff/handoff/src/assets/logos/gilbert-one-logo.png, resized whole and nothing else: the master's transparent clear space is part of the mark, so the file is never cropped to the ink, never recoloured and never split into character and lettering. The master is 524 kB and is never served; the derivatives are 18 and 42 kB. The alt is the name, because on every screen that carries it the logo is where the name is read. It sits only on a light ground: the lettering is the brand ink, and a recoloured "reversed" logo is the one thing the handoff forbids.
 
@@ -116,7 +116,7 @@ The four literals the handoff delivered, decided by the Founder on 28 September 
 | brandGreen | #C8452F | The green: "thuso", the accent, success, info and the focus ring in the light scheme |
 | brandOrange | #E5533F | The roof of the house mark; danger and coral as fills — never words on a light ground |
 | brandLime | #F6C453 | The dot on the mark and the signal point on every MyThuso icon; warning and highlight as fills — never words on a light ground |
-| brandMint | #9FE1CB | "thuso" in the reversed lockup; not in the handoff, kept because the clinical deck reads it |
+| brandMint | #F5A497 | "thuso" in the reversed lockup; not in the handoff, kept because the clinical deck reads it |
 | brandCyan | #51F3FC | The GilbertOne character's eyes and smile, sampled from the logo master; it fills a shape on the visor and nothing else, and never carries text |
 
 ### The nineteen semantic roles, light and dark
