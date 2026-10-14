@@ -1,0 +1,79 @@
+/* The funder view (features/FunderView.tsx). Travels with its own chunk, so none of it reaches the
+   patient's first load. Navy band, paper ground, coral for the brand; "To confirm" takes the warning
+   yellow on navy ink so a placeholder can never be read as a settled figure. */
+.fv{min-height:100vh;background:var(--studio-paper);color:var(--brand-ink);display:flex;flex-direction:column}
+.fv-top{background:var(--brand-ink);color:#fff;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 20px;padding:14px max(16px,calc((100vw - 1120px)/2))}
+.fv-brand img{display:block;height:34px;width:auto}
+.fv-for{font-size:13px;color:#d6d9e1}
+.fv-main{width:100%;max-width:1120px;margin:0 auto;padding:28px 16px 40px;display:flex;flex-direction:column;gap:28px}
+.fv-hero{display:flex;flex-direction:column;gap:12px}
+.fv-eyebrow{margin:0;font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--brand-green)}
+.fv-hero h1{margin:0;font-size:clamp(26px,4.4vw,40px);line-height:1.15;letter-spacing:-.02em;max-width:24ch;text-wrap:balance}
+.fv-lede{margin:0;max-width:62ch;color:#4a5163;font-size:16px}
+.fv-disclaimer{margin:0;font-size:13.5px;color:#5e6472;max-width:72ch}
+.fv-pending{margin:0;display:flex;gap:10px;align-items:flex-start;background:var(--surface);color:var(--brand-ink);border:1px solid var(--line);border-left:4px solid var(--brand-orange);border-radius:12px;padding:12px 14px;font-size:14.5px;max-width:820px}
+.fv-pending svg{flex:none;margin-top:2px;color:var(--brand-orange)}
+.fv-points{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,500px),1fr));gap:18px}
+.fv-card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.fv-card--problem,.fv-card--size{border-top:4px solid var(--brand-orange)}
+.fv-card--ask{border-top:4px solid var(--brand-ink)}
+.fv-card-head{display:flex;gap:14px;align-items:flex-start}
+.fv-num{flex:none;width:34px;height:34px;border-radius:50%;background:var(--brand-ink);color:#fff;display:grid;place-items:center;font-weight:800;font-size:15px}
+.fv-card h2{margin:0 0 4px;font-size:19px;letter-spacing:-.01em}
+.fv-lead{margin:0;color:#4a5163;font-size:15px}
+.fv-facts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.fv-fact{display:flex;flex-direction:column;gap:5px;padding:10px 12px;border-radius:12px;background:#f7f4f1}
+.fv-fact--figure{display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-items:baseline}
+.fv-fact--figure .fv-fact-meta{grid-column:1 / -1}
+.fv-figure{font-size:26px;font-weight:800;letter-spacing:-.02em;color:var(--brand-green);white-space:nowrap}
+.fv-fact-text{font-size:14.5px;line-height:1.45}
+.fv-fact-meta{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.fv-source{font-size:12px;color:#5e6472}
+.fv-chip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:99px;white-space:nowrap}
+.fv-chip--sourced{background:#e3ecfb;color:#1d3a78}
+.fv-chip--planning{background:#efe9e4;color:#4a5163}
+.fv-chip--live{background:#ddf3e6;color:#17663a}
+.fv-chip--demo,.fv-demo{background:#fef3c7;color:#7a5200}
+.fv-chip--toConfirm{background:#f6c453;color:var(--brand-ink)}
+.fv-market{border-top:1px dashed var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px}
+.fv-market-lead{margin:0;font-weight:650;font-size:14.5px}
+.fv-market ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.fv-market li{display:flex;flex-direction:column;font-size:13px;padding:6px 9px;border:1px solid var(--line);border-radius:10px}
+.fv-market li span{color:#5e6472}
+.fv-say{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--brand-green);font:inherit;font-weight:650;font-size:14px;cursor:pointer}
+.fv-say:hover{border-color:var(--brand-orange)}
+.fv-answer{margin:0;padding:14px 16px;border-radius:14px;background:var(--brand-ink);color:#f2f3f6;font-size:14.5px;line-height:1.5}
+.fv-answer p{margin:0 0 8px}
+.fv-answer footer{font-size:12px;color:#c3c8d3}
+.fv-samples{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.fv-samples-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.fv-samples h2{margin:0;font-size:19px}
+.fv-demo{font-size:11px;font-weight:800;letter-spacing:.08em;padding:3px 10px;border-radius:99px}
+.fv-day{display:flex;flex-direction:column;gap:8px}
+.fv-visit{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:10px 12px;border-radius:12px;background:#f7f4f1}
+.fv-visit b{display:block}
+.fv-time{font-weight:800;color:var(--brand-green);font-variant-numeric:tabular-nums}
+.fv-who,.fv-what{display:block;font-size:13px;color:#5e6472}
+.fv-links{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between}
+.fv-links a{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 16px;border-radius:99px;background:var(--brand-ink);color:#fff;text-decoration:none;font-weight:650;font-size:14.5px}
+.fv-links a:last-child{background:var(--brand-green)}
+.fv-foot{margin-top:auto;background:var(--brand-ink);color:#e4e7ee;padding:16px max(16px,calc((100vw - 1120px)/2));display:flex;flex-wrap:wrap;gap:4px 24px;font-size:13.5px}
+.fv-foot p{margin:0}
+.fv-foot p:first-child{font-weight:700;color:#fff}
+@media (max-width:520px){.fv-visit{grid-template-columns:auto 1fr}.fv-visit .fv-chip{grid-column:2;justify-self:start}}
+/* The pilot kit (features/PilotKit.tsx): five drawn devices on paper wells, two to a row on a phone. */
+.fv-kit-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,190px),1fr));gap:14px}
+.fv-kit-item{display:flex;flex-direction:column;gap:5px;min-width:0}
+.fv-kit-item b{font-size:15px}
+.fv-kit-art{background:#f7f4f1;border-radius:14px;padding:10px;display:grid;place-items:center}
+.fv-kit-art svg{width:100%;max-width:200px;height:auto;aspect-ratio:200/240}
+.fv-kit-role{font-size:13.5px;color:#4a5163;line-height:1.45}
+@media (max-width:520px){.fv-kit-list{grid-template-columns:1fr 1fr}.fv-kit-role{font-size:12.5px}}
+/* The ask's budget split: a label and its figure over a coral bar sized to its share. */
+.fv-budget{border-top:1px dashed var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px}
+.fv-budget-head{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.fv-budget ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.fv-budget li{display:grid;grid-template-columns:1fr auto;gap:3px 12px;font-size:14px}
+.fv-budget li b{font-variant-numeric:tabular-nums}
+.fv-budget-bar{grid-column:1 / -1;height:6px;border-radius:3px;background:#efe9e4;overflow:hidden}
+.fv-budget-bar i{display:block;height:100%;background:var(--brand-orange);border-radius:3px}

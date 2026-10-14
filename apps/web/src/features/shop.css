@@ -12,12 +12,12 @@
 .shop-head{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;background:var(--brand-ink);color:var(--surface);border-radius:var(--r-card);padding:32px}
 .shop-head h1{font-size:32px;font-family:var(--font-display);font-weight:600;line-height:1.12;letter-spacing:-1px;margin:12px 0 8px;color:var(--surface)}
 .shop-head p{margin:0;color:var(--studio-line);font-size:15px;line-height:1.5;max-width:620px}
-.shop-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;letter-spacing:1.4px;font-weight:600;color:var(--brand-lime)}
+.shop-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;letter-spacing:1.4px;font-weight:600;color:var(--brand-mint)}
 .shop-balance{text-align:right;background:color-mix(in srgb,var(--surface) 8%,transparent);border-radius:var(--r-control);padding:16px 20px;min-width:190px}
-.shop-balance span{display:block;font-size:13px;letter-spacing:1.2px;color:var(--brand-lime)}
+.shop-balance span{display:block;font-size:13px;letter-spacing:1.2px;color:var(--brand-mint)}
 .shop-balance strong{display:block;font-size:32px;line-height:1.1;margin:4px 0;color:var(--surface);font-variant-numeric:tabular-nums}
 .shop-balance small,.shop-balance em{display:block;font-size:13px;font-style:normal;color:var(--studio-line)}
-.shop-balance em{margin-top:8px;font-weight:600;color:var(--brand-lime)}
+.shop-balance em{margin-top:8px;font-weight:600;color:var(--brand-mint)}
 
 .shop-banners{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:8px;margin-top:16px}
 .shop-banner{display:flex;gap:12px;align-items:flex-start;margin:0;padding:12px 16px;border-radius:var(--r-control);background:var(--surface);border:1px solid var(--line);font-size:14px;line-height:1.5}

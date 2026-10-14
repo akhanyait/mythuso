@@ -1,0 +1,44 @@
+{
+  "_note": "The devices the Gugulethu pilot budgets for, drawn in the MyThuso and GilbertOne look for the funder view (apps/web/src/features/PilotKit.tsx). Chosen from the Alibaba.com sourcing catalogue Gilbert shared on 13 October 2026; the catalogue numbers are its own. No prices here: what the pilot spends on devices is the budget's to say, in funder-brief.json, so this file cannot disagree with it. The catalogue items are the ones the budget's devices line is priced on (funder-brief.json, ask.budget), so the picture and the figure name the same things.",
+  "status": "Branding mockup. Nothing is ordered, and none of these devices is registered with SAHPRA for use in South Africa yet.",
+  "site": "Gugulethu, Cape Town",
+  "partner": "Devices sourced through Alibaba.com",
+  "readingsNote": "The readings on the screens are made up, to show where the MyThuso and GilbertOne marks sit. They are not anyone's results.",
+  "devices": [
+    {
+      "id": "handheld",
+      "name": "Nurse handheld",
+      "catalogue": 9,
+      "source": "4G medical PDA with NFC for nurse and patient ID",
+      "role": "The nurse's MyThuso workspace: the day's visits, the visit code, and the handover to the doctor."
+    },
+    {
+      "id": "healthcheck",
+      "name": "Health check station",
+      "catalogue": 22,
+      "source": "9-in-1 home telehealth health check monitor",
+      "role": "Blood pressure, glucose, ECG and temperature at the visit, sent to the visit record so the nurse does not retype them."
+    },
+    {
+      "id": "oximeter",
+      "name": "Pulse oximeter",
+      "catalogue": 23,
+      "source": "Wellue Checkme O2 Max, CE marked",
+      "role": "Oxygen level and pulse at the visit, and overnight when a doctor asks for it."
+    },
+    {
+      "id": "watch",
+      "name": "Household SOS band",
+      "catalogue": 7,
+      "source": "4G SOS health monitor with fall detection",
+      "role": "For older patients who live alone. A fall or the button calls up to three numbers the family chooses; it is not an ambulance."
+    },
+    {
+      "id": "tablet",
+      "name": "Clinic tablet",
+      "catalogue": 3,
+      "source": "10.1-inch healthcare station tablet",
+      "role": "For the clinic side: the day's queue and bookings, at the front desk."
+    }
+  ]
+}

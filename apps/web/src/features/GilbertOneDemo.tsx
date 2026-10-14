@@ -235,15 +235,16 @@ export default function GilbertOneDemo() {
    <p className="eyebrow">GilbertOne · Phase 1 of 4</p>
    <h1>Character demonstrator</h1>
    <p className="go-lede">
-    A rig, a widget shell and a control for every cue in the scope document's animation tables, with §07's voice built
-    for real on this page alone: your browser's microphone behind one push-to-talk control, and your browser's voice
-    reading a fixed demonstration answer out. There is no model behind it, no server and no conversation — nothing here
-    understands a word you say. Nothing on this page is a MyThuso service, nothing is sent to MyThuso, and nothing is kept.
+    How GilbertOne looks, moves and speaks inside MyThuso, in the G1 mark's colours. Play any cue, or tap to talk and hear
+    a fixed answer read aloud. There is no model behind this page: nothing here understands a word you say, nothing is
+    sent to MyThuso, and nothing is kept.
    </p>
-   <p className="helper"><ShieldX size={15} aria-hidden="true"/><span>
-    This is a preview of GilbertOne's presentation, not GilbertOne itself. The live GilbertOne's matcher and handover are
-    unchanged and this page is wired to neither. {VOICE_WEB_POC_SCOPE}
-   </span></p>
+   {/* The reviewer's detail stays on the page, folded, so the first thing a funder reads in a
+       presentation is what the page is rather than how it is wired. */}
+   <details className="helper go-demo-notes"><summary><ShieldX size={15} aria-hidden="true"/><span>
+    This is a preview of GilbertOne's presentation, not GilbertOne itself.</span></summary>
+    <p>The live GilbertOne's matcher and handover are unchanged and this page is wired to neither. {VOICE_WEB_POC_SCOPE}</p>
+   </details>
   </header>
 
   <main id="main" tabIndex={-1} className="go-demo-grid">

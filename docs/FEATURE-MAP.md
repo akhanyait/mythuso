@@ -284,6 +284,14 @@ The doctor's Triage page draws every reading for the sandbox patients on a scale
 - **What it refuses.** A marker is per reading and never summed into a figure about a person. A patient without consent shows the refusal rather than an empty green board. Wearables stay freshness only. Nothing escalates, notifies or decides from a marker, and the board's order says it is a reading aid.
 - **Not yet.** Web only: the native apps have no doctor's Triage screen. The lines are not yet an engine setting on the Control Tower's settings review.
 
+## Delivered — the fresh look and the funder view, 13 October 2026
+
+The whole product in the navy and coral look Gilbert approved on 13 October 2026 (draft PR #28): tokens generation five (navy `#141B2D`, coral `#E5533F`, paper `#FAF8F6`, crimson kept for emergencies only), the outlined mythuso heart-pulse wordmark and the G1 mark, GilbertOne's character in the G1 colours, and the shop's headings in light coral. iOS and Android read the same generated tokens and logos.
+
+- **The funder view** at `/app/?preview=funder` renders TIA's eight points from `packages/catalog/funder-brief.json`, the R12.5m Gugulethu pilot split marked Proposed, and the pilot kit drawn from `packages/catalog/pilot-kit.json`.
+- **What it refuses.** The funder view is preview only: it is built only under `VITE_MYTHUSO_FUNDER_PREVIEW=true`, which `deploy/` never sets, so the live site does not carry it. No figure marked To confirm is shown as settled, the budget lines must sum to the total, the kit carries no price, and every device is labelled a branding mockup that is neither ordered nor registered with SAHPRA.
+- **Not yet.** The native apps have no funder view.
+
 ## Feature coverage
 
 | Area                           | Web preview                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Native iOS / Android preview                                                                                               | Later functionality                                                                                                                                             |

@@ -222,3 +222,11 @@
 .go-mic-words { margin: 0; padding: var(--space-8) var(--space-12); border: 1px solid var(--line); border-radius: var(--r-control);
  background: var(--canvas); color: var(--ink); font-size: 15px; line-height: 1.55; overflow-wrap: anywhere; }
 .go-mic-words-label { display: block; font-size: 13px; font-weight: 600; color: var(--slate); }
+
+/* The reviewer's notes under the lede, folded until asked for. */
+.go-demo-notes { display: block; max-width: 68ch; }
+.go-demo-notes summary { display: flex; gap: 8px; align-items: center; cursor: pointer; list-style: none; }
+.go-demo-notes summary::-webkit-details-marker { display: none; }
+.go-demo-notes summary::after { content: "Notes for reviewers"; margin-left: 6px; color: var(--color-accent); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.go-demo-notes[open] summary::after { content: "Hide notes"; }
+.go-demo-notes p { margin: 8px 0 0; }

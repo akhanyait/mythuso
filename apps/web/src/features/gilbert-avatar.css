@@ -53,42 +53,49 @@
 .go-shadow {
   fill: color-mix(in srgb, var(--color-foreground) 16%, transparent);
 }
-/* The shell is the logo's off-white (mist, #F0F0F0, the master's own shell colour), with a hairline in
-   the handoff's border colour: on the panel's white ground a white head with no edge is a floating
-   face, and the logo master is only ever seen on transparency, where it needs none. */
+/* The rig in the G1 mark's colours, 13 October 2026: a navy head, a coral antenna and ears, and a
+   paper face lit on a darker visor, so the character in the panel is the mark that names it rather
+   than the green-and-cyan robot of the earlier look. Colours only: every group the controller moves
+   keeps its name and its geometry, so no pose changes. The shell keeps a hairline, because on the
+   panel's navy head a navy head with no edge is a hole. */
 .go-helmet {
-  fill: var(--mist);
-  stroke: var(--color-border);
-  stroke-width: 1.2;
+  fill: var(--brand-ink);
+  stroke: color-mix(in srgb, var(--studio-paper) 28%, var(--brand-ink));
+  stroke-width: 1.6;
 }
-.go-ear {
-  fill: var(--brand-green);
-}
+.go-ear,
 .go-antenna-ball {
-  fill: var(--brand-lime);
+  fill: var(--color-accent);
 }
-.go-antenna-stem,
-.go-plate,
-.go-lid {
+.go-antenna-stem {
   fill: var(--brand-ink);
 }
-/* The face is lit on the visor: cyan eyes, brows and mouth, and an open mouth that is the same light
-   rather than a hole, because on a dark visor a dark mouth is no mouth at all. brandCyan is the one
-   token this recolour added (tokens.json, color_gilbertNote). */
-.go-eye,
+.go-plate,
+.go-lid {
+  fill: var(--indigo-deep);
+}
+/* The face is paper on the visor, as the G1 mark's eyes are, and the mouth is the mark's coral. An
+   open mouth is the same light rather than a hole, because on a dark visor a dark mouth is no mouth. */
+.go-eye {
+  fill: var(--studio-paper);
+}
 .go-mouth-open {
-  fill: var(--brand-cyan);
+  fill: var(--color-accent);
 }
 .go-eye-arc {
   fill: none;
-  stroke: var(--brand-cyan);
+  stroke: var(--studio-paper);
   stroke-width: 4;
   stroke-linecap: round;
 }
-.go-brow,
+.go-brow {
+  fill: none;
+  stroke: var(--studio-paper);
+  stroke-linecap: round;
+}
 .go-mouth-line {
   fill: none;
-  stroke: var(--brand-cyan);
+  stroke: var(--brand-orange);
   stroke-linecap: round;
 }
 .go-brow {
@@ -114,4 +121,11 @@
   .go-rig rect {
     transition: none;
   }
+}
+
+/* On the panel's navy head the navy rig would be a hole, so there the shell turns to paper, as the
+   G in the G1 mark does on its navy tile. Everywhere else the head is navy on a light ground. */
+.as-panel .as-rig .go-helmet {
+  fill: var(--studio-paper);
+  stroke: none;
 }

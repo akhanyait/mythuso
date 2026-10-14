@@ -38272,15 +38272,19 @@ console.log(
     if (!manifest.some(([, path]) => `${masters}/${path}` === file))
       g4(`${file} sits among the masters and the manifest does not name it.`);
 
-  /* 2. The theme is the source. The brand literals and every role, light and dark, read out of it. */
-  const theme = read(`${masters}/src/styles/theme.css`);
+  /* 2. The theme is the source. The brand literals and every role, light and dark, read out of it.
+     Since 13 October 2026 that theme is generation five, packages/brand/fresh-look/theme.css: the
+     Founder approved the navy and coral look for the TIA presentation, and colour moved there while
+     the handoff's masters, faces and radii stayed. Coral is brandOrange's role now, not danger's:
+     danger is a fill a person reads navy words on, and the brand mark is not. */
+  const theme = read("packages/brand/fresh-look/theme.css");
   const themeBlock = (selector) => {
     const body = theme.match(new RegExp(`${selector.replace(".", "\\.")}\\s*\\{([^}]+)\\}`))?.[1];
     if (!body) g4(`theme.css has no ${selector} block.`);
     return Object.fromEntries([...body.matchAll(/--([a-z-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
   };
   const themeLight = themeBlock(":root"), themeDark = themeBlock(".dark");
-  for (const [name, variable] of [["brandInk", "primary"], ["brandGreen", "accent"], ["brandOrange", "danger"], ["brandLime", "warning"]])
+  for (const [name, variable] of [["brandInk", "primary"], ["brandGreen", "accent"], ["brandOrange", "coral"], ["brandLime", "warning"]])
     if ((tokens.color[name] ?? "").toLowerCase() !== themeLight[variable].toLowerCase())
       g4(`tokens.json says ${name} is ${tokens.color[name]}; the handoff's theme.css says --${variable} is ${themeLight[variable]}. The handoff's exact values are the brand.`);
   /* OKLab → linear sRGB → sRGB, rounded to eight bits, channels clipped to the gamut. The same
@@ -38916,7 +38920,9 @@ console.log(
   if (/#[0-9a-fA-F]{3,8}\b/.test(rigCss.replace(/\/\*[\s\S]*?\*\//g, "")) || /#[0-9a-fA-F]{3,8}\b|fill:\s*["'`]|\bfill=["'][^"'u]/.test(drawing))
     w3Fail("the rig types a colour. Every part of the character reads a token through gilbert-avatar.css.");
   if (/<text\b/.test(drawing)) w3Fail(`${avatarFile} prints lettering on the rig's head. The name belongs to the logo beside it.`);
-  for (const [part, token] of [["go-helmet", "--mist"], ["go-plate", "--brand-ink"], ["go-lid", "--brand-ink"], ["go-eye", "--brand-cyan"], ["go-ear", "--brand-green"], ["go-antenna-ball", "--brand-lime"], ["go-antenna-stem", "--brand-ink"]]) {
+  /* Recoloured to the G1 mark on 13 October 2026, with the approved fresh look: navy head, coral
+     ears and antenna, a paper face on a deeper visor. The robot's green, lime and cyan are retired. */
+  for (const [part, token] of [["go-helmet", "--brand-ink"], ["go-plate", "--indigo-deep"], ["go-lid", "--indigo-deep"], ["go-eye", "--studio-paper"], ["go-ear", "--color-accent"], ["go-antenna-ball", "--color-accent"], ["go-antenna-stem", "--brand-ink"]]) {
     const painted = [...rigCss.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^}]*)\}/g)]
       .some(([, sel, body]) => sel.split(",").some((s) => s.trim() === `.${part}`) && new RegExp(`fill:\\s*var\\(${token}\\)`).test(body));
     if (!painted) w3Fail(`gilbert-avatar.css no longer paints .${part} with ${token}, the official character's colour for it.`);
@@ -40638,4 +40644,32 @@ console.log(await checkSuppliers({ read, files, exists: existsSync }));
     for (const prop of [...m[2].matchAll(/([a-z-]+)\s*:/g)].map((p) => p[1])) if (prop !== "transform") tmFail(`vital-icons.css's @keyframes ${m[1]} animates ${prop}. Transform only.`);
   if (!/data-motion=\{decor\.reduced \? 'still' : decor\.playing \? 'running' : 'paused'\}/.test(triage)) tmFail("the Triage screen no longer hands its vitals the page's motion flag, so the heart would beat with no way to stop it.");
   console.log(`The triage markers · ${tm.lines.length} alert lines, each on or outside its indicative range, owned by the ${g.owner} and ${g.status === "reviewed" ? `reviewed on ${g.reviewedOn}` : "drawn under the demo banner"}; nothing typed, nothing summed; ${tm.preview.readings.length} consented sandbox patients with readings.`);
+}
+
+/* The funder view's budget split and the pilot kit (apps/web/src/features/FunderView.tsx, PilotKit.tsx).
+   The split's bars are each line's share of the total, so lines that do not sum to the total draw a
+   budget that is not the one being asked for. The kit carries no price, because a device figure here
+   could disagree with the budget's devices line; and every drawn device must name its catalogue item. */
+{
+  const brief = JSON.parse(read("packages/catalog/funder-brief.json"));
+  const fbFail = (m) => { console.error(`✗ funder brief: ${m}`); process.exitCode = 1; };
+  for (const p of brief.points.filter((p) => p.budget)) {
+    const sum = p.budget.lines.reduce((t, l) => t + l.amount, 0);
+    if (sum !== p.budget.total) fbFail(`the "${p.id}" budget lines sum to R${sum.toLocaleString("en-ZA")}, not the R${p.budget.total.toLocaleString("en-ZA")} it says it splits.`);
+  }
+  const kit = JSON.parse(read("packages/catalog/pilot-kit.json"));
+  if (/R ?[0-9]|\$ ?[0-9]|price/i.test(JSON.stringify(kit.devices))) fbFail("packages/catalog/pilot-kit.json prices a device. The budget's devices line is the only device figure.");
+  const kitTsx = read("apps/web/src/features/PilotKit.tsx");
+  for (const d of kit.devices) {
+    if (!Number.isInteger(d.catalogue)) fbFail(`the pilot kit's "${d.id}" names no catalogue item.`);
+    if (!new RegExp(`\\b${d.id}: `).test(kitTsx)) fbFail(`the pilot kit lists "${d.id}" and PilotKit.tsx has no drawing for it.`);
+  }
+  /* Preview only, by Gilbert's choice on 13 October 2026: the funder view is built only under
+     VITE_MYTHUSO_FUNDER_PREVIEW=true, so the live deploy must never set it and the door must stay
+     behind the flag. */
+  const { readdirSync, statSync } = await import("node:fs");
+  const walk = (dir) => readdirSync(dir).flatMap((n) => { const f = `${dir}/${n}`; return statSync(f).isDirectory() ? walk(f) : [f]; });
+  for (const f of walk("deploy")) if (/VITE_MYTHUSO_FUNDER_PREVIEW/.test(read(f))) fbFail(`${f} names VITE_MYTHUSO_FUNDER_PREVIEW. The funder view is preview only and is never built for the live site.`);
+  if (!/const FunderPreview = funderPreview \? lazy\(/.test(read("apps/web/src/Doorway.tsx"))) fbFail("apps/web/src/Doorway.tsx imports the funder view without the VITE_MYTHUSO_FUNDER_PREVIEW gate, so the live build would carry it.");
+  console.log(`The funder brief · budget lines sum to their totals; the pilot kit draws ${kit.devices.length} devices, unpriced; the view is preview only and deploy/ never builds it.`);
 }
