@@ -96,8 +96,8 @@ export function GilbertOneLogo({ width, alt, className }: { width: number; alt: 
   return (
     <img
       className={className ? `go-logo ${className}` : "go-logo"}
-      src={`${LOGO}-320.webp`}
-      srcSet={`${LOGO}-320.webp 320w, ${LOGO}-640.webp 640w`}
+      src={`${LOGO}-320.webp?g=5`}
+      srcSet={`${LOGO}-320.webp?g=5 320w, ${LOGO}-640.webp?g=5 640w`}
       sizes={`${width}px`}
       width={width}
       height={Math.round((width * 3) / 4)}
@@ -350,7 +350,74 @@ export type AvatarProps = {
   readonly fail?: boolean;
   /** A welcome may smile; neutral reply poses must never acquire a smile from the artwork. */
   readonly friendly?: boolean;
+  /** Draws the G1 buddy instead of the robot head, in the gesture the panel has chosen. */
+  readonly buddy?: BuddyGesture;
 };
+
+/* The four things the G1 buddy is ever seen doing in the panel (the G1 Buddy spec of 11 October 2026,
+   mapped onto the cue system by the panel): resting, waving hello on an open, thinking while an answer
+   is fetched, and a brief hop after a warm answer. The word is the panel's; the movement is CSS in
+   assistant-motion.css, keyed on data-buddy, so that the decor pause, the held safety face and
+   reduced motion reach it through the same gates as everything else that moves in the panel. */
+export type BuddyGesture = "idle" | "wave" | "think" | "happy";
+
+/* The G1 buddy, drawn on the spec's own 104-unit grid: the G's counter is the face and the 1 is a hand.
+   It is the same rig, not a second character — the pose still drives it, which is why a cue's gaze,
+   the involuntary blink and the drift all reach the buddy without the controller knowing it changed
+   shape. The pose owns the inner groups and the CSS gesture owns the outer ones, because one element
+   with two owners of `transform` is one owner silently losing. There is no mouth: the mark has none,
+   and inventing one would be a third creature. The caption is where words are read. */
+function G1Buddy({ pose, blend, gesture }: { pose: Pose; blend: number; gesture: BuddyGesture }) {
+  const cut = `go-b-cut-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  const { lookX, lookY, pitch, tilt, lift, lid } = pose;
+  const eye = { transform: `scaleY(${1 - lid * 0.9})` };
+  return (
+    <svg
+      className="go-rig go-buddy"
+      viewBox="-8 -2 104 104"
+      data-buddy={gesture}
+      aria-hidden="true"
+      focusable="false"
+      style={{ "--go-blend": `${blend}ms` } as React.CSSProperties}
+    >
+      <g className="go-b-body">
+        <g
+          className="go-b-pose"
+          style={{ transform: `translate(0px, ${(-lift + pitch * 0.3) * 0.6}px) rotate(${tilt * 0.5}deg)` }}
+        >
+          <clipPath id={cut}>
+            <path d="M-20 -20H130V33H50.75V68.5L61.75 57.5V130H-20Z" />
+          </clipPath>
+          <path
+            className="go-b-g"
+            d="M81.25 50A37.25 37.25 0 1 1 65.895 19.864L56.197 33.213A20.75 20.75 0 1 0 64.75 50Z"
+            clipPath={`url(#${cut})`}
+          />
+          <g className="go-b-one">
+            <path className="go-b-hand" d="M81.25 39L81.25 87.25L64.75 87.25L64.75 51.5L53.75 62.5L53.75 50L64.75 39Z" />
+          </g>
+          <g className="go-b-eyes">
+            <g className="go-b-gaze" style={{ transform: `translate(${lookX * 2.6}px, ${lookY * 3}px)` }}>
+              <g className="go-b-eye" style={eye}>
+                <rect className="go-b-open" x="28.7" y="45" width="7.6" height="13" rx="3.8" />
+                <path className="go-b-arc" d="M28.7 53.58Q32.5 43.44 36.3 53.58" />
+              </g>
+              <g className="go-b-eye" style={eye}>
+                <rect className="go-b-open" x="42.7" y="45" width="7.6" height="13" rx="3.8" />
+                <path className="go-b-arc" d="M42.7 53.58Q46.5 43.44 50.3 53.58" />
+              </g>
+            </g>
+          </g>
+          <g className="go-b-dots">
+            <circle className="go-b-dot" cx="70" cy="30.5" r="2.3" />
+            <circle className="go-b-dot" cx="77" cy="30.5" r="2.3" />
+            <circle className="go-b-dot" cx="84" cy="30.5" r="2.3" />
+          </g>
+        </g>
+      </g>
+    </svg>
+  );
+}
 
 export function GilbertAvatar({
   pose,
@@ -358,6 +425,7 @@ export function GilbertAvatar({
   blend = BLEND_MS,
   fail = false,
   friendly = false,
+  buddy,
 }: AvatarProps) {
   /* The visor's clip, one per drawing: the launcher and the panel can both have a rig on the page. */
   const visor = `go-visor-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
@@ -367,6 +435,7 @@ export function GilbertAvatar({
     throw new Error(
       "GilbertOne rig: a deliberate failure, fired from the demonstrator to show that the surface around it keeps working.",
     );
+  if (buddy) return <G1Buddy pose={pose} blend={blend} gesture={buddy} />;
   const { lookX, lookY, yaw, pitch, tilt, lift, lid, brow, mouth, jaw } = pose;
   const open = isOpen(mouth);
   const [scaleX, scaleY] = open ? OPEN[mouth] : [1, 1];

@@ -129,3 +129,68 @@
   fill: var(--studio-paper);
   stroke: none;
 }
+
+/* ---- The G1 buddy ------------------------------------------------------------------------------
+   The panel's form of the rig since 14 October 2026 (GilbertAvatar's `buddy`). The spec's carbon G and
+   eyes are the foreground token rather than --brand-ink, because the panel head is light in the light
+   theme and dark in the dark one, and an ink G on a dark head is a hole; the spec's green 1 and its
+   thinking dots are the accent, which only ever fills a shape here and never carries text. On the
+   consent gate the head is --brand-ink, so there the G and the eyes turn to paper, as the mark does on
+   carbon. The buddy's transforms turn about their own boxes, which is what the spec's motion assumes. */
+.go-buddy g,
+.go-buddy path,
+.go-buddy rect,
+.go-buddy circle {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+.go-buddy .go-b-body {
+  transform-origin: 50% 100%;
+}
+.go-buddy .go-b-one {
+  transform-origin: 80% 100%;
+}
+.go-b-g,
+.go-b-open {
+  fill: var(--color-foreground);
+}
+.go-b-hand,
+.go-b-dot {
+  fill: var(--color-accent);
+}
+.go-b-arc {
+  fill: none;
+  stroke: var(--color-foreground);
+  stroke-width: 4.26;
+  stroke-linecap: round;
+  opacity: 0;
+}
+.go-b-dot {
+  opacity: 0;
+}
+.as-panel[data-gate] .go-b-g,
+.as-panel[data-gate] .go-b-open {
+  fill: var(--studio-paper);
+}
+.as-panel[data-gate] .go-b-arc {
+  stroke: var(--studio-paper);
+}
+/* The blink is the rig's own, from the controller's lid, and is as quick on the buddy as on the head. */
+.go-b-eye {
+  transition: transform calc(var(--t-quick) / 2) var(--ease-soft);
+}
+/* The still poses the spec asks for. They are not motion: a reader under reduced motion, a paused panel
+   and a hidden tab all see the gesture's face, standing still, because the face is what says what the
+   assistant is doing and the movement is only emphasis. */
+.go-buddy[data-buddy="happy"] .go-b-open {
+  opacity: 0;
+}
+.go-buddy[data-buddy="happy"] .go-b-arc {
+  opacity: 1;
+}
+.go-buddy[data-buddy="think"] .go-b-dot {
+  opacity: 1;
+}
+.go-buddy[data-buddy="think"] .go-b-eyes {
+  transform: translate(2.5px, -6px);
+}

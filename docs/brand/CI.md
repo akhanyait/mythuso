@@ -549,11 +549,11 @@ Glass: A glass panel may not sit on top of text. Blur behind a word is the one p
 
 Chapter 7 logged the motion system's timing and, until this edition, none of its movements — the gap docs/ROADMAP.md's Gap 1 names. It is closed by derivation, not transcription. The handoff master `packages/brand/lovable-handoff/handoff/src/styles/theme.css` specifies 33 named `@keyframes`; porting them by name was refused, because the product already speaks the handoff's motion language — one curve, three durations, entrances on `data-reveal`, ambient loops gated on `data-decor` — and 31 orphan keyframes would have been a second motion system wearing the first one's clothes. Only 2 of the handoff's names the product carries (`mythuso-signal` and `impact-halo-pulse`); the movement it lacked it was given in its own voice, each with a real player on a screen and a test that walks it. `scripts/check-boundaries.mjs` refuses a keyframe nothing plays and an endless animation the pause control cannot stop, so no movement below is an orphan.
 
-The product's own stylesheets carry 66 named movements across 27 files, on the tokens' curve and durations, finite unless one of the ambient loops the pause control stops, and removed — not shortened — under reduced motion. The motion tests (`tests/chart-motion.spec.ts`, `tests/gilbertone-motion.spec.ts`, `tests/map.spec.ts`, `tests/motion.spec.ts`, `tests/patient-pages.spec.ts`) walk them on both viewports.
+The product's own stylesheets carry 74 named movements across 27 files, on the tokens' curve and durations, finite unless one of the ambient loops the pause control stops, and removed — not shortened — under reduced motion. The motion tests (`tests/chart-motion.spec.ts`, `tests/gilbertone-motion.spec.ts`, `tests/map.spec.ts`, `tests/motion.spec.ts`, `tests/patient-pages.spec.ts`) walk them on both viewports.
 
 | Surface | Movements it plays |
 | --- | --- |
-| `features/assistant-motion.css` | `as-rise` `as-said-in` `as-settle` `as-listening` `as-dot` `go-float` |
+| `features/assistant-motion.css` | `as-rise` `as-said-in` `as-settle` `as-listening` `as-dot` `go-b-breathe` `go-b-look` `go-b-think-eyes` `go-b-dot` `go-b-wave` `go-b-wave-hop` `go-b-hop` `go-b-open-out` `go-b-arc-in` |
 | `features/care-tips.css` | `ct-card-in` `ct-words-in` |
 | `features/clinical-deck.css` | `c-card-in` |
 | `features/clinical-intelligence.css` | `ci-row-in` |
@@ -679,7 +679,7 @@ Affect never softens a refusal: Affect may never soften a refusal or an emergenc
 ### When each appears
 
 - **The logo** wherever GilbertOne is named as a product: the consent card, the welcome, the signed-out sheet's heading, the head of the services region, the public page beside the questions — always with `Your Thuso AI Doctor · not a person, and not a doctor` beside it, always on a light ground, never reversed.
-- **The rig** wherever GilbertOne is doing something: the launcher, the panel's head, the demonstrator. It carries no lettering — the name belongs to the logo beside it — and it is the official character by token: `go-helmet` `--brand-ink`, `go-ear` `--color-accent`, `go-antenna-ball` `--color-accent`, `go-antenna-stem` `--brand-ink`, `go-plate` `--indigo-deep`, `go-lid` `--indigo-deep`, `go-eye` `--studio-paper`, `go-mouth-open` `--color-accent`.
+- **The rig** wherever GilbertOne is doing something: the launcher, the panel's head, the demonstrator. It carries no lettering — the name belongs to the logo beside it — and it is the official character by token: `go-helmet` `--brand-ink`, `go-ear` `--color-accent`, `go-antenna-ball` `--color-accent`, `go-antenna-stem` `--brand-ink`, `go-plate` `--indigo-deep`, `go-lid` `--indigo-deep`, `go-eye` `--studio-paper`, `go-mouth-open` `--color-accent`, `go-b-g` `--color-foreground`, `go-b-open` `--color-foreground`, `go-b-hand` `--color-accent`, `go-b-dot` `--color-accent`.
 - The handoff's animated PNG component (drifting eyes) is adopted nowhere: the rig is the in-product form.
 
 ### The rig's six states

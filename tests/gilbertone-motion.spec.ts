@@ -71,7 +71,8 @@ test('the emergency answer arrives with nothing in front of the ambulance number
  /* The safety face holds, and the panel's own decorative motion stands still while it does. */
  await expect(panel(page).locator('.as-rig')).toHaveAttribute('data-cue', safetyCue);
  await expect(panel(page)).toHaveAttribute('data-safety', 'held');
- await expect.poll(async () => (await movingIn(page, '.as-rig svg')).filter(name => name === 'go-float')).toEqual([]);
+ /* The G1 buddy's breath, glance, wave and hop are all go-b-*, and every one stands still while A16 holds. */
+ await expect.poll(async () => (await movingIn(page, '.as-rig svg')).filter(name => name.startsWith('go-'))).toEqual([]);
  /* A later, calmer answer lowers nothing: it too arrives without an entrance while the face holds. */
  await ask(page, 'Are my results back?');
  /* Opening situation is a status, not a chat bubble (isOpeningStatus), so three asks → three turns. */
