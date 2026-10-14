@@ -556,6 +556,9 @@ test("the orb floats on every patient page, and GilbertOne is fetched only when 
     /\/lovable\/gilbertone\/gilbertone-logo-320\.webp(\?g=\d+)?$/,
   );
   await expect(panel(page).locator(".as-talkbar")).toBeVisible();
+  /* The languages are objects in the contract; joining them raw drew "I hear [object Object]". */
+  await expect(panel(page).locator(".as-talkbar")).toContainText("I hear English");
+  await expect(panel(page).locator(".as-talkbar")).not.toContainText("object Object");
   /* And said once, which is the fix of 21 September 2026. The patient's conversation used to
      repeat the gate's prohibitions and its ThusoIQ paragraph between the answers and the composer,
      so somebody who had just agreed to all of it read most of it again while she was trying to ask

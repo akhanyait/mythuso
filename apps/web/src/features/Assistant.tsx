@@ -879,7 +879,7 @@ export default function Assistant({
   const sos = () => openModal?.("Emergency & urgent care");
   const talkSubtitle = screens.welcome.talkSubtitle.replace(
     "{languages}",
-    voice.languages.join(", "),
+    voice.languages.map((language) => language.name).join(", "),
   );
 
   /* The buddy's gesture, translated from the cue that just landed — the same seam as the face, one step

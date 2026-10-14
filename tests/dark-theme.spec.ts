@@ -134,7 +134,7 @@ for (const path of ['/landing.html', '/app/', '/app/?role=nurse']) {
   expect(await drawn(page)).toEqual(Array(places).fill('/brand/mythuso-logo-reversed.svg'));
   const visible = page.locator('.wordmark img:visible').first();
   if (await visible.count()) {
-   await expect(visible).toHaveAttribute('src', '/brand/mythuso-logo-reversed.svg');
+   await expect(visible).toHaveAttribute('src', /^\/brand\/mythuso-logo-reversed\.svg(\?g=\d+)?$/);
    await expect(visible).toHaveJSProperty('complete', true);
    expect(await visible.evaluate(img => (img as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
   }
