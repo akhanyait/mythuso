@@ -68,7 +68,7 @@ function Door({ state }: { state: Exclude<FounderState, { phase: 'signed-in' }> 
  return <div className="founder-gate">
   <main className="founder-gate-main" aria-labelledby="founder-gate-heading">
    <Card variant="elevated" padding="lg" className="founder-gate-card rise">
-    <img className="founder-gate-mark" src="/brand/mythuso-logo.svg" alt="MyThuso"/>
+    <img className="founder-gate-mark" src="/brand/mythuso-logo.svg?g=5" alt="MyThuso"/>
     {/* The same head every Control Tower screen wears (Parts.tsx#PageHead): the portal's name as the eyebrow,
         the contract's heading and sentence, and what the service said as the status line. */}
     <PageHead className="founder-gate-head" eyebrow={portalContract.name} title={door.words.heading} titleId="founder-gate-heading" lead={door.words.sentence}

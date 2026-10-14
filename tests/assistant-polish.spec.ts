@@ -74,10 +74,15 @@ test('the signed-out greeting opens the website guide and the robot background i
 });
 
 
-test('the reference robot keeps neutral eyes on refusals and emergencies', async ({ page }) => {
+/* The panel's character is the G1 buddy since 14 October 2026. Its ^ ^ eyes are always drawn and
+   shown only in its happy gesture, so the invariant is read as the gesture and the arcs' opacity: a
+   refusal and an emergency never wear a happy face, at the moment they land or a beat later. */
+test('the G1 buddy keeps neutral eyes on refusals and emergencies', async ({ page }) => {
  await page.goto('/app/?open=assistant');
  const panel = page.locator('#assistant-panel');
- await expect(panel.locator('.go-eye-arc')).toHaveCount(2);
+ const buddy = panel.locator('.go-buddy');
+ const arcsShown = () => buddy.locator('.go-b-arc').evaluateAll(arcs => arcs.filter(a => getComputedStyle(a).opacity !== '0').length);
+ await expect(buddy.locator('.go-b-arc')).toHaveCount(2);
  /* The conversation is behind the consent gate, since 20 September 2026. */
  await panel.getByRole('checkbox', { name: 'I understand GilbertOne is not a doctor.' }).check();
  await panel.getByRole('checkbox', { name: 'I know what to do in an emergency.' }).check();
@@ -85,9 +90,11 @@ test('the reference robot keeps neutral eyes on refusals and emergencies', async
  for (const words of ['write a football poem', 'I have chest pain']) {
   await panel.locator('#as-input').fill(words);
   await panel.getByRole('button', { name: 'Send', exact: true }).click();
-  await expect(panel.locator('.go-eye-arc')).toHaveCount(0);
+  await expect(buddy).not.toHaveAttribute('data-buddy', 'happy');
+  await expect.poll(arcsShown).toBe(0);
   await page.waitForTimeout(1500);
-  await expect(panel.locator('.go-eye-arc')).toHaveCount(0);
+  await expect(buddy).not.toHaveAttribute('data-buddy', 'happy');
+  expect(await arcsShown()).toBe(0);
  }
 });
 

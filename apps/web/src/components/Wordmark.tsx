@@ -9,10 +9,15 @@
    the ink lockup on the dark bar. A media query cannot read an attribute, so both lockups are here and
    core.css shows the one [data-theme] asks for — no script, no state, on the entries a patient loads first.
    The reversed one is lazy, and a hidden image is never in view, so a page that stays light never fetches
-   it. The width and height are the files' own, so nothing moves when either lands. */
+   it. The width and height are the files' own, so nothing moves when either lands.
+
+   ?g=5 is the token generation the art belongs to (packages/design-tokens/tokens.json). nginx lets a
+   phone keep a logo for a week, and the file names did not change when the art did, so after the
+   navy and coral deploy of 14 October phones went on drawing the teal logo. A new query is a new
+   address to every cache: raise it on every brand asset whenever the brand art is redrawn. */
 export function Wordmark() {
  return <span className="wordmark">
-  <img className="wordmark-ink" src="/brand/mythuso-logo.svg" alt="MyThuso" width="366" height="98"/>
-  <img className="wordmark-reversed" src="/brand/mythuso-logo-reversed.svg" alt="MyThuso" width="366" height="98" loading="lazy"/>
+  <img className="wordmark-ink" src="/brand/mythuso-logo.svg?g=5" alt="MyThuso" width="366" height="98"/>
+  <img className="wordmark-reversed" src="/brand/mythuso-logo-reversed.svg?g=5" alt="MyThuso" width="366" height="98" loading="lazy"/>
  </span>;
 }

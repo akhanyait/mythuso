@@ -184,7 +184,7 @@ export function leadAndRest(text: string) {
 export function GilbertMark({ size }: { size: number }) {
   return (
     <span className="go-mark" aria-hidden="true">
-      <img src="/brand/gilbert-icon.webp" alt="" width={size} height={size} />
+      <img src="/brand/gilbert-icon.webp?g=5" alt="" width={size} height={size} />
     </span>
   );
 }

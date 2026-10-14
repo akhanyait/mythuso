@@ -80,7 +80,7 @@
 .as-launcher { position:absolute; right:max(16px, env(safe-area-inset-right)); bottom:max(16px, env(safe-area-inset-bottom)); width:var(--al-footprint); height:var(--al-footprint); padding:0; border:0; border-radius:18px; background:transparent; box-shadow:none; cursor:pointer; }
 .as-launcher[aria-expanded=true] { opacity:0; }
 .as-launcher span { position:absolute; }
-.as-launcher .al-orb { inset:0; background:url('/brand/gilbert-icon.webp') center / contain no-repeat; }
+.as-launcher .al-orb { inset:0; background:url('/brand/gilbert-icon.webp?g=5') center / contain no-repeat; }
 /* The new icon is the drawn robot head and carries its own face, so the abstract eye and smile
    overlays the old orb art needed are hidden rather than laid over it. The whole orb still floats. */
 .al-orb::before, .al-orb::after { display:none; }

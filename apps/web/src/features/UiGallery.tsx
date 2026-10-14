@@ -223,7 +223,7 @@ function Pane({ mode }: { mode: Mode }) {
   <Section name="Avatar" note="initials, or an organisation's mark — never a stranger's photograph">
    <Row>
    {(['sm', 'md', 'lg'] as const).map(size => <Specimen key={size} state={`size ${size}`}><Avatar size={size}><AvatarFallback initials="ND"/></Avatar></Specimen>)}
-   <Specimen state="image"><Avatar size="lg"><AvatarImage src="/icon.svg" alt="MyThuso"/></Avatar></Specimen>
+   <Specimen state="image"><Avatar size="lg"><AvatarImage src="/icon.svg?g=5" alt="MyThuso"/></Avatar></Specimen>
    </Row>
   </Section>
   <Section name="Divider">

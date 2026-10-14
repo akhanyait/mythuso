@@ -249,7 +249,7 @@ export function PatientShell({ page, navigate, open, locale, location, visitCoun
         reads there; this bar gives it about a hundred, and on a phone the tagline under it lands
         below two points — the same defect the iOS toolbar had and the sign-in door had, in its third
         place. icon.svg is the icon out of that same artwork. */}
-    <a className="brand" href="#" onClick={e => { e.preventDefault(); navigate('Overview'); }}><img src="/brand/mythuso-mark.svg" alt="MyThuso"/></a>
+    <a className="brand" href="#" onClick={e => { e.preventDefault(); navigate('Overview'); }}><img src="/brand/mythuso-mark.svg?g=5" alt="MyThuso"/></a>
     {/* The export's global search, in the place its breadcrumb held — the page's own heading already says
         where you are. It is the catalogue's search: the same query the home's field and the service list
         read, so what it finds is care you can book, and Enter opens the list it has filtered. The export

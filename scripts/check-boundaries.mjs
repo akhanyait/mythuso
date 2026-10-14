@@ -38904,7 +38904,7 @@ console.log(
   /* 2. */
   const avatarFile = "apps/web/src/features/GilbertAvatar.tsx";
   const avatar = read(avatarFile);
-  if (!/export function GilbertOneLogo\(/.test(avatar) || !/gilbertone-logo-320\.webp 320w, \$\{LOGO\}-640\.webp 640w|\$\{LOGO\}-320\.webp 320w, \$\{LOGO\}-640\.webp 640w/.test(avatar))
+  if (!/export function GilbertOneLogo\(/.test(avatar) || !/\$\{LOGO\}-320\.webp(\?g=\d+)? 320w, \$\{LOGO\}-640\.webp(\?g=\d+)? 640w/.test(avatar))
     w3Fail(`${avatarFile} no longer draws the official logo from its two derivatives.`);
   for (const [file, times] of [["apps/web/src/features/Assistant.tsx", 2], ["apps/web/src/features/PublicAssistant.tsx", 1], ["apps/web/src/features/GilbertOneServices.tsx", 1]]) {
     const code = uncommented(read(file));
@@ -38928,6 +38928,25 @@ console.log(
     if (!painted) w3Fail(`gilbert-avatar.css no longer paints .${part} with ${token}, the official character's colour for it.`);
     if (!new RegExp(`className="${part}"|className="go-eye`).test(avatar)) w3Fail(`${avatarFile} no longer draws .${part}.`);
   }
+  /* The G1 buddy, the panel's form of the same rig since 14 October 2026, is held to the same rule: no
+     colour typed into its drawing, every part a token. Its G and eyes are the foreground token rather
+     than --brand-ink because the panel head turns dark in the dark theme; its 1 and its thinking dots
+     are the accent, a fill and never text. And every movement it makes is gated where the float's was,
+     so the pause control, a hidden tab, a shut panel and the held safety face each still it. */
+  const buddyAt = avatar.indexOf("function G1Buddy(");
+  if (buddyAt < 0) w3Fail(`${avatarFile} no longer draws the G1 buddy the panel shows.`);
+  const buddyDrawing = avatar.slice(buddyAt, avatar.indexOf("export function GilbertAvatar("));
+  if (/#[0-9a-fA-F]{3,8}\b|\bfill=["'][^"'u]|\bstroke=["']/.test(buddyDrawing) || /<text\b/.test(buddyDrawing))
+    w3Fail("the G1 buddy types a colour or prints lettering. Every part reads a token through gilbert-avatar.css.");
+  for (const [part, token] of [["go-b-g", "--color-foreground"], ["go-b-open", "--color-foreground"], ["go-b-hand", "--color-accent"], ["go-b-dot", "--color-accent"]]) {
+    const painted = [...rigCss.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^}]*)\}/g)]
+      .some(([, sel, body]) => sel.split(",").some((s) => s.trim() === `.${part}`) && new RegExp(`fill:\\s*var\\(${token}\\)`).test(body));
+    if (!painted) w3Fail(`gilbert-avatar.css no longer paints .${part} with ${token}, the G1 buddy's colour for it.`);
+  }
+  const buddyMotion = read("apps/web/src/features/assistant-motion.css").replace(/\/\*[\s\S]*?\*\//g, "");
+  for (const [, selector] of buddyMotion.matchAll(/([^{}]*\.go-buddy[^{}]*)\{[^{}]*animation:/g))
+    if (!/:root\[data-decor="on"\] \.as-panel:not\(\[data-safety\]\) \.as-rig\[data-motion="running"\]/.test(selector))
+      w3Fail(`assistant-motion.css moves the G1 buddy on "${selector.trim()}" outside the decor switch, the running rig and the safety face's gate.`);
   if (tokens.color.brandCyan !== "#51F3FC" || !tokens.colorGenerations.current.includes("brandCyan"))
     w3Fail("tokens.json no longer carries brandCyan #51F3FC as a current colour — the character's eyes, sampled from the logo master.");
 

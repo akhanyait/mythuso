@@ -51,6 +51,7 @@ import {
   GilbertStill,
   growFrom,
   useGilbertRig,
+  type BuddyGesture,
 } from "./GilbertAvatar";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
@@ -878,8 +879,27 @@ export default function Assistant({
   const sos = () => openModal?.("Emergency & urgent care");
   const talkSubtitle = screens.welcome.talkSubtitle.replace(
     "{languages}",
-    voice.languages.join(", "),
+    voice.languages.map((language) => language.name).join(", "),
   );
+
+  /* The buddy's gesture, translated from the cue that just landed — the same seam as the face, one step
+     further out. An open's greeting cue waves and a warm answer's cue hops; anything else that carries
+     a posture (a refusal, the unmatched answer, the safety face) clears it, so a hop can never be seen
+     beside a refusal or the ambulance numbers, which is neverSoften on the buddy. A gesture runs once
+     and is released by its own animationend rather than a timer, so it can never outlast its motion,
+     and under a still panel it simply stays as the gesture's still face until the next cue. Thinking is
+     not a gesture: it is true exactly while an answer is being fetched, so it is read from that. */
+  const [gesture, setGesture] = useState<Exclude<BuddyGesture, "idle" | "think"> | null>(null);
+  const landed = rig.state.landed;
+  useEffect(() => {
+    const cue = landed?.cue.id;
+    if (!cue) return;
+    if (cue === affect.conversation.openFirst || cue === affect.conversation.openAgain) setGesture("wave");
+    else if (postureOf(cue) === "warm") setGesture("happy");
+    else if (postureOf(cue)) setGesture(null);
+  }, [landed]);
+  const safetyHeld = rig.running?.id === affect.answers.emergency.cue;
+  const buddy: BuddyGesture = waitingForReply ? "think" : safetyHeld ? "idle" : (gesture ?? "idle");
 
   const portrait = (
     <div
@@ -887,8 +907,14 @@ export default function Assistant({
       data-pulse={pulse}
       data-cue={rig.running?.id}
       data-affect={postureOf(rig.running?.id)}
-      data-motion={reduced ? "still" : decor.playing ? "running" : "paused"}
+      data-buddy={buddy}
+      /* Paused, not only still, while the panel is shut or the tab is hidden: the buddy's CSS motion is
+         gated on "running", and a loop nobody can see is a phone's battery spent on nothing. */
+      data-motion={reduced ? "still" : decor.playing && open && !rig.hidden ? "running" : "paused"}
       aria-hidden="true"
+      onAnimationEnd={(event) => {
+        if (/^go-b-(wave|hop)$/.test(event.animationName)) setGesture(null);
+      }}
     >
       <RigBoundary>
         <GilbertAvatar
@@ -896,6 +922,7 @@ export default function Assistant({
           size={172}
           blend={rig.blend}
           friendly={!asked}
+          buddy={buddy}
         />
       </RigBoundary>
     </div>
@@ -941,8 +968,8 @@ export default function Assistant({
                 className="as-logo as-brand"
                 src={
                   consented
-                    ? "/brand/mythuso-logo.svg"
-                    : "/brand/mythuso-logo-reversed.svg"
+                    ? "/brand/mythuso-logo.svg?g=5"
+                    : "/brand/mythuso-logo-reversed.svg?g=5"
                 }
                 alt="MyThuso"
               />

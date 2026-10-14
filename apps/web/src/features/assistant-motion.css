@@ -239,17 +239,213 @@
   animation-delay: calc(var(--t-quick) * 2);
 }
 
-/* ---- The character's float ---------------------------------------------------------------------
-   Moved here from gilbertone-theme.css, where it ran on a typed 4.5s curve and kept bobbing under
-   the held safety face. Two pixels either way, on the tokens' curve, only while the rig itself may
-   move and never while A16 holds the face. */
-@keyframes go-float {
-  to {
-    transform: translate3d(0, -4px, 0);
+/* ---- The G1 buddy's motion ---------------------------------------------------------------------
+   The G1 Buddy spec's motion (demo.html and its animated SVGs), on this product's one curve and its
+   duration tokens rather than the spec's own beziers and seconds, so the buddy accelerates as every
+   other movement here does. It replaced the head's float on 14 October 2026: the buddy breathes, and a
+   float on top of a breath is two motions saying one thing.
+
+   Every rule is gated as the float was — the page's decor switch on, the rig's own data-motion running,
+   which the panel sets to paused while it is closed or the tab is hidden, and never while the safety
+   face holds — so the pause control, a hidden tab and A16 each stand the buddy still with one rule.
+   Only transform and opacity move. The wave and the hop run once and hand the face back to rest on
+   their own animationend, so a greeting is a greeting and not a mascot waving for as long as the panel
+   is open. Their still faces are in gilbert-avatar.css. */
+@keyframes go-b-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  50% {
+    transform: translateY(-1.1px) scale(1.012, 0.992);
   }
 }
-:root[data-decor="on"] .as-panel:not([data-safety]) .as-rig[data-motion="running"] svg {
-  animation: go-float calc(var(--t-enter) * 10) var(--ease-soft) infinite alternate;
+/* A glance either way now and then, not a scan: most of the cycle the eyes are simply on the reader. */
+@keyframes go-b-look {
+  0%,
+  8% {
+    transform: translate(0, 0);
+  }
+  12%,
+  22% {
+    transform: translate(-2.6px, 0);
+  }
+  27%,
+  37% {
+    transform: translate(2.6px, 0);
+  }
+  42%,
+  100% {
+    transform: translate(0, 0);
+  }
+}
+@keyframes go-b-think-eyes {
+  0% {
+    transform: translate(0, 0);
+  }
+  8%,
+  46% {
+    transform: translate(2.5px, -6px);
+  }
+  54%,
+  88% {
+    transform: translate(-1.5px, -6px);
+  }
+  96%,
+  100% {
+    transform: translate(0, 0);
+  }
+}
+@keyframes go-b-dot {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: translateY(0) scale(0.85);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-1.6px) scale(1.1);
+  }
+  60% {
+    opacity: 0.35;
+    transform: translateY(0) scale(0.9);
+  }
+}
+@keyframes go-b-wave {
+  0% {
+    transform: rotate(0);
+  }
+  16% {
+    transform: rotate(16deg);
+  }
+  32% {
+    transform: rotate(1deg);
+  }
+  47% {
+    transform: rotate(14deg);
+  }
+  63% {
+    transform: rotate(2deg);
+  }
+  79% {
+    transform: rotate(9deg);
+  }
+  100% {
+    transform: rotate(0);
+  }
+}
+@keyframes go-b-wave-hop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  16% {
+    transform: translateY(-2.5px);
+  }
+  42% {
+    transform: translateY(0);
+  }
+}
+@keyframes go-b-hop {
+  0% {
+    transform: translateY(0) scale(1, 1);
+  }
+  8% {
+    transform: translateY(0) scale(1.06, 0.93);
+  }
+  22% {
+    transform: translateY(-7px) scale(0.97, 1.04);
+  }
+  36% {
+    transform: translateY(0) scale(1.05, 0.95);
+  }
+  46% {
+    transform: translateY(-2.2px) scale(1, 1);
+  }
+  56%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+}
+@keyframes go-b-open-out {
+  0% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  8% {
+    opacity: 1;
+    transform: scaleY(0.1);
+  }
+  9%,
+  84% {
+    opacity: 0;
+    transform: scaleY(0.1);
+  }
+  85% {
+    opacity: 1;
+    transform: scaleY(0.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+@keyframes go-b-arc-in {
+  0%,
+  8% {
+    opacity: 0;
+    transform: translateY(2px) scale(0.4);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(-0.6px) scale(1.18);
+  }
+  30%,
+  80% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  86%,
+  100% {
+    opacity: 0;
+    transform: translateY(1px) scale(0.6);
+  }
+}
+:root[data-decor="on"] .as-panel:not([data-safety]) .as-rig[data-motion="running"] .go-buddy[data-buddy="idle"] .go-b-body {
+  animation: go-b-breathe calc(var(--t-enter) * 5) var(--ease-soft) infinite;
+}
+:root[data-decor="on"] .as-panel:not([data-safety]) .as-rig[data-motion="running"] .go-buddy[data-buddy="idle"] .go-b-eyes {
+  animation: go-b-look calc(var(--t-enter) * 24) var(--ease-soft) infinite;
+}
+:root[data-decor="on"] .as-panel:not([data-safety]) .as-rig[data-motion="running"] .go-buddy[data-buddy="think"] .go-b-body {
+  animation: go-b-breathe calc(var(--t-enter) * 6) var(--ease-soft) infinite;
+}
+:root[data-decor="on"] .as-panel:not([data-safety]) .as-rig[data-motion="running"] .go-buddy[data-buddy="think"] .go-b-eyes {
+  animation: go-b-think-eyes calc(var(--t-enter) * 12) var(--ease-soft) infinite;
+}
+:root[data-decor="on"] .as-panel:not([data-safety]) .as-rig[data-motion="running"] .go-buddy[data-buddy="think"] .go-b-dot {
+  animation: go-b-dot calc(var(--t-enter) * 3) var(--ease-soft) infinite;
+}
+:root[data-decor="on"] .as-panel:not([data-safety]) .as-rig[data-motion="running"] .go-buddy[data-buddy="think"] .go-b-dot:nth-child(2) {
+  animation-delay: calc(var(--t-quick) * -6);
+}
+:root[data-decor="on"] .as-panel:not([data-safety]) .as-rig[data-motion="running"] .go-buddy[data-buddy="think"] .go-b-dot:nth-child(3) {
+  animation-delay: calc(var(--t-quick) * -5);
+}
+:root[data-decor="on"] .as-panel:not([data-safety]) .as-rig[data-motion="running"] .go-buddy[data-buddy="wave"] .go-b-one {
+  animation: go-b-wave calc(var(--t-enter) * 4) var(--ease-soft) 1;
+}
+:root[data-decor="on"] .as-panel:not([data-safety]) .as-rig[data-motion="running"] .go-buddy[data-buddy="wave"] .go-b-body {
+  animation: go-b-wave-hop calc(var(--t-enter) * 4) var(--ease-soft) 1;
+}
+:root[data-decor="on"] .as-panel:not([data-safety]) .as-rig[data-motion="running"] .go-buddy[data-buddy="happy"] .go-b-body {
+  animation: go-b-hop calc(var(--t-enter) * 5) var(--ease-soft) 1;
+}
+:root[data-decor="on"] .as-panel:not([data-safety]) .as-rig[data-motion="running"] .go-buddy[data-buddy="happy"] .go-b-open {
+  animation: go-b-open-out calc(var(--t-enter) * 5) var(--ease-soft) 1;
+}
+:root[data-decor="on"] .as-panel:not([data-safety]) .as-rig[data-motion="running"] .go-buddy[data-buddy="happy"] .go-b-arc {
+  animation: go-b-arc-in calc(var(--t-enter) * 5) var(--ease-soft) 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -263,6 +459,7 @@
   .as-chips,
   .as-dots i,
   .as-rig svg,
+  .as-rig svg *,
   .as-voice[data-hot] .as-mic-disc::after {
     animation: none !important;
   }

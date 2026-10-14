@@ -553,9 +553,12 @@ test("the orb floats on every patient page, and GilbertOne is fetched only when 
   );
   await expect(panel(page).locator(".as-wordmark")).toHaveAttribute(
     "src",
-    /\/lovable\/gilbertone\/gilbertone-logo-320\.webp$/,
+    /\/lovable\/gilbertone\/gilbertone-logo-320\.webp(\?g=\d+)?$/,
   );
   await expect(panel(page).locator(".as-talkbar")).toBeVisible();
+  /* The languages are objects in the contract; joining them raw drew "I hear [object Object]". */
+  await expect(panel(page).locator(".as-talkbar")).toContainText("I hear English");
+  await expect(panel(page).locator(".as-talkbar")).not.toContainText("object Object");
   /* And said once, which is the fix of 21 September 2026. The patient's conversation used to
      repeat the gate's prohibitions and its ThusoIQ paragraph between the answers and the composer,
      so somebody who had just agreed to all of it read most of it again while she was trying to ask
@@ -2453,12 +2456,13 @@ test("under reduced motion the orb and the character are still, complete frames,
   expect(await animationsIn(page, ".as-rig")).toEqual([]);
   const box = await panel(page).locator(".as-rig svg").boundingBox();
   expect(box?.width ?? 0).toBeGreaterThan(60);
-  /* A still frame is a complete one: the parts a face is read from — shell, visor, eyes, mouth —
-     are drawn at full size, not a blank or a dot. */
+  /* A still frame is a complete one: the parts a face is read from are drawn at full size, not a blank
+     or a dot. Since 14 October 2026 the panel's face is the G1 buddy — the G, the 1 and the eyes in its
+     counter — where it was the robot's shell, visor, eyes and mouth. */
   const drawn = await panel(page)
     .locator(".as-rig")
     .evaluate((element) =>
-      [".go-shell", ".go-visor", ".go-eye", ".go-mouth"].every((part) => {
+      [".go-b-g", ".go-b-hand", ".go-b-open"].every((part) => {
         const box = element.querySelector(part)?.getBoundingClientRect();
         return !!box && box.width > 0 && box.height > 0;
       }),

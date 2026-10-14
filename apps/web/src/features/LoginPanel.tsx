@@ -22,7 +22,7 @@ const figure = figureFor(slides[0]);
 export default function LoginPanel({ onClose }: { onClose: () => void }) {
  return <Modal title="Log in to MyThuso" onClose={onClose} surface="central-login">
   <aside className="login-brand">
-   <img className="login-brand-mark" src="/brand/mythuso-logo.svg" alt="MyThuso" width="366" height="98"/>
+   <img className="login-brand-mark" src="/brand/mythuso-logo.svg?g=5" alt="MyThuso" width="366" height="98"/>
    <p className="login-brand-eyebrow">{words.eyebrow}</p>
    <p className="login-brand-headline">{words.headline.map((line, i) => <span key={line} className={i === words.headline.length - 1 ? 'is-accent' : undefined}>{line}</span>)}</p>
    <p className="login-brand-body">{words.body}</p>
@@ -31,7 +31,7 @@ export default function LoginPanel({ onClose }: { onClose: () => void }) {
     <source srcSet={figure.srcSet} sizes="300px" type="image/webp"/>
     <img src={figure.fallback} alt="" width={figure.width} height={figure.height} loading="lazy" decoding="async"/>
    </picture>
-   <img className="login-brand-guide" src="/lovable/gilbertone-logo-360.webp" alt="" width="360" height="270" loading="lazy" decoding="async"/>
+   <img className="login-brand-guide" src="/lovable/gilbertone-logo-360.webp?g=5" alt="" width="360" height="270" loading="lazy" decoding="async"/>
   </aside>
   <div className="login-roles">
    <p className="muted">Choose your role to open its dashboard. Preview auto-login uses fictional profiles.</p>
