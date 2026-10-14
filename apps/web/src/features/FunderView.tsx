@@ -66,7 +66,7 @@ export default function FunderView() {
  return <div className="fv">
   <header className="fv-top">
    <a className="fv-brand" href="/app/" aria-label="MyThuso home">
-    <img src="/brand/mythuso-logo-reversed.svg" alt="MyThuso" width="160" height="43"/>
+    <img src="/brand/mythuso-logo-reversed.svg?g=5" alt="MyThuso" width="160" height="43"/>
    </a>
    <span className="fv-for">For the Technology Innovation Agency · 15 October 2026</span>
   </header>

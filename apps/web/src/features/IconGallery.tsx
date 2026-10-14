@@ -50,7 +50,7 @@ export function IconGallery() {
    <h2>GilbertOne, the official logo</h2>
    <div className="icon-gallery-logo">
     <div className="icon-gallery-logo-plate">
-     <img src="/lovable/gilbertone-logo-360.webp" srcSet="/lovable/gilbertone-logo-360.webp 360w, /lovable/gilbertone-logo-720.webp 720w" sizes="240px" alt="GilbertOne" width="360" height="270"/>
+     <img src="/lovable/gilbertone-logo-360.webp?g=5" srcSet="/lovable/gilbertone-logo-360.webp?g=5 360w, /lovable/gilbertone-logo-720.webp?g=5 720w" sizes="240px" alt="GilbertOne" width="360" height="270"/>
     </div>
     <div className="icon-gallery-logo-rules">
      <p>{logoRule}</p>

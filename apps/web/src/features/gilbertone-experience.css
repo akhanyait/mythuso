@@ -372,7 +372,7 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: var(--surface) url("/brand/gilbert-icon.webp") center / 116% no-repeat;
+  background: var(--surface) url("/brand/gilbert-icon.webp?g=5") center / 116% no-repeat;
   box-shadow: var(--shadow-raised);
   border: 2px solid var(--brand-mint);
 }

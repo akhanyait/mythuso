@@ -26,7 +26,7 @@ export { validateSaId };
  * The mark rather than the lockup. /logo.svg is the full horizontal lockup — icon, wordmark and the
  * tagline "Help. Health. Home." — and the 158px this slot gave it drew that tagline about four
  * pixels tall: not a small logo, an illegible one, and the first thing on the first screen.
- * /icon.svg is the icon out of the same artwork, which is the answer apps/ios reached for in
+ * /icon.svg?g=5 is the icon out of the same artwork, which is the answer apps/ios reached for in
  * HomeView rather than drawing a second mark. */
 function Door({ promise, steps, note, children }: {
  /** One line under the mark. What is behind this door, in the product's own voice. */
@@ -41,7 +41,7 @@ function Door({ promise, steps, note, children }: {
   <div className="patient-ground aurora m-light" aria-hidden="true"/>
   <div className="door-card">
    <aside className="door-aside">
-    <img src="/brand/mythuso-mark.svg" alt="MyThuso" className="door-mark" width="512" height="512"/>
+    <img src="/brand/mythuso-mark.svg?g=5" alt="MyThuso" className="door-mark" width="512" height="512"/>
     <p className="door-promise">{promise}</p>
     {steps}
     <p className="door-note">{note}</p>

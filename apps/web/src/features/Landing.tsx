@@ -490,7 +490,7 @@ function Hero({ onAsk }: { onAsk: (question: string) => void }) {
           <div className="hero-guide-head">
             <img
               id="hero-guide-logo"
-              src="/lovable/gilbertone-logo-360.webp"
+              src="/lovable/gilbertone-logo-360.webp?g=5"
               alt="GilbertOne"
               width="360"
               height="270"
@@ -1149,8 +1149,8 @@ export function Landing() {
             cropped or separated. */}
           <aside className="landing-guide" data-reveal>
             <img
-              src="/lovable/gilbertone-logo-360.webp"
-              srcSet="/lovable/gilbertone-logo-360.webp 360w, /lovable/gilbertone-logo-720.webp 720w"
+              src="/lovable/gilbertone-logo-360.webp?g=5"
+              srcSet="/lovable/gilbertone-logo-360.webp?g=5 360w, /lovable/gilbertone-logo-720.webp?g=5 720w"
               sizes="180px"
               alt="GilbertOne"
               width="360"
