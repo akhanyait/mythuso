@@ -136,8 +136,8 @@ this pass's scope and its heading is the stale one, not its commands. -->
 
 **Do not widen scope during a deploy.** The identity service is off because there is no SMS provider,
 its nginx `/api/` block stays commented out, and nobody can sign in. That is the intended state, not a
-bug to fix. HSTS stays at `max-age=300`; raising it is a separate, deliberately deferred, irreversible
-decision.
+bug to fix. HSTS is `max-age=31536000; includeSubDomains` — one year, with subdomains included —
+and is never lowered.
 
 **Do not start a large build near the weekly credit cap.** Write the plan into `docs/ROADMAP.md`
 instead, so the next session can pick it up cold.

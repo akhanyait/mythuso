@@ -486,10 +486,10 @@ test("nginx carries the assistant proxy, the fence on it, and the microphone pol
   assert.match(nginx, /add_header X-Robots-Tag "noindex, nofollow" always;/);
   assert.equal(
     nginx.split(
-      'add_header Strict-Transport-Security "max-age=300; includeSubDomains" always;',
+      'add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;',
     ).length - 1,
     2,
-    "HSTS stays at 300 seconds on both declarations — deliberately short until the certificate proof is in",
+    "HSTS is max-age=31536000; includeSubDomains on both declarations — the value live on the site",
   );
   const policy =
     'add_header Permissions-Policy "camera=(), microphone=(self), geolocation=(), interest-cohort=()" always;';
@@ -501,6 +501,73 @@ test("nginx carries the assistant proxy, the fence on it, and the microphone pol
   assert.ok(
     !nginx.includes("microphone=()"),
     "no declaration in this file may block the site’s own microphone — tap-to-talk is a shipped control",
+  );
+});
+
+test("deploy.sh refuses to install nginx unless HSTS is the live one-year value, twice", () => {
+  const deploy = readRepo("deploy/deploy.sh");
+  const installAt = deploy.indexOf('say "Installing the nginx site for $HOST"');
+  assert.ok(
+    installAt > 0,
+    "the nginx install step is still announced by that sentence",
+  );
+  const beforeInstall = deploy.slice(0, installAt);
+  const liveLine =
+    'Strict-Transport-Security "max-age=31536000; includeSubDomains" always;';
+  const lineAt = beforeInstall.lastIndexOf(liveLine);
+  const guardAt = beforeInstall.lastIndexOf(
+    "grep -q 'max-age=300' deploy/nginx/mythuso.conf",
+  );
+  assert.ok(
+    lineAt > 0 && guardAt > lineAt,
+    "before the nginx install, deploy.sh names the live HSTS line and refuses a template that contains max-age=300",
+  );
+  const guard = beforeInstall.slice(lineAt);
+  assert.match(
+    guard,
+    /hsts_count=\$\(grep -cF "\$hsts_line" deploy\/nginx\/mythuso\.conf \|\| true\)/,
+    "the guard counts lines of the live header",
+  );
+  assert.match(
+    guard,
+    /\[ "\$\{hsts_count:-0\}" -ne 2 \]/,
+    "exactly two lines are required — the server level and location /assistant/",
+  );
+  assert.match(
+    guard,
+    /exit 1/,
+    "a template that fails the guard stops the deploy before the site file is installed",
+  );
+
+  const writtenAt = deploy.indexOf("cat > mythuso.conf");
+  assert.ok(
+    writtenAt > installAt,
+    "the site file is written only after the template guard",
+  );
+  const afterWrite = deploy.slice(writtenAt, writtenAt + 2800);
+  assert.match(
+    afterWrite,
+    /ssh "\$TARGET" "cat \/etc\/nginx\/sites-available\/mythuso\.conf"/,
+    "after install, the deployed site file is read back over ssh",
+  );
+  assert.match(
+    afterWrite,
+    /grep -q 'max-age=300'/,
+    "the installed file is refused if it still carries max-age=300",
+  );
+  assert.match(
+    afterWrite,
+    /grep -q 'max-age=31536000; includeSubDomains'/,
+    "the installed file must carry the live one-year value with includeSubDomains",
+  );
+  assert.match(
+    afterWrite,
+    /\/etc\/nginx\/sites-available\/mythuso\.conf on \$TARGET/,
+  );
+  const remoteAt = afterWrite.indexOf("/etc/nginx/sites-available/mythuso.conf");
+  assert.ok(
+    afterWrite.indexOf("exit 1", remoteAt) > remoteAt,
+    "a site file on the box that lacks the live HSTS value, or that still carries max-age=300, fails the deploy",
   );
 });
 

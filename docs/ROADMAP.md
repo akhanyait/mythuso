@@ -156,12 +156,12 @@ These are in `docs/` already and are listed here so they are not lost:
   label beside it does not remove it from that tree, so only VoiceOver can settle whether they are
   read out. `ThusoSwitchStyle` may also have moved the identity switch's trait from switch to button,
   which is the same question and the same answer.
-- **HSTS is live at `max-age=300`, and raising it is a decision nobody has taken.** The header was
+- **HSTS is `max-age=31536000; includeSubDomains`, and it is never lowered.** The header was
   verified on 10 September arriving on both `mythuso.co.za` and `www.`, in the block certbot writes,
-  with plain http still redirecting. Five minutes is HSTS with the irreversibility removed, which is
-  what made it safe to switch on unattended; it is not yet HSTS doing anything. Raising it to two
-  years is one line in `deploy/nginx/mythuso.conf` and a redeploy, and it cannot be taken back from a
-  browser that heard it, which is why it is on this list rather than done.
+  with plain http still redirecting. It first shipped at five minutes, which was HSTS with the
+  irreversibility removed. The value live now, and the value `deploy/nginx/mythuso.conf` writes on
+  both declarations, is one year with subdomains included. A browser that has heard it cannot be
+  talked back down, which is why this is no longer an open decision.
 
 ---
 

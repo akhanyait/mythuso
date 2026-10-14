@@ -172,7 +172,7 @@ That service is deliberately minimal about headers — it sends `Cache-Control: 
 server-level set inside itself (a location that declares one `add_header` inherits none of them),
 and `proxy_hide_header` takes the two the service sends out of the upstream first, so the browser
 receives each header exactly once rather than twice. Its HSTS inside the location is the same
-`max-age=300` the server level carries; no location in this file relaxes it.
+`max-age=31536000; includeSubDomains` the server level carries; no location in this file relaxes it.
 
 The static entries are the other half, and they do need nginx. Each HTML file carries its own CSP in
 a `<meta http-equiv>`, but a meta tag cannot express `frame-ancestors`, so the only place that
@@ -187,12 +187,11 @@ served with no `X-Frame-Options` at all, with the pages rendering exactly as bef
 lifetimes are now decided by one `map` at the top of the file and added once at the server level, so
 no location declares an `add_header` and none of them can drop part of the set.
 
-HSTS is in the site file now, and it is in it at `max-age=300`. It was held out until a certificate
+HSTS is in the site file now, and it is in it at `max-age=31536000; includeSubDomains`. It was held out until a certificate
 existed, because a browser told to refuse plain http by a host that cannot serve https is a browser
 that cannot reach the site and cannot be told otherwise. The certificate exists, so the header is on
-— but at five minutes rather than two years, because that is the version of this header that can be
-withdrawn. Raising it is a second decision, taken in `RUNBOOK.md` once the header has been seen
-arriving on https and every subdomain `includeSubDomains` binds has been checked.
+— at one year, with subdomains included, which is the value live on the site. It does not carry
+`preload`.
 
 **A path is not access control, and neither is a subdomain, and neither is a query string.**
 `/staff/` and `/admin/` used to be unlisted paths carrying `noindex`, which kept them out of a search
