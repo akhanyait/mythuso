@@ -9990,13 +9990,51 @@ if (
         `deploy/nginx/mythuso.conf's location /assistant/ redeclares ${hidden} but does not proxy_hide_header the service's own copy of it, so the browser receives the header twice.`,
       );
   }
-  /* HSTS inside the location stays at the five minutes the server level ships — a location that
-     quietly raised it would be the two-year decision taken at the edge of the file where nobody
-     reads, which is what the server-level comment exists to prevent. */
+  /* HSTS inside the location stays at the one year the server level ships — a location that
+     quietly changed it would be a different max-age taken at the edge of the file where nobody
+     reads. The value is the one live on the site: one year, subdomains included, no preload. */
   const hsts = location[1].match(/Strict-Transport-Security "([^"]*)"/)?.[1];
-  if (!hsts || !/max-age=300/.test(hsts) || !/includeSubDomains/.test(hsts))
+  if (!hsts || !/max-age=31536000/.test(hsts) || !/includeSubDomains/.test(hsts))
     throw new Error(
-      `location /assistant/ ships HSTS "${hsts ?? "none"}" — the server level ships "max-age=300; includeSubDomains", and the location must not drift from it.`,
+      `location /assistant/ ships HSTS "${hsts ?? "none"}" — the server level ships "max-age=31536000; includeSubDomains", and the location must not drift from it.`,
+    );
+  /* The deploy is the moment a five-minute rehearsal could be written back over the one-year
+     value a browser has already heard, and that value cannot be talked back down. The template
+     guard runs before the site file is installed; the read-back runs on the copy just written
+     to the box. Both have to be in the script, in that order, or the header in the repository
+     and the header nginx reloads are two different promises. */
+  const hstsLiveLine =
+    'Strict-Transport-Security "max-age=31536000; includeSubDomains" always;';
+  const hstsInstallAt = deploy.indexOf('say "Installing the nginx site for $HOST"');
+  const hstsWrittenAt = deploy.indexOf("cat > mythuso.conf");
+  if (
+    hstsInstallAt < 0 ||
+    hstsWrittenAt < hstsInstallAt ||
+    !deploy
+      .slice(0, hstsInstallAt)
+      .includes("grep -q 'max-age=300' deploy/nginx/mythuso.conf") ||
+    !deploy.slice(0, hstsInstallAt).includes(hstsLiveLine) ||
+    !/hsts_count=\$\(grep -cF "\$hsts_line" deploy\/nginx\/mythuso\.conf/.test(
+      deploy.slice(0, hstsInstallAt),
+    ) ||
+    !deploy.slice(0, hstsInstallAt).includes('[ "${hsts_count:-0}" -ne 2 ]')
+  )
+    throw new Error(
+      'deploy/deploy.sh no longer refuses, before it installs the nginx site, a template that contains max-age=300 or that does not carry Strict-Transport-Security "max-age=31536000; includeSubDomains" always; on exactly two lines.',
+    );
+  const hstsAfterInstall = deploy.slice(hstsWrittenAt, hstsWrittenAt + 2800);
+  if (
+    !hstsAfterInstall.includes(
+      'ssh "$TARGET" "cat /etc/nginx/sites-available/mythuso.conf"',
+    ) ||
+    !hstsAfterInstall.includes("grep -q 'max-age=300'") ||
+    !hstsAfterInstall.includes(
+      "grep -q 'max-age=31536000; includeSubDomains'",
+    ) ||
+    !hstsAfterInstall.includes("exit 1")
+  )
+    throw new Error(
+      "deploy/deploy.sh no longer reads /etc/nginx/sites-available/mythuso.conf back from the target after installing it and refuses a copy that still carries max-age=300 or that lacks max-age=31536000; includeSubDomains.",
     );
   /* The microphone policy, changed from () to (self) on 21 September 2026 — the same day the
      contract's own web tap-to-talk was read against this file. The panel's recognition runs in
