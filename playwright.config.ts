@@ -78,4 +78,12 @@ const timezoneId = 'Africa/Johannesburg';
    the sentence to be parsed as code: "Missing semicolon" three lines below the line that broke. */
 const outputDir = process.env.MYTHUSO_PORT ? `test-results-${process.env.MYTHUSO_PORT}` : 'test-results';
 
-export default defineConfig({ testDir: './tests', fullyParallel: true, workers: 2, outputDir, use: { baseURL, timezoneId, trace: 'retain-on-failure' }, webServer: { command: `VITE_MYTHUSO_STAFF_PREVIEW=true VITE_MYTHUSO_FUNDER_PREVIEW=true npm run dev -- --port ${port}`, url: baseURL, reuseExistingServer: false }, projects: [{ name: 'desktop', use: { browserName: 'chromium', viewport: { width: 1440, height: 1100 } } }, { name: 'mobile', use: { browserName: 'chromium', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } }] });
+/* Longer budgets on CI, measured rather than guessed. On an idle ten-core machine the Control Tower
+   journey takes 26.5 s and the suppliers offer check 23 s, against Playwright's default 30 s per test,
+   so they pass with almost nothing to spare. The Woodpecker box (ci.mpumiworks.co.za) is shared with
+   live services, and run #2 on 20 October lost exactly those two to the 30 s ceiling, plus a 5 s
+   wait for the back office's first heading, while 1,501 others passed. The same three passed here
+   (14 of 14). This raises the ceiling where CI sets CI; it skips and retries nothing, so a test that
+   is actually broken still fails. */
+const ci = Boolean(process.env.CI);
+export default defineConfig({ testDir: './tests', fullyParallel: true, workers: 2, outputDir, ...(ci ? { timeout: 60_000, expect: { timeout: 10_000 } } : {}), use: { baseURL, timezoneId, trace: 'retain-on-failure' }, webServer: { command: `VITE_MYTHUSO_STAFF_PREVIEW=true VITE_MYTHUSO_FUNDER_PREVIEW=true npm run dev -- --port ${port}`, url: baseURL, reuseExistingServer: false }, projects: [{ name: 'desktop', use: { browserName: 'chromium', viewport: { width: 1440, height: 1100 } } }, { name: 'mobile', use: { browserName: 'chromium', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } }] });
