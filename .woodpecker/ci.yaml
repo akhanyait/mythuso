@@ -1,0 +1,26 @@
+# Woodpecker CI, running on our own server (ci.mpumiworks.co.za).
+# Type and boundary checks, every workspace's tests, then the Playwright suite
+# (which starts its own dev server; see playwright.config.ts).
+when:
+  - event: pull_request
+  - event: push
+    branch: main
+  - event: manual
+
+# check-boundaries.mjs compares lock files with their history, so it needs
+# every commit, not a shallow copy.
+clone:
+  git:
+    image: woodpeckerci/plugin-git
+    settings:
+      depth: 0
+      partial: false
+
+steps:
+  check-and-test:
+    image: node:22-bookworm
+    commands:
+      - npm ci
+      - npx playwright install --with-deps chromium
+      - npm run check
+      - npm test
