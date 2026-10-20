@@ -61,10 +61,12 @@ export const OLLAMA_DEFAULT_URL = "http://localhost:11434";
 export const OLLAMA_DEFAULT_MODEL = "llama3.1:8b";
 /* Inference options for the local provider, added with the speed pass of 23 September 2026 and
    carried here beside the Ollama defaults so every resolver reads the same numbers rather than
-   each typing its own. They are hints the orchestrator's LangChain client passes through to
-   Ollama's OpenAI-compatible surface in the request body's `options` field, and Ollama applies
-   what the loaded model supports and ignores the rest — so they tune a local inference without
-   ever being a promise this service can break.
+   each typing its own. They are hints the orchestrator's LangChain client sends in the request
+   body's `options` field. Ollama's OpenAI-compatible /v1 surface ignores that field (found on the
+   GilbertOne host on 8 October 2026, where a 12-thread default on 10 CPUs stalled Qwen at 0.12
+   tokens a second), so a host that needs them bakes them into the model it serves instead: the
+   GilbertOne host's bootstrap.sh creates `gilbertone-qwen` with its own num_thread and num_ctx.
+   They are never a promise this service can break.
 
    num_ctx is halved from Ollama's 8192 default to 4096: this tier's whole prompt — the catalog's
    system rules, the tool guide, a few context lines and one short question — fits well inside it,

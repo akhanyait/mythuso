@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer, type Server } from 'node:http';
-import { orchestrate } from './orchestrator.ts';
+import { orchestrate, orchestratorTimeoutFrom } from './orchestrator.ts';
 import { LLM_MAX_OUTPUT_TOKENS, LLM_REPLY_LIMIT } from './llm-adapter.ts';
 import { demonstrationDisclaimer } from './demonstration-override.ts';
 
@@ -400,6 +400,27 @@ test('a curly-apostrophe emergency is escalated by the graph before any model is
    assert.ok(result.answer.length > 0);
    assert.equal(provider.bodies.length, 0, 'no request reached the model');
   });
+ } finally {
+  await provider.close();
+ }
+});
+
+test('the orchestration ceiling stays 15 seconds unless a host asks, and a host may ask only within 5 to 120', () => {
+ assert.equal(orchestratorTimeoutFrom({}), 15_000);
+ assert.equal(orchestratorTimeoutFrom({ GILBERTONE_ORCHESTRATOR_TIMEOUT_MS: 'nonsense' }), 15_000);
+ assert.equal(orchestratorTimeoutFrom({ GILBERTONE_ORCHESTRATOR_TIMEOUT_MS: '60000' }), 60_000);
+ assert.equal(orchestratorTimeoutFrom({ GILBERTONE_ORCHESTRATOR_TIMEOUT_MS: '1' }), 5_000);
+ assert.equal(orchestratorTimeoutFrom({ GILBERTONE_ORCHESTRATOR_TIMEOUT_MS: '999999' }), 120_000);
+});
+
+test('every Ollama call turns thinking off, or a Qwen 3 model reasons past the ceiling', async () => {
+ const provider = await scriptedProvider([nerEmpty, assistantAnswer('Ask the clinic nurse to check the card.')]);
+ try {
+  await withEnv({ OLLAMA_URL: provider.url }, async () => {
+   await orchestrate('what immunisation does my baby need');
+  });
+  assert.ok(provider.bodies.length > 0);
+  for (const body of provider.bodies) assert.equal(JSON.parse(body).reasoning_effort, 'none');
  } finally {
   await provider.close();
  }
