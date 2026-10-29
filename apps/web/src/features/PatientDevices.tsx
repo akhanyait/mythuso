@@ -1,9 +1,11 @@
+import { G1Help } from '../components/G1Helper';
 import { lazy, Suspense } from 'react';
 import { Activity, ArrowRight, Bluetooth, Droplets, Heart, Scale, Smartphone, Thermometer, Wind, type LucideIcon } from 'lucide-react';
 import { NotConnected } from '../components/NotConnected';
 import { Badge, Button, Card } from '../ui';
 import { capability } from '../lib/capabilities';
 import { deviceIntegrations, kitInstruments } from '../lib/passport';
+import { conceptForKitDevice, conceptNotice } from '../lib/device-concepts';
 import { observations } from '../lib/observations';
 import devices from '../../../../packages/catalog/devices.json';
 import { PatientHeader } from './PatientHeader';
@@ -62,6 +64,7 @@ export function PatientDevices({ navigate, open }: { navigate: (page: string) =>
    lead="The instruments a nurse brings to your visit and the phone stores you could link, with what each one measures. None of them is connected to you."
    back={{ label: 'Back to your Health Passport', go: () => navigate('Health Passport') }}/>
   <NotConnected of="devices"/>
+  <G1Help at="devices"/>
   <Card padding="md" className="ps-panel"><Suspense fallback={<p>Opening readings…</p>}><LiveVitalsBoard subject="patient-preview" patient="you" own/></Suspense></Card>
 
   {/* Three figures, and only the first is a number: it is the count of the rows in the grid below, so
@@ -94,7 +97,10 @@ export function PatientDevices({ navigate, open }: { navigate: (page: string) =>
     {kitInstruments.map(instrument => {
      const Icon = iconFor[instrument.id] ?? Bluetooth;
      const measures = labelled(instrument.measures);
+     /* The v3 pack's picture of the instrument, where the funding proposal drew one: a concept, said under it. */
+     const concept = conceptForKitDevice(instrument.id);
      return <li className="ps-device" key={instrument.id}>
+      {concept && <figure className="ps-device-concept"><img src={concept.file} alt={concept.alt} loading="lazy" width={438} height={370}/></figure>}
       <div className="ps-device-top">
        <span className="ps-tile" aria-hidden="true"><Icon size={20} strokeWidth={1.8}/></span>
        <div className="ps-device-name"><h3>{instrument.name}</h3><p>{instrument.transport}</p></div>
@@ -108,6 +114,7 @@ export function PatientDevices({ navigate, open }: { navigate: (page: string) =>
      </li>;
     })}
    </ul>
+   <p className="ps-device-note ps-concept-notice">{conceptNotice}</p>
   </Card>
 
   <Card padding="md" className="ps-panel">
