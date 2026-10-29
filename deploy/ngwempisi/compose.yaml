@@ -1,0 +1,79 @@
+# MyThuso on 102.202.45.201 (Ngwempisi): two containers behind the shared gateway, lima-gateway-1.
+#
+# That box has no host nginx. Ports 80 and 443 belong to the gateway container, which also serves
+# MpumiWorks, Lima, golima.co.za, g1.mythuso.co.za and the Woodpecker CI, so MyThuso is one more site
+# behind it rather than a second web server: the gateway terminates TLS for mythuso.co.za and hands
+# every request to mythuso-site, and nothing here publishes a port on the host.
+#
+# mythuso-site is nginx running deploy/nginx/mythuso.conf, the same file liqzar-server serves, so the
+# security headers, the cache map, the /assistant/ rate limit and every entry's location are one file
+# on both boxes. deploy.sh rewrites only what has to differ (root, logs, the listen line and the real
+# client address behind the gateway).
+#
+# mythuso-assistant shares mythuso-site's network namespace. The service listens on 127.0.0.1:8791
+# and nowhere else (apps/assistant-api/src/server.ts), and the site file proxies to exactly that
+# address, so sharing the namespace keeps both unchanged: the service is still unreachable except
+# through the site's /assistant/ location. The cost is that recreating mythuso-site takes the
+# assistant's network away, which is why deploy.sh never recreates it: a new release is a symlink
+# swap, a changed site file is `nginx -s reload`, and only the first deploy creates these containers.
+#
+# The assistant is restarted by a person, never by a deploy, as on liqzar-server (deploy/RUNBOOK.md):
+# `docker restart mythuso-assistant` is the equivalent of `systemctl restart assistant-api.service`.
+name: mythuso
+
+services:
+  mythuso-site:
+    image: nginx:1.29-alpine
+    container_name: mythuso-site
+    restart: unless-stopped
+    networks: [lima]
+    volumes:
+      # The whole of /opt/mythuso at its own path, read-only, so the `current` symlink and the
+      # release it names resolve inside the container exactly as on the host. Mounting the symlink
+      # itself would pin the release it pointed at when the container started.
+      - /opt/mythuso:/opt/mythuso:ro
+      # A directory rather than the file: deploy.sh replaces site.conf by rename, and a file
+      # bind mount keeps the old inode.
+      - /opt/mythuso/nginx:/etc/nginx/conf.d:ro
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /run
+      - /tmp
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETGID, SETUID, NET_BIND_SERVICE]
+    security_opt: [no-new-privileges:true]
+
+  mythuso-assistant:
+    image: node:22-bookworm-slim
+    container_name: mythuso-assistant
+    restart: unless-stopped
+    network_mode: service:mythuso-site
+    depends_on: [mythuso-site]
+    working_dir: /opt/mythuso/assistant
+    command: ["node", "server.mjs"]
+    # The fixed uid stands in for systemd's DynamicUser: no login, owns only the state directory.
+    user: "61791:61791"
+    environment:
+      NODE_ENV: production
+      MYTHUSO_ASSISTANT_STATE_DIR: /var/lib/mythuso-assistant
+    # Root-only files on the host, read by the Docker daemon when the container starts, never
+    # copied into an image. founder.env is optional, as `EnvironmentFile=-` makes it in the unit.
+    env_file:
+      - path: /etc/mythuso/assistant.env
+        required: false
+      - path: /etc/mythuso/founder.env
+        required: false
+    volumes:
+      - /opt/mythuso/assistant:/opt/mythuso/assistant:ro
+      - /var/lib/mythuso-assistant:/var/lib/mythuso-assistant
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+
+networks:
+  lima:
+    name: lima_lima-net
+    external: true
