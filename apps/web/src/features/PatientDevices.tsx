@@ -6,6 +6,7 @@ import { Badge, Button, Card } from '../ui';
 import { capability } from '../lib/capabilities';
 import { deviceIntegrations, kitInstruments } from '../lib/passport';
 import { conceptForKitDevice, conceptNotice } from '../lib/device-concepts';
+import { ReadingPath } from './ReadingPath';
 import { observations } from '../lib/observations';
 import devices from '../../../../packages/catalog/devices.json';
 import { PatientHeader } from './PatientHeader';
@@ -116,6 +117,8 @@ export function PatientDevices({ navigate, open }: { navigate: (page: string) =>
    </ul>
    <p className="ps-device-note ps-concept-notice">{conceptNotice}</p>
   </Card>
+
+  <ReadingPath/>
 
   <Card padding="md" className="ps-panel">
    <div className="ps-panel-head">

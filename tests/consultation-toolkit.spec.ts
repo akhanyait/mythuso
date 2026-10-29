@@ -89,6 +89,9 @@ test.describe('the doctor on a call', () => {
         // the full board, live; the rail's panel steps aside so two clocks never count one patient
         const board = p.locator('.lv-board');
         await expect(board.locator('.lv-banner')).toContainText(live.board.banner);
+        // GilbertOne orients on a clinician's board, in the contract's words, and says it never sorts
+        const g1 = JSON.parse(readFileSync(new URL('../packages/catalog/gilbertone-states.json', import.meta.url), 'utf8'));
+        await expect(board.locator('[data-g1-help="liveBoard"]')).toHaveText(g1.helpers.liveBoard.text);
         const first = (await values(board)).join(' ');
         await expect.poll(async () => (await values(board)).join(' '), { timeout: 12_000 }).not.toBe(first);
         await expect(d.locator('.tcx-aside')).toHaveCount(0);
