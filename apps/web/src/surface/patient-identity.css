@@ -296,3 +296,16 @@
  .pd .pd-metric--action, .patient-surface .pd .shortcut-row.pd-service, .pd .pd-tip { transition: none; }
  .pd .pd-metric--action:hover, .patient-surface .pd .shortcut-row.pd-service:hover, .pd .pd-tip:hover { transform: none; }
 }
+
+/* ---- MyThuso v3 (29 October 2026): the soft coral shape behind the next-visit card -----------------------
+   The pack's .blob on its dark "Next care" card. The pack morphs it for ever; here it holds the morph's first
+   frame, because the home's motion arrives and stops (the Wave 4a boundary check), and a shape that keeps moving
+   behind the one card a person opened the home for is the wrong place to spend attention. It sits under every
+   word on the card and is decoration, so it is aria-hidden. */
+.pd .pd-hero { position: relative; isolation: isolate; }
+.pd .pd-hero__blob {
+ position: absolute; z-index: -1; right: -60px; top: -70px; width: 220px; height: 220px; pointer-events: none;
+ border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%;
+ background: radial-gradient(circle, color-mix(in oklab, var(--color-coral) 55%, transparent), transparent 70%);
+}
+.pd > .g1-help { margin-top: var(--space-16); }

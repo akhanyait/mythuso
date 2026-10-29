@@ -72,3 +72,10 @@
 @keyframes s-shadow{0%,62%,100%{transform:scale(1.1,1)}40%{transform:scale(.55,1)}}
 @keyframes wave{0%,100%{transform:rotate(0)}25%{transform:rotate(-18deg)}50%{transform:rotate(8deg)}75%{transform:rotate(-12deg)}}
 @keyframes s-shake{0%,55%,100%{transform:scale(.84)}62%{transform:scale(.84) translateX(-5px) rotate(-5deg)}70%{transform:scale(.84) translateX(5px) rotate(5deg)}78%{transform:scale(.84) translateX(-4px) rotate(-3deg)}86%{transform:scale(.84) translateX(3px)}}
+
+/* The helper line (G1Help): the pack's .helper and .bubble, in the product's tokens. The character holds its still
+   pose here: the line is a standing note on the home, the booking and the sharing screens, and the home's motion
+   arrives and stops. GilbertOne moves where something is happening to it — the state sheet, a live panel. */
+.g1-help{display:flex;align-items:center;gap:10px;padding:10px 14px 10px 10px;border-radius:var(--r-lg);background:var(--color-surface);box-shadow:var(--shadow);max-width:60ch}
+.g1-help p{margin:0;color:var(--color-foreground);font-size:14.5px;line-height:1.4}
+.g1-help .g1 *{animation:none}

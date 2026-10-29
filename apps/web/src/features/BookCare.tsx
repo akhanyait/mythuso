@@ -5,6 +5,7 @@ import { Badge, Textarea } from '../ui';
 import { HOME_SUBURB } from '../lib/arrival';
 import { nameOf, PREVIEW_VIEWER, previewHousehold } from '../lib/household';
 import { endTime, isoIn, offeredDays, slots } from '../lib/scheduling';
+import { G1Help } from '../components/G1Helper';
 import './book-care.css';
 
 /* Book care for the Wednesday demo: six questions, one screen each, then a simulated confirmation.
@@ -212,6 +213,7 @@ export function BookCare({ navigate }: { navigate: (page: string) => void }) {
 
   <h1 className="bc-title" id="bc-question">{question}</h1>
   {step === WHO && <p className="bc-kicker">One question per step.<span className="bc-kicker__rule" aria-hidden="true"/></p>}
+  {step === WHO && <G1Help at="bookCare"/>}
 
   {step === WHO && <>
    <div role="radiogroup" aria-labelledby="bc-question" className="bc-options">

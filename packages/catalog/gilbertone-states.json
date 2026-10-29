@@ -9,5 +9,11 @@
   {"id": "found", "label": "Reading arrived", "motion": "One pop and a glow", "pose": "A halo ring"},
   {"id": "success", "label": "Visit booked", "motion": "A bounce, and a halo rings out", "pose": "Tall and lifted"},
   {"id": "error", "label": "No signal, saved on phone", "motion": "Softens and dips, warm and never alarming", "pose": "A warm sand tint, lowered"}
- ]
+ ],
+ "_helpersNote": "The v3 pack's helper line: GilbertOne beside one sentence, on the screens the pack draws it on. Each sentence orients — where to go, what a switch does, who decides — and none says anything about a person's health. The state is the pose drawn beside it; idle and listen are the only two a screen may hold at rest, because found, success and error are each about something that has happened and must be shown by the screen that saw it happen.",
+ "helpers": {
+  "home": {"state": "idle", "text": "Here when you need me. I can help you find a screen or a past visit. I can't give health advice."},
+  "bookCare": {"state": "listen", "text": "Answer one question at a time and I'll show the care you can book. The nurse decides what happens at the visit."},
+  "sharing": {"state": "idle", "text": "You decide who sees your record. I can show you where each choice is, but I can't change one for you."}
+ }
 }
