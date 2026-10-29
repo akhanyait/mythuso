@@ -12,6 +12,7 @@ import {
 } from '../lib/gilbertone';
 import { BEFORE_PERMISSION, useVoiceAdapter } from '../lib/voice';
 import { voice as voicePolicy } from '../../../../packages/catalog/assistant.json';
+import { G1Helper, g1Rule, g1States } from '../components/G1Helper';
 import './gilbertone.css';
 
 /* GilbertOne, phase 1: the character demonstrator.
@@ -443,6 +444,19 @@ export default function GilbertOneDemo() {
      the same step on a fixed example — “{TRANSCRIPT_REVIEW.example}” — so the shape of it can be inspected without
      speaking, and the two labels beside the field are the phone's own. Replay speaks the same fixed sentence again and
      re-runs, re-asks and resubmits nothing, which is what §07 asks replay to be.</p>
+   </section>
+
+   {/* MyThuso v3's six states (29 October 2026): the shape changes, not only the colour, and each state's words
+       are beside it rather than in it. The still pose is what reduced motion and a paused page see. */}
+   <section className="go-v3-states panel" aria-labelledby="go-v3-title">
+    <h2 id="go-v3-title">GilbertOne changes shape to show what it is doing.</h2>
+    <p className="helper">{g1Rule}</p>
+    <ul className="go-v3-grid">
+     {g1States.map(state => <li key={state.id} data-g1-state={state.id}>
+      <G1Helper state={state.id} size={72}/>
+      <div><small>{state.id.toUpperCase()}</small><strong>{state.label}</strong><span className="helper">{state.motion}</span></div>
+     </li>)}
+    </ul>
    </section>
 
    <section className="go-refusals panel" aria-labelledby="go-refusals-title">

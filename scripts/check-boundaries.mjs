@@ -38315,7 +38315,7 @@ console.log(
      Founder approved the navy and coral look for the TIA presentation, and colour moved there while
      the handoff's masters, faces and radii stayed. Coral is brandOrange's role now, not danger's:
      danger is a fill a person reads navy words on, and the brand mark is not. */
-  const theme = read("packages/brand/fresh-look/theme.css");
+  const theme = read("packages/brand/v3/theme.css");
   const themeBlock = (selector) => {
     const body = theme.match(new RegExp(`${selector.replace(".", "\\.")}\\s*\\{([^}]+)\\}`))?.[1];
     if (!body) g4(`theme.css has no ${selector} block.`);
@@ -38436,10 +38436,11 @@ console.log(
     for (const [, href] of read(`apps/web/${page}`).matchAll(/<link rel="preload" href="(\/fonts\/[^"]+)"/g))
       if (!existsSync(`apps/web/public${href}`)) g4(`${page} preloads ${href}, which does not exist.`);
 
-  /* 5. Compact corners: the handoff's three radii, and the five product names mapped onto them. */
+  /* 5. Corners: three radii, and the five product names mapped onto them. The handoff's were 6 / 8 / 12;
+     since 29 October 2026 they are MyThuso v3's 8 / 14 / 20, measured off the pack's phone screens. */
   const radius = tokens.radius;
-  for (const [name, value] of [["sm", 6], ["md", 8], ["lg", 12], ["pill", 999]])
-    if (radius[name] !== value) g4(`tokens.json#radius.${name} is ${radius[name]}; the handoff's is ${value}.`);
+  for (const [name, value] of [["sm", 8], ["md", 14], ["lg", 20], ["pill", 999]])
+    if (radius[name] !== value) g4(`tokens.json#radius.${name} is ${radius[name]}; MyThuso v3's is ${value}.`);
   for (const [name, target] of [["card", "lg"], ["panel", "lg"], ["control", "md"], ["tile", "md"]])
     if (radius[name] !== radius[target]) g4(`tokens.json#radius.${name} is ${radius[name]} and ${target} is ${radius[target]}. ${name} is ${target}; the product takes compact corners together or not at all.`);
 

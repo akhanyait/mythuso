@@ -139,12 +139,14 @@
 .ui-button--icon.ui-button--icon-sm svg { width: var(--space-16); height: var(--space-16); }
 .ui-button--icon.ui-button--icon-lg { width: calc(var(--space-24) * 2); height: calc(var(--space-24) * 2); }
 
-.ui-button--primary { background: var(--color-primary); color: var(--color-primary-foreground); }
-.ui-button--primary:is(:hover, .is-hover):not(:disabled) { background: color-mix(in oklab, var(--color-primary) 90%, var(--ui-press-mix)); }
-.ui-button--primary:active:not(:disabled) { background: color-mix(in oklab, var(--color-primary) 80%, var(--ui-press-mix)); }
-
+/* MyThuso v3 (29 October 2026): "navy for trust, coral for action". The one main action on a screen is
+   filled with action coral, the accent, and pressed the way the accent is — deepened towards the ink, since
+   fading it towards transparent lightens it under 4.5 with white words on it. Navy stays the words. */
+.ui-button--primary,
 .ui-button--accent { background: var(--color-accent); color: var(--color-accent-foreground); }
+.ui-button--primary:is(:hover, .is-hover):not(:disabled),
 .ui-button--accent:is(:hover, .is-hover):not(:disabled) { background: color-mix(in oklab, var(--color-accent) 85%, var(--ui-accent-press)); }
+.ui-button--primary:active:not(:disabled),
 .ui-button--accent:active:not(:disabled) { background: color-mix(in oklab, var(--color-accent) 75%, var(--ui-accent-press)); }
 
 .ui-button--secondary { border-color: var(--color-border); background: var(--color-surface); color: var(--color-foreground); }

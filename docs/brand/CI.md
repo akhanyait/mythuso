@@ -115,7 +115,7 @@ The four literals the handoff delivered, decided by the Founder on 28 September 
 | brandInk | #141B2D | The ink: "my" in the wordmark, the visor of the GilbertOne rig, the primary role in the light scheme |
 | brandGreen | #C8452F | The green: "thuso", the accent, success, info and the focus ring in the light scheme |
 | brandOrange | #E5533F | The roof of the house mark; danger and coral as fills — never words on a light ground |
-| brandLime | #F6C453 | The dot on the mark and the signal point on every MyThuso icon; warning and highlight as fills — never words on a light ground |
+| brandLime | #f4a93b | The dot on the mark and the signal point on every MyThuso icon; warning and highlight as fills — never words on a light ground |
 | brandMint | #F5A497 | "thuso" in the reversed lockup; not in the handoff, kept because the clinical deck reads it |
 | brandCyan | #51F3FC | The GilbertOne character's eyes and smile, sampled from the logo master; it fills a shape on the visor and nothing else, and never carries text |
 
@@ -125,21 +125,21 @@ Generation four, `packages/design-tokens/tokens.json#semantic`: each role has a 
 
 | Role | Light hex | Light oklch | Dark hex | Dark oklch | Role in the design |
 | --- | --- | --- | --- | --- | --- |
-| `--color-background` | #faf8f6 | a hex literal in the handoff | #0e1320 | a hex literal in the handoff | The page ground |
+| `--color-background` | #fbf8f5 | a hex literal in the handoff | #0e1320 | a hex literal in the handoff | The page ground |
 | `--color-foreground` | #141b2d | a hex literal in the handoff | #edeff4 | a hex literal in the handoff | Headings, figures and body text |
 | `--color-surface` | #ffffff | a hex literal in the handoff | #161c2c | a hex literal in the handoff | A card |
-| `--color-surface-raised` | #f5f1ee | a hex literal in the handoff | #1e2538 | a hex literal in the handoff | A raised panel |
+| `--color-surface-raised` | #fdece6 | a hex literal in the handoff | #1e2538 | a hex literal in the handoff | A raised panel |
 | `--color-primary` | #141b2d | a hex literal in the handoff | #f07a68 | a hex literal in the handoff | The primary action |
 | `--color-primary-foreground` | #ffffff | a hex literal in the handoff | #0e1320 | a hex literal in the handoff | The label on a primary action |
 | `--color-accent` | #c8452f | a hex literal in the handoff | #f07a68 | a hex literal in the handoff | Actions, selected states and positive progress |
 | `--color-accent-foreground` | #ffffff | a hex literal in the handoff | #0e1320 | a hex literal in the handoff | The label on an accent fill |
 | `--color-muted` | #f1ece8 | a hex literal in the handoff | #232a3e | a hex literal in the handoff | A muted panel |
-| `--color-muted-foreground` | #5e6472 | a hex literal in the handoff | #a3a9b6 | a hex literal in the handoff | Secondary text, captions and helper text |
-| `--color-success` | #1f8a4c | a hex literal in the handoff | #4cc38a | a hex literal in the handoff | A success mark |
-| `--color-warning` | #f6c453 | a hex literal in the handoff | #f6c453 | a hex literal in the handoff | A warning fill |
+| `--color-muted-foreground` | #3a4256 | a hex literal in the handoff | #a3a9b6 | a hex literal in the handoff | Secondary text, captions and helper text |
+| `--color-success` | #2f7a55 | a hex literal in the handoff | #4cc38a | a hex literal in the handoff | A success mark |
+| `--color-warning` | #f4a93b | a hex literal in the handoff | #f6c453 | a hex literal in the handoff | A warning fill |
 | `--color-danger` | #ee6b57 | a hex literal in the handoff | #f27a9c | a hex literal in the handoff | A danger fill |
-| `--color-info` | #2f4a8a | a hex literal in the handoff | #8fa8e6 | a hex literal in the handoff | An information mark |
-| `--color-highlight` | #f6c453 | a hex literal in the handoff | #f6c453 | a hex literal in the handoff | A highlight fill |
+| `--color-info` | #2f5fa8 | a hex literal in the handoff | #8fa8e6 | a hex literal in the handoff | An information mark |
+| `--color-highlight` | #f4a93b | a hex literal in the handoff | #f6c453 | a hex literal in the handoff | A highlight fill |
 | `--color-coral` | #e5533f | a hex literal in the handoff | #f07a68 | a hex literal in the handoff | A coral fill |
 | `--color-border` | #dad2cb | a hex literal in the handoff | #3a4257 | a hex literal in the handoff | A hairline |
 | `--color-input` | #ded8d3 | a hex literal in the handoff | #333b50 | a hex literal in the handoff | The resting boundary of a field |
@@ -157,18 +157,18 @@ The table below is computed here with the same formula `scripts/check-boundaries
 
 | Foreground | on background | on surface | on surfaceRaised | on muted |
 | --- | --- | --- | --- | --- |
-| `light.foreground` | 16.19:1 — declared at 4.5:1 — clears | 17.15:1 — declared at 4.5:1 — clears | 15.27:1 — declared at 4.5:1 — clears | 14.62:1 — declared at 4.5:1 — clears |
-| `light.primary` | 16.19:1 — declared at 4.5:1 — clears | 17.15:1 — declared at 4.5:1 — clears | 15.27:1 — declared at 4.5:1 — clears | 14.62:1 — declared at 4.5:1 — clears |
-| `light.accent` | 4.56:1 — declared at 3:1 — clears | 4.83:1 — declared at 3:1 — clears | 4.3:1 — declared at 3:1 — clears | 4.12:1 — declared at 3:1 — clears |
-| `light.success` | 4.13:1 — declared at 3:1 — clears | 4.38:1 — declared at 3:1 — clears | 3.9:1 — declared at 3:1 — clears | 3.73:1 — declared at 3:1 — clears |
-| `light.warning` | 1.53:1 — parked at 3:1 — replace with #92400e (6.69:1) | 1.62:1 — parked at 3:1 — replace with #92400e (7.09:1) | 1.45:1 — parked at 3:1 — replace with #92400e (6.31:1) | 1.38:1 — parked at 3:1 — replace with #92400e (6.04:1) |
-| `light.danger` | 2.88:1 — parked at 3:1 — replace with #b42318 (6.21:1) | 3.05:1 — declared at 3:1 — clears | 2.72:1 — parked at 3:1 — replace with #b42318 (5.85:1) | 2.6:1 — parked at 3:1 — replace with #b42318 (5.6:1) |
-| `light.info` | 8.03:1 — declared at 3:1 — clears | 8.51:1 — declared at 3:1 — clears | 7.58:1 — declared at 3:1 — clears | 7.26:1 — declared at 3:1 — clears |
-| `light.highlight` | 1.53:1 — parked at 3:1 — replace with #92400e (6.69:1) | 1.62:1 — parked at 3:1 — replace with #92400e (7.09:1) | 1.45:1 — parked at 3:1 — replace with #92400e (6.31:1) | 1.38:1 — parked at 3:1 — replace with #92400e (6.04:1) |
-| `light.coral` | 3.51:1 — declared at 3:1 — clears | 3.72:1 — declared at 3:1 — clears | 3.32:1 — declared at 3:1 — clears | 3.17:1 — declared at 3:1 — clears |
-| `light.border` | 1.41:1 — declared at 1.2:1 — clears | 1.49:1 — declared at 1.2:1 — clears | 1.33:1 — declared at 1.2:1 — clears | 1.27:1 — declared at 1.2:1 — clears |
-| `light.input` | 1.33:1 — parked at 3:1 — replace with #4e6b7a (5.35:1) | 1.41:1 — parked at 3:1 — replace with #4e6b7a (5.66:1) | 1.26:1 — parked at 3:1 — replace with #4e6b7a (5.04:1) | 1.2:1 — parked at 3:1 — replace with #4e6b7a (4.83:1) |
-| `light.ring` | 4.56:1 — declared at 3:1 — clears | 4.83:1 — declared at 3:1 — clears | 4.3:1 — declared at 3:1 — clears | 4.12:1 — declared at 3:1 — clears |
+| `light.foreground` | 16.21:1 — declared at 4.5:1 — clears | 17.15:1 — declared at 4.5:1 — clears | 14.96:1 — declared at 4.5:1 — clears | 14.62:1 — declared at 4.5:1 — clears |
+| `light.primary` | 16.21:1 — declared at 4.5:1 — clears | 17.15:1 — declared at 4.5:1 — clears | 14.96:1 — declared at 4.5:1 — clears | 14.62:1 — declared at 4.5:1 — clears |
+| `light.accent` | 4.56:1 — declared at 3:1 — clears | 4.83:1 — declared at 3:1 — clears | 4.21:1 — declared at 3:1 — clears | 4.12:1 — declared at 3:1 — clears |
+| `light.success` | 4.92:1 — declared at 3:1 — clears | 5.2:1 — declared at 3:1 — clears | 4.54:1 — declared at 3:1 — clears | 4.44:1 — declared at 3:1 — clears |
+| `light.warning` | 1.88:1 — parked at 3:1 — replace with #92400e (6.7:1) | 1.98:1 — parked at 3:1 — replace with #92400e (7.09:1) | 1.73:1 — parked at 3:1 — replace with #92400e (6.18:1) | 1.69:1 — parked at 3:1 — replace with #92400e (6.04:1) |
+| `light.danger` | 2.89:1 — parked at 3:1 — replace with #b42318 (6.21:1) | 3.05:1 — declared at 3:1 — clears | 2.66:1 — parked at 3:1 — replace with #b42318 (5.73:1) | 2.6:1 — parked at 3:1 — replace with #b42318 (5.6:1) |
+| `light.info` | 5.97:1 — declared at 3:1 — clears | 6.32:1 — declared at 3:1 — clears | 5.51:1 — declared at 3:1 — clears | 5.39:1 — declared at 3:1 — clears |
+| `light.highlight` | 1.88:1 — parked at 3:1 — replace with #92400e (6.7:1) | 1.98:1 — parked at 3:1 — replace with #92400e (7.09:1) | 1.73:1 — parked at 3:1 — replace with #92400e (6.18:1) | 1.69:1 — parked at 3:1 — replace with #92400e (6.04:1) |
+| `light.coral` | 3.52:1 — declared at 3:1 — clears | 3.72:1 — declared at 3:1 — clears | 3.25:1 — declared at 3:1 — clears | 3.17:1 — declared at 3:1 — clears |
+| `light.border` | 1.41:1 — declared at 1.2:1 — clears | 1.49:1 — declared at 1.2:1 — clears | 1.3:1 — declared at 1.2:1 — clears | 1.27:1 — declared at 1.2:1 — clears |
+| `light.input` | 1.33:1 — parked at 3:1 — replace with #4e6b7a (5.35:1) | 1.41:1 — parked at 3:1 — replace with #4e6b7a (5.66:1) | 1.23:1 — parked at 3:1 — replace with #4e6b7a (4.94:1) | 1.2:1 — parked at 3:1 — replace with #4e6b7a (4.83:1) |
+| `light.ring` | 4.56:1 — declared at 3:1 — clears | 4.83:1 — declared at 3:1 — clears | 4.21:1 — declared at 3:1 — clears | 4.12:1 — declared at 3:1 — clears |
 
 #### Dark scheme
 
@@ -193,8 +193,8 @@ The fills that carry words, declared and measured:
 | --- | --- | --- | --- | --- |
 | `light.primaryForeground` | `light.primary` | 4.5:1 | 17.15:1 | Light: the label of a primary button. |
 | `light.accentForeground` | `light.accent` | 4.5:1 | 4.83:1 | Light: the label of an accent button or a selected chip. |
-| `light.foreground` | `light.highlight` | 4.5:1 | 10.57:1 | Light: dark text on a highlight fill — the only text a highlight tile may carry. |
-| `light.foreground` | `light.warning` | 4.5:1 | 10.57:1 | Light: dark text on a warning fill — the only text a warning tile may carry. |
+| `light.foreground` | `light.highlight` | 4.5:1 | 8.64:1 | Light: dark text on a highlight fill — the only text a highlight tile may carry. |
+| `light.foreground` | `light.warning` | 4.5:1 | 8.64:1 | Light: dark text on a warning fill — the only text a warning tile may carry. |
 | `light.foreground` | `light.coral` | 4.5:1 | 4.61:1 | Light: dark text on a coral fill — the only text a coral tile may carry. |
 | `light.foreground` | `light.danger` | 4.5:1 | 5.62:1 | Light: dark text on a danger fill — the only text a danger tile may carry. |
 | `dark.primaryForeground` | `dark.primary` | 4.5:1 | 6.79:1 | Dark: the label of a primary button. |
@@ -210,23 +210,23 @@ Generation five, 13 October 2026: the fresh look (navy, coral, crimson kept for 
 
 | Foreground | Background | Floor | Measured | Proposed fix | Fix measures |
 | --- | --- | --- | --- | --- | --- |
-| `light.danger` | `light.background` | 3:1 | 2.88:1 | #b42318 | 6.21:1 |
-| `light.warning` | `light.background` | 3:1 | 1.53:1 | #92400e | 6.69:1 |
-| `light.highlight` | `light.background` | 3:1 | 1.53:1 | #92400e | 6.69:1 |
+| `light.danger` | `light.background` | 3:1 | 2.89:1 | #b42318 | 6.21:1 |
+| `light.warning` | `light.background` | 3:1 | 1.88:1 | #92400e | 6.7:1 |
+| `light.highlight` | `light.background` | 3:1 | 1.88:1 | #92400e | 6.7:1 |
 | `light.input` | `light.background` | 3:1 | 1.33:1 | #4e6b7a | 5.35:1 |
-| `light.warning` | `light.surface` | 3:1 | 1.62:1 | #92400e | 7.09:1 |
-| `light.highlight` | `light.surface` | 3:1 | 1.62:1 | #92400e | 7.09:1 |
+| `light.warning` | `light.surface` | 3:1 | 1.98:1 | #92400e | 7.09:1 |
+| `light.highlight` | `light.surface` | 3:1 | 1.98:1 | #92400e | 7.09:1 |
 | `light.input` | `light.surface` | 3:1 | 1.41:1 | #4e6b7a | 5.66:1 |
-| `light.danger` | `light.surfaceRaised` | 3:1 | 2.72:1 | #b42318 | 5.85:1 |
-| `light.warning` | `light.surfaceRaised` | 3:1 | 1.45:1 | #92400e | 6.31:1 |
-| `light.highlight` | `light.surfaceRaised` | 3:1 | 1.45:1 | #92400e | 6.31:1 |
-| `light.input` | `light.surfaceRaised` | 3:1 | 1.26:1 | #4e6b7a | 5.04:1 |
+| `light.danger` | `light.surfaceRaised` | 3:1 | 2.66:1 | #b42318 | 5.73:1 |
+| `light.warning` | `light.surfaceRaised` | 3:1 | 1.73:1 | #92400e | 6.18:1 |
+| `light.highlight` | `light.surfaceRaised` | 3:1 | 1.73:1 | #92400e | 6.18:1 |
+| `light.input` | `light.surfaceRaised` | 3:1 | 1.23:1 | #4e6b7a | 4.94:1 |
 | `light.danger` | `light.muted` | 3:1 | 2.6:1 | #b42318 | 5.6:1 |
-| `light.warning` | `light.muted` | 3:1 | 1.38:1 | #92400e | 6.04:1 |
-| `light.highlight` | `light.muted` | 3:1 | 1.38:1 | #92400e | 6.04:1 |
+| `light.warning` | `light.muted` | 3:1 | 1.69:1 | #92400e | 6.04:1 |
+| `light.highlight` | `light.muted` | 3:1 | 1.69:1 | #92400e | 6.04:1 |
 | `light.input` | `light.muted` | 3:1 | 1.2:1 | #4e6b7a | 4.83:1 |
-| `light.primaryForeground` | `light.highlight` | 4.5:1 | 1.62:1 | #022235 | 10.09:1 |
-| `light.primaryForeground` | `light.warning` | 4.5:1 | 1.62:1 | #022235 | 10.09:1 |
+| `light.primaryForeground` | `light.highlight` | 4.5:1 | 1.98:1 | #022235 | 8.25:1 |
+| `light.primaryForeground` | `light.warning` | 4.5:1 | 1.98:1 | #022235 | 8.25:1 |
 | `light.primaryForeground` | `light.coral` | 4.5:1 | 3.72:1 | #141b2d | 4.61:1 |
 | `light.primaryForeground` | `light.danger` | 4.5:1 | 3.05:1 | #022235 | 5.36:1 |
 | `dark.input` | `dark.background` | 3:1 | 1.66:1 | #93a9b0 | 7.54:1 |
@@ -515,13 +515,13 @@ The handoff asks that every changed screen be verified for "keyboard focus, over
 | Token | Value | Web | Native |
 | --- | --- | --- | --- |
 | spacing | 4, 8, 12, 16, 20, 24, 32, 40 | `--space-4` `--space-8` `--space-12` `--space-16` `--space-20` `--space-24` `--space-32` `--space-40` | ThusoSpacing |
-| radius.sm | 6 px | `--r-sm` | ThusoRadius.sm |
-| radius.md | 8 px | `--r-md` | ThusoRadius.md |
-| radius.lg | 12 px | `--r-lg` | ThusoRadius.lg |
-| radius.card | 12 px | `--r-card` | ThusoRadius.card |
-| radius.panel | 12 px | `--r-panel` | ThusoRadius.panel |
-| radius.control | 8 px | `--r-control` | ThusoRadius.control |
-| radius.tile | 8 px | `--r-tile` | ThusoRadius.tile |
+| radius.sm | 8 px | `--r-sm` | ThusoRadius.sm |
+| radius.md | 14 px | `--r-md` | ThusoRadius.md |
+| radius.lg | 20 px | `--r-lg` | ThusoRadius.lg |
+| radius.card | 20 px | `--r-card` | ThusoRadius.card |
+| radius.panel | 20 px | `--r-panel` | ThusoRadius.panel |
+| radius.control | 14 px | `--r-control` | ThusoRadius.control |
+| radius.tile | 14 px | `--r-tile` | ThusoRadius.tile |
 | radius.pill | 999 px | `--r-pill` | ThusoRadius.pill |
 | elevation.card | 0 1px 2px rgba(2,34,53,.06) | `--shadow` | ThusoElevation.card |
 | elevation.raised | 0 8px 24px rgba(2,34,53,.10) | `--shadow-raised` | ThusoElevation.raised |
@@ -531,7 +531,7 @@ The handoff asks that every changed screen be verified for "keyboard focus, over
 | motion.easeSoft | cubic-bezier(0.22, 1, 0.36, 1) | `--ease-soft` | ThusoMotion.easeSoft |
 | motion.durationMs | 180 ms | `--motion-duration` | the older single duration the native theme layers spend |
 
-Radii: The handoff's three radii — sm 6, md 8, lg 12 — since 28 September 2026, and the five names the product already spends mapped onto them: card and panel are lg, control and tile are md, pill stays 999. The mapping is enforced by scripts/check-boundaries.mjs, so the whole product took compact corners in one change and cannot drift back a card at a time. They were 20 / 28 / 16 / 16 before.
+Radii: The handoff's three radii — sm 6, md 8, lg 12 — since 28 September 2026, and the five names the product already spends mapped onto them: card and panel are lg, control and tile are md, pill stays 999. The mapping is enforced by scripts/check-boundaries.mjs, so the whole product took compact corners in one change and cannot drift back a card at a time. They were 20 / 28 / 16 / 16 before. Since 29 October 2026 (MyThuso v3) the three are 8 / 14 / 20, measured off the pack's phone screens at 390 pt: softer cards and controls, the same mapping.
 
 Elevation: The handoff's --shadow-sm and --shadow-md, since 28 September 2026: 0 1px 2px oklch(0.24 0.052 239 / 0.06) and 0 8px 24px oklch(0.24 0.052 239 / 0.1). Written here as rgba of the same colour — oklch(0.24 0.052 239) is light.foreground, #022235 — because that is the form the stylesheets already spend as --shadow and --shadow-raised. card is the handoff's sm and raised is its md; there is no third.
 
@@ -549,10 +549,11 @@ Glass: A glass panel may not sit on top of text. Blur behind a word is the one p
 
 Chapter 7 logged the motion system's timing and, until this edition, none of its movements — the gap docs/ROADMAP.md's Gap 1 names. It is closed by derivation, not transcription. The handoff master `packages/brand/lovable-handoff/handoff/src/styles/theme.css` specifies 33 named `@keyframes`; porting them by name was refused, because the product already speaks the handoff's motion language — one curve, three durations, entrances on `data-reveal`, ambient loops gated on `data-decor` — and 31 orphan keyframes would have been a second motion system wearing the first one's clothes. Only 2 of the handoff's names the product carries (`mythuso-signal` and `impact-halo-pulse`); the movement it lacked it was given in its own voice, each with a real player on a screen and a test that walks it. `scripts/check-boundaries.mjs` refuses a keyframe nothing plays and an endless animation the pause control cannot stop, so no movement below is an orphan.
 
-The product's own stylesheets carry 74 named movements across 27 files, on the tokens' curve and durations, finite unless one of the ambient loops the pause control stops, and removed — not shortened — under reduced motion. The motion tests (`tests/chart-motion.spec.ts`, `tests/gilbertone-motion.spec.ts`, `tests/map.spec.ts`, `tests/motion.spec.ts`, `tests/patient-pages.spec.ts`) walk them on both viewports.
+The product's own stylesheets carry 86 named movements across 28 files, on the tokens' curve and durations, finite unless one of the ambient loops the pause control stops, and removed — not shortened — under reduced motion. The motion tests (`tests/chart-motion.spec.ts`, `tests/gilbertone-motion.spec.ts`, `tests/map.spec.ts`, `tests/motion.spec.ts`, `tests/patient-pages.spec.ts`) walk them on both viewports.
 
 | Surface | Movements it plays |
 | --- | --- |
+| `components/g1-helper.css` | `s-breathe` `blink` `s-listen` `b-think` `s-think` `spin` `s-pop` `ring` `s-jump` `s-shadow` `wave` `s-shake` |
 | `features/assistant-motion.css` | `as-rise` `as-said-in` `as-settle` `as-listening` `as-dot` `go-b-breathe` `go-b-look` `go-b-think-eyes` `go-b-dot` `go-b-wave` `go-b-wave-hop` `go-b-hop` `go-b-open-out` `go-b-arc-in` |
 | `features/care-tips.css` | `ct-card-in` `ct-words-in` |
 | `features/clinical-deck.css` | `c-card-in` |

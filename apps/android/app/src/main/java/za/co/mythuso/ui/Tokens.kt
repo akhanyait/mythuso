@@ -68,7 +68,7 @@ val StudioOlive = Color(0xFFC2412F)
 val BrandInk = Color(0xFF141B2D)
 val BrandGreen = Color(0xFFC8452F)
 val BrandOrange = Color(0xFFE5533F)
-val BrandLime = Color(0xFFF6C453)
+val BrandLime = Color(0xFFF4A93B)
 val BrandMint = Color(0xFFF5A497)
 val BrandCyan = Color(0xFF51F3FC)
 
@@ -77,21 +77,21 @@ val BrandCyan = Color(0xFF51F3FC)
     Android reads them yet; they exist so that restyling a screen is a matter of reaching for one. */
 object ThusoSemantic {
     object Light {
-        val background = Color(0xFFFAF8F6)
+        val background = Color(0xFFFBF8F5)
         val foreground = Color(0xFF141B2D)
         val surface = Color(0xFFFFFFFF)
-        val surfaceRaised = Color(0xFFF5F1EE)
+        val surfaceRaised = Color(0xFFFDECE6)
         val primary = Color(0xFF141B2D)
         val primaryForeground = Color(0xFFFFFFFF)
         val accent = Color(0xFFC8452F)
         val accentForeground = Color(0xFFFFFFFF)
         val muted = Color(0xFFF1ECE8)
-        val mutedForeground = Color(0xFF5E6472)
-        val success = Color(0xFF1F8A4C)
-        val warning = Color(0xFFF6C453)
+        val mutedForeground = Color(0xFF3A4256)
+        val success = Color(0xFF2F7A55)
+        val warning = Color(0xFFF4A93B)
         val danger = Color(0xFFEE6B57)
-        val info = Color(0xFF2F4A8A)
-        val highlight = Color(0xFFF6C453)
+        val info = Color(0xFF2F5FA8)
+        val highlight = Color(0xFFF4A93B)
         val coral = Color(0xFFE5533F)
         val border = Color(0xFFDAD2CB)
         val input = Color(0xFFDED8D3)
@@ -120,13 +120,13 @@ object ThusoSemantic {
     }
 }
 object ThusoRadius {
-    val sm = 6.dp
-    val md = 8.dp
-    val lg = 12.dp
-    val card = 12.dp
-    val panel = 12.dp
-    val control = 8.dp
-    val tile = 8.dp
+    val sm = 8.dp
+    val md = 14.dp
+    val lg = 20.dp
+    val card = 20.dp
+    val panel = 20.dp
+    val control = 14.dp
+    val tile = 14.dp
     val pill = 999.dp
 }
 /** Opacities, as opacities. A flattened grey cannot follow the ground it sits on; an alpha has no

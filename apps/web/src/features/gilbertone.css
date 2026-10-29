@@ -230,3 +230,11 @@
 .go-demo-notes summary::after { content: "Notes for reviewers"; margin-left: 6px; color: var(--color-accent); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 .go-demo-notes[open] summary::after { content: "Hide notes"; }
 .go-demo-notes p { margin: 8px 0 0; }
+
+/* MyThuso v3's six GilbertOne states, as the pack's state sheet lays them out: a card each, the character on
+   the left and its words on the right. */
+.go-v3-grid { list-style: none; margin: var(--space-16) 0 0; padding: 0; display: grid; gap: var(--space-12); grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.go-v3-grid li { display: flex; align-items: center; gap: var(--space-20); padding: var(--space-20); border-radius: var(--r-card); background: var(--color-surface); box-shadow: var(--shadow); }
+.go-v3-grid div { display: grid; gap: 2px; }
+.go-v3-grid small { letter-spacing: .12em; color: var(--color-muted-foreground); font-size: 12px; font-weight: 600; }
+.go-v3-grid strong { font-family: var(--font-display); font-size: 18px; }

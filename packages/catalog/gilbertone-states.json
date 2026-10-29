@@ -1,0 +1,13 @@
+{
+ "_note": "GilbertOne's six states, from the MyThuso v3 redesign pack Gilbert sent on 29 October 2026 (g1/STATES.md and the state sheet, desktop screen 02). Each state changes the silhouette — the peach blob around the G1 mark and the mark's face — and not only its colour, so a person who cannot tell coral from sand still sees what GilbertOne is doing. The words are the pack's example labels; a screen that uses a state may say something more specific, and always says it in text beside the character, which is aria-hidden. Nothing here is a running assistant.",
+ "rule": "GilbertOne helps people find their way and tidy notes. It never diagnoses, never interprets readings clinically and never makes care decisions.",
+ "reducedMotion": "Under reduced motion, a paused page or a hidden tab, each state holds its still pose. The pose is what says what GilbertOne is doing; the movement is only emphasis.",
+ "states": [
+  {"id": "idle", "label": "Here when you need me", "motion": "A slow breathing loop", "pose": "Round and upright"},
+  {"id": "listen", "label": "Listening", "motion": "Leans in and ripples outward", "pose": "Squashed wide and leaning"},
+  {"id": "think", "label": "Reading your notes", "motion": "Orbit dots spin around the 1", "pose": "The orbit is visible"},
+  {"id": "found", "label": "Reading arrived", "motion": "One pop and a glow", "pose": "A halo ring"},
+  {"id": "success", "label": "Visit booked", "motion": "A bounce, and a halo rings out", "pose": "Tall and lifted"},
+  {"id": "error", "label": "No signal, saved on phone", "motion": "Softens and dips, warm and never alarming", "pose": "A warm sand tint, lowered"}
+ ]
+}
