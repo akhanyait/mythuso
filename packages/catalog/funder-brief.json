@@ -180,6 +180,11 @@
           "source": "MyThuso funder brief, October 2026: founding team"
         },
         {
+          "text": "KTC: the proposed hospital partner for referrals, training and its own MyThuso kits. Pathways are to be agreed with KTC, and nothing is signed yet.",
+          "status": "toConfirm",
+          "source": "MyThuso TIA proposal and summary decks, 28 October 2026"
+        },
+        {
           "text": "Devices: connected devices from Alibaba.com suppliers, branded MyThuso and GilbertOne. Whether this is a signed partnership is still to be confirmed.",
           "status": "toConfirm",
           "source": "Founder, 13 October 2026"
@@ -195,7 +200,7 @@
           "source": "MyThuso funder brief, October 2026"
         }
       ],
-      "answer": "Our clinical lead is Dr Xolile Vena, a GP who sets our protocols and chairs clinical safety reviews. Our devices come from Alibaba.com suppliers, branded MyThuso and GilbertOne. Gilbert will name our other partners and where each stands. We are seeking impact investors, health foundations, provincial health departments and medical schemes."
+      "answer": "Our clinical lead is Dr Xolile Vena, a GP who sets our protocols and chairs clinical safety reviews. KTC is our proposed hospital partner for referrals and training, though nothing is signed with KTC yet. Our devices come from Alibaba.com suppliers, branded MyThuso and GilbertOne. Gilbert will name our other partners and where each stands. We are seeking impact investors, health foundations, provincial health departments and medical schemes."
     },
     {
       "id": "cofunding",
@@ -286,9 +291,9 @@
           "source": "MyThuso app"
         },
         {
-          "text": "The first pilot is in Gugulethu, Cape Town, where the founder grew up: 1,000 households, 30 part-time nurses, 3 reviewing doctors and 6,000 home visits over 18 months.",
+          "text": "The first pilot starts in Gugulethu, Cape Town, where the founder grew up, then grows to three areas: 30, then 90, then 180 users, with 6 nurses, 2 doctors, 3 leased branded cars and about 1,080 home visits over 18 months. Every user gets a branded, tracked device.",
           "status": "planning",
-          "source": "Proposed planning assumption, 13 October 2026"
+          "source": "MyThuso TIA proposal and summary decks, 28 October 2026"
         },
         {
           "text": "Before real patients: a data protection impact assessment, an Information Officer and data kept in South Africa.",
@@ -302,7 +307,7 @@
       "id": "ask",
       "order": 8,
       "title": "The ask",
-      "lead": "R12.5m for an 18-month pilot in Gugulethu, released in three tranches, each against evidence.",
+      "lead": "R12.5m over 18 months for a pilot that starts in Gugulethu and grows to 180 users, released in three gates against evidence.",
       "facts": [
         {
           "figure": "R12.5m",
@@ -312,63 +317,71 @@
         },
         {
           "figure": "R3.5m",
-          "text": "months 1 to 5, prepare: clinical team, insurance, privacy, SAHPRA and branded devices. Gate: independent readiness review before any patient.",
+          "text": "months 1 to 5: entity and IP baseline, devices tested, a costed team trained. Gate: acceptance evidence before any patient.",
           "status": "planning",
-          "source": "Proposed planning assumption, 13 October 2026"
+          "source": "MyThuso TIA proposal and summary decks, 28 October 2026"
         },
         {
           "figure": "R5.0m",
-          "text": "months 6 to 12, deliver: 1,000 households, 30 nurses, 3 reviewing doctors. Gate: 1,000 completed visits, incidents reviewed, costs reconciled.",
+          "text": "months 6 to 12: paid duties start and users grow to about 90 across two areas, with 4 nurses and 2 doctors. Gate: acceptance evidence on visits, incidents and costs.",
           "status": "planning",
-          "source": "Proposed planning assumption, 13 October 2026"
+          "source": "MyThuso TIA proposal and summary decks, 28 October 2026"
         },
         {
           "figure": "R4.0m",
-          "text": "months 13 to 18, validate: 6,000 visits and an independent evaluation. Gate: clinical audit and a sustainable cost per visit before a second site.",
+          "text": "months 13 to 18: 180 users in three areas, delivered under independent evaluation, and contracts for the next cohort. Gate: the evaluation's evidence before scale.",
           "status": "planning",
-          "source": "Proposed planning assumption, 13 October 2026"
+          "source": "MyThuso TIA proposal and summary decks, 28 October 2026"
         }
       ],
-      "answer": "We ask for R12.5 million for an 18-month pilot in Gugulethu, Cape Town: 1,000 households, 30 nurses, three reviewing doctors and 6,000 home visits, free to families. It is released in three tranches of R3.5 million, R5 million and R4 million, and each tranche unlocks only when its gate is met.",
+      "answer": "We ask for R12.5 million for an 18-month pilot that starts in Gugulethu, Cape Town, and grows to 180 users in three areas, with six nurses, two doctors, three leased branded cars and about 1,080 home visits. Every user gets a branded, tracked device, and KTC gets fewer routine trips, not more work. It is released in three tranches of R3.5 million, R5 million and R4 million, and each tranche unlocks only against acceptance evidence.",
       "budget": {
         "lead": "Where the R12.5m goes",
         "currency": "ZAR",
         "total": 12500000,
         "lines": [
           {
-            "label": "Clinical team and governance",
-            "amount": 2400000
+            "label": "IoT devices for every user, nurse and clinic",
+            "amount": 1980000
           },
           {
-            "label": "Technology and GilbertOne",
-            "amount": 2200000
+            "label": "Platform and GilbertOne",
+            "amount": 2000000
           },
           {
-            "label": "Branded devices from Alibaba.com suppliers",
-            "amount": 1900000
+            "label": "Engineers",
+            "amount": 1260000
           },
           {
-            "label": "Gugulethu operations and community",
-            "amount": 1500000
+            "label": "Leased cars, drivers and wraps",
+            "amount": 1020000
           },
           {
-            "label": "Nurse home visits: 6,000 at R224",
-            "amount": 1350000
+            "label": "Clinical duties",
+            "amount": 700000
           },
           {
-            "label": "Legal, privacy, insurance and regulatory",
-            "amount": 1000000
+            "label": "Operations",
+            "amount": 1650000
+          },
+          {
+            "label": "Assurance",
+            "amount": 800000
           },
           {
             "label": "Independent evaluation",
-            "amount": 600000
+            "amount": 500000
           },
           {
-            "label": "Reserve",
-            "amount": 1550000
+            "label": "Trackers and branding",
+            "amount": 70000
+          },
+          {
+            "label": "Contingency",
+            "amount": 2520000
           }
         ],
-        "source": "Proposed planning assumptions, 13 October 2026. Devices at R18.50 to the dollar plus 45% for freight, VAT, duty and clearing."
+        "source": "Planning figures within R12.5m, MyThuso TIA proposal and summary decks, 28 October 2026. Planning assumptions, not contracts."
       }
     }
   ],
