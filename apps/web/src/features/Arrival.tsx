@@ -1,3 +1,4 @@
+import { G1Help } from '../components/G1Helper';
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { ArrowRight, CalendarClock, Clock3, MapPin, Navigation, Radio, Route, ShieldCheck } from 'lucide-react';
 import { Pill, SectionTitle } from '../components/UI';
@@ -88,6 +89,7 @@ export function Arrival({ row, navigate, view }: {
 
  if (!row) return <>
   <div className="page-intro"><div className="eyebrow">YOUR VISIT</div><h1>Where is your nurse?</h1></div>
+  <G1Help at="visitDay"/>
   <EmptyState title="Nothing to follow" body="When you book a visit, this is where you will see who is coming and how far away they are on the day." action="Book a nurse" onAction={() => navigate('Book a nurse')}/>
  </>;
 
@@ -126,6 +128,8 @@ export function Arrival({ row, navigate, view }: {
   <div className="page-intro"><div className="eyebrow">YOUR VISIT</div>
    <h1>Where is your nurse?</h1>
    <p>{visit.service.name} for {visit.person}{visit.date ? ` · ${longDateOf(visit.date)}` : ''}</p></div>
+  {/* GilbertOne's found pose only while this screen's own arithmetic has the nurse on her way; idle otherwise. */}
+  <G1Help at={arrival.state === 'on-the-day' && arrival.leg?.onTheWay ? 'visitOnTheWay' : 'visitDay'}/>
   <NotConnected of="dispatch"/>
 
   {arrival.state === 'outside-coverage' && <div className="privacy-note alert" role="status">

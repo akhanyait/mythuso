@@ -1,3 +1,4 @@
+import { G1Help } from '../components/G1Helper';
 import { Component, createContext, lazy, Suspense, useContext, useState, type CSSProperties, type ReactNode } from 'react';
 import { Ambulance, ArrowRight, ArrowUpRight, Ban, Bell, CalendarClock, Check, ChevronRight, CircleHelp, Clock3, CreditCard, Eye, FileCheck, FileText, Globe, HandCoins, HeartHandshake, History, LockKeyhole, LogOut, MapPin, Navigation, PenLine, Plus, RefreshCw, Search, ShieldCheck, Sparkles, Stethoscope, Trash2, TriangleAlert, UserPlus, Users, Wallet, Zap } from 'lucide-react';
 import { Pill, SectionTitle, ServiceIcon, tintOf } from '../components/UI';
@@ -284,9 +285,12 @@ export function Passport({open,navigate,next,view,manage}:{open:(s:string)=>void
    <div><p className="pd-eyebrow">THUSO PASSPORT</p><h1>Health Passport</h1><p className="pd-welcome__sub">Your health. Your story. Every visit, reading and result, in one place.</p></div>
   </header>
   <NotConnected of="clinical-records"/>
+  <G1Help at="passport"/>
   {/* A credential, composed as one: the holder's name leads, the reference is a labelled field in tabular
       figures so it can be read out over a phone, and the face is the monogram the rest of the app uses. */}
   <section className="passport-hero">
+   {/* The v3 pack's soft coral shape on the dark credential: decoration, hidden, and still. */}
+   <span className="passport-hero__blob" aria-hidden="true"/>
    <span className="passport-portrait" aria-hidden="true">LM</span>
    <div className="passport-identity">
     <Pill tone="light">Preview</Pill>
@@ -315,7 +319,7 @@ export function Passport({open,navigate,next,view,manage}:{open:(s:string)=>void
  * underneath it. Choosing somebody here opens their *booking*: the sentence that used to be buried
  * in the card body is now a word a person can see without reading, on every row where it applies. */
 const relationOf=(i:number)=>i===0?'You':i===1?'Mother':i===2?'Child · 8 years':'Added by you';
-export function Family({open,navigate,members,invitations,onRevoke}:{open:(s:string)=>void;navigate:(s:string)=>void;members:string[];invitations:Invitation[];onRevoke:(id:string)=>void}) {return <><PageHeading eyebrow="THUSO FAMILY" title="Care for your whole circle." description="Be there for the people you love, wherever you are."/>
+export function Family({open,navigate,members,invitations,onRevoke}:{open:(s:string)=>void;navigate:(s:string)=>void;members:string[];invitations:Invitation[];onRevoke:(id:string)=>void}) {return <><PageHeading eyebrow="THUSO FAMILY" title="Care for your whole circle." description="Be there for the people you love, wherever you are."/><G1Help at="family"/>
  <NotConnected of="messaging"/>
  <SectionTitle title="Your circle"/>
  <div className="shortcut-list">{['Lerato Molefe','Nomsa Molefe','Thabo Molefe',...members].map((n,i)=>

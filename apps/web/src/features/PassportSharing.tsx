@@ -1,3 +1,4 @@
+import { G1Help } from '../components/G1Helper';
 import { useState } from 'react';
 import { ArrowRight, Ban, Check, History, KeyRound, Link2, Printer, ShieldCheck, Users, X } from 'lucide-react';
 import { Pill } from '../components/UI';
@@ -57,6 +58,7 @@ export function ShareLinks({ navigate }: { navigate: (page: string) => void }) {
  return <>
   <div className="page-intro"><div className="eyebrow">{say.sharing.eyebrow}</div><h1>{say.sharing.title}</h1><p>{say.sharing.intro}</p></div>
   <PreviewNote text={say.sharing.preview}/>
+  <G1Help at="sharing"/>
   {/* The export's two columns: building the link on the left, and on the right what stays private and the
       formats a record could leave in, as a read-only list — built and not built, each with its reason. */}
   <div className="ps-columns"><div className="ps-main">

@@ -52,3 +52,16 @@ export function G1Helper({ state, size = 64, onDark = false, className }: { stat
     </span>
   );
 }
+
+/* The v3 pack's helper line: GilbertOne beside one sentence from gilbertone-states.json. A screen names where it is and
+   the contract decides the pose and the words, so no screen types a sentence for GilbertOne. It is a note rather than a
+   button, because nothing here is a running assistant: the line says what GilbertOne is for, and the panel is opened
+   from its own control. */
+export type G1HelperAt = keyof typeof states.helpers;
+export function G1Help({ at }: { at: G1HelperAt }) {
+  const line = states.helpers[at];
+  return <aside className="g1-help" aria-label="GilbertOne" data-g1-help={at}>
+    <G1Helper state={line.state as G1State} size={46}/>
+    <p>{line.text}</p>
+  </aside>;
+}

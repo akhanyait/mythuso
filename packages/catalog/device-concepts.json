@@ -1,0 +1,20 @@
+{
+ "_note": "The device pictures of the MyThuso v3 redesign pack (29 October 2026). The pack took them, unaltered, from the TIA funding proposal of 28 October 2026: the nurse kit from page 9 and the home kit cropped from a render of page 8. They are concepts: the proposal says exact models, clinical use and SAHPRA approvals are fixed at Gate 1. So each picture is shown with the notice below, never as a product photograph, and never beside a price, a maker or a claim that anything is paired.",
+ "notice": "Device concept from the MyThuso funding proposal. Not a product photograph, not ordered, and not a SAHPRA-approved medical device.",
+ "source": "TIA funding proposal, 28 October 2026, pages 8 and 9, via the MyThuso v3 redesign pack",
+ "concepts": [
+  {"id": "bp-monitor", "file": "/devices/concepts/bp-monitor.webp", "alt": "Upper-arm blood pressure monitor, a concept drawing", "kitDevice": "bp-cuff", "kit": "home"},
+  {"id": "pulse-oximeter", "file": "/devices/concepts/pulse-oximeter.webp", "alt": "Fingertip pulse oximeter, a concept drawing", "kitDevice": "pulse-oximeter", "kit": "home"},
+  {"id": "thermometer", "file": "/devices/concepts/thermometer.webp", "alt": "Clinical thermometer, a concept drawing", "kitDevice": "thermometer", "kit": "home"},
+  {"id": "glucose-meter", "file": "/devices/concepts/glucose-meter.webp", "alt": "Blood glucose meter, a concept drawing", "kitDevice": "glucometer", "kit": "home"},
+  {"id": "scale", "file": "/devices/concepts/scale.webp", "alt": "Digital scale, a concept drawing", "kitDevice": "scale", "kit": "home"},
+  {"id": "activity-watch", "file": "/devices/concepts/activity-watch.webp", "alt": "Activity watch, a concept drawing", "kitDevice": null, "kit": "home"},
+  {"id": "cgm", "file": "/devices/concepts/cgm.webp", "alt": "Continuous glucose sensor, a concept drawing", "kitDevice": null, "kit": "home"},
+  {"id": "sos-pendant", "file": "/devices/concepts/sos-pendant.webp", "alt": "SOS and fall-support pendant, a concept drawing", "kitDevice": null, "kit": "home"},
+  {"id": "ecg", "file": "/devices/concepts/ecg.webp", "alt": "Portable ECG, a concept drawing", "kitDevice": "ecg", "kit": "nurse"},
+  {"id": "stethoscope", "file": "/devices/concepts/stethoscope.webp", "alt": "Digital stethoscope, a concept drawing", "kitDevice": null, "kit": "nurse"},
+  {"id": "otoscope", "file": "/devices/concepts/otoscope.webp", "alt": "Digital otoscope, a concept drawing", "kitDevice": null, "kit": "nurse"},
+  {"id": "spirometer", "file": "/devices/concepts/spirometer.webp", "alt": "Diagnostic spirometer, a concept drawing", "kitDevice": null, "kit": "nurse"},
+  {"id": "urine-analyser", "file": "/devices/concepts/urine-analyser.webp", "alt": "Urine-strip analyser, a concept drawing", "kitDevice": null, "kit": "nurse"}
+ ]
+}

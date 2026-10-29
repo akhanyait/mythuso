@@ -3,6 +3,7 @@ import '../surface/patient-identity.css';
 import { Suspense, lazy } from 'react';
 import { ArrowRight, BadgeCheck, ChevronDown, ChevronRight, Clock3, Handshake, Library, MapPin, NotebookPen, Plus, Salad, Search, ShieldCheck, Siren, Zap } from 'lucide-react';
 import { ServiceIcon } from '../components/UI';
+import { G1Help } from '../components/G1Helper';
 import {
  Badge, Button, Card, Input, MyThusoFamilyIcon, MyThusoHealthIcon, MyThusoMedicationIcon, MyThusoMessagesIcon,
  MyThusoResultsIcon, MyThusoVisitIcon
@@ -99,6 +100,9 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
    <p className="pd-welcome__quote" aria-hidden="true">{t('shell.tagline')}</p>
   </header>
 
+  {/* The v3 pack's helper line, under the welcome: what GilbertOne is for, in the contract's words. */}
+  <G1Help at="home"/>
+
   {/* The export's appointment hero in the primary colour, and the one thing a person opened the home for:
       what is arranged next. Its facts are the booked visit's own; the nurse is the one lib/arrival.ts assigns
       to the visit's suburb, drawn as initials because there is no photograph of anybody to draw. The export's
@@ -106,6 +110,8 @@ export function Dashboard({ navigate, book, open, query, setQuery, visits, locat
       booking rather than an empty frame. */}
   <div className="pd-lead">
    <section className={`pd-hero${next ? '' : ' is-empty'}`} aria-labelledby="pd-hero-title">
+    {/* The v3 pack's soft coral shape behind the dark card. Decoration: hidden, and still unless decor is on. */}
+    <span className="pd-hero__blob" aria-hidden="true"/>
     {next ? <>
      <div className="pd-hero__who">
       <span className="pd-hero__initials" aria-hidden="true">{nurse?.initials}</span>

@@ -1161,3 +1161,8 @@ button.secondary.offline{border-style:dashed;color:var(--faint)}
 .opening-card > .eyebrow { margin: 0 0 var(--space-8); }
 .opening-card > h1 { font-size: 28px; font-weight: 500; letter-spacing: -.5px; margin: 0 0 var(--space-8); }
 .opening-card > p { margin: 0 0 var(--space-8); }
+/* MyThuso v3 (29 October 2026): the pack's soft coral shape on the dark Passport credential. It holds the morph's
+   first frame — the Passport arrives and stops, like the home — sits under every word and is aria-hidden. */
+.passport-hero>:not(.passport-hero__blob){position:relative}
+.passport-hero__blob{position:absolute;right:-60px;top:-70px;width:200px;height:200px;pointer-events:none;border-radius:42% 58% 63% 37%/41% 44% 56% 59%;background:radial-gradient(circle,color-mix(in oklab,var(--color-coral) 60%,transparent),transparent 70%)}
+.g1-help{margin-block:4px 16px}

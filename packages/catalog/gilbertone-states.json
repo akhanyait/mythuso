@@ -9,5 +9,16 @@
   {"id": "found", "label": "Reading arrived", "motion": "One pop and a glow", "pose": "A halo ring"},
   {"id": "success", "label": "Visit booked", "motion": "A bounce, and a halo rings out", "pose": "Tall and lifted"},
   {"id": "error", "label": "No signal, saved on phone", "motion": "Softens and dips, warm and never alarming", "pose": "A warm sand tint, lowered"}
- ]
+ ],
+ "_helpersNote": "The v3 pack's helper line: GilbertOne beside one sentence, on the screens the pack draws it on. Each sentence orients — where to go, what a switch does, who decides — and none says anything about a person's health. The state is the pose drawn beside it; idle and listen are the only two a screen may hold at rest; found, success and error are each about something that has happened, so a line in one of them is drawn only by the screen that saw it happen (visitOnTheWay only while the visit's own arithmetic has the nurse on her way).",
+ "helpers": {
+  "home": {"state": "idle", "text": "Here when you need me. I can help you find a screen or a past visit. I can't give health advice."},
+  "bookCare": {"state": "listen", "text": "Answer one question at a time and I'll show the care you can book. The nurse decides what happens at the visit."},
+  "sharing": {"state": "idle", "text": "You decide who sees your record. I can show you where each choice is, but I can't change one for you."},
+  "passport": {"state": "idle", "text": "Your visits, readings and results will live here. Only you decide who sees them."},
+  "family": {"state": "idle", "text": "Each person keeps their own record. Adults choose what they share with you."},
+  "visitDay": {"state": "idle", "text": "On the day of your visit I'll show you who is coming and when."},
+  "visitOnTheWay": {"state": "found", "text": "Your nurse is on the way. Have your medicines and any letters ready."},
+  "devices": {"state": "idle", "text": "Nothing is paired to you yet. When a device is, a nurse reviews what it sends. The nurse decides."}
+ }
 }
