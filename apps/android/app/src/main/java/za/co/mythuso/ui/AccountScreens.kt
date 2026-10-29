@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.heading
 import za.co.mythuso.model.CaptureState
 import za.co.mythuso.ui.components.*
 import za.co.mythuso.model.FramingData
+import za.co.mythuso.model.GilbertOneStatesData
 import za.co.mythuso.model.MedicinesData
 import za.co.mythuso.model.Passport
 import za.co.mythuso.model.PassportSharingData
@@ -69,6 +70,7 @@ import za.co.mythuso.model.mokoenaHousehold
     var deviceState by remember { mutableStateOf(LoadState.DENIED) }
     val context = LocalContext.current
     ScreenColumn {
+        GilbertOneHelpLine(GilbertOneStatesData.passport)
         ThusoButton(za.co.mythuso.model.LiveVitalsData.Words.patientHeading, onClick = { open(za.co.mythuso.model.LiveVitalsData.Words.patientHeading) }, variant = ThusoButtonVariant.Secondary, modifier = Modifier.fillMaxWidth())
         /* The card is the heading, on the identity: the person, the identifier and the badge on the one
            elevated card of the screen, with the MyThuso health icon where the web puts it. It was a

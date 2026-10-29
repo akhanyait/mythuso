@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GilbertOne's idle pose from the MyThuso v3 pack (29 October 2026), still: the same paths as
+     packages/brand/v3/g1-idle.svg, which the web draws live from components/G1Helper.tsx. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="46dp" android:height="46dp"
+    android:viewportWidth="100" android:viewportHeight="100">
+    <path android:pathData="M50 6C75 6 94 25 94 50C94 75 75 94 50 94C25 94 6 75 6 50C6 25 25 6 50 6Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="radial" android:centerX="35" android:centerY="30" android:gradientRadius="80">
+                <item android:offset="0" android:color="#FFFFF7F3"/>
+                <item android:offset="0.65" android:color="#FFFFE1D7"/>
+                <item android:offset="1" android:color="#FFF7B9A6"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <group android:translateX="20.96" android:translateY="17" android:scaleX="0.66" android:scaleY="0.66">
+        <group>
+            <clip-path android:pathData="M-20 -20H130V33H50.75V68.5L61.75 57.5V130H-20Z"/>
+            <path android:fillColor="#FF141B2D" android:pathData="M81.25 50A37.25 37.25 0 1 1 65.895 19.864L56.197 33.213A20.75 20.75 0 1 0 64.75 50Z"/>
+        </group>
+        <path android:fillColor="#FFE5533F" android:pathData="M81.25 39L81.25 87.25L64.75 87.25L64.75 51.5L53.75 62.5L53.75 50L64.75 39Z"/>
+        <path android:fillColor="#FF141B2D" android:pathData="M28.7 48.8A3.8 3.8 0 0 1 36.3 48.8V54.2A3.8 3.8 0 0 1 28.7 54.2Z"/>
+        <path android:fillColor="#FF141B2D" android:pathData="M42.7 48.8A3.8 3.8 0 0 1 50.3 48.8V54.2A3.8 3.8 0 0 1 42.7 54.2Z"/>
+    </group>
+</vector>

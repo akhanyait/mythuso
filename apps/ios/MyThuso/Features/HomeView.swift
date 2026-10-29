@@ -68,6 +68,7 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: ThusoSpacing.space24) {
                 DemoBadge()
                 welcome
+                GilbertOneHelpLine(line: GilbertOneStatesData.home)
                 metrics
                 arranged
                 shortcuts
