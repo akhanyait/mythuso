@@ -3181,6 +3181,13 @@ const generated = [
     command: "npm run crisis-lines",
     files: emitCrisisLines(),
   },
+  /* GilbertOne's helper lines (the v3 pack, 29 October 2026): a sentence GilbertOne says on a phone is the
+     contract's, so it is generated into Swift and Kotlin and never typed there. */
+  {
+    source: "packages/catalog/gilbertone-states.json",
+    command: "npm run gilbertone-states",
+    files: (await import("./emit-gilbertone-states.mjs")).emitGilbertOneStates(),
+  },
   {
     source: "packages/catalog/care-tips.json",
     command: "npm run care-tips",

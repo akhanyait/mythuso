@@ -1,0 +1,14 @@
+{
+ "_note": "The v3 pack's IoT connectivity flow (screen 30, 'From her arm to her nurse'), as an explainer of the path a reading would take — not a status. Nothing on this path is connected in this preview: no device is paired, no phone or hub relays anything, no cloud receives a reading and nobody is notified. The pack marks South African hosting To confirm and so does this. The pack's lanes never reach a family screen and neither does anything here. Its pairing screen is not drawn either: pairing is not built, and a Connect button that pairs nothing would be the first thing on this screen to lie.",
+ "title": "How a reading would reach your nurse",
+ "lead": "The path a reading would take once a device is paired. Nothing on it is connected in this preview.",
+ "steps": [
+  {"id": "device", "name": "A device at home", "detail": "Takes a reading, such as blood pressure, in front of you."},
+  {"id": "phone", "name": "Your phone or a hub", "detail": "Hears the device over Bluetooth. With no signal, it keeps the reading, with its time, and sends it later in order."},
+  {"id": "cloud", "name": "A secure store", "detail": "Encrypted on the way and at rest. Where it is hosted is still to confirm."},
+  {"id": "nurse", "name": "A nurse reviews", "detail": "A person reads it, never an automated score."},
+  {"id": "doctor", "name": "A doctor decides", "detail": "If something needs a decision, a registered doctor makes it."}
+ ],
+ "notConnected": "None of this is connected. No reading leaves any device for this account.",
+ "pairing": {"title": "Pair a device", "refusal": "Pairing is not built yet, so no device can be paired to you in this preview."}
+}

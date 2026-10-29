@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { goSection } from './nav';
+import { goSection, openWorkspace } from './nav';
 
 /* The MyThuso v3 helper line (29 October 2026), on both viewports: GilbertOne beside one sentence on the home, the
  * first step of booking and the share-link screen. The sentence is the contract's word for word, the drawing is
@@ -52,6 +52,29 @@ test('GilbertOne\'s line on the Passport, the family, the visit day and the devi
   expect(await pictures.count()).toBe(concepts.concepts.filter((c: { kitDevice: string | null }) => c.kitDevice).length);
   for (const alt of await pictures.evaluateAll(els => els.map(el => el.getAttribute('alt')))) expect(alt).toMatch(/concept/);
   await expect(page.getByText(concepts.notice)).toBeVisible();
+});
+
+test('the reading\'s path is an explainer that says nothing is connected, and pairing stands as its refusal', async ({ page }) => {
+  const path = JSON.parse(readFileSync(new URL('../packages/catalog/reading-path.json', import.meta.url), 'utf8'));
+  await page.goto('/app/?open=connected-devices');
+  const section = page.getByRole('region', { name: path.title });
+  await expect(section).toBeVisible();
+  for (const step of path.steps) await expect(section.locator(`[data-step="${step.id}"]`)).toContainText(step.name);
+  await expect(section.getByRole('note')).toHaveText(path.notConnected);
+  await expect(section).toContainText(path.pairing.refusal);
+  await expect(section.getByRole('button')).toHaveCount(0);
+  expect(await section.evaluate(el => el.getAnimations({ subtree: true }).length)).toBe(0);
+});
+
+test('the nurse\'s kit shows the planned instruments as concepts, with GilbertOne\'s line', async ({ page }) => {
+  const concepts = JSON.parse(readFileSync(new URL('../packages/catalog/device-concepts.json', import.meta.url), 'utf8'));
+  await openWorkspace(page, 'Nurse');
+  await goSection(page, 'Thuso Kit');
+  const kit = page.getByRole('region', { name: 'Planned for the nurse\'s bag' });
+  await expect(kit).toBeVisible();
+  await helperSays(page, 'nurseKit');
+  await expect(kit.locator('img')).toHaveCount(concepts.concepts.filter((c: { kit: string }) => c.kit === 'nurse').length);
+  await expect(kit).toContainText(concepts.notice);
 });
 
 test('under reduced motion the home\'s helper and the coral shape hold still', async ({ page }) => {

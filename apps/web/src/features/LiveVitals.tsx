@@ -9,6 +9,7 @@ import {
  agoWords, deviceProvenance, fill, formatValue, historyAt, notStreamed, pace, rangeNote, rangePlace, refusals, scenarios, seedOf,
  simulatedClass, simulatedMark, streams, streamsLive, words, type LiveReading, type LiveStream
 } from '../../../../packages/engines/src/devices/live-vitals.ts';
+import { G1Help } from '../components/G1Helper';
 import './live-vitals.css';
 
 /* The patient's devices, live — the founder's ask of 1 October 2026: the Lovable export's live triage
@@ -191,6 +192,8 @@ export function LiveVitalsBoard({ subject, patient, level = 'h2', own = false }:
    <Controls live={live}/>
   </div>
   <Banner/>
+  {/* GilbertOne orients on a clinician's board and says it never sorts; a patient's own board has its line on the page. */}
+  {!own && <G1Help at="liveBoard"/>}
   <Status live={live}/>
   <p className="lv-motion-note">{words.motionNote}</p>
   <ul className="lv-tiles">

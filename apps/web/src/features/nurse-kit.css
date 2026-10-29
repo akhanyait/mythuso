@@ -130,3 +130,9 @@
  .nt-facts > div { grid-template-columns: minmax(0, 1fr); }
  .nt-facts dd { text-align: left; }
 }
+
+/* MyThuso v3 (29 October 2026): the planned instruments as the pack's white picture tiles. */
+.kit-concepts { margin-block: 16px; }
+.kit-concepts__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin: 12px 0; padding: 0; list-style: none; }
+.kit-concepts__list li { display: grid; place-items: center; aspect-ratio: 1; border-radius: var(--r-md); background: var(--color-surface); box-shadow: var(--shadow); overflow: hidden; }
+.kit-concepts__list img { max-width: 100%; max-height: 100%; object-fit: contain; }

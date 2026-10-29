@@ -1,6 +1,7 @@
 package za.co.mythuso.ui
 
 import za.co.mythuso.model.FramingData
+import za.co.mythuso.model.GilbertOneStatesData
 import za.co.mythuso.model.Passport
 import za.co.mythuso.model.passportHolder
 
@@ -69,6 +70,8 @@ import za.co.mythuso.ui.components.*
 @Composable fun HomeScreen(store: PreviewStore, book: (CareService?) -> Unit, open: (String) -> Unit, firstRun: () -> Unit) {
     ScreenColumn {
         HomeGreeting(store, open)
+        /* The v3 pack's helper line, under the welcome, in the contract's words. */
+        GilbertOneHelpLine(GilbertOneStatesData.home)
         HomeNextVisit(store, book, open)
         HomeMetrics(store, open)
         HomeShortcuts(store, book)

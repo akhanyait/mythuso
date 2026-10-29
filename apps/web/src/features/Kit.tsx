@@ -1,3 +1,5 @@
+import { G1Help } from '../components/G1Helper';
+import { conceptNotice, nurseKitConcepts } from '../lib/device-concepts';
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { ArrowLeftRight, Ban, CheckCheck, CircleAlert, GitMerge, History, Inbox, Lock, Radio, Send, ShieldCheck, ShieldX, Undo2, UserCheck } from 'lucide-react';
 import { EmptyNote, Pill, SectionTitle } from '../components/UI';
@@ -140,6 +142,7 @@ export function ThusoKit({ onClose }: { onClose?: () => void }) {
       screen: a disclosure that appears after the thing it qualifies is, for that moment, none. */}
   <Suspense fallback={<NotConnected of="devices"/>}>
   <KitDeck entries={entries} online={online} onToggle={() => setOnline(!online)} localCopyAt={localCopyAt} capturerId={capturerId}/>
+  <NurseKitConcepts/>
 
   <div className="c-sheet form-stack">
   <SectionTitle title="Four origins, and none of them a lesser version of another"/>
@@ -352,4 +355,16 @@ function Resolution({ entry, stored, patch, setNotice }:
   </>}
   {entry.note && <p className="helper" role="status">{entry.note}</p>}
  </div>;
+}
+
+/* The v3 pack's nurse visit kit: the five instruments the funding proposal plans for the bag beyond the capture deck,
+   as its concept pictures with the one notice they all carry. Pictures and names only — what each would measure and
+   how it would be calibrated is for the capture contract once one is chosen at Gate 1. */
+function NurseKitConcepts() {
+ return <section className="panel kit-concepts" aria-labelledby="kit-concepts-title">
+  <h2 id="kit-concepts-title">Planned for the nurse's bag</h2>
+  <G1Help at="nurseKit"/>
+  <ul className="kit-concepts__list">{nurseKitConcepts.map(c => <li key={c.id}><img src={c.file} alt={c.alt} loading="lazy" width={450} height={450}/></li>)}</ul>
+  <p className="helper">{conceptNotice}</p>
+ </section>;
 }

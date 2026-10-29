@@ -19,6 +19,8 @@
   "family": {"state": "idle", "text": "Each person keeps their own record. Adults choose what they share with you."},
   "visitDay": {"state": "idle", "text": "On the day of your visit I'll show you who is coming and when."},
   "visitOnTheWay": {"state": "found", "text": "Your nurse is on the way. Have your medicines and any letters ready."},
-  "devices": {"state": "idle", "text": "Nothing is paired to you yet. When a device is, a nurse reviews what it sends. The nurse decides."}
+  "devices": {"state": "idle", "text": "Nothing is paired to you yet. When a device is, a nurse reviews what it sends. The nurse decides."},
+  "liveBoard": {"state": "found", "text": "A new reading arrived. A nurse or doctor reviews it. I never sort, rank or explain readings."},
+  "nurseKit": {"state": "idle", "text": "These are the instruments the funding proposal plans for your bag. None is ordered yet."}
  }
 }

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- GilbertOne's idle pose from the MyThuso v3 pack (src/g1.js, 29 October 2026), still: the peach blob and the G1
+       mark's face. The phones draw this beside a helper line; the web draws it live from components/G1Helper.tsx. -->
+  <defs>
+    <radialGradient id="g" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#FFF7F3"/><stop offset=".65" stop-color="#FFE1D7"/><stop offset="1" stop-color="#F7B9A6"/></radialGradient>
+    <clipPath id="c"><path d="M-20 -20H130V33H50.75V68.5L61.75 57.5V130H-20Z"/></clipPath>
+  </defs>
+  <path d="M50 6C75 6 94 25 94 50C94 75 75 94 50 94C25 94 6 75 6 50C6 25 25 6 50 6Z" fill="url(#g)"/>
+  <g transform="translate(50 50) scale(.66) translate(-44 -50)">
+    <path d="M81.25 50A37.25 37.25 0 1 1 65.895 19.864L56.197 33.213A20.75 20.75 0 1 0 64.75 50Z" fill="#141B2D" clip-path="url(#c)"/>
+    <path d="M81.25 39L81.25 87.25L64.75 87.25L64.75 51.5L53.75 62.5L53.75 50L64.75 39Z" fill="#E5533F"/>
+    <rect x="28.7" y="45" width="7.6" height="13" rx="3.8" fill="#141B2D"/>
+    <rect x="42.7" y="45" width="7.6" height="13" rx="3.8" fill="#141B2D"/>
+  </g>
+</svg>

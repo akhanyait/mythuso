@@ -13,6 +13,7 @@ struct PassportView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: ThusoSpacing.space20) {
                 DemoBadge()
+                GilbertOneHelpLine(line: GilbertOneStatesData.passport)
                 hero
                 SectionTabs(sections: ["Overview", "Records", "Medications", "More"], selection: $tab)
                 switch tab {

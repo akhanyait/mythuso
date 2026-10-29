@@ -1,0 +1,19 @@
+/* The reading's path (ReadingPath.tsx): the pack's navy stage and glass nodes, joined by a still dashed line. Nothing
+   moves on it, because nothing travels it yet. */
+.rp { border-radius: var(--r-lg); padding: 20px; background: var(--color-primary); color: var(--color-primary-foreground); }
+.rp h2 { margin: 0; color: var(--color-primary-foreground); font-family: var(--font-display); font-size: 21px; }
+.rp-lead { margin: 6px 0 16px; color: var(--color-primary-foreground); font-size: 14.5px; line-height: 1.45; }
+.rp-steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; position: relative; }
+.rp-steps::before { content: ''; position: absolute; left: 10%; right: 10%; top: 22px; border-top: 2px dashed color-mix(in oklab, var(--color-coral) 60%, var(--color-primary)); }
+.rp-step { position: relative; display: grid; justify-items: center; gap: 8px; text-align: center; }
+.rp-node { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: color-mix(in oklab, var(--color-primary-foreground) 12%, var(--color-primary)); border: 1px solid color-mix(in oklab, var(--color-primary-foreground) 28%, var(--color-primary)); color: var(--color-primary-foreground); flex: none; }
+.rp-node--off { background: transparent; border-style: dashed; }
+.rp-words strong { display: block; font-size: 14px; }
+.rp-words small { display: block; margin-top: 2px; color: var(--color-primary-foreground); font-size: 12.5px; line-height: 1.35; }
+.rp-note { margin: 16px 0 0; padding: 10px 12px; border-radius: var(--r-md); background: color-mix(in oklab, var(--color-primary-foreground) 8%, var(--color-primary)); font-size: 13.5px; }
+.rp-pair { display: flex; align-items: center; gap: 12px; margin-top: 12px; text-align: left; }
+@media (max-width: 720px) {
+ .rp-steps { grid-template-columns: minmax(0, 1fr); }
+ .rp-steps::before { left: 22px; right: auto; top: 22px; bottom: 22px; border-top: 0; border-left: 2px dashed color-mix(in oklab, var(--color-coral) 60%, var(--color-primary)); }
+ .rp-step { grid-template-columns: 44px minmax(0, 1fr); justify-items: start; text-align: left; align-items: center; }
+}
