@@ -64,7 +64,7 @@ enum ThusoTheme {
     static let brandInk = Color(red: 0.078, green: 0.106, blue: 0.176)                // #141B2D
     static let brandGreen = Color(red: 0.784, green: 0.271, blue: 0.184)              // #C8452F
     static let brandOrange = Color(red: 0.898, green: 0.325, blue: 0.247)             // #E5533F
-    static let brandLime = Color(red: 0.965, green: 0.769, blue: 0.325)               // #F6C453
+    static let brandLime = Color(red: 0.957, green: 0.663, blue: 0.231)               // #f4a93b
     static let brandMint = Color(red: 0.961, green: 0.643, blue: 0.592)               // #F5A497
     static let brandCyan = Color(red: 0.318, green: 0.953, blue: 0.988)               // #51F3FC
 }
@@ -73,21 +73,21 @@ enum ThusoTheme {
 /// on iOS reads them yet; they exist so that restyling a screen is a matter of reaching for one.
 enum ThusoSemantic {
     enum Light {
-        static let background = Color(red: 0.980, green: 0.973, blue: 0.965)        // #faf8f6
+        static let background = Color(red: 0.984, green: 0.973, blue: 0.961)        // #fbf8f5
         static let foreground = Color(red: 0.078, green: 0.106, blue: 0.176)        // #141b2d
         static let surface = Color(red: 1.000, green: 1.000, blue: 1.000)           // #ffffff
-        static let surfaceRaised = Color(red: 0.961, green: 0.945, blue: 0.933)     // #f5f1ee
+        static let surfaceRaised = Color(red: 0.992, green: 0.925, blue: 0.902)     // #fdece6
         static let primary = Color(red: 0.078, green: 0.106, blue: 0.176)           // #141b2d
         static let primaryForeground = Color(red: 1.000, green: 1.000, blue: 1.000) // #ffffff
         static let accent = Color(red: 0.784, green: 0.271, blue: 0.184)            // #c8452f
         static let accentForeground = Color(red: 1.000, green: 1.000, blue: 1.000)  // #ffffff
         static let muted = Color(red: 0.945, green: 0.925, blue: 0.910)             // #f1ece8
-        static let mutedForeground = Color(red: 0.369, green: 0.392, blue: 0.447)   // #5e6472
-        static let success = Color(red: 0.122, green: 0.541, blue: 0.298)           // #1f8a4c
-        static let warning = Color(red: 0.965, green: 0.769, blue: 0.325)           // #f6c453
+        static let mutedForeground = Color(red: 0.227, green: 0.259, blue: 0.337)   // #3a4256
+        static let success = Color(red: 0.184, green: 0.478, blue: 0.333)           // #2f7a55
+        static let warning = Color(red: 0.957, green: 0.663, blue: 0.231)           // #f4a93b
         static let danger = Color(red: 0.933, green: 0.420, blue: 0.341)            // #ee6b57
-        static let info = Color(red: 0.184, green: 0.290, blue: 0.541)              // #2f4a8a
-        static let highlight = Color(red: 0.965, green: 0.769, blue: 0.325)         // #f6c453
+        static let info = Color(red: 0.184, green: 0.373, blue: 0.659)              // #2f5fa8
+        static let highlight = Color(red: 0.957, green: 0.663, blue: 0.231)         // #f4a93b
         static let coral = Color(red: 0.898, green: 0.325, blue: 0.247)             // #e5533f
         static let border = Color(red: 0.855, green: 0.824, blue: 0.796)            // #dad2cb
         static let input = Color(red: 0.871, green: 0.847, blue: 0.827)             // #ded8d3
@@ -116,13 +116,13 @@ enum ThusoSemantic {
     }
 }
 enum ThusoRadius {
-    static let sm: CGFloat = 6
-    static let md: CGFloat = 8
-    static let lg: CGFloat = 12
-    static let card: CGFloat = 12
-    static let panel: CGFloat = 12
-    static let control: CGFloat = 8
-    static let tile: CGFloat = 8
+    static let sm: CGFloat = 8
+    static let md: CGFloat = 14
+    static let lg: CGFloat = 20
+    static let card: CGFloat = 20
+    static let panel: CGFloat = 20
+    static let control: CGFloat = 14
+    static let tile: CGFloat = 14
     static let pill: CGFloat = 999
 }
 /// Opacities, as opacities. A flattened grey cannot follow the ground it sits on; an alpha has no

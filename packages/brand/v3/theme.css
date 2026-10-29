@@ -1,0 +1,49 @@
+/* Generation six — MyThuso v3, the redesign pack Gilbert sent on 29 October 2026 ("MyThuso-v3-preview",
+   design system sheet 01). The source of the nineteen semantic roles; scripts/check-boundaries.mjs reads
+   tokens.json back against it. Navy for trust, coral for action, soft peach surfaces: the canvas and peach
+   grounds, the sun, sage and sky accents and the ink body are the sheet's own values. Everything the sheet
+   does not change is generation five's (packages/brand/fresh-look/theme.css), and the dark block is
+   unchanged because the pack draws no dark theme. */
+:root {
+  --background: #fbf8f5;
+  --foreground: #141b2d;
+  --surface: #ffffff;
+  --surface-raised: #fdece6;
+  --primary: #141b2d;
+  --primary-foreground: #ffffff;
+  --accent: #c8452f;
+  --accent-foreground: #ffffff;
+  --muted: #f1ece8;
+  --muted-foreground: #3a4256;
+  --success: #2f7a55;
+  --warning: #f4a93b;
+  --danger: #ee6b57;
+  --info: #2f5fa8;
+  --highlight: #f4a93b;
+  --coral: #e5533f;
+  --border: #dad2cb;
+  --input: #ded8d3;
+  --ring: #c8452f;
+}
+
+.dark {
+  --background: #0e1320;
+  --foreground: #edeff4;
+  --surface: #161c2c;
+  --surface-raised: #1e2538;
+  --primary: #f07a68;
+  --primary-foreground: #0e1320;
+  --accent: #f07a68;
+  --accent-foreground: #0e1320;
+  --muted: #232a3e;
+  --muted-foreground: #a3a9b6;
+  --success: #4cc38a;
+  --warning: #f6c453;
+  --danger: #f27a9c;
+  --info: #8fa8e6;
+  --highlight: #f6c453;
+  --coral: #f07a68;
+  --border: #3a4257;
+  --input: #333b50;
+  --ring: #f07a68;
+}
