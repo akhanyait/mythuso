@@ -139,6 +139,21 @@
   "why": "A stand-down closes the concern Core opened for the SOS through the same closeRefusal rule the close route asks, pointing at the SOS, by the role that stood it down. A reason the map does not name is not guessed at: the concern stays open for a person to close, and Core's audit says it was not stood down."
  },
 
+ "referralWritten": {
+  "hears": "appointment.follow_up_required@1",
+  "followUpKind": "referral",
+  "ownerRole": {"value": "nurse", "decidedBy": null, "proposedBy": "TIA care-loop build, 29 October 2026", "proposedBecause": "The 28 October TIA decks promise that every referral has an owner, a reason and a documented outcome. A registered nurse is who calls the patient to find out whether she went, and books a visit when she did not.", "question": "Who owns the follow-up concern opened when a doctor writes a referral."},
+  "fallbackRole": {"value": "doctor", "decidedBy": null, "proposedBy": "TIA care-loop build, 29 October 2026", "proposedBecause": "The doctor who referred can judge what a referral nobody has followed up needs, including whether it needs a visit today.", "question": "Who holds a referral follow-up concern the nurse has not taken on in time."},
+  "ladderRung": {"value": 2, "decidedBy": null, "proposedBy": "TIA care-loop build, 29 October 2026", "proposedBecause": "Nurse review, the rung a hospital discharge follow-up is given. A referral is not an emergency once it is written; the urgency the doctor chose is in the letter, and the loop's job is that somebody owns finding out what happened.", "question": "How long the nurse has to take on a referral follow-up concern before it goes to its fallback."},
+  "screen": {
+   "owned": "{owner} now owns finding out whether {patient} went. If nobody takes it on by {at}, it goes to {fallback}, then up the rota.",
+   "onBoard": "It is on the Control Tower's concern board as {loopRef}, and it stays open until somebody closes it with an outcome. Writing the letter did not close it.",
+   "preview": "This preview holds the concern in this tab's memory. Nobody is paged and no facility is told."
+  },
+  "rule": "One referral is one follow-up concern however often it is handed in, keyed by its reference: owned by a nurse, falling back to a doctor, then walking the rota it was opened under. A person closes it with an outcome; writing the letter does not close it, and nothing the receiving facility sends closes it for them.",
+  "why": "A referral letter that nobody follows up is the gap the decks name between clinic and home. Core reads no Clinical contract: the owner, the fallback and the rung are proposals here, beside the rota they walk, and the concern points at the referral's reference, never at why the patient was referred."
+ },
+
  "dischargeReceived": {
   "hears": "passport.discharge.received@1",
   "ownerRole": {"value": "nurse", "decidedBy": null, "proposedBy": "Trust & Record lead (Wave 5)", "proposedBecause": "A registered nurse is who calls a patient who has come home from hospital, checks that they understood the discharge and have their medicines, and books a visit when one is needed. The discharge itself is read in the record under her grant.", "question": "Who owns the follow-up concern Core opens when a hospital says a patient was discharged."},

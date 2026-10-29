@@ -22,6 +22,11 @@ import { documentById, refusedDocuments } from '../lib/teleconsult';
 import { ClinicalDeck, type DeckFigure } from './ClinicalDeck';
 import protocolsContract from '../../../../packages/catalog/protocols.json' with { type: 'json' };
 import coreApi from '../../../../packages/catalog/apis/core.json' with { type: 'json' };
+import closedLoop from '../../../../packages/catalog/closed-loop.json' with { type: 'json' };
+import scheduling from '../../../../packages/catalog/scheduling.json' with { type: 'json' };
+import vetting from '../../../../packages/catalog/vetting.json' with { type: 'json' };
+import { openReferralFollowUp } from '../lib/referral-follow-up';
+import type { Loop } from '../../../../packages/engines/src/core/domain/loops.ts';
 import './clinical-records.css';
 import './doctor-pages.css';
 /* Indicative adult reference ranges, used only to flag a value for the nurse's attention.
@@ -489,13 +494,14 @@ export function ReferralLetter({ reference, patient = 'Lerato Molefe', doctor, r
  const [unit, setUnit] = useState('');
  const [urgency, setUrgency] = useState('Within 24 hours');
  const [note, setNote] = useState(reason);
- const [written, setWritten] = useState(false);
+ const [written, setWritten] = useState<Loop | null>(null);
  if (written) return <div className="form-stack">
   <div className="success-icon"><BadgeCheck size={30}/></div>
   <h3>The referral is written.</h3>
   <p className="muted">It is attributed to {doctor} · {registration}, it names the readings behind it, and it asks for {urgency.toLowerCase()}. It has not left this screen.</p>
   <div className="privacy-note"><ShieldCheck size={19}/>Nothing was transmitted. There is no facility directory to address it to, no secure channel to carry it and no consent recorded for sending clinical information to a third party — and a referral needs all three before it is anything but a document.</div>
   <div className="privacy-note"><UserCheck size={19}/>What the receiving clinician would get is this letter. The patient’s Health Passport does not travel with it: a referral is not a reason to hand over a record.</div>
+  <ReferralOwner loop={written} patient={patient}/>
   {onBack && <Button variant="secondary" className="full" onClick={onBack}><ArrowLeft size={16}/>Back to the decision</Button>}
   <Button variant="primary" className="full" onClick={onClose}>Close<ArrowRight size={16}/></Button>
  </div>;
@@ -513,7 +519,24 @@ export function ReferralLetter({ reference, patient = 'Lerato Molefe', doctor, r
   </div>
   <div className="privacy-note"><CircleAlert size={19}/>A referral does not discharge the patient from MyThuso and it does not close the visit. Somebody here still has to find out whether she went.</div>
   <div className="button-row"><Button variant="secondary" onClick={onBack ?? onClose}><ArrowLeft size={16}/>Back</Button>
-   <Button variant="primary" disabled={!unit || note.trim().length < 10} onClick={() => setWritten(true)}><Check size={16}/>Write the referral</Button></div>
+   <Button variant="primary" disabled={!unit || note.trim().length < 10} onClick={() => setWritten(openReferralFollowUp(reference))}><Check size={16}/>Write the referral</Button></div>
+ </div>;
+}
+
+/* Who owns finding out whether she went. The letter's own closing note said somebody here still has to; this names who,
+   by when, and who it goes to after, from the concern the closed loop opened rather than from anything typed here. Every
+   sentence is closed-loop.json's, and every role is the vetting register's name for the id the contract gives. */
+const referralSay = closedLoop.referralWritten.screen;
+const fillIn = (sentence: string, values: Readonly<Record<string, string>>) => sentence.replace(/\{(\w+)\}/g, (whole, key: string) => values[key] ?? whole);
+const roleNameOf = (id: string | null) => vetting.roles.find(role => role.id === id)?.name ?? id ?? '';
+const anArticle = (name: string) => `${/^[aeiou]/i.test(name) ? 'An' : 'A'} ${name.toLowerCase()}`;
+function ReferralOwner({ loop, patient }: { loop: Loop; patient: string }) {
+ const at = new Date(loop.dueBy).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: scheduling.timezone });
+ return <div className="panel" data-referral-loop={loop.loopRef}>
+  <div className="review-line"><span>Follow-up owner</span><strong>{roleNameOf(loop.ownerRole)}</strong></div>
+  <p className="helper">{fillIn(referralSay.owned, { owner: anArticle(roleNameOf(loop.ownerRole)), patient, at, fallback: anArticle(roleNameOf(loop.fallbackRole)).toLowerCase() })}</p>
+  <p className="helper">{fillIn(referralSay.onBoard, { loopRef: loop.loopRef })}</p>
+  <p className="helper">{referralSay.preview}</p>
  </div>;
 }
 
