@@ -173,6 +173,9 @@ gw=$(mktemp)
 sed "s#__CERT_DIR__#$CERT_DIR#g" deploy/ngwempisi/gateway.conf > "$gw"
 rsync -az -e "$RSYNC_SSH" --rsync-path="sudo -n rsync" "$gw" "$TARGET:$BASE/gateway-mythuso.conf"
 rm -f "$gw"
+# mktemp makes the file 0600 and rsync keeps that, but `docker cp` reads it as the login user, not
+# root: unreadable, it copies an empty file into the gateway (29 October 2026, first run).
+remote "sudo -n chmod 644 $BASE/gateway-mythuso.conf && test -s $BASE/gateway-mythuso.conf"
 # The previous copy is taken from inside the gateway, so a failed test puts back exactly what was there.
 remote "set -e
   had=0
