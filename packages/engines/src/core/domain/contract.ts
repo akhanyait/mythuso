@@ -87,6 +87,17 @@ const dischargeSpan = spanForRung(closedLoop.dischargeReceived.ladderRung.value)
 if (dischargeSpan === undefined) throw new Error('packages/catalog/closed-loop.json gives a discharge follow-up a ladder rung the ladder does not hold, so its owner would have no time anybody chose.');
 export const dischargeSpanMs: number = dischargeSpan;
 
+/* A referral written by a doctor (the TIA care loop, 29 October 2026): who owns finding out whether the patient went, who it
+   falls back to, and how long its owner has to take it on — the rung closed-loop.json proposes. Core reads no Clinical
+   contract, and nothing the letter says chooses the owner, the fallback or the time. */
+export const referralFollowUpKind: string = closedLoop.referralWritten.followUpKind;
+export const referralOwnerRole: string = closedLoop.referralWritten.ownerRole.value;
+export const referralFallbackRole: string = closedLoop.referralWritten.fallbackRole.value;
+if (!ownerRoles.has(referralOwnerRole) || !ownerRoles.has(referralFallbackRole) || referralOwnerRole === referralFallbackRole) throw new Error('packages/catalog/closed-loop.json gives a referral follow-up an owner or a fallback nobody can be, or the same role twice, so a referred patient would be followed up by nobody.');
+const referralSpan = spanForRung(closedLoop.referralWritten.ladderRung.value);
+if (referralSpan === undefined) throw new Error('packages/catalog/closed-loop.json gives a referral follow-up a ladder rung the ladder does not hold, so its owner would have no time anybody chose.');
+export const referralSpanMs: number = referralSpan;
+
 /* A Sentinel tier raised by a clinician, heard from Safety: the rung from which Core opens a concern at all, who owns it
    and who it falls back to. The time to acknowledge it is the ladder's for the rung Sentinel raised, so no second number
    is kept for it. Core reads no Safety contract, and nothing Sentinel sends chooses the owner, the fallback or the time. */

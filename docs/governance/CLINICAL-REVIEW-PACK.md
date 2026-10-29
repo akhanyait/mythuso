@@ -1910,3 +1910,6 @@ Added to a contract after this pack's generator was last taught about them. A re
 | `closed-loop.json sos.fallbackRole` | Who holds an SOS concern the desk has not taken on in time. |
 | `closed-loop.json sos.ladderRung` | How long the desk has to take on an SOS concern before it goes to its fallback. |
 | `closed-loop.json sosStoodDown.closesAs` | Which of the closed loop's outcomes an SOS concern is closed as when the person who pressed it stands it down. |
+| `closed-loop.json referralWritten.ownerRole` | Who owns the follow-up concern opened when a doctor writes a referral. |
+| `closed-loop.json referralWritten.fallbackRole` | Who holds a referral follow-up concern the nurse has not taken on in time. |
+| `closed-loop.json referralWritten.ladderRung` | How long the nurse has to take on a referral follow-up concern before it goes to its fallback. |
