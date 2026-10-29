@@ -49,8 +49,12 @@ test('the nurse sees her own day on a map, numbered, counted from the list, with
   await expect(screen.locator('.livemap-layers')).toContainText(name);
  }
 
- /* Choosing a pin chooses the row, on the schematic where every pin is an element this test can press. */
- await screen.getByRole('button', { name: 'Hide streets' }).click();
+ /* Choosing a pin chooses the row, on the schematic where every pin is an element this test can press. Staff
+    start on streets, which need the tile server; where the tiles never arrive (a runner with no way out) the map
+    has already gone back to the schematic and offers "Show streets" instead, so either way the pins are reached. */
+ const hide = screen.getByRole('button', { name: 'Hide streets' });
+ await expect(hide.or(screen.getByRole('button', { name: 'Show streets' }))).toBeVisible();
+ if (await hide.isVisible()) await hide.click();
  await screen.getByRole('button', { name: /^Stop 3,/ }).click();
  await expect(stops.nth(2)).toHaveAttribute('aria-pressed', 'true');
  await expect(card).toContainText('Melville');
