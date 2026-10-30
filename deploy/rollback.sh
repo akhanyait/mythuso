@@ -24,12 +24,18 @@ set -euo pipefail
 
 TARGET="${TARGET:-liqzar-server}"
 HOST="${HOST:-mythuso.co.za}"
-ROOT=/var/www/mythuso
+# deploy/ngwempisi/rollback.sh sets these two: the live symlink there is /opt/mythuso/current, and the
+# login on that box is not root, so the swap goes through sudo.
+ROOT="${ROOT:-/var/www/mythuso}"
+SUDO="${SUDO:-}"
+# Word-split on purpose: extra ssh options, such as -i for a key that has no ~/.ssh/config entry.
+# shellcheck disable=SC2086
+SSH_OPTS="${SSH_OPTS:-}"
 RELEASES=/opt/mythuso/releases
 chosen="${1:-}"
 
 list() {
-  ssh "$TARGET" "live=\$(basename \$(readlink -f $ROOT) 2>/dev/null || echo none)
+  ssh $SSH_OPTS "$TARGET" "live=\$(basename \$(readlink -f $ROOT) 2>/dev/null || echo none)
     cd $RELEASES 2>/dev/null || { echo 'no releases directory yet — nothing has deployed under this layout'; exit 0; }
     for d in */; do d=\${d%/}
       if [ \"\$d\" = \"\$live\" ]; then echo \"  \$d   (live)\"; else echo \"  \$d\"; fi
@@ -50,7 +56,7 @@ fi
 if ! printf '%s' "$chosen" | grep -qE '^[A-Za-z0-9._-]+$'; then
   echo "!! '$chosen' is not a release name (letters, digits, dot, dash, underscore only)"; exit 1
 fi
-if ! ssh "$TARGET" "[ -d $RELEASES/$chosen ]"; then
+if ! ssh $SSH_OPTS "$TARGET" "[ -d $RELEASES/$chosen ]"; then
   echo "!! no such release: $RELEASES/$chosen"
   echo "The releases that exist:"
   list
@@ -59,17 +65,17 @@ fi
 
 echo "Rolling $HOST back to $chosen"
 # Same atomic pattern as the deploy: link beside, rename over. The site is never without a root.
-ssh "$TARGET" "ln -s $RELEASES/$chosen $ROOT.new && mv -Tf $ROOT.new $ROOT"
+ssh $SSH_OPTS "$TARGET" "$SUDO ln -s $RELEASES/$chosen $ROOT.new && $SUDO mv -Tf $ROOT.new $ROOT"
 
 # Verify the way deploy.sh does — by Host header over the box's own loopback, so this works before
 # DNS does, and against the entry's own chunk marker so a 200 from the wrong page is not a pass.
-marker=$(ssh "$TARGET" "grep -o 'assets/[A-Za-z0-9._-]*\.js' $RELEASES/$chosen/index.html 2>/dev/null | head -1")
+marker=$(ssh $SSH_OPTS "$TARGET" "grep -o 'assets/[A-Za-z0-9._-]*\.js' $RELEASES/$chosen/index.html 2>/dev/null | head -1")
 if [ -z "$marker" ]; then
   echo "!! the rolled-back release has no entry chunk in its index.html — it may not be a real build."
   echo "   The symlink now points at it. Check by hand: ssh $TARGET 'curl -sI http://$HOST/app/'"
   exit 1
 fi
-ssh "$TARGET" "body=\$(curl -sfL --resolve '$HOST:443:127.0.0.1' --resolve '$HOST:80:127.0.0.1' http://$HOST/app/) || { echo 'the app entry did not answer after the rollback'; exit 1; }
+ssh $SSH_OPTS "$TARGET" "body=\$(curl -sfL --resolve '$HOST:443:127.0.0.1' --resolve '$HOST:80:127.0.0.1' http://$HOST/app/) || { echo 'the app entry did not answer after the rollback'; exit 1; }
   case \"\$body\" in
     *$marker*) echo 'verified: /app/ serves the rolled-back release' ;;
     *) echo '!! /app/ answered but is not serving $chosen — something else is answering for this host'; exit 1 ;;
