@@ -18,7 +18,9 @@
 # swap, a changed site file is `nginx -s reload`, and only the first deploy creates these containers.
 #
 # The assistant is restarted by a person, never by a deploy, as on liqzar-server (deploy/RUNBOOK.md):
-# `docker restart mythuso-assistant` is the equivalent of `systemctl restart assistant-api.service`.
+# `docker restart mythuso-assistant` is the equivalent of `systemctl restart assistant-api.service` for a
+# new server.mjs. A changed /etc/mythuso/*.env is not: Docker reads env files when a container is
+# created, never on restart, so that takes `sudo docker compose -f /opt/mythuso/compose.yaml up -d --force-recreate --no-deps mythuso-assistant`.
 name: mythuso
 
 services:
@@ -57,7 +59,8 @@ services:
     environment:
       NODE_ENV: production
       MYTHUSO_ASSISTANT_STATE_DIR: /var/lib/mythuso-assistant
-    # Root-only files on the host, read by the Docker daemon when the container starts, never
+    # Root-only files on the host, read by `docker compose` when it creates the container (so it runs
+    # under sudo; as the login user they are unreadable and, being optional, silently skipped), never
     # copied into an image. founder.env is optional, as `EnvironmentFile=-` makes it in the unit.
     env_file:
       - path: /etc/mythuso/assistant.env

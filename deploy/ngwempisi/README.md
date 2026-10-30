@@ -39,7 +39,8 @@ mythuso.co.za and Ngwempisi is tested by name with `--resolve`.
    authenticator and re-entering the vault key, which would make the vault unreadable. The vault key
    moves with founder.env, so stored provider keys keep working.
 3. **Deploy.** `CERT_DIR=migrated/mythuso.co.za ./deploy/ngwempisi/deploy.sh`. The first run creates
-   the two containers, so the assistant starts reading the copied files.
+   the two containers. If the env files arrive after that (as they did on 29–30 October), recreate the
+   assistant once: `sudo docker compose -f /opt/mythuso/compose.yaml up -d --force-recreate --no-deps mythuso-assistant`.
 4. **Prove it before anyone sees it**, from your machine:
    `for p in / /app/ /shop/ /status/ /status /staff/ /assistant/health; do curl -s -o /dev/null -w "$p %{http_code}\n" --resolve mythuso.co.za:443:102.202.45.201 https://mythuso.co.za$p; done`
    and the founder door:
@@ -65,6 +66,9 @@ mythuso.co.za and Ngwempisi is tested by name with `--resolve`.
 - A bad release: `./deploy/ngwempisi/rollback.sh` lists, `./deploy/ngwempisi/rollback.sh <release>` moves.
 - The assistant: `server.mjs.prev` beside `server.mjs` in `/opt/mythuso/assistant`, then
   `docker restart mythuso-assistant`, as on liqzar.
+- A changed `/etc/mythuso/*.env` needs the container recreated, not restarted (Docker reads env files
+  only at creation, and only compose under sudo can read them):
+  `sudo docker compose -f /opt/mythuso/compose.yaml up -d --force-recreate --no-deps mythuso-assistant`.
 - The whole move, before DNS: `docker exec lima-gateway-1 rm -f /etc/nginx/conf.d/mythuso.conf && docker exec lima-gateway-1 nginx -t && docker exec lima-gateway-1 nginx -s reload`, then
   `docker compose -f /opt/mythuso/compose.yaml down`. After DNS: point the records back at
   154.66.198.238, which is still serving until the backing out above.

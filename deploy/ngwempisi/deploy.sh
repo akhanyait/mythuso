@@ -163,7 +163,8 @@ else
   rsync -az -e "$RSYNC_SSH" --rsync-path="sudo -n rsync" deploy/ngwempisi/compose.yaml "$TARGET:$BASE/compose.yaml"
   remote "set -e
     sudo -n mv -f $NGINX/site.conf.next $NGINX/site.conf
-    docker compose -f $BASE/compose.yaml up -d
+    # sudo: compose reads the root-only env files itself, at creation (compose.yaml).
+    sudo -n docker compose -f $BASE/compose.yaml up -d
     sleep 3
     docker exec mythuso-site nginx -t"
 fi
