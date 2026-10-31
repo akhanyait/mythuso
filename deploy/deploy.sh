@@ -247,6 +247,15 @@ if grep -qE '(AZURE_OPENAI_KEY|AZURE_OPENAI_API_KEY|OLLAMA_URL|ELEVENLABS_API_KE
   echo "the assistant runtime carries what looks like a provider credential — refusing to publish it"; exit 1
 fi
 
+# Build-only, for deploy/ngwempisi/deploy.sh: the second box publishes differently (a container behind a
+# shared gateway rather than a host nginx), but what is built and what is refused above must be the
+# same build and the same refusals, so it asks this script for them rather than keeping a copy. It
+# stops here, before the first ssh: nothing on $TARGET is read or touched past the baseline above.
+if [ "${MYTHUSO_BUILD_ONLY:-}" = 1 ]; then
+  say "Built and checked; stopping before $TARGET (MYTHUSO_BUILD_ONLY=1)"
+  exit 0
+fi
+
 say "Checking $TARGET before touching it"
 ssh "$TARGET" "test -d /etc/nginx/sites-enabled && command -v nginx >/dev/null" \
   || { echo "nginx not found on $TARGET"; exit 1; }

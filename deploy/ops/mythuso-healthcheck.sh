@@ -40,7 +40,11 @@ notes=()
 # not — the same trick the deploy uses to verify itself before DNS points anywhere. Checking https
 # on a host that has never had certbot run against it would report a failure that is simply the
 # next step on the list.
-if [ -d "/etc/letsencrypt/live/$HOST" ]; then
+# On 102.202.45.201 the certificate belongs to the shared gateway container, not to /etc/letsencrypt
+# on the host, and port 80 there redirects every name to https. deploy/ngwempisi/deploy.sh writes
+# MYTHUSO_TLS=gateway into /etc/mythuso/host.env so this checks https there rather than reading a
+# 301 from the loopback as a failure.
+if [ -d "/etc/letsencrypt/live/$HOST" ] || [ "${MYTHUSO_TLS:-}" = gateway ]; then
   code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 "https://$HOST/" 2>/dev/null || echo 000)
   if [ "$code" != "200" ]; then problems+=("https://$HOST/ returned $code"); fi
   app=$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 "https://$HOST/app/" 2>/dev/null || echo 000)
