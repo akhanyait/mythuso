@@ -1,0 +1,289 @@
+/* Ink street — the patient shell, the home and Book care, November 2026.
+ *
+ * The shell was a cream rail with a peach row for "you are here", which is the proposal's
+ * picture and also a dashboard template's. The rail is now the brand navy, the official
+ * reversed wordmark (the lockup drawn for a dark ground — not a recolour), and coral only on
+ * the row you are in. Salmon (--teal-mid) marks a group heading and a count: it clears 7:1 on
+ * navy, so a 13px label may wear it. Cream stays the reading ground.
+ *
+ * One action on the home. The empty next-visit card already says nothing is booked; its filled
+ * button is coral and the second button stays an outline. Quick actions stay a list.
+ *
+ * Book care is the same palette turned into a choice: an unselected card is paper with a salmon
+ * disc (navy glyph on salmon clears 7:1), a selected card is navy with white words, and Next is
+ * coral once it can be pressed. No score, no triage word, no new price. */
+
+@media (min-width: 1000px) {
+  .app-shell.patient-surface .sidebar {
+    background: var(--brand-ink);
+    color: var(--glass-edge);
+    border-right-color: var(--brand-ink);
+  }
+  /* The reversed lockup is the logo's own answer to navy. core.css hides it in the light scheme
+     with !important; this rule is more specific and loaded later, so the ink lockup does not
+     disappear into the rail and the art is not redrawn. */
+  .app-shell.patient-surface .sidebar .wordmark-ink {
+    display: none !important;
+  }
+  .app-shell.patient-surface .sidebar .wordmark-reversed {
+    display: block !important;
+  }
+  .app-shell.patient-surface .sidebar .wordmark img {
+    width: 168px;
+    height: auto;
+  }
+  .app-shell.patient-surface .psb-tagline {
+    color: color-mix(in oklab, var(--glass-edge) 78%, var(--brand-ink));
+  }
+  .app-shell.patient-surface .sidebar nav.psb-nav,
+  .app-shell.patient-surface .sidebar-bottom {
+    border-top-color: color-mix(in oklab, var(--glass-edge) 22%, var(--brand-ink));
+  }
+  /* shells.css names .app-shell twice and a nav element, so a shorter selector loses and the
+     ink words stay ink — invisible on this navy. Match that shape and add the surface. */
+  .app-shell.patient-surface .sidebar nav .ui-nav-item {
+    color: var(--glass-edge);
+  }
+  .app-shell.patient-surface .sidebar nav .ui-nav-item:is(:hover, .is-hover):not(:disabled):not([aria-current='page']) {
+    background: color-mix(in oklab, var(--glass-edge) 12%, transparent);
+    color: var(--glass-edge);
+  }
+  /* Coral fill and white words, plus the heavier weight the rail already sets. Where-you-are is a
+     fill and a weight, not a tint. White on #C8452F clears 4.8:1. */
+  .app-shell.patient-surface .sidebar nav .ui-nav-item[aria-current='page'],
+  .app-shell.patient-surface .sidebar nav .ui-nav-item[aria-current='page']:is(:hover, .is-hover) {
+    background: var(--brand-green);
+    color: var(--glass-edge);
+  }
+  .app-shell.patient-surface .sidebar nav .ui-nav-item__count {
+    background: var(--teal-mid);
+    color: var(--brand-ink);
+  }
+  .app-shell.patient-surface .sidebar nav .ui-nav-item[aria-current='page'] .ui-nav-item__count {
+    background: color-mix(in oklab, var(--glass-edge) 22%, transparent);
+    color: var(--glass-edge);
+  }
+  .app-shell.patient-surface.app-shell .sidebar nav .psb-group__toggle {
+    color: var(--teal-mid);
+  }
+  .app-shell.patient-surface.app-shell .sidebar nav .psb-group__toggle:hover {
+    background: color-mix(in oklab, var(--glass-edge) 10%, transparent);
+    color: var(--teal-mid);
+  }
+  .app-shell.patient-surface .psb-group__rows {
+    border-left-color: color-mix(in oklab, var(--glass-edge) 28%, var(--brand-ink));
+  }
+  .app-shell.patient-surface .sidebar .settings-link {
+    color: var(--glass-edge);
+  }
+  .app-shell.patient-surface .sidebar .settings-link:hover {
+    background: color-mix(in oklab, var(--glass-edge) 12%, transparent);
+    color: var(--glass-edge);
+  }
+}
+
+/* The phone's current tab: a coral disc behind the icon, and the label in the foreground colour
+   so it follows the scheme. The disc is a shape; the word does not depend on it. */
+.patient-surface .tabbar button.active {
+  color: var(--color-foreground);
+}
+.patient-surface .tabbar button.active .tab-icon {
+  background: var(--brand-green);
+  color: var(--glass-edge);
+}
+.patient-surface .tabbar button {
+  white-space: normal;
+  line-height: 1.2;
+}
+
+/* ---- Home ------------------------------------------------------------------------------------ */
+.patient-surface .pd .pd-welcome__mountain {
+  display: none;
+}
+.patient-surface .pd .pd-welcome {
+  background: var(--color-background);
+  border: 0;
+  border-top: 4px solid var(--brand-green);
+  box-shadow: none;
+}
+.patient-surface .pd .pd-welcome h1 {
+  font-size: 40px;
+  font-weight: 560;
+  letter-spacing: -0.03em;
+}
+.patient-surface .pd .pd-welcome__quote {
+  transform: none;
+  font-style: normal;
+}
+/* A long place name or a translated name wraps. The chip used to ellipsize, which is how a
+   translation loses the word that says where care is. */
+.patient-surface .pd .pd-chip > span:not(.pd-initials) {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+}
+
+.patient-surface .pd .pd-hero h2 {
+  font-size: 40px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+:root:not([data-theme="dark"]) .patient-surface .pd .pd-hero__eyebrow::after {
+  content: "";
+  display: block;
+  width: 48px;
+  height: 3px;
+  margin-top: var(--space-8);
+  border-radius: var(--r-pill);
+  background: var(--teal-mid);
+}
+.patient-surface .pd .pd-hero__date strong {
+  font-size: 64px;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+/* The one filled action on the visit card. The outline button beside it stays an outline. */
+.patient-surface .pd-hero .ui-button--secondary {
+  background: var(--brand-green);
+  border-color: transparent;
+  color: var(--glass-edge);
+}
+.patient-surface .pd-hero .ui-button--secondary:is(:hover, .is-hover):not(:disabled) {
+  background: color-mix(in oklab, var(--brand-green) 84%, var(--brand-ink));
+  color: var(--glass-edge);
+}
+.patient-surface .pd .pd-actions__list .pd-row:first-child .pd-tile {
+  background: var(--teal-mid);
+  color: var(--brand-ink);
+}
+
+.patient-surface .pd .pd-services {
+  grid-template-columns: minmax(0, 1fr);
+}
+.patient-surface .pd .shortcut-row.pd-service {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: 88px;
+  border-left: 4px solid var(--brand-green);
+}
+.patient-surface .pd .pd-service > strong {
+  overflow-wrap: anywhere;
+}
+.patient-surface .pd .pd-service__meta strong {
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+/* ---- Book care ------------------------------------------------------------------------------- */
+.patient-surface .bc {
+  max-width: 640px;
+}
+.patient-surface .bc-brand {
+  color: var(--color-foreground);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+}
+.patient-surface .bc-bar__step,
+.patient-surface .bc-progress__count {
+  color: var(--color-muted-foreground);
+}
+.patient-surface .bc-title,
+.patient-surface .bc-kicker {
+  text-align: left;
+}
+.patient-surface .bc-title {
+  font-size: 40px;
+  font-weight: 560;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+.patient-surface .bc-kicker__rule {
+  margin-inline: 0;
+  background: var(--brand-green);
+}
+.patient-surface .bc-progress__fill,
+.patient-surface .bc-node.is-done {
+  background: var(--brand-green);
+}
+.patient-surface .bc-node.is-now {
+  box-shadow: inset 0 0 0 2px var(--brand-green);
+}
+.patient-surface .bc-node.is-now::after {
+  background: var(--brand-green);
+}
+.patient-surface .bc-card {
+  min-height: 88px;
+  border-radius: var(--r-lg);
+}
+.patient-surface .bc-card__icon {
+  background: var(--teal-mid);
+  color: var(--brand-ink);
+}
+.patient-surface .bc-card__title {
+  color: var(--color-foreground);
+  overflow-wrap: anywhere;
+}
+.patient-surface .bc-card__detail {
+  color: var(--color-muted-foreground);
+  overflow-wrap: anywhere;
+}
+.patient-surface .bc-card:has(:checked) {
+  background: var(--brand-ink);
+  border-color: var(--brand-ink);
+}
+.patient-surface .bc-card:has(:checked) .bc-card__title,
+.patient-surface .bc-card:has(:checked) .bc-card__detail {
+  color: var(--glass-edge);
+}
+.patient-surface .bc-card:has(:checked) .bc-card__detail {
+  color: color-mix(in oklab, var(--glass-edge) 80%, var(--brand-ink));
+}
+.patient-surface .bc-check {
+  background: var(--brand-green);
+  color: var(--glass-edge);
+}
+.patient-surface .bc-next {
+  background: var(--brand-green);
+  color: var(--glass-edge);
+  border-radius: var(--r-md);
+  font-family: var(--font-display);
+  font-size: 18px;
+}
+.patient-surface .bc-next:disabled {
+  background: var(--color-muted);
+  color: var(--color-muted-foreground);
+}
+.patient-surface .bc-change {
+  color: var(--brand-green);
+  min-height: 44px;
+}
+
+@media (min-width: 800px) {
+  .patient-surface .pd .pd-services {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+@media (max-width: 700px) {
+  .patient-surface .pd .pd-welcome h1,
+  .patient-surface .pd .pd-hero h2,
+  .patient-surface .bc-title {
+    font-size: 32px;
+  }
+  .patient-surface .pd .pd-hero__date strong {
+    font-size: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .patient-surface .bc-card,
+  .patient-surface .bc-check,
+  .patient-surface .bc-progress__fill,
+  .patient-surface .bc-next,
+  .patient-surface .pd .shortcut-row.pd-service {
+    transition: none;
+  }
+}

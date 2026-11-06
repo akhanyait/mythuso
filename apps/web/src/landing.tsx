@@ -8,6 +8,8 @@ import './surface/studio.css';
 import './landing.css';
 import './surface/revamp.css';
 import './surface/public-revamp.css';
+/* Last, so the ink-street direction wins on equal specificity. Public entry only. */
+import './surface/direction-public.css';
 // The main address serves both the public site and every role dashboard. Workspaces
 // stay lazy so reading the public site does not download clinical screens.
 const Workspace = lazy(() => import('./Workspace'));
