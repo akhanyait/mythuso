@@ -35,6 +35,8 @@ import './surface/door.css';
    downloads either — see src/Doorway.tsx for the measurement that says so. */
 import './surface/revamp.css';
 import './surface/care-journey.css';
+/* Last. The patient shell, the home and Book care, and nothing the public page downloads. */
+import './surface/direction-patient.css';
 import { ChartMotion } from './components/ChartMotion';
 export default function Workspace() {
  return <React.StrictMode><Doorway/><ChartMotion/></React.StrictMode>;

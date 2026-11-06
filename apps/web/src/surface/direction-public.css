@@ -1,0 +1,166 @@
+/* Ink street — the public page, November 2026.
+ *
+ * The October proposal and the page it landed on share one picture: a cream sheet, a coral
+ * headline, a navy button, and a photograph with cards floating on it. That picture is calm and
+ * it is also the one every wellness template arrives at. This sheet keeps the identity — navy
+ * #141B2D (--brand-ink), coral #C8452F (--brand-green), salmon #EE8B7C (--teal-mid, the nearest
+ * token to the proposal's #F08A79), cream, Outfit and Figtree — and spends them the other way
+ * round. The words sit on navy. The second line of the headline is the wordmark's mint
+ * (--brand-mint), which clears about 8:1 on that navy. Coral is reserved for the one action.
+ * Studio lime stays a shape: the landing suite refuses it as a word. Nothing
+ * here is a new claim, a new price or a new picture: the sentences, the photograph and the
+ * catalogue price are the ones the page already renders.
+ *
+ * Static brand tokens, not the semantic primary. In the dark scheme --color-primary becomes the
+ * salmon and a panel painted with it would lose the second line. --brand-ink and --glass-edge
+ * stay a pair in both schemes. */
+
+.landing {
+  background: var(--color-background);
+}
+
+/* The way in is coral, on the cream bar and on the navy panel alike. White on #C8452F clears
+   4.8:1. The hover darkens toward navy rather than toward white, so the words stay on white. */
+.landing .primary {
+  background: var(--brand-green);
+  color: var(--glass-edge);
+  border-color: transparent;
+}
+.landing .primary:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--brand-green) 82%, var(--brand-ink));
+}
+
+/* The faint polygons were the previous stage's only decoration, and they are what made the
+   hero read as a template. The navy panel does that job now. */
+.landing .hero-plane {
+  display: none;
+}
+
+.landing .landing-hero.hero-stage {
+  background: var(--color-background);
+  border-bottom: 0;
+}
+
+.landing .landing-hero-copy {
+  background: var(--brand-ink);
+  color: var(--glass-edge);
+  border-radius: var(--r-lg);
+  padding: var(--space-32);
+}
+.landing .landing-hero-copy :is(h1, .landing-hero-lede, .landing-hero-price) {
+  color: var(--glass-edge);
+}
+/* --teal-mid is studio lime on this entry, and the landing test refuses that fill as a word even
+   where it would clear: it is a shape colour. --brand-mint is the wordmark's own second colour,
+   it is not that fill, and it clears about 8:1 on navy, including the 13px eyebrow. */
+.landing .landing-hero-eyebrow {
+  color: var(--brand-mint);
+}
+.landing .landing-hero-eyebrow > span {
+  background: var(--brand-mint);
+}
+.landing .landing-hero .landing-h1-accent {
+  color: var(--brand-mint);
+}
+.landing .landing-hero h1 {
+  font-weight: 560;
+  letter-spacing: -0.035em;
+}
+.landing .landing-hero-price {
+  border-top-color: color-mix(in oklab, var(--glass-edge) 28%, var(--brand-ink));
+}
+
+/* A salmon block behind the photograph, offset so it reads as a shape and not a border.
+   Nothing is read off it. --teal-mid is the shell's mint on this entry's studio remap, the
+   same family as the wordmark's second colour, and it stays a shape. */
+.landing .landing-portrait-frame::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 14%;
+  right: -32px;
+  bottom: -28px;
+  left: 22%;
+  border-radius: var(--r-lg);
+  background: var(--teal-mid);
+  pointer-events: none;
+}
+
+/* Section titles at the top of the display scale, still inside it. The index stays a small
+   label: coral at 13px does not clear. */
+.landing h2 {
+  font-weight: 560;
+  letter-spacing: -0.03em;
+}
+.landing-services > li,
+.landing-steps > li,
+.landing-plans > li {
+  border-left: 4px solid var(--brand-green);
+}
+.landing-services .landing-price strong {
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+.landing-step-index {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  color: var(--brand-ink);
+}
+
+/* Peach bands were the proposal's ground for every list. A card on the page ground is enough,
+   and it leaves the coral rail as the thing that marks a card. */
+.landing-section.tinted {
+  background: var(--color-background);
+}
+
+@media (max-width: 899px) {
+  /* Full-bleed navy on a phone: a rounded card inside the stage's own padding ate the width the
+     headline needs once a translation runs a third longer. */
+  .landing .landing-hero.hero-stage {
+    padding-inline: 0;
+    row-gap: 0;
+  }
+  .landing .landing-hero-copy {
+    border-radius: 0;
+    padding: var(--space-32) var(--pad) var(--space-40);
+  }
+  .landing .landing-hero h1 {
+    font-size: 40px;
+  }
+  .landing .landing-portrait {
+    margin-top: var(--space-32);
+    padding-inline: var(--pad);
+  }
+}
+
+@media (min-width: 900px) {
+  .landing .landing-hero h1 {
+    font-size: 64px;
+  }
+  .landing .landing-hero-copy {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: var(--space-40);
+  }
+  .landing h2 {
+    font-size: 40px;
+  }
+  /* The hanging cards were drawn for a cream gutter. On a navy panel they covered the lede.
+     They stay on the photograph. */
+  .landing .landing-hero-card.at-top,
+  .landing .hero-badge {
+    left: var(--space-12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing .primary:is(:hover, :focus-visible),
+  .landing :is(.landing-steps, .landing-services, .landing-plans) > li:is(:hover, :has(:focus-visible)) {
+    translate: none;
+  }
+}
